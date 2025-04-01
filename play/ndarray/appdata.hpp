@@ -76,42 +76,42 @@ struct AppData {
         conv5_bias(load_from_npy<1>("conv5_b.npy", {64})),
         linear_weights(load_from_npy<2>("linear_w.npy", {10, 1024})),
         linear_bias(load_from_npy<1>("linear_b.npy", {10})) {
-    conv1_out.print_shape("conv1_out");
-    pool1_out.print_shape("pool1_out");
-    conv2_out.print_shape("conv2_out");
-    pool2_out.print_shape("pool2_out");
-    conv3_out.print_shape("conv3_out");
-    conv4_out.print_shape("conv4_out");
-    conv5_out.print_shape("conv5_out");
-    pool3_out.print_shape("pool3_out");
-    linear_out.print_shape("linear_out");
+    // conv1_out.print_shape("conv1_out");
+    // pool1_out.print_shape("pool1_out");
+    // conv2_out.print_shape("conv2_out");
+    // pool2_out.print_shape("pool2_out");
+    // conv3_out.print_shape("conv3_out");
+    // conv4_out.print_shape("conv4_out");
+    // conv5_out.print_shape("conv5_out");
+    // pool3_out.print_shape("pool3_out");
+    // linear_out.print_shape("linear_out");
 
-    // report total memory usage in MB
-    size_t total_memory_usage = 0;
-    total_memory_usage += conv1_out.memory_usage_bytes();
-    total_memory_usage += pool1_out.memory_usage_bytes();
-    total_memory_usage += conv2_out.memory_usage_bytes();
-    total_memory_usage += pool2_out.memory_usage_bytes();
-    total_memory_usage += conv3_out.memory_usage_bytes();
-    total_memory_usage += conv4_out.memory_usage_bytes();
-    total_memory_usage += conv5_out.memory_usage_bytes();
-    total_memory_usage += pool3_out.memory_usage_bytes();
-    total_memory_usage += linear_out.memory_usage_bytes();
-    total_memory_usage += conv1_weights.memory_usage_bytes();
-    total_memory_usage += conv2_weights.memory_usage_bytes();
-    total_memory_usage += conv3_weights.memory_usage_bytes();
-    total_memory_usage += conv4_weights.memory_usage_bytes();
-    total_memory_usage += conv5_weights.memory_usage_bytes();
-    total_memory_usage += linear_weights.memory_usage_bytes();
-    total_memory_usage += conv1_bias.memory_usage_bytes();
-    total_memory_usage += conv2_bias.memory_usage_bytes();
-    total_memory_usage += conv3_bias.memory_usage_bytes();
-    total_memory_usage += conv4_bias.memory_usage_bytes();
-    total_memory_usage += conv5_bias.memory_usage_bytes();
-    total_memory_usage += linear_bias.memory_usage_bytes();
+    // // report total memory usage in MB
+    // size_t total_memory_usage = 0;
+    // total_memory_usage += conv1_out.memory_usage_bytes();
+    // total_memory_usage += pool1_out.memory_usage_bytes();
+    // total_memory_usage += conv2_out.memory_usage_bytes();
+    // total_memory_usage += pool2_out.memory_usage_bytes();
+    // total_memory_usage += conv3_out.memory_usage_bytes();
+    // total_memory_usage += conv4_out.memory_usage_bytes();
+    // total_memory_usage += conv5_out.memory_usage_bytes();
+    // total_memory_usage += pool3_out.memory_usage_bytes();
+    // total_memory_usage += linear_out.memory_usage_bytes();
+    // total_memory_usage += conv1_weights.memory_usage_bytes();
+    // total_memory_usage += conv2_weights.memory_usage_bytes();
+    // total_memory_usage += conv3_weights.memory_usage_bytes();
+    // total_memory_usage += conv4_weights.memory_usage_bytes();
+    // total_memory_usage += conv5_weights.memory_usage_bytes();
+    // total_memory_usage += linear_weights.memory_usage_bytes();
+    // total_memory_usage += conv1_bias.memory_usage_bytes();
+    // total_memory_usage += conv2_bias.memory_usage_bytes();
+    // total_memory_usage += conv3_bias.memory_usage_bytes();
+    // total_memory_usage += conv4_bias.memory_usage_bytes();
+    // total_memory_usage += conv5_bias.memory_usage_bytes();
+    // total_memory_usage += linear_bias.memory_usage_bytes();
 
-    std::cout << "Total memory usage: " << total_memory_usage / 1024.0 / 1024.0 << " MB"
-              << std::endl;
+    // std::cout << "Total memory usage: " << total_memory_usage / 1024.0 / 1024.0 << " MB"
+    //           << std::endl;
   }
 
   const NDArray<3> input;
