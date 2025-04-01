@@ -1,4 +1,3 @@
-#include "builtin-apps/common/cuda/helpers.cuh"
 #include "dispatchers.cuh"
 #include "kernels.cuh"
 
@@ -8,9 +7,9 @@ namespace cuda {
   (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachSingle))
 #define CudaAttachHost(ptr) (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachHost))
 
-void run_stage_1(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_1_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.input.shape();                      // [128, 3, 32, 32]
   const auto& w_shape = d_model_data.h_model_ref.h_conv1_w.shape();  // [16, 3, 3, 3]
   const auto& out_shape = appdata.conv1_out.shape();                 // [128, 16, 30, 30]
@@ -30,6 +29,8 @@ void run_stage_1(cifar_dense::AppDataBatch& appdata,
   const int PQ = P * Q;
 
   // Launch kernel
+  LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
+
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
   conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.input.raw(),
@@ -46,13 +47,11 @@ void run_stage_1(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
-
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_2(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_2_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.conv1_out.shape();  // [128, 16, 30, 30]
   // const auto& out_shape = appdata.pool1_out.shape();  // [128, 16, 15, 15]
 
@@ -70,6 +69,8 @@ void run_stage_2(cifar_dense::AppDataBatch& appdata,
   int Q = (W + 2 * padding - pool_w) / stride + 1;
   int PQ = P * Q;
 
+  LOG_KERNEL(LogKernelType::kCUDA, 2, &appdata);
+
   dim3 blockDim(256);
   dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
   maxpool2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv1_out.raw(),
@@ -82,12 +83,11 @@ void run_stage_2(cifar_dense::AppDataBatch& appdata,
                                                                pool_w,
                                                                stride,
                                                                padding);
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_3(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_3_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.pool1_out.shape();                  // [128, 16, 15, 15]
   const auto& w_shape = d_model_data.h_model_ref.h_conv2_w.shape();  // [20, 16, 3, 3]
   const auto& out_shape = appdata.conv2_out.shape();                 // [128, 20, 13, 13]
@@ -106,7 +106,8 @@ void run_stage_3(cifar_dense::AppDataBatch& appdata,
   const int Q = (W + 2 * padding - S) / stride + 1;
   const int PQ = P * Q;
 
-  // Launch kernel
+  LOG_KERNEL(LogKernelType::kCUDA, 3, &appdata);
+
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
   conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.pool1_out.raw(),
@@ -123,13 +124,11 @@ void run_stage_3(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
-
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_4(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_4_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.conv2_out.shape();  // [128, 20, 13, 13]
 
   constexpr int padding = 2;
@@ -146,6 +145,8 @@ void run_stage_4(cifar_dense::AppDataBatch& appdata,
   int Q = (W + 2 * padding - pool_w) / stride + 1;
   int PQ = P * Q;
 
+  LOG_KERNEL(LogKernelType::kCUDA, 4, &appdata);
+
   dim3 blockDim(256);
   dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
   maxpool2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv2_out.raw(),
@@ -158,12 +159,11 @@ void run_stage_4(cifar_dense::AppDataBatch& appdata,
                                                                pool_w,
                                                                stride,
                                                                padding);
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_5(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_5_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.pool2_out.shape();                  // [128, 20, 7, 7]
   const auto& w_shape = d_model_data.h_model_ref.h_conv3_w.shape();  // [20, 20, 3, 3]
   const auto& out_shape = appdata.conv3_out.shape();                 // [128, 20, 5, 5]
@@ -182,6 +182,8 @@ void run_stage_5(cifar_dense::AppDataBatch& appdata,
   const int Q = (W + 2 * padding - S) / stride + 1;
   const int PQ = P * Q;
 
+  LOG_KERNEL(LogKernelType::kCUDA, 5, &appdata);
+
   // Launch kernel
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
@@ -199,13 +201,11 @@ void run_stage_5(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
-
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_6(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_6_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.conv3_out.shape();                  // [128, 20, 5, 5]
   const auto& w_shape = d_model_data.h_model_ref.h_conv4_w.shape();  // [50, 20, 3, 3]
   const auto& out_shape = appdata.conv4_out.shape();                 // [128, 50, 3, 3]
@@ -224,6 +224,8 @@ void run_stage_6(cifar_dense::AppDataBatch& appdata,
   const int Q = (W + 2 * padding - S) / stride + 1;
   const int PQ = P * Q;
 
+  LOG_KERNEL(LogKernelType::kCUDA, 6, &appdata);
+
   // Launch kernel
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
@@ -241,13 +243,11 @@ void run_stage_6(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
-
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_7(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_7_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.conv4_out.shape();                  // [128, 50, 3, 3]
   const auto& w_shape = d_model_data.h_model_ref.h_conv5_w.shape();  // [64, 50, 3, 3]
   const auto& out_shape = appdata.conv5_out.shape();                 // [128, 64, 1, 1]
@@ -266,6 +266,8 @@ void run_stage_7(cifar_dense::AppDataBatch& appdata,
   const int Q = (W + 2 * padding - S) / stride + 1;
   const int PQ = P * Q;
 
+  LOG_KERNEL(LogKernelType::kCUDA, 7, &appdata);
+
   // Launch kernel
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
@@ -283,13 +285,11 @@ void run_stage_7(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
-
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_8(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_8_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.conv5_out.shape();  // [128, 64, 1, 1]
 
   constexpr int padding = 2;
@@ -306,6 +306,8 @@ void run_stage_8(cifar_dense::AppDataBatch& appdata,
   int Q = (W + 2 * padding - pool_w) / stride + 1;
   int PQ = P * Q;
 
+  LOG_KERNEL(LogKernelType::kCUDA, 8, &appdata);
+
   dim3 blockDim(256);
   dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
   maxpool2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv5_out.raw(),
@@ -318,12 +320,11 @@ void run_stage_8(cifar_dense::AppDataBatch& appdata,
                                                                pool_w,
                                                                stride,
                                                                padding);
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
-void run_stage_9(cifar_dense::AppDataBatch& appdata,
-                 const cuda::DeviceModelData& d_model_data,
-                 cuda::CudaManager& mgr) {
+void run_stage_9_async(cifar_dense::AppDataBatch& appdata,
+                       const cuda::DeviceModelData& d_model_data,
+                       cuda::CudaManager& mgr) {
   const auto& in_shape = appdata.pool3_out.shape();                   // [128, 64, 1, 1]
   const auto& w_shape = d_model_data.h_model_ref.h_linear_w.shape();  // [10, 1024]
 
@@ -337,6 +338,8 @@ void run_stage_9(cifar_dense::AppDataBatch& appdata,
       C * H * W;  // 64*1*1 = 64 (or could be 1024 depending on actual dimensions)
   const int out_features = w_shape[0];  // output features, 10
 
+  LOG_KERNEL(LogKernelType::kCUDA, 9, &appdata);
+
   // Launch kernel for linear layer (matrix multiplication)
   const int block_size = 256;
   const int num_blocks = (N * out_features + block_size - 1) / block_size;
@@ -348,8 +351,6 @@ void run_stage_9(cifar_dense::AppDataBatch& appdata,
                                                                  N,
                                                                  in_features,
                                                                  out_features);
-
-  CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
 }
 
 }  // namespace cuda

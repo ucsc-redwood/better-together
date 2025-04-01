@@ -1,5 +1,6 @@
 #include "dispatchers.hpp"
 
+#include "builtin-apps/debug_logger.hpp"
 #include "kernels.hpp"
 
 namespace omp {
@@ -15,6 +16,8 @@ void run_stage_1(cifar_dense::AppDataBatch& appdata) {
   const auto& in_shape = appdata.input.shape();
   const auto& w_shape = model_data.h_conv1_w.shape();
   const auto& out_shape = appdata.conv1_out.shape();
+
+  LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
 
   conv2d_batch_u(appdata.input.raw(),
                  model_data.h_conv1_w.raw(),
@@ -38,6 +41,8 @@ void run_stage_2(cifar_dense::AppDataBatch& appdata) {
   const auto& in_shape = appdata.conv1_out.shape();
   const auto& out_shape = appdata.pool1_out.shape();
 
+  LOG_KERNEL(LogKernelType::kOMP, 2, &appdata);
+
   maxpool2d_batch_u(appdata.conv1_out.raw(),
                     appdata.pool1_out.raw(),
                     in_shape[0],
@@ -55,6 +60,8 @@ void run_stage_3(cifar_dense::AppDataBatch& appdata) {
   const auto& in_shape = appdata.pool1_out.shape();
   const auto& w_shape = model_data.h_conv2_w.shape();
   const auto& out_shape = appdata.conv2_out.shape();
+
+  LOG_KERNEL(LogKernelType::kOMP, 3, &appdata);
 
   conv2d_batch_u(appdata.pool1_out.raw(),
                  model_data.h_conv2_w.raw(),
@@ -78,6 +85,8 @@ void run_stage_4(cifar_dense::AppDataBatch& appdata) {
   const auto& in_shape = appdata.conv2_out.shape();
   const auto& out_shape = appdata.pool2_out.shape();
 
+  LOG_KERNEL(LogKernelType::kOMP, 4, &appdata);
+
   maxpool2d_batch_u(appdata.conv2_out.raw(),
                     appdata.pool2_out.raw(),
                     in_shape[0],
@@ -95,6 +104,8 @@ void run_stage_5(cifar_dense::AppDataBatch& appdata) {
   const auto& in_shape = appdata.pool2_out.shape();
   const auto& w_shape = model_data.h_conv3_w.shape();
   const auto& out_shape = appdata.conv3_out.shape();
+
+  LOG_KERNEL(LogKernelType::kOMP, 5, &appdata);
 
   conv2d_batch_u(appdata.pool2_out.raw(),
                  model_data.h_conv3_w.raw(),
@@ -120,6 +131,8 @@ void run_stage_6(cifar_dense::AppDataBatch& appdata) {
   const auto& w_shape = model_data.h_conv4_w.shape();
   const auto& out_shape = appdata.conv4_out.shape();
 
+  LOG_KERNEL(LogKernelType::kOMP, 6, &appdata);
+
   conv2d_batch_u(appdata.conv3_out.raw(),
                  model_data.h_conv4_w.raw(),
                  model_data.h_conv4_b.raw(),
@@ -144,6 +157,8 @@ void run_stage_7(cifar_dense::AppDataBatch& appdata) {
   const auto& w_shape = model_data.h_conv5_w.shape();
   const auto& out_shape = appdata.conv5_out.shape();
 
+  LOG_KERNEL(LogKernelType::kOMP, 7, &appdata);
+
   conv2d_batch_u(appdata.conv4_out.raw(),
                  model_data.h_conv5_w.raw(),
                  model_data.h_conv5_b.raw(),
@@ -165,6 +180,8 @@ void run_stage_7(cifar_dense::AppDataBatch& appdata) {
 void run_stage_8(cifar_dense::AppDataBatch& appdata) {
   const auto& in_shape = appdata.conv5_out.shape();
   const auto& out_shape = appdata.pool3_out.shape();
+
+  LOG_KERNEL(LogKernelType::kOMP, 8, &appdata);
 
   maxpool2d_batch_u(appdata.conv5_out.raw(),
                     appdata.pool3_out.raw(),
@@ -216,6 +233,8 @@ void run_stage_9(cifar_dense::AppDataBatch& appdata) {
   int N = static_cast<int>(in_shape[0]);            // Batch size
   int in_features = static_cast<int>(in_shape[1]);  // Input features (1024)
   int out_features = static_cast<int>(w_shape[0]);  // Output features (10)
+
+  LOG_KERNEL(LogKernelType::kOMP, 9, &appdata);
 
   linear_batch_u(flattened.raw(),
                  model_data.h_linear_w.raw(),
