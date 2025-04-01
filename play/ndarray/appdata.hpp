@@ -162,7 +162,7 @@ inline void print_batch_predictions(const AppDataBatch& batch_data, const size_t
     const float* pred_ptr = predictions.raw() + i * 10;  // Point to the 10 values for this image
     const auto max_index = std::distance(pred_ptr, std::max_element(pred_ptr, pred_ptr + 10));
 
-    std::cout << "Image " << i << ":\t";
+    std::cout << "Image " << i << ": ";
 
     // also print the raw value
     // "[xxx,xxx,xxx,...,xxx]"

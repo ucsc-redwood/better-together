@@ -44,6 +44,7 @@ do
 		"test_cuda_main.cu",
 		"cuda/dispatchers.cu",
 		"cuda/kernels.cu",
+		"omp/dispatchers.cpp",
 	})
 
 	add_deps("builtin-apps", "builtin-apps-cuda")
