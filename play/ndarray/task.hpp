@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <numeric>
 #include <vector>
+#include <cstdint>
 
 struct Task {
   uint32_t uid;
@@ -17,5 +17,11 @@ struct Task {
   std::iota(task.data.begin(), task.data.end(), 0.0f);
   return task;
 }
+
+// [[nodiscard]] inline Task new_sentinel() {
+//   Task task;
+//   task.is_sentinel = true;
+//   return task;
+// }
 
 static_assert(std::is_move_constructible_v<Task>, "Task must be moveable");
