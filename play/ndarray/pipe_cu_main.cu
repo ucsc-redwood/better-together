@@ -8,6 +8,10 @@
 
 constexpr size_t kNumTasks = 100;
 
+// Global CUDA objects to ensure proper lifetime and thread visibility
+cuda::CudaManager g_cuda_mgr;
+cuda::DeviceModelData* g_device_model_data = nullptr;
+
 struct Task {
   static uint32_t uid_counter;
   uint32_t uid;
@@ -53,8 +57,8 @@ int main(int argc, char** argv) {
   SPSCQueue<Task*> q_0_1;
   SPSCQueue<Task*> q_1_2;
 
-  static cuda::CudaManager mgr;
-  static cuda::DeviceModelData d_model_data(cifar_dense::AppDataBatch::get_model());
+  // Initialize global device model data
+  g_device_model_data = new cuda::DeviceModelData(cifar_dense::AppDataBatch::get_model());
 
   // Master thread pushing tasks
   for (size_t i = 0; i < kNumTasks; ++i) {
@@ -71,7 +75,7 @@ int main(int argc, char** argv) {
     });
 
     std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
-      cuda::dispatch_multi_stage(task.appdata, d_model_data, 5, 9, mgr);
+      cuda::dispatch_multi_stage(task.appdata, *g_device_model_data, 5, 9, g_cuda_mgr);
     });
 
     t1.join();
@@ -82,6 +86,9 @@ int main(int argc, char** argv) {
     spdlog::info(
         "Time taken by tasks: {} ms, average: {} ", duration.count(), duration.count() / kNumTasks);
   }
+
+  // Cleanup
+  delete g_device_model_data;
 
   // ------------------------------------------------------------------------------------------------
 
