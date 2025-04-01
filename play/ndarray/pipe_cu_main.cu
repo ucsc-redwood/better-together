@@ -85,9 +85,10 @@ int main(int argc, char** argv) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     // spdlog::info(
-    //     "Time taken by tasks: {} ms, average: {} ", duration.count(), duration.count() / kNumTasks);
-    std::cout << "Time taken by tasks: " << duration.count() << " ms, average: "
-              << duration.count() / kNumTasks << std::endl;
+    //     "Time taken by tasks: {} ms, average: {} ", duration.count(), duration.count() /
+    //     kNumTasks);
+    std::cout << "Time taken by tasks: " << duration.count()
+              << " ms, average: " << duration.count() / kNumTasks << std::endl;
   }
 
   // ------------------------------------------------------------------------------------------------
