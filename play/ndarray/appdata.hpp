@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "builtin-apps/resources_path.hpp"
 #include "ndarray.hpp"
 
 namespace fs = std::filesystem;
@@ -17,8 +18,7 @@ namespace fs = std::filesystem;
 template <size_t ND>
 NDArray<ND> load_from_npy(const std::string& filename,
                           const std::array<size_t, ND>& expected_shape) {
-  // Adjust this path to wherever your .npy files live
-  static const fs::path weights_dir = "/home/doremy/Desktop/redwood-aio/scripts/cifar/weights_npy";
+  static const fs::path weights_dir = helpers::get_resource_base_path() / "weights_npy";
 
   // Load the file using cnpy
   cnpy::NpyArray npy_data = cnpy::npy_load(weights_dir / filename);

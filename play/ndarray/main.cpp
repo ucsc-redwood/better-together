@@ -1,16 +1,14 @@
-#include <CLI/CLI.hpp>
-#include <string>
-
+#include "builtin-apps/app.hpp"
 #include "dispatchers.hpp"
 
 int main(int argc, char** argv) {
-  CLI::App app{"CIFAR-10 Dense App"};
+  PARSE_ARGS_BEGIN;
 
   std::string input_file;
   app.add_option("-i,--input", input_file, "Input filename")
       ->default_val("cifar10_images/img_00005.npy");
 
-  CLI11_PARSE(app, argc, argv);
+  PARSE_ARGS_END;
 
   AppData appdata(input_file);
 

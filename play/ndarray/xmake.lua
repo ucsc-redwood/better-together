@@ -11,6 +11,8 @@ do
 		"dispatchers.cpp",
 	})
 
+	add_deps("builtin-apps")
+
 	add_packages("cnpy")
 end
 
@@ -25,6 +27,8 @@ do
 		"bm_main.cpp",
 		"dispatchers.cpp",
 	})
+
+	add_deps("builtin-apps")
 
 	add_packages("cnpy")
 	add_packages("benchmark")
