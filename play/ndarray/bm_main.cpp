@@ -103,4 +103,9 @@ static void BM_Stage_9(benchmark::State& state) {
 
 BENCHMARK(BM_Stage_9)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  benchmark::Shutdown();
+  return 0;
+}
