@@ -8,7 +8,7 @@ do
 
 	add_files({
 		"main.cpp",
-		"dispatchers.cpp",
+		"omp/dispatchers.cpp",
 	})
 
 	add_deps("builtin-apps")
@@ -25,7 +25,7 @@ do
 
 	add_files({
 		"bm_main.cpp",
-		"dispatchers.cpp",
+		"omp/dispatchers.cpp",
 	})
 
 	add_deps("builtin-apps")

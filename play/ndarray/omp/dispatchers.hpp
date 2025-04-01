@@ -1,6 +1,6 @@
 #pragma once
 
-#include "appdata.hpp"
+#include "../appdata.hpp"
 #include "builtin-apps/affinity.hpp"
 #include "builtin-apps/app.hpp"
 

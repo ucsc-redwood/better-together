@@ -97,7 +97,7 @@ inline NDArray<2> flatten_batch(const NDArray<4>& input) {
 
   NDArray<2> output({static_cast<size_t>(N), static_cast<size_t>(new_features)});
 
-  #pragma omp for
+#pragma omp for
   for (int n = 0; n < N; n++) {
     int idx = 0;
     for (int c = 0; c < C; c++) {

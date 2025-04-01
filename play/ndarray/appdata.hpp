@@ -123,7 +123,7 @@ inline void print_prediction(const int max_index) {
 }
 
 // ----------------------------------------------------------------------------
-// Batched version
+// Batched version (this is better)
 // ----------------------------------------------------------------------------
 
 struct AppDataBatch {
@@ -186,13 +186,6 @@ struct AppDataBatch {
     for (size_t i = 0; i < total_elements; ++i) {
       data_ptr[i] = dis(gen);
     }
-
-    // // Print the first 10 elements of the input
-    // std::cout << "First 10 elements of the input: ";
-    // for (size_t i = 0; i < std::min(size_t(10), total_elements); ++i) {
-    //   std::cout << data_ptr[i] << " ";
-    // }
-    // std::cout << std::endl;
   }
 
   // Input and intermediate outputs
