@@ -3,54 +3,13 @@
 #include <cnpy.h>
 
 #include <algorithm>
-#include <array>
 #include <cstring>
-#include <filesystem>
 #include <string>
 #include <unordered_map>
 
-#include "builtin-apps/resources_path.hpp"
-#include "ndarray.hpp"
+#include "load_npy.hpp"
 
-namespace fs = std::filesystem;
-
-// Helper to load an NDArray<ND> from a .npy file
-template <size_t ND>
-NDArray<ND> load_from_npy(const std::string& filename,
-                          const std::array<size_t, ND>& expected_shape) {
-  static const fs::path weights_dir = helpers::get_resource_base_path() / "weights_npy";
-
-  // Load the file using cnpy
-  cnpy::NpyArray npy_data = cnpy::npy_load(weights_dir / filename);
-  float* raw_data = npy_data.data<float>();
-
-  // Create NDArray with the user-supplied shape
-  NDArray<ND> arr(expected_shape);
-
-  // Optional: check if the .npy shape matches expected_shape
-  // npy_data.shape is a vector<size_t>, so compare dimension-by-dimension:
-  if (npy_data.shape.size() != ND) {
-    throw std::runtime_error("Dimension mismatch in " + filename);
-  }
-  for (size_t i = 0; i < ND; ++i) {
-    if (npy_data.shape[i] != expected_shape[i]) {
-      throw std::runtime_error(
-          "Shape mismatch in " + filename + ": expected " + std::to_string(expected_shape[i]) +
-          " but got " + std::to_string(npy_data.shape[i]) + " on dimension " + std::to_string(i));
-    }
-  }
-
-  // Compute total number of elements
-  size_t total_elems = 1;
-  for (auto dim : expected_shape) {
-    total_elems *= dim;
-  }
-
-  // Copy from npy_data → arr.raw() in one shot
-  std::memcpy(arr.raw(), raw_data, total_elems * sizeof(float));
-
-  return arr;
-}
+namespace cifar_dense {
 
 struct AppData {
   explicit AppData(const std::string& input_file)
@@ -161,3 +120,5 @@ inline void print_prediction(const int max_index) {
   std::cout << (class_names.contains(max_index) ? class_names.at(max_index) : "Unknown");
   std::cout << std::endl;
 }
+
+}  // namespace cifar_dense
