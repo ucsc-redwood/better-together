@@ -1,0 +1,32 @@
+# Project specific
+# ppl/vulkan/shaders/compiled_shaders/*.spv
+
+tmp/
+.venv-cifar/
+
+# Resources
+resources.tar.gz
+
+# resources/resources.zip
+*.zip
+
+# Xmake cache
+.xmake/
+build/
+
+# MacOS Cache
+.DS_Store
+
+.vscode/
+.cache/
+vsxmake2022/
+compile_commands.json
+.clangd/
+
+*.nsys-rep
+
+__pycache__/
+termux-app_v0.118.1+github-debug_arm64-v8a.apk
+
+
+cifar-10-batches-py/

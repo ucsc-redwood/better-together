@@ -1,0 +1,122 @@
+#version 460
+
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+
+layout(push_constant) uniform N { int n; };
+
+layout(set = 0, binding = 0) readonly buffer Codes { uint codes[]; };
+layout(set = 0, binding = 1) writeonly buffer PrefixN { uint8_t prefix_n[]; };
+layout(set = 0, binding = 2) buffer HasLeafLeft { bool has_leaf_left[]; };
+layout(set = 0, binding = 3) buffer HasLeafRight { bool has_leaf_right[]; };
+layout(set = 0, binding = 4) writeonly buffer LeftChild { int left_child[]; };
+layout(set = 0, binding = 5) buffer Parent { int parent[]; };
+
+layout(local_size_x = 256) in;
+
+uint ceil_div_u32(const uint a, const uint b) { return (a + b - 1) / b; }
+
+uint8_t delta_u32(const uint a, const uint b) {
+  // uint bit1_mask = uint(1) << (4 * 8 - 1);
+  uint val = a ^ b;
+  int msb = findMSB(val);
+  return uint8_t(31 - msb);
+}
+
+int log2_ceil_u32(const uint x) {
+  // Counting from LSB to MSB, number of bits before last '1'
+  // This is floor(log(x))
+  const int n_lower_bits = findMSB(x);
+
+  // Add 1 if 2^n_lower_bits is less than x
+  //     (i.e. we rounded down because x was not a power of 2)
+  return n_lower_bits + (((1 << n_lower_bits) < x) ? 1 : 0);
+}
+
+void k_BuildRadixTree(int i) {
+  const uint code_i = codes[i];
+  // Determine direction of the range (+1 or -1)
+  int d;
+  if (i == 0) {
+    d = 1;
+  } else {
+    const int delta_diff_right = delta_u32(code_i, codes[i + 1]);
+    const int delta_diff_left = delta_u32(code_i, codes[i - 1]);
+    const int direction_difference = delta_diff_right - delta_diff_left;
+    d = ((direction_difference > 0) ? 1 : 0) -
+        ((direction_difference < 0) ? 1 : 0);
+  }
+
+  // Compute upper bound for the length of the range
+
+  int l = 0;
+  if (i == 0) {
+    // First node is root, covering whole tree
+    l = n - 1;
+  } else {
+    const uint8_t delta_min = delta_u32(code_i, codes[i - d]);
+    int l_max = 2;
+    // Cast to ptrdiff_t so in case the result is negative (since d is +/- 1),
+    // we can catch it and not index out of bounds
+    while (i + l_max * d >= 0 && i + l_max * d <= n &&
+           delta_u32(code_i, codes[i + l_max * d]) > delta_min) {
+      l_max *= 2;
+    }
+    const int l_cutoff = (d == -1) ? i : n - i;
+    int t;
+    int divisor;
+    // Find the other end using binary search
+    for (t = l_max / 2, divisor = 2; t >= 1;
+         divisor *= 2, t = l_max / divisor) {
+      if (l + t <= l_cutoff &&
+          delta_u32(code_i, codes[i + (l + t) * d]) > delta_min) {
+        l += t;
+      }
+    }
+  }
+
+  const int j = i + l * d;
+
+  // Find the split position using binary search
+  const uint8_t delta_node = delta_u32(codes[i], codes[j]);
+  prefix_n[i] = delta_node;
+  int s = 0;
+  const int max_divisor = 1 << log2_ceil_u32(l);
+  int divisor = 2;
+  const int s_cutoff = (d == -1) ? i - 1 : n - i - 1;
+  for (uint t = ceil_div_u32(l, 2); divisor <= max_divisor;
+       divisor <<= 1, t = ceil_div_u32(l, divisor)) {
+    if (s + t <= s_cutoff &&
+        delta_u32(code_i, codes[i + (s + t) * d]) > delta_node) {
+      s += int(t);
+    }
+  }
+
+  // Split position
+  const int gamma = i + s * d + min(d, 0);
+  left_child[i] = gamma;
+  has_leaf_left[i] = (min(i, j) == gamma);
+  has_leaf_right[i] = (max(i, j) == (gamma + 1));
+  // Set parents of left and right children, if they aren't leaves
+  // can't set this node as parent of its leaves, because the
+  // leaf also represents an internal node with a differnent parent
+  if (!has_leaf_left[i]) {
+    parent[gamma] = i;
+  }
+  if (!has_leaf_right[i]) {
+    parent[gamma + 1] = i;
+  }
+}
+
+void main() {
+  //   const uint idx =
+  //       gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+  //   const uint stride = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
+  //   for (int i = int(idx); i < n; i += int(stride)) {
+  //     k_BuildRadixTree(i);
+  //   }
+
+  uint idx = gl_GlobalInvocationID.x;
+  if (idx < n) {
+    k_BuildRadixTree(int(idx));
+  }
+}

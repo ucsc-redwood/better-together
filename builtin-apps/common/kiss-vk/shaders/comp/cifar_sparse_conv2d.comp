@@ -1,0 +1,102 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightMatrixValuesBuffer {
+  float weight_matrix_values[];
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer WeightMatrixRowPtrBuffer {
+  int weight_matrix_row_ptr[];
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer WeightMatrixColIdxBuffer {
+  int weight_matrix_col_idx[];
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer BiasBuffer {
+  float bias_data[];
+};
+
+layout(std430, set = 0, binding = 5) writeonly buffer OutputBuffer {
+  float output_data[];
+};
+
+layout(push_constant) uniform Params {
+  int input_height;
+  int input_width;
+  int weight_output_channels;
+  int weight_input_channels;
+  int weight_height;
+  int weight_width;
+  int kernel_size;
+  int stride;
+  int padding;
+  bool relu;
+}
+params;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+
+  if (i >= uint(params.weight_output_channels)) {
+    return;  // Out-of-bounds check
+  }
+
+  int out_c = int(i);
+  int output_height =
+      (params.input_height + 2 * params.padding - params.kernel_size) /
+          params.stride +
+      1;
+  int output_width =
+      (params.input_width + 2 * params.padding - params.kernel_size) /
+          params.stride +
+      1;
+
+  int row_start = weight_matrix_row_ptr[out_c];
+  int row_end = weight_matrix_row_ptr[out_c + 1];
+
+  for (int oh = 0; oh < output_height; ++oh) {
+    for (int ow = 0; ow < output_width; ++ow) {
+      float sum = 0.0f;
+
+      for (int nz_idx = row_start; nz_idx < row_end; ++nz_idx) {
+        int flat_kernel_idx = weight_matrix_col_idx[nz_idx];
+        float weight_value = weight_matrix_values[nz_idx];
+
+        int in_c = flat_kernel_idx / (params.kernel_size * params.kernel_size);
+        int rem = flat_kernel_idx % (params.kernel_size * params.kernel_size);
+        int ky = rem / params.kernel_size;
+        int kx = rem % params.kernel_size;
+
+        int ih = oh * params.stride + ky - params.padding;
+        int iw = ow * params.stride + kx - params.padding;
+
+        if (ih >= 0 && ih < params.input_height && iw >= 0 &&
+            iw < params.input_width) {
+          int input_idx =
+              (in_c * params.input_height + ih) * params.input_width + iw;
+          sum += input_data[input_idx] * weight_value;
+        }
+      }
+
+      if (bias_data.length() > 0 && out_c < bias_data.length()) {
+        sum += bias_data[out_c];
+      }
+
+      if (params.relu && sum < 0.0f) {
+        sum = 0.0f;
+      }
+
+      int output_idx = (out_c * output_height + oh) * output_width + ow;
+      output_data[output_idx] = sum;
+    }
+  }
+}

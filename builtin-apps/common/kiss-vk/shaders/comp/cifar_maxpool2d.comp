@@ -1,0 +1,55 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];
+};
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer {
+  float output_data[];
+};
+
+layout(push_constant) uniform Params {
+  uint input_channels;
+  uint input_height;
+  uint input_width;
+  uint pool_size;
+  uint stride;
+  uint output_height;
+  uint output_width;
+}
+params;
+
+void main() {
+  uint global_idx = gl_GlobalInvocationID.x;
+
+  // Compute indices for channel, height, and width
+  uint c = global_idx / (params.output_height * params.output_width);
+  uint hw_idx = global_idx % (params.output_height * params.output_width);
+  uint h = hw_idx / params.output_width;
+  uint w = hw_idx % params.output_width;
+
+  float max_val = -3.402823466e+38;  // Negative FLT_MAX
+
+  // Perform max pooling
+  for (uint ph = 0; ph < params.pool_size; ++ph) {
+    for (uint pw = 0; pw < params.pool_size; ++pw) {
+      uint input_h = h * params.stride + ph;
+      uint input_w = w * params.stride + pw;
+
+      if (input_h < params.input_height && input_w < params.input_width) {
+        uint input_index = c * (params.input_height * params.input_width) +
+                           input_h * params.input_width + input_w;
+        max_val = max(max_val, input_data[input_index]);
+      }
+    }
+  }
+
+  // Store the result in the output buffer
+  uint output_index = c * (params.output_height * params.output_width) +
+                      h * params.output_width + w;
+  output_data[output_index] = max_val;
+}

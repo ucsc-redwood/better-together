@@ -1,0 +1,55 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightMatrixValuesBuffer {
+  float weight_matrix_values[];
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer WeightMatrixRowPtrBuffer {
+  int weight_matrix_row_ptr[];
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer WeightMatrixColIdxBuffer {
+  int weight_matrix_col_idx[];
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer BiasBuffer {
+  float bias_data[];
+};
+
+layout(std430, set = 0, binding = 5) writeonly buffer OutputBuffer {
+  float output_data[];
+};
+
+layout(push_constant) uniform Params {
+  int weight_matrix_rows;
+  int weight_matrix_cols;
+}
+params;
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+
+  if (i >= params.weight_matrix_rows) {
+    return;  // Out-of-bounds check
+  }
+
+  float sum = 0.0f;
+
+  for (int nz_idx = weight_matrix_row_ptr[i];
+       nz_idx < weight_matrix_row_ptr[i + 1];
+       ++nz_idx) {
+    int col = weight_matrix_col_idx[nz_idx];
+    sum += input_data[col] * weight_matrix_values[nz_idx];
+  }
+
+  output_data[i] = sum + bias_data[i];
+}

@@ -1,0 +1,171 @@
+#version 460
+
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
+
+#define morton_bits 30
+
+// Instead of OctNode struct, we'll use separate buffers
+layout(set = 0, binding = 0) buffer Children {
+  int children[];
+};  // [8 * n_nodes]
+layout(set = 0, binding = 1) buffer Corners { vec4 corners[]; };
+layout(set = 0, binding = 2) buffer CellSizes { float cell_sizes[]; };
+layout(set = 0, binding = 3) buffer ChildNodeMasks { int child_node_masks[]; };
+layout(set = 0, binding = 4) buffer ChildLeafMasks { int child_leaf_masks[]; };
+
+// Original buffers
+layout(set = 0, binding = 5) buffer NodeOffsets { uint node_offsets[]; };
+layout(set = 0, binding = 6) buffer RtNodeCounts { int rt_node_counts[]; };
+layout(set = 0, binding = 7) buffer Codes { uint codes[]; };
+layout(set = 0, binding = 8) buffer PrefixN { uint8_t rt_prefixN[]; };
+layout(set = 0, binding = 9) buffer Parents { int rt_parents[]; };
+layout(set = 0, binding = 10) buffer RtLeftChild { int rt_leftChild[]; };
+layout(set = 0, binding = 11) buffer RtHasLeafLeft { bool rt_hasLeafLeft[]; };
+layout(set = 0, binding = 12) buffer RtHasLeafRight { bool rt_hasLeafRight[]; };
+
+layout(push_constant) uniform Constants {
+  float min_coord;
+  float range;
+  int n_brt_nodes;
+};
+
+layout(local_size_x = 256) in;
+
+// Helper functions to access node data
+void SetChild(int node_idx, int which_child, int oct_idx) {
+  children[node_idx * 8 + which_child] = oct_idx;
+  child_node_masks[node_idx] |= 1 << which_child;
+}
+
+void SetLeaf(int node_idx, int which_child, int leaf_idx) {
+  children[node_idx * 8 + which_child] = leaf_idx;
+  child_leaf_masks[node_idx] &= ~(1 << which_child);
+}
+
+bool IsLeaf(const int internal_value) {
+  return (internal_value >> (4 * 8 - 1)) != 0;
+}
+
+int GetLeafIndex(const int internal_value) {
+  return internal_value & ~(1 << (4 * 8 - 1));
+}
+
+float morton3D_GetThirdBits(const int m) {
+  int x = m & 0x9249249;
+  x = (x ^ (x >> 2)) & 0x30c30c3;
+  x = (x ^ (x >> 4)) & 0x0300f00f;
+  x = (x ^ (x >> 8)) & 0x30000ff;
+  x = (x ^ (x >> 16)) & 0x000003ff;
+  return x;
+}
+
+void m3D_d_magicbits(const int m, inout vec3 xyz) {
+  xyz[0] = morton3D_GetThirdBits(m);
+  xyz[1] = morton3D_GetThirdBits(m >> 1);
+  xyz[2] = morton3D_GetThirdBits(m >> 2);
+}
+
+void morton32_to_xyz(int node_idx, const int code) {
+  const float bit_scale = 1024.f;
+  vec3 dec_raw_x;
+  m3D_d_magicbits(code, dec_raw_x);
+
+  vec4 corner;
+  corner[0] = (dec_raw_x[0] / bit_scale) * range + min_coord;
+  corner[1] = (dec_raw_x[1] / bit_scale) * range + min_coord;
+  corner[2] = (dec_raw_x[2] / bit_scale) * range + min_coord;
+  corner[3] = 1.f;
+
+  corners[node_idx] = corner;
+}
+
+void k_MakeOctNodes(uint i) {
+  const int root_level = rt_prefixN[i] / 3;
+
+  if (i < n_brt_nodes) {
+    int oct_idx = int(node_offsets[i]);
+    const int n_new_nodes = int(rt_node_counts[i]);
+
+    for (int j = 0; j < n_new_nodes - 1; ++j) {
+      const int level = rt_prefixN[i] / 3 - j;
+      const int node_prefix = int(codes[i] >> (morton_bits - (3 * level)));
+      const int which_child = node_prefix & 0x7;
+      const int parent = oct_idx + 1;
+
+      SetChild(parent, which_child, oct_idx);
+
+      morton32_to_xyz(oct_idx, node_prefix << (morton_bits - (3 * level)));
+      cell_sizes[oct_idx] = range / float(1 << (level - root_level));
+
+      oct_idx = parent;
+    }
+
+    if (n_new_nodes > 0) {
+      int rt_parent = rt_parents[i];
+
+      int counter = 0;
+      while (rt_node_counts[rt_parent] == 0) {
+        rt_parent = rt_parents[rt_parent];
+
+        ++counter;
+        if (counter > 30) {
+          // 64 / 3
+          break;
+        }
+      }
+
+      const int oct_parent = int(node_offsets[rt_parent]);
+      const int top_level = rt_prefixN[i] / 3 - n_new_nodes + 1;
+      const int top_node_prefix =
+          int(codes[i] >> (morton_bits - (3 * top_level)));
+      const int which_child = top_node_prefix & 0x7;
+
+      SetChild(oct_parent, which_child, oct_idx);
+
+      morton32_to_xyz(oct_idx,
+                      top_node_prefix << (morton_bits - (3 * top_level)));
+      cell_sizes[oct_idx] = range / float(1 << (top_level - root_level));
+    }
+  }
+}
+
+void k_LinkLeafNodes(int i) {
+  if (i < n_brt_nodes) {
+    if (rt_hasLeafLeft[i]) {
+      int leaf_idx = rt_leftChild[i];
+      int leaf_level = rt_prefixN[i] / 3 + 1;
+      int leaf_prefix =
+          int(codes[leaf_idx] >> (morton_bits - (3 * leaf_level)));
+      int which_child = leaf_prefix & 0x7;
+      int rt_node = i;
+      while (rt_node_counts[rt_node] == 0) {
+        rt_node = rt_parents[rt_node];
+      }
+      int bottom_oct_idx = int(node_offsets[rt_node]);
+      SetLeaf(bottom_oct_idx, which_child, leaf_idx);
+    }
+    if (rt_hasLeafRight[i]) {
+      int leaf_idx = rt_leftChild[i] + 1;
+      int leaf_level = rt_prefixN[i] / 3 + 1;
+      int leaf_prefix =
+          int(codes[leaf_idx] >> (morton_bits - (3 * leaf_level)));
+      int which_child = leaf_prefix & 0x7;
+      int rt_node = i;
+      while (rt_node_counts[rt_node] == 0) {
+        rt_node = rt_parents[rt_node];
+      }
+      int bottom_oct_idx = int(node_offsets[rt_node]);
+      SetLeaf(bottom_oct_idx, which_child, leaf_idx);
+    }
+  }
+}
+
+void main() {
+  const uint idx =
+      gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+  const uint stride = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
+
+  for (uint i = idx; i < n_brt_nodes; i += stride) {
+    k_MakeOctNodes(i);
+  }
+}

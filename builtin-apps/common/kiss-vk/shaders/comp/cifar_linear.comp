@@ -1,0 +1,47 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+// Input and output buffers
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float u_input[];
+};
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float u_weights[];
+};
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float u_bias[];
+};
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float u_output[];
+};
+
+// Uniform parameters
+layout(push_constant) uniform Params {
+  uint input_size;
+  uint output_size;
+}
+params;
+
+// Compute shader entry point
+void main() {
+  // Global ID for the current invocation
+  uint global_idx = gl_GlobalInvocationID.x;
+
+  // Initialize accumulator for the linear operation
+  float sum = 0.0;
+
+  // Perform the dot product
+  for (uint j = 0; j < params.input_size; ++j) {
+    sum += u_input[j] * u_weights[global_idx * params.input_size + j];
+  }
+
+  // Add bias
+  sum += u_bias[global_idx];
+
+  // Store the result in the output buffer
+  u_output[global_idx] = sum;
+}

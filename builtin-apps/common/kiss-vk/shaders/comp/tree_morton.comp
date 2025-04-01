@@ -1,0 +1,74 @@
+// ----------------------------------------------------------------------------
+// Purpose:
+//     Computes Morton codes (Z-order curve indices) for 3D points, enabling
+//     spatial sorting and hierarchical data structures.
+//
+// Input:
+//     - Buffer 0: Array of vec4 points (only xyz components used)
+//     - Push Constants:
+//         * n: Number of points to process
+//         * min_coord: Minimum coordinate value for normalization
+//         * range: Coordinate range for normalization
+//
+// Output:
+//     - Buffer 1: Array of uint Morton codes
+//
+// Workgroup Size: 256 threads
+// Expected Dispatch: ceil(n / 256) workgroups
+//
+// Note:
+//     Uses magic bits method for fast Morton code computation.
+//     Each point is normalized to [0,1] range before encoding.
+// ----------------------------------------------------------------------------
+
+#version 460
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer Data { vec4 data[]; };
+layout(std430, set = 0, binding = 1) writeonly buffer MortonKeys { uint morton_keys[]; };
+
+layout(push_constant) uniform Constants {
+  uint n;
+  float min_coord;
+  float range;
+}
+constants;
+
+// Splits a 10-bit integer into 30 bits by inserting 2 zeros after each bit
+uint morton3D_SplitBy3bits(const float a) {
+  const uint b = uint(a);
+  uint x = b & 0x000003ff;
+  x = (x | x << 16) & 0x030000ff;
+  x = (x | x << 8) & 0x0300f00f;
+  x = (x | x << 4) & 0x30c30c3;
+  x = (x | x << 2) & 0x9249249;
+  return x;
+}
+
+uint m3D_e_magicbits(const float x, const float y, const float z) {
+  return morton3D_SplitBy3bits(x) | (morton3D_SplitBy3bits(y) << 1) |
+         (morton3D_SplitBy3bits(z) << 2);
+}
+
+uint single_point_to_code_v2(
+    const float x, const float y, const float z, const float min_coord, const float range) {
+  const float bit_scale = 1024.0;
+  const float nx = (x - min_coord) / range;
+  const float ny = (y - min_coord) / range;
+  const float nz = (z - min_coord) / range;
+  return m3D_e_magicbits(nx * bit_scale, ny * bit_scale, nz * bit_scale);
+}
+
+void k_ComputeMortonCode() {
+  const uint idx = gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
+  const uint stride = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
+
+  for (uint i = idx; i < constants.n; i += stride) {
+    const vec4 point = data[i];
+    morton_keys[i] =
+        single_point_to_code_v2(point.x, point.y, point.z, constants.min_coord, constants.range);
+  }
+}
+
+void main() { k_ComputeMortonCode(); }

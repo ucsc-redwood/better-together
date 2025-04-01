@@ -1,0 +1,25 @@
+#version 460
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  uint input_keys[];
+};
+
+layout(std430, set = 0, binding = 1) writeonly buffer Contributes {
+  uint contributes[];
+};
+
+layout(push_constant) uniform Constants { int n; } constants;
+
+layout(local_size_x = 256) in;
+
+void main() {
+  const uint idx = gl_GlobalInvocationID.x;
+
+  if (idx < constants.n) {
+    if (idx == 0) {
+      contributes[0] = 1;
+    } else {
+      contributes[idx] = (input_keys[idx] != input_keys[idx - 1]) ? 1 : 0;
+    }
+  }
+}

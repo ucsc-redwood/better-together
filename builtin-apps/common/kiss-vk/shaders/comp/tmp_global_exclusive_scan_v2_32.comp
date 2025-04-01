@@ -1,0 +1,56 @@
+#version 450
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+
+#ifndef WARP_SIZE
+#define WARP_SIZE 32
+#endif
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants { uint numBlocks; } push;
+
+layout(set = 0, binding = 0) buffer SumBuffer { uint sums[]; };
+layout(set = 0, binding = 1) buffer PrefixBuffer { uint prefixes[]; };
+
+shared uint sharedScan[256];
+shared uint warpSums[256/WARP_SIZE];
+
+void main() {
+    const uint localID = gl_LocalInvocationID.x;
+    const uint warpID = localID / WARP_SIZE;
+    const uint laneID = localID % WARP_SIZE;
+    const uint globalID = gl_WorkGroupID.x * 256 + localID;
+
+    uint val = (globalID < push.numBlocks) ? sums[globalID] : 0;
+    uint warpScan = subgroupInclusiveAdd(val);
+
+    if (laneID == WARP_SIZE - 1) warpSums[warpID] = warpScan;
+    
+    barrier();
+    
+    if (localID < (256/WARP_SIZE)) {
+        uint sum = warpSums[localID];
+        for (uint stride = 1; stride < (256/WARP_SIZE); stride *= 2) {
+            if (localID >= stride) sum += warpSums[localID - stride];
+        }
+        warpSums[localID] = sum;
+    }
+    
+    barrier();
+    
+    uint warpPrefix = (warpID > 0) ? warpSums[warpID - 1] : 0;
+    val = warpScan + warpPrefix;
+    
+    sharedScan[localID] = val;
+    barrier();
+    
+    // Convert inclusive to exclusive scan
+    uint exclusive = (localID > 0) ? sharedScan[localID - 1] : 0;
+    if (globalID < push.numBlocks) prefixes[globalID] = exclusive;
+    
+    // Store upper level sums if needed
+    if (localID == 255 && gl_WorkGroupID.x == (gl_NumWorkGroups.x - 1)) {
+        sums[gl_NumWorkGroups.x] = sharedScan[255];
+    }
+}

@@ -1,0 +1,112 @@
+#version 450
+
+// ---------------------------------------------------------
+// Simple single-workgroup Radix Sort, 4 passes (8 bits each)
+// ---------------------------------------------------------
+
+// Adjust if desired:
+#define WORKGROUP_SIZE 256
+#define RADIX_SORT_BINS 256
+#define ITERATIONS 4  // sort 32 bits total, 8 bits per pass
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants { uint g_num_elements; };
+
+// Input/Output buffers
+layout(std430, set = 0, binding = 0) buffer elements_in { uint g_elements_in[]; };
+
+layout(std430, set = 0, binding = 1) buffer elements_out { uint g_elements_out[]; };
+
+// Temporary shared arrays
+//   histogram: used to accumulate bin counts
+//   prefixSum: used to hold the exclusive prefix sums (the base offsets for each bin)
+shared uint histogram[RADIX_SORT_BINS];
+shared uint prefixSum[RADIX_SORT_BINS];
+
+// Helpers to read from / write to the "current" in/out buffers per iteration
+uint getElement(uint index, uint iteration) {
+  // Even iteration => read from elements_in
+  // Odd  iteration => read from elements_out
+  if ((iteration & 1u) == 0u) {
+    return g_elements_in[index];
+  } else {
+    return g_elements_out[index];
+  }
+}
+
+void setElement(uint index, uint iteration, uint value) {
+  // Even iteration => write to elements_out
+  // Odd  iteration => write to elements_in
+  if ((iteration & 1u) == 0u) {
+    g_elements_out[index] = value;
+  } else {
+    g_elements_in[index] = value;
+  }
+}
+
+void main() {
+  uint localID = gl_LocalInvocationID.x;
+  uint numElems = g_num_elements;
+
+  // We'll do 4 passes of 8 bits each => 32 bits total
+  for (uint iteration = 0; iteration < ITERATIONS; iteration++) {
+    // 1) Clear histogram
+    if (localID < RADIX_SORT_BINS) {
+      histogram[localID] = 0u;
+    }
+    // Make sure histogram is fully cleared before we start incrementing
+    barrier();
+
+    // 2) Build histogram for this pass
+    //    Each thread walks through the array in strides of WORKGROUP_SIZE
+    uint shift = iteration * 8u;
+    for (uint idx = localID; idx < numElems; idx += WORKGROUP_SIZE) {
+      uint val = getElement(idx, iteration);
+      uint bin = (val >> shift) & 0xFFu;  // 8 bits
+      atomicAdd(histogram[bin], 1u);
+    }
+    // Ensure histogram[] is fully computed
+    barrier();
+
+    // 3) Do an exclusive prefix sum over histogram in shared mem
+    if (localID == 0) {
+      uint sum = 0u;
+      for (uint i = 0u; i < RADIX_SORT_BINS; i++) {
+        // Swap with sum => histogram[i] becomes exclusive prefix
+        uint temp = histogram[i];
+        histogram[i] = sum;
+        sum += temp;
+      }
+    }
+    barrier();
+
+    // Optionally copy histogram into prefixSum so we can safely
+    // atomicAdd against prefixSum while leaving histogram intact.
+    if (localID < RADIX_SORT_BINS) {
+      prefixSum[localID] = histogram[localID];
+    }
+    barrier();
+
+    // 4) Scatter pass
+    //    Again, each thread processes part of the array in strides of WORKGROUP_SIZE
+    for (uint idx = localID; idx < numElems; idx += WORKGROUP_SIZE) {
+      uint val = getElement(idx, iteration);
+      uint bin = (val >> shift) & 0xFFu;
+
+      // prefixSum[bin] is the next available slot for that bin
+      // atomicAdd returns the old value, which is the place we want to write to
+      uint outPos = atomicAdd(prefixSum[bin], 1u);
+
+      // Place the element in the correct buffer for the next iteration
+      setElement(outPos, iteration, val);
+    }
+    // Ensure all threads done scattering before next pass
+    barrier();
+  }
+
+  // After ITERATIONS=4:
+  //   - If iteration count is even (e.g. 4), the final results end in g_elements_out
+  //   - If iteration count is odd, final results end in g_elements_in
+  //   (because we alternate read/write each pass).
+}

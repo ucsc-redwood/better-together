@@ -1,0 +1,20 @@
+#version 460
+
+layout(local_size_x = 256) in;
+
+layout(push_constant) uniform Params { uint n; }
+params;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputA { float u_input_a[]; };
+
+layout(std430, set = 0, binding = 1) readonly buffer InputB { float u_input_b[]; };
+
+layout(std430, set = 0, binding = 2) writeonly buffer Output { float u_output[]; };
+
+void main() {
+  uint global_idx = gl_GlobalInvocationID.x;
+
+  if (global_idx < params.n) {
+    u_output[global_idx] = u_input_a[global_idx] + u_input_b[global_idx];
+  }
+}

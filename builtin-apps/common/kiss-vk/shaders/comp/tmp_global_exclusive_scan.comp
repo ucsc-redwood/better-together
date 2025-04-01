@@ -1,0 +1,16 @@
+// global_exclusive_scan.comp
+#version 450
+#extension GL_EXT_scalar_block_layout : enable
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants { uint numBlocks; } push;
+
+layout(set = 0, binding = 0) buffer SumBuffer { uint sums[]; } sumBuffer;
+layout(set = 0, binding = 1) buffer PrefixSumBuffer { uint prefixSums[]; } prefixSumBuffer;
+
+void main() {
+    prefixSumBuffer.prefixSums[0] = 0;
+    for (uint i = 1; i < push.numBlocks; ++i)
+        prefixSumBuffer.prefixSums[i] = prefixSumBuffer.prefixSums[i-1] + sumBuffer.sums[i-1];
+}

@@ -1,0 +1,19 @@
+// add_base.comp
+#version 450
+#extension GL_EXT_scalar_block_layout : enable
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushConstants { uint numElements; } push;
+
+layout(set = 0, binding = 0) buffer OutputBuffer { uint data[]; } outputBuffer;
+layout(set = 0, binding = 1) buffer PrefixSumBuffer { uint prefixSums[]; } prefixSumBuffer;
+
+void main() {
+    uint workgroupID = gl_WorkGroupID.x;
+    uint localID = gl_LocalInvocationID.x;
+    uint globalID = workgroupID * 256 + localID;
+
+    if (globalID < push.numElements)
+        outputBuffer.data[globalID] += prefixSumBuffer.prefixSums[workgroupID];
+}

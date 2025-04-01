@@ -1,0 +1,136 @@
+#pragma once
+
+#include <cnpy.h>
+
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <filesystem>
+#include <string>
+#include <unordered_map>
+
+#include "ndarray.hpp"
+
+namespace fs = std::filesystem;
+
+// Helper to load an NDArray<ND> from a .npy file
+template <size_t ND>
+NDArray<ND> load_from_npy(const std::string& filename,
+                          const std::array<size_t, ND>& expected_shape) {
+  // Adjust this path to wherever your .npy files live
+  static const fs::path weights_dir = "/home/doremy/Desktop/redwood-aio/scripts/cifar/weights_npy";
+
+  // Load the file using cnpy
+  cnpy::NpyArray npy_data = cnpy::npy_load(weights_dir / filename);
+  float* raw_data = npy_data.data<float>();
+
+  // Create NDArray with the user-supplied shape
+  NDArray<ND> arr(expected_shape);
+
+  // Optional: check if the .npy shape matches expected_shape
+  // npy_data.shape is a vector<size_t>, so compare dimension-by-dimension:
+  if (npy_data.shape.size() != ND) {
+    throw std::runtime_error("Dimension mismatch in " + filename);
+  }
+  for (size_t i = 0; i < ND; ++i) {
+    if (npy_data.shape[i] != expected_shape[i]) {
+      throw std::runtime_error(
+          "Shape mismatch in " + filename + ": expected " + std::to_string(expected_shape[i]) +
+          " but got " + std::to_string(npy_data.shape[i]) + " on dimension " + std::to_string(i));
+    }
+  }
+
+  // Compute total number of elements
+  size_t total_elems = 1;
+  for (auto dim : expected_shape) {
+    total_elems *= dim;
+  }
+
+  // Copy from npy_data → arr.raw() in one shot
+  std::memcpy(arr.raw(), raw_data, total_elems * sizeof(float));
+
+  return arr;
+}
+
+struct Appdata {
+  explicit Appdata(const std::string& input_file)
+      : input(load_from_npy<3>(input_file, {3, 32, 32})),
+        conv1_out({16, 32, 32}),
+        pool1_out({16, 16, 16}),
+        conv2_out({32, 16, 16}),
+        pool2_out({32, 8, 8}),
+        conv3_out({64, 8, 8}),
+        conv4_out({64, 8, 8}),
+        conv5_out({64, 8, 8}),
+        pool3_out({64, 4, 4}),
+        linear_out({10}),
+        conv1_weights(load_from_npy<4>("conv1_w.npy", {16, 3, 3, 3})),
+        conv1_bias(load_from_npy<1>("conv1_b.npy", {16})),
+        conv2_weights(load_from_npy<4>("conv2_w.npy", {32, 16, 3, 3})),
+        conv2_bias(load_from_npy<1>("conv2_b.npy", {32})),
+        conv3_weights(load_from_npy<4>("conv3_w.npy", {64, 32, 3, 3})),
+        conv3_bias(load_from_npy<1>("conv3_b.npy", {64})),
+        conv4_weights(load_from_npy<4>("conv4_w.npy", {64, 64, 3, 3})),
+        conv4_bias(load_from_npy<1>("conv4_b.npy", {64})),
+        conv5_weights(load_from_npy<4>("conv5_w.npy", {64, 64, 3, 3})),
+        conv5_bias(load_from_npy<1>("conv5_b.npy", {64})),
+        linear_weights(load_from_npy<2>("linear_w.npy", {10, 1024})),
+        linear_bias(load_from_npy<1>("linear_b.npy", {10})) {
+    conv1_out.print_shape("conv1_out");
+    pool1_out.print_shape("pool1_out");
+    conv2_out.print_shape("conv2_out");
+    pool2_out.print_shape("pool2_out");
+    conv3_out.print_shape("conv3_out");
+    conv4_out.print_shape("conv4_out");
+    conv5_out.print_shape("conv5_out");
+    pool3_out.print_shape("pool3_out");
+    linear_out.print_shape("linear_out");
+  }
+
+  const NDArray<3> input;
+  NDArray<3> conv1_out;
+  NDArray<3> pool1_out;
+  NDArray<3> conv2_out;
+  NDArray<3> pool2_out;
+  NDArray<3> conv3_out;
+  NDArray<3> conv4_out;
+  NDArray<3> conv5_out;
+  NDArray<3> pool3_out;
+  NDArray<1> linear_out;
+
+  const NDArray<4> conv1_weights;
+  const NDArray<1> conv1_bias;
+  const NDArray<4> conv2_weights;
+  const NDArray<1> conv2_bias;
+  const NDArray<4> conv3_weights;
+  const NDArray<1> conv3_bias;
+  const NDArray<4> conv4_weights;
+  const NDArray<1> conv4_bias;
+  const NDArray<4> conv5_weights;
+  const NDArray<1> conv5_bias;
+  const NDArray<2> linear_weights;
+  const NDArray<1> linear_bias;
+};
+
+[[nodiscard]] inline int arg_max(const float* ptr) {
+  const auto max_index = std::distance(ptr, std::ranges::max_element(ptr, ptr + 10));
+
+  return max_index;
+}
+
+inline void print_prediction(const int max_index) {
+  static const std::unordered_map<int, std::string_view> class_names{{0, "airplanes"},
+                                                                     {1, "cars"},
+                                                                     {2, "birds"},
+                                                                     {3, "cats"},
+                                                                     {4, "deer"},
+                                                                     {5, "dogs"},
+                                                                     {6, "frogs"},
+                                                                     {7, "horses"},
+                                                                     {8, "ships"},
+                                                                     {9, "trucks"}};
+
+  std::cout << "Predicted Image: ";
+  std::cout << (class_names.contains(max_index) ? class_names.at(max_index) : "Unknown");
+  std::cout << std::endl;
+}

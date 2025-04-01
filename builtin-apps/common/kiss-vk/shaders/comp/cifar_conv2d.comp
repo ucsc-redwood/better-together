@@ -1,0 +1,96 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float weight_data[];
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];
+};
+
+// Uniform parameters
+layout(push_constant) uniform Params {
+  uint input_height;
+  uint input_width;
+  uint weight_output_channels;
+  uint weight_input_channels;
+  uint weight_height;
+  uint weight_width;
+  uint bias_number_of_elements;
+  uint kernel_size;
+  uint stride;
+  uint padding;
+  uint output_height;
+  uint output_width;
+  bool relu;
+}
+params;
+
+void main() {
+  // Global ID for the current invocation
+  uint global_idx = gl_GlobalInvocationID.x;
+
+  // Compute indices for output channel, height, and width
+  uint out_channel = global_idx / (params.output_height * params.output_width);
+  uint hw_idx = global_idx % (params.output_height * params.output_width);
+  uint y = hw_idx / params.output_width;
+  uint x = hw_idx % params.output_width;
+
+  // Initialize accumulator for the convolution result
+  float sum = 0.0;
+
+  // Perform convolution
+  for (uint in_channel = 0; in_channel < params.weight_input_channels;
+       ++in_channel) {
+    for (uint ky = 0; ky < params.weight_height; ++ky) {
+      uint image_y_base = y * params.stride + ky - params.padding;
+      for (uint kx = 0; kx < params.weight_width; ++kx) {
+        uint image_x = x * params.stride + kx - params.padding;
+
+        if (image_y_base < params.input_height &&
+            image_x < params.input_width) {
+          uint input_index =
+              ((in_channel * params.input_height + image_y_base) *
+                   params.input_width +
+               image_x);
+          uint weight_index =
+              (((out_channel * params.weight_input_channels + in_channel) *
+                    params.weight_height +
+                ky) *
+                   params.weight_width +
+               kx);
+
+          sum += input_data[input_index] * weight_data[weight_index];
+        }
+      }
+    }
+  }
+
+  // Add bias
+  if (out_channel < params.bias_number_of_elements) {
+    sum += bias_data[out_channel];
+  }
+
+  // Apply ReLU activation if enabled
+  if (params.relu && sum < 0.0) {
+    sum = 0.0;
+  }
+
+  // Store result in the output buffer
+  uint output_index =
+      (out_channel * params.output_height + y) * params.output_width + x;
+  output_data[output_index] = sum;
+}
