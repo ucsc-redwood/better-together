@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <random>
 #include <string>
 #include <unordered_map>
 
@@ -120,5 +121,107 @@ inline void print_prediction(const int max_index) {
   std::cout << (class_names.contains(max_index) ? class_names.at(max_index) : "Unknown");
   std::cout << std::endl;
 }
+
+// ----------------------------------------------------------------------------
+// Batched version
+// ----------------------------------------------------------------------------
+
+struct AppDataBatch {
+  static constexpr size_t BATCH_SIZE = 128;
+
+  // Constructor loads a file containing a batch of 128 images,
+  // shaped (128, 3, 32, 32).
+  explicit AppDataBatch([[maybe_unused]] const std::string& input_file)
+      :  // input(load_from_npy<4>(input_file, {BATCH_SIZE, 3, 32, 32})),
+
+        input({BATCH_SIZE, 3, 32, 32}),
+
+        // After conv1, shape => (128, 16, 32, 32)
+        conv1_out({BATCH_SIZE, 16, 32, 32}),
+        // Pool1 => (128, 16, 16, 16)
+        pool1_out({BATCH_SIZE, 16, 16, 16}),
+
+        conv2_out({BATCH_SIZE, 32, 16, 16}),
+        pool2_out({BATCH_SIZE, 32, 8, 8}),
+
+        conv3_out({BATCH_SIZE, 64, 8, 8}),
+        conv4_out({BATCH_SIZE, 64, 8, 8}),
+        conv5_out({BATCH_SIZE, 64, 8, 8}),
+        // Pool3 => (128, 64, 4, 4)
+        pool3_out({BATCH_SIZE, 64, 4, 4}),
+
+        // After flatten, shape => (128, 1024), but we can create it on the fly.
+        // The final linear output => (128, 10).
+        linear_out({BATCH_SIZE, 10}),
+
+        // Weights/bias shapes are unchanged (no batch dimension).
+        conv1_weights(load_from_npy<4>("conv1_w.npy", {16, 3, 3, 3})),
+        conv1_bias(load_from_npy<1>("conv1_b.npy", {16})),
+        conv2_weights(load_from_npy<4>("conv2_w.npy", {32, 16, 3, 3})),
+        conv2_bias(load_from_npy<1>("conv2_b.npy", {32})),
+        conv3_weights(load_from_npy<4>("conv3_w.npy", {64, 32, 3, 3})),
+        conv3_bias(load_from_npy<1>("conv3_b.npy", {64})),
+        conv4_weights(load_from_npy<4>("conv4_w.npy", {64, 64, 3, 3})),
+        conv4_bias(load_from_npy<1>("conv4_b.npy", {64})),
+        conv5_weights(load_from_npy<4>("conv5_w.npy", {64, 64, 3, 3})),
+        conv5_bias(load_from_npy<1>("conv5_b.npy", {64})),
+        // Linear weights: shape (10, 1024)
+        linear_weights(load_from_npy<2>("linear_w.npy", {10, 1024})),
+        linear_bias(load_from_npy<1>("linear_b.npy", {10})) {
+    // Optional: debug prints or memory usage checks
+    // e.g. input.print_shape("Batched input");
+
+    // Let's fill the input with random values
+    std::mt19937 gen(114514);
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+    // Calculate total elements
+    size_t total_elements = 1;
+    for (auto dim : input.shape()) {
+      total_elements *= dim;
+    }
+
+    // Fill with random values
+    float* data_ptr = input.raw();
+    for (size_t i = 0; i < total_elements; ++i) {
+      data_ptr[i] = dis(gen);
+    }
+
+    // // Print the first 10 elements of the input
+    // std::cout << "First 10 elements of the input: ";
+    // for (size_t i = 0; i < std::min(size_t(10), total_elements); ++i) {
+    //   std::cout << data_ptr[i] << " ";
+    // }
+    // std::cout << std::endl;
+  }
+
+  // Input and intermediate outputs
+  NDArray<4> input;      // shape = (128, 3, 32, 32)
+  NDArray<4> conv1_out;  // (128, 16, 32, 32)
+  NDArray<4> pool1_out;  // (128, 16, 16, 16)
+  NDArray<4> conv2_out;  // (128, 32, 16, 16)
+  NDArray<4> pool2_out;  // (128, 32, 8, 8)
+  NDArray<4> conv3_out;  // (128, 64, 8, 8)
+  NDArray<4> conv4_out;  // (128, 64, 8, 8)
+  NDArray<4> conv5_out;  // (128, 64, 8, 8)
+  NDArray<4> pool3_out;  // (128, 64, 4, 4)
+
+  // Flatten would be (128, 1024), stored or created on-the-fly
+  NDArray<2> linear_out;  // shape = (128, 10) for final classification
+
+  // Convolution & linear weights/biases (no batch dimension needed)
+  const NDArray<4> conv1_weights;
+  const NDArray<1> conv1_bias;
+  const NDArray<4> conv2_weights;
+  const NDArray<1> conv2_bias;
+  const NDArray<4> conv3_weights;
+  const NDArray<1> conv3_bias;
+  const NDArray<4> conv4_weights;
+  const NDArray<1> conv4_bias;
+  const NDArray<4> conv5_weights;
+  const NDArray<1> conv5_bias;
+  const NDArray<2> linear_weights;  // (10, 1024)
+  const NDArray<1> linear_bias;     // (10)
+};
 
 }  // namespace cifar_dense

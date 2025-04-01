@@ -10,12 +10,12 @@ int main(int argc, char** argv) {
 
   PARSE_ARGS_END;
 
-  cifar_dense::AppData appdata(input_file);
+  cifar_dense::AppDataBatch batched_appdata(input_file);
 
-  omp::dispatch_multi_stage_unrestricted(8, appdata, 1, 9);
+  omp::dispatch_multi_stage<ProcessorType::kLittleCore>(4, batched_appdata, 1, 9);
 
   // Print result
-  int predicted_class = cifar_dense::arg_max(appdata.linear_out.raw());
+  int predicted_class = cifar_dense::arg_max(batched_appdata.linear_out.raw());
   cifar_dense::print_prediction(predicted_class);
 
   return 0;
