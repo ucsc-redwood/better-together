@@ -21,11 +21,7 @@ struct Task {
   // ----------------------------------
   cifar_dense::AppDataBatch appdata;
 
-  //   // just reference
-  //   const cuda::CudaManager& mgr;
-  //   const cuda::DeviceModelData& d_model_data;
-
-  explicit Task() : appdata(std::pmr::new_delete_resource()) { uid = uid_counter++; }
+  explicit Task() : appdata(&g_cuda_mgr.get_mr()) { uid = uid_counter++; }
   // ----------------------------------
 };
 

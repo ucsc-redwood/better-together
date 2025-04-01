@@ -11,7 +11,6 @@ namespace cuda {
   (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachSingle))
 #define CudaAttachHost(ptr) (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachHost))
 
-
 // clang-format off
 void run_stage_1_async(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Conv 1
 void run_stage_2_async(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // MaxPool 1
