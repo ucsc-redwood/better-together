@@ -3,7 +3,6 @@
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/common/cuda/manager.cuh"
 #include "cuda/dispatchers.cuh"
-#include "cuda/model_data.cuh"
 #include "omp/dispatchers.hpp"
 
 int main(int argc, char** argv) {
