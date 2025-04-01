@@ -75,6 +75,7 @@ __global__ void maxpool2d_kernel(const float* __restrict__ input,  // [N, C, H, 
   const int q = pq % Q;
 
   float max_val = -FLT_MAX;
+  bool found_valid_input = false;
 
   for (int r = 0; r < pool_h; ++r) {
     for (int s = 0; s < pool_w; ++s) {
@@ -84,8 +85,14 @@ __global__ void maxpool2d_kernel(const float* __restrict__ input,  // [N, C, H, 
       if (in_y >= 0 && in_y < H && in_x >= 0 && in_x < W) {
         const float val = input[((n * C + c) * H + in_y) * W + in_x];
         max_val = fmaxf(max_val, val);
+        found_valid_input = true;
       }
     }
+  }
+
+  // If no valid inputs were found in the pooling region, set max_val to 0
+  if (!found_valid_input) {
+    max_val = 0.0f;
   }
 
   output[((n * C + c) * P + p) * Q + q] = max_val;

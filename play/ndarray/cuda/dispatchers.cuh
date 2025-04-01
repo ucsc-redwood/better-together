@@ -3,7 +3,6 @@
 #include "../appdata.hpp"
 #include "builtin-apps/common/cuda/helpers.cuh"
 #include "builtin-apps/common/cuda/manager.cuh"
-#include "builtin-apps/debug_logger.hpp"
 #include "model_data.cuh"
 
 namespace cuda {

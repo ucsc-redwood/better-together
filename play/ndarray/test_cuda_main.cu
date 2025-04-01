@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
   cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 9, mgr);
 
-  cifar_dense::print_batch_predictions(batched_appdata);
+  cifar_dense::print_batch_predictions(batched_appdata, 10);
 
   return 0;
 }

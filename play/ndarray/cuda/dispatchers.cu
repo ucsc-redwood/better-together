@@ -1,3 +1,4 @@
+#include "builtin-apps/debug_logger.hpp"
 #include "dispatchers.cuh"
 #include "kernels.cuh"
 
@@ -6,6 +7,8 @@ namespace cuda {
 #define CudaAttachSingle(ptr) \
   (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachSingle))
 #define CudaAttachHost(ptr) (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachHost))
+
+constexpr bool debug_layer_outputs = false;
 
 void run_stage_1_async(cifar_dense::AppDataBatch& appdata,
                        const cuda::DeviceModelData& d_model_data,
@@ -47,6 +50,11 @@ void run_stage_1_async(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.conv1_out.print("conv1_out");
+  }
 }
 
 void run_stage_2_async(cifar_dense::AppDataBatch& appdata,
@@ -83,6 +91,11 @@ void run_stage_2_async(cifar_dense::AppDataBatch& appdata,
                                                                pool_w,
                                                                stride,
                                                                padding);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.pool1_out.print("pool1_out");
+  }
 }
 
 void run_stage_3_async(cifar_dense::AppDataBatch& appdata,
@@ -124,6 +137,11 @@ void run_stage_3_async(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.conv2_out.print("conv2_out");
+  }
 }
 
 void run_stage_4_async(cifar_dense::AppDataBatch& appdata,
@@ -159,6 +177,11 @@ void run_stage_4_async(cifar_dense::AppDataBatch& appdata,
                                                                pool_w,
                                                                stride,
                                                                padding);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.pool2_out.print("pool2_out");
+  }
 }
 
 void run_stage_5_async(cifar_dense::AppDataBatch& appdata,
@@ -201,6 +224,11 @@ void run_stage_5_async(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.conv3_out.print("conv3_out");
+  }
 }
 
 void run_stage_6_async(cifar_dense::AppDataBatch& appdata,
@@ -243,6 +271,11 @@ void run_stage_6_async(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.conv4_out.print("conv4_out");
+  }
 }
 
 void run_stage_7_async(cifar_dense::AppDataBatch& appdata,
@@ -285,6 +318,11 @@ void run_stage_7_async(cifar_dense::AppDataBatch& appdata,
                                                             stride,
                                                             padding,
                                                             true);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.conv5_out.print("conv5_out");
+  }
 }
 
 void run_stage_8_async(cifar_dense::AppDataBatch& appdata,
@@ -320,6 +358,11 @@ void run_stage_8_async(cifar_dense::AppDataBatch& appdata,
                                                                pool_w,
                                                                stride,
                                                                padding);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.pool3_out.print("pool3_out");
+  }
 }
 
 void run_stage_9_async(cifar_dense::AppDataBatch& appdata,
@@ -351,6 +394,11 @@ void run_stage_9_async(cifar_dense::AppDataBatch& appdata,
                                                                  N,
                                                                  in_features,
                                                                  out_features);
+
+  if constexpr (debug_layer_outputs) {
+    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    appdata.linear_out.print("linear_out");
+  }
 }
 
 }  // namespace cuda
