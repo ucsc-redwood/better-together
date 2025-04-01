@@ -15,7 +15,7 @@ class NDArray {
   // Construct the array given its shape.
   explicit NDArray(const Shape& shape,
                    std::pmr::memory_resource* mr = std::pmr::new_delete_resource())
-      : shape_(shape), data_(mr), mr_(mr) {
+      : shape_(shape), data_(mr) {
     compute_strides();
     total_size_ = std::accumulate(shape_.begin(), shape_.end(), size_t(1), std::multiplies<>());
     data_.resize(total_size_, 0.0f);
@@ -119,8 +119,9 @@ class NDArray {
 
   // TODO: use pmr::vector
   // actual dense data holder
+  // -------------------------------------------------
   std::pmr::vector<float> data_;
-  std::pmr::memory_resource* mr_;
+  // -------------------------------------------------
 
   // Compute strides for row-major order.
   void compute_strides() {

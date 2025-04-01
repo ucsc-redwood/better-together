@@ -2,15 +2,13 @@
 #include "omp/dispatchers.hpp"
 
 int main(int argc, char** argv) {
-  PARSE_ARGS_BEGIN;
+  parse_args(argc, argv);
 
-  std::string input_file;
-  app.add_option("-i,--input", input_file, "Input filename")
-      ->default_val("cifar10_images/img_00005.npy");
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
-  PARSE_ARGS_END;
+  auto mr = std::pmr::new_delete_resource();
 
-  cifar_dense::AppDataBatch batched_appdata(input_file);
+  cifar_dense::AppDataBatch batched_appdata(mr);
 
   omp::dispatch_multi_stage<ProcessorType::kLittleCore>(4, batched_appdata, 1, 9);
 

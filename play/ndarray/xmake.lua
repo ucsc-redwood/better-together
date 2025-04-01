@@ -17,19 +17,39 @@ do
 end
 
 
-target("bm-play-ndarray")
+-- target("bm-play-ndarray")
+-- do
+-- 	add_rules("common_flags", "run_on_android")
+
+--     add_includedirs("$(projectdir)")
+
+-- 	add_files({
+-- 		"bm_main.cpp",
+-- 		"omp/dispatchers.cpp",
+-- 	})
+
+-- 	add_deps("builtin-apps")
+
+-- 	add_packages("cnpy")
+-- 	add_packages("benchmark")
+-- end
+
+target("play-ndarray-cu")
 do
-	add_rules("common_flags", "run_on_android")
+	add_rules("common_flags")
 
     add_includedirs("$(projectdir)")
 
 	add_files({
-		"bm_main.cpp",
-		"omp/dispatchers.cpp",
+		"test_cuda_main.cu",
+		"cuda/dispatchers.cu",
+		"cuda/kernels.cu",
 	})
 
-	add_deps("builtin-apps")
+	add_deps("builtin-apps", "builtin-apps-cuda")
+
+	add_cugencodes("native", {force = true})
 
 	add_packages("cnpy")
-	add_packages("benchmark")
 end
+

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "../appdata.hpp"
+#include "builtin-apps/common/cuda/helpers.cuh"
+
+namespace cuda {
 
 void run_stage_1(cifar_dense::AppDataBatch& appdata);  // Conv 1
 void run_stage_2(cifar_dense::AppDataBatch& appdata);  // MaxPool 1
@@ -51,5 +54,8 @@ inline void dispatch_multi_stage(cifar_dense::AppDataBatch& appdata,
     dispatch_fns_batch[stage - 1](appdata);
   }
 
+  CheckCuda(cudaDeviceSynchronize());
   // Sync to Host
 }
+
+}  // namespace cuda
