@@ -148,7 +148,7 @@ inline void conv2d_batch(const NDArray<4>& input,
   int outW = static_cast<int>(out_shape[3]);
 
 // Parallelize over (N, outC, outH, outW)
-#pragma omp parallel for collapse(4)
+#pragma omp for collapse(4)
   for (int n = 0; n < N; n++) {
     for (int oc = 0; oc < outC; oc++) {
       for (int oh = 0; oh < outH; oh++) {
@@ -192,7 +192,7 @@ inline void maxpool2d_batch(const NDArray<4>& input,
   int outH = static_cast<int>(out_shape[2]);
   int outW = static_cast<int>(out_shape[3]);
 
-#pragma omp parallel for collapse(4)
+#pragma omp for collapse(4)
   for (int n = 0; n < N; n++) {
     for (int c = 0; c < C; c++) {
       for (int oh = 0; oh < outH; oh++) {
@@ -234,7 +234,7 @@ inline void linear_batch(const NDArray<2>& input,
   int in_features = static_cast<int>(in_shape[1]);
   int out_features = static_cast<int>(w_shape[0]);
 
-#pragma omp parallel for collapse(2)
+#pragma omp for collapse(2)
   for (int n = 0; n < N; n++) {
     for (int of = 0; of < out_features; of++) {
       float sum = bias(of);
