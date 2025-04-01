@@ -12,9 +12,7 @@ int main(int argc, char** argv) {
 
   omp::dispatch_multi_stage<ProcessorType::kLittleCore>(4, batched_appdata, 1, 9);
 
-  // Print result
-  int predicted_class = cifar_dense::arg_max(batched_appdata.linear_out.raw());
-  cifar_dense::print_prediction(predicted_class);
+  cifar_dense::print_batch_predictions(batched_appdata);
 
   return 0;
 }

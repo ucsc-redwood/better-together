@@ -14,115 +14,28 @@
 
 namespace cifar_dense {
 
-// struct AppData {
-//   explicit AppData(const std::string& input_file, std::pmr::memory_resource* mr)
-//       : input(load_from_npy<3>(input_file, {3, 32, 32})),
-//         conv1_out({16, 32, 32}),
-//         pool1_out({16, 16, 16}),
-//         conv2_out({32, 16, 16}),
-//         pool2_out({32, 8, 8}),
-//         conv3_out({64, 8, 8}),
-//         conv4_out({64, 8, 8}),
-//         conv5_out({64, 8, 8}),
-//         pool3_out({64, 4, 4}),
-//         linear_out({10}),
-//         conv1_w(load_from_npy<4>("conv1_w.npy", {16, 3, 3, 3})),
-//         conv1_b(load_from_npy<1>("conv1_b.npy", {16})),
-//         conv2_w(load_from_npy<4>("conv2_w.npy", {32, 16, 3, 3})),
-//         conv2_b(load_from_npy<1>("conv2_b.npy", {32})),
-//         conv3_w(load_from_npy<4>("conv3_w.npy", {64, 32, 3, 3})),
-//         conv3_b(load_from_npy<1>("conv3_b.npy", {64})),
-//         conv4_w(load_from_npy<4>("conv4_w.npy", {64, 64, 3, 3})),
-//         conv4_b(load_from_npy<1>("conv4_b.npy", {64})),
-//         conv5_w(load_from_npy<4>("conv5_w.npy", {64, 64, 3, 3})),
-//         conv5_b(load_from_npy<1>("conv5_b.npy", {64})),
-//         linear_w(load_from_npy<2>("linear_w.npy", {10, 1024})),
-//         linear_b(load_from_npy<1>("linear_b.npy", {10})) {
-//     // conv1_out.print_shape("conv1_out");
-//     // pool1_out.print_shape("pool1_out");
-//     // conv2_out.print_shape("conv2_out");
-//     // pool2_out.print_shape("pool2_out");
-//     // conv3_out.print_shape("conv3_out");
-//     // conv4_out.print_shape("conv4_out");
-//     // conv5_out.print_shape("conv5_out");
-//     // pool3_out.print_shape("pool3_out");
-//     // linear_out.print_shape("linear_out");
+// [[nodiscard]] inline int arg_max(const float* ptr) {
+//   const auto max_index = std::distance(ptr, std::ranges::max_element(ptr, ptr + 10));
 
-//     // // report total memory usage in MB
-//     // size_t total_memory_usage = 0;
-//     // total_memory_usage += conv1_out.memory_usage_bytes();
-//     // total_memory_usage += pool1_out.memory_usage_bytes();
-//     // total_memory_usage += conv2_out.memory_usage_bytes();
-//     // total_memory_usage += pool2_out.memory_usage_bytes();
-//     // total_memory_usage += conv3_out.memory_usage_bytes();
-//     // total_memory_usage += conv4_out.memory_usage_bytes();
-//     // total_memory_usage += conv5_out.memory_usage_bytes();
-//     // total_memory_usage += pool3_out.memory_usage_bytes();
-//     // total_memory_usage += linear_out.memory_usage_bytes();
-//     // total_memory_usage += conv1_w.memory_usage_bytes();
-//     // total_memory_usage += conv2_w.memory_usage_bytes();
-//     // total_memory_usage += conv3_w.memory_usage_bytes();
-//     // total_memory_usage += conv4_w.memory_usage_bytes();
-//     // total_memory_usage += conv5_w.memory_usage_bytes();
-//     // total_memory_usage += linear_w.memory_usage_bytes();
-//     // total_memory_usage += conv1_b.memory_usage_bytes();
-//     // total_memory_usage += conv2_b.memory_usage_bytes();
-//     // total_memory_usage += conv3_b.memory_usage_bytes();
-//     // total_memory_usage += conv4_b.memory_usage_bytes();
-//     // total_memory_usage += conv5_b.memory_usage_bytes();
-//     // total_memory_usage += linear_b.memory_usage_bytes();
+//   return max_index;
+// }
 
-//     // std::cout << "Total memory usage: " << total_memory_usage / 1024.0 / 1024.0 << " MB"
-//     //           << std::endl;
-//   }
+// inline void print_prediction(const int max_index) {
+//   static const std::unordered_map<int, std::string_view> class_names{{0, "airplanes"},
+//                                                                      {1, "cars"},
+//                                                                      {2, "birds"},
+//                                                                      {3, "cats"},
+//                                                                      {4, "deer"},
+//                                                                      {5, "dogs"},
+//                                                                      {6, "frogs"},
+//                                                                      {7, "horses"},
+//                                                                      {8, "ships"},
+//                                                                      {9, "trucks"}};
 
-//   const NDArray<3> input;
-//   NDArray<3> conv1_out;
-//   NDArray<3> pool1_out;
-//   NDArray<3> conv2_out;
-//   NDArray<3> pool2_out;
-//   NDArray<3> conv3_out;
-//   NDArray<3> conv4_out;
-//   NDArray<3> conv5_out;
-//   NDArray<3> pool3_out;
-//   NDArray<1> linear_out;
-
-//   const NDArray<4> conv1_w;
-//   const NDArray<1> conv1_b;
-//   const NDArray<4> conv2_w;
-//   const NDArray<1> conv2_b;
-//   const NDArray<4> conv3_w;
-//   const NDArray<1> conv3_b;
-//   const NDArray<4> conv4_w;
-//   const NDArray<1> conv4_b;
-//   const NDArray<4> conv5_w;
-//   const NDArray<1> conv5_b;
-//   const NDArray<2> linear_w;
-//   const NDArray<1> linear_b;
-// };
-
-[[nodiscard]] inline int arg_max(const float* ptr) {
-  const auto max_index = std::distance(ptr, std::ranges::max_element(ptr, ptr + 10));
-
-  return max_index;
-}
-
-inline void print_prediction(const int max_index) {
-  static const std::unordered_map<int, std::string_view> class_names{{0, "airplanes"},
-                                                                     {1, "cars"},
-                                                                     {2, "birds"},
-                                                                     {3, "cats"},
-                                                                     {4, "deer"},
-                                                                     {5, "dogs"},
-                                                                     {6, "frogs"},
-                                                                     {7, "horses"},
-                                                                     {8, "ships"},
-                                                                     {9, "trucks"}};
-
-  std::cout << "Predicted Image: ";
-  std::cout << (class_names.contains(max_index) ? class_names.at(max_index) : "Unknown");
-  std::cout << std::endl;
-}
+//   std::cout << "Predicted Image: ";
+//   std::cout << (class_names.contains(max_index) ? class_names.at(max_index) : "Unknown");
+//   std::cout << std::endl;
+// }
 
 // ----------------------------------------------------------------------------
 // Batched version (this is better)
@@ -215,5 +128,52 @@ struct AppDataBatch {
     return model_data;
   }
 };
+
+// ----------------------------------------------------------------------------
+// Helper functions
+// ----------------------------------------------------------------------------
+
+inline void print_prediction(const int max_index) {
+  static const std::unordered_map<int, std::string> class_names{{0, "airplanes"},
+                                                                {1, "cars"},
+                                                                {2, "birds"},
+                                                                {3, "cats"},
+                                                                {4, "deer"},
+                                                                {5, "dogs"},
+                                                                {6, "frogs"},
+                                                                {7, "horses"},
+                                                                {8, "ships"},
+                                                                {9, "trucks"}};
+
+  std::cout << "\t===>\t";
+  std::cout << (class_names.contains(max_index) ? class_names.at(max_index) : "Unknown");
+  std::cout << '\n';
+}
+
+inline void print_batch_predictions(const AppDataBatch& batch_data, const size_t num_to_print = 1) {
+  // Get the output predictions (batch_size x 10 values)
+  const auto& predictions = batch_data.linear_out;
+
+  std::cout << "Predictions for batch of " << AppDataBatch::BATCH_SIZE << " images:" << std::endl;
+
+  // For each image in the batch
+  for (size_t i = 0; i < num_to_print; ++i) {
+    // Find the index of the maximum value (predicted class)
+    const float* pred_ptr = predictions.raw() + i * 10;  // Point to the 10 values for this image
+    const auto max_index = std::distance(pred_ptr, std::max_element(pred_ptr, pred_ptr + 10));
+
+    std::cout << "Image " << i << ":\t";
+
+    // also print the raw value
+    // "[xxx,xxx,xxx,...,xxx]"
+    std::cout << "[";
+    for (size_t j = 0; j < 10; ++j) {
+      std::cout << pred_ptr[j] << ",";
+    }
+    std::cout << "]\t";
+
+    print_prediction(max_index);
+  }
+}
 
 }  // namespace cifar_dense
