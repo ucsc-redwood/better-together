@@ -2,3 +2,4 @@
 
 includes("curl_json")
 includes("ndarray")
+includes("test_nsys")
