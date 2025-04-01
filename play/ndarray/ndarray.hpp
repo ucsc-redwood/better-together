@@ -48,7 +48,8 @@ class NDArray {
   [[nodiscard]] const float* raw() const { return data_.data(); }
 
   // Returns the memory usage in bytes
-  [[nodiscard]] size_t memory_usage_bytes() const { return total_size_ * sizeof(float); }
+  [[nodiscard]] size_t size() const { return total_size_; }
+  [[nodiscard]] size_t memory_usage_bytes() const { return size() * sizeof(float); }
 
   // Utility to print the shape.
   void print_shape(const std::string& name) const {
