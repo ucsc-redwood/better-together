@@ -2,7 +2,6 @@
 
 #include <functional>
 
-#include "builtin-apps/affinity.hpp"
 #include "builtin-apps/app.hpp"
 #include "cuda/dispatchers.cuh"
 #include "omp/dispatchers.hpp"
