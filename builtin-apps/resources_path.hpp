@@ -16,9 +16,20 @@ constexpr const char* kLogsPath = "data/logs";
 // directly running the binary.
 
 [[nodiscard]] inline std::filesystem::path get_project_root_path() {
+  auto cwd = std::filesystem::current_path();
+
 #if defined(__ANDROID__)
   return "/data/local/tmp/";
 #else
+
+  // check current dir see if it contains "build", if so, we are already in the project root
+  // get an list of all files in the current dir
+  for (const auto& entry : std::filesystem::directory_iterator(cwd)) {
+    if (entry.path().filename() == "build") {
+      return cwd;
+    }
+  }
+
   // build
   // └── linux
   //     └── x86_64

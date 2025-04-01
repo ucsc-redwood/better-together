@@ -4,6 +4,9 @@
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
+  // auto cwd = std::filesystem::current_path();
+  // spdlog::info("Current working directory: {}", cwd.string());
+
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   auto mr = std::pmr::new_delete_resource();
