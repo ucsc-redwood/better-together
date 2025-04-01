@@ -127,7 +127,7 @@ inline void linear(const NDArray<1>& input,
 // bias:    (out_channels)
 // output:  (N, out_channels, out_height, out_width)
 
-[[deprecated("use conv2d_batch_u instead")]]
+[[deprecated("use conv2d_batch_u istead")]]
 inline void conv2d_batch(const NDArray<4>& input,
                          const NDArray<4>& weights,
                          const NDArray<1>& bias,
@@ -191,8 +191,8 @@ inline void conv2d_batch_u(const float* u_input,
                            const int kW,    // w_shape[3]
                            const int outH,  // out_shape[2]
                            const int outW,  // out_shape[3]
-                           const int stride,
-                           const int padding,
+                           const int stride, // 1
+                           const int padding, // 0
                            const bool relu) {
 // Parallelize over (N, outC, outH, outW)
 #pragma omp for collapse(4)

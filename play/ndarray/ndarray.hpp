@@ -45,7 +45,7 @@ class NDArray {
   [[nodiscard]] const Shape& shape() const { return shape_; }
 
   [[nodiscard]] float* raw() { return data_.data(); }
-  [[nodiscard]] const float* raw() const { return data_.data(); }
+  // [[nodiscard]] const float* raw() const { return data_.data(); }
 
   // Returns the memory usage in bytes
   [[nodiscard]] size_t memory_usage_bytes() const { return total_size_ * sizeof(float); }
@@ -55,7 +55,7 @@ class NDArray {
     std::cout << name << ": (";
     for (size_t i = 0; i < ND; ++i) {
       std::cout << shape_[i];
-      if (i < ND - 1) std::cout << " × ";
+      if (i + 1 < ND) std::cout << " × ";
     }
     std::cout << ")";
 
@@ -110,6 +110,8 @@ class NDArray {
 
       std::cout << "]";
     }
+
+    std::cout << "\n";
   }
 
  private:

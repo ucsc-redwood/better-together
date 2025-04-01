@@ -13,11 +13,11 @@ int main(int argc, char** argv) {
 
   cifar_dense::AppDataBatch batched_appdata(&mgr.get_mr());
 
-  cuda::run_stage_1(batched_appdata);
+  cuda::run_stage_1(batched_appdata, mgr);
 
-  // // Print result
-  // int predicted_class = cifar_dense::arg_max(batched_appdata.linear_out.raw());
-  // cifar_dense::print_prediction(predicted_class);
+  // Print result
+  int predicted_class = cifar_dense::arg_max(batched_appdata.linear_out.raw());
+  cifar_dense::print_prediction(predicted_class);
 
   return 0;
 }
