@@ -97,12 +97,13 @@ if has_config("use_cuda") then
 			"omp/dispatchers.cpp",
 		})
 
+		add_links("nvToolsExt")
+
 		add_deps("builtin-apps", "builtin-apps-cuda")
 
 		add_cugencodes("native", {force = true})
 
 		add_packages("cnpy")
-		add_packages("concurrentqueue")
 	end
 
 

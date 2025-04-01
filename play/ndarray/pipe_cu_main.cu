@@ -1,3 +1,5 @@
+#include <nvtx3/nvToolsExt.h>
+
 #include <functional>
 
 #include "builtin-apps/affinity.hpp"
@@ -71,6 +73,8 @@ int main(int argc, char** argv) {
   {
     auto start = std::chrono::high_resolution_clock::now();
 
+    nvtxRangePushA("Compute");
+
     std::thread t1(worker_thread, std::ref(q_0_1), &q_1_2, [&](Task& task) {
       omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task.appdata, 1, 4);
     });
@@ -81,6 +85,8 @@ int main(int argc, char** argv) {
 
     t1.join();
     t2.join();
+
+    nvtxRangePop();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
