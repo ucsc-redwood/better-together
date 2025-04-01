@@ -2,6 +2,8 @@
 
 #include "ndarray.hpp"
 
+namespace omp {
+
 // Function declarations using NDArray buffers
 
 // Convolution kernel
@@ -9,18 +11,16 @@
 // weights: (out_channels, in_channels, kernel_height, kernel_width)
 // bias: (out_channels)
 // output: (out_channels, out_height, out_width)
-inline void conv2d_omp(const NDArray<3>& input,
-                       const NDArray<4>& weights,
-                       const NDArray<1>& bias,
-                       const int stride,
-                       const int padding,
-                       const bool relu,
-                       NDArray<3>& output) {
-  // Get shapes from NDArray (assumes NDArray has a public shape() method)
-  const auto& input_shape = input.shape();  // {in_channels, in_height, in_width}
-  const auto& weight_shape =
-      weights.shape();  // {out_channels, in_channels, kernel_height, kernel_width}
-  const auto& output_shape = output.shape();  // {out_channels, out_height, out_width}
+inline void conv2d(const NDArray<3>& input,
+                   const NDArray<4>& weights,
+                   const NDArray<1>& bias,
+                   const int stride,
+                   const int padding,
+                   const bool relu,
+                   NDArray<3>& output) {
+  const auto& input_shape = input.shape();
+  const auto& weight_shape = weights.shape();
+  const auto& output_shape = output.shape();
 
   int in_channels = static_cast<int>(input_shape[0]);
   int in_height = static_cast<int>(input_shape[1]);
@@ -61,12 +61,12 @@ inline void conv2d_omp(const NDArray<3>& input,
 // Max pooling kernel
 // input: (channels, in_height, in_width)
 // output: (channels, out_height, out_width)
-inline void maxpool2d_omp(const NDArray<3>& input,
-                          const int pool_size,
-                          const int stride,
-                          NDArray<3>& output) {
-  const auto& input_shape = input.shape();    // {channels, in_height, in_width}
-  const auto& output_shape = output.shape();  // {channels, out_height, out_width}
+inline void maxpool2d(const NDArray<3>& input,
+                      const int pool_size,
+                      const int stride,
+                      NDArray<3>& output) {
+  const auto& input_shape = input.shape();
+  const auto& output_shape = output.shape();
 
   int channels = static_cast<int>(input_shape[0]);
   int in_height = static_cast<int>(input_shape[1]);
@@ -100,11 +100,11 @@ inline void maxpool2d_omp(const NDArray<3>& input,
 // weights: (output_features, input_features)
 // bias: (output_features)
 // output: (output_features)
-inline void linear_omp(const NDArray<1>& input,
-                       const NDArray<2>& weights,
-                       const NDArray<1>& bias,
-                       NDArray<1>& output) {
-  const auto& weight_shape = weights.shape();  // {output_features, input_features}
+inline void linear(const NDArray<1>& input,
+                   const NDArray<2>& weights,
+                   const NDArray<1>& bias,
+                   NDArray<1>& output) {
+  const auto& weight_shape = weights.shape();
   int output_features = static_cast<int>(weight_shape[0]);
   int input_features = static_cast<int>(weight_shape[1]);
 
@@ -117,3 +117,5 @@ inline void linear_omp(const NDArray<1>& input,
     output(i) = sum;
   }
 }
+
+}  // namespace omp

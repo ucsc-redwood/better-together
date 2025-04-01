@@ -8,6 +8,7 @@ do
 
 	add_files({
 		"main.cpp",
+		"dispatchers.cpp",
 	})
 
 	add_packages("cnpy")

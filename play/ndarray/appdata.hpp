@@ -52,8 +52,8 @@ NDArray<ND> load_from_npy(const std::string& filename,
   return arr;
 }
 
-struct Appdata {
-  explicit Appdata(const std::string& input_file)
+struct AppData {
+  explicit AppData(const std::string& input_file)
       : input(load_from_npy<3>(input_file, {3, 32, 32})),
         conv1_out({16, 32, 32}),
         pool1_out({16, 16, 16}),
@@ -85,6 +85,33 @@ struct Appdata {
     conv5_out.print_shape("conv5_out");
     pool3_out.print_shape("pool3_out");
     linear_out.print_shape("linear_out");
+
+    // report total memory usage in MB
+    size_t total_memory_usage = 0;
+    total_memory_usage += conv1_out.memory_usage_bytes();
+    total_memory_usage += pool1_out.memory_usage_bytes();
+    total_memory_usage += conv2_out.memory_usage_bytes();
+    total_memory_usage += pool2_out.memory_usage_bytes();
+    total_memory_usage += conv3_out.memory_usage_bytes();
+    total_memory_usage += conv4_out.memory_usage_bytes();
+    total_memory_usage += conv5_out.memory_usage_bytes();
+    total_memory_usage += pool3_out.memory_usage_bytes();
+    total_memory_usage += linear_out.memory_usage_bytes();
+    total_memory_usage += conv1_weights.memory_usage_bytes();
+    total_memory_usage += conv2_weights.memory_usage_bytes();
+    total_memory_usage += conv3_weights.memory_usage_bytes();
+    total_memory_usage += conv4_weights.memory_usage_bytes();
+    total_memory_usage += conv5_weights.memory_usage_bytes();
+    total_memory_usage += linear_weights.memory_usage_bytes();
+    total_memory_usage += conv1_bias.memory_usage_bytes();
+    total_memory_usage += conv2_bias.memory_usage_bytes();
+    total_memory_usage += conv3_bias.memory_usage_bytes();
+    total_memory_usage += conv4_bias.memory_usage_bytes();
+    total_memory_usage += conv5_bias.memory_usage_bytes();
+    total_memory_usage += linear_bias.memory_usage_bytes();
+
+    std::cout << "Total memory usage: " << total_memory_usage / 1024.0 / 1024.0 << " MB"
+              << std::endl;
   }
 
   const NDArray<3> input;
