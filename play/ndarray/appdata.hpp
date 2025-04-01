@@ -127,6 +127,48 @@ inline void print_prediction(const int max_index) {
 // Batched version (this is better)
 // ----------------------------------------------------------------------------
 
+struct ModelData {
+  NDArray<4> h_conv1_w;
+  NDArray<1> h_conv1_b;
+  NDArray<4> h_conv2_w;
+  NDArray<1> h_conv2_b;
+  NDArray<4> h_conv3_w;
+  NDArray<1> h_conv3_b;
+  NDArray<4> h_conv4_w;
+  NDArray<1> h_conv4_b;
+  NDArray<4> h_conv5_w;
+  NDArray<1> h_conv5_b;
+  NDArray<2> h_linear_w;  // (10, 1024)
+  NDArray<1> h_linear_b;  // (10)
+
+  explicit ModelData()
+      : h_conv1_w({16, 3, 3, 3}),
+        h_conv1_b({16}),
+        h_conv2_w({32, 16, 3, 3}),
+        h_conv2_b({32}),
+        h_conv3_w({64, 32, 3, 3}),
+        h_conv3_b({64}),
+        h_conv4_w({64, 64, 3, 3}),
+        h_conv4_b({64}),
+        h_conv5_w({64, 64, 3, 3}),
+        h_conv5_b({64}),
+        h_linear_w({10, 1024}),
+        h_linear_b({10}) {
+    load_from_npy_to_raw("conv1_w.npy", h_conv1_w);
+    load_from_npy_to_raw("conv1_b.npy", h_conv1_b);
+    load_from_npy_to_raw("conv2_w.npy", h_conv2_w);
+    load_from_npy_to_raw("conv2_b.npy", h_conv2_b);
+    load_from_npy_to_raw("conv3_w.npy", h_conv3_w);
+    load_from_npy_to_raw("conv3_b.npy", h_conv3_b);
+    load_from_npy_to_raw("conv4_w.npy", h_conv4_w);
+    load_from_npy_to_raw("conv4_b.npy", h_conv4_b);
+    load_from_npy_to_raw("conv5_w.npy", h_conv5_w);
+    load_from_npy_to_raw("conv5_b.npy", h_conv5_b);
+    load_from_npy_to_raw("linear_w.npy", h_linear_w);
+    load_from_npy_to_raw("linear_b.npy", h_linear_b);
+  }
+};
+
 struct AppDataBatch {
   static constexpr size_t BATCH_SIZE = 128;
 
@@ -151,21 +193,10 @@ struct AppDataBatch {
 
         // After flatten, shape => (128, 1024), but we can create it on the fly.
         // The final linear output => (128, 10).
-        linear_out({BATCH_SIZE, 10}, mr),
+        linear_out({BATCH_SIZE, 10}, mr)
 
-        // W/b shapes are unchanged (no batch dimension).
-        conv1_w({16, 3, 3, 3}),
-        conv1_b({16}),
-        conv2_w({32, 16, 3, 3}),
-        conv2_b({32}),
-        conv3_w({64, 32, 3, 3}),
-        conv3_b({64}),
-        conv4_w({64, 64, 3, 3}),
-        conv4_b({64}),
-        conv5_w({64, 64, 3, 3}),
-        conv5_b({64}),
-        linear_w({10, 1024}),
-        linear_b({10}) {
+  // W/b shapes are unchanged (no batch dimension).
+  {
     // Optional: debug prints or memory usage checks
     input.print_shape("Batched input");
 
@@ -185,19 +216,19 @@ struct AppDataBatch {
       data_ptr[i] = dis(gen);
     }
 
-    // Load w from npy files
-    load_from_npy_to_raw("conv1_w.npy", conv1_w);
-    load_from_npy_to_raw("conv1_b.npy", conv1_b);
-    load_from_npy_to_raw("conv2_w.npy", conv2_w);
-    load_from_npy_to_raw("conv2_b.npy", conv2_b);
-    load_from_npy_to_raw("conv3_w.npy", conv3_w);
-    load_from_npy_to_raw("conv3_b.npy", conv3_b);
-    load_from_npy_to_raw("conv4_w.npy", conv4_w);
-    load_from_npy_to_raw("conv4_b.npy", conv4_b);
-    load_from_npy_to_raw("conv5_w.npy", conv5_w);
-    load_from_npy_to_raw("conv5_b.npy", conv5_b);
-    load_from_npy_to_raw("linear_w.npy", linear_w);
-    load_from_npy_to_raw("linear_b.npy", linear_b);
+    // // Load w from npy files
+    // load_from_npy_to_raw("conv1_w.npy", conv1_w);
+    // load_from_npy_to_raw("conv1_b.npy", conv1_b);
+    // load_from_npy_to_raw("conv2_w.npy", conv2_w);
+    // load_from_npy_to_raw("conv2_b.npy", conv2_b);
+    // load_from_npy_to_raw("conv3_w.npy", conv3_w);
+    // load_from_npy_to_raw("conv3_b.npy", conv3_b);
+    // load_from_npy_to_raw("conv4_w.npy", conv4_w);
+    // load_from_npy_to_raw("conv4_b.npy", conv4_b);
+    // load_from_npy_to_raw("conv5_w.npy", conv5_w);
+    // load_from_npy_to_raw("conv5_b.npy", conv5_b);
+    // load_from_npy_to_raw("linear_w.npy", linear_w);
+    // load_from_npy_to_raw("linear_b.npy", linear_b);
   }
 
   // Input and intermediate outputs
@@ -214,19 +245,19 @@ struct AppDataBatch {
   // Flatten would be (128, 1024), stored or created on-the-fly
   NDArray<2> linear_out;  // shape = (128, 10) for final classification
 
-  // Convolution & linear w/bes (no batch dimension needed)
-  NDArray<4> conv1_w;
-  NDArray<1> conv1_b;
-  NDArray<4> conv2_w;
-  NDArray<1> conv2_b;
-  NDArray<4> conv3_w;
-  NDArray<1> conv3_b;
-  NDArray<4> conv4_w;
-  NDArray<1> conv4_b;
-  NDArray<4> conv5_w;
-  NDArray<1> conv5_b;
-  NDArray<2> linear_w;  // (10, 1024)
-  NDArray<1> linear_b;  // (10)
+  // // Convolution & linear w/bes (no batch dimension needed)
+  // NDArray<4> conv1_w;
+  // NDArray<1> conv1_b;
+  // NDArray<4> conv2_w;
+  // NDArray<1> conv2_b;
+  // NDArray<4> conv3_w;
+  // NDArray<1> conv3_b;
+  // NDArray<4> conv4_w;
+  // NDArray<1> conv4_b;
+  // NDArray<4> conv5_w;
+  // NDArray<1> conv5_b;
+  // NDArray<2> linear_w;  // (10, 1024)
+  // NDArray<1> linear_b;  // (10)
 };
 
 }  // namespace cifar_dense

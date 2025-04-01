@@ -3,20 +3,22 @@
 #include "../appdata.hpp"
 #include "builtin-apps/common/cuda/helpers.cuh"
 #include "builtin-apps/common/cuda/manager.cuh"
+#include "model_data.cuh"
 
 namespace cuda {
 
-void run_stage_1(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // Conv 1
-void run_stage_2(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // MaxPool 1
-void run_stage_3(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // Conv 2
-void run_stage_4(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // MaxPool 2
-void run_stage_5(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // Conv 3
-void run_stage_6(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // Conv 4
-void run_stage_7(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // Conv 5
-void run_stage_8(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // MaxPool 3
-void run_stage_9(cifar_dense::AppDataBatch& appdata, cuda::CudaManager& mgr);  // Linear
+// clang-format off
+void run_stage_1(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Conv 1
+void run_stage_2(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // MaxPool 1
+void run_stage_3(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Conv 2
+void run_stage_4(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // MaxPool 2
+void run_stage_5(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Conv 3
+void run_stage_6(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Conv 4
+void run_stage_7(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Conv 5
+void run_stage_8(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // MaxPool 3
+void run_stage_9(cifar_dense::AppDataBatch& appdata, const cuda::DeviceModelData& d_model_data, cuda::CudaManager& mgr);  // Linear
 
-using DispatchFnBatch = void (*)(cifar_dense::AppDataBatch&, cuda::CudaManager&);
+using DispatchFnBatch = void (*)(cifar_dense::AppDataBatch&, const cuda::DeviceModelData&, cuda::CudaManager&);
 
 const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_1,
@@ -29,9 +31,11 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_8,
     run_stage_9,
 };
+// clang-format on
 
 inline void dispatch_multi_stage_unrestricted(const int num_threads,
                                               cifar_dense::AppDataBatch& appdata,
+                                              const cuda::DeviceModelData& d_model_data,
                                               const int start_stage,
                                               const int end_stage,
                                               cuda::CudaManager& mgr) {
@@ -40,12 +44,13 @@ inline void dispatch_multi_stage_unrestricted(const int num_threads,
 #pragma omp parallel num_threads(num_threads)
   {
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      dispatch_fns_batch[stage - 1](appdata, mgr);
+      dispatch_fns_batch[stage - 1](appdata, d_model_data, mgr);
     }
   }
 }
 
 inline void dispatch_multi_stage(cifar_dense::AppDataBatch& appdata,
+                                 const cuda::DeviceModelData& d_model_data,
                                  const int start_stage,
                                  const int end_stage,
                                  cuda::CudaManager& mgr) {
@@ -54,7 +59,7 @@ inline void dispatch_multi_stage(cifar_dense::AppDataBatch& appdata,
   // Sync to GPU
 
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    dispatch_fns_batch[stage - 1](appdata, mgr);
+    dispatch_fns_batch[stage - 1](appdata, d_model_data, mgr);
   }
 
   CheckCuda(cudaDeviceSynchronize());

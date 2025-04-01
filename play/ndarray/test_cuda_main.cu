@@ -3,6 +3,7 @@
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/common/cuda/manager.cuh"
 #include "cuda/dispatchers.cuh"
+#include "cuda/model_data.cuh"
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
@@ -12,8 +13,10 @@ int main(int argc, char** argv) {
   cuda::CudaManager mgr;
 
   cifar_dense::AppDataBatch batched_appdata(&mgr.get_mr());
+  cifar_dense::ModelData h_model_data;
+  cuda::DeviceModelData d_model_data(h_model_data);
 
-  cuda::run_stage_1(batched_appdata, mgr);
+  cuda::run_stage_1(batched_appdata, d_model_data, mgr);
 
   // Print result
   int predicted_class = cifar_dense::arg_max(batched_appdata.linear_out.raw());
