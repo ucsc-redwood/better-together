@@ -34,21 +34,24 @@ const DispatchFn dispatch_fns[] = {
 // Unrestricted, for baseline
 // ----------------------------------------------------------------------------
 
-inline void dispatch_single_stage_unrestricted(cifar_dense::AppData& appdata, const int stage) {
+inline void dispatch_single_stage_unrestricted(const int num_threads,
+                                               cifar_dense::AppData& appdata,
+                                               const int stage) {
   assert(stage >= 1 && stage <= 9);
 
-#pragma omp parallel
+#pragma omp parallel num_threads(num_threads)
   {
     dispatch_fns[stage - 1](appdata);
   }
 }
 
-inline void dispatch_multi_stage_unrestricted(cifar_dense::AppData& appdata,
+inline void dispatch_multi_stage_unrestricted(const int num_threads,
+                                              cifar_dense::AppData& appdata,
                                               const int start_stage,
                                               const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 9);
 
-#pragma omp parallel
+#pragma omp parallel num_threads(num_threads)
   {
     for (int stage = start_stage; stage <= end_stage; stage++) {
       dispatch_fns[stage - 1](appdata);
