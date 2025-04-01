@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include "benchmarks/argc_argv_sanitizer.hpp"
 #include "builtin-apps/app.hpp"
 #include "omp/dispatchers.hpp"
 
@@ -80,7 +81,16 @@ int main(int argc, char** argv) {
   REGISTER_STAGE(8);
   REGISTER_STAGE(9);
 
-  benchmark::Initialize(&argc, argv);
+  // Where to save the results json file?
+  const auto storage_location = helpers::get_benchmark_storage_location();
+  const auto out_name = storage_location.string() + "/BM_CifarDense_OMP_" + g_device_id + ".json";
+
+  // Sanitize the arguments to pass to Google Benchmark
+  auto [new_argc, new_argv] = sanitize_argc_argv_for_benchmark(argc, argv, out_name);
+
+  benchmark::Initialize(&new_argc, new_argv.data());
+  if (benchmark::ReportUnrecognizedArguments(new_argc, new_argv.data())) return 1;
+
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();
   return 0;
