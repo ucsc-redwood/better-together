@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "builtin-apps/app.hpp"
+#include "builtin-apps/common/cuda/cu_mem_resource.cuh"
 #include "cuda/dispatchers.cuh"
 #include "omp/dispatchers.hpp"
 #include "spsc_queue.hpp"
@@ -10,7 +11,6 @@
 constexpr size_t kNumTasks = 100;
 
 // Global CUDA objects to ensure proper lifetime and thread visibility
-cuda::CudaManager g_cuda_mgr;
 std::unique_ptr<cuda::DeviceModelData> g_device_model_data;
 
 struct Task {
@@ -20,7 +20,7 @@ struct Task {
   // ----------------------------------
   cifar_dense::AppDataBatch appdata;
 
-  explicit Task() : appdata(&g_cuda_mgr.get_mr()) { uid = uid_counter++; }
+  explicit Task(std::pmr::memory_resource* mr) : appdata(mr) { uid = uid_counter++; }
   // ----------------------------------
 };
 
@@ -58,9 +58,11 @@ int main(int argc, char** argv) {
   g_device_model_data =
       std::make_unique<cuda::DeviceModelData>(cifar_dense::AppDataBatch::get_model());
 
+  cuda::CudaManagedResource mr;
+
   // Master thread pushing tasks
   for (size_t i = 0; i < kNumTasks; ++i) {
-    q_0_1.enqueue(new Task());
+    q_0_1.enqueue(new Task(&mr));
   }
 
   // ------------------------------------------------------------------------------------------------
@@ -75,7 +77,7 @@ int main(int argc, char** argv) {
     });
 
     std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
-      cuda::dispatch_multi_stage(task.appdata, *g_device_model_data, 5, 9, g_cuda_mgr);
+      cuda::dispatch_multi_stage(task.appdata, *g_device_model_data, 5, 9);
     });
 
     t1.join();
@@ -85,9 +87,7 @@ int main(int argc, char** argv) {
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    // spdlog::info(
-    //     "Time taken by tasks: {} ms, average: {} ", duration.count(), duration.count() /
-    //     kNumTasks);
+
     std::cout << "Time taken by tasks: " << duration.count()
               << " ms, average: " << duration.count() / kNumTasks << std::endl;
   }

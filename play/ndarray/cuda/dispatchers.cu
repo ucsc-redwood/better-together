@@ -7,8 +7,7 @@ namespace cuda {
 constexpr bool debug_layer_outputs = false;
 
 void run_stage_1_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.input.shape();                      // [128, 3, 32, 32]
   const auto& w_shape = d_model_data.h_model_ref.h_conv1_w.shape();  // [16, 3, 3, 3]
   const auto& out_shape = appdata.conv1_out.shape();                 // [128, 16, 30, 30]
@@ -32,30 +31,29 @@ void run_stage_1_async(cifar_dense::AppDataBatch& appdata,
 
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-  conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.input.raw(),
-                                                            d_model_data.d_conv1_w,
-                                                            d_model_data.d_conv1_b,
-                                                            appdata.conv1_out.raw(),
-                                                            N,
-                                                            C,
-                                                            H,
-                                                            W,
-                                                            K,
-                                                            R,
-                                                            S,
-                                                            stride,
-                                                            padding,
-                                                            true);
+  conv2d_kernel<<<gridDim, blockDim>>>(appdata.input.raw(),
+                                       d_model_data.d_conv1_w,
+                                       d_model_data.d_conv1_b,
+                                       appdata.conv1_out.raw(),
+                                       N,
+                                       C,
+                                       H,
+                                       W,
+                                       K,
+                                       R,
+                                       S,
+                                       stride,
+                                       padding,
+                                       true);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.conv1_out.print("conv1_out");
   }
 }
 
 void run_stage_2_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.conv1_out.shape();  // [128, 16, 30, 30]
   // const auto& out_shape = appdata.pool1_out.shape();  // [128, 16, 15, 15]
 
@@ -77,26 +75,25 @@ void run_stage_2_async(cifar_dense::AppDataBatch& appdata,
 
   dim3 blockDim(256);
   dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
-  maxpool2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv1_out.raw(),
-                                                               appdata.pool1_out.raw(),
-                                                               N,
-                                                               C,
-                                                               H,
-                                                               W,
-                                                               pool_h,
-                                                               pool_w,
-                                                               stride,
-                                                               padding);
+  maxpool2d_kernel<<<gridDim, blockDim>>>(appdata.conv1_out.raw(),
+                                          appdata.pool1_out.raw(),
+                                          N,
+                                          C,
+                                          H,
+                                          W,
+                                          pool_h,
+                                          pool_w,
+                                          stride,
+                                          padding);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.pool1_out.print("pool1_out");
   }
 }
 
 void run_stage_3_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.pool1_out.shape();                  // [128, 16, 15, 15]
   const auto& w_shape = d_model_data.h_model_ref.h_conv2_w.shape();  // [20, 16, 3, 3]
   const auto& out_shape = appdata.conv2_out.shape();                 // [128, 20, 13, 13]
@@ -119,30 +116,29 @@ void run_stage_3_async(cifar_dense::AppDataBatch& appdata,
 
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-  conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.pool1_out.raw(),
-                                                            d_model_data.d_conv2_w,
-                                                            d_model_data.d_conv2_b,
-                                                            appdata.conv2_out.raw(),
-                                                            N,
-                                                            C,
-                                                            H,
-                                                            W,
-                                                            K,
-                                                            R,
-                                                            S,
-                                                            stride,
-                                                            padding,
-                                                            true);
+  conv2d_kernel<<<gridDim, blockDim>>>(appdata.pool1_out.raw(),
+                                       d_model_data.d_conv2_w,
+                                       d_model_data.d_conv2_b,
+                                       appdata.conv2_out.raw(),
+                                       N,
+                                       C,
+                                       H,
+                                       W,
+                                       K,
+                                       R,
+                                       S,
+                                       stride,
+                                       padding,
+                                       true);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.conv2_out.print("conv2_out");
   }
 }
 
 void run_stage_4_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.conv2_out.shape();  // [128, 20, 13, 13]
 
   constexpr int padding = 2;
@@ -163,26 +159,25 @@ void run_stage_4_async(cifar_dense::AppDataBatch& appdata,
 
   dim3 blockDim(256);
   dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
-  maxpool2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv2_out.raw(),
-                                                               appdata.pool2_out.raw(),
-                                                               N,
-                                                               C,
-                                                               H,
-                                                               W,
-                                                               pool_h,
-                                                               pool_w,
-                                                               stride,
-                                                               padding);
+  maxpool2d_kernel<<<gridDim, blockDim>>>(appdata.conv2_out.raw(),
+                                          appdata.pool2_out.raw(),
+                                          N,
+                                          C,
+                                          H,
+                                          W,
+                                          pool_h,
+                                          pool_w,
+                                          stride,
+                                          padding);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.pool2_out.print("pool2_out");
   }
 }
 
 void run_stage_5_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.pool2_out.shape();                  // [128, 20, 7, 7]
   const auto& w_shape = d_model_data.h_model_ref.h_conv3_w.shape();  // [20, 20, 3, 3]
   const auto& out_shape = appdata.conv3_out.shape();                 // [128, 20, 5, 5]
@@ -206,30 +201,29 @@ void run_stage_5_async(cifar_dense::AppDataBatch& appdata,
   // Launch kernel
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-  conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.pool2_out.raw(),
-                                                            d_model_data.d_conv3_w,
-                                                            d_model_data.d_conv3_b,
-                                                            appdata.conv3_out.raw(),
-                                                            N,
-                                                            C,
-                                                            H,
-                                                            W,
-                                                            K,
-                                                            R,
-                                                            S,
-                                                            stride,
-                                                            padding,
-                                                            true);
+  conv2d_kernel<<<gridDim, blockDim>>>(appdata.pool2_out.raw(),
+                                       d_model_data.d_conv3_w,
+                                       d_model_data.d_conv3_b,
+                                       appdata.conv3_out.raw(),
+                                       N,
+                                       C,
+                                       H,
+                                       W,
+                                       K,
+                                       R,
+                                       S,
+                                       stride,
+                                       padding,
+                                       true);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.conv3_out.print("conv3_out");
   }
 }
 
 void run_stage_6_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.conv3_out.shape();                  // [128, 20, 5, 5]
   const auto& w_shape = d_model_data.h_model_ref.h_conv4_w.shape();  // [50, 20, 3, 3]
   const auto& out_shape = appdata.conv4_out.shape();                 // [128, 50, 3, 3]
@@ -253,30 +247,29 @@ void run_stage_6_async(cifar_dense::AppDataBatch& appdata,
   // Launch kernel
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-  conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv3_out.raw(),
-                                                            d_model_data.d_conv4_w,
-                                                            d_model_data.d_conv4_b,
-                                                            appdata.conv4_out.raw(),
-                                                            N,
-                                                            C,
-                                                            H,
-                                                            W,
-                                                            K,
-                                                            R,
-                                                            S,
-                                                            stride,
-                                                            padding,
-                                                            true);
+  conv2d_kernel<<<gridDim, blockDim>>>(appdata.conv3_out.raw(),
+                                       d_model_data.d_conv4_w,
+                                       d_model_data.d_conv4_b,
+                                       appdata.conv4_out.raw(),
+                                       N,
+                                       C,
+                                       H,
+                                       W,
+                                       K,
+                                       R,
+                                       S,
+                                       stride,
+                                       padding,
+                                       true);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.conv4_out.print("conv4_out");
   }
 }
 
 void run_stage_7_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.conv4_out.shape();                  // [128, 50, 3, 3]
   const auto& w_shape = d_model_data.h_model_ref.h_conv5_w.shape();  // [64, 50, 3, 3]
   const auto& out_shape = appdata.conv5_out.shape();                 // [128, 64, 1, 1]
@@ -300,30 +293,29 @@ void run_stage_7_async(cifar_dense::AppDataBatch& appdata,
   // Launch kernel
   const dim3 blockDim(256);
   const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-  conv2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv4_out.raw(),
-                                                            d_model_data.d_conv5_w,
-                                                            d_model_data.d_conv5_b,
-                                                            appdata.conv5_out.raw(),
-                                                            N,
-                                                            C,
-                                                            H,
-                                                            W,
-                                                            K,
-                                                            R,
-                                                            S,
-                                                            stride,
-                                                            padding,
-                                                            true);
+  conv2d_kernel<<<gridDim, blockDim>>>(appdata.conv4_out.raw(),
+                                       d_model_data.d_conv5_w,
+                                       d_model_data.d_conv5_b,
+                                       appdata.conv5_out.raw(),
+                                       N,
+                                       C,
+                                       H,
+                                       W,
+                                       K,
+                                       R,
+                                       S,
+                                       stride,
+                                       padding,
+                                       true);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.conv5_out.print("conv5_out");
   }
 }
 
 void run_stage_8_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.conv5_out.shape();  // [128, 64, 1, 1]
 
   constexpr int padding = 2;
@@ -344,26 +336,25 @@ void run_stage_8_async(cifar_dense::AppDataBatch& appdata,
 
   dim3 blockDim(256);
   dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
-  maxpool2d_kernel<<<gridDim, blockDim, 0, mgr.get_stream()>>>(appdata.conv5_out.raw(),
-                                                               appdata.pool3_out.raw(),
-                                                               N,
-                                                               C,
-                                                               H,
-                                                               W,
-                                                               pool_h,
-                                                               pool_w,
-                                                               stride,
-                                                               padding);
+  maxpool2d_kernel<<<gridDim, blockDim>>>(appdata.conv5_out.raw(),
+                                          appdata.pool3_out.raw(),
+                                          N,
+                                          C,
+                                          H,
+                                          W,
+                                          pool_h,
+                                          pool_w,
+                                          stride,
+                                          padding);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.pool3_out.print("pool3_out");
   }
 }
 
 void run_stage_9_async(cifar_dense::AppDataBatch& appdata,
-                       const cuda::DeviceModelData& d_model_data,
-                       cuda::CudaManager& mgr) {
+                       const cuda::DeviceModelData& d_model_data) {
   const auto& in_shape = appdata.pool3_out.shape();                   // [128, 64, 1, 1]
   const auto& w_shape = d_model_data.h_model_ref.h_linear_w.shape();  // [10, 1024]
 
@@ -383,16 +374,16 @@ void run_stage_9_async(cifar_dense::AppDataBatch& appdata,
   const int block_size = 256;
   const int num_blocks = (N * out_features + block_size - 1) / block_size;
 
-  linear_kernel<<<num_blocks, block_size, 0, mgr.get_stream()>>>(appdata.pool3_out.raw(),
-                                                                 d_model_data.d_linear_w,
-                                                                 d_model_data.d_linear_b,
-                                                                 appdata.linear_out.raw(),
-                                                                 N,
-                                                                 in_features,
-                                                                 out_features);
+  linear_kernel<<<num_blocks, block_size>>>(appdata.pool3_out.raw(),
+                                            d_model_data.d_linear_w,
+                                            d_model_data.d_linear_b,
+                                            appdata.linear_out.raw(),
+                                            N,
+                                            in_features,
+                                            out_features);
 
   if constexpr (debug_layer_outputs) {
-    CheckCuda(cudaStreamSynchronize(mgr.get_stream()));
+    CheckCuda(cudaDeviceSynchronize());
     appdata.linear_out.print("linear_out");
   }
 }

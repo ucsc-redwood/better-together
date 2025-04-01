@@ -22,7 +22,8 @@ std::string format_bytes(std::size_t bytes) {
 
 void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t /*alignment*/) {
   void *ptr = nullptr;
-  cudaError_t err = cudaMallocManaged(&ptr, bytes, cudaMemAttachHost);
+  // cudaError_t err = cudaMallocManaged(&ptr, bytes, cudaMemAttachHost);
+  cudaError_t err = cudaMallocManaged(&ptr, bytes);
   if (err != cudaSuccess) {
     throw std::bad_alloc();
   }
