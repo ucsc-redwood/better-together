@@ -11,7 +11,7 @@
 constexpr size_t kNumTasks = 100;
 
 // Global CUDA objects to ensure proper lifetime and thread visibility
-std::unique_ptr<cuda::DeviceModelData> g_device_model_data;
+// std::unique_ptr<cuda::DeviceModelData> g_device_model_data;
 
 struct Task {
   static uint32_t uid_counter;
@@ -54,9 +54,11 @@ int main(int argc, char** argv) {
   SPSCQueue<Task*> q_0_1;
   SPSCQueue<Task*> q_1_2;
 
-  // Initialize global device model data
-  g_device_model_data =
-      std::make_unique<cuda::DeviceModelData>(cifar_dense::AppDataBatch::get_model());
+  // // Initialize global device model data
+  // g_device_model_data =
+  //     std::make_unique<cuda::DeviceModelData>(cifar_dense::AppDataBatch::get_model());
+
+  const cuda::DeviceModelData d_model_data(cifar_dense::AppDataBatch::get_model());
 
   cuda::CudaManagedResource mr;
 
@@ -76,12 +78,16 @@ int main(int argc, char** argv) {
       omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task.appdata, 1, 4);
     });
 
-    std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
-      cuda::dispatch_multi_stage(task.appdata, *g_device_model_data, 5, 9);
+    // std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
+    //   cuda::dispatch_multi_stage(task.appdata, *g_device_model_data, 5, 9);
+    // });
+
+    worker_thread(std::ref(q_1_2), nullptr, [&](Task& task) {
+      cuda::dispatch_multi_stage(task.appdata, d_model_data, 5, 9);
     });
 
     t1.join();
-    t2.join();
+    // t2.join();
 
     nvtxRangePop();
 
