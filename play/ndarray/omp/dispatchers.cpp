@@ -78,7 +78,8 @@ namespace omp {
 
 // void run_stage_3(cifar_dense::AppData& appdata) {
 //   // conv2d(
-//   // appdata.pool1_out, appdata.conv2_weights, appdata.conv2_bias, 1, 0, true, appdata.conv2_out);
+//   // appdata.pool1_out, appdata.conv2_weights, appdata.conv2_bias, 1, 0, true,
+//   appdata.conv2_out);
 
 //   const auto& in_shape = appdata.pool1_out.shape();
 //   const auto& w_shape = appdata.conv2_w.shape();
@@ -122,7 +123,8 @@ namespace omp {
 
 // void run_stage_5(cifar_dense::AppData& appdata) {
 //   // conv2d(
-//   // appdata.pool2_out, appdata.conv3_weights, appdata.conv3_bias, 1, 0, true, appdata.conv3_out);
+//   // appdata.pool2_out, appdata.conv3_weights, appdata.conv3_bias, 1, 0, true,
+//   appdata.conv3_out);
 
 //   const auto& in_shape = appdata.pool2_out.shape();
 //   const auto& w_shape = appdata.conv3_w.shape();
@@ -148,7 +150,8 @@ namespace omp {
 
 // void run_stage_6(cifar_dense::AppData& appdata) {
 //   // conv2d(
-//   // appdata.conv3_out, appdata.conv4_weights, appdata.conv4_bias, 1, 0, true, appdata.conv4_out);
+//   // appdata.conv3_out, appdata.conv4_weights, appdata.conv4_bias, 1, 0, true,
+//   appdata.conv4_out);
 
 //   const auto& in_shape = appdata.conv3_out.shape();
 //   const auto& w_shape = appdata.conv4_w.shape();
