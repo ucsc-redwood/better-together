@@ -234,7 +234,6 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage9)
 
 BENCHMARK_REGISTER_F(CUDA_CifarDense, Stage9)->Unit(benchmark::kMillisecond);
 
-
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN
 
