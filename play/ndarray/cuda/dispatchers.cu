@@ -4,10 +4,6 @@
 
 namespace cuda {
 
-#define CudaAttachSingle(ptr) \
-  (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachSingle))
-#define CudaAttachHost(ptr) (cudaStreamAttachMemAsync(mgr.get_stream(), ptr, 0, cudaMemAttachHost))
-
 constexpr bool debug_layer_outputs = false;
 
 void run_stage_1_async(cifar_dense::AppDataBatch& appdata,
