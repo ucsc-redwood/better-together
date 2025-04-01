@@ -34,23 +34,24 @@ end
 -- 	add_packages("benchmark")
 -- end
 
-target("play-ndarray-cu")
-do
-	add_rules("common_flags")
+if has_config("use_cuda") then
+	target("play-ndarray-cu")
+	do
+		add_rules("common_flags")
 
-    add_includedirs("$(projectdir)")
+		add_includedirs("$(projectdir)")
 
-	add_files({
-		"test_cuda_main.cu",
-		"cuda/dispatchers.cu",
-		"cuda/kernels.cu",
-		"omp/dispatchers.cpp",
-	})
+		add_files({
+			"test_cuda_main.cu",
+			"cuda/dispatchers.cu",
+			"cuda/kernels.cu",
+			"omp/dispatchers.cpp",
+		})
 
-	add_deps("builtin-apps", "builtin-apps-cuda")
+		add_deps("builtin-apps", "builtin-apps-cuda")
 
-	add_cugencodes("native", {force = true})
+		add_cugencodes("native", {force = true})
 
-	add_packages("cnpy")
+		add_packages("cnpy")
+	end
 end
-
