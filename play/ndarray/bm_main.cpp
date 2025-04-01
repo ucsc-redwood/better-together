@@ -3,8 +3,6 @@
 #include "builtin-apps/app.hpp"
 #include "omp/dispatchers.hpp"
 
-constexpr auto kDefaultInputFile = "cifar10_images/img_00005.npy";
-
 // ------------------------------------------------------------
 // Baseline benchmarks
 // ------------------------------------------------------------
@@ -12,14 +10,15 @@ constexpr auto kDefaultInputFile = "cifar10_images/img_00005.npy";
 void register_baseline_benchmark() {
   std::string benchmark_name = "OMP_CifarDense/Baseline";
 
-  benchmark::RegisterBenchmark(benchmark_name.c_str(),
-                               [](benchmark::State& state) {
-                                 const auto n_threads = state.range(0);
-                                 cifar_dense::AppDataBatch appdata(kDefaultInputFile);
-                                 for (auto _ : state) {
-                                   omp::dispatch_multi_stage_unrestricted(n_threads, appdata, 1, 9);
-                                 }
-                               })
+  benchmark::RegisterBenchmark(
+      benchmark_name.c_str(),
+      [](benchmark::State& state) {
+        const auto n_threads = state.range(0);
+        cifar_dense::AppDataBatch batched_appdata(std::pmr::new_delete_resource());
+        for (auto _ : state) {
+          omp::dispatch_multi_stage_unrestricted(n_threads, batched_appdata, 1, 9);
+        }
+      })
       ->DenseRange(1, std::thread::hardware_concurrency())
       ->Unit(benchmark::kMillisecond);
 }
@@ -45,15 +44,15 @@ void register_stage_benchmark(const std::vector<int>& cores) {
     std::string benchmark_name =
         "OMP_CifarDense/Stage" + std::to_string(Stage) + "_" + name_of_processor_type(PT);
 
-    benchmark::RegisterBenchmark(benchmark_name.c_str(),
-                                 [i, cores](benchmark::State& state) {
-                                   cifar_dense::AppDataBatch appdata(kDefaultInputFile);
-                                   for (auto _ : state) {
-                                     int num_threads = static_cast<int>(i);
-                                     omp::dispatch_multi_stage<PT>(
-                                         num_threads, appdata, Stage, Stage);
-                                   }
-                                 })
+    benchmark::RegisterBenchmark(
+        benchmark_name.c_str(),
+        [i, cores](benchmark::State& state) {
+          cifar_dense::AppDataBatch batched_appdata(std::pmr::new_delete_resource());
+          for (auto _ : state) {
+            int num_threads = static_cast<int>(i);
+            omp::dispatch_multi_stage<PT>(num_threads, batched_appdata, Stage, Stage);
+          }
+        })
         ->Arg(i)
         ->Unit(benchmark::kMillisecond);
   }
@@ -61,6 +60,8 @@ void register_stage_benchmark(const std::vector<int>& cores) {
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
+
+  spdlog::set_level(spdlog::level::off);
 
   register_baseline_benchmark();
 
