@@ -373,8 +373,8 @@ void run_stage_9_async(cifar_dense::AppDataBatch& appdata,
   const int H = in_shape[2];  // height, 1
   const int W = in_shape[3];  // width, 1
 
-  const int in_features =
-      C * H * W;  // 64*1*1 = 64 (or could be 1024 depending on actual dimensions)
+  // 64*1*1 = 64 (or could be 1024 depending on actual dimensions)
+  const int in_features = C * H * W;
   const int out_features = w_shape[0];  // output features, 10
 
   LOG_KERNEL(LogKernelType::kCUDA, 9, &appdata);
