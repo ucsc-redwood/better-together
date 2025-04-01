@@ -1,5 +1,5 @@
 #include "builtin-apps/app.hpp"
-#include "dispatchers.hpp"
+#include "omp/dispatchers.hpp"
 
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;

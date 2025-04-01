@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include "builtin-apps/app.hpp"
-#include "dispatchers.hpp"
+#include "omp/dispatchers.hpp"
 
 constexpr auto kDefaultInputFile = "cifar10_images/img_00005.npy";
 
