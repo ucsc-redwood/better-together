@@ -3,6 +3,7 @@
 #include "cuda/dispatchers.cuh"
 #include "omp/dispatchers.hpp"
 #include "spsc_queue.hpp"
+#include <functional>
 
 constexpr size_t kNumTasks = 100;
 
@@ -19,31 +20,18 @@ struct Task {
 
 uint32_t Task::uid_counter = 0;
 
-// template <ProcessorType PT>
-static void omp_worker_thread(const std::vector<int>& cores_to_use,
-                              const size_t num_threads,
-                              SPSCQueue<Task*, 1024>& in_queue,
-                              SPSCQueue<Task*, 1024>* out_queue
-                              // std::function<void(Task&)> process_function
-) {
+using ProcessFunction = std::function<void(Task&)>;
+
+static void omp_worker_thread(SPSCQueue<Task*, 1024>& in_queue,
+                              SPSCQueue<Task*, 1024>* out_queue,
+                              ProcessFunction process_function) {
   for (size_t i = 0; i < kNumTasks; ++i) {
     Task* task = nullptr;
     while (!in_queue.dequeue(task)) {
       std::this_thread::yield();
     }
 
-    // tmp
-    auto start_stage = 1;
-    auto end_stage = 9;
-
-#pragma omp parallel num_threads(num_threads)
-    {
-      bind_thread_to_cores(cores_to_use);
-
-      for (int stage = start_stage; stage <= end_stage; stage++) {
-        omp::dispatch_fns_batch[stage - 1](task->appdata);
-      }
-    }
+    process_function(*task);
 
     // Forward processed task
     if (out_queue) {
@@ -54,6 +42,8 @@ static void omp_worker_thread(const std::vector<int>& cores_to_use,
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
+
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   SPSCQueue<Task*> q_0_1;
   SPSCQueue<Task*> q_1_2;
@@ -68,8 +58,9 @@ int main(int argc, char** argv) {
   {
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::thread t1(
-        omp_worker_thread, g_little_cores, g_little_cores.size(), std::ref(q_0_1), &q_1_2);
+    std::thread t1(omp_worker_thread, std::ref(q_0_1), &q_1_2, [&](Task& task) {
+      omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task.appdata, 1, 9);
+    });
 
     t1.join();
     // t2.join();
