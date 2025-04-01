@@ -34,17 +34,6 @@ const DispatchFn dispatch_fns[] = {
 // Unrestricted, for baseline
 // ----------------------------------------------------------------------------
 
-inline void dispatch_single_stage_unrestricted(const int num_threads,
-                                               cifar_dense::AppData& appdata,
-                                               const int stage) {
-  assert(stage >= 1 && stage <= 9);
-
-#pragma omp parallel num_threads(num_threads)
-  {
-    dispatch_fns[stage - 1](appdata);
-  }
-}
-
 inline void dispatch_multi_stage_unrestricted(const int num_threads,
                                               cifar_dense::AppData& appdata,
                                               const int start_stage,
@@ -62,20 +51,6 @@ inline void dispatch_multi_stage_unrestricted(const int num_threads,
 // ----------------------------------------------------------------------------
 // Affinity
 // ----------------------------------------------------------------------------
-
-inline void dispatch_single_stage(const std::vector<int>& cores_to_use,
-                                  const int num_threads,
-                                  cifar_dense::AppData& appdata,
-                                  const int stage) {
-  assert(stage >= 1 && stage <= 9);
-
-#pragma omp parallel num_threads(num_threads)
-  {
-    bind_thread_to_cores(cores_to_use);
-
-    dispatch_fns[stage - 1](appdata);
-  }
-}
 
 inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                  const int num_threads,
@@ -135,6 +110,20 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_8,
     run_stage_9,
 };
+
+inline void dispatch_multi_stage_unrestricted(const int num_threads,
+                                              cifar_dense::AppDataBatch& appdata,
+                                              const int start_stage,
+                                              const int end_stage) {
+  assert(start_stage >= 1 && end_stage <= 9);
+
+#pragma omp parallel num_threads(num_threads)
+  {
+    for (int stage = start_stage; stage <= end_stage; stage++) {
+      dispatch_fns_batch[stage - 1](appdata);
+    }
+  }
+}
 
 inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                  const int num_threads,

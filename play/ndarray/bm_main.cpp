@@ -5,16 +5,28 @@
 
 constexpr auto kDefaultInputFile = "cifar10_images/img_00005.npy";
 
-// static void BM_Stage_1(benchmark::State& state) {
-//   const auto num_threads = state.range(0);
+// ------------------------------------------------------------
+// Baseline benchmarks
+// ------------------------------------------------------------
 
-//   cifar_dense::AppDataBatch appdata(kDefaultInputFile);
-//   for (auto _ : state) {
-//     omp::dispatch_multi_stage<ProcessorType::kLittleCore>(num_threads, appdata, 1, 1);
-//   }
-// }
+void register_baseline_benchmark() {
+  std::string benchmark_name = "OMP_CifarDense/Baseline";
 
-// BENCHMARK(BM_Stage_1)->DenseRange(1, 6)->Unit(benchmark::kMillisecond);
+  benchmark::RegisterBenchmark(benchmark_name.c_str(),
+                               [](benchmark::State& state) {
+                                 const auto n_threads = state.range(0);
+                                 cifar_dense::AppDataBatch appdata(kDefaultInputFile);
+                                 for (auto _ : state) {
+                                   omp::dispatch_multi_stage_unrestricted(n_threads, appdata, 1, 9);
+                                 }
+                               })
+      ->DenseRange(1, std::thread::hardware_concurrency())
+      ->Unit(benchmark::kMillisecond);
+}
+
+// ------------------------------------------------------------
+// Stage benchmarks
+// ------------------------------------------------------------
 
 const char* name_of_processor_type(ProcessorType pt) {
   switch (pt) {
@@ -49,6 +61,8 @@ void register_stage_benchmark(const std::vector<int>& cores) {
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
+
+  register_baseline_benchmark();
 
 #define REGISTER_STAGE(STAGE)                                                  \
   register_stage_benchmark<STAGE, ProcessorType::kLittleCore>(g_little_cores); \
