@@ -68,4 +68,27 @@ __global__ void maxpool2d_kernel(const float* __restrict__ input,  // [N, C, H, 
                                  int stride = 2,
                                  int padding = 2);
 
+/**
+ * @brief CUDA kernel for linear (fully connected) layer operation
+ *
+ * This kernel performs a linear transformation on the flattened input tensor.
+ * For each batch item and each output feature, it computes the dot product of
+ * the input and the corresponding weight row, then adds the bias.
+ *
+ * @param input Input tensor with shape [N, in_features] 
+ * @param weights Weight matrix with shape [out_features, in_features]
+ * @param bias Bias vector with shape [out_features]
+ * @param output Output tensor with shape [N, out_features]
+ * @param N Batch size
+ * @param in_features Number of input features
+ * @param out_features Number of output features
+ */
+__global__ void linear_kernel(const float* __restrict__ input,    // [N, in_features]
+                              const float* __restrict__ weights,  // [out_features, in_features]
+                              const float* __restrict__ bias,     // [out_features]
+                              float* output,                      // [N, out_features]
+                              int N,
+                              int in_features,
+                              int out_features);
+
 }  // namespace cuda

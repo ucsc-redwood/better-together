@@ -91,4 +91,33 @@ __global__ void maxpool2d_kernel(const float* __restrict__ input,  // [N, C, H, 
   output[((n * C + c) * P + p) * Q + q] = max_val;
 }
 
+__global__ void linear_kernel(const float* __restrict__ input,    // [N, in_features]
+                              const float* __restrict__ weights,  // [out_features, in_features]
+                              const float* __restrict__ bias,     // [out_features]
+                              float* output,                      // [N, out_features]
+                              const int N,
+                              const int in_features,
+                              const int out_features) {
+  // Calculate global thread index
+  const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // Compute (batch, output_feature) indices from the global index
+  const int n = idx / out_features;   // batch index
+  const int of = idx % out_features;  // output feature index
+
+  // Check if this thread should compute something
+  if (n >= N) return;
+
+  // For this (n, of) pair, compute the dot product and add bias
+  float sum = bias[of];
+
+  // Multiply input with weights and accumulate
+  for (int inf = 0; inf < in_features; ++inf) {
+    sum += input[n * in_features + inf] * weights[of * in_features + inf];
+  }
+
+  // Store the result
+  output[n * out_features + of] = sum;
+}
+
 }  // namespace cuda
