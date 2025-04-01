@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
   const cuda::DeviceModelData d_model_data(cifar_dense::AppDataBatch::get_model());
 
   cuda::run_stage_1(batched_appdata, d_model_data, mgr);
+  cuda::run_stage_2(batched_appdata, d_model_data, mgr);
 
   // Print result
   int predicted_class = cifar_dense::arg_max(batched_appdata.linear_out.raw());
