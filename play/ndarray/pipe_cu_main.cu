@@ -69,11 +69,12 @@ int main(int argc, char** argv) {
       omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task.appdata, 1, 4);
     });
 
-    worker_thread(std::ref(q_1_2), nullptr, [&](Task& task) {
+    std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
       disp.dispatch_multi_stage(task.appdata, 1, 4);
     });
 
     t1.join();
+    t2.join();
 
     nvtxRangePop();
 
