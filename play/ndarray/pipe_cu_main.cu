@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
     });
 
     std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
-      disp.dispatch_multi_stage(task.appdata, 1, 4);
+      disp.dispatch_multi_stage(task.appdata, 5, 9);
     });
 
     t1.join();
