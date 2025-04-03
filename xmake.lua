@@ -53,6 +53,7 @@ on_load(function(target)
 	target:add("packages", "cli11")
 	target:add("packages", "spdlog")
 	target:add("packages", "glm")
+	target:add("packages", "nlohmann_json")
 
 	-- if has cuda 
 	if has_config("cuda") then
@@ -112,7 +113,7 @@ rule_end()
 includes("builtin-apps/common/kiss-vk") -- Keep-It-Simple-Stupid Vulkan library
 includes("builtin-apps") -- the three applications
 -- includes("benchmarks")
-includes("pipe")
+-- includes("pipe")
 includes("lpipe")
 includes("play")
 includes("utility")

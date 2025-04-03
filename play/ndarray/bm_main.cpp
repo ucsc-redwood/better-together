@@ -51,7 +51,7 @@ void register_stage_benchmark(const std::vector<int>& cores) {
           cifar_dense::AppDataBatch batched_appdata(std::pmr::new_delete_resource());
           for (auto _ : state) {
             int num_threads = static_cast<int>(i);
-            omp::dispatch_multi_stage<PT>(num_threads, batched_appdata, Stage, Stage);
+            omp::dispatch_multi_stage(Stage, Stage, PT, num_threads, batched_appdata);
           }
         })
         ->Arg(i)

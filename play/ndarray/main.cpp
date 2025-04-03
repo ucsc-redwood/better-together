@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
 
   cifar_dense::AppDataBatch batched_appdata(mr);
 
-  omp::dispatch_multi_stage<ProcessorType::kLittleCore>(4, batched_appdata, 1, 9);
+  omp::dispatch_multi_stage(1, 9, ProcessorType::kLittleCore, 4, batched_appdata);
 
   cifar_dense::print_batch_predictions(batched_appdata);
 
