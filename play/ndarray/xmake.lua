@@ -84,27 +84,27 @@ if has_config("use_cuda") then
 
 
 
-	target("pipe-ndarray-cu")
-	do
-		add_rules("common_flags")
+	-- target("pipe-ndarray-cu")
+	-- do
+	-- 	add_rules("common_flags")
 
-		add_includedirs("$(projectdir)")
+	-- 	add_includedirs("$(projectdir)")
 
-		add_files({
-			"pipe_cu_main.cu",
-			"cuda/dispatchers.cu",
-			"cuda/kernels.cu",
-			"omp/dispatchers.cpp",
-		})
+	-- 	add_files({
+	-- 		"pipe_cu_main.cu",
+	-- 		"cuda/dispatchers.cu",
+	-- 		"cuda/kernels.cu",
+	-- 		"omp/dispatchers.cpp",
+	-- 	})
 
-		add_links("nvToolsExt")
+	-- 	add_links("nvToolsExt")
 
-		add_deps("builtin-apps", "builtin-apps-cuda")
+	-- 	add_deps("builtin-apps", "builtin-apps-cuda")
 
-		add_cugencodes("native", {force = true})
+	-- 	add_cugencodes("native", {force = true})
 
-		add_packages("cnpy")
-	end
+	-- 	add_packages("cnpy")
+	-- end
 
 
 end
