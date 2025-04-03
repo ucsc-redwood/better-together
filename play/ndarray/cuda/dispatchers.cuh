@@ -19,43 +19,93 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
   explicit CudaDispatcher() : d_model_data_(cifar_dense::AppDataBatch::get_model()) {}
 
   void run_stage_1_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.input.shape();                       // [128, 3, 32, 32]
-    const auto& w_shape = d_model_data_.h_model_ref.h_conv1_w.shape();  // [16, 3, 3, 3]
-    const auto& out_shape = appdata.conv1_out.shape();                  // [128, 16, 30, 30]
+    // const auto& in_shape = appdata.input.shape();                       // [128, 3, 32, 32]
+    // const auto& w_shape = d_model_data_.h_model_ref.h_conv1_w.shape();  // [16, 3, 3, 3]
+    // const auto& out_shape = appdata.conv1_out.shape();                  // [128, 16, 30, 30]
 
-    const int N = in_shape[0];   // batch, 128
-    const int C = in_shape[1];   // in channels, 3
-    const int H = in_shape[2];   // in height, 32
-    const int W = in_shape[3];   // in width, 32
-    const int R = w_shape[2];    // kernel height, 3
-    const int S = w_shape[3];    // kernel width, 3
-    const int K = out_shape[1];  // out channels, 16
+    // const int N = in_shape[0];   // batch, 128
+    // const int C = in_shape[1];   // in channels, 3
+    // const int H = in_shape[2];   // in height, 32
+    // const int W = in_shape[3];   // in width, 32
+    // const int R = w_shape[2];    // kernel height, 3
+    // const int S = w_shape[3];    // kernel width, 3
+    // const int K = out_shape[1];  // out channels, 16
+
+    // constexpr int padding = 0;
+    // constexpr int stride = 1;
+    // const int P = (H + 2 * padding - R) / stride + 1;
+    // const int Q = (W + 2 * padding - S) / stride + 1;
+    // const int PQ = P * Q;
+
+    // // Launch kernel
+    // LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
+
+    // const dim3 blockDim(256);
+    // const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
+    // conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.input.raw(),
+    //                                                            d_model_data_.d_conv1_w,
+    //                                                            d_model_data_.d_conv1_b,
+    //                                                            appdata.conv1_out.raw(),
+    //                                                            N,
+    //                                                            C,
+    //                                                            H,
+    //                                                            W,
+    //                                                            K,
+    //                                                            R,
+    //                                                            S,
+    //                                                            stride,
+    //                                                            padding,
+    //                                                            true);
+
+    const auto& in_shape = appdata.input.shape();  // [N, C, H, W] => [128, 3, 32, 32]
+    const auto& w_shape =
+        d_model_data_.h_model_ref.h_conv1_w.shape();    // [K, C, R, S] => [16, 3, 3, 3]
+    const auto& out_shape = appdata.conv1_out.shape();  // [N, K, P, Q] => [128, 16, 30, 30]
+
+    const int N = in_shape[0];   // 128
+    const int C = in_shape[1];   // 3
+    const int H = in_shape[2];   // 32
+    const int W = in_shape[3];   // 32
+    const int R = w_shape[2];    // 3
+    const int S = w_shape[3];    // 3
+    const int K = out_shape[1];  // 16
 
     constexpr int padding = 0;
     constexpr int stride = 1;
-    const int P = (H + 2 * padding - R) / stride + 1;
-    const int Q = (W + 2 * padding - S) / stride + 1;
-    const int PQ = P * Q;
+    const int P = (H + 2 * padding - R) / stride + 1;  // 30
+    const int Q = (W + 2 * padding - S) / stride + 1;  // 30
 
-    // Launch kernel
-    LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
+    // Set up block dimensions (2D block)
+    dim3 blockDim(TILE_WIDTH, TILE_HEIGHT);
 
-    const dim3 blockDim(256);
-    const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.input.raw(),
-                                                               d_model_data_.d_conv1_w,
-                                                               d_model_data_.d_conv1_b,
-                                                               appdata.conv1_out.raw(),
-                                                               N,
-                                                               C,
-                                                               H,
-                                                               W,
-                                                               K,
-                                                               R,
-                                                               S,
-                                                               stride,
-                                                               padding,
-                                                               true);
+    // Set up grid dimensions:
+    // gridDim.x: number of tiles along width
+    // gridDim.y: number of tiles along height
+    // gridDim.z: combine batch and output channels => N * K
+    dim3 gridDim((Q + TILE_WIDTH - 1) / TILE_WIDTH, (P + TILE_HEIGHT - 1) / TILE_HEIGHT, N * K);
+
+    // Compute shared memory size per block in bytes.
+    int shared_width = (TILE_WIDTH - 1) * stride + S;                          // 18
+    int shared_height = (TILE_HEIGHT - 1) * stride + R;                        // 18
+    int shared_mem_size = T_C * shared_width * shared_height * sizeof(float);  // 3888 bytes
+
+    // Launch the tiled kernel.
+    // (Assuming mgr_.get_stream() returns the CUDA stream.)
+    conv2d_kernel_shared_tiled<<<gridDim, blockDim, shared_mem_size, mgr_.get_stream()>>>(
+        appdata.input.raw(),      // Input data
+        d_model_data_.d_conv1_w,  // Weights
+        d_model_data_.d_conv1_b,  // Bias
+        appdata.conv1_out.raw(),  // Output
+        N,
+        C,
+        H,
+        W,  // Input dimensions
+        K,  // Number of output channels
+        R,
+        S,  // Kernel dimensions
+        stride,
+        padding,
+        true);  // Apply ReLU if desired
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));

@@ -16,6 +16,27 @@ __global__ void conv2d_kernel(const float* __restrict__ input,    // [N, C, H, W
                               int stride = 1,
                               int padding = 0,
                               bool apply_relu = true);
+
+// Define tile dimensions and the tiling factor for channels
+constexpr int TILE_WIDTH = 16;
+constexpr int TILE_HEIGHT = 16;
+constexpr int T_C = 4;  // process T_C channels at a time
+
+__global__ void conv2d_kernel_shared_tiled(const float* __restrict__ input,    // [N, C, H, W]
+                                     const float* __restrict__ weights,  // [K, C, R, S]
+                                     const float* __restrict__ bias,     // [K]
+                                     float* output,                      // [N, K, P, Q]
+                                     const int N,
+                                     const int C,
+                                     const int H,
+                                     const int W,  // input shape
+                                     const int K,
+                                     const int R,
+                                     const int S,  // kernel shape
+                                     const int stride = 1,
+                                     const int padding = 0,
+                                     const bool apply_relu = true);
+
 /**
  * @brief CUDA kernel for 2D max pooling operation
  *
@@ -75,7 +96,7 @@ __global__ void maxpool2d_kernel(const float* __restrict__ input,  // [N, C, H, 
  * For each batch item and each output feature, it computes the dot product of
  * the input and the corresponding weight row, then adds the bias.
  *
- * @param input Input tensor with shape [N, in_features] 
+ * @param input Input tensor with shape [N, in_features]
  * @param weights Weight matrix with shape [out_features, in_features]
  * @param bias Bias vector with shape [out_features]
  * @param output Output tensor with shape [N, out_features]
