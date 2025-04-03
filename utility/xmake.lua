@@ -64,7 +64,7 @@ end
 if has_config("use_cuda") then
 	target("determine-cuda-kernel-block-size")
 	do
-		add_rules("pipe_config", "common_flags")
+		add_rules("utility_config", "common_flags")
 
 		add_files({
 			"determine_cuda_kernel_block_size.cu",

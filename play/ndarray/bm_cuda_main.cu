@@ -13,11 +13,6 @@
 
 bool g_flush_l2_cache = false;
 
-#define PREPARE_DATA                                        \
-  cuda::CudaManager mgr;                                    \
-  cifar_dense::AppDataBatch batched_appdata(&mgr.get_mr()); \
-  const cuda::DeviceModelData d_model_data(cifar_dense::AppDataBatch::get_model());
-
 __global__ void warmup_kernel() {
   // Do nothing
 }
@@ -26,6 +21,10 @@ void warmup() {
   warmup_kernel<<<1, 1>>>();
   CheckCuda(cudaDeviceSynchronize());
 }
+
+#define PREPARE_DATA                                    \
+  cuda::CudaDispatcher<cuda::CudaManagedResource> disp; \
+  cifar_dense::AppDataBatch batched_appdata(&disp.get_mr())
 
 // ----------------------------------------------------------------
 // Baseline
@@ -40,7 +39,7 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Baseline)
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 9, mgr);
+    disp.dispatch_multi_stage(batched_appdata, 1, 9);
   }
 }
 
@@ -55,13 +54,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage1)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 1, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 1);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_1_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_1_async(batched_appdata);
   }
 }
 
@@ -76,13 +75,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage2)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 2, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 2);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_2_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_2_async(batched_appdata);
   }
 }
 BENCHMARK_REGISTER_F(CUDA_CifarDense, Stage2)->Unit(benchmark::kMillisecond);
@@ -96,13 +95,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage3)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 3, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 3);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_3_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_3_async(batched_appdata);
   }
 }
 
@@ -117,13 +116,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage4)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 4, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 4);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_4_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_4_async(batched_appdata);
   }
 }
 
@@ -138,13 +137,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage5)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 5, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 5);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_5_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_5_async(batched_appdata);
   }
 }
 
@@ -159,13 +158,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage6)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 6, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 6);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_6_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_6_async(batched_appdata);
   }
 }
 
@@ -180,13 +179,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage7)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 7, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 7);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_7_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_7_async(batched_appdata);
   }
 }
 
@@ -201,13 +200,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage8)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 8, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 8);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_8_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_8_async(batched_appdata);
   }
 }
 
@@ -222,13 +221,13 @@ BENCHMARK_DEFINE_F(CUDA_CifarDense, Stage9)
   PREPARE_DATA;
 
   // previous steps + warmup
-  cuda::dispatch_multi_stage(batched_appdata, d_model_data, 1, 9, mgr);
+  disp.dispatch_multi_stage(batched_appdata, 1, 9);
   CheckCuda(cudaDeviceSynchronize());
 
   for (auto _ : state) {
     CudaEventTimer timer(state, g_flush_l2_cache);
 
-    cuda::run_stage_9_async(batched_appdata, d_model_data, mgr);
+    disp.run_stage_9_async(batched_appdata);
   }
 }
 

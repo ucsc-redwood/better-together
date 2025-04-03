@@ -46,7 +46,6 @@ if has_config("use_cuda") then
 
 		add_files({
 			"cuda_main.cu",
-			"cuda/dispatchers.cu",
 			"cuda/kernels.cu",
 			"omp/dispatchers.cpp",
 		})
@@ -61,26 +60,25 @@ if has_config("use_cuda") then
 	-- Benchmark program
 
 
-	-- target("bm-play-ndarray-cu")
-	-- do
-	-- 	add_rules("common_flags")
+	target("bm-play-ndarray-cu")
+	do
+		add_rules("common_flags")
 
-	-- 	add_includedirs("$(projectdir)")
+		add_includedirs("$(projectdir)")
 
-	-- 	add_files({
-	-- 		"bm_cuda_main.cu",
-	-- 		"cuda/dispatchers.cu",
-	-- 		"cuda/kernels.cu",
-	-- 		"omp/dispatchers.cpp",
-	-- 	})
+		add_files({
+			"bm_cuda_main.cu",
+			"cuda/kernels.cu",
+			"omp/dispatchers.cpp",
+		})
 
-	-- 	add_deps("builtin-apps", "builtin-apps-cuda")
+		add_deps("builtin-apps", "builtin-apps-cuda")
 
-	-- 	add_cugencodes("native", {force = true})
+		add_cugencodes("native", {force = true})
 
-	-- 	add_packages("cnpy")
-	-- 	add_packages("benchmark")
-	-- end
+		add_packages("cnpy")
+		add_packages("benchmark")
+	end
 
 
 

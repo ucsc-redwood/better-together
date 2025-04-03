@@ -31,7 +31,7 @@ add_requires("glm") -- tree applications
 add_requires("nlohmann_json")
 add_requires("libcurl")
 add_requires("cnpy")
-
+add_requires("benchmark")
 
 -- OpenMP is handled differently on Android
 if not is_plat("android") then
@@ -111,7 +111,7 @@ rule_end()
 
 includes("builtin-apps/common/kiss-vk") -- Keep-It-Simple-Stupid Vulkan library
 includes("builtin-apps") -- the three applications
-includes("benchmarks")
+-- includes("benchmarks")
 includes("pipe")
 includes("lpipe")
 includes("play")
