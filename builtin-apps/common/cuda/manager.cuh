@@ -9,6 +9,9 @@ namespace cuda {
 // CudaManager (contains a stream and a memory resource)
 // ----------------------------------------------------------------------------
 
+template <typename MemResourceT>
+  requires std::is_same_v<MemResourceT, CudaManagedResource> ||
+           std::is_same_v<MemResourceT, CudaPinnedResource>
 class CudaManager {
  public:
   CudaManager() { CheckCuda(cudaStreamCreate(&stream_)); }
@@ -17,11 +20,11 @@ class CudaManager {
 
   [[nodiscard]] cudaStream_t get_stream() const { return stream_; }
 
-  [[nodiscard]] CudaManagedResource &get_mr() { return mr_; }
+  [[nodiscard]] MemResourceT &get_mr() { return mr_; }
 
  protected:
   cudaStream_t stream_;
-  CudaManagedResource mr_;
+  MemResourceT mr_;
 };
 
 }  // namespace cuda
