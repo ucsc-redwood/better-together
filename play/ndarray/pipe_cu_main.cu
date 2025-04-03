@@ -44,109 +44,6 @@ static void worker_thread(SPSCQueue<Task*, 1024>& in_queue,
   }
 }
 
-// void execute_schedule(const std::vector<ChunkConfig>& chunks) {
-//   SPSCQueue<Task*> q_0_1;
-//   SPSCQueue<Task*> q_1_2;
-
-//   cuda::CudaDispatcher<cuda::CudaPinnedResource> disp;
-
-//   // Setting up the input queue
-//   for (size_t i = 0; i < kNumTasks; ++i) {
-//     q_0_1.enqueue(new Task(&disp.get_mr()));
-//   }
-
-//   // Benchmark start
-//   {
-//     cudaEvent_t start, stop;
-//     float milliseconds = 0;
-//     CheckCuda(cudaEventCreate(&start));
-//     CheckCuda(cudaEventCreate(&stop));
-//     CheckCuda(cudaEventRecord(start, 0));
-
-//     nvtxRangePushA("Compute");
-
-//     std::thread t1(worker_thread, std::ref(q_0_1), &q_1_2, [&](Task& task) {
-//       omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task.appdata, 1, 4);
-//     });
-
-//     std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
-//       disp.dispatch_multi_stage(task.appdata, 5, 9);
-//     });
-
-//     t1.join();
-//     t2.join();
-
-//     nvtxRangePop();
-
-//     CheckCuda(cudaEventRecord(stop, 0));
-//     CheckCuda(cudaEventSynchronize(stop));
-//     CheckCuda(cudaEventElapsedTime(&milliseconds, start, stop));
-//     CheckCuda(cudaEventDestroy(start));
-//     CheckCuda(cudaEventDestroy(stop));
-
-//     double avg_task_time = milliseconds / kNumTasks;
-//     std::cout << "Time per task: " << avg_task_time << " ms" << std::endl;
-//   }
-// }
-
-// static void worker_thread(SPSCQueue<Task*, 1024>& in_queue,
-//                           SPSCQueue<Task*, 1024>* out_queue,
-//                           ProcessFunction process_function) {
-//   for (size_t i = 0; i < kNumTasks; ++i) {
-//     Task* task = nullptr;
-//     while (!in_queue.dequeue(task)) {
-//       std::this_thread::yield();
-//     }
-
-//     process_function(*task);
-
-//     // Forward processed task
-//     if (out_queue) {
-//       out_queue->enqueue(std::move(task));
-//     }
-//   }
-// }
-
-// void process_chunk_detail(SPSCQueue<Task *> &q_in,
-//                           SPSCQueue<Task *> &q_out,
-//                           ProcessFunction process_function) {
-//   while (true) {
-//     Task *task = nullptr;
-//     if (q_in.try_dequeue(task)) {
-//       if (task == nullptr) {
-//         // Sentinel => pass it on if there's a next queue and stop
-//         q_out.enqueue(nullptr);
-//         break;
-//       }
-
-//       // -----------------------------------
-//       func(*task->data);
-//       // -----------------------------------
-
-//       // If there's a next queue, pass the task along
-//       q_out.enqueue(task);
-//     } else {
-//       std::this_thread::yield();
-//     }
-//   }
-// }
-
-// static void process_chunk_detail(SPSCQueue<Task*, 1024>& in_queue,
-//                                  SPSCQueue<Task*, 1024>& out_queue,
-//                                  ProcessFunction process_function) {
-//   for (size_t i = 0; i < kNumTasks; ++i) {
-//     Task* task = nullptr;
-//     while (!in_queue.dequeue(task)) {
-//       std::this_thread::yield();
-//     }
-
-//     process_function(*task);
-
-//     // Forward processed task
-//     out_queue.enqueue(std::move(task));
-//   }
-// }
-
 void process_chunk(const ChunkConfig& config,
                    SPSCQueue<Task*>& in_queue,
                    SPSCQueue<Task*>& out_queue,
@@ -174,9 +71,6 @@ void process_chunk(const ChunkConfig& config,
 }
 
 void execute_schedule(const std::vector<ChunkConfig>& chunk_configs) {
-  // SPSCQueue<Task*> q_0_1;
-  // SPSCQueue<Task*> q_1_2;
-
   cuda::CudaDispatcher<cuda::CudaPinnedResource> disp;
 
   std::vector<SPSCQueue<Task*>> concur_qs(chunk_configs.size() + 1);
@@ -197,16 +91,6 @@ void execute_schedule(const std::vector<ChunkConfig>& chunk_configs) {
 
   nvtxRangePushA("Compute");
 
-  // std::thread t1(worker_thread, std::ref(q_0_1), &q_1_2, [&](Task& task) {
-  //   omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task.appdata, 1, 4);
-  // });
-
-  // std::thread t2(worker_thread, std::ref(q_1_2), nullptr, [&](Task& task) {
-  //   disp.dispatch_multi_stage(task.appdata, 5, 9);
-  // });
-
-  // t1.join();
-  // t2.join();
   for (int i = 0; i < chunk_configs.size(); ++i) {
     threads.emplace_back(
         [&, i]() { process_chunk(chunk_configs[i], concur_qs[i], concur_qs[i + 1], disp); });
@@ -231,7 +115,6 @@ void execute_schedule(const std::vector<ChunkConfig>& chunk_configs) {
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
-  // take a path to the schedule file
   std::string schedule_file_path;
   app.add_option("-f,--file", schedule_file_path, "Schedule file path")->required();
 
