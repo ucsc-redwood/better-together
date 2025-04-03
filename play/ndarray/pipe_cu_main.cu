@@ -237,11 +237,11 @@ int main(int argc, char** argv) {
 
   PARSE_ARGS_END;
 
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
-
   // ------------------------------------------------------------------------------------------------
 
   const auto chunks = readChunksFromJson(fs::path(schedule_file_path));
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
+
   execute_schedule(chunks);
 
   // ------------------------------------------------------------------------------------------------
