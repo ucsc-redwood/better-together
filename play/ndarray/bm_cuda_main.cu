@@ -4,7 +4,6 @@
 #include "benchmarks/argc_argv_sanitizer.hpp"
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/common/cuda/cu_bench_helper.cuh"
-#include "builtin-apps/common/cuda/manager.cuh"
 #include "cuda/dispatchers.cuh"
 
 // ----------------------------------------------------------------
