@@ -35,16 +35,41 @@ class CudaDispatcher final : public cuda::CudaManager {
       &CudaDispatcher::run_stage_9_async,
   };
 
+#define CudaAttachSingle(ptr) (cudaStreamAttachMemAsync(mgr_.get_stream(), ptr, 0, cudaMemAttachSingle))
+#define CudaAttachHost(ptr) (cudaStreamAttachMemAsync(mgr_.get_stream(), ptr, 0, cudaMemAttachHost))
+
   void dispatch_multi_stage(cifar_dense::AppDataBatch& data,
                             const int start_stage,
                             const int end_stage) {
     if (start_stage < 1 || end_stage > 9) throw std::out_of_range("Invalid stage");
+
+    CudaAttachSingle(data.input.raw());
+    CudaAttachSingle(data.conv1_out.raw());
+    CudaAttachSingle(data.pool1_out.raw());
+    CudaAttachSingle(data.conv2_out.raw());
+    CudaAttachSingle(data.pool2_out.raw());
+    CudaAttachSingle(data.conv3_out.raw());
+    CudaAttachSingle(data.conv4_out.raw());
+    CudaAttachSingle(data.conv5_out.raw());
+    CudaAttachSingle(data.pool3_out.raw());
+    CudaAttachSingle(data.linear_out.raw());
 
     for (int stage = start_stage; stage <= end_stage; stage++) {
       (this->*stage_functions[stage - 1])(data);
     }
 
     CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
+
+    CudaAttachHost(data.input.raw());
+    CudaAttachHost(data.conv1_out.raw());
+    CudaAttachHost(data.pool1_out.raw());
+    CudaAttachHost(data.conv2_out.raw());
+    CudaAttachHost(data.pool2_out.raw());
+    CudaAttachHost(data.conv3_out.raw());
+    CudaAttachHost(data.conv4_out.raw());
+    CudaAttachHost(data.conv5_out.raw());
+    CudaAttachHost(data.pool3_out.raw());
+    CudaAttachHost(data.linear_out.raw());
   }
 
  private:
