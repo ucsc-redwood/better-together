@@ -4,25 +4,6 @@
 #include "builtin-apps/app.hpp"
 #include "omp/dispatchers.hpp"
 
-
-#include <vector>
-#include <cstddef>
-
-void FlushCache() {
-  // Choose a buffer size significantly larger than the L3 cache (10 MB in this case).
-  constexpr size_t size = 10 * 1024 * 1024; // 10 MB
-  std::vector<char> buffer(size, 1);
-
-  // Use a volatile variable to prevent the compiler from optimizing away the loop.
-  volatile char sink = 0;
-
-  // Iterate over the buffer in steps (assume cache line size is 64 bytes).
-  for (size_t i = 0; i < size; i += 64) {
-    sink += buffer[i];
-  }
-}
-
-
 // ------------------------------------------------------------
 // Baseline benchmarks
 // ------------------------------------------------------------
@@ -36,13 +17,7 @@ void register_baseline_benchmark() {
         const auto n_threads = state.range(0);
         cifar_dense::AppDataBatch batched_appdata(std::pmr::new_delete_resource());
         for (auto _ : state) {
-          state.PauseTiming();
-          FlushCache();
-          state.ResumeTiming();
-
           omp::dispatch_multi_stage_unrestricted(n_threads, batched_appdata, 1, 9);
-
-          benchmark::ClobberMemory();
         }
       })
       ->DenseRange(1, std::thread::hardware_concurrency())
@@ -75,14 +50,8 @@ void register_stage_benchmark(const std::vector<int>& cores) {
         [i, cores](benchmark::State& state) {
           cifar_dense::AppDataBatch batched_appdata(std::pmr::new_delete_resource());
           for (auto _ : state) {
-            state.PauseTiming();
-            FlushCache();
-            state.ResumeTiming();
-
             int num_threads = static_cast<int>(i);
             omp::dispatch_multi_stage(Stage, Stage, PT, num_threads, batched_appdata);
-
-            benchmark::ClobberMemory();
           }
         })
         ->Arg(i)
