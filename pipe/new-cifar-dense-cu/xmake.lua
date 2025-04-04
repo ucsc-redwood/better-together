@@ -4,7 +4,7 @@
 
 -- target("bm-new-pipe-cifar-dense-cu")
 -- do
--- 	add_rules("pipe_config", "common_flags")
+-- 	add_rules("pipe_config", "common_flags", "cuda_config")
 
 -- 	add_headerfiles({
 -- 		"task.hpp",
@@ -18,7 +18,6 @@
 -- 	})
 
 -- 	add_deps("builtin-apps", "builtin-apps-cuda")
--- 	add_cugencodes("native")
 
 -- 	add_packages("benchmark")
 -- end
@@ -27,7 +26,7 @@
 
 target("new-pipe-cifar-dense-cu")
 do
-	add_rules("pipe_config", "common_flags")
+	add_rules("pipe_config", "common_flags", "cuda_config")
 
 	add_headerfiles({
 		"task.hpp",
@@ -42,9 +41,6 @@ do
 	})
 
 	add_deps("builtin-apps", "builtin-apps-cuda")
-	add_cugencodes("native")
-
-	add_links("nvToolsExt")
 
 	add_packages("nlohmann_json")
 end

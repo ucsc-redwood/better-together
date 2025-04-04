@@ -55,11 +55,11 @@ on_load(function(target)
 	target:add("packages", "glm")
 	target:add("packages", "nlohmann_json")
 
-	-- if has cuda 
-	if has_config("cuda") then
-	    target:add("cuflags", "-Xcompiler", "-fopenmp", {force = true})
-	    target:add("ldflags", "-fopenmp", {force = true})
-	end
+	-- -- if has cuda 
+	-- if has_config("cuda") then
+	--     target:add("cuflags", "-Xcompiler", "-fopenmp", {force = true})
+	--     target:add("ldflags", "-fopenmp", {force = true})
+	-- end
 
 	-- -- for adding debugging
 	-- target:add("cxxflags", "-pg")
@@ -75,6 +75,15 @@ option("use_cuda")
     set_showmenu(true)
     set_values("yes", "no")
 option_end()
+
+rule("cuda_config")
+on_load(function(target)
+	target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", {force = true})
+	target:add("ldflags", "-lnvToolsExt", {force = true})
+	target:add("cuflags", "-Xcompiler", "-fopenmp", {force = true})
+	target:add("ldflags", "-fopenmp", {force = true})
+end)
+rule_end()
 
 -- ----------------------------------------------------------------
 -- Vulkan configuration

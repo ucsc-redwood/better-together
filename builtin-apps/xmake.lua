@@ -105,7 +105,7 @@ if has_config("use_cuda") then
 	do
 		set_kind("static")
 		set_group("static-libs")
-		add_rules("common_flags")
+		add_rules("common_flags", "cuda_config")
 
 		add_headerfiles({
 			-- Common CUDA headers
@@ -167,6 +167,5 @@ if has_config("use_cuda") then
 
 		-- Best CUDA library
 		add_packages("cub")
-		add_cugencodes("native")
 	end
 end

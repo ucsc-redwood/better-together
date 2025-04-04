@@ -40,7 +40,7 @@ if has_config("use_cuda") then
 
 	target("play-ndarray-cu")
 	do
-		add_rules("common_flags")
+		add_rules("common_flags", "cuda_config")
 
 		add_includedirs("$(projectdir)")
 
@@ -52,8 +52,6 @@ if has_config("use_cuda") then
 
 		add_deps("builtin-apps", "builtin-apps-cuda")
 
-		add_cugencodes("native", {force = true})
-
 		add_packages("cnpy")
 	end
 
@@ -62,7 +60,7 @@ if has_config("use_cuda") then
 
 	target("bm-play-ndarray-cu")
 	do
-		add_rules("common_flags")
+		add_rules("common_flags", "cuda_config")
 
 		add_includedirs("$(projectdir)")
 
@@ -74,8 +72,6 @@ if has_config("use_cuda") then
 
 		add_deps("builtin-apps", "builtin-apps-cuda")
 
-		add_cugencodes("native", {force = true})
-
 		add_packages("cnpy")
 		add_packages("benchmark")
 	end
@@ -84,7 +80,7 @@ if has_config("use_cuda") then
 
 	target("pipe-ndarray-cu")
 	do
-		add_rules("common_flags")
+		add_rules("common_flags", "cuda_config")
 
 		add_includedirs("$(projectdir)")
 
@@ -94,11 +90,7 @@ if has_config("use_cuda") then
 			"omp/dispatchers.cpp",
 		})
 
-		add_links("nvToolsExt")
-
 		add_deps("builtin-apps", "builtin-apps-cuda")
-
-		add_cugencodes("native", {force = true})
 
 		add_packages("cnpy")
 	end

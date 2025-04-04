@@ -8,7 +8,7 @@
 
 namespace cuda {
 
-constexpr bool debug_layer_outputs = false;
+constexpr bool debug_layer_outputs = true;
 
 template <typename MemResourceT>
   requires std::is_same_v<MemResourceT, CudaManagedResource> ||

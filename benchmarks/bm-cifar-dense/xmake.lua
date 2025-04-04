@@ -35,11 +35,10 @@ end
 if has_config("use_cuda") then
 	target("bm-cifar-dense-cu")
 	do
-		add_rules("benchmark_config", "common_flags")
+		add_rules("benchmark_config", "common_flags", "cuda_config")
 		add_files({
 			"cuda.cu",
 		})
 		add_deps("builtin-apps", "builtin-apps-cuda")
-		add_cugencodes("native")
 	end
 end

@@ -2,7 +2,7 @@
 
 -- target("bm-new-pipe-tree-cu")
 -- do
--- 	add_rules("pipe_config", "common_flags", "run_on_android")
+-- 	add_rules("pipe_config", "common_flags", "cuda_config", "run_on_android")
 
 -- 	add_headerfiles({
 -- 		"task.hpp",
@@ -16,7 +16,6 @@
 -- 	})
 
 -- 	add_deps("builtin-apps", "builtin-apps-cuda")
--- 	add_cugencodes("native")
 
 -- 	add_packages("benchmark")
 -- end
@@ -24,7 +23,7 @@
 
 target("new-pipe-tree-cu")
 do
-	add_rules("pipe_config", "common_flags")
+	add_rules("pipe_config", "common_flags", "cuda_config")
 
 	add_headerfiles({
 		"task.hpp",
@@ -39,9 +38,6 @@ do
 	})
 
 	add_deps("builtin-apps", "builtin-apps-cuda")
-	add_cugencodes("native")
-
-	add_links("nvToolsExt")
 
 	add_packages("nlohmann_json")
 end
