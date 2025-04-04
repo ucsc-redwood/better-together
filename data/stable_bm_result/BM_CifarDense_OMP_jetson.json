@@ -32,7 +32,11 @@
         "num_sharing": 4
       }
     ],
-    "load_avg": [0.715332,2.85986,1.96143],
+    "load_avg": [
+      0.715332,
+      2.85986,
+      1.96143
+    ],
     "library_version": "v1.9.1",
     "library_build_type": "release",
     "json_schema_version": 1

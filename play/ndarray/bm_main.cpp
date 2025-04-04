@@ -1,16 +1,15 @@
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
+#include <vector>
+
 #include "benchmarks/argc_argv_sanitizer.hpp"
 #include "builtin-apps/app.hpp"
 #include "omp/dispatchers.hpp"
 
-
-#include <vector>
-#include <cstddef>
-
 void FlushCache() {
   // Choose a buffer size significantly larger than the L3 cache (10 MB in this case).
-  constexpr size_t size = 10 * 1024 * 1024; // 10 MB
+  constexpr size_t size = 10 * 1024 * 1024;  // 10 MB
   std::vector<char> buffer(size, 1);
 
   // Use a volatile variable to prevent the compiler from optimizing away the loop.
@@ -21,7 +20,6 @@ void FlushCache() {
     sink += buffer[i];
   }
 }
-
 
 // ------------------------------------------------------------
 // Baseline benchmarks
