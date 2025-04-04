@@ -433,7 +433,7 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
       (this->*stage_functions[stage - 1])(data);
     }
 
-    // CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
+    CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
 
     // Only attach memory if using CudaManagedResource
     if constexpr (std::is_same_v<MemResourceT, CudaManagedResource>) {

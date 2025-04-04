@@ -21,8 +21,8 @@ void warmup() {
   CheckCuda(cudaDeviceSynchronize());
 }
 
-#define PREPARE_DATA                                   \
-  cuda::CudaDispatcher<cuda::CudaPinnedResource> disp; \
+#define PREPARE_DATA                                    \
+  cuda::CudaDispatcher<cuda::CudaManagedResource> disp; \
   cifar_dense::AppDataBatch batched_appdata(&disp.get_mr())
 
 // ----------------------------------------------------------------
