@@ -103,7 +103,7 @@ void execute_schedule(const std::vector<ChunkConfig>& chunk_configs) {
   nvtxRangePop();
 
   CheckCuda(cudaEventRecord(stop, 0));
-  // CheckCuda(cudaEventSynchronize(stop));
+  CheckCuda(cudaEventSynchronize(stop));
   CheckCuda(cudaEventElapsedTime(&milliseconds, start, stop));
   CheckCuda(cudaEventDestroy(start));
   CheckCuda(cudaEventDestroy(stop));
