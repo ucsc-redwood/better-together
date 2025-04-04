@@ -18,92 +18,131 @@ namespace cifar_dense {
 // Batched version (this is better)
 // ----------------------------------------------------------------------------
 
-struct ModelData {
-  NDArray<4> h_conv1_w;
-  NDArray<1> h_conv1_b;
-  NDArray<4> h_conv2_w;
-  NDArray<1> h_conv2_b;
-  NDArray<4> h_conv3_w;
-  NDArray<1> h_conv3_b;
-  NDArray<4> h_conv4_w;
-  NDArray<1> h_conv4_b;
-  NDArray<4> h_conv5_w;
-  NDArray<1> h_conv5_b;
-  NDArray<2> h_linear_w;  // (10, 1024)
-  NDArray<1> h_linear_b;  // (10)
+// struct ModelData {
+//   NDArray<4> h_conv1_w;
+//   NDArray<1> h_conv1_b;
+//   NDArray<4> h_conv2_w;
+//   NDArray<1> h_conv2_b;
+//   NDArray<4> h_conv3_w;
+//   NDArray<1> h_conv3_b;
+//   NDArray<4> h_conv4_w;
+//   NDArray<1> h_conv4_b;
+//   NDArray<4> h_conv5_w;
+//   NDArray<1> h_conv5_b;
+//   NDArray<2> h_linear_w;  // (10, 1024)
+//   NDArray<1> h_linear_b;  // (10)
 
-  explicit ModelData()
-      : h_conv1_w({16, 3, 3, 3}),
-        h_conv1_b({16}),
-        h_conv2_w({32, 16, 3, 3}),
-        h_conv2_b({32}),
-        h_conv3_w({64, 32, 3, 3}),
-        h_conv3_b({64}),
-        h_conv4_w({64, 64, 3, 3}),
-        h_conv4_b({64}),
-        h_conv5_w({64, 64, 3, 3}),
-        h_conv5_b({64}),
-        h_linear_w({10, 1024}),
-        h_linear_b({10}) {
-    spdlog::trace("ModelData::ModelData(), Loading model data from npy files");
-    load_from_npy_to_raw("conv1_w.npy", h_conv1_w);
-    load_from_npy_to_raw("conv1_b.npy", h_conv1_b);
-    load_from_npy_to_raw("conv2_w.npy", h_conv2_w);
-    load_from_npy_to_raw("conv2_b.npy", h_conv2_b);
-    load_from_npy_to_raw("conv3_w.npy", h_conv3_w);
-    load_from_npy_to_raw("conv3_b.npy", h_conv3_b);
-    load_from_npy_to_raw("conv4_w.npy", h_conv4_w);
-    load_from_npy_to_raw("conv4_b.npy", h_conv4_b);
-    load_from_npy_to_raw("conv5_w.npy", h_conv5_w);
-    load_from_npy_to_raw("conv5_b.npy", h_conv5_b);
-    load_from_npy_to_raw("linear_w.npy", h_linear_w);
-    load_from_npy_to_raw("linear_b.npy", h_linear_b);
-  }
-};
+//   explicit ModelData()
+//       : h_conv1_w({16, 3, 3, 3}),
+//         h_conv1_b({16}),
+//         h_conv2_w({32, 16, 3, 3}),
+//         h_conv2_b({32}),
+//         h_conv3_w({64, 32, 3, 3}),
+//         h_conv3_b({64}),
+//         h_conv4_w({64, 64, 3, 3}),
+//         h_conv4_b({64}),
+//         h_conv5_w({64, 64, 3, 3}),
+//         h_conv5_b({64}),
+//         h_linear_w({10, 1024}),
+//         h_linear_b({10}) {
+//     spdlog::trace("ModelData::ModelData(), Loading model data from npy files");
+//     load_from_npy_to_raw("conv1_w.npy", h_conv1_w);
+//     load_from_npy_to_raw("conv1_b.npy", h_conv1_b);
+//     load_from_npy_to_raw("conv2_w.npy", h_conv2_w);
+//     load_from_npy_to_raw("conv2_b.npy", h_conv2_b);
+//     load_from_npy_to_raw("conv3_w.npy", h_conv3_w);
+//     load_from_npy_to_raw("conv3_b.npy", h_conv3_b);
+//     load_from_npy_to_raw("conv4_w.npy", h_conv4_w);
+//     load_from_npy_to_raw("conv4_b.npy", h_conv4_b);
+//     load_from_npy_to_raw("conv5_w.npy", h_conv5_w);
+//     load_from_npy_to_raw("conv5_b.npy", h_conv5_b);
+//     load_from_npy_to_raw("linear_w.npy", h_linear_w);
+//     load_from_npy_to_raw("linear_b.npy", h_linear_b);
+//   }
+// };
 
 struct AppDataBatch {
   static constexpr size_t BATCH_SIZE = 128;
 
   // Constructor loads a file containing a batch of 128 images, shaped (128, 3, 32, 32).
   explicit AppDataBatch(std::pmr::memory_resource* mr)
-      : input({BATCH_SIZE, 3, 32, 32}, mr),
-        conv1_out({BATCH_SIZE, 16, 32, 32}, mr),
-        pool1_out({BATCH_SIZE, 16, 16, 16}, mr),
-        conv2_out({BATCH_SIZE, 32, 16, 16}, mr),
-        pool2_out({BATCH_SIZE, 32, 8, 8}, mr),
-        conv3_out({BATCH_SIZE, 64, 8, 8}, mr),
-        conv4_out({BATCH_SIZE, 64, 8, 8}, mr),
-        conv5_out({BATCH_SIZE, 64, 8, 8}, mr),
-        pool3_out({BATCH_SIZE, 64, 4, 4}, mr),
-        linear_out({BATCH_SIZE, 10}, mr) {
+      : u_input({BATCH_SIZE, 3, 32, 32}, mr),
+        u_conv1_out({BATCH_SIZE, 16, 32, 32}, mr),
+        u_pool1_out({BATCH_SIZE, 16, 16, 16}, mr),
+        u_conv2_out({BATCH_SIZE, 32, 16, 16}, mr),
+        u_pool2_out({BATCH_SIZE, 32, 8, 8}, mr),
+        u_conv3_out({BATCH_SIZE, 64, 8, 8}, mr),
+        u_conv4_out({BATCH_SIZE, 64, 8, 8}, mr),
+        u_conv5_out({BATCH_SIZE, 64, 8, 8}, mr),
+        u_pool3_out({BATCH_SIZE, 64, 4, 4}, mr),
+        u_linear_out({BATCH_SIZE, 10}, mr),
+        u_conv1_w({16, 3, 3, 3}, mr),
+        u_conv1_b({16}, mr),
+        u_conv2_w({32, 16, 3, 3}, mr),
+        u_conv2_b({32}, mr),
+        u_conv3_w({64, 32, 3, 3}, mr),
+        u_conv3_b({64}, mr),
+        u_conv4_w({64, 64, 3, 3}, mr),
+        u_conv4_b({64}, mr),
+        u_conv5_w({64, 64, 3, 3}, mr),
+        u_conv5_b({64}, mr),
+        u_linear_w({10, 1024}, mr),
+        u_linear_b({10}, mr) {
     spdlog::trace("AppDataBatch::AppDataBatch(), Initializing AppDataBatch");
 
     // Fill with random values for now
-    std::generate_n(input.raw(), input.size(), [] {
+    std::generate_n(u_input.raw(), u_input.size(), [] {
       static std::mt19937 gen(114514);
       static std::uniform_real_distribution<> dis(0.0, 1.0);
       return dis(gen);
     });
+
+    load_from_npy_to_raw("conv1_w.npy", u_conv1_w);
+    load_from_npy_to_raw("conv1_b.npy", u_conv1_b);
+    load_from_npy_to_raw("conv2_w.npy", u_conv2_w);
+    load_from_npy_to_raw("conv2_b.npy", u_conv2_b);
+    load_from_npy_to_raw("conv3_w.npy", u_conv3_w);
+    load_from_npy_to_raw("conv3_b.npy", u_conv3_b);
+    load_from_npy_to_raw("conv4_w.npy", u_conv4_w);
+    load_from_npy_to_raw("conv4_b.npy", u_conv4_b);
+    load_from_npy_to_raw("conv5_w.npy", u_conv5_w);
+    load_from_npy_to_raw("conv5_b.npy", u_conv5_b);
+    load_from_npy_to_raw("linear_w.npy", u_linear_w);
+    load_from_npy_to_raw("linear_b.npy", u_linear_b);
   }
 
   // Input and intermediate outputs
-  NDArray<4> input;      // shape = (128, 3, 32, 32)
-  NDArray<4> conv1_out;  // (128, 16, 32, 32)
-  NDArray<4> pool1_out;  // (128, 16, 16, 16)
-  NDArray<4> conv2_out;  // (128, 32, 16, 16)
-  NDArray<4> pool2_out;  // (128, 32, 8, 8)
-  NDArray<4> conv3_out;  // (128, 64, 8, 8)
-  NDArray<4> conv4_out;  // (128, 64, 8, 8)
-  NDArray<4> conv5_out;  // (128, 64, 8, 8)
-  NDArray<4> pool3_out;  // (128, 64, 4, 4)
+  NDArray<4> u_input;      // shape = (128, 3, 32, 32)
+  NDArray<4> u_conv1_out;  // (128, 16, 32, 32)
+  NDArray<4> u_pool1_out;  // (128, 16, 16, 16)
+  NDArray<4> u_conv2_out;  // (128, 32, 16, 16)
+  NDArray<4> u_pool2_out;  // (128, 32, 8, 8)
+  NDArray<4> u_conv3_out;  // (128, 64, 8, 8)
+  NDArray<4> u_conv4_out;  // (128, 64, 8, 8)
+  NDArray<4> u_conv5_out;  // (128, 64, 8, 8)
+  NDArray<4> u_pool3_out;  // (128, 64, 4, 4)
 
   // Flatten would be (128, 1024), stored or created on-the-fly
-  NDArray<2> linear_out;  // shape = (128, 10) for final classification
+  NDArray<2> u_linear_out;  // shape = (128, 10) for final classification
 
-  static const ModelData& get_model() {
-    static const ModelData model_data;
-    return model_data;
-  }
+  // Model parameters
+  NDArray<4> u_conv1_w;
+  NDArray<1> u_conv1_b;
+  NDArray<4> u_conv2_w;
+  NDArray<1> u_conv2_b;
+  NDArray<4> u_conv3_w;
+  NDArray<1> u_conv3_b;
+  NDArray<4> u_conv4_w;
+  NDArray<1> u_conv4_b;
+  NDArray<4> u_conv5_w;
+  NDArray<1> u_conv5_b;
+  NDArray<2> u_linear_w;  // (10, 1024)
+  NDArray<1> u_linear_b;  // (10)
+
+  // static const ModelData& get_model() {
+  //   static const ModelData model_data;
+  //   return model_data;
+  // }
 };
 
 // ----------------------------------------------------------------------------
@@ -129,7 +168,7 @@ inline void print_prediction(const int max_index) {
 
 inline void print_batch_predictions(const AppDataBatch& batch_data, const size_t num_to_print = 1) {
   // Get the output predictions (batch_size x 10 values)
-  const auto& predictions = batch_data.linear_out;
+  const auto& predictions = batch_data.u_linear_out;
 
   std::cout << "Predictions for batch of " << AppDataBatch::BATCH_SIZE << " images:" << std::endl;
 

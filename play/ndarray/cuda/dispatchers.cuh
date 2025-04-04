@@ -5,7 +5,6 @@
 #include "builtin-apps/common/cuda/manager.cuh"
 #include "builtin-apps/debug_logger.hpp"
 #include "kernels.cuh"
-#include "model_data.cuh"
 
 namespace cuda {
 
@@ -16,12 +15,14 @@ template <typename MemResourceT>
            std::is_same_v<MemResourceT, CudaPinnedResource>
 class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
  public:
-  explicit CudaDispatcher() : d_model_data_(cifar_dense::AppDataBatch::get_model()) {}
+  // explicit CudaDispatcher() : d_model_data_(cifar_dense::AppDataBatch::get_model()) {}
+
+  CudaDispatcher() = default;
 
   void run_stage_1_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.input.shape();                       // [128, 3, 32, 32]
-    const auto& w_shape = d_model_data_.h_model_ref.h_conv1_w.shape();  // [16, 3, 3, 3]
-    const auto& out_shape = appdata.conv1_out.shape();                  // [128, 16, 30, 30]
+    const auto& in_shape = appdata.u_input.shape();       // [128, 3, 32, 32]
+    const auto& w_shape = appdata.u_conv1_w.shape();      // [16, 3, 3, 3]
+    const auto& out_shape = appdata.u_conv1_out.shape();  // [128, 16, 30, 30]
 
     const int N = in_shape[0];   // batch, 128
     const int C = in_shape[1];   // in channels, 3
@@ -42,10 +43,10 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     const dim3 blockDim(256);
     const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.input.raw(),
-                                                               d_model_data_.d_conv1_w,
-                                                               d_model_data_.d_conv1_b,
-                                                               appdata.conv1_out.raw(),
+    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_input.raw(),
+                                                               appdata.u_conv1_w.raw(),
+                                                               appdata.u_conv1_b.raw(),
+                                                               appdata.u_conv1_out.raw(),
                                                                N,
                                                                C,
                                                                H,
@@ -59,12 +60,12 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.conv1_out.print("conv1_out");
+      appdata.u_conv1_out.print("conv1_out");
     }
   }
 
   void run_stage_2_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.conv1_out.shape();  // [128, 16, 30, 30]
+    const auto& in_shape = appdata.u_conv1_out.shape();  // [128, 16, 30, 30]
     // const auto& out_shape = appdata.pool1_out.shape();  // [128, 16, 15, 15]
 
     constexpr int padding = 2;
@@ -85,8 +86,8 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     dim3 blockDim(256);
     dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
-    maxpool2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.conv1_out.raw(),
-                                                                  appdata.pool1_out.raw(),
+    maxpool2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_conv1_out.raw(),
+                                                                  appdata.u_pool1_out.raw(),
                                                                   N,
                                                                   C,
                                                                   H,
@@ -98,14 +99,14 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.pool1_out.print("pool1_out");
+      appdata.u_pool1_out.print("pool1_out");
     }
   }
 
   void run_stage_3_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.pool1_out.shape();                   // [128, 16, 15, 15]
-    const auto& w_shape = d_model_data_.h_model_ref.h_conv2_w.shape();  // [20, 16, 3, 3]
-    const auto& out_shape = appdata.conv2_out.shape();                  // [128, 20, 13, 13]
+    const auto& in_shape = appdata.u_pool1_out.shape();   // [128, 16, 15, 15]
+    const auto& w_shape = appdata.u_conv2_w.shape();      // [20, 16, 3, 3]
+    const auto& out_shape = appdata.u_conv2_out.shape();  // [128, 20, 13, 13]
 
     const int N = in_shape[0];   // batch, 128
     const int C = in_shape[1];   // in channels, 16
@@ -125,10 +126,10 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     const dim3 blockDim(256);
     const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.pool1_out.raw(),
-                                                               d_model_data_.d_conv2_w,
-                                                               d_model_data_.d_conv2_b,
-                                                               appdata.conv2_out.raw(),
+    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_pool1_out.raw(),
+                                                               appdata.u_conv2_w.raw(),
+                                                               appdata.u_conv2_b.raw(),
+                                                               appdata.u_conv2_out.raw(),
                                                                N,
                                                                C,
                                                                H,
@@ -142,12 +143,12 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.conv2_out.print("conv2_out");
+      appdata.u_conv2_out.print("conv2_out");
     }
   }
 
   void run_stage_4_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.conv2_out.shape();  // [128, 20, 13, 13]
+    const auto& in_shape = appdata.u_conv2_out.shape();  // [128, 20, 13, 13]
 
     constexpr int padding = 2;
     constexpr int stride = 2;
@@ -167,8 +168,8 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     dim3 blockDim(256);
     dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
-    maxpool2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.conv2_out.raw(),
-                                                                  appdata.pool2_out.raw(),
+    maxpool2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_conv2_out.raw(),
+                                                                  appdata.u_pool2_out.raw(),
                                                                   N,
                                                                   C,
                                                                   H,
@@ -180,14 +181,14 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.pool2_out.print("pool2_out");
+      appdata.u_pool2_out.print("pool2_out");
     }
   }
 
   void run_stage_5_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.pool2_out.shape();                   // [128, 20, 7, 7]
-    const auto& w_shape = d_model_data_.h_model_ref.h_conv3_w.shape();  // [20, 20, 3, 3]
-    const auto& out_shape = appdata.conv3_out.shape();                  // [128, 20, 5, 5]
+    const auto& in_shape = appdata.u_pool2_out.shape();   // [128, 20, 7, 7]
+    const auto& w_shape = appdata.u_conv3_w.shape();      // [20, 20, 3, 3]
+    const auto& out_shape = appdata.u_conv3_out.shape();  // [128, 20, 5, 5]
 
     const int N = in_shape[0];   // batch, 128
     const int C = in_shape[1];   // in channels, 20
@@ -208,10 +209,10 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
     // Launch kernel
     const dim3 blockDim(256);
     const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.pool2_out.raw(),
-                                                               d_model_data_.d_conv3_w,
-                                                               d_model_data_.d_conv3_b,
-                                                               appdata.conv3_out.raw(),
+    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_pool2_out.raw(),
+                                                               appdata.u_conv3_w.raw(),
+                                                               appdata.u_conv3_b.raw(),
+                                                               appdata.u_conv3_out.raw(),
                                                                N,
                                                                C,
                                                                H,
@@ -225,14 +226,14 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.conv3_out.print("conv3_out");
+      appdata.u_conv3_out.print("conv3_out");
     }
   }
 
   void run_stage_6_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.conv3_out.shape();                   // [128, 20, 5, 5]
-    const auto& w_shape = d_model_data_.h_model_ref.h_conv4_w.shape();  // [50, 20, 3, 3]
-    const auto& out_shape = appdata.conv4_out.shape();                  // [128, 50, 3, 3]
+    const auto& in_shape = appdata.u_conv3_out.shape();   // [128, 20, 5, 5]
+    const auto& w_shape = appdata.u_conv4_w.shape();      // [50, 20, 3, 3]
+    const auto& out_shape = appdata.u_conv4_out.shape();  // [128, 50, 3, 3]
 
     const int N = in_shape[0];   // batch, 128
     const int C = in_shape[1];   // in channels, 20
@@ -253,10 +254,10 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
     // Launch kernel
     const dim3 blockDim(256);
     const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.conv3_out.raw(),
-                                                               d_model_data_.d_conv4_w,
-                                                               d_model_data_.d_conv4_b,
-                                                               appdata.conv4_out.raw(),
+    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_conv3_out.raw(),
+                                                               appdata.u_conv4_w.raw(),
+                                                               appdata.u_conv4_b.raw(),
+                                                               appdata.u_conv4_out.raw(),
                                                                N,
                                                                C,
                                                                H,
@@ -270,14 +271,14 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.conv4_out.print("conv4_out");
+      appdata.u_conv4_out.print("conv4_out");
     }
   }
 
   void run_stage_7_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.conv4_out.shape();                   // [128, 50, 3, 3]
-    const auto& w_shape = d_model_data_.h_model_ref.h_conv5_w.shape();  // [64, 50, 3, 3]
-    const auto& out_shape = appdata.conv5_out.shape();                  // [128, 64, 1, 1]
+    const auto& in_shape = appdata.u_conv4_out.shape();   // [128, 50, 3, 3]
+    const auto& w_shape = appdata.u_conv5_w.shape();      // [64, 50, 3, 3]
+    const auto& out_shape = appdata.u_conv5_out.shape();  // [128, 64, 1, 1]
 
     const int N = in_shape[0];   // batch, 128
     const int C = in_shape[1];   // in channels, 50
@@ -298,10 +299,10 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
     // Launch kernel
     const dim3 blockDim(256);
     const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.conv4_out.raw(),
-                                                               d_model_data_.d_conv5_w,
-                                                               d_model_data_.d_conv5_b,
-                                                               appdata.conv5_out.raw(),
+    conv2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_conv4_out.raw(),
+                                                               appdata.u_conv5_w.raw(),
+                                                               appdata.u_conv5_b.raw(),
+                                                               appdata.u_conv5_out.raw(),
                                                                N,
                                                                C,
                                                                H,
@@ -315,12 +316,12 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.conv5_out.print("conv5_out");
+      appdata.u_conv5_out.print("conv5_out");
     }
   }
 
   void run_stage_8_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.conv5_out.shape();  // [128, 64, 1, 1]
+    const auto& in_shape = appdata.u_conv5_out.shape();  // [128, 64, 1, 1]
 
     constexpr int padding = 2;
     constexpr int stride = 2;
@@ -340,8 +341,8 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     dim3 blockDim(256);
     dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, C, N);
-    maxpool2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.conv5_out.raw(),
-                                                                  appdata.pool3_out.raw(),
+    maxpool2d_kernel<<<gridDim, blockDim, 0, mgr_.get_stream()>>>(appdata.u_conv5_out.raw(),
+                                                                  appdata.u_pool3_out.raw(),
                                                                   N,
                                                                   C,
                                                                   H,
@@ -353,13 +354,13 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.pool3_out.print("pool3_out");
+      appdata.u_pool3_out.print("pool3_out");
     }
   }
 
   void run_stage_9_async(cifar_dense::AppDataBatch& appdata) {
-    const auto& in_shape = appdata.pool3_out.shape();                    // [128, 64, 1, 1]
-    const auto& w_shape = d_model_data_.h_model_ref.h_linear_w.shape();  // [10, 1024]
+    const auto& in_shape = appdata.u_pool3_out.shape();  // [128, 64, 1, 1]
+    const auto& w_shape = appdata.u_linear_w.shape();    // [10, 1024]
 
     // For the linear layer, we need to flatten the 4D tensor to 2D
     const int N = in_shape[0];  // batch size, 128
@@ -377,17 +378,17 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
     const int block_size = 256;
     const int num_blocks = (N * out_features + block_size - 1) / block_size;
 
-    linear_kernel<<<num_blocks, block_size, 0, mgr_.get_stream()>>>(appdata.pool3_out.raw(),
-                                                                    d_model_data_.d_linear_w,
-                                                                    d_model_data_.d_linear_b,
-                                                                    appdata.linear_out.raw(),
+    linear_kernel<<<num_blocks, block_size, 0, mgr_.get_stream()>>>(appdata.u_pool3_out.raw(),
+                                                                    appdata.u_linear_w.raw(),
+                                                                    appdata.u_linear_b.raw(),
+                                                                    appdata.u_linear_out.raw(),
                                                                     N,
                                                                     in_features,
                                                                     out_features);
 
     if constexpr (debug_layer_outputs) {
       CheckCuda(cudaStreamSynchronize(mgr_.get_stream()));
-      appdata.linear_out.print("linear_out");
+      appdata.u_linear_out.print("linear_out");
     }
   }
 
@@ -416,16 +417,16 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     // Only attach memory if using CudaManagedResource
     if constexpr (std::is_same_v<MemResourceT, CudaManagedResource>) {
-      CudaAttachSingle(data.input.raw());
-      CudaAttachSingle(data.conv1_out.raw());
-      CudaAttachSingle(data.pool1_out.raw());
-      CudaAttachSingle(data.conv2_out.raw());
-      CudaAttachSingle(data.pool2_out.raw());
-      CudaAttachSingle(data.conv3_out.raw());
-      CudaAttachSingle(data.conv4_out.raw());
-      CudaAttachSingle(data.conv5_out.raw());
-      CudaAttachSingle(data.pool3_out.raw());
-      CudaAttachSingle(data.linear_out.raw());
+      CudaAttachSingle(data.u_input.raw());
+      CudaAttachSingle(data.u_conv1_out.raw());
+      CudaAttachSingle(data.u_pool1_out.raw());
+      CudaAttachSingle(data.u_conv2_out.raw());
+      CudaAttachSingle(data.u_pool2_out.raw());
+      CudaAttachSingle(data.u_conv3_out.raw());
+      CudaAttachSingle(data.u_conv4_out.raw());
+      CudaAttachSingle(data.u_conv5_out.raw());
+      CudaAttachSingle(data.u_pool3_out.raw());
+      CudaAttachSingle(data.u_linear_out.raw());
     }
 
     for (int stage = start_stage; stage <= end_stage; stage++) {
@@ -436,16 +437,16 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
 
     // Only attach memory if using CudaManagedResource
     if constexpr (std::is_same_v<MemResourceT, CudaManagedResource>) {
-      CudaAttachHost(data.input.raw());
-      CudaAttachHost(data.conv1_out.raw());
-      CudaAttachHost(data.pool1_out.raw());
-      CudaAttachHost(data.conv2_out.raw());
-      CudaAttachHost(data.pool2_out.raw());
-      CudaAttachHost(data.conv3_out.raw());
-      CudaAttachHost(data.conv4_out.raw());
-      CudaAttachHost(data.conv5_out.raw());
-      CudaAttachHost(data.pool3_out.raw());
-      CudaAttachHost(data.linear_out.raw());
+      CudaAttachHost(data.u_input.raw());
+      CudaAttachHost(data.u_conv1_out.raw());
+      CudaAttachHost(data.u_pool1_out.raw());
+      CudaAttachHost(data.u_conv2_out.raw());
+      CudaAttachHost(data.u_pool2_out.raw());
+      CudaAttachHost(data.u_conv3_out.raw());
+      CudaAttachHost(data.u_conv4_out.raw());
+      CudaAttachHost(data.u_conv5_out.raw());
+      CudaAttachHost(data.u_pool3_out.raw());
+      CudaAttachHost(data.u_linear_out.raw());
     }
   }
 
@@ -454,7 +455,7 @@ class CudaDispatcher final : public cuda::CudaManager<MemResourceT> {
   CudaManager<MemResourceT> mgr_;
 
   // Device-only memory
-  const DeviceModelData d_model_data_;
+  // const DeviceModelData d_model_data_;
 };
 
 }  // namespace cuda
