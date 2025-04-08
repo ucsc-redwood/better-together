@@ -120,18 +120,62 @@ class VulkanDispatcher final {
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() { return engine.get_mr(); }
 
-  void run_stage_1(cifar_dense::AppDataBatch& app_data) {
+  void run_stage_1(cifar_dense::AppDataBatch& appdata) {
     auto algo = cached_algorithms.at("conv2d").get();
-
-    const auto& model = cifar_dense::AppDataBatch::get_model();
 
     algo->update_descriptor_set(0,
                                 {
-                                    engine.get_buffer_info(app_data.input),
-                                    engine.get_buffer_info(model.h_conv1  _w),
-                                    engine.get_buffer_info(model.h_conv1_b),
-                                    engine.get_buffer_info(app_data.conv1_out),
+                                    engine.get_buffer_info(appdata.u_input),
+                                    engine.get_buffer_info(appdata.u_conv1_w),
+                                    engine.get_buffer_info(appdata.u_conv1_b),
+                                    engine.get_buffer_info(appdata.u_conv1_out),
                                 });
+
+    const auto& in_shape = appdata.u_input.shape();       // [128, 3, 32, 32]
+    const auto& w_shape = appdata.u_conv1_w.shape();      // [16, 3, 3, 3]
+    const auto& out_shape = appdata.u_conv1_out.shape();  // [128, 16, 30, 30]
+
+    const uint32_t N = in_shape[0];   // batch, 128
+    const uint32_t C = in_shape[1];   // in channels, 3
+    const uint32_t H = in_shape[2];   // in height, 32
+    const uint32_t W = in_shape[3];   // in width, 32
+    const uint32_t R = w_shape[2];    // kernel height, 3
+    const uint32_t S = w_shape[3];    // kernel width, 3
+    const uint32_t K = out_shape[1];  // out channels, 16
+
+    constexpr uint32_t padding = 0;
+    constexpr uint32_t stride = 1;
+    constexpr uint32_t apply_relu = 1;
+    const uint32_t P = (H + 2 * padding - R) / stride + 1;
+    const uint32_t Q = (W + 2 * padding - S) / stride + 1;
+    const uint32_t PQ = P * Q;
+
+    algo->update_push_constant(Conv2dPushConstants{
+        .N = N,
+        .C = C,
+        .H = H,
+        .W = W,
+        .K = K,
+        .R = R,
+        .S = S,
+        .stride = stride,
+        .padding = padding,
+        .apply_relu = apply_relu,
+    });
+
+    // const dim3 blockDim(256);
+    // const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
+
+    seq->cmd_begin();
+    algo->record_bind_core(seq->get_handle(), 0);
+    algo->record_bind_push(seq->get_handle());
+    algo->record_dispatch(seq->get_handle(),
+                          {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)), K, N});
+    seq->cmd_end();
+
+    seq->reset_fence();
+    seq->submit();
+    seq->wait_for_fence();
   }
 
  private:
