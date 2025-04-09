@@ -178,11 +178,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_2(cifar_dense::AppDataBatch& appdata) {
@@ -230,11 +235,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(C),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_3(cifar_dense::AppDataBatch& appdata) {
@@ -289,11 +299,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_4(cifar_dense::AppDataBatch& appdata) {
@@ -341,11 +356,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(C),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_5(cifar_dense::AppDataBatch& appdata) {
@@ -400,11 +420,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_6(cifar_dense::AppDataBatch& appdata) {
@@ -459,11 +484,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_7(cifar_dense::AppDataBatch& appdata) {
@@ -518,11 +548,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_8(cifar_dense::AppDataBatch& appdata) {
@@ -570,11 +605,16 @@ class VulkanDispatcher final {
                           {static_cast<uint32_t>(kiss_vk::div_ceil(PQ, 256)),
                            static_cast<uint32_t>(C),
                            static_cast<uint32_t>(N)});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   void run_stage_9(cifar_dense::AppDataBatch& appdata) {
@@ -616,11 +656,16 @@ class VulkanDispatcher final {
     algo->record_bind_core(seq->get_handle(), 0);
     algo->record_bind_push(seq->get_handle());
     algo->record_dispatch(seq->get_handle(), {num_blocks, 1, 1});
+    
+    insert_memory_barrier(seq->get_handle());
+    
     seq->cmd_end();
 
     seq->reset_fence();
     seq->submit();
     seq->wait_for_fence();
+    
+    ensure_complete_execution();
   }
 
   // void dispatch_multi_stage(cifar_dense::AppDataBatch& data,
@@ -689,6 +734,25 @@ class VulkanDispatcher final {
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> seq;
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
+
+  // Add these methods to your VulkanDispatcher class:
+
+  void insert_memory_barrier(vk::CommandBuffer cmd_buf) {
+    constexpr vk::MemoryBarrier memory_barrier{.srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+                                     .dstAccessMask = vk::AccessFlagBits::eShaderRead};
+
+    cmd_buf.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                            vk::PipelineStageFlagBits::eComputeShader,
+                            vk::DependencyFlags{},
+                            1,
+                            &memory_barrier,
+                            0,
+                            nullptr,
+                            0,
+                            nullptr);
+  }
+
+  void ensure_complete_execution() { engine.get_device().waitIdle(); }
 };
 
 }  // namespace cifar_dense::vulkan
