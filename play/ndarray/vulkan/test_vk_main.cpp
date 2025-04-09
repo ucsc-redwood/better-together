@@ -50,7 +50,8 @@ TEST(VulkanDispatcherTest, Conv2dOutputNonZero) {
 }
 
 int main(int argc, char** argv) {
-  spdlog::set_level(spdlog::level::trace);
+  spdlog::set_level(spdlog::level::info);
+  
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

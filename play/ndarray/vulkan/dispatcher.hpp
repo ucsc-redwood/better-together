@@ -120,6 +120,10 @@ class VulkanDispatcher final {
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() { return engine.get_mr(); }
 
+  // ----------------------------------------------------------------------------
+  // Stage 1:
+  // ----------------------------------------------------------------------------
+
   void run_stage_1(cifar_dense::AppDataBatch& appdata) {
     auto algo = cached_algorithms.at("conv2d").get();
 
@@ -163,9 +167,10 @@ class VulkanDispatcher final {
         .apply_relu = apply_relu,
     });
 
+    LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+
     // const dim3 blockDim(256);
     // const dim3 gridDim((PQ + blockDim.x - 1) / blockDim.x, K, N);
-
     seq->cmd_begin();
     algo->record_bind_core(seq->get_handle(), 0);
     algo->record_bind_push(seq->get_handle());
