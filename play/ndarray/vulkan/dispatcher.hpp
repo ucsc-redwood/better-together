@@ -179,7 +179,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -236,7 +236,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(C),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -300,7 +300,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -357,7 +357,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(C),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -421,7 +421,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -485,7 +485,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -549,7 +549,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(K),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -606,7 +606,7 @@ class VulkanDispatcher final {
                            static_cast<uint32_t>(C),
                            static_cast<uint32_t>(N)});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
@@ -657,7 +657,7 @@ class VulkanDispatcher final {
     algo->record_bind_push(seq->get_handle());
     algo->record_dispatch(seq->get_handle(), {num_blocks, 1, 1});
 
-    insert_memory_barrier(seq->get_handle());
+    // insert_memory_barrier(seq->get_handle());
 
     seq->cmd_end();
 
