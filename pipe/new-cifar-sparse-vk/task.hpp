@@ -1,19 +1,19 @@
-#pragma once
+// #pragma once
 
-#include <concurrentqueue.h>
+// #include <concurrentqueue.h>
 
-#include <vector>
+// #include <vector>
 
-#include "builtin-apps/cifar-sparse/sparse_appdata.hpp"
+// #include "builtin-apps/cifar-sparse/sparse_appdata.hpp"
 
-// ---------------------------------------------------------------------
-// Task structure (new)
-// ---------------------------------------------------------------------
+// // ---------------------------------------------------------------------
+// // Task structure (new)
+// // ---------------------------------------------------------------------
 
-struct Task {
-  cifar_sparse::AppData *data;
-  explicit Task(cifar_sparse::AppData *data) : data(data) {}
-};
+// struct Task {
+//   cifar_sparse::AppData *data;
+//   explicit Task(cifar_sparse::AppData *data) : data(data) {}
+// };
 
-[[nodiscard]] moodycamel::ConcurrentQueue<Task *> init_tasks(
-    std::vector<cifar_sparse::AppData> &data, size_t initial_capacity = 32);
+// [[nodiscard]] moodycamel::ConcurrentQueue<Task *> init_tasks(
+//     std::vector<cifar_sparse::AppData> &data, size_t initial_capacity = 32);

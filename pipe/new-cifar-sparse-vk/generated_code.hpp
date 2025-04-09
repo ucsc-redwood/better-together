@@ -5,10 +5,11 @@
 #include <numeric>
 #include <thread>
 
+#include "../spsc_queue.hpp"
 #include "../templates.hpp"
 #include "../templates_vk.hpp"
-#include "run_stages.hpp"
-#include "task.hpp"
+// #include "run_stages.hpp"
+// #include "task.hpp"
 
 // Automatically generated benchmark code for Vulkan
 
@@ -35,7 +36,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_001(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -43,9 +44,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_001(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -96,7 +97,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_002(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -104,9 +105,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_002(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -157,7 +158,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_003(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -165,9 +166,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_003(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -218,7 +219,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_004(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -226,8 +227,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_004(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -273,7 +274,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_005(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -281,8 +282,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_005(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -328,7 +329,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_006(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -336,8 +337,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_006(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -383,7 +384,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_007(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -391,9 +392,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_007(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -444,7 +445,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_008(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -452,9 +453,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_008(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -505,7 +506,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_009(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -513,9 +514,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_009(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -566,7 +567,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_010(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -574,9 +575,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_010(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -627,7 +628,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_011(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -635,9 +636,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_011(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -688,7 +689,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_012(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -696,9 +697,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_012(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -749,7 +750,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_013(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -757,9 +758,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_013(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -810,7 +811,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_014(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -818,9 +819,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_014(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -871,7 +872,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_015(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -879,8 +880,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_015(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -926,7 +927,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_016(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -934,8 +935,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_016(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -981,7 +982,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_017(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -989,8 +990,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_017(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1036,7 +1037,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_018(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1044,8 +1045,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_018(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1091,7 +1092,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_019(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1099,8 +1100,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_019(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1146,7 +1147,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_020(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1154,8 +1155,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_020(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1201,7 +1202,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_021(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1209,9 +1210,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_021(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1262,7 +1263,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_022(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1270,8 +1271,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_022(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1317,7 +1318,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_023(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1325,8 +1326,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_023(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1372,7 +1373,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_024(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1380,8 +1381,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_024(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1427,7 +1428,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_025(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1435,9 +1436,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_025(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1488,7 +1489,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_026(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1496,9 +1497,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_026(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1549,7 +1550,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_027(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1557,9 +1558,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_027(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1610,7 +1611,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_028(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1618,9 +1619,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_028(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1671,7 +1672,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_029(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1679,9 +1680,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_029(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1732,7 +1733,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_030(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1740,9 +1741,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_030(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1793,7 +1794,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_031(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1801,9 +1802,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_031(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1854,7 +1855,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_032(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1862,9 +1863,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_032(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -1916,7 +1917,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_033(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1924,9 +1925,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_033(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -1977,7 +1978,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_034(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -1985,9 +1986,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_034(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2038,7 +2039,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_035(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2046,9 +2047,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_035(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2099,7 +2100,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_036(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2107,9 +2108,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_036(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2160,7 +2161,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_037(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2168,9 +2169,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_037(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2221,7 +2222,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_038(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2229,9 +2230,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_038(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2282,7 +2283,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_039(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2290,9 +2291,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_039(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2343,7 +2344,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_040(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2351,9 +2352,9 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_040(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
-    moodycamel::ConcurrentQueue<Task *> q_2_3;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
+    SPSCQueue<Task *, 1024> q_2_3;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2404,7 +2405,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_041(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2412,8 +2413,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_041(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2459,7 +2460,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_042(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2467,8 +2468,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_042(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2514,7 +2515,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_043(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2522,8 +2523,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_043(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2569,7 +2570,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_044(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2577,8 +2578,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_044(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2624,7 +2625,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_045(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2632,8 +2633,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_045(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2679,7 +2680,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_046(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2687,8 +2688,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_046(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2734,7 +2735,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_047(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2742,8 +2743,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_047(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2789,7 +2790,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_048(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2797,8 +2798,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_048(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2844,7 +2845,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_049(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2852,8 +2853,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_049(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -2899,7 +2900,7 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_050(benchmark::State
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -2907,8 +2908,8 @@ static void BM_schedule_3A021JEHN02756_CifarSparse_schedule_050(benchmark::State
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3061,7 +3062,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_001(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3069,8 +3070,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_001(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -3117,7 +3118,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_002(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3125,8 +3126,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_002(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3172,7 +3173,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_003(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3180,8 +3181,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_003(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -3228,7 +3229,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_004(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3236,8 +3237,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_004(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -3284,7 +3285,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_005(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3292,8 +3293,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_005(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3339,7 +3340,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_006(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3347,8 +3348,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_006(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3394,7 +3395,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_007(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3402,8 +3403,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_007(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -3450,7 +3451,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_008(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3458,8 +3459,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_008(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3506,7 +3507,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_009(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3514,8 +3515,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_009(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3562,7 +3563,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_010(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3570,8 +3571,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_010(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3618,7 +3619,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_011(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3626,8 +3627,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_011(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3674,7 +3675,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_012(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3682,7 +3683,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_012(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3724,7 +3725,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_013(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3732,7 +3733,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_013(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3774,7 +3775,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_014(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3782,8 +3783,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_014(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 3>);
@@ -3830,7 +3831,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_015(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3838,8 +3839,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_015(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3886,7 +3887,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_016(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3894,8 +3895,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_016(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3941,7 +3942,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_017(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -3949,8 +3950,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_017(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -3996,7 +3997,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_018(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4004,8 +4005,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_018(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4051,7 +4052,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_019(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4059,8 +4060,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_019(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4106,7 +4107,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_020(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4114,8 +4115,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_020(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4161,7 +4162,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_021(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4169,8 +4170,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_021(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4216,7 +4217,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_022(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4224,8 +4225,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_022(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -4272,7 +4273,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_023(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4280,7 +4281,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_023(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -4322,7 +4323,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_024(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4330,7 +4331,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_024(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 2>);
@@ -4372,7 +4373,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_025(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4380,8 +4381,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_025(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4428,7 +4429,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_026(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4436,7 +4437,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_026(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4478,7 +4479,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_027(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4486,7 +4487,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_027(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -4528,7 +4529,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_028(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4536,8 +4537,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_028(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4584,7 +4585,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_029(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4592,8 +4593,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_029(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4640,7 +4641,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_030(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4648,8 +4649,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_030(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4696,7 +4697,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_031(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4704,8 +4705,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_031(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4752,7 +4753,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_032(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4760,8 +4761,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_032(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4808,7 +4809,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_033(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4816,8 +4817,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_033(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4864,7 +4865,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_034(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4872,8 +4873,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_034(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4920,7 +4921,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_035(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4928,7 +4929,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_035(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -4970,7 +4971,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_036(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -4978,7 +4979,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_036(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
+    SPSCQueue<Task *, 1024> q_0_1;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 4>);
@@ -5020,7 +5021,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_037(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5028,8 +5029,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_037(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5075,7 +5076,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_038(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5083,8 +5084,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_038(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5131,7 +5132,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_039(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5139,8 +5140,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_039(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5186,7 +5187,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_040(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5194,8 +5195,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_040(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5241,7 +5242,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_041(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5249,8 +5250,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_041(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5296,7 +5297,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_042(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5304,8 +5305,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_042(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5351,7 +5352,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_043(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5359,8 +5360,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_043(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5406,7 +5407,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_044(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5414,8 +5415,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_044(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5461,7 +5462,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_045(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5469,8 +5470,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_045(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5516,7 +5517,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_046(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5524,8 +5525,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_046(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 1>);
@@ -5572,7 +5573,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_047(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5580,8 +5581,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_047(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(
@@ -5628,7 +5629,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_048(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5636,8 +5637,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_048(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 5>);
@@ -5684,7 +5685,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_049(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5692,8 +5693,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_049(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 5>);
@@ -5740,7 +5741,7 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_050(benchmark::State &stat
 
   for (auto _ : state) {
     state.PauseTiming();
-    moodycamel::ConcurrentQueue<Task *> q_input = init_tasks(preallocated_data);
+    SPSCQueue<Task *, 1024> q_input = init_tasks(preallocated_data);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     state.ResumeTiming();
@@ -5748,8 +5749,8 @@ static void BM_schedule_9b034f1b_CifarSparse_schedule_050(benchmark::State &stat
     // ---------------------------------------------------------------------
     // Automatically generated from schedule JSON
 
-    moodycamel::ConcurrentQueue<Task *> q_0_1;
-    moodycamel::ConcurrentQueue<Task *> q_1_2;
+    SPSCQueue<Task *, 1024> q_0_1;
+    SPSCQueue<Task *, 1024> q_1_2;
 
     std::thread t1([&]() {
       chunk<Task, cifar_sparse::AppData>(q_input, &q_0_1, vulkan::run_gpu_stages<1, 5>);
