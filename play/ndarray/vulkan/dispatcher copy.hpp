@@ -84,88 +84,38 @@ class VulkanDispatcher final {
   explicit VulkanDispatcher() : engine(), seq(engine.make_seq()) {
     spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
-    // Initialize separate algorithm instances for each stage
-    
-    // Stage 1: Conv2d
-    auto conv2d_stage1 = engine.make_algo("new_cifar_dense_conv2d")
-                          ->work_group_size(256, 1, 1)
-                          ->num_sets(1)
-                          ->num_buffers(4)
-                          ->push_constant<Conv2dPushConstants>()
-                          ->build();
-    cached_algorithms.try_emplace("conv2d_stage1", std::move(conv2d_stage1));
+    // conv2d
 
-    // Stage 2: Maxpool2d 
-    auto maxpool2d_stage2 = engine.make_algo("new_cifar_dense_maxpool")
+    auto conv2d_algo = engine.make_algo("new_cifar_dense_conv2d")
+                           ->work_group_size(256, 1, 1)
+                           ->num_sets(1)
+                           ->num_buffers(4)
+                           ->push_constant<Conv2dPushConstants>()
+                           ->build();
+
+    cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
+
+    // maxpool2d
+
+    auto maxpool2d_algo = engine.make_algo("new_cifar_dense_maxpool")
                               ->work_group_size(256, 1, 1)
                               ->num_sets(1)
                               ->num_buffers(2)
                               ->push_constant<MaxpoolPushConstants>()
                               ->build();
-    cached_algorithms.try_emplace("maxpool2d_stage2", std::move(maxpool2d_stage2));
 
-    // Stage 3: Conv2d
-    auto conv2d_stage3 = engine.make_algo("new_cifar_dense_conv2d")
-                          ->work_group_size(256, 1, 1)
-                          ->num_sets(1)
-                          ->num_buffers(4)
-                          ->push_constant<Conv2dPushConstants>()
-                          ->build();
-    cached_algorithms.try_emplace("conv2d_stage3", std::move(conv2d_stage3));
+    cached_algorithms.try_emplace("maxpool2d", std::move(maxpool2d_algo));
 
-    // Stage 4: Maxpool2d
-    auto maxpool2d_stage4 = engine.make_algo("new_cifar_dense_maxpool")
-                              ->work_group_size(256, 1, 1)
-                              ->num_sets(1)
-                              ->num_buffers(2)
-                              ->push_constant<MaxpoolPushConstants>()
-                              ->build();
-    cached_algorithms.try_emplace("maxpool2d_stage4", std::move(maxpool2d_stage4));
+    // linear
 
-    // Stage 5: Conv2d
-    auto conv2d_stage5 = engine.make_algo("new_cifar_dense_conv2d")
-                          ->work_group_size(256, 1, 1)
-                          ->num_sets(1)
-                          ->num_buffers(4)
-                          ->push_constant<Conv2dPushConstants>()
-                          ->build();
-    cached_algorithms.try_emplace("conv2d_stage5", std::move(conv2d_stage5));
-
-    // Stage 6: Conv2d
-    auto conv2d_stage6 = engine.make_algo("new_cifar_dense_conv2d")
-                          ->work_group_size(256, 1, 1)
-                          ->num_sets(1)
-                          ->num_buffers(4)
-                          ->push_constant<Conv2dPushConstants>()
-                          ->build();
-    cached_algorithms.try_emplace("conv2d_stage6", std::move(conv2d_stage6));
-
-    // Stage 7: Conv2d
-    auto conv2d_stage7 = engine.make_algo("new_cifar_dense_conv2d")
-                          ->work_group_size(256, 1, 1)
-                          ->num_sets(1)
-                          ->num_buffers(4)
-                          ->push_constant<Conv2dPushConstants>()
-                          ->build();
-    cached_algorithms.try_emplace("conv2d_stage7", std::move(conv2d_stage7));
-
-    // Stage 8: Maxpool2d
-    auto maxpool2d_stage8 = engine.make_algo("new_cifar_dense_maxpool")
-                              ->work_group_size(256, 1, 1)
-                              ->num_sets(1)
-                              ->num_buffers(2)
-                              ->push_constant<MaxpoolPushConstants>()
-                              ->build();
-    cached_algorithms.try_emplace("maxpool2d_stage8", std::move(maxpool2d_stage8));
-
-    // Stage 9: Linear
-    auto linear_stage9 = engine.make_algo("new_cifar_dense_linear")
+    auto linear_algo = engine.make_algo("new_cifar_dense_linear")
                            ->work_group_size(256, 1, 1)
                            ->num_sets(1)
                            ->num_buffers(4)
                            ->push_constant<LinearPushConstants>()
                            ->build();
-    cached_algorithms.try_emplace("linear_stage9", std::move(linear_stage9));
+
+    cached_algorithms.try_emplace("linear", std::move(linear_algo));
   }
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() { return engine.get_mr(); }
@@ -175,7 +125,7 @@ class VulkanDispatcher final {
   // ----------------------------------------------------------------------------
 
   void run_stage_1(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("conv2d_stage1").get();
+    auto algo = cached_algorithms.at("conv2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -241,7 +191,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_2(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("maxpool2d_stage2").get();
+    auto algo = cached_algorithms.at("maxpool2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -298,7 +248,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_3(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("conv2d_stage3").get();
+    auto algo = cached_algorithms.at("conv2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -362,7 +312,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_4(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("maxpool2d_stage4").get();
+    auto algo = cached_algorithms.at("maxpool2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -419,7 +369,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_5(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("conv2d_stage5").get();
+    auto algo = cached_algorithms.at("conv2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -483,7 +433,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_6(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("conv2d_stage6").get();
+    auto algo = cached_algorithms.at("conv2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -547,7 +497,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_7(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("conv2d_stage7").get();
+    auto algo = cached_algorithms.at("conv2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -611,7 +561,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_8(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("maxpool2d_stage8").get();
+    auto algo = cached_algorithms.at("maxpool2d").get();
 
     algo->update_descriptor_set(0,
                                 {
@@ -668,7 +618,7 @@ class VulkanDispatcher final {
   }
 
   void run_stage_9(cifar_dense::AppDataBatch& appdata) {
-    auto algo = cached_algorithms.at("linear_stage9").get();
+    auto algo = cached_algorithms.at("linear").get();
 
     algo->update_descriptor_set(0,
                                 {
