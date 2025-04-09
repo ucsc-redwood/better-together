@@ -1,11 +1,11 @@
 # Directories
-# SHADER_COMP_DIR := builtin-apps/common/kiss-vk/shaders/comp
-# SHADER_SPV_DIR := builtin-apps/common/kiss-vk/shaders/spv
-# SHADER_H_DIR := builtin-apps/common/kiss-vk/shaders/h
+SHADER_COMP_DIR := builtin-apps/common/kiss-vk/shaders/comp
+SHADER_SPV_DIR := builtin-apps/common/kiss-vk/shaders/spv
+SHADER_H_DIR := builtin-apps/common/kiss-vk/shaders/h
 
-SHADER_COMP_DIR := play/ndarray/vk/shaders/comp
-SHADER_SPV_DIR := play/ndarray/vk/shaders/spv
-SHADER_H_DIR := play/ndarray/vk/shaders/h
+# SHADER_COMP_DIR := play/ndarray/vulkan/shaders/comp
+# SHADER_SPV_DIR := play/ndarray/vulkan/shaders/spv
+# SHADER_H_DIR := play/ndarray/vulkan/shaders/h
 
 
 # Find all .comp shader files
@@ -17,7 +17,7 @@ H_FILES := $(patsubst $(SHADER_SPV_DIR)/%.spv, $(SHADER_H_DIR)/%_spv.h, $(SPV_FI
 
 # Compiler settings
 GLSLC := glslc
-GLSLC_FLAGS := --target-env=vulkan1.3 -O
+GLSLC_FLAGS := --target-env=vulkan1.3 -O -fshader-stage=compute
 
 # Ensure directories exist
 $(shell mkdir -p $(SHADER_SPV_DIR) $(SHADER_H_DIR))

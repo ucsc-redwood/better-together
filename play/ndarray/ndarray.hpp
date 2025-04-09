@@ -47,6 +47,9 @@ class NDArray {
   [[nodiscard]] float* raw() { return data_.data(); }
   [[nodiscard]] const float* raw() const { return data_.data(); }
 
+  [[nodiscard]] std::pmr::vector<float>& vec() { return data_; }
+  [[nodiscard]] const std::pmr::vector<float>& vec() const { return data_; }
+
   // Returns the memory usage in bytes
   [[nodiscard]] size_t size() const { return total_size_; }
   [[nodiscard]] size_t memory_usage_bytes() const { return size() * sizeof(float); }

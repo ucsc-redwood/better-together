@@ -32,6 +32,7 @@ add_requires("nlohmann_json")
 add_requires("libcurl")
 add_requires("cnpy")
 add_requires("benchmark")
+add_requires("gtest")
 
 -- OpenMP is handled differently on Android
 if not is_plat("android") then
@@ -57,6 +58,7 @@ on_load(function(target)
 	
 	-- -- for adding debugging
 	-- target:add("cxxflags", "-pg")
+	target:add("includedirs", "$(projectdir)")
 end)
 rule_end()
 

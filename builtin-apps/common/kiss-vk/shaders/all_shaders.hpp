@@ -40,6 +40,10 @@ namespace shaders {
 #include "h/tree_morton_spv.h"
 #include "h/tree_move_dups_spv.h"
 #include "h/tree_naive_prefix_sum_spv.h"
+// new shaders
+#include "h/new_cifar_dense_conv2d_spv.h"
+#include "h/new_cifar_dense_linear_spv.h"
+#include "h/new_cifar_dense_maxpool_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
 #define SHADER_ENTRY(name)                                         \
@@ -87,6 +91,10 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(tree_morton),
         SHADER_ENTRY(tree_move_dups),
         SHADER_ENTRY(tree_naive_prefix_sum),
+        // new shaders
+        SHADER_ENTRY(new_cifar_dense_conv2d),
+        SHADER_ENTRY(new_cifar_dense_maxpool),
+        SHADER_ENTRY(new_cifar_dense_linear),
 };
 
 #undef SHADER_ENTRY

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include "algorithm.hpp"
 #include "base_engine.hpp"
 #include "sequence.hpp"
@@ -9,7 +11,11 @@ namespace kiss_vk {
 
 class Engine final : public BaseEngine {
  public:
-  explicit Engine() : BaseEngine(true), mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {}
+  explicit Engine() : BaseEngine(true), mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {
+    spdlog::trace("Engine::Engine()");
+  }
+
+  ~Engine() { spdlog::trace("Engine::~Engine()"); }
 
   [[nodiscard]] VulkanMemoryResource* get_mr() const { return mr_ptr_.get(); }
 
