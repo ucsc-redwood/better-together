@@ -118,4 +118,21 @@ if has_config("use_vulkan") then
 
 	end
 
+	target("bm-ndarray-vk")
+	do
+		add_rules("common_flags", "vulkan_config", "run_on_android")
+
+		add_includedirs("$(projectdir)")
+
+		add_files({
+			"./vulkan/bm_vk_main.cpp",
+			"./omp/dispatchers.cpp",
+		})
+
+		add_deps("builtin-apps-vulkan", "builtin-apps")
+
+		add_packages("cnpy")
+		add_packages("benchmark")
+	end
+
 end

@@ -7,9 +7,9 @@
 
 // 1. Define an enum for core types.
 enum class ProcessorType {
-  kLittleCore,
-  kMediumCore,
-  kBigCore,
+  kLittleCore = 0,
+  kMediumCore = 1,
+  kBigCore = 2,
 };
 
 // 2. Define a struct for a Core.
