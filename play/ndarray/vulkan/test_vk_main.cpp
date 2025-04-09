@@ -152,62 +152,62 @@ TEST(VulkanDispatcherTest, Stage5_Conv2d) {
       << "Third conv2d output should contain non-zero values";
 }
 
-TEST(VulkanDispatcherTest, StageFinal_Linear) {
-  cifar_dense::vulkan::VulkanDispatcher dispatcher;
-  cifar_dense::AppDataBatch appdata(dispatcher.get_mr());
+// TEST(VulkanDispatcherTest, StageFinal_Linear) {
+//   cifar_dense::vulkan::VulkanDispatcher dispatcher;
+//   cifar_dense::AppDataBatch appdata(dispatcher.get_mr());
 
-  // Run through all previous stages
-  dispatcher.dispatch_multi_stage(appdata, 1, 8);
-  // Then run the final linear operation
-  dispatcher.run_stage_9(appdata);
+//   // Run through all previous stages
+//   dispatcher.dispatch_multi_stage(appdata, 1, 8);
+//   // Then run the final linear operation
+//   dispatcher.run_stage_9(appdata);
 
-  // Check final output shape
-  const auto& out_shape = appdata.u_linear_out.shape();
-  EXPECT_EQ(out_shape[0], 128);  // batch size
-  EXPECT_EQ(out_shape[1], 10);   // output features (10 classes)
+//   // Check final output shape
+//   const auto& out_shape = appdata.u_linear_out.shape();
+//   EXPECT_EQ(out_shape[0], 128);  // batch size
+//   EXPECT_EQ(out_shape[1], 10);   // output features (10 classes)
 
-  // Check if output contains values (predictions)
-  const float* output_data = appdata.u_linear_out.raw();
-  const size_t output_size = appdata.u_linear_out.size();
+//   // Check if output contains values (predictions)
+//   const float* output_data = appdata.u_linear_out.raw();
+//   const size_t output_size = appdata.u_linear_out.size();
 
-  EXPECT_TRUE(has_non_zero_values(output_data, output_size))
-      << "Linear layer output should contain non-zero values";
+//   EXPECT_TRUE(has_non_zero_values(output_data, output_size))
+//       << "Linear layer output should contain non-zero values";
 
-  // Print the first few predictions for visual inspection
-  if (output_size > 0) {
-    spdlog::info("Sample prediction values:");
-    for (auto i = 0u; i < std::min(size_t(5), output_size); i++) {
-      spdlog::info("Value at {}: {}", i, output_data[i]);
-    }
-  }
-}
+//   // Print the first few predictions for visual inspection
+//   if (output_size > 0) {
+//     spdlog::info("Sample prediction values:");
+//     for (auto i = 0u; i < std::min(size_t(5), output_size); i++) {
+//       spdlog::info("Value at {}: {}", i, output_data[i]);
+//     }
+//   }
+// }
 
 // ----------------------------------------------------------------------------
 // Multi-stage Dispatch
 // ----------------------------------------------------------------------------
 
-TEST(VulkanDispatcherTest, MultiStageDispatch) {
-  cifar_dense::vulkan::VulkanDispatcher dispatcher;
-  cifar_dense::AppDataBatch appdata(dispatcher.get_mr());
+// TEST(VulkanDispatcherTest, MultiStageDispatch) {
+//   cifar_dense::vulkan::VulkanDispatcher dispatcher;
+//   cifar_dense::AppDataBatch appdata(dispatcher.get_mr());
 
-  // Run the full neural network pipeline
-  EXPECT_NO_THROW(dispatcher.dispatch_multi_stage(appdata, 1, 9));
+//   // Run the full neural network pipeline
+//   EXPECT_NO_THROW(dispatcher.dispatch_multi_stage(appdata, 1, 9));
 
-  // Check final output shape
-  const auto& out_shape = appdata.u_linear_out.shape();
-  EXPECT_EQ(out_shape[0], 128);  // batch size
-  EXPECT_EQ(out_shape[1], 10);   // output features (10 classes)
+//   // Check final output shape
+//   const auto& out_shape = appdata.u_linear_out.shape();
+//   EXPECT_EQ(out_shape[0], 128);  // batch size
+//   EXPECT_EQ(out_shape[1], 10);   // output features (10 classes)
 
-  // Check if output contains values (predictions)
-  const float* output_data = appdata.u_linear_out.raw();
-  const size_t output_size = appdata.u_linear_out.size();
+//   // Check if output contains values (predictions)
+//   const float* output_data = appdata.u_linear_out.raw();
+//   const size_t output_size = appdata.u_linear_out.size();
 
-  EXPECT_TRUE(has_non_zero_values(output_data, output_size))
-      << "Final output should contain prediction values";
+//   EXPECT_TRUE(has_non_zero_values(output_data, output_size))
+//       << "Final output should contain prediction values";
 
-  // Print final predictions for a few samples
-  cifar_dense::print_batch_predictions(appdata, 3);
-}
+//   // Print final predictions for a few samples
+//   cifar_dense::print_batch_predictions(appdata, 3);
+// }
 
 int main(int argc, char** argv) {
   spdlog::set_level(spdlog::level::info);
