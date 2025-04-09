@@ -98,6 +98,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
   // conv2d
+
   auto conv2d_algo = engine.make_algo("cifar_sparse_conv2d")
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
