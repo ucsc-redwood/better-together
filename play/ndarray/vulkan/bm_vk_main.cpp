@@ -19,15 +19,6 @@ struct Task {
   cifar_dense::AppDataBatch appdata;
 
   explicit Task(std::pmr::memory_resource* mr) : appdata(mr) { uid = uid_counter++; }
-
-  // ----------------------------------
-  // Timer start
-  std::chrono::high_resolution_clock::time_point start_time;
-  std::chrono::high_resolution_clock::time_point end_time;
-  // ----------------------------------
-
-  void start_timer() { start_time = std::chrono::high_resolution_clock::now(); }
-  void end_timer() { end_time = std::chrono::high_resolution_clock::now(); }
 };
 
 uint32_t Task::uid_counter = 0;
@@ -43,9 +34,8 @@ static void worker_thread(SPSCQueue<Task*, 1024>& in_queue,
       std::this_thread::yield();
     }
 
-    task->start_timer();
+    // Process the task (timing is handled in the provided process function)
     process_function(*task);
-    task->end_timer();
 
     // Forward processed task
     if (out_queue) {
@@ -54,92 +44,47 @@ static void worker_thread(SPSCQueue<Task*, 1024>& in_queue,
   }
 }
 
-static void process_chunk(const ChunkConfig& config,
-                          SPSCQueue<Task*>& in_queue,
-                          SPSCQueue<Task*>& out_queue,
-                          cifar_dense::vulkan::VulkanDispatcher& disp) {
-  if (config.exec_model == ExecutionModel::kOMP) {
-    // OMP
-    worker_thread(in_queue, &out_queue, [&](Task& task) {
-      omp::dispatch_multi_stage(config.start_stage,
-                                config.end_stage,
-                                config.proc_type.value(),
-                                config.num_threads.value(),
-                                task.appdata);
-    });
-
-  } else if (config.exec_model == ExecutionModel::kGPU) {
-    // GPU
-    worker_thread(in_queue, &out_queue, [&](Task& task) {
-      disp.dispatch_multi_stage(task.appdata, config.start_stage, config.end_stage);
-    });
-
-  } else {
-    throw std::runtime_error("Invalid execution model");
-  }
-}
-
-// static void BM_run_stage_1(benchmark::State& state) {
-//   cifar_dense::vulkan::VulkanDispatcher disp;
-//   cifar_dense::AppDataBatch appdata(disp.get_mr());
-
-//   for (auto _ : state) {
-//     disp.run_stage_1(appdata);
-//   }
-// }
-
-// BENCHMARK(BM_run_stage_1)->Unit(benchmark::kMillisecond);
-
-// static void BM_run_stage_1_with_queue(benchmark::State& state) {
-//   constexpr size_t kNumTasks = 100;
-
-//   cifar_dense::vulkan::VulkanDispatcher disp;
-
-//   SPSCQueue<Task*, 1024> in_queue;
-//   SPSCQueue<Task*, 1024> out_queue;
-
-//   for (size_t i = 0; i < kNumTasks; ++i) {
-//     in_queue.enqueue(new Task(disp.get_mr()));
-//   }
-
-//   for (auto _ : state) {
-//     worker_thread(in_queue, &out_queue, [&](Task& task) { disp.run_stage_1(task.appdata); });
-//   }
-// }
-
-// BENCHMARK(BM_run_stage_1_with_queue)->Unit(benchmark::kMillisecond)->Iterations(1)->Repetitions(5);
-
-static void BM_run_VK_stage_1_concurrent(benchmark::State& state) {
-  constexpr size_t kNumTasks = 100;
-
-  cifar_dense::vulkan::VulkanDispatcher disp;
-
-  SPSCQueue<Task*, 1024> in_queue;
-  SPSCQueue<Task*, 1024> out_queue;
+static void measured_worker_thread(benchmark::State& state,
+                                   SPSCQueue<Task*, 1024>& in_queue,
+                                   SPSCQueue<Task*, 1024>* out_queue,
+                                   ProcessFunction process_function) {
+  state.PauseTiming();
+  std::vector<uint64_t> timings;
+  timings.reserve(kNumTasks);
+  state.ResumeTiming();
 
   for (size_t i = 0; i < kNumTasks; ++i) {
-    in_queue.enqueue(new Task(disp.get_mr()));
+    Task* task = nullptr;
+    while (!in_queue.dequeue(task)) {
+      std::this_thread::yield();
+    }
+
+    // Process the task (timing is handled in the provided process function)
+    const auto start = std::chrono::high_resolution_clock::now();
+    process_function(*task);
+    const auto end = std::chrono::high_resolution_clock::now();
+    timings.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+
+    // Forward processed task
+    if (out_queue) {
+      out_queue->enqueue(std::move(task));
+    }
   }
 
-  for (auto _ : state) {
-    worker_thread(in_queue, &out_queue, [&](Task& task) { disp.run_stage_1(task.appdata); });
+  // After processing all tasks, compute summary statistics.
+  state.PauseTiming();
+  uint64_t total_time = 0;
+  double log_sum = 0.0;
+  for (const auto& timing : timings) {
+    total_time += timing;
+    log_sum += std::log(static_cast<double>(timing));
   }
-
-  //   // Now we should have an list of tasks in out_queue, print them
-  //   Task* task = nullptr;
-  //   while (out_queue.dequeue(task)) {
-  //     std::cout << "Task " << task->uid << " took "
-  //               << std::chrono::duration_cast<std::chrono::milliseconds>(task->end_time -
-  //                                                                        task->start_time)
-  //                      .count()
-  //               << " ms" << std::endl;
-  //   }
+  const auto avg_time = total_time / kNumTasks;
+  const auto geomean = std::exp(log_sum / kNumTasks);
+  state.counters["avg"] = avg_time;
+  state.counters["geomean"] = geomean;
+  state.ResumeTiming();
 }
-
-// BENCHMARK(BM_run_VK_stage_1_concurrent)
-//     ->Unit(benchmark::kMillisecond)
-//     ->Iterations(1)
-//     ->Repetitions(5);
 
 static void BM_run_OMP_stage_1(benchmark::State& state) {
   const ProcessorType core_type = static_cast<ProcessorType>(state.range(0));
@@ -153,7 +98,8 @@ static void BM_run_OMP_stage_1(benchmark::State& state) {
   SPSCQueue<Task*, 1024> out_queue;
 
   for (size_t i = 0; i < kNumTasks; ++i) {
-    in_queue.enqueue(new Task(disp.get_mr()));
+    Task* task = new Task(disp.get_mr());
+    in_queue.enqueue(std::move(task));
   }
 
   for (auto _ : state) {
@@ -161,81 +107,123 @@ static void BM_run_OMP_stage_1(benchmark::State& state) {
       omp::dispatch_multi_stage(1, 1, core_type, num_threads, task.appdata);
     });
   }
-
-  //   // Now we should have an list of tasks in out_queue, print them
-  //   Task* task = nullptr;
-  //   while (out_queue.dequeue(task)) {
-  //     std::cout << "Task " << task->uid << " took "
-  //               << std::chrono::duration_cast<std::chrono::milliseconds>(task->end_time -
-  //                                                                        task->start_time)
-  //                      .count()
-  //               << " ms" << std::endl;
-  //   }
 }
 
-// BENCHMARK(BM_run_OMP_stage_1)
-//     ->Args({static_cast<int>(ProcessorType::kLittleCore), 4})
-//     ->Args({static_cast<int>(ProcessorType::kBigCore), 2})
-//     ->Unit(benchmark::kMillisecond)
-//     ->Iterations(1)
-//     ->Repetitions(5);
+static void BM_run_OMP_stage_1_concurrent(benchmark::State& state) {
+  const ProcessorType core_type = static_cast<ProcessorType>(state.range(0));
+  const int num_threads = state.range(1);
 
-// static void execute_schedule(const std::vector<ChunkConfig>& chunk_configs) {
-//   cifar_dense::vulkan::VulkanDispatcher disp;
+  constexpr size_t kNumTasks = 100;
 
-//   std::vector<SPSCQueue<Task*>> concur_qs(chunk_configs.size() + 1);
+  cifar_dense::vulkan::VulkanDispatcher disp;
 
-//   // Setting up the input queue
-//   for (size_t i = 0; i < kNumTasks; ++i) {
-//     concur_qs[0].enqueue(new Task(disp.get_mr()));
-//   }
+  // Create a pipeline with three queues
+  SPSCQueue<Task*, 1024> q_0;  // Input queue
+  SPSCQueue<Task*, 1024> q_1;  // Intermediate queue
+  SPSCQueue<Task*, 1024> q_2;  // Output queue
 
-//   std::vector<std::thread> threads;
+  for (size_t i = 0; i < kNumTasks; ++i) {
+    Task* task = new Task(disp.get_mr());
+    q_0.enqueue(std::move(task));
+  }
 
-//   // Benchmark start
-//   const auto start = std::chrono::high_resolution_clock::now();
+  for (auto _ : state) {
+    std::thread t1([&]() {
+      // Thread 1: Read from q_0, write to q_1
+      measured_worker_thread(state, q_0, &q_1, [&](Task& task) {
+        omp::dispatch_multi_stage(1, 1, core_type, num_threads, task.appdata);
+      });
+    });
 
-//   for (size_t i = 0; i < chunk_configs.size(); ++i) {
-//     threads.emplace_back(
-//         [&, i]() { process_chunk(chunk_configs[i], concur_qs[i], concur_qs[i + 1], disp); });
-//   }
+    std::thread t2([&]() {
+      // Thread 2: Read from q_1, write to q_2
+      worker_thread(q_1, &q_2, [&](Task& task) {
+        disp.dispatch_multi_stage(task.appdata, 2, 4);
+      });
+    });
 
-//   for (auto& t : threads) {
-//     t.join();
-//   }
-
-//   const auto end = std::chrono::high_resolution_clock::now();
-//   const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-//   const double avg_task_time = duration.count() / static_cast<double>(kNumTasks);
-//   std::cout << "Time per task: " << avg_task_time << " ms" << std::endl;
-// }
+    t1.join();
+    t2.join();
+  }
+}
+[[nodiscard]] inline const std::string processor_type_name(const ProcessorType type) {
+  switch (type) {
+    case ProcessorType::kLittleCore:
+      return "Little";
+    case ProcessorType::kMediumCore:
+      return "Medium";
+    case ProcessorType::kBigCore:
+      return "Big";
+    default:
+      return "Unknown";
+  }
+}
 
 void register_stage_benchmark() {
-  for (size_t num_thread = 1; num_thread <= g_little_cores.size(); ++num_thread) {
-    const auto name = "BM_run_OMP_stage_1/Little/" + std::to_string(num_thread);
+  for (const auto core_type :
+       {ProcessorType::kLittleCore, ProcessorType::kMediumCore, ProcessorType::kBigCore}) {
+    const auto num_threads = [&]() {
+      if (core_type == ProcessorType::kLittleCore) {
+        return g_little_cores.size();
+      } else if (core_type == ProcessorType::kMediumCore) {
+        return g_medium_cores.size();
+      } else {
+        return g_big_cores.size();
+      }
+    }();
+    
+    // Skip registering benchmarks if there are no cores of this type
+    if (num_threads == 0) {
+      continue;
+    }
+
+    const auto name = "BM_run_OMP_stage_1_concurrent/" + processor_type_name(core_type) + "/" +
+                      std::to_string(num_threads);
+    benchmark::RegisterBenchmark(name.c_str(), BM_run_OMP_stage_1_concurrent)
+      ->Args({static_cast<int>(core_type), static_cast<int>(num_threads)})
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Repetitions(5);
+  }
+}
+
+void register_stage_benchmark_normal() {
+  for (const auto core_type :
+       {ProcessorType::kLittleCore, ProcessorType::kMediumCore, ProcessorType::kBigCore}) {
+    const auto num_threads = [&]() {
+      if (core_type == ProcessorType::kLittleCore) {
+        return g_little_cores.size();
+      } else if (core_type == ProcessorType::kMediumCore) {
+        return g_medium_cores.size();
+      } else {
+        return g_big_cores.size();
+      }
+    }();
+    
+    // Skip registering benchmarks if there are no cores of this type
+    if (num_threads == 0) {
+      continue;
+    }
+
+    const auto name =
+      "BM_run_OMP_stage_1/" + processor_type_name(core_type) + "/" + std::to_string(num_threads);
     benchmark::RegisterBenchmark(name.c_str(), BM_run_OMP_stage_1)
-        ->Args({static_cast<int>(ProcessorType::kLittleCore), static_cast<int>(num_thread)})
-        ->Unit(benchmark::kMillisecond)
-        ->Iterations(1)
-        ->Repetitions(5);
+      ->Args({static_cast<int>(core_type), static_cast<int>(num_threads)})
+      ->Unit(benchmark::kMillisecond)
+      ->Iterations(1)
+      ->Repetitions(5);
   }
 }
 
 int main(int argc, char** argv) {
-  PARSE_ARGS_BEGIN;
+  parse_args(argc, argv);
 
-  //   std::string schedule_file_path;
-  //   app.add_option("-f,--file", schedule_file_path, "Schedule file path")->required();
-
-  PARSE_ARGS_END;
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   // ------------------------------------------------------------------------------------------------
 
-  //   const auto chunks = readChunksFromJson(fs::path(schedule_file_path));
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
-
-  //   execute_schedule(chunks);
   register_stage_benchmark();
+  register_stage_benchmark_normal();
 
   // ------------------------------------------------------------------------------------------------
 
