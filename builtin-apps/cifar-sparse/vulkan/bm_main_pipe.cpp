@@ -57,7 +57,7 @@ static void BM_run_OMP_baseline(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_run_OMP_baseline)->Unit(benchmark::kMillisecond)->Iterations(1);
+BENCHMARK(BM_run_OMP_baseline)->Unit(benchmark::kMillisecond)->Iterations(1)->Repetitions(5);
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
