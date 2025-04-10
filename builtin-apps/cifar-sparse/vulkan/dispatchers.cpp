@@ -775,8 +775,8 @@ void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
   const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
   const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
 
-  const int out_height = (in_height + 2 * kPadding - kPoolSize) / kPoolStride + 1;
-  const int out_width = (in_width + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+  const int out_height = (in_height - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width - kPoolSize) / kPoolStride + 1;
 
   const int total_output = batch_size * channels * out_height * out_width;
 
@@ -882,8 +882,8 @@ void VulkanDispatcher::run_stage_4(cifar_sparse::v2::AppData& appdata) {
   const int in_height = appdata.u_conv2_out.d2();
   const int in_width = appdata.u_conv2_out.d3();
 
-  const int out_height = (in_height + 2 * kPadding - kPoolSize) / kPoolStride + 1;
-  const int out_width = (in_width + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+  const int out_height = (in_height - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width - kPoolSize) / kPoolStride + 1;
 
   const int total_output = batch_size * channels * out_height * out_width;
 
@@ -1105,8 +1105,8 @@ void VulkanDispatcher::run_stage_8(cifar_sparse::v2::AppData& appdata) {
   const int in_height = appdata.u_conv5_out.d2();
   const int in_width = appdata.u_conv5_out.d3();
 
-  const int out_height = (in_height + 2 * kPadding - kPoolSize) / kPoolStride + 1;
-  const int out_width = (in_width + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+  const int out_height = (in_height - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width - kPoolSize) / kPoolStride + 1;
 
   const int total_output = batch_size * channels * out_height * out_width;
 
