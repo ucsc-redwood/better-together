@@ -91,15 +91,16 @@ struct CSRMatrix {
   std::pmr::vector<int> col_idx;
 
   // Basic constructor
-  CSRMatrix(const int r,
-            const int c,
+  CSRMatrix(int r,
+            int c,
+            int estimated_nnz,
             std::pmr::memory_resource* mr = std::pmr::get_default_resource())
       : rows(r),
         cols(c),
         nnz(0),
-        values(r * c, 0.0f, mr),
+        values(estimated_nnz, 0.0f, mr),
         row_ptr(r + 1, 0, mr),
-        col_idx(r * c, 0, mr) {}
+        col_idx(estimated_nnz, 0, mr) {}
 
   // Get raw pointers for compatibility with old code
   const float* values_data() const { return values.data(); }
@@ -109,13 +110,6 @@ struct CSRMatrix {
 
 struct AppData {
   static constexpr size_t BATCH_SIZE = 128;
-
-  // conv1: 16 output channels, 3×3×3 kernel = 27 inputs
-  // conv2: 32 output channels, 16×3×3 kernel = 144 inputs
-  // conv3: 64 output channels, 32×3×3 kernel = 288 inputs
-  // conv4: 64 output channels, 64×3×3 kernel = 576 inputs
-  // conv5: 64 output channels, 64×3×3 kernel = 576 inputs
-  // linear: 10 output channels, 1024 inputs
 
   explicit AppData(std::pmr::memory_resource* mr)
       : u_input(BATCH_SIZE, 3, 32, 32, mr),
@@ -141,12 +135,12 @@ struct AppData {
         u_linear_w(10, 1024, mr),
         u_linear_b(10, mr),
         // Initialize CSR matrices
-        conv1_sparse(16, 27, mr),
-        conv2_sparse(32, 144, mr),  // 16*3*3*192
-        conv3_sparse(64, 288, mr),
-        conv4_sparse(64, 576, mr),
-        conv5_sparse(64, 576, mr),
-        linear_sparse(10, 1024, mr) {}
+        conv1_sparse(16, 27, MAX_NNZ_CONV1, mr),
+        conv2_sparse(32, 144, MAX_NNZ_CONV2, mr),
+        conv3_sparse(64, 288, MAX_NNZ_CONV3, mr),
+        conv4_sparse(64, 576, MAX_NNZ_CONV4, mr),
+        conv5_sparse(64, 576, MAX_NNZ_CONV5, mr),
+        linear_sparse(10, 1024, MAX_NNZ_LINEAR, mr) {}
 
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
