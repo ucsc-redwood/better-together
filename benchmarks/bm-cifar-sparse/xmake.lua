@@ -27,11 +27,20 @@ if has_config("use_vulkan") then
 		add_deps("builtin-apps", "builtin-apps-vulkan")
 	end
 
+	-- target("bm-cifar-sparse-vk-omp")
+	-- do
+	-- 	add_rules("benchmark_config", "common_flags", "vulkan_config", "run_on_android")
+	-- 	add_files({
+	-- 		"vk_omp.cpp",
+	-- 	})
+	-- 	add_deps("builtin-apps", "builtin-apps-vulkan")
+	-- end
+
 	target("bm-cifar-sparse-vk-omp")
 	do
-		add_rules("benchmark_config", "common_flags", "vulkan_config", "run_on_android")
+		add_rules("common_flags", "vulkan_config", "run_on_android")
 		add_files({
-			"vk_omp.cpp",
+			"vk_omp_bm.cpp",
 		})
 		add_deps("builtin-apps", "builtin-apps-vulkan")
 	end
