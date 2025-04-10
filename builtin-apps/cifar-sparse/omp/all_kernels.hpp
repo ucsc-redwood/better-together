@@ -158,61 +158,6 @@ inline void conv2d_omp_batched(const float *input_data,
 // Max Pooling 2D (Sparse, Batched)
 // ----------------------------------------------------------------------------
 
-// // Batched max pool kernel: Processes a subset of output elements,
-// // where the flattened output index maps to (batch, channel, h, w)
-// inline void maxpool2d_omp_batched(const float *input_data,
-//                                   [[maybe_unused]] int batch_size,
-//                                   int input_channels,
-//                                   int input_height,
-//                                   int input_width,
-//                                   int pool_size,
-//                                   int stride,
-//                                   float *output_data,
-//                                   int start,  // start index in the flattened output space
-//                                   int end)    // end index (non-inclusive)
-// {
-//   // Compute the spatial dimensions of the output.
-//   int output_height = (input_height - pool_size) / stride + 1;
-//   int output_width = (input_width - pool_size) / stride + 1;
-
-//   // Total number of output elements per image = channels * output_height * output_width
-//   const int total_per_image = input_channels * output_height * output_width;
-
-// // Loop over a flattened index that covers all outputs across batches.
-// #pragma omp for
-//   for (int index = start; index < end; ++index) {
-//     // Decode the flat index into batch index, channel, and spatial coordinates.
-//     int b = index / total_per_image;  // which image in the batch
-//     int rem = index % total_per_image;
-//     int c = rem / (output_height * output_width);
-//     int pos = rem % (output_height * output_width);
-//     int h = pos / output_width;
-//     int w = pos % output_width;
-
-//     float max_val = -std::numeric_limits<float>::max();
-
-//     // Loop over the pooling window and compute the maximum value.
-//     for (int p = 0; p < pool_size * pool_size; ++p) {
-//       int ph = p / pool_size;
-//       int pw = p % pool_size;
-//       int input_h = h * stride + ph;
-//       int input_w = w * stride + pw;
-//       if (input_h < input_height && input_w < input_width) {
-//         // Flattened index for the input:
-//         // (batch, channel, height, width) -> ((b * channels + c) * input_height + input_h) *
-//         // input_width + input_w
-//         int input_index =
-//             ((b * input_channels + c) * input_height + input_h) * input_width + input_w;
-//         max_val = std::max(max_val, input_data[input_index]);
-//       }
-//     }
-
-//     // Compute the flattened index for the output.
-//     int output_index = ((b * input_channels + c) * output_height + h) * output_width + w;
-//     output_data[output_index] = max_val;
-//   }
-// }
-
 // A cleaner batched max pooling kernel that processes the full range of outputs.
 // Input layout: (batch, channels, in_height, in_width)
 // Output layout: (batch, channels, out_height, out_width)
@@ -255,6 +200,44 @@ inline void maxpool2d_omp_batched_clean(const float *input_data,
           output_data[output_idx] = max_val;
         }
       }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Linear Layer (Sparse, Batched)
+// ----------------------------------------------------------------------------
+
+// Batched sparse linear (dense) layer kernel.
+// Assumptions:
+//   - input_data is of shape (batch_size, input_features) (flattened)
+//   - weight matrix is in CSR format with dimensions (out_neurons x input_features)
+//   - output_data will be of shape (batch_size, out_neurons) (flattened)
+inline void linear_omp_batched(
+    const float *input_data,
+    const int batch_size,
+    const int input_features,  // needed for indexing in each sample's input
+    const float *weight_vals,
+    const int *weight_row_ptr,
+    const int *weight_col_idx,
+    const float *bias_data,
+    float *output_data,
+    const int out_neurons) {
+// The parallelization is over batch and the output neurons.
+#pragma omp for
+  for (int b = 0; b < batch_size; b++) {
+    for (int i = 0; i < out_neurons; i++) {
+      float sum = 0.0f;
+      // Loop over the nonzero entries in the i-th row of the weight matrix.
+      for (int idx = weight_row_ptr[i]; idx < weight_row_ptr[i + 1]; ++idx) {
+        int col = weight_col_idx[idx];
+        // Compute the index in the current batch sample's input vector.
+        int input_idx = b * input_features + col;
+        sum += input_data[input_idx] * weight_vals[idx];
+      }
+      // Compute the index in the flattened output array:
+      int output_idx = b * out_neurons + i;
+      output_data[output_idx] = sum + bias_data[i];
     }
   }
 }
