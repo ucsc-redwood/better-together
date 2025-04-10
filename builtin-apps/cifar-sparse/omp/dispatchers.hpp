@@ -102,6 +102,15 @@ inline void dispatch_multi_stage_unrestricted(const int num_threads,
   }
 }
 
+inline void dispatch_stage_unrestricted(const int num_threads,
+                                        cifar_sparse::v2::AppData& appdata,
+                                        const int stage) {
+  assert(stage >= 1 && stage <= 9);
+
+#pragma omp parallel num_threads(num_threads)
+  { dispatch_fns_batch[stage - 1](appdata); }
+}
+
 inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                  const int num_threads,
                                  cifar_sparse::v2::AppData& appdata,

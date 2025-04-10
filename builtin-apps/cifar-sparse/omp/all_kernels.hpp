@@ -97,7 +97,7 @@ inline void conv2d_omp_batched(const float *input_data,
   const int out_width = (in_width + 2 * padding - kernel_size) / stride + 1;
 
 // Use collapse on the batch and output channel loops for parallelism.
-#pragma omp for
+#pragma omp for schedule(static) collapse(2)
   for (int b = 0; b < batch_size; ++b) {
     for (int out_c = 0; out_c < out_channels; ++out_c) {
       // Get the CSR index range for the current output channel.
@@ -175,7 +175,7 @@ inline void maxpool2d_omp_batched_clean(const float *input_data,
 
 // Parallelize over batch, channels and output height dimensions.
 // Using collapse helps combine loops into one large iteration space.
-#pragma omp parallel for collapse(3) schedule(static)
+#pragma omp for collapse(3) schedule(static)
   for (int b = 0; b < batch_size; ++b) {
     for (int c = 0; c < channels; ++c) {
       for (int oh = 0; oh < out_height; ++oh) {
@@ -224,7 +224,8 @@ inline void linear_omp_batched(
     float *output_data,
     const int out_neurons) {
 // The parallelization is over batch and the output neurons.
-#pragma omp for
+// schedule(static) collapse(2)
+#pragma omp for schedule(static) collapse(2)
   for (int b = 0; b < batch_size; b++) {
     for (int i = 0; i < out_neurons; i++) {
       float sum = 0.0f;

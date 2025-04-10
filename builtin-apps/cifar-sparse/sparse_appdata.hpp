@@ -108,7 +108,7 @@ struct CSRMatrix {
 };
 
 struct AppData {
-  static constexpr size_t BATCH_SIZE = 128;
+  static constexpr size_t BATCH_SIZE = 512;
 
   // conv1: 16 output channels, 3×3×3 kernel = 27 inputs
   // conv2: 32 output channels, 16×3×3 kernel = 144 inputs

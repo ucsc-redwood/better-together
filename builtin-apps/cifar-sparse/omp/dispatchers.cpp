@@ -443,28 +443,29 @@ void run_stage_8(cifar_sparse::v2::AppData &appdata) {
 void run_stage_9(cifar_sparse::v2::AppData &appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 9, &appdata);
 
-  int out_neurons = 10;  // the output dimension of the linear layer
+  // The pooled output is (128, 64, 4, 4) which becomes a flattened input
+  // of (128, 1024) for the linear layer
+  const int batch_size = appdata.u_pool3_out.d0();   // Expected: 128
+  const int channels = appdata.u_pool3_out.d1();     // Expected: 64
+  const int pool_height = appdata.u_pool3_out.d2();  // Expected: 4
+  const int pool_width = appdata.u_pool3_out.d3();   // Expected: 4
 
-  // inline void linear_omp_batched(
-  //     const float *input_data,
-  //     const int batch_size,
-  //     const int input_features,  // needed for indexing in each sample's input
-  //     const float *weight_vals,
-  //     const int *weight_row_ptr,
-  //     const int *weight_col_idx,
-  //     const float *bias_data,
-  //     float *output_data,
-  //     const int out_neurons) {
+  // Total features per image = channels * height * width
+  const int input_features = channels * pool_height * pool_width;  // 64 * 4 * 4 = 1024
 
-  linear_omp_batched(appdata.u_pool3_out.data(),
-                     128,
-                     1024,
-                     appdata.linear_sparse.values_data(),
-                     appdata.linear_sparse.row_ptr_data(),
-                     appdata.linear_sparse.col_idx_data(),
-                     appdata.u_linear_b.data(),
-                     appdata.u_linear_out.data(),
-                     out_neurons);
+  // Output neurons = number of classes
+  const int out_neurons = appdata.linear_sparse.rows;  // Expected: 10
+
+  // Use the batched sparse linear layer kernel
+  v2::linear_omp_batched(appdata.u_pool3_out.data(),  // Input data (flattened 4D->2D)
+                         batch_size,                  // 128
+                         input_features,              // 1024
+                         appdata.linear_sparse.values_data(),
+                         appdata.linear_sparse.row_ptr_data(),
+                         appdata.linear_sparse.col_idx_data(),
+                         appdata.u_linear_b.data(),
+                         appdata.u_linear_out.data(),
+                         out_neurons);  // 10
 }
 
 }  // namespace v2

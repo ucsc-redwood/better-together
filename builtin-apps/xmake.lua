@@ -65,7 +65,7 @@ do
 	})
 end
 
-target("test-cifar-sparse")
+target("test-cifar-sparse-omp")
 do
 	add_rules("common_flags", "run_on_android")
 	set_kind("binary")
@@ -76,6 +76,19 @@ do
 	add_deps("builtin-apps")
 
 	add_packages("gtest")
+end
+
+target("bm-mini-cifar-sparse-omp")
+do
+	add_rules("common_flags", "run_on_android")
+	set_kind("binary")
+	add_files({
+		"cifar-sparse/omp/bm_main.cpp",
+	})
+
+	add_deps("builtin-apps")
+
+	add_packages("benchmark")
 end
 
 -- ----------------------------------------------------------------------------

@@ -14,6 +14,19 @@ enum class ProcessorType {
   kCuda = 4,
 };
 
+inline std::string CoreTypeName(const ProcessorType core_type) {
+  switch (core_type) {
+    case ProcessorType::kLittleCore:
+      return "little";
+    case ProcessorType::kMediumCore:
+      return "medium";
+    case ProcessorType::kBigCore:
+      return "big";
+    default:
+      return "unknown";
+  }
+}
+
 // 2. Define a struct for a Core.
 struct Core {
   int id;              // The OS/core id.
