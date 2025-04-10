@@ -1,0 +1,69 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// Configure work-group size (256 threads per workgroup).
+layout(local_size_x = 256) in;
+
+// Input data buffer: flattened tensor of shape [batch, channels, in_height, in_width]
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer { float input_data[]; };
+
+// Output data buffer: flattened tensor of shape [batch, channels, out_height, out_width]
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer { float output_data[]; };
+
+// Push constant block to pass convolution parameters.
+layout(push_constant) uniform Params {
+  int batch_size;  // Number of batches.
+  int channels;    // Number of channels.
+  int in_height;   // Input height.
+  int in_width;    // Input width.
+  int out_height;  // Output height, computed as (in_height - pool_size) / stride + 1.
+  int out_width;   // Output width, computed as (in_width - pool_size) / stride + 1.
+  int pool_size;   // Size of the pooling window (assumed square).
+  int stride;      // Stride of the pooling operation.
+}
+params;
+
+void main() {
+  // Total number of output elements.
+  int total = params.batch_size * params.channels * params.out_height * params.out_width;
+  uint global_idx = gl_GlobalInvocationID.x;
+  if (global_idx >= uint(total)) return;
+
+  // Decompose the flat index into 4D coordinates: (batch, channel, out_y, out_x)
+  int idx = int(global_idx);
+  int ow = idx % params.out_width;
+  idx /= params.out_width;
+  int oh = idx % params.out_height;
+  idx /= params.out_height;
+  int c = idx % params.channels;
+  int b = idx / params.channels;
+
+  // Initialize max value to a very low number. (Using -FLT_MAX approximation)
+  float max_val = -3.402823466e+38;
+
+  // Loop over the pooling window.
+  for (int p = 0; p < params.pool_size * params.pool_size; ++p) {
+    int ph = p / params.pool_size;
+    int pw = p % params.pool_size;
+
+    // Compute input spatial coordinates.
+    int in_y = oh * params.stride + ph;
+    int in_x = ow * params.stride + pw;
+
+    // Check bounds.
+    if (in_y < params.in_height && in_x < params.in_width) {
+      int input_idx =
+          ((b * params.channels + c) * params.in_height + in_y) * params.in_width + in_x;
+      float val = input_data[input_idx];
+      if (val > max_val) {
+        max_val = val;
+      }
+    }
+  }
+
+  // Write the output value to the flattened output array.
+  int output_idx = ((b * params.channels + c) * params.out_height + oh) * params.out_width + ow;
+  output_data[output_idx] = max_val;
+}

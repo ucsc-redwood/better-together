@@ -562,8 +562,32 @@ struct Conv2dPushConstants_v2 {
   int32_t bias_size;
 };
 
+// // Push constant block to pass convolution parameters.
+// layout(push_constant) uniform Params {
+//   int batch_size;  // Number of batches.
+//   int channels;    // Number of channels.
+//   int in_height;   // Input height.
+//   int in_width;    // Input width.
+//   int out_height;  // Output height, computed as (in_height - pool_size) / stride + 1.
+//   int out_width;   // Output width, computed as (in_width - pool_size) / stride + 1.
+//   int pool_size;   // Size of the pooling window (assumed square).
+//   int stride;      // Stride of the pooling operation.
+// }
+// params;
+
+struct MaxpoolPushConstants_v2 {
+  int32_t batch_size;
+  int32_t channels;
+  int32_t in_height;
+  int32_t in_width;
+  int32_t out_height;
+  int32_t out_width;
+  int32_t pool_size;
+  int32_t stride;
+};
+
 // ----------------------------------------------------------------------------
-// Constructor
+// Constructor (v2)
 // ----------------------------------------------------------------------------
 
 VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
@@ -605,7 +629,29 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                          ->build();
 
   cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
+
+  // // Configure work-group size (256 threads per workgroup).
+  // layout(local_size_x = 256) in;
+
+  // // Input data buffer: flattened tensor of shape [batch, channels, in_height, in_width]
+  // layout(std430, set = 0, binding = 0) readonly buffer InputBuffer { float input_data[]; };
+
+  // // Output data buffer: flattened tensor of shape [batch, channels, out_height, out_width]
+  // layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer { float output_data[]; };
+
+  auto maxpool_algo = engine.make_algo("new_cifar_sparse_maxpool")
+                          ->work_group_size(256, 1, 1)
+                          ->num_sets(1)
+                          ->num_buffers(2)
+                          ->push_constant<MaxpoolPushConstants_v2>()
+                          ->build();
+
+  cached_algorithms.try_emplace("maxpool", std::move(maxpool_algo));
 }
+
+// ----------------------------------------------------------------------------
+// Stage 1 (v2)
+// ----------------------------------------------------------------------------
 
 void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
@@ -647,6 +693,55 @@ void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
       .padding = kPadding,
       .relu = kRelu,
       .bias_size = appdata.u_conv1_b.size(),
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 2 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("maxpool").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                              });
+
+  // Extract dimensions from the convolution output NDArray4D.
+  const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
+  const int channels = appdata.u_conv1_out.d1();    // Expected: 16
+  const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
+  const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
+
+  const int out_height = (in_height + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+
+  const int total_output = batch_size * channels * out_height * out_width;
+
+  algo->update_push_constant(MaxpoolPushConstants_v2{
+      .batch_size = batch_size,
+      .channels = channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_height = out_height,
+      .out_width = out_width,
+      .pool_size = kPoolSize,
+      .stride = kPoolStride,
   });
 
   seq->cmd_begin();
