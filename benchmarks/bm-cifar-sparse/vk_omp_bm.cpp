@@ -22,6 +22,8 @@ constexpr size_t kWarmupTasks = 25;    // Skip first 25 tasks (warmup period)
 constexpr size_t kCooldownTasks = 25;  // Skip last 25 tasks (cooldown period)
 
 struct Record {
+  int start_stage;
+  int end_stage;
   std::chrono::high_resolution_clock::time_point start_time;
   std::chrono::high_resolution_clock::time_point end_time;
   [[nodiscard]] std::chrono::duration<double> get_duration() const { return end_time - start_time; }
@@ -47,6 +49,11 @@ struct Task {
   void end_tick(ProcessorType pt) {
     records[static_cast<int>(pt)].end_time = std::chrono::high_resolution_clock::now();
   }
+
+  void set_stages(ProcessorType pt, const int start_stage, const int end_stage) {
+    records[static_cast<int>(pt)].start_stage = start_stage;
+    records[static_cast<int>(pt)].end_stage = end_stage;
+  }
 };
 
 uint32_t Task::uid_counter = 0;
@@ -57,13 +64,16 @@ using ProcessFunction = std::function<void(Task&)>;
 static void task_timed_worker_thread(SPSCQueue<Task*, 1024>& in_queue,
                                      SPSCQueue<Task*, 1024>& out_queue,
                                      ProcessFunction process_function,
-                                     ProcessorType pt) {
+                                     const ProcessorType pt,
+                                     const int start_stage,
+                                     const int end_stage) {
   for (size_t i = 0; i < kNumTasks; ++i) {
     Task* task = nullptr;
     while (!in_queue.dequeue(task)) {
       std::this_thread::yield();
     }
 
+    task->set_stages(pt, start_stage, end_stage);
     task->start_tick(pt);
 
     process_function(*task);
@@ -341,9 +351,6 @@ static void BM_Stage_Concurrent(const int stage, const ProcessorType processor_t
     q_0.enqueue(std::move(task));
   }
 
-  // auto cores = g_big_cores;
-  // auto num_threads = cores.size();
-
   std::vector<int> cores;
   int num_threads;
 
@@ -361,22 +368,28 @@ static void BM_Stage_Concurrent(const int stage, const ProcessorType processor_t
     return;
   }
 
+  // Using GPU to warmup and populate all stages before the OMP stage
   std::thread t1([&]() {
     task_timed_worker_thread(
         q_0,
         q_1,
-        [&](Task& task) {
-          cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, stage, stage);
-        },
-        processor_type);
+        [&](Task& task) { disp.dispatch_multi_stage(task.app_data, 1, stage); },
+        ProcessorType::kVulkan,
+        1,
+        stage);
   });
 
+  // The CPU stage that we are interested in measuring
   std::thread t2([&]() {
     task_timed_worker_thread(
         q_1,
         q_2,
-        [&](Task& task) { disp.dispatch_multi_stage(task.app_data, stage + 1, stage + 1); },
-        ProcessorType::kVulkan);
+        [&](Task& task) {
+          cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, stage, stage);
+        },
+        processor_type,
+        stage,
+        stage);
   });
 
   t1.join();
@@ -384,12 +397,6 @@ static void BM_Stage_Concurrent(const int stage, const ProcessorType processor_t
 
   // Collect tasks from output queue
   std::vector<Task*> completed_tasks = collect_tasks_from_queue(q_2);
-
-  // Print detailed timing log
-  // print_task_timing_log(completed_tasks);
-
-  // Print the pretty report
-  // print_task_timing_log_pretty(completed_tasks);
 
   // Print geometric mean summary
   print_geomean_summary(completed_tasks);
@@ -410,6 +417,38 @@ int main(int argc, char** argv) {
   BM_Stage_Concurrent(1, ProcessorType::kBigCore);
   BM_Stage_Concurrent(1, ProcessorType::kMediumCore);
   BM_Stage_Concurrent(1, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(2, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(2, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(2, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(3, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(3, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(3, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(4, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(4, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(4, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(5, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(5, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(5, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(6, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(6, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(6, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(7, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(7, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(7, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(8, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(8, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(8, ProcessorType::kLittleCore);
+
+  BM_Stage_Concurrent(9, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(9, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(9, ProcessorType::kLittleCore);
 
   return 0;
 }
