@@ -65,6 +65,19 @@ do
 	})
 end
 
+target("test-cifar-sparse")
+do
+	add_rules("common_flags", "run_on_android")
+	set_kind("binary")
+	add_files({
+		"cifar-sparse/omp/test_main.cpp",
+	})
+
+	add_deps("builtin-apps")
+
+	add_packages("gtest")
+end
+
 -- ----------------------------------------------------------------------------
 -- Vulkan Static Library
 -- ----------------------------------------------------------------------------

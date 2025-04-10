@@ -128,17 +128,11 @@ struct AppData {
         u_conv5_out(BATCH_SIZE, 64, 8, 8, mr),
         u_pool3_out(BATCH_SIZE, 64, 4, 4, mr),
         u_linear_out(BATCH_SIZE, 10, mr),
-        u_conv1_w(16, 3, 3, 3, mr),
         u_conv1_b(16, mr),
-        u_conv2_w(32, 16, 3, 3, mr),
         u_conv2_b(32, mr),
-        u_conv3_w(64, 32, 3, 3, mr),
         u_conv3_b(64, mr),
-        u_conv4_w(64, 64, 3, 3, mr),
         u_conv4_b(64, mr),
-        u_conv5_w(64, 64, 3, 3, mr),
         u_conv5_b(64, mr),
-        u_linear_w(10, 1024, mr),
         u_linear_b(10, mr),
         // Initialize CSR matrices
         conv1_sparse(16, 27, mr),
@@ -163,17 +157,11 @@ struct AppData {
   Ndarray2D u_linear_out;  // shape = (128, 10) for final classification
 
   // Model parameters
-  Ndarray4D u_conv1_w;
   Ndarray1D u_conv1_b;
-  Ndarray4D u_conv2_w;
   Ndarray1D u_conv2_b;
-  Ndarray4D u_conv3_w;
   Ndarray1D u_conv3_b;
-  Ndarray4D u_conv4_w;
   Ndarray1D u_conv4_b;
-  Ndarray4D u_conv5_w;
   Ndarray1D u_conv5_b;
-  Ndarray2D u_linear_w;  // (10, 1024)
   Ndarray1D u_linear_b;  // (10)
 
   // Sparse matrices
