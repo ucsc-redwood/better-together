@@ -237,32 +237,8 @@ void run_stage_9(cifar_sparse::AppData &app_data) {
 
 namespace v2 {
 
-// constexpr int out_channels = 16;   // conv1 output channels
-// const int kernel_size  = 3;    // conv1 kernel size 3×3
-// const int stride       = 1;    // Typically stride 1
-// const int padding      = 1;    // For same padding, usually 1 when kernel size is 3
-// const bool relu        = true; // Apply ReLU activation after convolution
-
 void run_stage_1(cifar_sparse::v2::AppData &appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
-
-  // inline void conv2d_omp_batched(const float *input_data,
-  //                                const int batch_size,
-  //                                const int in_channels,
-  //                                const int in_height,
-  //                                const int in_width,
-  //                                // Sparse weights for this convolution layer:
-  //                                const float *weight_vals,
-  //                                const int *weight_row_ptr,
-  //                                const int *weight_col_idx,
-  //                                const int out_channels,  // equals number of rows in CSR matrix
-  //                                const float *bias_data,  // may be nullptr if no bias is used
-  //                                const int bias_size,     // usually equals out_channels
-  //                                const int kernel_size,
-  //                                const int stride,
-  //                                const int padding,
-  //                                const bool relu,
-  //                                float *output_data)  // preallocated output array
 
   const int batch_size = appdata.u_input.d0();   // Expected 128
   const int in_channels = appdata.u_input.d1();  // Expected 3 (RGB)
@@ -270,9 +246,6 @@ void run_stage_1(cifar_sparse::v2::AppData &appdata) {
   const int in_width = appdata.u_input.d3();     // Expected 32
 
   const int out_channels = appdata.conv1_sparse.rows;  // Expected 16
-
-  // Ndarray4D u_input;      // (128, 3, 32, 32)
-  // Ndarray4D u_conv1_out;  // (128, 16, 32, 32)
 
   v2::conv2d_omp_batched(appdata.u_input.data(),
                          batch_size,   // 128
@@ -292,6 +265,25 @@ void run_stage_1(cifar_sparse::v2::AppData &appdata) {
                          appdata.u_conv1_out.data());
 }
 
+void run_stage_2(cifar_sparse::v2::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kOMP, 2, &appdata);
+
+  // Extract dimensions from the convolution output NDArray4D.
+  const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
+  const int channels = appdata.u_conv1_out.d1();    // Expected: 16
+  const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
+  const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
+
+  // Call the clean batched max pool kernel.
+  maxpool2d_omp_batched_clean(appdata.u_conv1_out.data(),  // input_data pointer
+                              batch_size,                  // number of images
+                              channels,                    // number of channels per image
+                              in_height,                   // height of the input feature map
+                              in_width,                    // width of the input feature map
+                              kPoolSize,
+                              kPoolStride,
+                              appdata.u_pool1_out.data());
+}
 }  // namespace v2
 
 }  // namespace cifar_sparse::omp
