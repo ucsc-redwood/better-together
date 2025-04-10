@@ -803,6 +803,385 @@ void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
   seq->reset_fence();
 }
 
+// ----------------------------------------------------------------------------
+// Stage 3 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_3(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("conv2d").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv2_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv2_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv2_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
+                              });
+
+  const int batch_size = appdata.u_pool1_out.d0();
+  const int in_channels = appdata.u_pool1_out.d1();
+  const int in_height = appdata.u_pool1_out.d2();
+  const int in_width = appdata.u_pool1_out.d3();
+
+  const int out_channels = appdata.conv2_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv2_b.size(),
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 4 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_4(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("maxpool").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                              });
+
+  // Extract dimensions from the convolution output NDArray4D
+  const int batch_size = appdata.u_conv2_out.d0();
+  const int channels = appdata.u_conv2_out.d1();
+  const int in_height = appdata.u_conv2_out.d2();
+  const int in_width = appdata.u_conv2_out.d3();
+
+  const int out_height = (in_height + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+
+  const int total_output = batch_size * channels * out_height * out_width;
+
+  algo->update_push_constant(MaxpoolPushConstants_v2{
+      .batch_size = batch_size,
+      .channels = channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_height = out_height,
+      .out_width = out_width,
+      .pool_size = kPoolSize,
+      .stride = kPoolStride,
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 5 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_5(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("conv2d").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv3_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv3_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv3_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
+                              });
+
+  const int batch_size = appdata.u_pool2_out.d0();
+  const int in_channels = appdata.u_pool2_out.d1();
+  const int in_height = appdata.u_pool2_out.d2();
+  const int in_width = appdata.u_pool2_out.d3();
+
+  const int out_channels = appdata.conv3_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv3_b.size(),
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 6 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_6(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("conv2d").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv4_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv4_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv4_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
+                              });
+
+  const int batch_size = appdata.u_conv3_out.d0();
+  const int in_channels = appdata.u_conv3_out.d1();
+  const int in_height = appdata.u_conv3_out.d2();
+  const int in_width = appdata.u_conv3_out.d3();
+
+  const int out_channels = appdata.conv4_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv4_b.size(),
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 7 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_7(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("conv2d").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv5_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv5_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv5_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
+                              });
+
+  const int batch_size = appdata.u_conv4_out.d0();
+  const int in_channels = appdata.u_conv4_out.d1();
+  const int in_height = appdata.u_conv4_out.d2();
+  const int in_width = appdata.u_conv4_out.d3();
+
+  const int out_channels = appdata.conv5_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv5_b.size(),
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 8 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_8(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("maxpool").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                              });
+
+  // Extract dimensions from the convolution output NDArray4D
+  const int batch_size = appdata.u_conv5_out.d0();
+  const int channels = appdata.u_conv5_out.d1();
+  const int in_height = appdata.u_conv5_out.d2();
+  const int in_width = appdata.u_conv5_out.d3();
+
+  const int out_height = (in_height + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kPoolSize) / kPoolStride + 1;
+
+  const int total_output = batch_size * channels * out_height * out_width;
+
+  algo->update_push_constant(MaxpoolPushConstants_v2{
+      .batch_size = batch_size,
+      .channels = channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_height = out_height,
+      .out_width = out_width,
+      .pool_size = kPoolSize,
+      .stride = kPoolStride,
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
+// ----------------------------------------------------------------------------
+// Stage 9 (v2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_9(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("linear").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 9, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_linear_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.linear_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.linear_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.linear_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_linear_b.pmr_vec()),
+                              });
+
+  // Calculate flattened input size (total number of features per sample)
+  const int batch_size = appdata.u_pool3_out.d0();
+  const int channels = appdata.u_pool3_out.d1();
+  const int height = appdata.u_pool3_out.d2();
+  const int width = appdata.u_pool3_out.d3();
+  const int input_features = channels * height * width;
+
+  // Number of output neurons is the number of rows in the weight matrix
+  const int out_neurons = appdata.linear_sparse.rows;
+
+  const int total_output = batch_size * out_neurons;
+
+  algo->update_push_constant(LinearPushConstants_v2{
+      .batch_size = batch_size,
+      .input_features = input_features,
+      .out_neurons = out_neurons,
+  });
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+}
+
 }  // namespace v2
 
 }  // namespace cifar_sparse::vulkan
