@@ -102,9 +102,15 @@ struct CSRMatrix {
         col_idx(r * c, 0, mr) {}
 
   // Get raw pointers for compatibility with old code
-  const float* values_data() const { return values.data(); }
-  const int* row_ptr_data() const { return row_ptr.data(); }
-  const int* col_idx_data() const { return col_idx.data(); }
+  [[nodiscard]] const float* values_data() const { return values.data(); }
+  [[nodiscard]] const int* row_ptr_data() const { return row_ptr.data(); }
+  [[nodiscard]] const int* col_idx_data() const { return col_idx.data(); }
+  [[nodiscard]] std::pmr::vector<float>& values_pmr_vec() { return values; }
+  [[nodiscard]] std::pmr::vector<int>& row_ptr_pmr_vec() { return row_ptr; }
+  [[nodiscard]] std::pmr::vector<int>& col_idx_pmr_vec() { return col_idx; }
+  [[nodiscard]] const std::pmr::vector<float>& values_pmr_vec() const { return values; }
+  [[nodiscard]] const std::pmr::vector<int>& row_ptr_pmr_vec() const { return row_ptr; }
+  [[nodiscard]] const std::pmr::vector<int>& col_idx_pmr_vec() const { return col_idx; }
 };
 
 struct AppData {
