@@ -27,7 +27,7 @@ TEST(Stage1Test, Basic) {
   cifar_sparse::omp::v2::run_stage_1(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv1_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv1_out.d0(), 512);
   EXPECT_EQ(appdata.u_conv1_out.d1(), 16);
   EXPECT_EQ(appdata.u_conv1_out.d2(), 32);
   EXPECT_EQ(appdata.u_conv1_out.d3(), 32);
@@ -48,7 +48,7 @@ TEST(Stage2Test, Basic) {
   cifar_sparse::omp::v2::run_stage_2(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool1_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool1_out.d0(), 512);
   EXPECT_EQ(appdata.u_pool1_out.d1(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d2(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
@@ -69,7 +69,7 @@ TEST(Stage3Test, Basic) {
   cifar_sparse::omp::v2::run_stage_3(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv2_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv2_out.d0(), 512);
   EXPECT_EQ(appdata.u_conv2_out.d1(), 32);
   EXPECT_EQ(appdata.u_conv2_out.d2(), 16);
   EXPECT_EQ(appdata.u_conv2_out.d3(), 16);
@@ -90,7 +90,7 @@ TEST(Stage4Test, Basic) {
   cifar_sparse::omp::v2::run_stage_4(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool2_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool2_out.d0(), 512);
   EXPECT_EQ(appdata.u_pool2_out.d1(), 32);
   EXPECT_EQ(appdata.u_pool2_out.d2(), 8);
   EXPECT_EQ(appdata.u_pool2_out.d3(), 8);
@@ -111,7 +111,7 @@ TEST(Stage5Test, Basic) {
   cifar_sparse::omp::v2::run_stage_5(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv3_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv3_out.d0(), 512);
   EXPECT_EQ(appdata.u_conv3_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv3_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv3_out.d3(), 8);
@@ -132,7 +132,7 @@ TEST(Stage6Test, Basic) {
   cifar_sparse::omp::v2::run_stage_6(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv4_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv4_out.d0(), 512);
   EXPECT_EQ(appdata.u_conv4_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv4_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv4_out.d3(), 8);
@@ -153,7 +153,7 @@ TEST(Stage7Test, Basic) {
   cifar_sparse::omp::v2::run_stage_7(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv5_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv5_out.d0(), 512);
   EXPECT_EQ(appdata.u_conv5_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv5_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv5_out.d3(), 8);
@@ -174,7 +174,7 @@ TEST(Stage8Test, Basic) {
   cifar_sparse::omp::v2::run_stage_8(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool3_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool3_out.d0(), 512);
   EXPECT_EQ(appdata.u_pool3_out.d1(), 64);
   EXPECT_EQ(appdata.u_pool3_out.d2(), 4);
   EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
@@ -196,7 +196,7 @@ TEST(Stage9Test, Basic) {
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_linear_out.cols(), 10);
-  EXPECT_EQ(appdata.u_linear_out.rows(), 128);
+  EXPECT_EQ(appdata.u_linear_out.rows(), 512);
 
   // Check no throw
   EXPECT_NO_THROW(cifar_sparse::omp::v2::run_stage_9(appdata));

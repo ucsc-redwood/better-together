@@ -21,7 +21,7 @@ uint32_t Task::uid_counter = 0;
 
 using ProcessFunction = std::function<void(Task&)>;
 
-constexpr size_t kNumTasks = 10;
+constexpr size_t kNumTasks = 40;
 
 void worker_thread(SPSCQueue<Task*, 1024>& in_queue,
                    SPSCQueue<Task*, 1024>* out_queue,
@@ -54,10 +54,14 @@ static void BM_run_OMP_baseline(benchmark::State& state) {
 
   for (auto _ : state) {
     worker_thread(q_0, &q_1, [&](Task& task) { disp.dispatch_multi_stage(task.appdata, 1, 9); });
+
+    state.PauseTiming();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));  // cool down
+    state.ResumeTiming();
   }
 }
-
-BENCHMARK(BM_run_OMP_baseline)->Unit(benchmark::kMillisecond)->Iterations(1)->Repetitions(5);
+//
+BENCHMARK(BM_run_OMP_baseline)->Unit(benchmark::kMillisecond)->Iterations(1)->Repetitions(10);
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
@@ -67,17 +71,6 @@ int main(int argc, char** argv) {
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();  // Ensure proper cleanup
-
-  // cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-
-  // SPSCQueue<Task*, 1024> q_0;
-  // SPSCQueue<Task*, 1024> q_1;
-
-  // for (size_t i = 0; i < kNumTasks; ++i) {
-  //   q_0.enqueue(new Task(disp.get_mr()));
-  // }
-
-  // worker_thread(q_0, &q_1, [&](Task& task) { disp.dispatch_multi_stage(task.appdata, 1, 9); });
 
   return 0;
 }
