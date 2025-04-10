@@ -586,6 +586,20 @@ struct MaxpoolPushConstants_v2 {
   int32_t stride;
 };
 
+// // Push constants for kernel parameters.
+// layout(push_constant) uniform Params {
+//   int batch_size;      // Number of samples in the batch.
+//   int input_features;  // Number of features in each input sample.
+//   int out_neurons;     // Number of output neurons (rows in the weight matrix).
+// }
+// params;
+
+struct LinearPushConstants_v2 {
+  int32_t batch_size;
+  int32_t input_features;
+  int32_t out_neurons;
+};
+
 // ----------------------------------------------------------------------------
 // Constructor (v2)
 // ----------------------------------------------------------------------------
@@ -647,6 +661,39 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                           ->build();
 
   cached_algorithms.try_emplace("maxpool", std::move(maxpool_algo));
+
+  // // Work-group size: 256 invocations per workgroup.
+  // layout(local_size_x = 256) in;
+
+  // // Input data buffer: flattened tensor of shape [batch_size, input_features]
+  // layout(std430, set = 0, binding = 0) readonly buffer InputBuffer { float input_data[]; };
+
+  // // Output data buffer: flattened tensor of shape [batch_size, out_neurons]
+  // layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer { float output_data[]; };
+
+  // // Sparse weight values (nonzeros) for the CSR matrix (dimensions: [out_neurons,
+  // input_features]) layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer { float
+  // weight_vals[]; };
+
+  // // CSR row pointers: length = out_neurons + 1.
+  // layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer { int weight_row_ptr[];
+  // };
+
+  // // CSR column indices: flat indices of nonzero weight locations (i.e. input feature indices).
+  // layout(std430, set = 0, binding = 4) readonly buffer WeightColIdxBuffer { int weight_col_idx[];
+  // };
+
+  // // Bias vector: one element per output neuron.
+  // layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+  auto linear_algo = engine.make_algo("new_cifar_sparse_linear")
+                         ->work_group_size(256, 1, 1)
+                         ->num_sets(1)
+                         ->num_buffers(6)
+                         ->push_constant<LinearPushConstants_v2>()
+                         ->build();
+
+  cached_algorithms.try_emplace("linear", std::move(linear_algo));
 }
 
 // ----------------------------------------------------------------------------

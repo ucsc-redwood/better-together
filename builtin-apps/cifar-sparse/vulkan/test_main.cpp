@@ -41,6 +41,23 @@ TEST(Stage1Test, Basic) {
 // test Stage 2
 // ----------------------------------------------------------------------------
 
+TEST(Stage2Test, Basic) {
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  cifar_sparse::v2::AppData appdata(disp.get_mr());
+
+  // Run stage 2
+  disp.run_stage_2(appdata);
+
+  // Check output dimensions
+  EXPECT_EQ(appdata.u_pool1_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool1_out.d1(), 16);
+  EXPECT_EQ(appdata.u_pool1_out.d2(), 16);
+  EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
+
+  // Check no throw
+  EXPECT_NO_THROW(disp.run_stage_2(appdata));
+}
+
 int main(int argc, char **argv) {
   parse_args(argc, argv);
 
