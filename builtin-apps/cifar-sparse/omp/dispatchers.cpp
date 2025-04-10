@@ -13,7 +13,7 @@ namespace cifar_sparse::omp {
 // Pipeline Processing Stages
 // ----------------------------------------------------------------------------
 
-void process_stage_1(cifar_sparse::AppData &app_data) {
+void run_stage_1(cifar_sparse::AppData &app_data) {
   constexpr auto start = 0;
   const auto end = app_data.conv1_weights.rows;
 
@@ -37,7 +37,7 @@ void process_stage_1(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_2(cifar_sparse::AppData &app_data) {
+void run_stage_2(cifar_sparse::AppData &app_data) {
   constexpr auto start = 0;
 
   constexpr auto input_channels = 64;
@@ -65,7 +65,7 @@ void process_stage_2(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_3(cifar_sparse::AppData &app_data) {
+void run_stage_3(cifar_sparse::AppData &app_data) {
   const auto start = 0;
   const auto end = app_data.conv2_weights.rows;
 
@@ -89,7 +89,7 @@ void process_stage_3(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_4(cifar_sparse::AppData &app_data) {
+void run_stage_4(cifar_sparse::AppData &app_data) {
   constexpr auto input_channels = 192;
   constexpr auto input_height = 16;
   constexpr auto input_width = 16;
@@ -116,7 +116,7 @@ void process_stage_4(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_5(cifar_sparse::AppData &app_data) {
+void run_stage_5(cifar_sparse::AppData &app_data) {
   const auto start = 0;
   const auto end = app_data.conv3_weights.rows;
 
@@ -140,7 +140,7 @@ void process_stage_5(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_6(cifar_sparse::AppData &app_data) {
+void run_stage_6(cifar_sparse::AppData &app_data) {
   const auto start = 0;
   const auto end = app_data.conv4_weights.rows;
 
@@ -164,7 +164,7 @@ void process_stage_6(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_7(cifar_sparse::AppData &app_data) {
+void run_stage_7(cifar_sparse::AppData &app_data) {
   const auto start = 0;
   const auto end = app_data.conv5_weights.rows;
 
@@ -188,7 +188,7 @@ void process_stage_7(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_8(cifar_sparse::AppData &app_data) {
+void run_stage_8(cifar_sparse::AppData &app_data) {
   constexpr auto input_channels = 256;
   constexpr auto input_height = 8;
   constexpr auto input_width = 8;
@@ -215,7 +215,7 @@ void process_stage_8(cifar_sparse::AppData &app_data) {
   }
 }
 
-void process_stage_9(cifar_sparse::AppData &app_data) {
+void run_stage_9(cifar_sparse::AppData &app_data) {
   const auto start = 0;
   const auto end = app_data.linear_weights.rows;
 

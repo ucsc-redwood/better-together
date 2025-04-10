@@ -1,17 +1,17 @@
 -- Copyright (c) 2025 Yanwen Xu (yxu83@ucsc.edu). MIT License.
 
--- ------------------------------------------------------------
--- OMP benchmarks
--- ------------------------------------------------------------
+-- -- ------------------------------------------------------------
+-- -- OMP benchmarks
+-- -- ------------------------------------------------------------
 
-target("bm-cifar-sparse-omp")
-do
-	add_rules("benchmark_config", "common_flags", "run_on_android")
-	add_files({
-		"omp.cpp",
-	})
-	add_deps("builtin-apps")
-end
+-- target("bm-cifar-sparse-omp")
+-- do
+-- 	add_rules("benchmark_config", "common_flags", "run_on_android")
+-- 	add_files({
+-- 		"omp.cpp",
+-- 	})
+-- 	add_deps("builtin-apps")
+-- end
 
 -- ------------------------------------------------------------
 -- VK benchmarks
@@ -23,6 +23,15 @@ if has_config("use_vulkan") then
 		add_rules("benchmark_config", "common_flags", "vulkan_config", "run_on_android")
 		add_files({
 			"vk.cpp",
+		})
+		add_deps("builtin-apps", "builtin-apps-vulkan")
+	end
+
+	target("bm-cifar-sparse-vk-omp")
+	do
+		add_rules("benchmark_config", "common_flags", "vulkan_config", "run_on_android")
+		add_files({
+			"vk_omp.cpp",
 		})
 		add_deps("builtin-apps", "builtin-apps-vulkan")
 	end

@@ -10,10 +10,25 @@
 #include "builtin-apps/cifar-sparse/omp/dispatchers.hpp"
 #include "builtin-apps/resources_path.hpp"
 
+static void run_baseline_unrestricted(cifar_sparse::AppData& app_data, const int n_threads) {
+#pragma omp parallel num_threads(n_threads)
+  {
+    cifar_sparse::omp::run_stage<1>(app_data);
+    cifar_sparse::omp::run_stage<2>(app_data);
+    cifar_sparse::omp::run_stage<3>(app_data);
+    cifar_sparse::omp::run_stage<4>(app_data);
+    cifar_sparse::omp::run_stage<5>(app_data);
+    cifar_sparse::omp::run_stage<6>(app_data);
+    cifar_sparse::omp::run_stage<7>(app_data);
+    cifar_sparse::omp::run_stage<8>(app_data);
+    cifar_sparse::omp::run_stage<9>(app_data);
+  }
+}
+
 [[nodiscard]] cifar_sparse::AppData make_appdata() {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData app_data(mr);
-  cifar_sparse::omp::run_stage_1(app_data);
+  run_baseline_unrestricted(app_data, std::thread::hardware_concurrency());
   return app_data;
 }
 
