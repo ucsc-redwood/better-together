@@ -98,6 +98,10 @@ std::string processor_type_to_string(ProcessorType type) {
       return "Medium";
     case ProcessorType::kBigCore:
       return "Big";
+    case ProcessorType::kVulkan:
+      return "Vulkan";
+    case ProcessorType::kCuda:
+      return "Cuda";
     default:
       return "Unknown";
   }
@@ -185,83 +189,140 @@ void calculate_stats_from_tasks(const std::vector<Task*>& tasks,
       "[{}] Stage {} Min: {:.3f} ms, Max: {:.3f} ms", cores_name, stage_name, min_time, max_time);
 }
 
-#define PREPARE_DATA                           \
-  cifar_sparse::vulkan::VulkanDispatcher disp; \
-  SPSCQueue<Task*, 1024> q_0;                  \
-  SPSCQueue<Task*, 1024> q_1;                  \
-  for (size_t i = 0; i < kNumTasks; ++i) {     \
-    Task* task = new Task(disp.get_mr());      \
-    q_0.enqueue(std::move(task));              \
+// Create a function to print detailed timing logs for all tasks
+void print_task_timing_log(const std::vector<Task*>& tasks) {
+  if (tasks.empty()) {
+    spdlog::error("No tasks to print");
+    return;
   }
 
-static void BM_Stage1_Big() {
-  PREPARE_DATA;
-
-  auto cores = g_big_cores;
-  auto num_threads = cores.size();
-
-  task_timed_worker_thread(
-      q_0,
-      q_1,
-      [&](Task& task) {
-        cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, 1, 1);
-      },
-      ProcessorType::kBigCore);
-
-  // Collect tasks from output queue
-  std::vector<Task*> completed_tasks = collect_tasks_from_queue(q_1);
-
-  calculate_stats_from_tasks(completed_tasks, "Stage 1");
-
-  // Cleanup
-  for (auto* task : completed_tasks) {
-    delete task;
+  for (const auto& task : tasks) {
+    std::cout << task->uid << ":\t" << processor_type_to_string(task->get_processed_by()) << "\t"
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     task->start_time.time_since_epoch())
+                     .count()
+              << "ms - "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(
+                     task->end_time.time_since_epoch())
+                     .count()
+              << "ms " << "(" << task->get_duration().count() * 1000.0 << "ms)\n";
   }
 }
 
-static void BM_Stage1_Medium() {
-  PREPARE_DATA;
+// static void BM_Stage(const int stage, const ProcessorType processor_type) {
+//   cifar_sparse::vulkan::VulkanDispatcher disp;
 
-  auto cores = g_medium_cores;
-  auto num_threads = cores.size();
+//   SPSCQueue<Task*, 1024> q_0;
+//   SPSCQueue<Task*, 1024> q_1;
+//   SPSCQueue<Task*, 1024> q_2;
 
-  task_timed_worker_thread(
-      q_0,
-      q_1,
-      [&](Task& task) {
-        cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, 1, 1);
-      },
-      ProcessorType::kMediumCore);
+//   for (size_t i = 0; i < kNumTasks; ++i) {
+//     Task* task = new Task(disp.get_mr());
+//     q_0.enqueue(std::move(task));
+//   }
 
-  // Collect tasks from output queue
-  std::vector<Task*> completed_tasks = collect_tasks_from_queue(q_1);
+//   // auto cores = g_big_cores;
+//   // auto num_threads = cores.size();
 
-  calculate_stats_from_tasks(completed_tasks, "Stage 1");
+//   std::vector<int> cores;
+//   int num_threads;
 
-  // Cleanup
-  for (auto* task : completed_tasks) {
-    delete task;
+//   if (processor_type == ProcessorType::kBigCore) {
+//     cores = g_big_cores;
+//     num_threads = cores.size();
+//   } else if (processor_type == ProcessorType::kMediumCore) {
+//     cores = g_medium_cores;
+//     num_threads = cores.size();
+//   } else if (processor_type == ProcessorType::kLittleCore) {
+//     cores = g_little_cores;
+//     num_threads = cores.size();
+//   } else {
+//     spdlog::error("Invalid processor type: {}", processor_type_to_string(processor_type));
+//     return;
+//   }
+
+//   task_timed_worker_thread(
+//       q_0,
+//       q_1,
+//       [&](Task& task) {
+//         cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, stage, stage);
+//       },
+//       processor_type);
+
+//   // Collect tasks from output queue
+//   std::vector<Task*> completed_tasks = collect_tasks_from_queue(q_1);
+
+//   calculate_stats_from_tasks(completed_tasks, "Stage " + std::to_string(stage));
+
+//   // Print detailed timing log if requested via environment variable or command line flag
+//   print_task_timing_log(completed_tasks);
+
+//   // Cleanup
+//   for (auto* task : completed_tasks) {
+//     delete task;
+//   }
+// }
+
+static void BM_Stage_Concurrent(const int stage, const ProcessorType processor_type) {
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+
+  SPSCQueue<Task*, 1024> q_0;
+  SPSCQueue<Task*, 1024> q_1;
+  SPSCQueue<Task*, 1024> q_2;
+
+  for (size_t i = 0; i < kNumTasks; ++i) {
+    Task* task = new Task(disp.get_mr());
+    q_0.enqueue(std::move(task));
   }
-}
 
-static void BM_Stage1_Little() {
-  PREPARE_DATA;
+  // auto cores = g_big_cores;
+  // auto num_threads = cores.size();
 
-  auto cores = g_little_cores;
-  auto num_threads = cores.size();
+  std::vector<int> cores;
+  int num_threads;
 
-  task_timed_worker_thread(
-      q_0,
-      q_1,
-      [&](Task& task) {
-        cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, 1, 1);
-      },
-      ProcessorType::kLittleCore);
+  if (processor_type == ProcessorType::kBigCore) {
+    cores = g_big_cores;
+    num_threads = cores.size();
+  } else if (processor_type == ProcessorType::kMediumCore) {
+    cores = g_medium_cores;
+    num_threads = cores.size();
+  } else if (processor_type == ProcessorType::kLittleCore) {
+    cores = g_little_cores;
+    num_threads = cores.size();
+  } else {
+    spdlog::error("Invalid processor type: {}", processor_type_to_string(processor_type));
+    return;
+  }
+
+  std::thread t1([&]() {
+    task_timed_worker_thread(
+        q_0,
+        q_1,
+        [&](Task& task) {
+          cifar_sparse::omp::dispatch_multi_stage(cores, num_threads, task.app_data, stage, stage);
+        },
+        processor_type);
+  });
+
+  std::thread t2([&]() {
+    task_timed_worker_thread(
+        q_1,
+        q_2,
+        [&](Task& task) { disp.dispatch_multi_stage(task.app_data, stage + 1, stage + 1); },
+        processor_type);
+  });
+
+  t1.join();
+  t2.join();
 
   // Collect tasks from output queue
-  std::vector<Task*> completed_tasks = collect_tasks_from_queue(q_1);
+  std::vector<Task*> completed_tasks = collect_tasks_from_queue(q_2);
 
-  calculate_stats_from_tasks(completed_tasks, "Stage 1");
+  calculate_stats_from_tasks(completed_tasks, "Stage " + std::to_string(stage));
+
+  // Print detailed timing log if requested via environment variable or command line flag
+  print_task_timing_log(completed_tasks);
 
   // Cleanup
   for (auto* task : completed_tasks) {
@@ -276,9 +337,9 @@ int main(int argc, char** argv) {
   parse_args(argc, argv);
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
-  BM_Stage1_Big();
-  BM_Stage1_Medium();
-  BM_Stage1_Little();
+  BM_Stage_Concurrent(1, ProcessorType::kBigCore);
+  BM_Stage_Concurrent(1, ProcessorType::kMediumCore);
+  BM_Stage_Concurrent(1, ProcessorType::kLittleCore);
 
   return 0;
 }

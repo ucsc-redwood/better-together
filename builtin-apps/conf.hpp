@@ -10,6 +10,8 @@ enum class ProcessorType {
   kLittleCore = 0,
   kMediumCore = 1,
   kBigCore = 2,
+  kVulkan = 3,
+  kCuda = 4,
 };
 
 // 2. Define a struct for a Core.
