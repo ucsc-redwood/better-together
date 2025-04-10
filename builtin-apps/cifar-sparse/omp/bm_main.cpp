@@ -65,7 +65,7 @@ static void BM_run_OMP_stage(benchmark::State& state) {
   cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, 1, stage);
 
   for (auto _ : state) {
-    cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, 1, stage);
+    cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, stage, stage);
   }
 }
 
