@@ -252,37 +252,33 @@ analysis:
 # Target 1: Run the benchmarks and store the raw output.
 # -----------------------------------------------------------------------------
 run-benchmarks:
-	@echo "Running benchmarks and saving raw outputs..."
-	# Run each benchmark and save output to a .raw.txt file.
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee BM_pipe_cifar_sparse_vk_schedule_3.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee BM_pipe_cifar_sparse_vk_schedule_4.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee BM_pipe_cifar_sparse_vk_schedule_5.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee BM_pipe_cifar_sparse_vk_schedule_6.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee BM_pipe_cifar_sparse_vk_schedule_7.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
-	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
-# cp BM_pipe_cifar_sparse_vk_schedule_*.txt scripts-v2/analysis/
-
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 3 | tee BM_pipe_cifar_sparse_vk_schedule_3.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 4 | tee BM_pipe_cifar_sparse_vk_schedule_4.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 5 | tee BM_pipe_cifar_sparse_vk_schedule_5.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 6 | tee BM_pipe_cifar_sparse_vk_schedule_6.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 7 | tee BM_pipe_cifar_sparse_vk_schedule_7.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
+    xmake r gen-record-pipe-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
+    
 # -----------------------------------------------------------------------------
 # Target 2: Process the raw output using sed
 # This extracts lines 8 to 1707 and removes the unwanted "Chunk 3" blocks with zero times
 # -----------------------------------------------------------------------------
 process-results:
 	@echo "Processing raw benchmark outputs..."
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt
-	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt
-
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_1.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_1.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_2.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_2.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_3.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_3.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_4.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_4.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_5.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_5.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_6.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_6.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_7.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_7.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_8.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_8.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_9.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_9.txt
+	sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_10.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > BM_pipe_cifar_sparse_vk_schedule_10.txt
 
 
 # -----------------------------------------------------------------------------
@@ -293,43 +289,43 @@ make-fig:
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_1 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_2 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_3 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_4 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_5 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_6 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_7 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_8 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_9 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 	python3 scripts-v2/analysis/pipe.py \
 		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt \
 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_10 \
-		--task-start 1 --task-end 30
+		--task-start 25 --task-end 50
 
 # -----------------------------------------------------------------------------
 # "all" target to run every step in sequence.
