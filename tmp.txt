@@ -1,687 +1,2662 @@
 
 [1/2] Processing device: 3A021JEHN02756
-Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 3A021JEHN02756
-build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 472.0 MB/s (3018632 bytes in 0.006s)
-[2025-04-11 01:04:58.622] [info] Little cores: 0 1 2 3 
-[2025-04-11 01:04:58.626] [info] Medium cores: 4 5 
-[2025-04-11 01:04:58.626] [info] Big cores: 6 7 
---------------------------------------------------------------------------------------------------
-Benchmark                                                        Time             CPU   Iterations
---------------------------------------------------------------------------------------------------
-VK/CifarSparse/Baseline/iterations:1/repeats:5                1819 ms        0.791 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2090 ms         1.79 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                1638 ms         1.65 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2246 ms        0.862 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                1927 ms         1.58 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5_mean           1944 ms         1.33 ms            5
-VK/CifarSparse/Baseline/iterations:1/repeats:5_median         1927 ms         1.58 ms            5
-VK/CifarSparse/Baseline/iterations:1/repeats:5_stddev          236 ms        0.471 ms            5
-VK/CifarSparse/Baseline/iterations:1/repeats:5_cv            12.12 %         35.26 %             5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  574 ms        0.889 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  570 ms         1.09 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  467 ms        0.685 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  461 ms         1.14 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  487 ms         1.58 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_mean             512 ms         1.08 ms            5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_median           487 ms         1.09 ms            5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_stddev          55.9 ms        0.335 ms            5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_cv             10.92 %         31.11 %             5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  591 ms         1.39 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  596 ms         1.11 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  354 ms        0.792 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  267 ms        0.486 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  302 ms         1.11 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_mean             422 ms        0.977 ms            5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_median           354 ms         1.11 ms            5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_stddev           160 ms        0.346 ms            5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_cv             37.89 %         35.47 %             5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  297 ms        0.796 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  386 ms         1.16 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  395 ms         1.25 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  437 ms        0.589 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  397 ms        0.828 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_mean             382 ms        0.925 ms            5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_median           395 ms        0.828 ms            5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_stddev          51.7 ms        0.274 ms            5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_cv             13.53 %         29.62 %             5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  380 ms        0.473 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  252 ms        0.585 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  242 ms        0.554 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  248 ms        0.754 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  363 ms        0.804 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_mean             297 ms        0.634 ms            5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_median           252 ms        0.585 ms            5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_stddev          68.4 ms        0.140 ms            5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_cv             23.04 %         22.01 %             5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  235 ms         1.16 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  241 ms        0.746 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  247 ms        0.513 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  245 ms        0.493 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  185 ms        0.312 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_mean             231 ms        0.644 ms            5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_median           241 ms        0.513 ms            5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_stddev          26.0 ms        0.325 ms            5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_cv             11.26 %         50.45 %             5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  248 ms        0.452 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  225 ms        0.558 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  205 ms        0.825 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  239 ms        0.948 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  229 ms        0.748 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_mean             229 ms        0.706 ms            5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_median           229 ms        0.748 ms            5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_stddev          16.4 ms        0.201 ms            5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_cv              7.14 %         28.39 %             5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  252 ms        0.502 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  222 ms        0.660 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  163 ms         1.56 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  213 ms        0.759 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  205 ms         1.01 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_mean             211 ms        0.898 ms            5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_median           213 ms        0.759 ms            5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_stddev          32.2 ms        0.415 ms            5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_cv             15.26 %         46.19 %             5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  168 ms        0.796 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  157 ms        0.569 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  141 ms        0.535 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  163 ms        0.739 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  157 ms        0.636 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_mean             157 ms        0.655 ms            5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_median           157 ms        0.636 ms            5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_stddev          10.4 ms        0.111 ms            5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_cv              6.60 %         16.91 %             5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 71.0 ms        0.440 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 68.5 ms        0.862 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 81.9 ms        0.712 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 33.9 ms        0.859 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 25.3 ms        0.429 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_mean            56.1 ms        0.660 ms            5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_median          68.5 ms        0.712 ms            5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_stddev          24.9 ms        0.215 ms            5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_cv             44.34 %         32.55 %             5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              1986 ms        0.818 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              2062 ms        0.807 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              2070 ms         1.04 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              2206 ms        0.822 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              2182 ms        0.751 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_mean         2101 ms        0.848 ms            5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_median       2070 ms        0.818 ms            5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_stddev       91.2 ms        0.113 ms            5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_cv           4.34 %         13.29 %             5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               623 ms        0.965 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               578 ms        0.919 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               571 ms        0.824 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               620 ms        0.901 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               642 ms         1.07 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_mean          607 ms        0.936 ms            5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_median        620 ms        0.919 ms            5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_stddev       30.8 ms        0.092 ms            5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_cv           5.07 %          9.77 %             5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               581 ms        0.890 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               581 ms        0.932 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               583 ms        0.771 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               608 ms        0.851 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               581 ms        0.957 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_mean          587 ms        0.880 ms            5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_median        581 ms        0.890 ms            5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_stddev       12.0 ms        0.073 ms            5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_cv           2.05 %          8.34 %             5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              3467 ms        0.647 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              3805 ms        0.610 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              4391 ms         1.17 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              4499 ms        0.992 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              4220 ms        0.847 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_mean         4076 ms        0.853 ms            5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_median       4220 ms        0.847 ms            5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_stddev        431 ms        0.235 ms            5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_cv          10.58 %         27.54 %             5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1348 ms         1.02 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1369 ms        0.613 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1413 ms        0.721 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1412 ms        0.632 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1486 ms        0.639 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_mean         1406 ms        0.724 ms            5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_median       1412 ms        0.639 ms            5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_stddev       53.0 ms        0.168 ms            5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_cv           3.77 %         23.23 %             5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              1660 ms        0.705 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              1647 ms        0.841 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              2005 ms        0.820 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              2080 ms        0.830 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              1991 ms        0.856 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_mean         1876 ms        0.810 ms            5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_median       1991 ms        0.830 ms            5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_stddev        207 ms        0.061 ms            5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_cv          11.01 %          7.49 %             5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1302 ms        0.721 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1347 ms         1.19 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1385 ms         1.12 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1383 ms        0.958 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1532 ms         1.34 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_mean         1390 ms         1.07 ms            5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_median       1383 ms         1.12 ms            5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_stddev       86.3 ms        0.237 ms            5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_cv           6.21 %         22.20 %             5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               369 ms        0.996 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               389 ms         1.09 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               374 ms         1.03 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               373 ms         1.13 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               372 ms         1.17 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_mean          376 ms         1.08 ms            5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_median        373 ms         1.09 ms            5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_stddev       7.87 ms        0.069 ms            5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_cv           2.09 %          6.34 %             5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               360 ms         1.04 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               371 ms         2.01 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               368 ms         1.01 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               352 ms         1.09 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               338 ms         1.01 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_mean          358 ms         1.23 ms            5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_median        360 ms         1.04 ms            5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_stddev       13.3 ms        0.435 ms            5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_cv           3.72 %         35.28 %             5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1578 ms        0.880 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1538 ms        0.962 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1485 ms        0.917 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1625 ms         1.40 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1586 ms        0.964 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_mean         1562 ms         1.03 ms            5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_median       1578 ms        0.962 ms            5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_stddev       53.3 ms        0.214 ms            5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_cv           3.41 %         20.83 %             5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               748 ms        0.827 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               785 ms        0.824 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               807 ms        0.784 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               785 ms        0.809 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               756 ms        0.833 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_mean          776 ms        0.816 ms            5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_median        785 ms        0.824 ms            5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_stddev       24.1 ms        0.020 ms            5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_cv           3.10 %          2.43 %             5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               850 ms        0.715 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               849 ms        0.873 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5              1658 ms         1.12 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5              1384 ms        0.741 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               884 ms        0.927 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_mean         1125 ms        0.875 ms            5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_median        884 ms        0.873 ms            5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_stddev        375 ms        0.163 ms            5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_cv          33.30 %         18.59 %             5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5               741 ms         1.21 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5               735 ms        0.470 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5               738 ms        0.446 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5               740 ms         1.10 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5               732 ms         1.16 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_mean          737 ms        0.876 ms            5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_median        738 ms         1.10 ms            5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_stddev       3.50 ms        0.383 ms            5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_cv           0.47 %         43.75 %             5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               197 ms         1.09 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               211 ms         1.14 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               198 ms        0.902 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               200 ms         1.15 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               204 ms         1.12 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_mean          202 ms         1.08 ms            5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_median        200 ms         1.12 ms            5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_stddev       5.88 ms        0.103 ms            5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_cv           2.91 %          9.54 %             5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               194 ms        0.952 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               194 ms        0.908 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               214 ms        0.814 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               199 ms        0.670 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               200 ms         1.12 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_mean          200 ms        0.894 ms            5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_median        199 ms        0.908 ms            5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_stddev       8.34 ms        0.168 ms            5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_cv           4.17 %         18.82 %             5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5               656 ms         1.13 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5               645 ms         2.01 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5               643 ms        0.537 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5               646 ms        0.817 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5               644 ms         1.10 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_mean          647 ms         1.12 ms            5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_median        645 ms         1.10 ms            5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_stddev       5.18 ms        0.555 ms            5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_cv           0.80 %         49.51 %             5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               186 ms        0.856 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               185 ms        0.685 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               188 ms        0.958 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               189 ms        0.818 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               188 ms        0.664 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_mean          187 ms        0.796 ms            5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_median        188 ms        0.818 ms            5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_stddev       1.40 ms        0.123 ms            5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_cv           0.75 %         15.44 %             5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               184 ms         1.41 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               203 ms        0.805 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               201 ms        0.870 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               198 ms        0.821 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               198 ms        0.819 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_mean          197 ms        0.946 ms            5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_median        198 ms        0.821 ms            5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_stddev       7.57 ms        0.263 ms            5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_cv           3.85 %         27.76 %             5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5               647 ms        0.830 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5               642 ms        0.845 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5               643 ms         1.10 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5               684 ms        0.803 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5               742 ms         1.00 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_mean          672 ms        0.916 ms            5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_median        647 ms        0.845 ms            5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_stddev       43.0 ms        0.130 ms            5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_cv           6.39 %         14.13 %             5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               235 ms        0.860 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               234 ms        0.577 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               233 ms         1.14 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               186 ms        0.940 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               203 ms        0.788 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_mean          218 ms        0.861 ms            5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_median        233 ms        0.860 ms            5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_stddev       22.6 ms        0.206 ms            5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_cv          10.35 %         23.93 %             5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               195 ms        0.822 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               191 ms        0.583 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               182 ms        0.961 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               189 ms        0.847 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               194 ms        0.365 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_mean          190 ms        0.716 ms            5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_median        191 ms        0.822 ms            5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_stddev       5.15 ms        0.239 ms            5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_cv           2.71 %         33.45 %             5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               743 ms         1.24 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               751 ms         1.27 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               805 ms         1.11 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               803 ms         2.07 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               805 ms        0.598 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_mean          781 ms         1.26 ms            5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_median        803 ms         1.24 ms            5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_stddev       31.8 ms        0.528 ms            5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_cv           4.06 %         42.02 %             5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               383 ms        0.845 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               394 ms        0.958 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               379 ms        0.438 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               388 ms        0.523 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               406 ms        0.864 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_mean          390 ms        0.726 ms            5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_median        388 ms        0.845 ms            5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_stddev       10.5 ms        0.230 ms            5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_cv           2.69 %         31.69 %             5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               394 ms        0.859 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               406 ms        0.366 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               423 ms        0.870 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               394 ms        0.614 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               440 ms        0.809 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_mean          411 ms        0.704 ms            5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_median        406 ms        0.809 ms            5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_stddev       19.8 ms        0.215 ms            5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_cv           4.82 %         30.60 %             5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              25.9 ms        0.793 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              57.1 ms         1.01 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              16.9 ms        0.563 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              18.0 ms         1.08 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              7.39 ms        0.726 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_mean         25.1 ms        0.835 ms            5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_median       18.0 ms        0.793 ms            5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_stddev       19.1 ms        0.211 ms            5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_cv          76.17 %         25.31 %             5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              29.0 ms         1.06 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              39.5 ms         1.43 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              4.12 ms        0.487 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              3.92 ms        0.358 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              7.87 ms         1.14 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_mean         16.9 ms        0.896 ms            5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_median       7.87 ms         1.06 ms            5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_stddev       16.3 ms        0.456 ms            5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_cv          96.86 %         50.87 %             5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              8.53 ms        0.565 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              9.61 ms        0.599 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              33.5 ms        0.581 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              27.9 ms        0.722 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              9.08 ms        0.555 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_mean         17.7 ms        0.604 ms            5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_median       9.61 ms        0.581 ms            5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_stddev       12.0 ms        0.068 ms            5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_cv          67.79 %         11.22 %             5
+Deploying and running 'pipe-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 487.8 MB/s (3090312 bytes in 0.006s)
+[2025-04-11 10:55:42.354] [info] Little cores: 0 1 2 3 
+[2025-04-11 10:55:42.355] [info] Medium cores: 4 5 
+[2025-04-11 10:55:42.355] [info] Big cores: 6 7 
+Task 7:
+  Chunk 0:
+    Start: 60228751903 us
+    End: 60228755899 us
+    Duration: 3995 us
+  Chunk 1:
+    Start: 60228946804 us
+    End: 60228953741 us
+    Duration: 6936 us
+  Chunk 2:
+    Start: 60228953743 us
+    End: 60228960254 us
+    Duration: 6511 us
+  Chunk 3:
+    Start: 60228960256 us
+    End: 60228967127 us
+    Duration: 6871 us
+Task 8:
+  Chunk 0:
+    Start: 60228758728 us
+    End: 60228762739 us
+    Duration: 4011 us
+  Chunk 1:
+    Start: 60228953742 us
+    End: 60228960701 us
+    Duration: 6958 us
+  Chunk 2:
+    Start: 60228960703 us
+    End: 60228966585 us
+    Duration: 5882 us
+  Chunk 3:
+    Start: 60228967127 us
+    End: 60228973795 us
+    Duration: 6667 us
+Task 9:
+  Chunk 0:
+    Start: 60228765395 us
+    End: 60228769536 us
+    Duration: 4141 us
+  Chunk 1:
+    Start: 60228960701 us
+    End: 60228967799 us
+    Duration: 7097 us
+  Chunk 2:
+    Start: 60228967800 us
+    End: 60228973467 us
+    Duration: 5667 us
+  Chunk 3:
+    Start: 60228973796 us
+    End: 60228980452 us
+    Duration: 6656 us
+Task 10:
+  Chunk 0:
+    Start: 60228772176 us
+    End: 60228776255 us
+    Duration: 4078 us
+  Chunk 1:
+    Start: 60228967799 us
+    End: 60228974883 us
+    Duration: 7084 us
+  Chunk 2:
+    Start: 60228974884 us
+    End: 60228980544 us
+    Duration: 5660 us
+  Chunk 3:
+    Start: 60228980545 us
+    End: 60228987178 us
+    Duration: 6632 us
+Task 11:
+  Chunk 0:
+    Start: 60228779310 us
+    End: 60228783379 us
+    Duration: 4069 us
+  Chunk 1:
+    Start: 60228974884 us
+    End: 60228981468 us
+    Duration: 6583 us
+  Chunk 2:
+    Start: 60228981469 us
+    End: 60228987052 us
+    Duration: 5582 us
+  Chunk 3:
+    Start: 60228987178 us
+    End: 60228993821 us
+    Duration: 6642 us
+Task 12:
+  Chunk 0:
+    Start: 60228785970 us
+    End: 60228789979 us
+    Duration: 4009 us
+  Chunk 1:
+    Start: 60228981468 us
+    End: 60228988061 us
+    Duration: 6592 us
+  Chunk 2:
+    Start: 60228988062 us
+    End: 60228993644 us
+    Duration: 5581 us
+  Chunk 3:
+    Start: 60228993822 us
+    End: 60229000459 us
+    Duration: 6637 us
+Task 13:
+  Chunk 0:
+    Start: 60228793045 us
+    End: 60228797204 us
+    Duration: 4159 us
+  Chunk 1:
+    Start: 60228988061 us
+    End: 60228994649 us
+    Duration: 6587 us
+  Chunk 2:
+    Start: 60228994650 us
+    End: 60229000446 us
+    Duration: 5796 us
+  Chunk 3:
+    Start: 60229000460 us
+    End: 60229007066 us
+    Duration: 6606 us
+Task 14:
+  Chunk 0:
+    Start: 60228800134 us
+    End: 60228804338 us
+    Duration: 4204 us
+  Chunk 1:
+    Start: 60228994649 us
+    End: 60229001227 us
+    Duration: 6577 us
+  Chunk 2:
+    Start: 60229001227 us
+    End: 60229006817 us
+    Duration: 5589 us
+  Chunk 3:
+    Start: 60229007067 us
+    End: 60229013716 us
+    Duration: 6649 us
+Task 15:
+  Chunk 0:
+    Start: 60228807952 us
+    End: 60228812121 us
+    Duration: 4169 us
+  Chunk 1:
+    Start: 60229001227 us
+    End: 60229007833 us
+    Duration: 6606 us
+  Chunk 2:
+    Start: 60229007835 us
+    End: 60229013478 us
+    Duration: 5642 us
+  Chunk 3:
+    Start: 60229013717 us
+    End: 60229020362 us
+    Duration: 6644 us
+Task 16:
+  Chunk 0:
+    Start: 60228814718 us
+    End: 60228818926 us
+    Duration: 4208 us
+  Chunk 1:
+    Start: 60229007835 us
+    End: 60229014488 us
+    Duration: 6653 us
+  Chunk 2:
+    Start: 60229014489 us
+    End: 60229020269 us
+    Duration: 5779 us
+  Chunk 3:
+    Start: 60229020362 us
+    End: 60229026963 us
+    Duration: 6600 us
+Task 17:
+  Chunk 0:
+    Start: 60228821649 us
+    End: 60228825842 us
+    Duration: 4193 us
+  Chunk 1:
+    Start: 60229014489 us
+    End: 60229020395 us
+    Duration: 5905 us
+  Chunk 2:
+    Start: 60229020396 us
+    End: 60229026123 us
+    Duration: 5727 us
+  Chunk 3:
+    Start: 60229026963 us
+    End: 60229033597 us
+    Duration: 6634 us
+Task 18:
+  Chunk 0:
+    Start: 60228828418 us
+    End: 60228832726 us
+    Duration: 4307 us
+  Chunk 1:
+    Start: 60229020395 us
+    End: 60229025518 us
+    Duration: 5123 us
+  Chunk 2:
+    Start: 60229026125 us
+    End: 60229031780 us
+    Duration: 5655 us
+  Chunk 3:
+    Start: 60229033598 us
+    End: 60229040258 us
+    Duration: 6660 us
+Task 19:
+  Chunk 0:
+    Start: 60228835145 us
+    End: 60228839227 us
+    Duration: 4082 us
+  Chunk 1:
+    Start: 60229025518 us
+    End: 60229030596 us
+    Duration: 5077 us
+  Chunk 2:
+    Start: 60229031781 us
+    End: 60229037423 us
+    Duration: 5642 us
+  Chunk 3:
+    Start: 60229040258 us
+    End: 60229046865 us
+    Duration: 6607 us
+Task 20:
+  Chunk 0:
+    Start: 60228841818 us
+    End: 60228845883 us
+    Duration: 4065 us
+  Chunk 1:
+    Start: 60229030596 us
+    End: 60229035668 us
+    Duration: 5071 us
+  Chunk 2:
+    Start: 60229037423 us
+    End: 60229043130 us
+    Duration: 5706 us
+  Chunk 3:
+    Start: 60229046865 us
+    End: 60229053486 us
+    Duration: 6620 us
+Task 21:
+  Chunk 0:
+    Start: 60228849180 us
+    End: 60228853316 us
+    Duration: 4135 us
+  Chunk 1:
+    Start: 60229035668 us
+    End: 60229040659 us
+    Duration: 4990 us
+  Chunk 2:
+    Start: 60229043130 us
+    End: 60229048853 us
+    Duration: 5723 us
+  Chunk 3:
+    Start: 60229053486 us
+    End: 60229060123 us
+    Duration: 6636 us
+Task 22:
+  Chunk 0:
+    Start: 60228855977 us
+    End: 60228860131 us
+    Duration: 4154 us
+  Chunk 1:
+    Start: 60229040659 us
+    End: 60229045366 us
+    Duration: 4706 us
+  Chunk 2:
+    Start: 60229048854 us
+    End: 60229054520 us
+    Duration: 5666 us
+  Chunk 3:
+    Start: 60229060124 us
+    End: 60229066742 us
+    Duration: 6618 us
+Task 23:
+  Chunk 0:
+    Start: 60228863202 us
+    End: 60228867364 us
+    Duration: 4162 us
+  Chunk 1:
+    Start: 60229045366 us
+    End: 60229050238 us
+    Duration: 4871 us
+  Chunk 2:
+    Start: 60229054521 us
+    End: 60229060521 us
+    Duration: 6000 us
+  Chunk 3:
+    Start: 60229066742 us
+    End: 60229073379 us
+    Duration: 6636 us
+Task 24:
+  Chunk 0:
+    Start: 60228869880 us
+    End: 60228874128 us
+    Duration: 4247 us
+  Chunk 1:
+    Start: 60229050238 us
+    End: 60229054901 us
+    Duration: 4663 us
+  Chunk 2:
+    Start: 60229060522 us
+    End: 60229066341 us
+    Duration: 5818 us
+  Chunk 3:
+    Start: 60229073380 us
+    End: 60229080006 us
+    Duration: 6625 us
+Task 25:
+  Chunk 0:
+    Start: 60228876933 us
+    End: 60228881265 us
+    Duration: 4331 us
+  Chunk 1:
+    Start: 60229054902 us
+    End: 60229059671 us
+    Duration: 4769 us
+  Chunk 2:
+    Start: 60229066341 us
+    End: 60229072154 us
+    Duration: 5812 us
+  Chunk 3:
+    Start: 60229080006 us
+    End: 60229086638 us
+    Duration: 6631 us
+Task 26:
+  Chunk 0:
+    Start: 60228883640 us
+    End: 60228887843 us
+    Duration: 4203 us
+  Chunk 1:
+    Start: 60229059671 us
+    End: 60229064438 us
+    Duration: 4766 us
+  Chunk 2:
+    Start: 60229072155 us
+    End: 60229077792 us
+    Duration: 5637 us
+  Chunk 3:
+    Start: 60229086639 us
+    End: 60229093278 us
+    Duration: 6639 us
+Task 27:
+  Chunk 0:
+    Start: 60228890755 us
+    End: 60228894811 us
+    Duration: 4055 us
+  Chunk 1:
+    Start: 60229064438 us
+    End: 60229069200 us
+    Duration: 4761 us
+  Chunk 2:
+    Start: 60229077793 us
+    End: 60229083395 us
+    Duration: 5601 us
+  Chunk 3:
+    Start: 60229093278 us
+    End: 60229099885 us
+    Duration: 6606 us
+Task 28:
+  Chunk 0:
+    Start: 60228897555 us
+    End: 60228901644 us
+    Duration: 4089 us
+  Chunk 1:
+    Start: 60229069200 us
+    End: 60229073953 us
+    Duration: 4753 us
+  Chunk 2:
+    Start: 60229083395 us
+    End: 60229089181 us
+    Duration: 5785 us
+  Chunk 3:
+    Start: 60229099886 us
+    End: 60229106604 us
+    Duration: 6718 us
+Task 29:
+  Chunk 0:
+    Start: 60228904237 us
+    End: 60228908306 us
+    Duration: 4068 us
+  Chunk 1:
+    Start: 60229073954 us
+    End: 60229078707 us
+    Duration: 4753 us
+  Chunk 2:
+    Start: 60229089182 us
+    End: 60229094789 us
+    Duration: 5607 us
+  Chunk 3:
+    Start: 60229106605 us
+    End: 60229113252 us
+    Duration: 6647 us
+Task 30:
+  Chunk 0:
+    Start: 60228911012 us
+    End: 60228915072 us
+    Duration: 4059 us
+  Chunk 1:
+    Start: 60229078707 us
+    End: 60229083481 us
+    Duration: 4773 us
+  Chunk 2:
+    Start: 60229094789 us
+    End: 60229100800 us
+    Duration: 6011 us
+  Chunk 3:
+    Start: 60229113252 us
+    End: 60229119882 us
+    Duration: 6629 us
+Task 0:
+  Chunk 0:
+    Start: 60228918301 us
+    End: 60228922379 us
+    Duration: 4078 us
+  Chunk 1:
+    Start: 60229083481 us
+    End: 60229088195 us
+    Duration: 4713 us
+  Chunk 2:
+    Start: 60229100801 us
+    End: 60229106525 us
+    Duration: 5724 us
+  Chunk 3:
+    Start: 60229119882 us
+    End: 60229126505 us
+    Duration: 6622 us
+Task 1:
+  Chunk 0:
+    Start: 60228925095 us
+    End: 60228929527 us
+    Duration: 4431 us
+  Chunk 1:
+    Start: 60229088195 us
+    End: 60229092985 us
+    Duration: 4790 us
+  Chunk 2:
+    Start: 60229106526 us
+    End: 60229112634 us
+    Duration: 6108 us
+  Chunk 3:
+    Start: 60229126505 us
+    End: 60229133129 us
+    Duration: 6623 us
+Task 2:
+  Chunk 0:
+    Start: 60228932091 us
+    End: 60228936453 us
+    Duration: 4362 us
+  Chunk 1:
+    Start: 60229092986 us
+    End: 60229097675 us
+    Duration: 4689 us
+  Chunk 2:
+    Start: 60229112635 us
+    End: 60229118368 us
+    Duration: 5733 us
+  Chunk 3:
+    Start: 60229133129 us
+    End: 60229139740 us
+    Duration: 6610 us
+Task 3:
+  Chunk 0:
+    Start: 60228939209 us
+    End: 60228943614 us
+    Duration: 4405 us
+  Chunk 1:
+    Start: 60229097676 us
+    End: 60229102355 us
+    Duration: 4679 us
+  Chunk 2:
+    Start: 60229118369 us
+    End: 60229123976 us
+    Duration: 5606 us
+  Chunk 3:
+    Start: 60229139740 us
+    End: 60229146368 us
+    Duration: 6628 us
+Task 4:
+  Chunk 0:
+    Start: 60228945966 us
+    End: 60228950339 us
+    Duration: 4372 us
+  Chunk 1:
+    Start: 60229102355 us
+    End: 60229107017 us
+    Duration: 4661 us
+  Chunk 2:
+    Start: 60229123976 us
+    End: 60229129737 us
+    Duration: 5760 us
+  Chunk 3:
+    Start: 60229146369 us
+    End: 60229152991 us
+    Duration: 6622 us
+Task 5:
+  Chunk 0:
+    Start: 60228952978 us
+    End: 60228957517 us
+    Duration: 4538 us
+  Chunk 1:
+    Start: 60229107017 us
+    End: 60229111730 us
+    Duration: 4712 us
+  Chunk 2:
+    Start: 60229129737 us
+    End: 60229135283 us
+    Duration: 5545 us
+  Chunk 3:
+    Start: 60229152992 us
+    End: 60229159582 us
+    Duration: 6590 us
+Task 6:
+  Chunk 0:
+    Start: 60228959722 us
+    End: 60228964095 us
+    Duration: 4373 us
+  Chunk 1:
+    Start: 60229111730 us
+    End: 60229116370 us
+    Duration: 4640 us
+  Chunk 2:
+    Start: 60229135283 us
+    End: 60229140887 us
+    Duration: 5604 us
+  Chunk 3:
+    Start: 60229159583 us
+    End: 60229166222 us
+    Duration: 6639 us
+Task 39:
+  Chunk 0:
+    Start: 60230555274 us
+    End: 60230559702 us
+    Duration: 4428 us
+  Chunk 1:
+    Start: 60230616951 us
+    End: 60230622288 us
+    Duration: 5337 us
+  Chunk 2:
+    Start: 60230670769 us
+    End: 60230676823 us
+    Duration: 6053 us
+  Chunk 3:
+    Start: 60230719860 us
+    End: 60230726798 us
+    Duration: 6937 us
+Task 40:
+  Chunk 0:
+    Start: 60230559703 us
+    End: 60230564122 us
+    Duration: 4418 us
+  Chunk 1:
+    Start: 60230622290 us
+    End: 60230627598 us
+    Duration: 5308 us
+  Chunk 2:
+    Start: 60230676825 us
+    End: 60230682984 us
+    Duration: 6159 us
+  Chunk 3:
+    Start: 60230726799 us
+    End: 60230733479 us
+    Duration: 6679 us
+Task 41:
+  Chunk 0:
+    Start: 60230564123 us
+    End: 60230568494 us
+    Duration: 4370 us
+  Chunk 1:
+    Start: 60230627600 us
+    End: 60230632786 us
+    Duration: 5186 us
+  Chunk 2:
+    Start: 60230682985 us
+    End: 60230689135 us
+    Duration: 6149 us
+  Chunk 3:
+    Start: 60230733479 us
+    End: 60230740139 us
+    Duration: 6659 us
+Task 42:
+  Chunk 0:
+    Start: 60230568495 us
+    End: 60230572917 us
+    Duration: 4422 us
+  Chunk 1:
+    Start: 60230632788 us
+    End: 60230637948 us
+    Duration: 5160 us
+  Chunk 2:
+    Start: 60230689137 us
+    End: 60230695117 us
+    Duration: 5979 us
+  Chunk 3:
+    Start: 60230740139 us
+    End: 60230746913 us
+    Duration: 6773 us
+Task 43:
+  Chunk 0:
+    Start: 60230572918 us
+    End: 60230577302 us
+    Duration: 4384 us
+  Chunk 1:
+    Start: 60230637949 us
+    End: 60230643265 us
+    Duration: 5316 us
+  Chunk 2:
+    Start: 60230695118 us
+    End: 60230701751 us
+    Duration: 6632 us
+  Chunk 3:
+    Start: 60230746913 us
+    End: 60230753554 us
+    Duration: 6640 us
+Task 44:
+  Chunk 0:
+    Start: 60230577303 us
+    End: 60230581806 us
+    Duration: 4502 us
+  Chunk 1:
+    Start: 60230643267 us
+    End: 60230648632 us
+    Duration: 5365 us
+  Chunk 2:
+    Start: 60230701753 us
+    End: 60230707547 us
+    Duration: 5794 us
+  Chunk 3:
+    Start: 60230753554 us
+    End: 60230760205 us
+    Duration: 6650 us
+Task 45:
+  Chunk 0:
+    Start: 60230581807 us
+    End: 60230586136 us
+    Duration: 4329 us
+  Chunk 1:
+    Start: 60230648633 us
+    End: 60230653934 us
+    Duration: 5301 us
+  Chunk 2:
+    Start: 60230707549 us
+    End: 60230714742 us
+    Duration: 7192 us
+  Chunk 3:
+    Start: 60230760205 us
+    End: 60230766815 us
+    Duration: 6610 us
+Task 46:
+  Chunk 0:
+    Start: 60230586136 us
+    End: 60230590571 us
+    Duration: 4434 us
+  Chunk 1:
+    Start: 60230653935 us
+    End: 60230659153 us
+    Duration: 5217 us
+  Chunk 2:
+    Start: 60230714744 us
+    End: 60230721089 us
+    Duration: 6344 us
+  Chunk 3:
+    Start: 60230766816 us
+    End: 60230773483 us
+    Duration: 6667 us
+Task 47:
+  Chunk 0:
+    Start: 60230590571 us
+    End: 60230594902 us
+    Duration: 4330 us
+  Chunk 1:
+    Start: 60230659153 us
+    End: 60230664335 us
+    Duration: 5181 us
+  Chunk 2:
+    Start: 60230721091 us
+    End: 60230728454 us
+    Duration: 7362 us
+  Chunk 3:
+    Start: 60230773483 us
+    End: 60230780144 us
+    Duration: 6660 us
+Task 48:
+  Chunk 0:
+    Start: 60230594902 us
+    End: 60230599185 us
+    Duration: 4282 us
+  Chunk 1:
+    Start: 60230664335 us
+    End: 60230669536 us
+    Duration: 5200 us
+  Chunk 2:
+    Start: 60230728456 us
+    End: 60230734105 us
+    Duration: 5649 us
+  Chunk 3:
+    Start: 60230780144 us
+    End: 60230786750 us
+    Duration: 6605 us
+Task 49:
+  Chunk 0:
+    Start: 60230599185 us
+    End: 60230603529 us
+    Duration: 4344 us
+  Chunk 1:
+    Start: 60230669537 us
+    End: 60230674877 us
+    Duration: 5340 us
+  Chunk 2:
+    Start: 60230734106 us
+    End: 60230739750 us
+    Duration: 5643 us
+  Chunk 3:
+    Start: 60230786750 us
+    End: 60230793378 us
+    Duration: 6627 us
+Task 50:
+  Chunk 0:
+    Start: 60230603529 us
+    End: 60230608087 us
+    Duration: 4557 us
+  Chunk 1:
+    Start: 60230674879 us
+    End: 60230680234 us
+    Duration: 5355 us
+  Chunk 2:
+    Start: 60230739751 us
+    End: 60230746024 us
+    Duration: 6272 us
+  Chunk 3:
+    Start: 60230793379 us
+    End: 60230799998 us
+    Duration: 6619 us
+Task 51:
+  Chunk 0:
+    Start: 60230608088 us
+    End: 60230612374 us
+    Duration: 4286 us
+  Chunk 1:
+    Start: 60230680235 us
+    End: 60230685421 us
+    Duration: 5185 us
+  Chunk 2:
+    Start: 60230746025 us
+    End: 60230751741 us
+    Duration: 5716 us
+  Chunk 3:
+    Start: 60230799999 us
+    End: 60230806649 us
+    Duration: 6650 us
+Task 52:
+  Chunk 0:
+    Start: 60230612374 us
+    End: 60230616770 us
+    Duration: 4396 us
+  Chunk 1:
+    Start: 60230685422 us
+    End: 60230690738 us
+    Duration: 5316 us
+  Chunk 2:
+    Start: 60230751742 us
+    End: 60230757468 us
+    Duration: 5725 us
+  Chunk 3:
+    Start: 60230806650 us
+    End: 60230813317 us
+    Duration: 6666 us
+Task 53:
+  Chunk 0:
+    Start: 60230616771 us
+    End: 60230621147 us
+    Duration: 4375 us
+  Chunk 1:
+    Start: 60230690739 us
+    End: 60230695985 us
+    Duration: 5246 us
+  Chunk 2:
+    Start: 60230757468 us
+    End: 60230763491 us
+    Duration: 6022 us
+  Chunk 3:
+    Start: 60230813317 us
+    End: 60230819917 us
+    Duration: 6599 us
+Task 54:
+  Chunk 0:
+    Start: 60230621148 us
+    End: 60230625484 us
+    Duration: 4336 us
+  Chunk 1:
+    Start: 60230695987 us
+    End: 60230701415 us
+    Duration: 5428 us
+  Chunk 2:
+    Start: 60230763493 us
+    End: 60230769172 us
+    Duration: 5679 us
+  Chunk 3:
+    Start: 60230819918 us
+    End: 60230826574 us
+    Duration: 6655 us
+Task 55:
+  Chunk 0:
+    Start: 60230625485 us
+    End: 60230629817 us
+    Duration: 4332 us
+  Chunk 1:
+    Start: 60230701416 us
+    End: 60230706589 us
+    Duration: 5172 us
+  Chunk 2:
+    Start: 60230769173 us
+    End: 60230774791 us
+    Duration: 5617 us
+  Chunk 3:
+    Start: 60230826576 us
+    End: 60230833233 us
+    Duration: 6656 us
+Task 56:
+  Chunk 0:
+    Start: 60230631139 us
+    End: 60230635592 us
+    Duration: 4453 us
+  Chunk 1:
+    Start: 60230706589 us
+    End: 60230711915 us
+    Duration: 5326 us
+  Chunk 2:
+    Start: 60230774791 us
+    End: 60230780429 us
+    Duration: 5637 us
+  Chunk 3:
+    Start: 60230833233 us
+    End: 60230839856 us
+    Duration: 6622 us
+Task 57:
+  Chunk 0:
+    Start: 60230637934 us
+    End: 60230642296 us
+    Duration: 4361 us
+  Chunk 1:
+    Start: 60230711917 us
+    End: 60230717379 us
+    Duration: 5461 us
+  Chunk 2:
+    Start: 60230780429 us
+    End: 60230785988 us
+    Duration: 5558 us
+  Chunk 3:
+    Start: 60230839857 us
+    End: 60230846537 us
+    Duration: 6680 us
+Task 58:
+  Chunk 0:
+    Start: 60230644770 us
+    End: 60230649072 us
+    Duration: 4301 us
+  Chunk 1:
+    Start: 60230717380 us
+    End: 60230722673 us
+    Duration: 5292 us
+  Chunk 2:
+    Start: 60230785989 us
+    End: 60230791525 us
+    Duration: 5535 us
+  Chunk 3:
+    Start: 60230846538 us
+    End: 60230853167 us
+    Duration: 6629 us
+Task 59:
+  Chunk 0:
+    Start: 60230651519 us
+    End: 60230655850 us
+    Duration: 4331 us
+  Chunk 1:
+    Start: 60230722674 us
+    End: 60230728213 us
+    Duration: 5539 us
+  Chunk 2:
+    Start: 60230791526 us
+    End: 60230797095 us
+    Duration: 5569 us
+  Chunk 3:
+    Start: 60230853167 us
+    End: 60230859777 us
+    Duration: 6610 us
+Task 60:
+  Chunk 0:
+    Start: 60230658341 us
+    End: 60230662720 us
+    Duration: 4378 us
+  Chunk 1:
+    Start: 60230728214 us
+    End: 60230733790 us
+    Duration: 5576 us
+  Chunk 2:
+    Start: 60230797097 us
+    End: 60230802794 us
+    Duration: 5697 us
+  Chunk 3:
+    Start: 60230859778 us
+    End: 60230866416 us
+    Duration: 6638 us
+Task 61:
+  Chunk 0:
+    Start: 60230665428 us
+    End: 60230669779 us
+    Duration: 4350 us
+  Chunk 1:
+    Start: 60230733791 us
+    End: 60230738776 us
+    Duration: 4985 us
+  Chunk 2:
+    Start: 60230802795 us
+    End: 60230808389 us
+    Duration: 5593 us
+  Chunk 3:
+    Start: 60230866417 us
+    End: 60230873071 us
+    Duration: 6654 us
+Task 62:
+  Chunk 0:
+    Start: 60230672163 us
+    End: 60230676576 us
+    Duration: 4412 us
+  Chunk 1:
+    Start: 60230738777 us
+    End: 60230743766 us
+    Duration: 4988 us
+  Chunk 2:
+    Start: 60230808390 us
+    End: 60230814303 us
+    Duration: 5912 us
+  Chunk 3:
+    Start: 60230873072 us
+    End: 60230879692 us
+    Duration: 6620 us
+Task 32:
+  Chunk 0:
+    Start: 60230678885 us
+    End: 60230683361 us
+    Duration: 4476 us
+  Chunk 1:
+    Start: 60230743766 us
+    End: 60230748746 us
+    Duration: 4980 us
+  Chunk 2:
+    Start: 60230814303 us
+    End: 60230819831 us
+    Duration: 5527 us
+  Chunk 3:
+    Start: 60230879692 us
+    End: 60230886334 us
+    Duration: 6641 us
+Task 33:
+  Chunk 0:
+    Start: 60230685714 us
+    End: 60230690126 us
+    Duration: 4411 us
+  Chunk 1:
+    Start: 60230748747 us
+    End: 60230753758 us
+    Duration: 5011 us
+  Chunk 2:
+    Start: 60230819831 us
+    End: 60230825510 us
+    Duration: 5678 us
+  Chunk 3:
+    Start: 60230886334 us
+    End: 60230892983 us
+    Duration: 6648 us
+Task 34:
+  Chunk 0:
+    Start: 60230692453 us
+    End: 60230696964 us
+    Duration: 4510 us
+  Chunk 1:
+    Start: 60230753758 us
+    End: 60230758746 us
+    Duration: 4987 us
+  Chunk 2:
+    Start: 60230825511 us
+    End: 60230831212 us
+    Duration: 5700 us
+  Chunk 3:
+    Start: 60230892983 us
+    End: 60230899619 us
+    Duration: 6636 us
+Task 35:
+  Chunk 0:
+    Start: 60230699165 us
+    End: 60230703521 us
+    Duration: 4355 us
+  Chunk 1:
+    Start: 60230758746 us
+    End: 60230763642 us
+    Duration: 4896 us
+  Chunk 2:
+    Start: 60230831213 us
+    End: 60230836885 us
+    Duration: 5671 us
+  Chunk 3:
+    Start: 60230899620 us
+    End: 60230906254 us
+    Duration: 6633 us
+Task 36:
+  Chunk 0:
+    Start: 60230705966 us
+    End: 60230710320 us
+    Duration: 4354 us
+  Chunk 1:
+    Start: 60230763643 us
+    End: 60230768247 us
+    Duration: 4603 us
+  Chunk 2:
+    Start: 60230836886 us
+    End: 60230842595 us
+    Duration: 5709 us
+  Chunk 3:
+    Start: 60230906254 us
+    End: 60230912887 us
+    Duration: 6633 us
+Task 37:
+  Chunk 0:
+    Start: 60230713039 us
+    End: 60230717473 us
+    Duration: 4433 us
+  Chunk 1:
+    Start: 60230768247 us
+    End: 60230772905 us
+    Duration: 4657 us
+  Chunk 2:
+    Start: 60230842596 us
+    End: 60230848432 us
+    Duration: 5835 us
+  Chunk 3:
+    Start: 60230912888 us
+    End: 60230919501 us
+    Duration: 6613 us
+Task 38:
+  Chunk 0:
+    Start: 60230719860 us
+    End: 60230724355 us
+    Duration: 4494 us
+  Chunk 1:
+    Start: 60230772905 us
+    End: 60230777532 us
+    Duration: 4626 us
+  Chunk 2:
+    Start: 60230848433 us
+    End: 60230853968 us
+    Duration: 5535 us
+  Chunk 3:
+    Start: 60230919501 us
+    End: 60230926159 us
+    Duration: 6657 us
+Task 71:
+  Chunk 0:
+    Start: 60232315828 us
+    End: 60232320483 us
+    Duration: 4654 us
+  Chunk 1:
+    Start: 60232435467 us
+    End: 60232441473 us
+    Duration: 6006 us
+  Chunk 2:
+    Start: 60232457155 us
+    End: 60232463414 us
+    Duration: 6258 us
+  Chunk 3:
+    Start: 60232487848 us
+    End: 60232494578 us
+    Duration: 6729 us
+Task 72:
+  Chunk 0:
+    Start: 60232320486 us
+    End: 60232325039 us
+    Duration: 4552 us
+  Chunk 1:
+    Start: 60232441474 us
+    End: 60232447558 us
+    Duration: 6083 us
+  Chunk 2:
+    Start: 60232463414 us
+    End: 60232469558 us
+    Duration: 6143 us
+  Chunk 3:
+    Start: 60232494578 us
+    End: 60232501216 us
+    Duration: 6637 us
+Task 73:
+  Chunk 0:
+    Start: 60232325039 us
+    End: 60232329457 us
+    Duration: 4417 us
+  Chunk 1:
+    Start: 60232447559 us
+    End: 60232453684 us
+    Duration: 6124 us
+  Chunk 2:
+    Start: 60232469559 us
+    End: 60232475538 us
+    Duration: 5978 us
+  Chunk 3:
+    Start: 60232501216 us
+    End: 60232507822 us
+    Duration: 6606 us
+Task 74:
+  Chunk 0:
+    Start: 60232329458 us
+    End: 60232333974 us
+    Duration: 4516 us
+  Chunk 1:
+    Start: 60232453685 us
+    End: 60232459805 us
+    Duration: 6120 us
+  Chunk 2:
+    Start: 60232475539 us
+    End: 60232481335 us
+    Duration: 5796 us
+  Chunk 3:
+    Start: 60232507822 us
+    End: 60232514482 us
+    Duration: 6659 us
+Task 75:
+  Chunk 0:
+    Start: 60232333975 us
+    End: 60232338428 us
+    Duration: 4453 us
+  Chunk 1:
+    Start: 60232459807 us
+    End: 60232465888 us
+    Duration: 6080 us
+  Chunk 2:
+    Start: 60232481337 us
+    End: 60232487134 us
+    Duration: 5797 us
+  Chunk 3:
+    Start: 60232514483 us
+    End: 60232521128 us
+    Duration: 6645 us
+Task 76:
+  Chunk 0:
+    Start: 60232338428 us
+    End: 60232342909 us
+    Duration: 4480 us
+  Chunk 1:
+    Start: 60232465890 us
+    End: 60232472053 us
+    Duration: 6163 us
+  Chunk 2:
+    Start: 60232487136 us
+    End: 60232494279 us
+    Duration: 7142 us
+  Chunk 3:
+    Start: 60232521128 us
+    End: 60232527742 us
+    Duration: 6613 us
+Task 77:
+  Chunk 0:
+    Start: 60232342910 us
+    End: 60232347331 us
+    Duration: 4420 us
+  Chunk 1:
+    Start: 60232472055 us
+    End: 60232478172 us
+    Duration: 6116 us
+  Chunk 2:
+    Start: 60232494280 us
+    End: 60232499938 us
+    Duration: 5657 us
+  Chunk 3:
+    Start: 60232527742 us
+    End: 60232534370 us
+    Duration: 6627 us
+Task 78:
+  Chunk 0:
+    Start: 60232347331 us
+    End: 60232351845 us
+    Duration: 4513 us
+  Chunk 1:
+    Start: 60232478173 us
+    End: 60232484180 us
+    Duration: 6006 us
+  Chunk 2:
+    Start: 60232499939 us
+    End: 60232505753 us
+    Duration: 5813 us
+  Chunk 3:
+    Start: 60232534370 us
+    End: 60232541009 us
+    Duration: 6638 us
+Task 79:
+  Chunk 0:
+    Start: 60232351845 us
+    End: 60232356476 us
+    Duration: 4630 us
+  Chunk 1:
+    Start: 60232484181 us
+    End: 60232490310 us
+    Duration: 6128 us
+  Chunk 2:
+    Start: 60232505754 us
+    End: 60232511721 us
+    Duration: 5967 us
+  Chunk 3:
+    Start: 60232541009 us
+    End: 60232547620 us
+    Duration: 6611 us
+Task 80:
+  Chunk 0:
+    Start: 60232356478 us
+    End: 60232360908 us
+    Duration: 4430 us
+  Chunk 1:
+    Start: 60232490312 us
+    End: 60232496326 us
+    Duration: 6013 us
+  Chunk 2:
+    Start: 60232511723 us
+    End: 60232517391 us
+    Duration: 5668 us
+  Chunk 3:
+    Start: 60232547620 us
+    End: 60232554256 us
+    Duration: 6635 us
+Task 81:
+  Chunk 0:
+    Start: 60232360908 us
+    End: 60232365359 us
+    Duration: 4451 us
+  Chunk 1:
+    Start: 60232496327 us
+    End: 60232502130 us
+    Duration: 5803 us
+  Chunk 2:
+    Start: 60232517393 us
+    End: 60232523064 us
+    Duration: 5671 us
+  Chunk 3:
+    Start: 60232554257 us
+    End: 60232560871 us
+    Duration: 6614 us
+Task 82:
+  Chunk 0:
+    Start: 60232365360 us
+    End: 60232369810 us
+    Duration: 4449 us
+  Chunk 1:
+    Start: 60232502130 us
+    End: 60232507944 us
+    Duration: 5813 us
+  Chunk 2:
+    Start: 60232523065 us
+    End: 60232528721 us
+    Duration: 5655 us
+  Chunk 3:
+    Start: 60232560871 us
+    End: 60232567480 us
+    Duration: 6608 us
+Task 83:
+  Chunk 0:
+    Start: 60232369810 us
+    End: 60232374237 us
+    Duration: 4427 us
+  Chunk 1:
+    Start: 60232507944 us
+    End: 60232513778 us
+    Duration: 5833 us
+  Chunk 2:
+    Start: 60232528721 us
+    End: 60232534455 us
+    Duration: 5733 us
+  Chunk 3:
+    Start: 60232567481 us
+    End: 60232574103 us
+    Duration: 6621 us
+Task 84:
+  Chunk 0:
+    Start: 60232374237 us
+    End: 60232378706 us
+    Duration: 4468 us
+  Chunk 1:
+    Start: 60232513778 us
+    End: 60232519580 us
+    Duration: 5801 us
+  Chunk 2:
+    Start: 60232534455 us
+    End: 60232540165 us
+    Duration: 5709 us
+  Chunk 3:
+    Start: 60232574103 us
+    End: 60232580733 us
+    Duration: 6630 us
+Task 85:
+  Chunk 0:
+    Start: 60232380222 us
+    End: 60232384660 us
+    Duration: 4437 us
+  Chunk 1:
+    Start: 60232519580 us
+    End: 60232525499 us
+    Duration: 5919 us
+  Chunk 2:
+    Start: 60232540165 us
+    End: 60232545780 us
+    Duration: 5614 us
+  Chunk 3:
+    Start: 60232580734 us
+    End: 60232587369 us
+    Duration: 6635 us
+Task 86:
+  Chunk 0:
+    Start: 60232386966 us
+    End: 60232391461 us
+    Duration: 4494 us
+  Chunk 1:
+    Start: 60232525500 us
+    End: 60232531222 us
+    Duration: 5722 us
+  Chunk 2:
+    Start: 60232545781 us
+    End: 60232551393 us
+    Duration: 5611 us
+  Chunk 3:
+    Start: 60232587369 us
+    End: 60232594007 us
+    Duration: 6638 us
+Task 87:
+  Chunk 0:
+    Start: 60232393742 us
+    End: 60232398139 us
+    Duration: 4397 us
+  Chunk 1:
+    Start: 60232531222 us
+    End: 60232536589 us
+    Duration: 5366 us
+  Chunk 2:
+    Start: 60232551393 us
+    End: 60232557089 us
+    Duration: 5695 us
+  Chunk 3:
+    Start: 60232594008 us
+    End: 60232600646 us
+    Duration: 6637 us
+Task 88:
+  Chunk 0:
+    Start: 60232400503 us
+    End: 60232405050 us
+    Duration: 4547 us
+  Chunk 1:
+    Start: 60232536589 us
+    End: 60232542005 us
+    Duration: 5415 us
+  Chunk 2:
+    Start: 60232557090 us
+    End: 60232563220 us
+    Duration: 6130 us
+  Chunk 3:
+    Start: 60232600646 us
+    End: 60232607471 us
+    Duration: 6825 us
+Task 89:
+  Chunk 0:
+    Start: 60232407270 us
+    End: 60232411714 us
+    Duration: 4443 us
+  Chunk 1:
+    Start: 60232542005 us
+    End: 60232547504 us
+    Duration: 5499 us
+  Chunk 2:
+    Start: 60232563221 us
+    End: 60232568994 us
+    Duration: 5772 us
+  Chunk 3:
+    Start: 60232607472 us
+    End: 60232614159 us
+    Duration: 6687 us
+Task 90:
+  Chunk 0:
+    Start: 60232414117 us
+    End: 60232418560 us
+    Duration: 4442 us
+  Chunk 1:
+    Start: 60232547504 us
+    End: 60232552797 us
+    Duration: 5292 us
+  Chunk 2:
+    Start: 60232568995 us
+    End: 60232574777 us
+    Duration: 5781 us
+  Chunk 3:
+    Start: 60232614160 us
+    End: 60232620792 us
+    Duration: 6631 us
+Task 91:
+  Chunk 0:
+    Start: 60232420782 us
+    End: 60232425254 us
+    Duration: 4471 us
+  Chunk 1:
+    Start: 60232552797 us
+    End: 60232557933 us
+    Duration: 5136 us
+  Chunk 2:
+    Start: 60232574777 us
+    End: 60232580444 us
+    Duration: 5666 us
+  Chunk 3:
+    Start: 60232620792 us
+    End: 60232627385 us
+    Duration: 6593 us
+Task 92:
+  Chunk 0:
+    Start: 60232427601 us
+    End: 60232432129 us
+    Duration: 4528 us
+  Chunk 1:
+    Start: 60232557933 us
+    End: 60232563102 us
+    Duration: 5168 us
+  Chunk 2:
+    Start: 60232580444 us
+    End: 60232586323 us
+    Duration: 5878 us
+  Chunk 3:
+    Start: 60232627386 us
+    End: 60232634009 us
+    Duration: 6622 us
+Task 93:
+  Chunk 0:
+    Start: 60232434331 us
+    End: 60232438779 us
+    Duration: 4447 us
+  Chunk 1:
+    Start: 60232563103 us
+    End: 60232568235 us
+    Duration: 5131 us
+  Chunk 2:
+    Start: 60232586323 us
+    End: 60232591923 us
+    Duration: 5599 us
+  Chunk 3:
+    Start: 60232634010 us
+    End: 60232640629 us
+    Duration: 6618 us
+Task 94:
+  Chunk 0:
+    Start: 60232441048 us
+    End: 60232445491 us
+    Duration: 4442 us
+  Chunk 1:
+    Start: 60232568235 us
+    End: 60232573138 us
+    Duration: 4903 us
+  Chunk 2:
+    Start: 60232591924 us
+    End: 60232597712 us
+    Duration: 5787 us
+  Chunk 3:
+    Start: 60232640629 us
+    End: 60232647235 us
+    Duration: 6605 us
+Task 64:
+  Chunk 0:
+    Start: 60232447763 us
+    End: 60232452470 us
+    Duration: 4706 us
+  Chunk 1:
+    Start: 60232573138 us
+    End: 60232577887 us
+    Duration: 4749 us
+  Chunk 2:
+    Start: 60232597713 us
+    End: 60232603837 us
+    Duration: 6123 us
+  Chunk 3:
+    Start: 60232647237 us
+    End: 60232653858 us
+    Duration: 6621 us
+Task 65:
+  Chunk 0:
+    Start: 60232454444 us
+    End: 60232459453 us
+    Duration: 5008 us
+  Chunk 1:
+    Start: 60232577888 us
+    End: 60232583817 us
+    Duration: 5929 us
+  Chunk 2:
+    Start: 60232603838 us
+    End: 60232609782 us
+    Duration: 5944 us
+  Chunk 3:
+    Start: 60232653859 us
+    End: 60232660496 us
+    Duration: 6636 us
+Task 66:
+  Chunk 0:
+    Start: 60232461174 us
+    End: 60232465960 us
+    Duration: 4785 us
+  Chunk 1:
+    Start: 60232583818 us
+    End: 60232588484 us
+    Duration: 4665 us
+  Chunk 2:
+    Start: 60232609783 us
+    End: 60232615705 us
+    Duration: 5922 us
+  Chunk 3:
+    Start: 60232660497 us
+    End: 60232667110 us
+    Duration: 6613 us
+Task 67:
+  Chunk 0:
+    Start: 60232467829 us
+    End: 60232472484 us
+    Duration: 4655 us
+  Chunk 1:
+    Start: 60232588484 us
+    End: 60232593139 us
+    Duration: 4654 us
+  Chunk 2:
+    Start: 60232615706 us
+    End: 60232621296 us
+    Duration: 5589 us
+  Chunk 3:
+    Start: 60232667110 us
+    End: 60232673739 us
+    Duration: 6629 us
+Task 68:
+  Chunk 0:
+    Start: 60232474477 us
+    End: 60232478993 us
+    Duration: 4516 us
+  Chunk 1:
+    Start: 60232593139 us
+    End: 60232597792 us
+    Duration: 4652 us
+  Chunk 2:
+    Start: 60232621297 us
+    End: 60232626949 us
+    Duration: 5651 us
+  Chunk 3:
+    Start: 60232673740 us
+    End: 60232680370 us
+    Duration: 6630 us
+Task 69:
+  Chunk 0:
+    Start: 60232481153 us
+    End: 60232485585 us
+    Duration: 4431 us
+  Chunk 1:
+    Start: 60232597792 us
+    End: 60232602424 us
+    Duration: 4631 us
+  Chunk 2:
+    Start: 60232626949 us
+    End: 60232632802 us
+    Duration: 5852 us
+  Chunk 3:
+    Start: 60232680371 us
+    End: 60232686989 us
+    Duration: 6617 us
+Task 70:
+  Chunk 0:
+    Start: 60232487848 us
+    End: 60232492379 us
+    Duration: 4530 us
+  Chunk 1:
+    Start: 60232602424 us
+    End: 60232607104 us
+    Duration: 4680 us
+  Chunk 2:
+    Start: 60232632803 us
+    End: 60232638343 us
+    Duration: 5540 us
+  Chunk 3:
+    Start: 60232686990 us
+    End: 60232693630 us
+    Duration: 6639 us
+Task 103:
+  Chunk 0:
+    Start: 60234072246 us
+    End: 60234076645 us
+    Duration: 4399 us
+  Chunk 1:
+    Start: 60234156817 us
+    End: 60234162438 us
+    Duration: 5621 us
+  Chunk 2:
+    Start: 60234182091 us
+    End: 60234188170 us
+    Duration: 6079 us
+  Chunk 3:
+    Start: 60234288936 us
+    End: 60234295653 us
+    Duration: 6716 us
+Task 104:
+  Chunk 0:
+    Start: 60234085606 us
+    End: 60234090205 us
+    Duration: 4598 us
+  Chunk 1:
+    Start: 60234162438 us
+    End: 60234168065 us
+    Duration: 5626 us
+  Chunk 2:
+    Start: 60234188172 us
+    End: 60234193857 us
+    Duration: 5684 us
+  Chunk 3:
+    Start: 60234295653 us
+    End: 60234302279 us
+    Duration: 6625 us
+Task 105:
+  Chunk 0:
+    Start: 60234093679 us
+    End: 60234098232 us
+    Duration: 4553 us
+  Chunk 1:
+    Start: 60234168066 us
+    End: 60234173709 us
+    Duration: 5643 us
+  Chunk 2:
+    Start: 60234193859 us
+    End: 60234199541 us
+    Duration: 5682 us
+  Chunk 3:
+    Start: 60234302279 us
+    End: 60234308919 us
+    Duration: 6639 us
+Task 106:
+  Chunk 0:
+    Start: 60234100548 us
+    End: 60234105054 us
+    Duration: 4506 us
+  Chunk 1:
+    Start: 60234173710 us
+    End: 60234179390 us
+    Duration: 5679 us
+  Chunk 2:
+    Start: 60234199542 us
+    End: 60234205300 us
+    Duration: 5757 us
+  Chunk 3:
+    Start: 60234308919 us
+    End: 60234315544 us
+    Duration: 6624 us
+Task 107:
+  Chunk 0:
+    Start: 60234107251 us
+    End: 60234111875 us
+    Duration: 4624 us
+  Chunk 1:
+    Start: 60234179390 us
+    End: 60234185005 us
+    Duration: 5614 us
+  Chunk 2:
+    Start: 60234205301 us
+    End: 60234211060 us
+    Duration: 5758 us
+  Chunk 3:
+    Start: 60234315545 us
+    End: 60234322185 us
+    Duration: 6640 us
+Task 108:
+  Chunk 0:
+    Start: 60234114557 us
+    End: 60234119512 us
+    Duration: 4955 us
+  Chunk 1:
+    Start: 60234185005 us
+    End: 60234190578 us
+    Duration: 5572 us
+  Chunk 2:
+    Start: 60234211060 us
+    End: 60234216755 us
+    Duration: 5694 us
+  Chunk 3:
+    Start: 60234322186 us
+    End: 60234328823 us
+    Duration: 6637 us
+Task 109:
+  Chunk 0:
+    Start: 60234121869 us
+    End: 60234126902 us
+    Duration: 5032 us
+  Chunk 1:
+    Start: 60234190579 us
+    End: 60234196175 us
+    Duration: 5595 us
+  Chunk 2:
+    Start: 60234216756 us
+    End: 60234222562 us
+    Duration: 5806 us
+  Chunk 3:
+    Start: 60234328824 us
+    End: 60234335420 us
+    Duration: 6596 us
+Task 110:
+  Chunk 0:
+    Start: 60234128926 us
+    End: 60234133900 us
+    Duration: 4973 us
+  Chunk 1:
+    Start: 60234196175 us
+    End: 60234201760 us
+    Duration: 5584 us
+  Chunk 2:
+    Start: 60234222563 us
+    End: 60234233676 us
+    Duration: 11112 us
+  Chunk 3:
+    Start: 60234335421 us
+    End: 60234342046 us
+    Duration: 6625 us
+Task 111:
+  Chunk 0:
+    Start: 60234135880 us
+    End: 60234140720 us
+    Duration: 4839 us
+  Chunk 1:
+    Start: 60234201761 us
+    End: 60234207370 us
+    Duration: 5609 us
+  Chunk 2:
+    Start: 60234233678 us
+    End: 60234240492 us
+    Duration: 6813 us
+  Chunk 3:
+    Start: 60234342047 us
+    End: 60234348662 us
+    Duration: 6614 us
+Task 112:
+  Chunk 0:
+    Start: 60234142808 us
+    End: 60234147822 us
+    Duration: 5014 us
+  Chunk 1:
+    Start: 60234207371 us
+    End: 60234212949 us
+    Duration: 5578 us
+  Chunk 2:
+    Start: 60234240494 us
+    End: 60234246404 us
+    Duration: 5909 us
+  Chunk 3:
+    Start: 60234348662 us
+    End: 60234355265 us
+    Duration: 6602 us
+Task 113:
+  Chunk 0:
+    Start: 60234149927 us
+    End: 60234154962 us
+    Duration: 5034 us
+  Chunk 1:
+    Start: 60234212950 us
+    End: 60234218538 us
+    Duration: 5588 us
+  Chunk 2:
+    Start: 60234246406 us
+    End: 60234252347 us
+    Duration: 5941 us
+  Chunk 3:
+    Start: 60234355265 us
+    End: 60234361886 us
+    Duration: 6620 us
+Task 114:
+  Chunk 0:
+    Start: 60234156945 us
+    End: 60234161754 us
+    Duration: 4808 us
+  Chunk 1:
+    Start: 60234218539 us
+    End: 60234224147 us
+    Duration: 5607 us
+  Chunk 2:
+    Start: 60234252348 us
+    End: 60234258115 us
+    Duration: 5767 us
+  Chunk 3:
+    Start: 60234361886 us
+    End: 60234368524 us
+    Duration: 6637 us
+Task 115:
+  Chunk 0:
+    Start: 60234163914 us
+    End: 60234168743 us
+    Duration: 4829 us
+  Chunk 1:
+    Start: 60234224148 us
+    End: 60234229782 us
+    Duration: 5634 us
+  Chunk 2:
+    Start: 60234258117 us
+    End: 60234263973 us
+    Duration: 5856 us
+  Chunk 3:
+    Start: 60234368525 us
+    End: 60234375142 us
+    Duration: 6616 us
+Task 116:
+  Chunk 0:
+    Start: 60234170781 us
+    End: 60234175590 us
+    Duration: 4808 us
+  Chunk 1:
+    Start: 60234229784 us
+    End: 60234235314 us
+    Duration: 5529 us
+  Chunk 2:
+    Start: 60234263975 us
+    End: 60234269812 us
+    Duration: 5836 us
+  Chunk 3:
+    Start: 60234375143 us
+    End: 60234381805 us
+    Duration: 6662 us
+Task 117:
+  Chunk 0:
+    Start: 60234177634 us
+    End: 60234182496 us
+    Duration: 4861 us
+  Chunk 1:
+    Start: 60234235315 us
+    End: 60234240933 us
+    Duration: 5617 us
+  Chunk 2:
+    Start: 60234269813 us
+    End: 60234275580 us
+    Duration: 5767 us
+  Chunk 3:
+    Start: 60234381806 us
+    End: 60234388435 us
+    Duration: 6629 us
+Task 118:
+  Chunk 0:
+    Start: 60234184405 us
+    End: 60234189292 us
+    Duration: 4887 us
+  Chunk 1:
+    Start: 60234240933 us
+    End: 60234246617 us
+    Duration: 5684 us
+  Chunk 2:
+    Start: 60234275582 us
+    End: 60234281453 us
+    Duration: 5871 us
+  Chunk 3:
+    Start: 60234388436 us
+    End: 60234395065 us
+    Duration: 6628 us
+Task 119:
+  Chunk 0:
+    Start: 60234191458 us
+    End: 60234196321 us
+    Duration: 4862 us
+  Chunk 1:
+    Start: 60234246618 us
+    End: 60234252135 us
+    Duration: 5517 us
+  Chunk 2:
+    Start: 60234281455 us
+    End: 60234287576 us
+    Duration: 6121 us
+  Chunk 3:
+    Start: 60234395065 us
+    End: 60234401711 us
+    Duration: 6646 us
+Task 120:
+  Chunk 0:
+    Start: 60234198528 us
+    End: 60234203246 us
+    Duration: 4717 us
+  Chunk 1:
+    Start: 60234252136 us
+    End: 60234257706 us
+    Duration: 5570 us
+  Chunk 2:
+    Start: 60234287577 us
+    End: 60234293660 us
+    Duration: 6082 us
+  Chunk 3:
+    Start: 60234401712 us
+    End: 60234408352 us
+    Duration: 6639 us
+Task 121:
+  Chunk 0:
+    Start: 60234205576 us
+    End: 60234210346 us
+    Duration: 4769 us
+  Chunk 1:
+    Start: 60234257708 us
+    End: 60234263286 us
+    Duration: 5577 us
+  Chunk 2:
+    Start: 60234293663 us
+    End: 60234299406 us
+    Duration: 5742 us
+  Chunk 3:
+    Start: 60234408353 us
+    End: 60234414959 us
+    Duration: 6606 us
+Task 122:
+  Chunk 0:
+    Start: 60234212595 us
+    End: 60234217373 us
+    Duration: 4777 us
+  Chunk 1:
+    Start: 60234263287 us
+    End: 60234268866 us
+    Duration: 5578 us
+  Chunk 2:
+    Start: 60234299407 us
+    End: 60234305151 us
+    Duration: 5744 us
+  Chunk 3:
+    Start: 60234414960 us
+    End: 60234421597 us
+    Duration: 6637 us
+Task 123:
+  Chunk 0:
+    Start: 60234219611 us
+    End: 60234224346 us
+    Duration: 4735 us
+  Chunk 1:
+    Start: 60234268866 us
+    End: 60234274453 us
+    Duration: 5586 us
+  Chunk 2:
+    Start: 60234305152 us
+    End: 60234310769 us
+    Duration: 5617 us
+  Chunk 3:
+    Start: 60234421599 us
+    End: 60234428231 us
+    Duration: 6631 us
+Task 124:
+  Chunk 0:
+    Start: 60234227947 us
+    End: 60234232948 us
+    Duration: 5000 us
+  Chunk 1:
+    Start: 60234274454 us
+    End: 60234280091 us
+    Duration: 5636 us
+  Chunk 2:
+    Start: 60234310770 us
+    End: 60234316419 us
+    Duration: 5648 us
+  Chunk 3:
+    Start: 60234428231 us
+    End: 60234434854 us
+    Duration: 6622 us
+Task 125:
+  Chunk 0:
+    Start: 60234234732 us
+    End: 60234239570 us
+    Duration: 4838 us
+  Chunk 1:
+    Start: 60234280092 us
+    End: 60234285639 us
+    Duration: 5546 us
+  Chunk 2:
+    Start: 60234316420 us
+    End: 60234322066 us
+    Duration: 5646 us
+  Chunk 3:
+    Start: 60234434854 us
+    End: 60234441497 us
+    Duration: 6642 us
+Task 126:
+  Chunk 0:
+    Start: 60234241579 us
+    End: 60234246377 us
+    Duration: 4797 us
+  Chunk 1:
+    Start: 60234285639 us
+    End: 60234291327 us
+    Duration: 5687 us
+  Chunk 2:
+    Start: 60234322067 us
+    End: 60234327843 us
+    Duration: 5776 us
+  Chunk 3:
+    Start: 60234441498 us
+    End: 60234448132 us
+    Duration: 6633 us
+Task 96:
+  Chunk 0:
+    Start: 60234248353 us
+    End: 60234253226 us
+    Duration: 4872 us
+  Chunk 1:
+    Start: 60234291329 us
+    End: 60234297274 us
+    Duration: 5945 us
+  Chunk 2:
+    Start: 60234327843 us
+    End: 60234333552 us
+    Duration: 5708 us
+  Chunk 3:
+    Start: 60234448134 us
+    End: 60234454764 us
+    Duration: 6630 us
+Task 97:
+  Chunk 0:
+    Start: 60234255043 us
+    End: 60234259910 us
+    Duration: 4867 us
+  Chunk 1:
+    Start: 60234297275 us
+    End: 60234302676 us
+    Duration: 5401 us
+  Chunk 2:
+    Start: 60234333552 us
+    End: 60234339143 us
+    Duration: 5590 us
+  Chunk 3:
+    Start: 60234454765 us
+    End: 60234461410 us
+    Duration: 6645 us
+Task 98:
+  Chunk 0:
+    Start: 60234261930 us
+    End: 60234266794 us
+    Duration: 4863 us
+  Chunk 1:
+    Start: 60234302676 us
+    End: 60234308059 us
+    Duration: 5382 us
+  Chunk 2:
+    Start: 60234339144 us
+    End: 60234344971 us
+    Duration: 5826 us
+  Chunk 3:
+    Start: 60234461412 us
+    End: 60234468059 us
+    Duration: 6647 us
+Task 99:
+  Chunk 0:
+    Start: 60234268687 us
+    End: 60234273545 us
+    Duration: 4858 us
+  Chunk 1:
+    Start: 60234308059 us
+    End: 60234313415 us
+    Duration: 5355 us
+  Chunk 2:
+    Start: 60234344972 us
+    End: 60234350520 us
+    Duration: 5548 us
+  Chunk 3:
+    Start: 60234468060 us
+    End: 60234474671 us
+    Duration: 6610 us
+Task 100:
+  Chunk 0:
+    Start: 60234275370 us
+    End: 60234280182 us
+    Duration: 4812 us
+  Chunk 1:
+    Start: 60234313415 us
+    End: 60234318782 us
+    Duration: 5366 us
+  Chunk 2:
+    Start: 60234350521 us
+    End: 60234356101 us
+    Duration: 5580 us
+  Chunk 3:
+    Start: 60234474671 us
+    End: 60234481314 us
+    Duration: 6642 us
+Task 101:
+  Chunk 0:
+    Start: 60234282172 us
+    End: 60234287024 us
+    Duration: 4851 us
+  Chunk 1:
+    Start: 60234318782 us
+    End: 60234324150 us
+    Duration: 5368 us
+  Chunk 2:
+    Start: 60234356102 us
+    End: 60234361818 us
+    Duration: 5715 us
+  Chunk 3:
+    Start: 60234481315 us
+    End: 60234487962 us
+    Duration: 6647 us
+Task 102:
+  Chunk 0:
+    Start: 60234288936 us
+    End: 60234294041 us
+    Duration: 5104 us
+  Chunk 1:
+    Start: 60234324150 us
+    End: 60234329538 us
+    Duration: 5388 us
+  Chunk 2:
+    Start: 60234361819 us
+    End: 60234367532 us
+    Duration: 5713 us
+  Chunk 3:
+    Start: 60234487963 us
+    End: 60234495073 us
+    Duration: 7109 us
+Task 135:
+  Chunk 0:
+    Start: 60235846538 us
+    End: 60235850982 us
+    Duration: 4444 us
+  Chunk 1:
+    Start: 60235954447 us
+    End: 60235960406 us
+    Duration: 5958 us
+  Chunk 2:
+    Start: 60235965698 us
+    End: 60235972145 us
+    Duration: 6447 us
+  Chunk 3:
+    Start: 60236014116 us
+    End: 60236020851 us
+    Duration: 6735 us
+Task 136:
+  Chunk 0:
+    Start: 60235850983 us
+    End: 60235855409 us
+    Duration: 4426 us
+  Chunk 1:
+    Start: 60235960406 us
+    End: 60235966470 us
+    Duration: 6063 us
+  Chunk 2:
+    Start: 60235972147 us
+    End: 60235978218 us
+    Duration: 6070 us
+  Chunk 3:
+    Start: 60236020853 us
+    End: 60236027440 us
+    Duration: 6587 us
+Task 137:
+  Chunk 0:
+    Start: 60235855409 us
+    End: 60235859803 us
+    Duration: 4393 us
+  Chunk 1:
+    Start: 60235966470 us
+    End: 60235972570 us
+    Duration: 6099 us
+  Chunk 2:
+    Start: 60235978219 us
+    End: 60235984385 us
+    Duration: 6166 us
+  Chunk 3:
+    Start: 60236027440 us
+    End: 60236034112 us
+    Duration: 6671 us
+Task 138:
+  Chunk 0:
+    Start: 60235859803 us
+    End: 60235864783 us
+    Duration: 4980 us
+  Chunk 1:
+    Start: 60235972571 us
+    End: 60235978679 us
+    Duration: 6107 us
+  Chunk 2:
+    Start: 60235984386 us
+    End: 60235990727 us
+    Duration: 6340 us
+  Chunk 3:
+    Start: 60236034113 us
+    End: 60236040727 us
+    Duration: 6614 us
+Task 139:
+  Chunk 0:
+    Start: 60235864784 us
+    End: 60235869677 us
+    Duration: 4893 us
+  Chunk 1:
+    Start: 60235978680 us
+    End: 60235984752 us
+    Duration: 6071 us
+  Chunk 2:
+    Start: 60235990729 us
+    End: 60235996810 us
+    Duration: 6081 us
+  Chunk 3:
+    Start: 60236040728 us
+    End: 60236047358 us
+    Duration: 6630 us
+Task 140:
+  Chunk 0:
+    Start: 60235869678 us
+    End: 60235874539 us
+    Duration: 4860 us
+  Chunk 1:
+    Start: 60235984753 us
+    End: 60235990826 us
+    Duration: 6072 us
+  Chunk 2:
+    Start: 60235996811 us
+    End: 60236002885 us
+    Duration: 6074 us
+  Chunk 3:
+    Start: 60236047359 us
+    End: 60236053986 us
+    Duration: 6627 us
+Task 141:
+  Chunk 0:
+    Start: 60235874539 us
+    End: 60235879812 us
+    Duration: 5272 us
+  Chunk 1:
+    Start: 60235990827 us
+    End: 60235996901 us
+    Duration: 6073 us
+  Chunk 2:
+    Start: 60236002888 us
+    End: 60236008973 us
+    Duration: 6084 us
+  Chunk 3:
+    Start: 60236053986 us
+    End: 60236060610 us
+    Duration: 6623 us
+Task 142:
+  Chunk 0:
+    Start: 60235879812 us
+    End: 60235885247 us
+    Duration: 5434 us
+  Chunk 1:
+    Start: 60235996902 us
+    End: 60236003079 us
+    Duration: 6176 us
+  Chunk 2:
+    Start: 60236008975 us
+    End: 60236014921 us
+    Duration: 5946 us
+  Chunk 3:
+    Start: 60236060611 us
+    End: 60236067237 us
+    Duration: 6626 us
+Task 143:
+  Chunk 0:
+    Start: 60235885248 us
+    End: 60235890442 us
+    Duration: 5193 us
+  Chunk 1:
+    Start: 60236003080 us
+    End: 60236009294 us
+    Duration: 6213 us
+  Chunk 2:
+    Start: 60236014922 us
+    End: 60236021054 us
+    Duration: 6131 us
+  Chunk 3:
+    Start: 60236067238 us
+    End: 60236073874 us
+    Duration: 6636 us
+Task 144:
+  Chunk 0:
+    Start: 60235890442 us
+    End: 60235895663 us
+    Duration: 5220 us
+  Chunk 1:
+    Start: 60236009295 us
+    End: 60236015440 us
+    Duration: 6144 us
+  Chunk 2:
+    Start: 60236021055 us
+    End: 60236027742 us
+    Duration: 6687 us
+  Chunk 3:
+    Start: 60236073875 us
+    End: 60236080502 us
+    Duration: 6627 us
+Task 145:
+  Chunk 0:
+    Start: 60235895664 us
+    End: 60235900892 us
+    Duration: 5228 us
+  Chunk 1:
+    Start: 60236015441 us
+    End: 60236021549 us
+    Duration: 6107 us
+  Chunk 2:
+    Start: 60236027742 us
+    End: 60236033398 us
+    Duration: 5655 us
+  Chunk 3:
+    Start: 60236080503 us
+    End: 60236087120 us
+    Duration: 6617 us
+Task 146:
+  Chunk 0:
+    Start: 60235900894 us
+    End: 60235906192 us
+    Duration: 5298 us
+  Chunk 1:
+    Start: 60236021550 us
+    End: 60236027413 us
+    Duration: 5863 us
+  Chunk 2:
+    Start: 60236033399 us
+    End: 60236039309 us
+    Duration: 5910 us
+  Chunk 3:
+    Start: 60236087121 us
+    End: 60236093759 us
+    Duration: 6638 us
+Task 147:
+  Chunk 0:
+    Start: 60235906192 us
+    End: 60235911364 us
+    Duration: 5171 us
+  Chunk 1:
+    Start: 60236027413 us
+    End: 60236033200 us
+    Duration: 5786 us
+  Chunk 2:
+    Start: 60236039310 us
+    End: 60236045052 us
+    Duration: 5742 us
+  Chunk 3:
+    Start: 60236093760 us
+    End: 60236100388 us
+    Duration: 6627 us
+Task 148:
+  Chunk 0:
+    Start: 60235911364 us
+    End: 60235916604 us
+    Duration: 5239 us
+  Chunk 1:
+    Start: 60236033200 us
+    End: 60236039011 us
+    Duration: 5811 us
+  Chunk 2:
+    Start: 60236045052 us
+    End: 60236050653 us
+    Duration: 5600 us
+  Chunk 3:
+    Start: 60236100388 us
+    End: 60236107041 us
+    Duration: 6653 us
+Task 149:
+  Chunk 0:
+    Start: 60235916605 us
+    End: 60235921835 us
+    Duration: 5230 us
+  Chunk 1:
+    Start: 60236039012 us
+    End: 60236044829 us
+    Duration: 5817 us
+  Chunk 2:
+    Start: 60236050654 us
+    End: 60236056418 us
+    Duration: 5763 us
+  Chunk 3:
+    Start: 60236107042 us
+    End: 60236113676 us
+    Duration: 6634 us
+Task 150:
+  Chunk 0:
+    Start: 60235921836 us
+    End: 60235927077 us
+    Duration: 5241 us
+  Chunk 1:
+    Start: 60236044830 us
+    End: 60236050628 us
+    Duration: 5798 us
+  Chunk 2:
+    Start: 60236056419 us
+    End: 60236062368 us
+    Duration: 5948 us
+  Chunk 3:
+    Start: 60236113677 us
+    End: 60236120388 us
+    Duration: 6711 us
+Task 151:
+  Chunk 0:
+    Start: 60235927077 us
+    End: 60235932297 us
+    Duration: 5219 us
+  Chunk 1:
+    Start: 60236050629 us
+    End: 60236056417 us
+    Duration: 5788 us
+  Chunk 2:
+    Start: 60236062368 us
+    End: 60236068126 us
+    Duration: 5757 us
+  Chunk 3:
+    Start: 60236120388 us
+    End: 60236126987 us
+    Duration: 6599 us
+Task 152:
+  Chunk 0:
+    Start: 60235932297 us
+    End: 60235937494 us
+    Duration: 5196 us
+  Chunk 1:
+    Start: 60236056417 us
+    End: 60236062198 us
+    Duration: 5781 us
+  Chunk 2:
+    Start: 60236068126 us
+    End: 60236073739 us
+    Duration: 5612 us
+  Chunk 3:
+    Start: 60236126987 us
+    End: 60236133645 us
+    Duration: 6657 us
+Task 153:
+  Chunk 0:
+    Start: 60235937494 us
+    End: 60235942280 us
+    Duration: 4785 us
+  Chunk 1:
+    Start: 60236062198 us
+    End: 60236067643 us
+    Duration: 5445 us
+  Chunk 2:
+    Start: 60236073739 us
+    End: 60236079367 us
+    Duration: 5627 us
+  Chunk 3:
+    Start: 60236133646 us
+    End: 60236140296 us
+    Duration: 6649 us
+Task 154:
+  Chunk 0:
+    Start: 60235942280 us
+    End: 60235947028 us
+    Duration: 4747 us
+  Chunk 1:
+    Start: 60236067644 us
+    End: 60236073074 us
+    Duration: 5430 us
+  Chunk 2:
+    Start: 60236079367 us
+    End: 60236085138 us
+    Duration: 5770 us
+  Chunk 3:
+    Start: 60236140297 us
+    End: 60236146922 us
+    Duration: 6625 us
+Task 155:
+  Chunk 0:
+    Start: 60235947032 us
+    End: 60235951756 us
+    Duration: 4724 us
+  Chunk 1:
+    Start: 60236073074 us
+    End: 60236078467 us
+    Duration: 5392 us
+  Chunk 2:
+    Start: 60236085139 us
+    End: 60236091085 us
+    Duration: 5946 us
+  Chunk 3:
+    Start: 60236146923 us
+    End: 60236153565 us
+    Duration: 6642 us
+Task 156:
+  Chunk 0:
+    Start: 60235953754 us
+    End: 60235958511 us
+    Duration: 4757 us
+  Chunk 1:
+    Start: 60236078467 us
+    End: 60236083772 us
+    Duration: 5305 us
+  Chunk 2:
+    Start: 60236091086 us
+    End: 60236096746 us
+    Duration: 5660 us
+  Chunk 3:
+    Start: 60236153566 us
+    End: 60236160206 us
+    Duration: 6639 us
+Task 157:
+  Chunk 0:
+    Start: 60235960498 us
+    End: 60235965280 us
+    Duration: 4781 us
+  Chunk 1:
+    Start: 60236083772 us
+    End: 60236088846 us
+    Duration: 5073 us
+  Chunk 2:
+    Start: 60236096747 us
+    End: 60236102493 us
+    Duration: 5746 us
+  Chunk 3:
+    Start: 60236160206 us
+    End: 60236166821 us
+    Duration: 6614 us
+Task 158:
+  Chunk 0:
+    Start: 60235967217 us
+    End: 60235971963 us
+    Duration: 4746 us
+  Chunk 1:
+    Start: 60236088847 us
+    End: 60236093956 us
+    Duration: 5109 us
+  Chunk 2:
+    Start: 60236102493 us
+    End: 60236108507 us
+    Duration: 6013 us
+  Chunk 3:
+    Start: 60236166822 us
+    End: 60236173457 us
+    Duration: 6634 us
+Task 128:
+  Chunk 0:
+    Start: 60235973941 us
+    End: 60235978630 us
+    Duration: 4688 us
+  Chunk 1:
+    Start: 60236093957 us
+    End: 60236099020 us
+    Duration: 5062 us
+  Chunk 2:
+    Start: 60236108508 us
+    End: 60236114193 us
+    Duration: 5684 us
+  Chunk 3:
+    Start: 60236173458 us
+    End: 60236180117 us
+    Duration: 6659 us
+Task 129:
+  Chunk 0:
+    Start: 60235980613 us
+    End: 60235985414 us
+    Duration: 4801 us
+  Chunk 1:
+    Start: 60236099020 us
+    End: 60236103930 us
+    Duration: 4910 us
+  Chunk 2:
+    Start: 60236114194 us
+    End: 60236119915 us
+    Duration: 5721 us
+  Chunk 3:
+    Start: 60236180118 us
+    End: 60236186709 us
+    Duration: 6590 us
+Task 130:
+  Chunk 0:
+    Start: 60235987395 us
+    End: 60235992222 us
+    Duration: 4827 us
+  Chunk 1:
+    Start: 60236103931 us
+    End: 60236108581 us
+    Duration: 4650 us
+  Chunk 2:
+    Start: 60236119917 us
+    End: 60236125647 us
+    Duration: 5730 us
+  Chunk 3:
+    Start: 60236186709 us
+    End: 60236193336 us
+    Duration: 6627 us
+Task 131:
+  Chunk 0:
+    Start: 60235994118 us
+    End: 60235998850 us
+    Duration: 4731 us
+  Chunk 1:
+    Start: 60236108581 us
+    End: 60236113285 us
+    Duration: 4704 us
+  Chunk 2:
+    Start: 60236125647 us
+    End: 60236131240 us
+    Duration: 5592 us
+  Chunk 3:
+    Start: 60236193337 us
+    End: 60236199928 us
+    Duration: 6591 us
+Task 132:
+  Chunk 0:
+    Start: 60236000803 us
+    End: 60236005523 us
+    Duration: 4720 us
+  Chunk 1:
+    Start: 60236113286 us
+    End: 60236117946 us
+    Duration: 4660 us
+  Chunk 2:
+    Start: 60236131241 us
+    End: 60236137083 us
+    Duration: 5842 us
+  Chunk 3:
+    Start: 60236199929 us
+    End: 60236206556 us
+    Duration: 6627 us
+Task 133:
+  Chunk 0:
+    Start: 60236007440 us
+    End: 60236012154 us
+    Duration: 4713 us
+  Chunk 1:
+    Start: 60236117946 us
+    End: 60236122589 us
+    Duration: 4643 us
+  Chunk 2:
+    Start: 60236137084 us
+    End: 60236142968 us
+    Duration: 5884 us
+  Chunk 3:
+    Start: 60236206557 us
+    End: 60236213182 us
+    Duration: 6625 us
+Task 134:
+  Chunk 0:
+    Start: 60236014116 us
+    End: 60236018837 us
+    Duration: 4720 us
+  Chunk 1:
+    Start: 60236122590 us
+    End: 60236127261 us
+    Duration: 4671 us
+  Chunk 2:
+    Start: 60236142969 us
+    End: 60236148581 us
+    Duration: 5611 us
+  Chunk 3:
+    Start: 60236213184 us
+    End: 60236219762 us
+    Duration: 6578 us
+-----------------------------------------------------------------------------------------------------------
+Benchmark                                                                 Time             CPU   Iterations
+-----------------------------------------------------------------------------------------------------------
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5               762 ms        0.854 ms            1
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5               718 ms         1.13 ms            1
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5               716 ms        0.920 ms            1
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5               749 ms         1.19 ms            1
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5               712 ms        0.706 ms            1
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5_mean          731 ms        0.959 ms            5
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5_median        718 ms        0.920 ms            5
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5_stddev       22.7 ms        0.198 ms            5
+BM_pipe_cifar_sparse_vk_schedule_2/iterations:1/repeats:5_cv           3.11 %         20.63 %             5
 
 [2/2] Processing device: 9b034f1b
-Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 9b034f1b
-build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 487.2 MB/s (3018632 bytes in 0.006s)
-[2025-04-11 01:03:34.024] [info] Little cores: 0 1 2 
-[2025-04-11 01:03:34.024] [info] Medium cores: 3 4 
-[2025-04-11 01:03:34.024] [info] Big cores: 5 6 7 
---------------------------------------------------------------------------------------------------
-Benchmark                                                        Time             CPU   Iterations
---------------------------------------------------------------------------------------------------
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2261 ms        0.710 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2248 ms        0.673 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2255 ms        0.675 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2254 ms         1.03 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5                2246 ms        0.671 ms            1
-VK/CifarSparse/Baseline/iterations:1/repeats:5_mean           2253 ms        0.752 ms            5
-VK/CifarSparse/Baseline/iterations:1/repeats:5_median         2254 ms        0.675 ms            5
-VK/CifarSparse/Baseline/iterations:1/repeats:5_stddev         5.63 ms        0.157 ms            5
-VK/CifarSparse/Baseline/iterations:1/repeats:5_cv             0.25 %         20.92 %             5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  536 ms        0.200 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  532 ms        0.198 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  534 ms        0.199 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  538 ms        0.202 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5                  538 ms        0.192 ms            1
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_mean             536 ms        0.198 ms            5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_median           536 ms        0.199 ms            5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_stddev          2.69 ms        0.004 ms            5
-VK/CifarSparse/Stage/1/iterations:1/repeats:5_cv              0.50 %          1.97 %             5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  354 ms        0.188 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  352 ms        0.196 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  362 ms        0.201 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  358 ms        0.200 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5                  352 ms        0.202 ms            1
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_mean             356 ms        0.197 ms            5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_median           354 ms        0.200 ms            5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_stddev          4.38 ms        0.006 ms            5
-VK/CifarSparse/Stage/2/iterations:1/repeats:5_cv              1.23 %          2.94 %             5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  321 ms        0.198 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  318 ms        0.185 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  317 ms        0.200 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  321 ms        0.201 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5                  313 ms        0.202 ms            1
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_mean             318 ms        0.197 ms            5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_median           318 ms        0.200 ms            5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_stddev          3.31 ms        0.007 ms            5
-VK/CifarSparse/Stage/3/iterations:1/repeats:5_cv              1.04 %          3.62 %             5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  218 ms        0.206 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  214 ms        0.203 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  216 ms        0.215 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  218 ms        0.239 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5                  217 ms        0.202 ms            1
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_mean             217 ms        0.213 ms            5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_median           217 ms        0.206 ms            5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_stddev          1.63 ms        0.016 ms            5
-VK/CifarSparse/Stage/4/iterations:1/repeats:5_cv              0.75 %          7.28 %             5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  211 ms        0.208 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  208 ms        0.232 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  207 ms        0.206 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  208 ms        0.200 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5                  209 ms        0.208 ms            1
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_mean             209 ms        0.211 ms            5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_median           208 ms        0.208 ms            5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_stddev          1.24 ms        0.012 ms            5
-VK/CifarSparse/Stage/5/iterations:1/repeats:5_cv              0.60 %          5.79 %             5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  210 ms        0.196 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  210 ms        0.213 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  205 ms        0.197 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  211 ms        0.213 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5                  210 ms        0.223 ms            1
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_mean             209 ms        0.208 ms            5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_median           210 ms        0.213 ms            5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_stddev          2.53 ms        0.012 ms            5
-VK/CifarSparse/Stage/6/iterations:1/repeats:5_cv              1.21 %          5.58 %             5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  209 ms        0.205 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  207 ms        0.206 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  208 ms        0.219 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  213 ms        0.229 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5                  211 ms        0.233 ms            1
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_mean             209 ms        0.218 ms            5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_median           209 ms        0.219 ms            5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_stddev          2.42 ms        0.013 ms            5
-VK/CifarSparse/Stage/7/iterations:1/repeats:5_cv              1.16 %          5.90 %             5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  158 ms        0.213 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  158 ms        0.217 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  157 ms        0.211 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  158 ms        0.252 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5                  153 ms        0.212 ms            1
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_mean             157 ms        0.221 ms            5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_median           158 ms        0.213 ms            5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_stddev          2.11 ms        0.018 ms            5
-VK/CifarSparse/Stage/8/iterations:1/repeats:5_cv              1.34 %          7.96 %             5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 85.8 ms        0.207 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 83.0 ms        0.209 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 84.8 ms        0.230 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 83.0 ms        0.213 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5                 81.6 ms        0.205 ms            1
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_mean            83.6 ms        0.213 ms            5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_median          83.0 ms        0.209 ms            5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_stddev          1.65 ms        0.010 ms            5
-VK/CifarSparse/Stage/9/iterations:1/repeats:5_cv              1.98 %          4.66 %             5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              3262 ms        0.201 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              3249 ms        0.225 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              3245 ms        0.198 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              3240 ms        0.208 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5              3253 ms        0.201 ms            1
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_mean         3250 ms        0.207 ms            5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_median       3249 ms        0.201 ms            5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_stddev       8.17 ms        0.011 ms            5
-OMP/CifarSparse/Stage/1/0/iterations:1/repeats:5_cv           0.25 %          5.39 %             5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               618 ms        0.197 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               612 ms        0.189 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               609 ms        0.207 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               613 ms        0.187 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5               613 ms        0.206 ms            1
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_mean          613 ms        0.197 ms            5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_median        613 ms        0.197 ms            5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_stddev       3.03 ms        0.009 ms            5
-OMP/CifarSparse/Stage/1/1/iterations:1/repeats:5_cv           0.49 %          4.75 %             5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               468 ms        0.193 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               681 ms        0.230 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               526 ms        0.220 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               626 ms        0.186 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5               465 ms        0.187 ms            1
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_mean          553 ms        0.203 ms            5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_median        526 ms        0.193 ms            5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_stddev       96.6 ms        0.020 ms            5
-OMP/CifarSparse/Stage/1/2/iterations:1/repeats:5_cv          17.45 %          9.98 %             5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              2659 ms        0.184 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              2741 ms        0.202 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              2670 ms        0.173 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              2673 ms        0.221 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5              2646 ms        0.198 ms            1
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_mean         2678 ms        0.196 ms            5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_median       2670 ms        0.198 ms            5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_stddev       36.8 ms        0.018 ms            5
-OMP/CifarSparse/Stage/2/0/iterations:1/repeats:5_cv           1.37 %          9.23 %             5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1486 ms        0.191 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1492 ms        0.225 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1486 ms        0.202 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1490 ms        0.181 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5              1485 ms        0.186 ms            1
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_mean         1488 ms        0.197 ms            5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_median       1486 ms        0.191 ms            5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_stddev       3.09 ms        0.017 ms            5
-OMP/CifarSparse/Stage/2/1/iterations:1/repeats:5_cv           0.21 %          8.78 %             5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5               992 ms        0.188 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5               980 ms        0.156 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5               978 ms        0.166 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              1121 ms        0.204 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5              1124 ms        0.180 ms            1
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_mean         1039 ms        0.179 ms            5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_median        992 ms        0.180 ms            5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_stddev       76.3 ms        0.019 ms            5
-OMP/CifarSparse/Stage/2/2/iterations:1/repeats:5_cv           7.34 %         10.48 %             5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1685 ms        0.200 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              2222 ms        0.178 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1798 ms        0.211 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1786 ms        0.200 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5              1829 ms        0.247 ms            1
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_mean         1864 ms        0.207 ms            5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_median       1798 ms        0.200 ms            5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_stddev        208 ms        0.025 ms            5
-OMP/CifarSparse/Stage/3/0/iterations:1/repeats:5_cv          11.14 %         12.14 %             5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               353 ms        0.212 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               355 ms        0.219 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               355 ms        0.186 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               355 ms        0.209 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5               358 ms        0.200 ms            1
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_mean          355 ms        0.205 ms            5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_median        355 ms        0.209 ms            5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_stddev       1.65 ms        0.013 ms            5
-OMP/CifarSparse/Stage/3/1/iterations:1/repeats:5_cv           0.46 %          6.20 %             5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               269 ms        0.228 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               274 ms        0.215 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               269 ms        0.232 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               269 ms        0.228 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5               278 ms        0.231 ms            1
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_mean          272 ms        0.227 ms            5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_median        269 ms        0.228 ms            5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_stddev       3.80 ms        0.007 ms            5
-OMP/CifarSparse/Stage/3/2/iterations:1/repeats:5_cv           1.40 %          3.10 %             5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1669 ms        0.220 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1683 ms        0.227 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1662 ms        0.229 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1673 ms        0.220 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5              1666 ms        0.251 ms            1
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_mean         1671 ms        0.230 ms            5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_median       1669 ms        0.227 ms            5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_stddev       8.00 ms        0.013 ms            5
-OMP/CifarSparse/Stage/4/0/iterations:1/repeats:5_cv           0.48 %          5.58 %             5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5              1657 ms        0.662 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               823 ms        0.252 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               827 ms        0.784 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               830 ms        0.758 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5               830 ms        0.782 ms            1
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_mean          993 ms        0.648 ms            5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_median        830 ms        0.758 ms            5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_stddev        371 ms        0.226 ms            5
-OMP/CifarSparse/Stage/4/1/iterations:1/repeats:5_cv          37.37 %         34.98 %             5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               602 ms        0.239 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               562 ms        0.212 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5              1092 ms        0.246 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               561 ms        0.241 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5               555 ms        0.219 ms            1
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_mean          675 ms        0.231 ms            5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_median        562 ms        0.239 ms            5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_stddev        234 ms        0.015 ms            5
-OMP/CifarSparse/Stage/4/2/iterations:1/repeats:5_cv          34.72 %          6.45 %             5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5              1111 ms        0.745 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5              1111 ms         1.07 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5              1112 ms        0.257 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5              1108 ms        0.273 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5              1116 ms        0.217 ms            1
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_mean         1112 ms        0.512 ms            5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_median       1111 ms        0.273 ms            5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_stddev       2.96 ms        0.379 ms            5
-OMP/CifarSparse/Stage/5/0/iterations:1/repeats:5_cv           0.27 %         73.97 %             5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               218 ms        0.840 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               216 ms        0.836 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               218 ms        0.851 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               215 ms        0.892 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5               218 ms        0.915 ms            1
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_mean          217 ms        0.867 ms            5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_median        218 ms        0.851 ms            5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_stddev       1.35 ms        0.035 ms            5
-OMP/CifarSparse/Stage/5/1/iterations:1/repeats:5_cv           0.62 %          4.04 %             5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               159 ms        0.236 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               161 ms        0.253 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               315 ms        0.297 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               166 ms        0.253 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5               313 ms        0.261 ms            1
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_mean          223 ms        0.260 ms            5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_median        166 ms        0.253 ms            5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_stddev       83.3 ms        0.023 ms            5
-OMP/CifarSparse/Stage/5/2/iterations:1/repeats:5_cv          37.41 %          8.70 %             5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5              1108 ms        0.270 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5              1117 ms         1.10 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5              1106 ms        0.829 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5              1125 ms        0.261 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5              1110 ms         1.10 ms            1
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_mean         1113 ms        0.714 ms            5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_median       1110 ms        0.829 ms            5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_stddev       7.93 ms        0.424 ms            5
-OMP/CifarSparse/Stage/6/0/iterations:1/repeats:5_cv           0.71 %         59.41 %             5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               217 ms        0.884 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               217 ms        0.881 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               218 ms        0.887 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               218 ms        0.894 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5               216 ms         1.01 ms            1
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_mean          217 ms        0.911 ms            5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_median        217 ms        0.887 ms            5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_stddev      0.879 ms        0.054 ms            5
-OMP/CifarSparse/Stage/6/1/iterations:1/repeats:5_cv           0.40 %          5.95 %             5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               233 ms        0.227 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               166 ms        0.241 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               316 ms        0.274 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               265 ms        0.244 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5               165 ms        0.249 ms            1
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_mean          229 ms        0.247 ms            5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_median        233 ms        0.244 ms            5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_stddev       64.9 ms        0.017 ms            5
-OMP/CifarSparse/Stage/6/2/iterations:1/repeats:5_cv          28.34 %          6.96 %             5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5              1108 ms        0.227 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5              1107 ms        0.242 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5              1118 ms        0.264 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5              1119 ms        0.304 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5              1112 ms        0.240 ms            1
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_mean         1113 ms        0.256 ms            5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_median       1112 ms        0.242 ms            5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_stddev       5.65 ms        0.030 ms            5
-OMP/CifarSparse/Stage/7/0/iterations:1/repeats:5_cv           0.51 %         11.78 %             5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               217 ms        0.921 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               219 ms        0.891 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               217 ms        0.884 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               216 ms        0.948 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5               217 ms        0.896 ms            1
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_mean          217 ms        0.908 ms            5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_median        217 ms        0.896 ms            5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_stddev       1.03 ms        0.026 ms            5
-OMP/CifarSparse/Stage/7/1/iterations:1/repeats:5_cv           0.47 %          2.91 %             5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               160 ms        0.274 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               166 ms        0.209 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               161 ms        0.231 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               227 ms        0.227 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5               159 ms        0.244 ms            1
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_mean          175 ms        0.237 ms            5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_median        161 ms        0.231 ms            5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_stddev       29.6 ms        0.024 ms            5
-OMP/CifarSparse/Stage/7/2/iterations:1/repeats:5_cv          16.95 %         10.16 %             5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               862 ms        0.283 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               886 ms        0.230 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               862 ms        0.255 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               856 ms        0.768 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5               864 ms        0.257 ms            1
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_mean          866 ms        0.359 ms            5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_median        862 ms        0.257 ms            5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_stddev       11.5 ms        0.230 ms            5
-OMP/CifarSparse/Stage/8/0/iterations:1/repeats:5_cv           1.33 %         64.03 %             5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               450 ms        0.769 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               454 ms        0.762 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               453 ms        0.780 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               450 ms        0.779 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5               456 ms        0.754 ms            1
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_mean          453 ms        0.769 ms            5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_median        453 ms        0.769 ms            5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_stddev       2.59 ms        0.011 ms            5
-OMP/CifarSparse/Stage/8/1/iterations:1/repeats:5_cv           0.57 %          1.44 %             5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               485 ms        0.231 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               598 ms        0.263 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               570 ms        0.245 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               313 ms        0.254 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5               307 ms        0.235 ms            1
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_mean          455 ms        0.246 ms            5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_median        485 ms        0.245 ms            5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_stddev        138 ms        0.013 ms            5
-OMP/CifarSparse/Stage/8/2/iterations:1/repeats:5_cv          30.41 %          5.36 %             5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              11.8 ms        0.635 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              10.9 ms        0.715 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              12.2 ms        0.710 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              10.2 ms        0.681 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5              11.0 ms        0.774 ms            1
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_mean         11.2 ms        0.703 ms            5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_median       11.0 ms        0.710 ms            5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_stddev      0.778 ms        0.051 ms            5
-OMP/CifarSparse/Stage/9/0/iterations:1/repeats:5_cv           6.94 %          7.25 %             5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              6.86 ms        0.614 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              7.35 ms        0.703 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              7.11 ms        0.771 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              6.68 ms        0.631 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5              6.90 ms        0.768 ms            1
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_mean         6.98 ms        0.698 ms            5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_median       6.90 ms        0.703 ms            5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_stddev      0.258 ms        0.074 ms            5
-OMP/CifarSparse/Stage/9/1/iterations:1/repeats:5_cv           3.69 %         10.60 %             5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              13.9 ms        0.255 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              14.1 ms        0.683 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              13.0 ms        0.266 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              14.7 ms        0.664 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5              14.7 ms        0.260 ms            1
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_mean         14.1 ms        0.425 ms            5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_median       14.1 ms        0.266 ms            5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_stddev      0.698 ms        0.226 ms            5
-OMP/CifarSparse/Stage/9/2/iterations:1/repeats:5_cv           4.96 %         53.22 %             5
+Deploying and running 'pipe-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 498.4 MB/s (3090312 bytes in 0.006s)
+[2025-04-11 10:48:30.432] [info] Little cores: 0 1 2 
+[2025-04-11 10:48:30.432] [info] Medium cores: 3 4 
+[2025-04-11 10:48:30.432] [info] Big cores: 5 6 7 
 [0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m

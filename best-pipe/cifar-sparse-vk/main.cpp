@@ -81,10 +81,17 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
 // Specialized Schedules
 // ----------------------------------------------------------------------------
 
-void dump_records(const std::vector<std::unique_ptr<Task>>& tasks) {
-  for (const auto& task : tasks) {
+void dump_records(SPSCQueue<Task*, kPoolSize>& free_task_pool) {
+  // Print the records, pop all from free_task_pool
+
+  while (!free_task_pool.empty()) {
+    Task* task = nullptr;
+    while (!free_task_pool.dequeue(task)) {
+      std::this_thread::yield();
+    }
+
     std::cout << "Task " << task->uid << ":\n";
-    for (size_t i = 0; i < 3; ++i) {  // Only 3 chunks in the pipeline
+    for (size_t i = 0; i < 4; ++i) {
       std::cout << "  Chunk " << i << ":\n";
       std::cout << "    Start: "
                 << std::chrono::duration_cast<std::chrono::microseconds>(
@@ -260,15 +267,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_1(benchmark::State& state) {
                 << " us\n";
     }
   }
-
-  // for (size_t i = 0; i < kPoolSize; ++i) {
-  //   std::cout << "Task " << i << ":\n";
-  //   for (size_t j = 0; j < 4; ++j) {
-  //     std::cout << "  Chunk " << j << ": " <<
-  //     std::chrono::duration_cast<std::chrono::microseconds>(records[j].end_time -
-  //     records[j].start_time).count() << " us\n";
-  //   }
-  // }
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_1)
     ->Unit(benchmark::kMillisecond)
@@ -289,23 +287,31 @@ static void BM_pipe_cifar_sparse_vk_schedule_2(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
+      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
+      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 6, 9);
+          task.end_record(3);
         });
 
     t0.join();
@@ -314,7 +320,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_2(benchmark::State& state) {
     t3.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_2)
     ->Unit(benchmark::kMillisecond)
@@ -335,23 +341,31 @@ static void BM_pipe_cifar_sparse_vk_schedule_3(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
+      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_big_cores, g_big_cores.size(), task.appdata, 5, 7);
+      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
+          task.end_record(3);
         });
 
     t0.join();
@@ -360,7 +374,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_3(benchmark::State& state) {
     t3.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_3)
     ->Unit(benchmark::kMillisecond)
@@ -381,23 +395,31 @@ static void BM_pipe_cifar_sparse_vk_schedule_4(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
+      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_medium_cores, g_medium_cores.size(), task.appdata, 5, 7);
+      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
+          task.end_record(3);
         });
 
     t0.join();
@@ -406,7 +428,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_4(benchmark::State& state) {
     t3.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_4)
     ->Unit(benchmark::kMillisecond)
@@ -427,23 +449,31 @@ static void BM_pipe_cifar_sparse_vk_schedule_5(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
+      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_big_cores, g_big_cores.size(), task.appdata, 5, 8);
+      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
+          task.end_record(3);
         });
 
     t0.join();
@@ -452,7 +482,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_5(benchmark::State& state) {
     t3.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_5)
     ->Unit(benchmark::kMillisecond)
@@ -473,23 +503,31 @@ static void BM_pipe_cifar_sparse_vk_schedule_6(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
+      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_medium_cores, g_medium_cores.size(), task.appdata, 5, 8);
+      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
+          task.end_record(3);
         });
 
     t0.join();
@@ -498,7 +536,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_6(benchmark::State& state) {
     t3.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_6)
     ->Unit(benchmark::kMillisecond)
@@ -517,18 +555,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_7(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
+          task.end_record(2);
         });
 
     t0.join();
@@ -536,7 +580,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_7(benchmark::State& state) {
     t2.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_7)
     ->Unit(benchmark::kMillisecond)
@@ -555,18 +599,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_8(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
+          task.end_record(2);
         });
 
     t0.join();
@@ -574,7 +624,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_8(benchmark::State& state) {
     t2.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_8)
     ->Unit(benchmark::kMillisecond)
@@ -593,18 +643,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_9(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
+          task.end_record(2);
         });
 
     t0.join();
@@ -612,7 +668,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_9(benchmark::State& state) {
     t2.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_9)
     ->Unit(benchmark::kMillisecond)
@@ -631,18 +687,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_10(benchmark::State& state) {
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
+          task.end_record(2);
         });
 
     t0.join();
@@ -650,15 +712,16 @@ static void BM_pipe_cifar_sparse_vk_schedule_10(benchmark::State& state) {
     t2.join();
   }
 
-  dump_records(preallocated_tasks);
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_10)
     ->Unit(benchmark::kMillisecond)
     ->Iterations(1)
     ->Repetitions(5);
 
-// void run_pipe_cifar_sparse_vk_schedule_1() {
-//   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+// ----------------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
