@@ -135,3 +135,51 @@ for device_id, chunk in device_chunks.items():
 # Access each device's DataFrame as needed
 # device_dfs['3A021JEHN02756'] for first device
 # device_dfs['9b034f1b'] for second device
+
+# Save the data to files, organized by device ID
+save_dir = os.path.join(base_dir, "parsed_data")
+os.makedirs(save_dir, exist_ok=True)
+
+# Method 1: Save as CSV files (most common and universal)
+for device_id, df in device_dfs.items():
+    csv_path = os.path.join(save_dir, f"{device_id}_benchmark.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"Saved CSV to {csv_path}")
+
+# Method 2: Save as Excel files (good for viewers who use Excel)
+try:
+    import openpyxl
+
+    for device_id, df in device_dfs.items():
+        excel_path = os.path.join(save_dir, f"{device_id}_benchmark.xlsx")
+        df.to_excel(excel_path, index=False)
+        print(f"Saved Excel to {excel_path}")
+except ImportError:
+    print("Excel export skipped: openpyxl package not installed.")
+    print("To install: pip install openpyxl")
+
+# Method 3: Save as pickle files (best for reloading into pandas later)
+for device_id, df in device_dfs.items():
+    pickle_path = os.path.join(save_dir, f"{device_id}_benchmark.pkl")
+    df.to_pickle(pickle_path)
+    print(f"Saved pickle to {pickle_path}")
+
+# Method 4: Save as JSON
+for device_id, df in device_dfs.items():
+    json_path = os.path.join(save_dir, f"{device_id}_benchmark.json")
+    df.to_json(json_path, orient="records", indent=4)
+    print(f"Saved JSON to {json_path}")
+
+# Method 5: Save as HDF5 (good for large datasets)
+try:
+    import tables
+
+    h5_path = os.path.join(save_dir, "all_devices_benchmark.h5")
+    for device_id, df in device_dfs.items():
+        df.to_hdf(h5_path, key=device_id, mode="a")
+    print(f"Saved all devices to HDF5: {h5_path}")
+except ImportError:
+    print("HDF5 export skipped: tables package not installed.")
+    print("To install: pip install tables")
+
+print("\nData saved successfully in available formats.")
