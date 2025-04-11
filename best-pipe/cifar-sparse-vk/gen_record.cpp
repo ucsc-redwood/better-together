@@ -8,8 +8,62 @@
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/cifar-sparse/omp/dispatchers.hpp"
 #include "builtin-apps/cifar-sparse/vulkan/dispatchers.hpp"
+#include "builtin-apps/conf.hpp"
 #include "builtin-apps/config_reader.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
+
+constexpr size_t kPoolSize = 32;
+constexpr size_t kNumToProcess = 100;
+
+struct Record {
+  ProcessorType processed_by;
+  std::chrono::time_point<std::chrono::high_resolution_clock> start;
+  std::chrono::time_point<std::chrono::high_resolution_clock> end;
+};
+
+struct RecordManager {
+  std::array<std::array<Record, 4>, kNumToProcess> records;
+
+  void setup(const int chunk_id, const ProcessorType processed_by) {
+    for (size_t i = 0; i < kNumToProcess; ++i) {
+      records[i][chunk_id].processed_by = processed_by;
+    }
+  }
+
+  void start_tick(const uint32_t task_id, const int chunk_id) {
+    records[task_id][chunk_id].start = std::chrono::high_resolution_clock::now();
+  }
+
+  void end_tick(const uint32_t task_id, const int chunk_id) {
+    records[task_id][chunk_id].end = std::chrono::high_resolution_clock::now();
+  }
+
+  void dump_records() {
+    for (size_t i = 0; i < kNumToProcess; ++i) {
+      std::cout << "Task " << i << ":\n";
+      for (size_t j = 0; j < 4; ++j) {
+        std::cout << "  Chunk " << j << ":\n";
+        std::cout << "    Start: "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(
+                         records[i][j].start.time_since_epoch())
+                         .count()
+                  << " us\n";
+        std::cout << "    End: "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(
+                         records[i][j].end.time_since_epoch())
+                         .count()
+                  << " us\n";
+        std::cout << "    Duration: "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(records[i][j].end -
+                                                                           records[i][j].start)
+                         .count()
+                  << " us\n";
+      }
+    }
+  }
+};
+
+RecordManager g_record_manager;
 
 struct Task {
   uint32_t task_id;  // Unique ID for this task, assigned sequentially 0...N
@@ -21,12 +75,13 @@ struct Task {
   explicit Task(std::pmr::memory_resource* mr, uint32_t id) : task_id(id), appdata(mr) {}
 
   void reset() { appdata.reset(); }
+
+  void start_record(const int chunk_id) { g_record_manager.start_tick(task_id, chunk_id); }
+
+  void end_record(const int chunk_id) { g_record_manager.end_tick(task_id, chunk_id); }
 };
 
 using ProcessFunction = std::function<void(Task&)>;
-
-constexpr size_t kPoolSize = 32;
-constexpr size_t kNumToProcess = 100;
 
 void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
                           SPSCQueue<Task*, kPoolSize>& out_queue,
@@ -74,26 +129,38 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
   SPSCQueue<Task*, kPoolSize> q_1_2;
 
   {
+    g_record_manager.setup(0, ProcessorType::kVulkan);
+    g_record_manager.setup(1, ProcessorType::kMediumCore);
+    g_record_manager.setup(2, ProcessorType::kBigCore);
+
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
+          task.start_record(0);
           disp.dispatch_multi_stage(task.appdata, 1, 4);
+          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+      task.start_record(1);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_medium_cores, g_medium_cores.size(), task.appdata, 5, 5);
+      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
+          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
+          task.end_record(2);
         });
 
     t0.join();
     t1.join();
     t2.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 1:
