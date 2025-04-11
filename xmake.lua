@@ -129,5 +129,6 @@ includes("builtin-apps") -- the three applications
 -- includes("pipe")
 -- includes("lpipe")
 -- includes("play")
+includes("best-pipe")
 includes("utility")
 
