@@ -148,6 +148,25 @@ struct AppData {
         conv5_sparse(64, 576, mr),
         linear_sparse(10, 1024, mr) {}
 
+  void reset() {
+    // u_input.pmr_vec().clear();
+    // u_conv1_out.pmr_vec().clear();
+    // u_pool1_out.pmr_vec().clear();
+    // u_conv2_out.pmr_vec().clear();
+    // u_pool2_out.pmr_vec().clear();
+    // u_conv3_out.pmr_vec().clear();
+    // u_conv4_out.pmr_vec().clear();
+    // u_conv5_out.pmr_vec().clear();
+    // u_pool3_out.pmr_vec().clear();
+    // u_linear_out.pmr_vec().clear();
+    // u_conv1_b.pmr_vec().clear();
+    // u_conv2_b.pmr_vec().clear();
+    // u_conv3_b.pmr_vec().clear();
+    // u_conv4_b.pmr_vec().clear();
+    // u_conv5_b.pmr_vec().clear();
+    // u_linear_b.pmr_vec().clear();
+  }
+
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
   Ndarray4D u_conv1_out;  // (128, 16, 32, 32)
