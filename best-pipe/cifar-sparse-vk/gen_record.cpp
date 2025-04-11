@@ -146,7 +146,7 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
 // // Omp Stage
 // // ----------------------------------------------------------------------------
 
-#define SETUP_CORES_AND_TASKS(state)                                           \
+#define SETUP_CORES_AND_TASKS()                                                \
   g_task_records.clear();                                                      \
   g_task_records.ensure_capacity(kNumToProcess);                               \
   g_tracker.reset();                                                           \
@@ -178,7 +178,7 @@ void dump_records(SPSCQueue<Task*, kPoolSize>& free_task_pool) {
 //   Chunk 2: Stage [5] → medium (g_medium_cores)
 //   Chunk 3: Stages [6, 7, 8, 9] → big (g_big_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_best() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
 
@@ -219,7 +219,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
 //   Chunk 3: Stage [5] → little (g_little_cores)
 //   Chunk 4: Stages [6, 7, 8, 9] → big (g_big_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_1() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
   SPSCQueue<Task*, kPoolSize> q_2_3;
@@ -268,7 +268,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_1() {
 //   Chunk 3: Stage [5] → little (g_little_cores)
 //   Chunk 4: Stages [6, 7, 8, 9] → medium (g_medium_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_2() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
   SPSCQueue<Task*, kPoolSize> q_2_3;
@@ -318,7 +318,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
 //   Chunk 3: Stages [5, 6, 7] → big (g_big_cores)
 //   Chunk 4: Stages [8, 9] → little (g_little_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_3() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
   SPSCQueue<Task*, kPoolSize> q_2_3;
@@ -368,7 +368,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
 //   Chunk 3: Stages [5, 6, 7] → medium (g_medium_cores)
 //   Chunk 4: Stages [8, 9] → little (g_little_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_4() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
   SPSCQueue<Task*, kPoolSize> q_2_3;
@@ -418,7 +418,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
 //   Chunk 3: Stages [5, 6, 7, 8] → big (g_big_cores)
 //   Chunk 4: Stage [9] → little (g_little_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_5() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
   SPSCQueue<Task*, kPoolSize> q_2_3;
@@ -468,7 +468,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_5() {
 //   Chunk 3: Stages [5, 6, 7, 8] → medium (g_medium_cores)
 //   Chunk 4: Stage [9] → little (g_little_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_6() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
   SPSCQueue<Task*, kPoolSize> q_2_3;
@@ -517,7 +517,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_6() {
 //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
 //   Chunk 3: Stages [5, 6, 7, 8, 9] → big (g_big_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_7() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
 
@@ -557,7 +557,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_7() {
 //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
 //   Chunk 3: Stages [5, 6, 7, 8, 9] → medium (g_medium_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_8() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
 
@@ -597,7 +597,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_8() {
 //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
 //   Chunk 3: Stages [5, 6, 7, 8, 9] → big (g_big_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_9() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
 
@@ -637,7 +637,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_9() {
 //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
 //   Chunk 3: Stages [5, 6, 7, 8, 9] → medium (g_medium_cores)
 static void BM_pipe_cifar_sparse_vk_schedule_10() {
-  SETUP_CORES_AND_TASKS(state);
+  SETUP_CORES_AND_TASKS();
   SPSCQueue<Task*, kPoolSize> q_0_1;
   SPSCQueue<Task*, kPoolSize> q_1_2;
 
