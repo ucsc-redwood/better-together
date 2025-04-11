@@ -290,16 +290,46 @@ process-results:
 # -----------------------------------------------------------------------------
 make-fig:
 	@echo "Generating figures..."
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_1 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_2 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_3 --task-start 10 --task-end 20 
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_4 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_5 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_6 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_7 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_8 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_9 --task-start 10 --task-end 20
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_10 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_1 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_2 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_3 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_4 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_5 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_6 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_7 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_8 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_9 \
+		--task-start 1 --task-end 30
+	python3 scripts-v2/analysis/pipe.py \
+		scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt \
+		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_10 \
+		--task-start 1 --task-end 30
 
 # -----------------------------------------------------------------------------
 # "all" target to run every step in sequence.
