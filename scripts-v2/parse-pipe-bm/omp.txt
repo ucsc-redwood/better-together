@@ -1,0 +1,75 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 475.0 MB/s (3018120 bytes in 0.006s)
+[2025-04-11 00:02:35.311] [info] Little cores: 0 1 2 3 
+[2025-04-11 00:02:35.317] [info] Medium cores: 4 5 
+[2025-04-11 00:02:35.317] [info] Big cores: 6 7 
+---------------------------------------------------------------
+Benchmark                     Time             CPU   Iterations
+---------------------------------------------------------------
+BM_run_OMP_stage/1/0       1973 ms         1.15 ms           10
+BM_run_OMP_stage/1/1        574 ms        0.852 ms           10
+BM_run_OMP_stage/1/2        495 ms         1.29 ms           10
+BM_run_OMP_stage/2/0       2295 ms        0.746 ms           10
+BM_run_OMP_stage/2/1       1255 ms        0.611 ms           10
+BM_run_OMP_stage/2/2       1355 ms        0.663 ms           10
+BM_run_OMP_stage/3/0       1072 ms         1.13 ms           10
+BM_run_OMP_stage/3/1        332 ms        0.947 ms           10
+BM_run_OMP_stage/3/2        332 ms         1.18 ms           10
+BM_run_OMP_stage/4/0       1234 ms         1.35 ms           10
+BM_run_OMP_stage/4/1        694 ms        0.543 ms           10
+BM_run_OMP_stage/4/2        736 ms        0.797 ms           10
+BM_run_OMP_stage/5/0        594 ms         1.05 ms           10
+BM_run_OMP_stage/5/1        214 ms        0.852 ms          100
+BM_run_OMP_stage/5/2        228 ms        0.763 ms          100
+BM_run_OMP_stage/6/0        608 ms         1.06 ms           10
+BM_run_OMP_stage/6/1        243 ms         1.00 ms          100
+BM_run_OMP_stage/6/2        239 ms        0.758 ms          100
+BM_run_OMP_stage/7/0        612 ms         1.11 ms           10
+BM_run_OMP_stage/7/1        244 ms         1.03 ms          100
+BM_run_OMP_stage/7/2        247 ms        0.713 ms          100
+BM_run_OMP_stage/8/0        668 ms         1.08 ms           10
+BM_run_OMP_stage/8/1        386 ms        0.735 ms           10
+BM_run_OMP_stage/8/2        506 ms        0.566 ms           10
+BM_run_OMP_stage/9/0       12.8 ms        0.399 ms         1000
+BM_run_OMP_stage/9/1       4.61 ms        0.198 ms         1000
+BM_run_OMP_stage/9/2       6.97 ms        0.197 ms         1000
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 469.4 MB/s (3018120 bytes in 0.006s)
+[2025-04-11 00:02:26.815] [info] Little cores: 0 1 2 
+[2025-04-11 00:02:26.815] [info] Medium cores: 3 4 
+[2025-04-11 00:02:26.815] [info] Big cores: 5 6 7 
+---------------------------------------------------------------
+Benchmark                     Time             CPU   Iterations
+---------------------------------------------------------------
+BM_run_OMP_stage/1/0       3250 ms        0.199 ms            1
+BM_run_OMP_stage/1/1        620 ms        0.571 ms           10
+BM_run_OMP_stage/1/2        627 ms        0.543 ms           10
+BM_run_OMP_stage/2/0       2659 ms        0.173 ms            1
+BM_run_OMP_stage/2/1       1498 ms        0.622 ms           10
+BM_run_OMP_stage/2/2       1082 ms        0.512 ms           10
+BM_run_OMP_stage/3/0       1694 ms        0.342 ms           10
+BM_run_OMP_stage/3/1        340 ms        0.512 ms           10
+BM_run_OMP_stage/3/2        323 ms        0.459 ms           10
+BM_run_OMP_stage/4/0       1374 ms        0.315 ms           10
+BM_run_OMP_stage/4/1        775 ms        0.619 ms           10
+BM_run_OMP_stage/4/2        810 ms        0.416 ms           10
+BM_run_OMP_stage/5/0        905 ms        0.331 ms           10
+BM_run_OMP_stage/5/1        213 ms        0.790 ms          100
+BM_run_OMP_stage/5/2        250 ms        0.478 ms           10
+BM_run_OMP_stage/6/0        921 ms        0.305 ms           10
+BM_run_OMP_stage/6/1        211 ms        0.778 ms          100
+BM_run_OMP_stage/6/2        208 ms        0.807 ms          100
+BM_run_OMP_stage/7/0        907 ms        0.301 ms           10
+BM_run_OMP_stage/7/1        218 ms        0.794 ms          100
+BM_run_OMP_stage/7/2        205 ms        0.827 ms          100
+BM_run_OMP_stage/8/0        705 ms        0.348 ms           10
+BM_run_OMP_stage/8/1        417 ms        0.513 ms           10
+BM_run_OMP_stage/8/2        472 ms        0.450 ms           10
+BM_run_OMP_stage/9/0       13.7 ms        0.410 ms         1000
+BM_run_OMP_stage/9/1       7.51 ms        0.579 ms         1176
+BM_run_OMP_stage/9/2       8.64 ms        0.407 ms         1000
+[0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m

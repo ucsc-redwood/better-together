@@ -1,0 +1,201 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 446.3 MB/s (2284784 bytes in 0.005s)
+[2025-04-10 23:36:47.640] [info] Little cores: 0 1 2 3 
+[2025-04-10 23:36:47.643] [info] Medium cores: 4 5 
+[2025-04-10 23:36:47.643] [info] Big cores: 6 7 
+-------------------------------------------------------------------------------------------
+Benchmark                                                 Time             CPU   Iterations
+-------------------------------------------------------------------------------------------
+BM_run_VK_baseline/iterations:1/repeats:5              1854 ms        0.782 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              1622 ms        0.584 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              2265 ms        0.651 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              1676 ms        0.709 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              1750 ms        0.793 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5_mean         1833 ms        0.704 ms            5
+BM_run_VK_baseline/iterations:1/repeats:5_median       1750 ms        0.709 ms            5
+BM_run_VK_baseline/iterations:1/repeats:5_stddev        257 ms        0.088 ms            5
+BM_run_VK_baseline/iterations:1/repeats:5_cv          14.00 %         12.53 %             5
+BM_run_VK_stage/1/iterations:1/repeats:5                548 ms         1.15 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                504 ms         1.03 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                422 ms         1.01 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                474 ms        0.485 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                546 ms         1.20 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5_mean           499 ms        0.974 ms            5
+BM_run_VK_stage/1/iterations:1/repeats:5_median         504 ms         1.03 ms            5
+BM_run_VK_stage/1/iterations:1/repeats:5_stddev        53.0 ms        0.285 ms            5
+BM_run_VK_stage/1/iterations:1/repeats:5_cv           10.62 %         29.21 %             5
+BM_run_VK_stage/2/iterations:1/repeats:5                266 ms        0.464 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                284 ms         1.08 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                613 ms         1.28 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                401 ms        0.917 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                599 ms        0.889 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5_mean           433 ms        0.927 ms            5
+BM_run_VK_stage/2/iterations:1/repeats:5_median         401 ms        0.917 ms            5
+BM_run_VK_stage/2/iterations:1/repeats:5_stddev         167 ms        0.302 ms            5
+BM_run_VK_stage/2/iterations:1/repeats:5_cv           38.50 %         32.64 %             5
+BM_run_VK_stage/3/iterations:1/repeats:5                291 ms        0.262 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                331 ms         1.15 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                388 ms         1.06 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                406 ms        0.895 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                419 ms         1.21 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5_mean           367 ms        0.916 ms            5
+BM_run_VK_stage/3/iterations:1/repeats:5_median         388 ms         1.06 ms            5
+BM_run_VK_stage/3/iterations:1/repeats:5_stddev        54.0 ms        0.384 ms            5
+BM_run_VK_stage/3/iterations:1/repeats:5_cv           14.71 %         41.96 %             5
+BM_run_VK_stage/4/iterations:1/repeats:5                331 ms        0.764 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                301 ms        0.761 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                284 ms         1.30 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                280 ms        0.590 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                323 ms        0.845 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5_mean           304 ms        0.853 ms            5
+BM_run_VK_stage/4/iterations:1/repeats:5_median         301 ms        0.764 ms            5
+BM_run_VK_stage/4/iterations:1/repeats:5_stddev        22.9 ms        0.268 ms            5
+BM_run_VK_stage/4/iterations:1/repeats:5_cv            7.54 %         31.45 %             5
+BM_run_VK_stage/5/iterations:1/repeats:5                235 ms        0.396 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                215 ms        0.632 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                254 ms        0.895 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                245 ms        0.716 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                254 ms        0.465 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5_mean           240 ms        0.621 ms            5
+BM_run_VK_stage/5/iterations:1/repeats:5_median         245 ms        0.632 ms            5
+BM_run_VK_stage/5/iterations:1/repeats:5_stddev        16.3 ms        0.199 ms            5
+BM_run_VK_stage/5/iterations:1/repeats:5_cv            6.79 %         32.14 %             5
+BM_run_VK_stage/6/iterations:1/repeats:5                192 ms         1.10 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                234 ms        0.504 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                252 ms        0.736 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                248 ms        0.840 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                180 ms        0.794 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5_mean           221 ms        0.795 ms            5
+BM_run_VK_stage/6/iterations:1/repeats:5_median         234 ms        0.794 ms            5
+BM_run_VK_stage/6/iterations:1/repeats:5_stddev        32.9 ms        0.214 ms            5
+BM_run_VK_stage/6/iterations:1/repeats:5_cv           14.87 %         26.95 %             5
+BM_run_VK_stage/7/iterations:1/repeats:5                194 ms         1.02 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                228 ms         1.01 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                256 ms        0.882 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                206 ms        0.817 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                194 ms        0.492 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5_mean           216 ms        0.844 ms            5
+BM_run_VK_stage/7/iterations:1/repeats:5_median         206 ms        0.882 ms            5
+BM_run_VK_stage/7/iterations:1/repeats:5_stddev        26.3 ms        0.215 ms            5
+BM_run_VK_stage/7/iterations:1/repeats:5_cv           12.20 %         25.44 %             5
+BM_run_VK_stage/8/iterations:1/repeats:5                152 ms         1.03 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                165 ms        0.868 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                136 ms        0.884 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                150 ms        0.999 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                147 ms        0.886 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5_mean           150 ms        0.933 ms            5
+BM_run_VK_stage/8/iterations:1/repeats:5_median         150 ms        0.886 ms            5
+BM_run_VK_stage/8/iterations:1/repeats:5_stddev        10.6 ms        0.075 ms            5
+BM_run_VK_stage/8/iterations:1/repeats:5_cv            7.06 %          8.05 %             5
+BM_run_VK_stage/9/iterations:1/repeats:5               33.6 ms        0.846 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               79.3 ms        0.802 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               33.3 ms        0.529 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               31.1 ms        0.806 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               29.4 ms        0.791 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5_mean          41.3 ms        0.755 ms            5
+BM_run_VK_stage/9/iterations:1/repeats:5_median        33.3 ms        0.802 ms            5
+BM_run_VK_stage/9/iterations:1/repeats:5_stddev        21.3 ms        0.128 ms            5
+BM_run_VK_stage/9/iterations:1/repeats:5_cv           51.52 %         16.95 %             5
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 478.6 MB/s (2284784 bytes in 0.005s)
+[2025-04-10 23:30:43.166] [info] Little cores: 0 1 2 
+[2025-04-10 23:30:43.166] [info] Medium cores: 3 4 
+[2025-04-10 23:30:43.166] [info] Big cores: 5 6 7 
+-------------------------------------------------------------------------------------------
+Benchmark                                                 Time             CPU   Iterations
+-------------------------------------------------------------------------------------------
+BM_run_VK_baseline/iterations:1/repeats:5              2247 ms         1.12 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              2243 ms         1.07 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              2249 ms        0.696 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              2249 ms        0.668 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5              2249 ms         1.12 ms            1
+BM_run_VK_baseline/iterations:1/repeats:5_mean         2247 ms        0.937 ms            5
+BM_run_VK_baseline/iterations:1/repeats:5_median       2249 ms         1.07 ms            5
+BM_run_VK_baseline/iterations:1/repeats:5_stddev       2.53 ms        0.233 ms            5
+BM_run_VK_baseline/iterations:1/repeats:5_cv           0.11 %         24.93 %             5
+BM_run_VK_stage/1/iterations:1/repeats:5                533 ms        0.195 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                533 ms        0.210 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                539 ms        0.201 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                536 ms        0.200 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5                533 ms        0.198 ms            1
+BM_run_VK_stage/1/iterations:1/repeats:5_mean           535 ms        0.201 ms            5
+BM_run_VK_stage/1/iterations:1/repeats:5_median         533 ms        0.200 ms            5
+BM_run_VK_stage/1/iterations:1/repeats:5_stddev        2.86 ms        0.006 ms            5
+BM_run_VK_stage/1/iterations:1/repeats:5_cv            0.54 %          2.83 %             5
+BM_run_VK_stage/2/iterations:1/repeats:5                350 ms        0.210 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                348 ms        0.213 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                352 ms        0.210 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                350 ms        0.194 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5                360 ms        0.207 ms            1
+BM_run_VK_stage/2/iterations:1/repeats:5_mean           352 ms        0.207 ms            5
+BM_run_VK_stage/2/iterations:1/repeats:5_median         350 ms        0.210 ms            5
+BM_run_VK_stage/2/iterations:1/repeats:5_stddev        4.75 ms        0.007 ms            5
+BM_run_VK_stage/2/iterations:1/repeats:5_cv            1.35 %          3.53 %             5
+BM_run_VK_stage/3/iterations:1/repeats:5                315 ms        0.209 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                321 ms        0.212 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                321 ms        0.198 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                320 ms        0.213 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5                315 ms        0.226 ms            1
+BM_run_VK_stage/3/iterations:1/repeats:5_mean           318 ms        0.212 ms            5
+BM_run_VK_stage/3/iterations:1/repeats:5_median         320 ms        0.212 ms            5
+BM_run_VK_stage/3/iterations:1/repeats:5_stddev        2.88 ms        0.010 ms            5
+BM_run_VK_stage/3/iterations:1/repeats:5_cv            0.91 %          4.71 %             5
+BM_run_VK_stage/4/iterations:1/repeats:5                219 ms        0.218 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                222 ms        0.221 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                217 ms        0.206 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                224 ms        0.210 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5                227 ms        0.208 ms            1
+BM_run_VK_stage/4/iterations:1/repeats:5_mean           222 ms        0.213 ms            5
+BM_run_VK_stage/4/iterations:1/repeats:5_median         222 ms        0.210 ms            5
+BM_run_VK_stage/4/iterations:1/repeats:5_stddev        3.90 ms        0.006 ms            5
+BM_run_VK_stage/4/iterations:1/repeats:5_cv            1.76 %          3.02 %             5
+BM_run_VK_stage/5/iterations:1/repeats:5                209 ms        0.213 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                205 ms        0.219 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                207 ms        0.218 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                206 ms        0.213 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5                208 ms        0.209 ms            1
+BM_run_VK_stage/5/iterations:1/repeats:5_mean           207 ms        0.215 ms            5
+BM_run_VK_stage/5/iterations:1/repeats:5_median         207 ms        0.213 ms            5
+BM_run_VK_stage/5/iterations:1/repeats:5_stddev        1.68 ms        0.004 ms            5
+BM_run_VK_stage/5/iterations:1/repeats:5_cv            0.81 %          1.85 %             5
+BM_run_VK_stage/6/iterations:1/repeats:5                203 ms        0.199 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                212 ms        0.438 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                201 ms        0.214 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                211 ms        0.205 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5                207 ms        0.251 ms            1
+BM_run_VK_stage/6/iterations:1/repeats:5_mean           207 ms        0.261 ms            5
+BM_run_VK_stage/6/iterations:1/repeats:5_median         207 ms        0.214 ms            5
+BM_run_VK_stage/6/iterations:1/repeats:5_stddev        4.82 ms        0.101 ms            5
+BM_run_VK_stage/6/iterations:1/repeats:5_cv            2.33 %         38.62 %             5
+BM_run_VK_stage/7/iterations:1/repeats:5                206 ms        0.212 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                207 ms        0.207 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                209 ms        0.214 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                204 ms        0.200 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5                208 ms        0.198 ms            1
+BM_run_VK_stage/7/iterations:1/repeats:5_mean           207 ms        0.206 ms            5
+BM_run_VK_stage/7/iterations:1/repeats:5_median         207 ms        0.207 ms            5
+BM_run_VK_stage/7/iterations:1/repeats:5_stddev        1.73 ms        0.007 ms            5
+BM_run_VK_stage/7/iterations:1/repeats:5_cv            0.83 %          3.40 %             5
+BM_run_VK_stage/8/iterations:1/repeats:5                158 ms        0.211 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                155 ms        0.214 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                154 ms        0.225 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                155 ms        0.217 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5                155 ms        0.216 ms            1
+BM_run_VK_stage/8/iterations:1/repeats:5_mean           155 ms        0.217 ms            5
+BM_run_VK_stage/8/iterations:1/repeats:5_median         155 ms        0.216 ms            5
+BM_run_VK_stage/8/iterations:1/repeats:5_stddev        1.55 ms        0.005 ms            5
+BM_run_VK_stage/8/iterations:1/repeats:5_cv            1.00 %          2.39 %             5
+BM_run_VK_stage/9/iterations:1/repeats:5               54.8 ms        0.217 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               91.1 ms        0.207 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               86.0 ms        0.195 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               81.6 ms        0.209 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5               82.5 ms        0.212 ms            1
+BM_run_VK_stage/9/iterations:1/repeats:5_mean          79.2 ms        0.208 ms            5
+BM_run_VK_stage/9/iterations:1/repeats:5_median        82.5 ms        0.209 ms            5
+BM_run_VK_stage/9/iterations:1/repeats:5_stddev        14.2 ms        0.008 ms            5
+BM_run_VK_stage/9/iterations:1/repeats:5_cv           17.87 %          3.97 %             5
+[0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m
