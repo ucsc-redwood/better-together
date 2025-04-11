@@ -1,0 +1,27 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-best-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-best-cifar-sparse-vk: 1 file pushed, 0 skipped. 511.2 MB/s (3088008 bytes in 0.006s)
+[2025-04-11 16:03:52.470] [info] Little cores: 0 1 2 3 
+[2025-04-11 16:03:52.470] [info] Medium cores: 4 5 
+[2025-04-11 16:03:52.470] [info] Big cores: 6 7 
+-----------------------------------------------------------------------------------------------------------
+Benchmark                                                                 Time             CPU   Iterations
+-----------------------------------------------------------------------------------------------------------
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5               932 ms         1.17 ms            1
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5               954 ms        0.845 ms            1
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5              1002 ms        0.957 ms            1
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5               915 ms        0.678 ms            1
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5               919 ms        0.829 ms            1
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5_mean          944 ms        0.895 ms            5
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5_median        932 ms        0.845 ms            5
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5_stddev       35.4 ms        0.181 ms            5
+BM_pipe_cifar_sparse_vk_schedule_4/iterations:1/repeats:5_cv           3.75 %         20.24 %             5
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-best-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-best-cifar-sparse-vk: 1 file pushed, 0 skipped. 506.2 MB/s (3088008 bytes in 0.006s)
+[2025-04-11 15:56:41.560] [info] Little cores: 0 1 2 
+[2025-04-11 15:56:41.561] [info] Medium cores: 3 4 
+[2025-04-11 15:56:41.561] [info] Big cores: 5 6 7 
+[0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m
