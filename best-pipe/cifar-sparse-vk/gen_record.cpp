@@ -142,9 +142,9 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
   }
 }
 
-// // ----------------------------------------------------------------------------
-// // Omp Stage
-// // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Omp Stage
+// ----------------------------------------------------------------------------
 
 #define SETUP_CORES_AND_TASKS()                                                \
   g_task_records.clear();                                                      \
@@ -677,12 +677,52 @@ static void BM_pipe_cifar_sparse_vk_schedule_10() {
 // ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
-  parse_args(argc, argv);
+  PARSE_ARGS_BEGIN
+
+  int schedule_id = 0;
+  app.add_option("--schedule", schedule_id, "Schedule to run")->required();
+
+  PARSE_ARGS_END
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   if (g_device_id != "3A021JEHN02756") {
     return 0;
+  }
+
+  switch (schedule_id) {
+    case 1:
+      BM_pipe_cifar_sparse_vk_schedule_1();
+      break;
+    case 2:
+      BM_pipe_cifar_sparse_vk_schedule_2();
+      break;
+    case 3:
+      BM_pipe_cifar_sparse_vk_schedule_3();
+      break;
+    case 4:
+      BM_pipe_cifar_sparse_vk_schedule_4();
+      break;
+    case 5:
+      BM_pipe_cifar_sparse_vk_schedule_5();
+      break;
+    case 6:
+      BM_pipe_cifar_sparse_vk_schedule_6();
+      break;
+    case 7:
+      BM_pipe_cifar_sparse_vk_schedule_7();
+      break;
+    case 8:
+      BM_pipe_cifar_sparse_vk_schedule_8();
+      break;
+    case 9:
+      BM_pipe_cifar_sparse_vk_schedule_9();
+      break;
+    case 10:
+      BM_pipe_cifar_sparse_vk_schedule_10();
+      break;
+    default:
+      BM_pipe_cifar_sparse_vk_schedule_best();
   }
 
   return 0;
