@@ -7,28 +7,19 @@ import os
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 
-with open(os.path.join(base_dir, "cifar_sparse.txt"), "r") as f:
-    log_text = f.read()
+def parse_benchmark_line(line):
+    """Parse a single benchmark line and extract the data."""
+    # Define a regex pattern to split columns (assuming two or more whitespace characters separate columns)
+    pattern = re.compile(r"\s{2,}")
 
-# Split the log text into individual lines
-lines = log_text.strip().splitlines()
-
-# Create an empty list to hold parsed rows
-rows = []
-
-# Define a regex pattern to split columns (assuming two or more whitespace characters separate columns)
-pattern = re.compile(r"\s{2,}")
-
-# Iterate over each line and filter only rows that contain "_mean"
-for line in lines:
     # Skip header/dash lines (and any empty lines)
     if "_mean" not in line:
-        continue
+        return None
 
     # Split the line into columns
     parts = pattern.split(line.strip())
     if len(parts) < 2:
-        continue
+        return None
 
     benchmark_label = parts[
         0
@@ -71,19 +62,76 @@ for line in lines:
         except (IndexError, ValueError):
             stage = None
 
-    # Append the parsed data as a dictionary
-    rows.append(
-        {
-            "Vendor": vendor,
-            "Type": run_type,
-            "Stage": stage,
-            "Core": core,
-            "MeanTime_ms": time_numeric,
-        }
-    )
+    # Return the parsed data as a dictionary
+    return {
+        "Vendor": vendor,
+        "Type": run_type,
+        "Stage": stage,
+        "Core": core,
+        "MeanTime_ms": time_numeric,
+    }
 
-# Create a pandas DataFrame from the parsed rows
-df = pd.DataFrame(rows)
 
-# Print the extracted DataFrame
-print(df)
+def extract_benchmark_data(log_text):
+    """Extract benchmark data from the log text."""
+    # Split the log text into individual lines
+    lines = log_text.strip().splitlines()
+
+    # Create an empty list to hold parsed rows
+    rows = []
+
+    # Parse each line
+    for line in lines:
+        result = parse_benchmark_line(line)
+        if result:
+            rows.append(result)
+
+    # Create a pandas DataFrame from the parsed rows
+    return pd.DataFrame(rows)
+
+
+def split_log_by_devices(log_text):
+    """Split the log text into chunks by device."""
+    device_pattern = re.compile(r"\[\d+/\d+\]\s+Processing device:\s+([^\n]+)")
+    device_matches = list(device_pattern.finditer(log_text))
+
+    device_chunks = {}
+
+    # For each device found
+    for i, match in enumerate(device_matches):
+        device_id = match.group(1).strip()
+        start_pos = match.start()
+
+        # Find the end of this chunk (start of next chunk or end of text)
+        if i < len(device_matches) - 1:
+            end_pos = device_matches[i + 1].start()
+        else:
+            end_pos = len(log_text)
+
+        # Extract the chunk for this device
+        chunk = log_text[start_pos:end_pos]
+        device_chunks[device_id] = chunk
+
+    return device_chunks
+
+
+# Read the log file
+with open(os.path.join(base_dir, "cifar_sparse.txt"), "r") as f:
+    log_text = f.read()
+
+# Split the log text by devices
+device_chunks = split_log_by_devices(log_text)
+
+# Process each device chunk separately
+device_dfs = {}
+for device_id, chunk in device_chunks.items():
+    print(f"Processing data for device: {device_id}")
+    df = extract_benchmark_data(chunk)
+    device_dfs[device_id] = df
+    print(f"Device {device_id} DataFrame:")
+    print(df)
+    print("\n")
+
+# Access each device's DataFrame as needed
+# device_dfs['3A021JEHN02756'] for first device
+# device_dfs['9b034f1b'] for second device
