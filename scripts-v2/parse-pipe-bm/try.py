@@ -182,26 +182,53 @@ def annotate_schedules_with_timing(
     """
     print(f"Using benchmark data for device {device_id}...")
 
+    # Debug: Print DataFrame info
+    print(f"DataFrame columns: {df.columns.tolist()}")
+    print(f"DataFrame head (first 5 rows):")
+    print(df.head())
+
+    # If there's 'Type' column, check for Baseline entries
+    if "Type" in df.columns:
+        baseline_rows = df[df["Type"] == "Baseline"]
+        print(f"Baseline entries found: {len(baseline_rows)}")
+        if not baseline_rows.empty:
+            print(baseline_rows)
+
     # First, get baseline times for CPU and GPU
     cpu_baseline_time = None
     gpu_baseline_time = None
 
-    # Get CPU baseline (OMP, Stage 0)
-    cpu_baseline_time = get_benchmark_time(df, vendor="OMP", stage=0)
+    # Try to get CPU baseline
+    cpu_baseline_time = get_benchmark_time(df, vendor="OMP", baseline=True)
     if cpu_baseline_time is not None:
         print(f"Found CPU baseline time: {cpu_baseline_time:.2f}")
     else:
-        print("Warning: CPU baseline data not found")
+        # Fallback to stage=0 if baseline not found
+        cpu_baseline_time = get_benchmark_time(df, vendor="OMP", stage=0)
+        if cpu_baseline_time is not None:
+            print(f"Found CPU baseline time from stage 0: {cpu_baseline_time:.2f}")
+        else:
+            print("Warning: CPU baseline data not found")
 
-    # Try to get GPU baseline (CUDA or VK, Stage 0)
+    # Try to get GPU baseline (CUDA or VK)
     for gpu_backend in ["CUDA", "VK"]:
-        gpu_baseline_time = get_benchmark_time(df, vendor=gpu_backend, stage=0)
+        gpu_baseline_time = get_benchmark_time(df, vendor=gpu_backend, baseline=True)
         if gpu_baseline_time is not None:
             print(f"Found GPU ({gpu_backend}) baseline time: {gpu_baseline_time:.2f}")
             break
 
     if gpu_baseline_time is None:
-        print("Warning: GPU baseline data not found")
+        # Fallback to stage=0 if baseline not found
+        for gpu_backend in ["CUDA", "VK"]:
+            gpu_baseline_time = get_benchmark_time(df, vendor=gpu_backend, stage=0)
+            if gpu_baseline_time is not None:
+                print(
+                    f"Found GPU ({gpu_backend}) baseline time from stage 0: {gpu_baseline_time:.2f}"
+                )
+                break
+
+        if gpu_baseline_time is None:
+            print("Warning: GPU baseline data not found")
 
     annotated_schedules = []
 
@@ -244,19 +271,12 @@ def annotate_schedules_with_timing(
 
                 if vendor == "OMP" and threads is not None:
                     # For OMP, we might have data with thread count
-                    # The actual column to filter by would depend on your DataFrame structure
-                    # This assumes you have a ThreadCount column or similar
-                    # You may need to adjust this based on your actual data structure
                     stage_time = get_benchmark_time(
                         df, vendor=vendor, stage=stage, core=core
                     )
                 else:
                     # For GPU or if thread count isn't specified
                     stage_time = get_benchmark_time(df, vendor=vendor, stage=stage)
-
-                if stage_time is not None:
-                    chunk_time += stage_time
-                    modified_schedule = True
 
                 if stage_time is not None:
                     # print(f"Found time for Vendor={vendor}, Stage={stage}, Core={core}: {stage_time:.2f} ms")

@@ -183,3 +183,13 @@ except ImportError:
     print("To install: pip install tables")
 
 print("\nData saved successfully in available formats.")
+
+# Check if baseline entries are being correctly parsed
+for device_id, df in device_dfs.items():
+    print(f"\nChecking baseline entries for device {device_id}")
+    baseline_rows = df[df["Type"] == "Baseline"]
+    if baseline_rows.empty:
+        print(f"WARNING: No baseline entries found for device {device_id}")
+    else:
+        print(f"Found {len(baseline_rows)} baseline entries:")
+        print(baseline_rows)

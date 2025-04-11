@@ -5,24 +5,54 @@ import sys
 import os
 
 
-def get_benchmark_time(df, vendor, stage, core=None):
+def get_benchmark_time(df, vendor, stage=None, core=None, baseline=False):
     """
     Get the benchmark time for a specific configuration.
 
     Args:
         df: DataFrame containing benchmark data
         vendor: The vendor (e.g., 'VK', 'OMP')
-        stage: The stage number (as string or int)
+        stage: The stage number (as string or int), or None for baseline
         core: The core number (optional, used for OMP vendor)
+        baseline: If True, search for baseline entries instead of by stage
 
     Returns:
         The MeanTime_ms value if found, None otherwise
     """
-    # Convert stage to string if it's not already
-    stage = str(stage)
+    # Handle request for baseline data
+    if baseline:
+        if "Type" in df.columns:
+            # Look for baseline entries
+            mask = (df["Vendor"] == vendor) & (df["Type"] == "Baseline")
+
+            # Get the matching rows
+            result = df[mask]
+
+            if len(result) == 0:
+                print(f"No baseline data found for Vendor={vendor}")
+                return None
+            elif len(result) > 1:
+                print(
+                    f"Multiple baseline results found ({len(result)} rows). Returning the first one."
+                )
+
+            # Return the timing
+            return result["MeanTime_ms"].iloc[0] if not result.empty else None
+        else:
+            print(
+                f"Warning: 'Type' column not found in DataFrame, cannot find baseline entries"
+            )
+            return None
+
+    # Regular stage-based query
+    # Convert stage to string if it's not already and not None
+    if stage is not None:
+        stage = str(stage)
 
     # Create a query for the specific configuration
-    mask = (df["Vendor"] == vendor) & (df["Stage"] == stage)
+    mask = df["Vendor"] == vendor
+    if stage is not None:
+        mask = mask & (df["Stage"] == stage)
 
     # Add core filter if provided and vendor is OMP
     if core is not None and vendor == "OMP":
@@ -35,9 +65,14 @@ def get_benchmark_time(df, vendor, stage, core=None):
     result = df[mask]
 
     if len(result) == 0:
-        print(
-            f"No data found for Vendor={vendor}, Stage={stage}{f', Core={core}' if core else ''}"
-        )
+        if stage is not None:
+            print(
+                f"No data found for Vendor={vendor}, Stage={stage}{f', Core={core}' if core else ''}"
+            )
+        else:
+            print(
+                f"No data found for Vendor={vendor}{f', Core={core}' if core else ''}"
+            )
         return None
     elif len(result) > 1:
         print(f"Multiple results found ({len(result)} rows). Returning the first one.")
