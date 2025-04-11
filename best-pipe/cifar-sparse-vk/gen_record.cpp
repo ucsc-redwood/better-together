@@ -15,6 +15,10 @@
 constexpr size_t kPoolSize = 32;
 constexpr size_t kNumToProcess = 100;
 
+// ----------------------------------------------------------------------------
+// Record
+// ----------------------------------------------------------------------------
+
 struct Record {
   ProcessorType processed_by;
   std::chrono::time_point<std::chrono::high_resolution_clock> start;
@@ -30,12 +34,12 @@ struct RecordManager {
     }
   }
 
-  void start_tick(const uint32_t task_id, const int chunk_id) {
-    records[task_id][chunk_id].start = std::chrono::high_resolution_clock::now();
+  void start_tick(const uint32_t processing_id, const int chunk_id) {
+    records[processing_id][chunk_id].start = std::chrono::high_resolution_clock::now();
   }
 
-  void end_tick(const uint32_t task_id, const int chunk_id) {
-    records[task_id][chunk_id].end = std::chrono::high_resolution_clock::now();
+  void end_tick(const uint32_t processing_id, const int chunk_id) {
+    records[processing_id][chunk_id].end = std::chrono::high_resolution_clock::now();
   }
 
   void dump_records() {
@@ -65,35 +69,52 @@ struct RecordManager {
 
 RecordManager g_record_manager;
 
+// ----------------------------------------------------------------------------
+// Task
+// ----------------------------------------------------------------------------
+
 struct Task {
+  static uint32_t uid_counter;
   uint32_t task_id;  // Unique ID for this task, assigned sequentially 0...N
 
   // ----------------------------------
   cifar_sparse::v2::AppData appdata;
   // ----------------------------------
 
-  explicit Task(std::pmr::memory_resource* mr, uint32_t id) : task_id(id), appdata(mr) {}
+  explicit Task(std::pmr::memory_resource* mr) : task_id(uid_counter++), appdata(mr) {}
 
-  void reset() { appdata.reset(); }
+  void reset() {
+    // appdata.reset();
+    task_id = uid_counter++;
+  }
 
   void start_record(const int chunk_id) { g_record_manager.start_tick(task_id, chunk_id); }
 
   void end_record(const int chunk_id) { g_record_manager.end_tick(task_id, chunk_id); }
 };
 
+uint32_t Task::uid_counter = 0;
+
+// ----------------------------------------------------------------------------
+// Worker Thread
+// ----------------------------------------------------------------------------
+
 using ProcessFunction = std::function<void(Task&)>;
 
-void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
+void worker_thread_normal(const int chunk_id,
+                          SPSCQueue<Task*, kPoolSize>& in_queue,
                           SPSCQueue<Task*, kPoolSize>& out_queue,
                           ProcessFunction process_function) {
-  for (size_t _ = 0; _ < kNumToProcess; ++_) {
+  for (size_t processing_id = 0; processing_id < kNumToProcess; ++processing_id) {
     Task* task = nullptr;
     while (!in_queue.dequeue(task)) {
       std::this_thread::yield();
     }
 
     // Process the task (timing is handled in the provided process function)
+    g_record_manager.start_tick(processing_id, chunk_id);
     process_function(*task);
+    g_record_manager.end_tick(processing_id, chunk_id);
 
     // Forward processed task
     while (!out_queue.enqueue(std::move(task))) {
@@ -106,13 +127,13 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
 // Omp Stage
 // ----------------------------------------------------------------------------
 
-#define SETUP_CORES_AND_TASKS()                                                \
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;                             \
-  std::vector<std::unique_ptr<Task>> preallocated_tasks;                       \
-  SPSCQueue<Task*, kPoolSize> free_task_pool;                                  \
-  for (size_t i = 0; i < kPoolSize; ++i) {                                     \
-    preallocated_tasks.emplace_back(std::make_unique<Task>(disp.get_mr(), i)); \
-    free_task_pool.enqueue(preallocated_tasks.back().get());                   \
+#define SETUP_CORES_AND_TASKS()                                             \
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;                          \
+  std::vector<std::unique_ptr<Task>> preallocated_tasks;                    \
+  SPSCQueue<Task*, kPoolSize> free_task_pool;                               \
+  for (size_t i = 0; i < kPoolSize; ++i) {                                  \
+    preallocated_tasks.emplace_back(std::make_unique<Task>(disp.get_mr())); \
+    free_task_pool.enqueue(preallocated_tasks.back().get());                \
   }
 
 // ----------------------------------------------------------------------------
@@ -134,25 +155,20 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
     g_record_manager.setup(2, ProcessorType::kBigCore);
 
     auto t0 = std::thread(
-        worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
+        worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
           disp.dispatch_multi_stage(task.appdata, 1, 4);
-          task.end_record(0);
         });
 
-    auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
-      cifar_sparse::omp::v2::dispatch_multi_stage(
-          g_medium_cores, g_medium_cores.size(), task.appdata, 5, 5);
-      task.end_record(1);
-    });
+    auto t1 =
+        std::thread(worker_thread_normal, 1, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
+          cifar_sparse::omp::v2::dispatch_multi_stage(
+              g_medium_cores, g_medium_cores.size(), task.appdata, 5, 5);
+        });
 
     auto t2 = std::thread(
-        worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(2);
+        worker_thread_normal, 2, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
-          task.end_record(2);
         });
 
     t0.join();
