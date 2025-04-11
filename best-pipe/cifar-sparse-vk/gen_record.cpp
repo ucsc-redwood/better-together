@@ -11,69 +11,6 @@
 #include "builtin-apps/config_reader.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 
-struct Record {
-  ProcessorType processed_by;
-  std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
-  std::chrono::time_point<std::chrono::high_resolution_clock> end_time;
-};
-
-// A global manager to store execution records for all tasks
-struct TaskRecords {
-  // Store all records in sequence for simpler lookup
-  std::vector<std::array<Record, 4>> records;
-
-  void ensure_capacity(size_t count) {
-    if (records.size() < count) {
-      records.resize(count);
-    }
-  }
-
-  void store_record(uint32_t task_id, int chunk_id, const Record& record) {
-    if (task_id >= records.size()) {
-      records.resize(task_id + 1);
-    }
-    records[task_id][chunk_id] = record;
-  }
-
-  void clear() { records.clear(); }
-
-  void dump_all() {
-    std::cout << "Total tasks processed: " << records.size() << std::endl;
-
-    for (size_t task_id = 0; task_id < records.size(); task_id++) {
-      std::cout << "Task " << task_id << ":\n";
-      for (size_t chunk_id = 0; chunk_id < 4; ++chunk_id) {
-        const auto& record = records[task_id][chunk_id];
-        std::cout << "  Chunk " << chunk_id << ":\n";
-
-        // Only print if the record has timing data
-        if (record.start_time.time_since_epoch().count() > 0) {
-          std::cout << "    Start: "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(
-                           record.start_time.time_since_epoch())
-                           .count()
-                    << " us\n";
-          std::cout << "    End: "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(
-                           record.end_time.time_since_epoch())
-                           .count()
-                    << " us\n";
-          std::cout << "    Duration: "
-                    << std::chrono::duration_cast<std::chrono::microseconds>(record.end_time -
-                                                                             record.start_time)
-                           .count()
-                    << " us\n";
-        } else {
-          std::cout << "    (No data for this chunk)\n";
-        }
-      }
-    }
-  }
-};
-
-// Global task records
-TaskRecords g_task_records;
-
 struct Task {
   uint32_t task_id;  // Unique ID for this task, assigned sequentially 0...N
 
@@ -84,40 +21,12 @@ struct Task {
   explicit Task(std::pmr::memory_resource* mr, uint32_t id) : task_id(id), appdata(mr) {}
 
   void reset() { appdata.reset(); }
-
-  std::array<Record, 4> records;
-
-  void set_processed_by(const int chunk_id, const ProcessorType processor_type) {
-    records[chunk_id].processed_by = processor_type;
-  }
-
-  void start_record(const int chunk_id) {
-    records[chunk_id].start_time = std::chrono::high_resolution_clock::now();
-  }
-
-  void end_record(const int chunk_id) {
-    records[chunk_id].end_time = std::chrono::high_resolution_clock::now();
-    // Store in global record storage
-    g_task_records.store_record(task_id, chunk_id, records[chunk_id]);
-  }
 };
 
 using ProcessFunction = std::function<void(Task&)>;
 
 constexpr size_t kPoolSize = 32;
 constexpr size_t kNumToProcess = 100;
-
-// For tracking task execution - shared by all worker threads
-struct TaskExecutionTracker {
-  std::atomic<size_t> next_task_id{0};
-
-  // Get the next task ID to process
-  size_t get_next_task_id() { return next_task_id.fetch_add(1); }
-
-  void reset() { next_task_id.store(0); }
-};
-
-TaskExecutionTracker g_tracker;
 
 void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
                           SPSCQueue<Task*, kPoolSize>& out_queue,
@@ -127,10 +36,6 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
     while (!in_queue.dequeue(task)) {
       std::this_thread::yield();
     }
-
-    // Assign this execution a unique task ID
-    uint32_t current_task_id = g_tracker.get_next_task_id();
-    task->task_id = current_task_id;
 
     // Process the task (timing is handled in the provided process function)
     process_function(*task);
@@ -147,9 +52,6 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
 // ----------------------------------------------------------------------------
 
 #define SETUP_CORES_AND_TASKS()                                                \
-  g_task_records.clear();                                                      \
-  g_task_records.ensure_capacity(kNumToProcess);                               \
-  g_tracker.reset();                                                           \
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;                             \
   std::vector<std::unique_ptr<Task>> preallocated_tasks;                       \
   SPSCQueue<Task*, kPoolSize> free_task_pool;                                  \
@@ -161,17 +63,6 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
 // ----------------------------------------------------------------------------
 // Specialized Schedules
 // ----------------------------------------------------------------------------
-
-void dump_records(SPSCQueue<Task*, kPoolSize>& free_task_pool) {
-  // Dump all collected records
-  g_task_records.dump_all();
-
-  // Empty the free_task_pool without processing
-  Task* task = nullptr;
-  while (free_task_pool.dequeue(task)) {
-    // Just drain the queue
-  }
-}
 
 // Schedule best:
 //   Chunk 1: Stages [1, 2, 3, 4] → gpu_vulkan
@@ -185,32 +76,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           disp.dispatch_multi_stage(task.appdata, 1, 4);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_medium_cores, g_medium_cores.size(), task.appdata, 5, 5);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
-          task.end_record(2);
         });
 
     t0.join();
     t1.join();
     t2.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 1:
@@ -227,31 +110,23 @@ static void BM_pipe_cifar_sparse_vk_schedule_1() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
-      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
-      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
-          task.end_record(3);
         });
 
     t0.join();
@@ -259,7 +134,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_1() {
     t2.join();
     t3.join();
   }
-  dump_records(free_task_pool);
 }
 
 // Schedule 2:
@@ -276,31 +150,23 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
-      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
-      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 6, 9);
-          task.end_record(3);
         });
 
     t0.join();
@@ -308,8 +174,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
     t2.join();
     t3.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 3:
@@ -326,31 +190,23 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
-      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_big_cores, g_big_cores.size(), task.appdata, 5, 7);
-      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
-          task.end_record(3);
         });
 
     t0.join();
@@ -358,8 +214,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
     t2.join();
     t3.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 4:
@@ -376,31 +230,23 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
-      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_medium_cores, g_medium_cores.size(), task.appdata, 5, 7);
-      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
-          task.end_record(3);
         });
 
     t0.join();
@@ -408,8 +254,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
     t2.join();
     t3.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 5:
@@ -426,31 +270,23 @@ static void BM_pipe_cifar_sparse_vk_schedule_5() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
-      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_big_cores, g_big_cores.size(), task.appdata, 5, 8);
-      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
-          task.end_record(3);
         });
 
     t0.join();
@@ -458,8 +294,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_5() {
     t2.join();
     t3.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 6:
@@ -476,31 +310,23 @@ static void BM_pipe_cifar_sparse_vk_schedule_6() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(worker_thread_normal, std::ref(q_1_2), std::ref(q_2_3), [&](Task& task) {
-      task.start_record(2);
       cifar_sparse::omp::v2::dispatch_multi_stage(
           g_medium_cores, g_medium_cores.size(), task.appdata, 5, 8);
-      task.end_record(2);
     });
 
     auto t3 = std::thread(
         worker_thread_normal, std::ref(q_2_3), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(3);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
-          task.end_record(3);
         });
 
     t0.join();
@@ -508,8 +334,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_6() {
     t2.join();
     t3.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 7 (3 chunks):
@@ -524,32 +348,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_7() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
-          task.end_record(2);
         });
 
     t0.join();
     t1.join();
     t2.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 8 (3 chunks):
@@ -564,32 +380,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_8() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
-          task.end_record(2);
         });
 
     t0.join();
     t1.join();
     t2.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 9 (3 chunks, same as Schedule 7):
@@ -604,32 +412,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_9() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
-          task.end_record(2);
         });
 
     t0.join();
     t1.join();
     t2.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // Schedule 10 (3 chunks, same as Schedule 8):
@@ -644,32 +444,24 @@ static void BM_pipe_cifar_sparse_vk_schedule_10() {
   {
     auto t0 = std::thread(
         worker_thread_normal, std::ref(free_task_pool), std::ref(q_0_1), [&](Task& task) {
-          task.start_record(0);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-          task.end_record(0);
         });
 
     auto t1 = std::thread(worker_thread_normal, std::ref(q_0_1), std::ref(q_1_2), [&](Task& task) {
-      task.start_record(1);
       disp.dispatch_multi_stage(task.appdata, 2, 4);
-      task.end_record(1);
     });
 
     auto t2 = std::thread(
         worker_thread_normal, std::ref(q_1_2), std::ref(free_task_pool), [&](Task& task) {
-          task.start_record(2);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
-          task.end_record(2);
         });
 
     t0.join();
     t1.join();
     t2.join();
   }
-
-  dump_records(free_task_pool);
 }
 
 // ----------------------------------------------------------------------------
