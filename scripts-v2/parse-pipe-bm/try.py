@@ -165,6 +165,11 @@ def generate_schedules(device_id: str, application: str) -> List[Schedule]:
     return schedules
 
 
+# ----------------------------------------------------------------------------
+# Annotate schedules with timing information
+# ----------------------------------------------------------------------------
+
+
 def annotate_schedules_with_timing(
     schedules: List[Schedule], device_id: str, application: str, df: pd.DataFrame
 ) -> List[Schedule]:
@@ -344,6 +349,128 @@ def annotate_schedules_with_timing(
     return annotated_schedules
 
 
+# ----------------------------------------------------------------------------
+# Schedule to JSON
+# ----------------------------------------------------------------------------
+
+
+def schedule_to_json(
+    schedule: Schedule,
+    schedule_id: str,
+    device_id: str,
+    application: str,
+) -> dict:
+    """Convert a Schedule object to a JSON-serializable dictionary."""
+    chunks_json = []
+    for i, (start, end) in enumerate(schedule.chunks):
+        stages = list(range(start, end + 1))
+        chunk_json = {
+            "name": f"chunk{i+1}",
+            "hardware": schedule.pu_types[i],
+            "threads": schedule.pu_threads[i],
+            "stages": stages,
+            "time": schedule.chunk_times[i],
+        }
+        chunks_json.append(chunk_json)
+
+    schedule_json = {
+        "schedule": {
+            "schedule_id": schedule_id,
+            "device_id": device_id,
+            "application": application,
+            "chunks": chunks_json,
+        },
+        "max_chunk_time": schedule.max_chunk_time,
+    }
+
+    # Add baseline and speedup information if available
+    if schedule.cpu_baseline_time is not None:
+        schedule_json["cpu_baseline_time"] = schedule.cpu_baseline_time
+
+    if schedule.gpu_baseline_time is not None:
+        schedule_json["gpu_baseline_time"] = schedule.gpu_baseline_time
+
+    if schedule.cpu_speedup is not None:
+        schedule_json["cpu_speedup"] = schedule.cpu_speedup
+
+    if schedule.gpu_speedup is not None:
+        schedule_json["gpu_speedup"] = schedule.gpu_speedup
+
+    # Add load balancing metrics if available
+    if schedule.load_balance_ratio is not None:
+        schedule_json["load_balance_ratio"] = schedule.load_balance_ratio
+
+    if schedule.load_imbalance_pct is not None:
+        schedule_json["load_imbalance_pct"] = schedule.load_imbalance_pct
+
+    if schedule.time_variance is not None:
+        schedule_json["time_variance"] = schedule.time_variance
+
+    return schedule_json
+
+
+def write_schedules_to_json(
+    schedules: List[Schedule],
+    device_id: str,
+    application: str,
+    output_dir: str,
+) -> None:
+    """Write individual schedule JSON files to device/application subdirectories."""
+    # Create device/application subdirectories
+    # output_path = Path(output_dir) / device_id / application
+    output_path = os.path.join(output_dir, device_id, application)
+    
+    # Create directories if they don't exist
+    os.makedirs(output_path, exist_ok=True)
+
+    for idx, schedule in enumerate(schedules, 1):
+        schedule_id = f"{device_id}_{application}_schedule_{idx:03d}"
+        schedule_json = schedule_to_json(schedule, schedule_id, device_id, application)
+        filename = f"schedule_{idx:03d}.json"  # Simplified filename since it's in app/device dir
+        file_path = os.path.join(output_path, filename)
+        with open(file_path, "w") as f:
+            json.dump(schedule_json, f, indent=2)
+
+    print(f"Wrote {len(schedules)} schedule files to {output_path}")
+
+
+def write_all_schedules_to_file(
+    schedules: List[Schedule],
+    device_id: str,
+    application: str,
+    output_file: str,
+) -> None:
+    """Write all schedules to a single JSON file."""
+    # Ensure the directory exists
+    # output_path = Path(output_file)
+    output_dir = os.path.dirname(output_file)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    schedules_json = []
+    for idx, schedule in enumerate(schedules, 1):
+        schedule_id = f"{device_id}_{application}_schedule_{idx:03d}"
+        schedule_json = schedule_to_json(schedule, schedule_id, device_id, application)
+        schedules_json.append(schedule_json)
+
+    # Create the final JSON structure
+    output_json = {
+        "device_id": device_id,
+        "application": application,
+        "total_schedules": len(schedules),
+        "schedules": schedules_json,
+    }
+
+    with open(output_file, "w") as f:
+        json.dump(output_json, f, indent=2)
+
+    print(f"Wrote all {len(schedules)} schedules to {output_file}")
+
+
+# ----------------------------------------------------------------------------
+# Main
+# ----------------------------------------------------------------------------
+
 if __name__ == "__main__":
     # Load the dataframe
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -428,5 +555,18 @@ if __name__ == "__main__":
             print(
                 "No schedules could be annotated with timing information. Check your benchmark data."
             )
+
+        # # Write only top N schedules to output directory if specified
+        # output_dir = os.path.join(base_dir, "output")
+        # write_schedules_to_json(sorted_schedules, device_id, application, output_dir)
+
+        # Write only top N schedules to a single file if specified
+        output_file = os.path.join(
+            base_dir, "output", f"{device_id}_{application}.json"
+        )
+        write_all_schedules_to_file(
+            sorted_schedules, device_id, application, output_file
+        )
+
     except ValueError as e:
         print(f"Error: {e}")
