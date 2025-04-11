@@ -219,6 +219,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_1() {
     t2.join();
     t3.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 2:
@@ -261,6 +263,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
     t2.join();
     t3.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 3:
@@ -303,6 +307,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
     t2.join();
     t3.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 4:
@@ -345,6 +351,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
     t2.join();
     t3.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 5:
@@ -387,6 +395,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_5() {
     t2.join();
     t3.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 6:
@@ -429,6 +439,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_6() {
     t2.join();
     t3.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 7 (3 chunks):
@@ -462,6 +474,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_7() {
     t1.join();
     t2.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 8 (3 chunks):
@@ -495,6 +509,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_8() {
     t1.join();
     t2.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 9 (3 chunks, same as Schedule 7):
@@ -528,6 +544,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_9() {
     t1.join();
     t2.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // Schedule 10 (3 chunks, same as Schedule 8):
@@ -561,6 +579,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_10() {
     t1.join();
     t2.join();
   }
+
+  g_record_manager.dump_records();
 }
 
 // ----------------------------------------------------------------------------
