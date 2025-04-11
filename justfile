@@ -251,6 +251,8 @@ analysis:
 # -----------------------------------------------------------------------------
 # Target 1: Run the benchmarks and store the raw output.
 # -----------------------------------------------------------------------------
+
+# This is ued to generate pipeline graph
 run-benchmarks:
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt
@@ -263,19 +265,35 @@ run-benchmarks:
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
 
-
+# This is used to compute the real measurement of the pipeline schedule
 run-best-benchmarks:
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee BM_best_cifar_sparse_vk_schedule_1.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee BM_best_cifar_sparse_vk_schedule_2.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee BM_best_cifar_sparse_vk_schedule_3.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee BM_best_cifar_sparse_vk_schedule_4.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee BM_best_cifar_sparse_vk_schedule_5.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee BM_best_cifar_sparse_vk_schedule_6.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee BM_best_cifar_sparse_vk_schedule_7.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_best_cifar_sparse_vk_schedule_8.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_best_cifar_sparse_vk_schedule_9.raw.txt
-    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_best_cifar_sparse_vk_schedule_10.raw.txt
+    rm BM_best_raw.txt
+    touch BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee -a BM_best_raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee -a BM_best_raw.txt
 
+# This is used to generate benchmark Table, (used to generate math model)
+run-best-benchmarks-table:
+    rm BM_benchmark_table.txt
+    touch BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:1/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:2/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:3/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:4/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:5/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:6/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:7/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:8/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:9/ | tee -a BM_benchmark_table.txt
+    xmake r bm-pipe-cifar-sparse-vk -l off --benchmark_filter=VK/CifarSparse/Baseline/iterations:10/ | tee -a BM_benchmark_table.txt
 
 # -----------------------------------------------------------------------------
 # Target 2: Process the raw output using sed
