@@ -159,24 +159,38 @@ analysis:
 # Tmp
 # ----------------------------------------------------------------------------
 
+# tmp:
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_001.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_002.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_003.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_004.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_005.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_006.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_007.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_008.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_009.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_010.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_011.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_012.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_013.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_014.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_015.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_016.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_017.json
+#     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_018.json
+    
+    
 tmp:
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_001.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_002.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_003.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_004.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_005.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_006.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_007.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_008.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_009.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_010.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_011.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_012.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_013.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_014.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_015.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_016.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_017.json
-    xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_018.json
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/
     
     
+     
