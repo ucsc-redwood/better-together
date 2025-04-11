@@ -7,7 +7,15 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input_file", help="Path to the input file containing task timing data")
+parser.add_argument(
+    "input_file", help="Path to the input file containing task timing data"
+)
+parser.add_argument(
+    "--output",
+    "-o",
+    help="Output filename (without extension)",
+    default="task_execution_timeline_wide",
+)
 args = parser.parse_args()
 
 with open(args.input_file, "r") as f:
@@ -146,11 +154,10 @@ legend_elements = [
 ]
 ax.legend(handles=legend_elements, loc="upper right")
 
-# Save the figure
+# Save the figure with specified output name
+output_path = os.path.join(base_dir, f"{args.output}.png")
 plt.tight_layout()
-plt.savefig(os.path.join(base_dir, "task_execution_timeline_wide.png"))
+plt.savefig(output_path)
 plt.close()
 
-print(
-    f"Wide chart saved to {os.path.join(base_dir, 'task_execution_timeline_wide.png')}"
-)
+print(f"Wide chart saved to {output_path}")
