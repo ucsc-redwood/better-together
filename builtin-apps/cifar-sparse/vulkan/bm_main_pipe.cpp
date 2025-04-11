@@ -90,7 +90,11 @@ static void BM_run_VK_baseline(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_run_VK_baseline)->Unit(benchmark::kMillisecond)->Iterations(1)->Repetitions(5);
+BENCHMARK(BM_run_VK_baseline)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Repetitions(5)
+    ->Name("VK/CifarSparse/Baseline");
 
 // ----------------------------------------------------------------------------
 // Vk Stage
@@ -145,7 +149,8 @@ BENCHMARK(BM_run_VK_stage)
     ->Unit(benchmark::kMillisecond)
     ->DenseRange(1, 9)
     ->Iterations(1)
-    ->Repetitions(5);
+    ->Repetitions(5)
+    ->Name("VK/CifarSparse/Stage");
 
 // ----------------------------------------------------------------------------
 // Omp Stage
@@ -227,7 +232,12 @@ static void CustomArgs(benchmark::internal::Benchmark* b) {
   }
 }
 
-BENCHMARK(BM_run_OMP_stage)->Apply(CustomArgs)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_run_OMP_stage)
+    ->Apply(CustomArgs)
+    ->Iterations(1)
+    ->Repetitions(5)
+    ->Unit(benchmark::kMillisecond)
+    ->Name("OMP/CifarSparse/Stage");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
