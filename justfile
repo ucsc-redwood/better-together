@@ -179,18 +179,57 @@ analysis:
 #     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_017.json
 #     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_018.json
     
+#   | sed -n '8,177p' \
     
 tmp:
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/
-    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/
-    
-    
-     
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_1.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_2.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_3.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_4.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_5.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_6.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_7.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_8.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_9.txt
+
+    xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ \
+      | sed -n '8,177p' \
+      | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
+      | tee BM_pipe_cifar_sparse_vk_schedule_10.txt
+
+    mv BM_pipe_cifar_sparse_vk_schedule_* scripts-v2/analysis/

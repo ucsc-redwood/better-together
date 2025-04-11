@@ -149,43 +149,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_best(benchmark::State& state) {
     t2.join();
   }
 
-  // Print the records, pop all from free_task_pool
-
-  // while (!free_task_pool.empty()) {
-  //   Task* task = nullptr;
-  //   while (!free_task_pool.dequeue(task)) {
-  //     std::this_thread::yield();
-  //   }
-
-  //   std::cout << "Task " << task->uid << ":\n";
-  //   for (size_t i = 0; i < 4; ++i) {
-  //     std::cout << "  Chunk " << i << ":\n";
-  //     std::cout << "    Start: "
-  //               << std::chrono::duration_cast<std::chrono::microseconds>(
-  //                      task->records[i].start_time.time_since_epoch())
-  //                      .count()
-  //               << " us\n";
-  //     std::cout << "    End: "
-  //               << std::chrono::duration_cast<std::chrono::microseconds>(
-  //                      task->records[i].end_time.time_since_epoch())
-  //                      .count()
-  //               << " us\n";
-  //     std::cout << "    Duration: "
-  //               << std::chrono::duration_cast<std::chrono::microseconds>(
-  //                      task->records[i].end_time - task->records[i].start_time)
-  //                      .count()
-  //               << " us\n";
-  //   }
-  // }
-
-  // for (size_t i = 0; i < kPoolSize; ++i) {
-  //   std::cout << "Task " << i << ":\n";
-  //   for (size_t j = 0; j < 4; ++j) {
-  //     std::cout << "  Chunk " << j << ": " <<
-  //     std::chrono::duration_cast<std::chrono::microseconds>(records[j].end_time -
-  //     records[j].start_time).count() << " us\n";
-  //   }
-  // }
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_best)
     ->Unit(benchmark::kMillisecond)
@@ -238,35 +202,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_1(benchmark::State& state) {
     t2.join();
     t3.join();
   }
-
-  // Print the records, pop all from free_task_pool
-
-  while (!free_task_pool.empty()) {
-    Task* task = nullptr;
-    while (!free_task_pool.dequeue(task)) {
-      std::this_thread::yield();
-    }
-
-    std::cout << "Task " << task->uid << ":\n";
-    for (size_t i = 0; i < 4; ++i) {
-      std::cout << "  Chunk " << i << ":\n";
-      std::cout << "    Start: "
-                << std::chrono::duration_cast<std::chrono::microseconds>(
-                       task->records[i].start_time.time_since_epoch())
-                       .count()
-                << " us\n";
-      std::cout << "    End: "
-                << std::chrono::duration_cast<std::chrono::microseconds>(
-                       task->records[i].end_time.time_since_epoch())
-                       .count()
-                << " us\n";
-      std::cout << "    Duration: "
-                << std::chrono::duration_cast<std::chrono::microseconds>(
-                       task->records[i].end_time - task->records[i].start_time)
-                       .count()
-                << " us\n";
-    }
-  }
+  dump_records(free_task_pool);
 }
 BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_1)
     ->Unit(benchmark::kMillisecond)
