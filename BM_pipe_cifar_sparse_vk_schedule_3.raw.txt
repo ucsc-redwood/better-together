@@ -1,3 +1,10 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'pipe-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 428.0 MB/s (3090312 bytes in 0.007s)
+[2025-04-11 11:29:56.770] [info] Little cores: 0 1 2 3 
+[2025-04-11 11:29:56.771] [info] Medium cores: 4 5 
+[2025-04-11 11:29:56.771] [info] Big cores: 6 7 
 Task 7:
   Chunk 0:
     Start: 62283173038 us
@@ -1698,3 +1705,958 @@ Task 109:
     Start: 62289188528 us
     End: 62289195346 us
     Duration: 6817 us
+Task 110:
+  Chunk 0:
+    Start: 62288965591 us
+    End: 62288970983 us
+    Duration: 5392 us
+  Chunk 1:
+    Start: 62289181515 us
+    End: 62289189488 us
+    Duration: 7973 us
+  Chunk 2:
+    Start: 62289189489 us
+    End: 62289195343 us
+    Duration: 5853 us
+  Chunk 3:
+    Start: 62289195347 us
+    End: 62289202248 us
+    Duration: 6900 us
+Task 111:
+  Chunk 0:
+    Start: 62288970984 us
+    End: 62288976490 us
+    Duration: 5505 us
+  Chunk 1:
+    Start: 62289189489 us
+    End: 62289197440 us
+    Duration: 7950 us
+  Chunk 2:
+    Start: 62289197441 us
+    End: 62289203007 us
+    Duration: 5566 us
+  Chunk 3:
+    Start: 62289203009 us
+    End: 62289209923 us
+    Duration: 6913 us
+Task 112:
+  Chunk 0:
+    Start: 62288976490 us
+    End: 62288981940 us
+    Duration: 5449 us
+  Chunk 1:
+    Start: 62289197440 us
+    End: 62289205216 us
+    Duration: 7775 us
+  Chunk 2:
+    Start: 62289205217 us
+    End: 62289210780 us
+    Duration: 5563 us
+  Chunk 3:
+    Start: 62289210782 us
+    End: 62289217871 us
+    Duration: 7088 us
+Task 113:
+  Chunk 0:
+    Start: 62288981941 us
+    End: 62288987488 us
+    Duration: 5546 us
+  Chunk 1:
+    Start: 62289205217 us
+    End: 62289212938 us
+    Duration: 7721 us
+  Chunk 2:
+    Start: 62289212939 us
+    End: 62289218514 us
+    Duration: 5575 us
+  Chunk 3:
+    Start: 62289218516 us
+    End: 62289225506 us
+    Duration: 6990 us
+Task 114:
+  Chunk 0:
+    Start: 62288987489 us
+    End: 62288994373 us
+    Duration: 6884 us
+  Chunk 1:
+    Start: 62289212939 us
+    End: 62289220699 us
+    Duration: 7760 us
+  Chunk 2:
+    Start: 62289220701 us
+    End: 62289226274 us
+    Duration: 5573 us
+  Chunk 3:
+    Start: 62289226276 us
+    End: 62289233407 us
+    Duration: 7131 us
+Task 115:
+  Chunk 0:
+    Start: 62288994375 us
+    End: 62289000749 us
+    Duration: 6373 us
+  Chunk 1:
+    Start: 62289220700 us
+    End: 62289228615 us
+    Duration: 7915 us
+  Chunk 2:
+    Start: 62289228616 us
+    End: 62289234203 us
+    Duration: 5587 us
+  Chunk 3:
+    Start: 62289234205 us
+    End: 62289241233 us
+    Duration: 7028 us
+Task 116:
+  Chunk 0:
+    Start: 62289000749 us
+    End: 62289006856 us
+    Duration: 6107 us
+  Chunk 1:
+    Start: 62289228616 us
+    End: 62289236874 us
+    Duration: 8257 us
+  Chunk 2:
+    Start: 62289236875 us
+    End: 62289242449 us
+    Duration: 5573 us
+  Chunk 3:
+    Start: 62289242451 us
+    End: 62289249422 us
+    Duration: 6971 us
+Task 117:
+  Chunk 0:
+    Start: 62289006857 us
+    End: 62289013761 us
+    Duration: 6903 us
+  Chunk 1:
+    Start: 62289236875 us
+    End: 62289244615 us
+    Duration: 7740 us
+  Chunk 2:
+    Start: 62289244616 us
+    End: 62289250788 us
+    Duration: 6171 us
+  Chunk 3:
+    Start: 62289250789 us
+    End: 62289257833 us
+    Duration: 7044 us
+Task 118:
+  Chunk 0:
+    Start: 62289013762 us
+    End: 62289020316 us
+    Duration: 6553 us
+  Chunk 1:
+    Start: 62289244616 us
+    End: 62289254348 us
+    Duration: 9731 us
+  Chunk 2:
+    Start: 62289254349 us
+    End: 62289260550 us
+    Duration: 6200 us
+  Chunk 3:
+    Start: 62289260553 us
+    End: 62289267431 us
+    Duration: 6877 us
+Task 119:
+  Chunk 0:
+    Start: 62289023169 us
+    End: 62289029942 us
+    Duration: 6772 us
+  Chunk 1:
+    Start: 62289254349 us
+    End: 62289261695 us
+    Duration: 7345 us
+  Chunk 2:
+    Start: 62289261696 us
+    End: 62289267871 us
+    Duration: 6174 us
+  Chunk 3:
+    Start: 62289268274 us
+    End: 62289275316 us
+    Duration: 7041 us
+Task 120:
+  Chunk 0:
+    Start: 62289032929 us
+    End: 62289038429 us
+    Duration: 5499 us
+  Chunk 1:
+    Start: 62289261696 us
+    End: 62289269098 us
+    Duration: 7401 us
+  Chunk 2:
+    Start: 62289269098 us
+    End: 62289275235 us
+    Duration: 6136 us
+  Chunk 3:
+    Start: 62289275317 us
+    End: 62289282235 us
+    Duration: 6917 us
+Task 121:
+  Chunk 0:
+    Start: 62289041335 us
+    End: 62289046787 us
+    Duration: 5452 us
+  Chunk 1:
+    Start: 62289269099 us
+    End: 62289275998 us
+    Duration: 6899 us
+  Chunk 2:
+    Start: 62289275999 us
+    End: 62289282165 us
+    Duration: 6166 us
+  Chunk 3:
+    Start: 62289282236 us
+    End: 62289289201 us
+    Duration: 6964 us
+Task 122:
+  Chunk 0:
+    Start: 62289049905 us
+    End: 62289055411 us
+    Duration: 5505 us
+  Chunk 1:
+    Start: 62289275999 us
+    End: 62289282924 us
+    Duration: 6925 us
+  Chunk 2:
+    Start: 62289282925 us
+    End: 62289289072 us
+    Duration: 6147 us
+  Chunk 3:
+    Start: 62289289202 us
+    End: 62289296123 us
+    Duration: 6921 us
+Task 123:
+  Chunk 0:
+    Start: 62289058478 us
+    End: 62289063968 us
+    Duration: 5489 us
+  Chunk 1:
+    Start: 62289282925 us
+    End: 62289289749 us
+    Duration: 6824 us
+  Chunk 2:
+    Start: 62289289750 us
+    End: 62289295897 us
+    Duration: 6146 us
+  Chunk 3:
+    Start: 62289296125 us
+    End: 62289303112 us
+    Duration: 6987 us
+Task 124:
+  Chunk 0:
+    Start: 62289067393 us
+    End: 62289072882 us
+    Duration: 5488 us
+  Chunk 1:
+    Start: 62289289750 us
+    End: 62289296560 us
+    Duration: 6810 us
+  Chunk 2:
+    Start: 62289296561 us
+    End: 62289302713 us
+    Duration: 6151 us
+  Chunk 3:
+    Start: 62289303114 us
+    End: 62289310117 us
+    Duration: 7002 us
+Task 125:
+  Chunk 0:
+    Start: 62289075360 us
+    End: 62289080873 us
+    Duration: 5513 us
+  Chunk 1:
+    Start: 62289296561 us
+    End: 62289303523 us
+    Duration: 6962 us
+  Chunk 2:
+    Start: 62289303524 us
+    End: 62289309677 us
+    Duration: 6152 us
+  Chunk 3:
+    Start: 62289310119 us
+    End: 62289317071 us
+    Duration: 6952 us
+Task 126:
+  Chunk 0:
+    Start: 62289083461 us
+    End: 62289089095 us
+    Duration: 5634 us
+  Chunk 1:
+    Start: 62289303524 us
+    End: 62289310379 us
+    Duration: 6854 us
+  Chunk 2:
+    Start: 62289310380 us
+    End: 62289316543 us
+    Duration: 6162 us
+  Chunk 3:
+    Start: 62289317073 us
+    End: 62289324198 us
+    Duration: 7125 us
+Task 96:
+  Chunk 0:
+    Start: 62289091522 us
+    End: 62289096982 us
+    Duration: 5460 us
+  Chunk 1:
+    Start: 62289310380 us
+    End: 62289317160 us
+    Duration: 6780 us
+  Chunk 2:
+    Start: 62289317162 us
+    End: 62289323293 us
+    Duration: 6131 us
+  Chunk 3:
+    Start: 62289324199 us
+    End: 62289331170 us
+    Duration: 6970 us
+Task 97:
+  Chunk 0:
+    Start: 62289099585 us
+    End: 62289105045 us
+    Duration: 5460 us
+  Chunk 1:
+    Start: 62289317161 us
+    End: 62289323995 us
+    Duration: 6833 us
+  Chunk 2:
+    Start: 62289323996 us
+    End: 62289330172 us
+    Duration: 6176 us
+  Chunk 3:
+    Start: 62289331171 us
+    End: 62289338345 us
+    Duration: 7174 us
+Task 98:
+  Chunk 0:
+    Start: 62289107726 us
+    End: 62289113275 us
+    Duration: 5549 us
+  Chunk 1:
+    Start: 62289323995 us
+    End: 62289330834 us
+    Duration: 6838 us
+  Chunk 2:
+    Start: 62289330835 us
+    End: 62289336998 us
+    Duration: 6163 us
+  Chunk 3:
+    Start: 62289338347 us
+    End: 62289345292 us
+    Duration: 6945 us
+Task 99:
+  Chunk 0:
+    Start: 62289116661 us
+    End: 62289122275 us
+    Duration: 5614 us
+  Chunk 1:
+    Start: 62289330835 us
+    End: 62289338168 us
+    Duration: 7333 us
+  Chunk 2:
+    Start: 62289338170 us
+    End: 62289344358 us
+    Duration: 6187 us
+  Chunk 3:
+    Start: 62289345295 us
+    End: 62289352281 us
+    Duration: 6986 us
+Task 100:
+  Chunk 0:
+    Start: 62289124953 us
+    End: 62289130952 us
+    Duration: 5998 us
+  Chunk 1:
+    Start: 62289338169 us
+    End: 62289345498 us
+    Duration: 7328 us
+  Chunk 2:
+    Start: 62289345499 us
+    End: 62289351696 us
+    Duration: 6196 us
+  Chunk 3:
+    Start: 62289352284 us
+    End: 62289359284 us
+    Duration: 7000 us
+Task 101:
+  Chunk 0:
+    Start: 62289133190 us
+    End: 62289139162 us
+    Duration: 5972 us
+  Chunk 1:
+    Start: 62289345499 us
+    End: 62289352944 us
+    Duration: 7445 us
+  Chunk 2:
+    Start: 62289352944 us
+    End: 62289359122 us
+    Duration: 6177 us
+  Chunk 3:
+    Start: 62289359287 us
+    End: 62289366185 us
+    Duration: 6897 us
+Task 102:
+  Chunk 0:
+    Start: 62289141584 us
+    End: 62289147706 us
+    Duration: 6122 us
+  Chunk 1:
+    Start: 62289352945 us
+    End: 62289360321 us
+    Duration: 7375 us
+  Chunk 2:
+    Start: 62289360321 us
+    End: 62289366486 us
+    Duration: 6164 us
+  Chunk 3:
+    Start: 62289366488 us
+    End: 62289373582 us
+    Duration: 7094 us
+Task 135:
+  Chunk 0:
+    Start: 62290854968 us
+    End: 62290860450 us
+    Duration: 5481 us
+  Chunk 1:
+    Start: 62291039457 us
+    End: 62291048089 us
+    Duration: 8632 us
+  Chunk 2:
+    Start: 62291048091 us
+    End: 62291054374 us
+    Duration: 6282 us
+  Chunk 3:
+    Start: 62291059835 us
+    End: 62291068398 us
+    Duration: 8562 us
+Task 136:
+  Chunk 0:
+    Start: 62290860451 us
+    End: 62290866079 us
+    Duration: 5628 us
+  Chunk 1:
+    Start: 62291048091 us
+    End: 62291056853 us
+    Duration: 8761 us
+  Chunk 2:
+    Start: 62291056854 us
+    End: 62291063199 us
+    Duration: 6345 us
+  Chunk 3:
+    Start: 62291068399 us
+    End: 62291076234 us
+    Duration: 7834 us
+Task 137:
+  Chunk 0:
+    Start: 62290866080 us
+    End: 62290871581 us
+    Duration: 5500 us
+  Chunk 1:
+    Start: 62291056854 us
+    End: 62291064936 us
+    Duration: 8082 us
+  Chunk 2:
+    Start: 62291064938 us
+    End: 62291071162 us
+    Duration: 6223 us
+  Chunk 3:
+    Start: 62291076236 us
+    End: 62291084152 us
+    Duration: 7916 us
+Task 138:
+  Chunk 0:
+    Start: 62290871582 us
+    End: 62290877077 us
+    Duration: 5494 us
+  Chunk 1:
+    Start: 62291064937 us
+    End: 62291073257 us
+    Duration: 8319 us
+  Chunk 2:
+    Start: 62291073258 us
+    End: 62291079412 us
+    Duration: 6154 us
+  Chunk 3:
+    Start: 62291084153 us
+    End: 62291092168 us
+    Duration: 8014 us
+Task 139:
+  Chunk 0:
+    Start: 62290877079 us
+    End: 62290883495 us
+    Duration: 6416 us
+  Chunk 1:
+    Start: 62291073258 us
+    End: 62291081242 us
+    Duration: 7983 us
+  Chunk 2:
+    Start: 62291081243 us
+    End: 62291087404 us
+    Duration: 6160 us
+  Chunk 3:
+    Start: 62291092170 us
+    End: 62291099120 us
+    Duration: 6949 us
+Task 140:
+  Chunk 0:
+    Start: 62290883498 us
+    End: 62290889499 us
+    Duration: 6001 us
+  Chunk 1:
+    Start: 62291081243 us
+    End: 62291089019 us
+    Duration: 7776 us
+  Chunk 2:
+    Start: 62291089020 us
+    End: 62291095207 us
+    Duration: 6187 us
+  Chunk 3:
+    Start: 62291099121 us
+    End: 62291106025 us
+    Duration: 6903 us
+Task 141:
+  Chunk 0:
+    Start: 62290889501 us
+    End: 62290896311 us
+    Duration: 6809 us
+  Chunk 1:
+    Start: 62291089020 us
+    End: 62291096989 us
+    Duration: 7969 us
+  Chunk 2:
+    Start: 62291096990 us
+    End: 62291103164 us
+    Duration: 6173 us
+  Chunk 3:
+    Start: 62291106026 us
+    End: 62291113003 us
+    Duration: 6976 us
+Task 142:
+  Chunk 0:
+    Start: 62290896312 us
+    End: 62290903153 us
+    Duration: 6840 us
+  Chunk 1:
+    Start: 62291096990 us
+    End: 62291105000 us
+    Duration: 8010 us
+  Chunk 2:
+    Start: 62291105001 us
+    End: 62291111166 us
+    Duration: 6164 us
+  Chunk 3:
+    Start: 62291113004 us
+    End: 62291120353 us
+    Duration: 7349 us
+Task 143:
+  Chunk 0:
+    Start: 62290903154 us
+    End: 62290909837 us
+    Duration: 6683 us
+  Chunk 1:
+    Start: 62291105001 us
+    End: 62291112992 us
+    Duration: 7990 us
+  Chunk 2:
+    Start: 62291112993 us
+    End: 62291119175 us
+    Duration: 6182 us
+  Chunk 3:
+    Start: 62291120355 us
+    End: 62291127253 us
+    Duration: 6897 us
+Task 144:
+  Chunk 0:
+    Start: 62290909841 us
+    End: 62290916404 us
+    Duration: 6563 us
+  Chunk 1:
+    Start: 62291112993 us
+    End: 62291120918 us
+    Duration: 7924 us
+  Chunk 2:
+    Start: 62291120918 us
+    End: 62291127091 us
+    Duration: 6172 us
+  Chunk 3:
+    Start: 62291127254 us
+    End: 62291134094 us
+    Duration: 6839 us
+Task 145:
+  Chunk 0:
+    Start: 62290916406 us
+    End: 62290923243 us
+    Duration: 6836 us
+  Chunk 1:
+    Start: 62291120918 us
+    End: 62291128669 us
+    Duration: 7751 us
+  Chunk 2:
+    Start: 62291128670 us
+    End: 62291134833 us
+    Duration: 6162 us
+  Chunk 3:
+    Start: 62291134835 us
+    End: 62291141829 us
+    Duration: 6994 us
+Task 146:
+  Chunk 0:
+    Start: 62290923243 us
+    End: 62290928930 us
+    Duration: 5687 us
+  Chunk 1:
+    Start: 62291128670 us
+    End: 62291137860 us
+    Duration: 9189 us
+  Chunk 2:
+    Start: 62291137862 us
+    End: 62291144084 us
+    Duration: 6222 us
+  Chunk 3:
+    Start: 62291144087 us
+    End: 62291151027 us
+    Duration: 6939 us
+Task 147:
+  Chunk 0:
+    Start: 62290928931 us
+    End: 62290934387 us
+    Duration: 5456 us
+  Chunk 1:
+    Start: 62291137862 us
+    End: 62291146068 us
+    Duration: 8206 us
+  Chunk 2:
+    Start: 62291146069 us
+    End: 62291152277 us
+    Duration: 6208 us
+  Chunk 3:
+    Start: 62291152279 us
+    End: 62291159279 us
+    Duration: 6999 us
+Task 148:
+  Chunk 0:
+    Start: 62290934388 us
+    End: 62290939872 us
+    Duration: 5483 us
+  Chunk 1:
+    Start: 62291146069 us
+    End: 62291154257 us
+    Duration: 8187 us
+  Chunk 2:
+    Start: 62291154258 us
+    End: 62291160463 us
+    Duration: 6204 us
+  Chunk 3:
+    Start: 62291160466 us
+    End: 62291167921 us
+    Duration: 7455 us
+Task 149:
+  Chunk 0:
+    Start: 62290939873 us
+    End: 62290945324 us
+    Duration: 5451 us
+  Chunk 1:
+    Start: 62291154258 us
+    End: 62291162420 us
+    Duration: 8162 us
+  Chunk 2:
+    Start: 62291162422 us
+    End: 62291168678 us
+    Duration: 6256 us
+  Chunk 3:
+    Start: 62291168679 us
+    End: 62291175664 us
+    Duration: 6984 us
+Task 150:
+  Chunk 0:
+    Start: 62290945326 us
+    End: 62290950776 us
+    Duration: 5450 us
+  Chunk 1:
+    Start: 62291162422 us
+    End: 62291170591 us
+    Duration: 8169 us
+  Chunk 2:
+    Start: 62291170592 us
+    End: 62291176783 us
+    Duration: 6190 us
+  Chunk 3:
+    Start: 62291176786 us
+    End: 62291183905 us
+    Duration: 7119 us
+Task 151:
+  Chunk 0:
+    Start: 62290950777 us
+    End: 62290956299 us
+    Duration: 5522 us
+  Chunk 1:
+    Start: 62291170592 us
+    End: 62291178732 us
+    Duration: 8139 us
+  Chunk 2:
+    Start: 62291178734 us
+    End: 62291184930 us
+    Duration: 6196 us
+  Chunk 3:
+    Start: 62291184932 us
+    End: 62291191805 us
+    Duration: 6872 us
+Task 152:
+  Chunk 0:
+    Start: 62290956300 us
+    End: 62290961857 us
+    Duration: 5556 us
+  Chunk 1:
+    Start: 62291178733 us
+    End: 62291186673 us
+    Duration: 7939 us
+  Chunk 2:
+    Start: 62291186674 us
+    End: 62291192850 us
+    Duration: 6175 us
+  Chunk 3:
+    Start: 62291192852 us
+    End: 62291199763 us
+    Duration: 6911 us
+Task 153:
+  Chunk 0:
+    Start: 62290961858 us
+    End: 62290967288 us
+    Duration: 5429 us
+  Chunk 1:
+    Start: 62291186674 us
+    End: 62291194436 us
+    Duration: 7761 us
+  Chunk 2:
+    Start: 62291194437 us
+    End: 62291200603 us
+    Duration: 6165 us
+  Chunk 3:
+    Start: 62291200604 us
+    End: 62291207464 us
+    Duration: 6859 us
+Task 154:
+  Chunk 0:
+    Start: 62290967591 us
+    End: 62290973144 us
+    Duration: 5552 us
+  Chunk 1:
+    Start: 62291194437 us
+    End: 62291201782 us
+    Duration: 7345 us
+  Chunk 2:
+    Start: 62291201784 us
+    End: 62291207936 us
+    Duration: 6151 us
+  Chunk 3:
+    Start: 62291207938 us
+    End: 62291214829 us
+    Duration: 6891 us
+Task 155:
+  Chunk 0:
+    Start: 62290976084 us
+    End: 62290981771 us
+    Duration: 5687 us
+  Chunk 1:
+    Start: 62291201784 us
+    End: 62291208582 us
+    Duration: 6798 us
+  Chunk 2:
+    Start: 62291208583 us
+    End: 62291214739 us
+    Duration: 6156 us
+  Chunk 3:
+    Start: 62291214830 us
+    End: 62291222181 us
+    Duration: 7350 us
+Task 156:
+  Chunk 0:
+    Start: 62290984526 us
+    End: 62290989972 us
+    Duration: 5446 us
+  Chunk 1:
+    Start: 62291208583 us
+    End: 62291215399 us
+    Duration: 6816 us
+  Chunk 2:
+    Start: 62291215400 us
+    End: 62291221567 us
+    Duration: 6167 us
+  Chunk 3:
+    Start: 62291222183 us
+    End: 62291229249 us
+    Duration: 7065 us
+Task 157:
+  Chunk 0:
+    Start: 62290992477 us
+    End: 62290997928 us
+    Duration: 5450 us
+  Chunk 1:
+    Start: 62291215400 us
+    End: 62291222260 us
+    Duration: 6859 us
+  Chunk 2:
+    Start: 62291222261 us
+    End: 62291228433 us
+    Duration: 6172 us
+  Chunk 3:
+    Start: 62291229250 us
+    End: 62291236183 us
+    Duration: 6932 us
+Task 158:
+  Chunk 0:
+    Start: 62291000539 us
+    End: 62291006014 us
+    Duration: 5474 us
+  Chunk 1:
+    Start: 62291222260 us
+    End: 62291229242 us
+    Duration: 6981 us
+  Chunk 2:
+    Start: 62291229243 us
+    End: 62291235402 us
+    Duration: 6159 us
+  Chunk 3:
+    Start: 62291236185 us
+    End: 62291243147 us
+    Duration: 6962 us
+Task 128:
+  Chunk 0:
+    Start: 62291008494 us
+    End: 62291014338 us
+    Duration: 5843 us
+  Chunk 1:
+    Start: 62291229243 us
+    End: 62291236105 us
+    Duration: 6861 us
+  Chunk 2:
+    Start: 62291236105 us
+    End: 62291242261 us
+    Duration: 6155 us
+  Chunk 3:
+    Start: 62291243149 us
+    End: 62291250140 us
+    Duration: 6991 us
+Task 129:
+  Chunk 0:
+    Start: 62291017603 us
+    End: 62291024341 us
+    Duration: 6737 us
+  Chunk 1:
+    Start: 62291236105 us
+    End: 62291242904 us
+    Duration: 6798 us
+  Chunk 2:
+    Start: 62291242905 us
+    End: 62291249074 us
+    Duration: 6169 us
+  Chunk 3:
+    Start: 62291250142 us
+    End: 62291257094 us
+    Duration: 6951 us
+Task 130:
+  Chunk 0:
+    Start: 62291026174 us
+    End: 62291032346 us
+    Duration: 6171 us
+  Chunk 1:
+    Start: 62291242904 us
+    End: 62291250122 us
+    Duration: 7217 us
+  Chunk 2:
+    Start: 62291250123 us
+    End: 62291256305 us
+    Duration: 6182 us
+  Chunk 3:
+    Start: 62291257096 us
+    End: 62291264216 us
+    Duration: 7120 us
+Task 131:
+  Chunk 0:
+    Start: 62291034721 us
+    End: 62291040721 us
+    Duration: 5999 us
+  Chunk 1:
+    Start: 62291250123 us
+    End: 62291257358 us
+    Duration: 7235 us
+  Chunk 2:
+    Start: 62291257359 us
+    End: 62291263537 us
+    Duration: 6178 us
+  Chunk 3:
+    Start: 62291264218 us
+    End: 62291271800 us
+    Duration: 7581 us
+Task 132:
+  Chunk 0:
+    Start: 62291043255 us
+    End: 62291049294 us
+    Duration: 6038 us
+  Chunk 1:
+    Start: 62291257359 us
+    End: 62291266776 us
+    Duration: 9416 us
+  Chunk 2:
+    Start: 62291266777 us
+    End: 62291272969 us
+    Duration: 6192 us
+  Chunk 3:
+    Start: 62291272971 us
+    End: 62291279950 us
+    Duration: 6979 us
+Task 133:
+  Chunk 0:
+    Start: 62291051328 us
+    End: 62291058256 us
+    Duration: 6927 us
+  Chunk 1:
+    Start: 62291266776 us
+    End: 62291274203 us
+    Duration: 7426 us
+  Chunk 2:
+    Start: 62291274204 us
+    End: 62291280380 us
+    Duration: 6176 us
+  Chunk 3:
+    Start: 62291280382 us
+    End: 62291287264 us
+    Duration: 6882 us
+Task 134:
+  Chunk 0:
+    Start: 62291059835 us
+    End: 62291065631 us
+    Duration: 5795 us
+  Chunk 1:
+    Start: 62291274204 us
+    End: 62291281461 us
+    Duration: 7257 us
+  Chunk 2:
+    Start: 62291281463 us
+    End: 62291287642 us
+    Duration: 6179 us
+  Chunk 3:
+    Start: 62291287643 us
+    End: 62291294485 us
+    Duration: 6841 us
+-----------------------------------------------------------------------------------------------------------
+Benchmark                                                                 Time             CPU   Iterations
+-----------------------------------------------------------------------------------------------------------
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5               752 ms        0.639 ms            1
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5               802 ms        0.686 ms            1
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5               896 ms        0.833 ms            1
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5               890 ms        0.692 ms            1
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5               877 ms         1.05 ms            1
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5_mean          843 ms        0.780 ms            5
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5_median        877 ms        0.692 ms            5
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5_stddev       63.5 ms        0.168 ms            5
+BM_pipe_cifar_sparse_vk_schedule_3/iterations:1/repeats:5_cv           7.53 %         21.49 %             5
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'pipe-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 460.6 MB/s (3090312 bytes in 0.006s)
+[2025-04-11 11:22:45.497] [info] Little cores: 0 1 2 
+[2025-04-11 11:22:45.498] [info] Medium cores: 3 4 
+[2025-04-11 11:22:45.498] [info] Big cores: 5 6 7 
+[0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m

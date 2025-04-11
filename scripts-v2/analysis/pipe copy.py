@@ -13,17 +13,8 @@ parser.add_argument(
 parser.add_argument(
     "--output",
     "-o",
-    help="Output filename (with or without extension)",
+    help="Output filename (without extension)",
     default="task_execution_timeline_wide",
-)
-parser.add_argument(
-    "--task-start",
-    type=int,
-    help="Starting task ID to include (inclusive)",
-    default=None,
-)
-parser.add_argument(
-    "--task-end", type=int, help="Ending task ID to include (inclusive)", default=None
 )
 args = parser.parse_args()
 
@@ -62,19 +53,6 @@ for line in lines:
     if end_match:
         tasks[current_task][current_chunk]["end"] = int(end_match.group(1))
         continue
-
-# Filter tasks based on command-line arguments
-if args.task_start is not None or args.task_end is not None:
-    start_task = args.task_start if args.task_start is not None else min(tasks.keys())
-    end_task = args.task_end if args.task_end is not None else max(tasks.keys())
-
-    tasks = {
-        task_id: task_data
-        for task_id, task_data in tasks.items()
-        if start_task <= task_id <= end_task
-    }
-
-    print(f"Filtered to tasks {start_task} through {end_task}")
 
 # Find the maximum chunk ID in the data
 max_chunk_id = max(
@@ -115,7 +93,7 @@ for task_id in tasks:
 sorted_task_ids = sorted(tasks.keys())
 
 # Colors for different chunks - dynamically generate based on max_chunk_id
-color_map = plt.colormaps["tab10"].resampled(max_chunk_id + 1)
+color_map = plt.cm.get_cmap("tab10", max_chunk_id + 1)
 chunk_colors = [color_map(i) for i in range(max_chunk_id + 1)]
 
 # Create a wider Gantt chart
@@ -177,19 +155,7 @@ legend_elements = [
 ax.legend(handles=legend_elements, loc="upper right")
 
 # Save the figure with specified output name
-output_filename = args.output
-if not output_filename.lower().endswith(".png"):
-    output_filename += ".png"
-
-# Check if output path has a directory component
-if os.path.dirname(output_filename):
-    # Use the specified path directly
-    output_path = output_filename
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-else:
-    # Only a filename was given, put it in the base_dir
-    output_path = os.path.join(base_dir, output_filename)
-
+output_path = os.path.join(base_dir, f"{args.output}.png")
 plt.tight_layout()
 plt.savefig(output_path)
 plt.close()

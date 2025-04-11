@@ -419,7 +419,7 @@ def write_schedules_to_json(
     # Create device/application subdirectories
     # output_path = Path(output_dir) / device_id / application
     output_path = os.path.join(output_dir, device_id, application)
-    
+
     # Create directories if they don't exist
     os.makedirs(output_path, exist_ok=True)
 

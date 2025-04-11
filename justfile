@@ -179,56 +179,56 @@ analysis:
 #     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_017.json
 #     xmake r pipe-ndarray-cu --device jetson --file /home/yanwen/Desktop/better-together/data/schedule_files_v3/jetson/CifarDense/schedule_018.json
     
-#   | sed -n '8,177p' \
+#   | sed -n '8,1707p' \
     
 # tmp:
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_1.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_2.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_3.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_4.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_5.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_6.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_7.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_8.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_9.txt
 
 #     xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ \
-#       | sed -n '8,177p' \
+#       | sed -n '8,1707p' \
 #       | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' \
 #       | tee BM_pipe_cifar_sparse_vk_schedule_10.txt
 
@@ -264,63 +264,42 @@ run-benchmarks:
 	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt
 	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
 	xmake r pipe-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
+# cp BM_pipe_cifar_sparse_vk_schedule_*.txt scripts-v2/analysis/
 
 # -----------------------------------------------------------------------------
 # Target 2: Process the raw output using sed
-# This extracts lines 8 to 177 and removes the specific 4-line block for "Chunk 3".
+# This extracts lines 8 to 1707 and removes the unwanted "Chunk 3" blocks with zero times
 # -----------------------------------------------------------------------------
 process-results:
 	@echo "Processing raw benchmark outputs..."
-	# For each raw output file, extract lines 8-177 and remove the unwanted block.
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_1.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_1.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_2.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_2.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_3.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_3.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_4.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_4.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_5.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_5.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_6.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_6.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_7.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_7.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_8.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_8.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_9.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_9.txt
-	sed -n '8,177p' BM_pipe_cifar_sparse_vk_schedule_10.raw.txt | \
-	  sed '/^  Chunk 3:$$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$$/d}' \
-	  > BM_pipe_cifar_sparse_vk_schedule_10.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt
+	sed -n '8,1707p' scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.raw.txt | sed '/^  Chunk 3:$/{N;N;N;/^  Chunk 3:\n    Start: 0 us\n    End: 0 us\n    Duration: 0 us$/d}' > scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt
 
-	# Move processed files into the analysis directory.
-	mv BM_pipe_cifar_sparse_vk_schedule_*.txt scripts-v2/analysis/
+
 
 # -----------------------------------------------------------------------------
 # Target 3: Generate figures from processed data using Python.
 # -----------------------------------------------------------------------------
 make-fig:
 	@echo "Generating figures..."
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_1
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_2
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_3
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_4
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_5
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_6
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_7
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_8
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_9
-	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_10
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_1 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_2 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_3 --task-start 10 --task-end 20 
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_4 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_5 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_6 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_7 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_8 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_9 --task-start 10 --task-end 20
+	python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_10 --task-start 10 --task-end 20
 
 # -----------------------------------------------------------------------------
 # "all" target to run every step in sequence.
