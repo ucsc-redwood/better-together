@@ -262,7 +262,21 @@ run-benchmarks:
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
     xmake r gen-record-pipe-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
-    
+
+
+run-best-benchmarks:
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee BM_best_cifar_sparse_vk_schedule_1.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee BM_best_cifar_sparse_vk_schedule_2.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee BM_best_cifar_sparse_vk_schedule_3.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee BM_best_cifar_sparse_vk_schedule_4.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee BM_best_cifar_sparse_vk_schedule_5.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee BM_best_cifar_sparse_vk_schedule_6.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee BM_best_cifar_sparse_vk_schedule_7.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_best_cifar_sparse_vk_schedule_8.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_best_cifar_sparse_vk_schedule_9.raw.txt
+    xmake r bm-best-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_best_cifar_sparse_vk_schedule_10.raw.txt
+
+
 # -----------------------------------------------------------------------------
 # Target 2: Process the raw output using sed
 # This extracts lines 8 to 1707 and removes the unwanted "Chunk 3" blocks with zero times
