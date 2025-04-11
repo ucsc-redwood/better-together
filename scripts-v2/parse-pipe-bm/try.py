@@ -165,8 +165,167 @@ def generate_schedules(device_id: str, application: str) -> List[Schedule]:
     return schedules
 
 
+def annotate_schedules_with_timing(
+    schedules: List[Schedule], device_id: str, application: str, df: pd.DataFrame
+) -> List[Schedule]:
+    """
+    Annotate schedules with timing information from benchmark data.
+
+    Args:
+        schedules: List of Schedule objects
+        device_id: Device ID from hardware config
+        application: Application name
+        df: DataFrame containing benchmark data
+
+    Returns:
+        List of schedules with timing information added
+    """
+    print(f"Using benchmark data for device {device_id}...")
+
+    # First, get baseline times for CPU and GPU
+    cpu_baseline_time = None
+    gpu_baseline_time = None
+
+    # Get CPU baseline (OMP, Stage 0)
+    cpu_baseline_time = get_benchmark_time(df, vendor="OMP", stage=0)
+    if cpu_baseline_time is not None:
+        print(f"Found CPU baseline time: {cpu_baseline_time:.2f}")
+    else:
+        print("Warning: CPU baseline data not found")
+
+    # Try to get GPU baseline (CUDA or VK, Stage 0)
+    for gpu_backend in ["CUDA", "VK"]:
+        gpu_baseline_time = get_benchmark_time(df, vendor=gpu_backend, stage=0)
+        if gpu_baseline_time is not None:
+            print(f"Found GPU ({gpu_backend}) baseline time: {gpu_baseline_time:.2f}")
+            break
+
+    if gpu_baseline_time is None:
+        print("Warning: GPU baseline data not found")
+
+    annotated_schedules = []
+
+    # Create a mapping from core types to numeric values
+    core_type_to_num = {"little": "0", "medium": "1", "big": "2"}
+
+    for schedule in schedules:
+        modified_schedule = False
+        chunk_times = [0.0] * len(schedule.chunks)
+
+        for i, (chunk, pu_type, threads) in enumerate(
+            zip(schedule.chunks, schedule.pu_types, schedule.pu_threads)
+        ):
+            start_stage, end_stage = chunk
+            chunk_time = 0.0
+
+            # Map pu_type to backend and core_type
+            vendor = None
+            core = None
+
+            if pu_type.startswith("gpu"):
+                # Extract backend from gpu_{backend}
+                backend_name = pu_type.split("_")[1]
+                if backend_name == "vulkan":
+                    vendor = "VK"
+                elif backend_name == "cuda":
+                    vendor = "CUDA"
+            else:
+                # CPU core type
+                vendor = "OMP"
+                core = pu_type
+                # Convert core type name to numeric value if it's in our mapping
+                if core in core_type_to_num:
+                    core = core_type_to_num[core]
+
+            # Sum up time for each stage in the chunk
+            for stage in range(start_stage, end_stage + 1):
+                # Get benchmark time for current stage
+                stage_time = None
+
+                if vendor == "OMP" and threads is not None:
+                    # For OMP, we might have data with thread count
+                    # The actual column to filter by would depend on your DataFrame structure
+                    # This assumes you have a ThreadCount column or similar
+                    # You may need to adjust this based on your actual data structure
+                    stage_time = get_benchmark_time(
+                        df, vendor=vendor, stage=stage, core=core
+                    )
+                else:
+                    # For GPU or if thread count isn't specified
+                    stage_time = get_benchmark_time(df, vendor=vendor, stage=stage)
+
+                if stage_time is not None:
+                    chunk_time += stage_time
+                    modified_schedule = True
+
+                if stage_time is not None:
+                    # print(f"Found time for Vendor={vendor}, Stage={stage}, Core={core}: {stage_time:.2f} ms")
+                    chunk_time += stage_time
+                    modified_schedule = True
+
+            chunk_times[i] = chunk_time
+
+        # Only add schedules where we found timing data
+        if modified_schedule:
+            max_chunk_time = max(chunk_times) if chunk_times else 0.0
+
+            # Calculate load balancing metrics
+            load_balance_ratio = None
+            load_imbalance_pct = None
+            time_variance = None
+
+            if chunk_times and max_chunk_time > 0:
+                min_chunk_time = min(chunk_times)
+                avg_chunk_time = sum(chunk_times) / len(chunk_times)
+
+                # Load balance ratio (min/max): closer to 1.0 means better balancing
+                if min_chunk_time > 0:
+                    load_balance_ratio = min_chunk_time / max_chunk_time
+
+                # Load imbalance percentage: 0% means perfectly balanced
+                load_imbalance_pct = (
+                    ((max_chunk_time / avg_chunk_time) - 1.0) * 100
+                    if avg_chunk_time > 0
+                    else None
+                )
+
+                # Time variance: lower means better balancing
+                if len(chunk_times) > 1:
+                    time_variance = sum(
+                        (t - avg_chunk_time) ** 2 for t in chunk_times
+                    ) / len(chunk_times)
+
+            # Calculate speedups
+            cpu_speedup = None
+            gpu_speedup = None
+
+            if cpu_baseline_time and max_chunk_time > 0:
+                cpu_speedup = cpu_baseline_time / max_chunk_time
+
+            if gpu_baseline_time and max_chunk_time > 0:
+                gpu_speedup = gpu_baseline_time / max_chunk_time
+
+            annotated_schedule = Schedule(
+                chunks=schedule.chunks,
+                pu_types=schedule.pu_types,
+                pu_threads=schedule.pu_threads,
+                chunk_times=chunk_times,
+                max_chunk_time=max_chunk_time,
+                cpu_baseline_time=cpu_baseline_time,
+                gpu_baseline_time=gpu_baseline_time,
+                cpu_speedup=cpu_speedup,
+                gpu_speedup=gpu_speedup,
+                load_balance_ratio=load_balance_ratio,
+                load_imbalance_pct=load_imbalance_pct,
+                time_variance=time_variance,
+            )
+            annotated_schedules.append(annotated_schedule)
+
+    return annotated_schedules
+
+
 if __name__ == "__main__":
-    # Load your dataframe
+    # Load the dataframe
     base_dir = os.path.dirname(os.path.abspath(__file__))
     df = pd.read_pickle(
         os.path.join(base_dir, "parsed_data/3A021JEHN02756_benchmark.pkl")
@@ -195,24 +354,59 @@ if __name__ == "__main__":
     pu_types = get_available_pu_types(device_config)
     max_chunks = len(pu_types)
 
-    print(pu_types)
-    print(max_chunks)
+    print(f"Available PU types: {pu_types}")
+    print(f"Maximum chunks: {max_chunks}")
 
-    # Generate all possible chunk divisions
-    all_chunks = get_all_possible_chunks(num_stages, max_chunks)
+    # Try getting a specific timing from the benchmark data
+    vk_stage1_time = get_benchmark_time(df, vendor="VK", stage=1)
+    if vk_stage1_time is not None:
+        print(f"Example benchmark: VK Stage 1 time: {vk_stage1_time} ms")
 
-    for chunks in all_chunks:
-        print(chunks)
-
+    # Generate schedules and annotate with timing information
     try:
+        # Generate all possible schedules
         schedules = generate_schedules(device_id, application)
         print(
             f"Generated {len(schedules)} possible schedules for {application} on {device_id}"
         )
+
+        # Annotate schedules with timing information from the dataframe
+        annotated_schedules = annotate_schedules_with_timing(
+            schedules, device_id, application, df
+        )
+
+        if annotated_schedules:
+            # Sort schedules by max_chunk_time (ascending)
+            sorted_schedules = sorted(
+                annotated_schedules, key=lambda s: s.max_chunk_time
+            )
+            # Limit to top 10 schedules
+            top_n = min(10, len(sorted_schedules))
+            top_schedules = sorted_schedules[:top_n]
+
+            print(f"\nTop {top_n} schedules by performance (lowest max chunk time):\n")
+            for i, schedule in enumerate(top_schedules):
+                print_schedule(schedule, i + 1)
+                print(f"  Chunk times: {[f'{t:.2f}' for t in schedule.chunk_times]}")
+                print(f"  Max chunk time: {schedule.max_chunk_time:.2f}")
+
+                # Print speedup information if available
+                if schedule.cpu_speedup:
+                    print(f"  CPU speedup: {schedule.cpu_speedup:.2f}x")
+                if schedule.gpu_speedup:
+                    print(f"  GPU speedup: {schedule.gpu_speedup:.2f}x")
+
+                # Print load balancing metrics if available
+                if schedule.load_balance_ratio:
+                    print(f"  Load balance ratio: {schedule.load_balance_ratio:.2f}")
+                if schedule.load_imbalance_pct:
+                    print(f"  Load imbalance: {schedule.load_imbalance_pct:.2f}%")
+                if schedule.time_variance:
+                    print(f"  Time variance: {schedule.time_variance:.4f}")
+                print()
+        else:
+            print(
+                "No schedules could be annotated with timing information. Check your benchmark data."
+            )
     except ValueError as e:
         print(f"Error: {e}")
-
-    # # Get a specific timing
-    # vk_stage1_time = get_benchmark_time(df, vendor="VK", stage=1)
-
-    # print(f"VK Stage 1 time: {vk_stage1_time} ms")
