@@ -11,24 +11,24 @@
 
 using MyTask = Task<cifar_sparse::v2::AppData>;
 
+#define SETUP_CORES_AND_TASKS()                                               \
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;                            \
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;                    \
+  SPSCQueue<MyTask*, kPoolSize> free_task_pool;                               \
+  for (size_t i = 0; i < kPoolSize; ++i) {                                    \
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr())); \
+    free_task_pool.enqueue(preallocated_tasks.back().get());                  \
+  }
+
 // ----------------------------------------------------------------------------
 // Vk Baseline
 // ----------------------------------------------------------------------------
 
 static void BM_run_VK_baseline(benchmark::State& state) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
-  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
+  SETUP_CORES_AND_TASKS();
 
   SPSCQueue<MyTask*, kPoolSize> q_0;
   SPSCQueue<MyTask*, kPoolSize> q_1;
-
-  // Init once
-  for (size_t i = 0; i < kPoolSize; ++i) {
-    spdlog::info("Init task {}", i);
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
-    free_task_pool.enqueue(preallocated_tasks.back().get());
-  }
 
   for (auto _ : state) {
     auto t0 = std::thread(
@@ -36,16 +36,8 @@ static void BM_run_VK_baseline(benchmark::State& state) {
           disp.dispatch_multi_stage(task.appdata, 1, 9);
         });
 
-    auto t1 =
-        std::thread(worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {
-          // busy wait for 20ms
-          auto start = std::chrono::high_resolution_clock::now();
-          while (std::chrono::duration_cast<std::chrono::milliseconds>(
-                     std::chrono::high_resolution_clock::now() - start)
-                     .count() < 10) {
-            // Busy wait
-          }
-        });
+    auto t1 = std::thread(
+        worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {});
 
     t0.join();
     t1.join();
@@ -63,27 +55,17 @@ BENCHMARK(BM_run_VK_baseline)
 // ----------------------------------------------------------------------------
 
 static void BM_run_VK_stage(benchmark::State& state) {
+  SETUP_CORES_AND_TASKS();
+
   const int stage = state.range(0);
 
-  // Ensure stage is valid
   if (stage < 1 || stage > 9) {
     state.SkipWithError("Invalid stage number");
     return;
   }
 
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
-  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
   SPSCQueue<MyTask*, kPoolSize> q_0;
   SPSCQueue<MyTask*, kPoolSize> q_1;
-
-  // Init once
-  for (size_t i = 0; i < kPoolSize; ++i) {
-    spdlog::info("Init task {}", i);
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
-    free_task_pool.enqueue(preallocated_tasks.back().get());
-  }
 
   for (auto _ : state) {
     auto t0 = std::thread(
@@ -91,16 +73,8 @@ static void BM_run_VK_stage(benchmark::State& state) {
           disp.dispatch_multi_stage(task.appdata, stage, stage);
         });
 
-    auto t1 =
-        std::thread(worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {
-          // // busy wait for 20ms
-          // auto start = std::chrono::high_resolution_clock::now();
-          // while (std::chrono::duration_cast<std::chrono::milliseconds>(
-          //            std::chrono::high_resolution_clock::now() - start)
-          //            .count() < 10) {
-          //   // Busy wait
-          // }
-        });
+    auto t1 = std::thread(
+        worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {});
 
     t0.join();
     t1.join();
@@ -147,38 +121,20 @@ static void BM_run_OMP_stage(benchmark::State& state) {
     return;
   }
 
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  SETUP_CORES_AND_TASKS();
 
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
-  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
   SPSCQueue<MyTask*, kPoolSize> q_0;
   SPSCQueue<MyTask*, kPoolSize> q_1;
-
-  // Init once
-  for (size_t i = 0; i < kPoolSize; ++i) {
-    spdlog::info("Init task {}", i);
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
-    free_task_pool.enqueue(preallocated_tasks.back().get());
-  }
 
   for (auto _ : state) {
     auto t0 = std::thread(
         worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
-          // disp.dispatch_multi_stage(task.appdata, stage, stage);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               cores_to_use, num_threads, task.appdata, stage, stage);
         });
 
-    auto t1 =
-        std::thread(worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {
-          // // busy wait for 20ms
-          // auto start = std::chrono::high_resolution_clock::now();
-          // while (std::chrono::duration_cast<std::chrono::milliseconds>(
-          //            std::chrono::high_resolution_clock::now() - start)
-          //            .count() < 10) {
-          //   // Busy wait
-          // }
-        });
+    auto t1 = std::thread(
+        worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {});
 
     t0.join();
     t1.join();

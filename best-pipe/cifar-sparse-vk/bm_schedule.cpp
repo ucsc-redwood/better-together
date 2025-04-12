@@ -10,34 +10,6 @@
 
 using MyTask = Task<cifar_sparse::v2::AppData>;
 
-// using ProcessFunction = std::function<void(MyTask&)>;
-
-// constexpr size_t kPoolSize = 32;
-// constexpr size_t kNumToProcess = 100;
-
-// void worker_thread<MyTask>(SPSCQueue<MyTask*, kPoolSize>& in_queue,
-//                           SPSCQueue<MyTask*, kPoolSize>& out_queue,
-//                           ProcessFunction process_function) {
-//   for (size_t _ = 0; _ < kNumToProcess; ++_) {
-//     MyTask* task = nullptr;
-//     while (!in_queue.dequeue(task)) {
-//       std::this_thread::yield();
-//     }
-
-//     // Process the task (timing is handled in the provided process function)
-//     process_function(*task);
-
-//     // Forward processed task
-//     while (!out_queue.enqueue(std::move(task))) {
-//       std::this_thread::yield();
-//     }
-//   }
-// }
-
-// ----------------------------------------------------------------------------
-// Omp Stage
-// ----------------------------------------------------------------------------
-
 #define SETUP_CORES_AND_TASKS(state)                                          \
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;                            \
   std::vector<std::unique_ptr<MyTask>> preallocated_tasks;                    \

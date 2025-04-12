@@ -10,18 +10,7 @@
 #include "builtin-apps/pipeline/task.hpp"
 #include "builtin-apps/pipeline/worker.hpp"
 
-// constexpr size_t kPoolSize = 32;
-// constexpr size_t kNumToProcess = 100;
-
-// ----------------------------------------------------------------------------
-// Worker Thread
-// ----------------------------------------------------------------------------
-
 using MyTask = Task<cifar_sparse::v2::AppData>;
-
-// ----------------------------------------------------------------------------
-// Omp Stage
-// ----------------------------------------------------------------------------
 
 #define SETUP_CORES_AND_TASKS()                                               \
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;                            \
