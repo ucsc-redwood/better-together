@@ -2,7 +2,6 @@
 
 #include <array>
 #include <cassert>
-#include <chrono>
 #include <iostream>
 
 #include "../conf.hpp"
@@ -83,8 +82,8 @@ class RecordManager {
       for (size_t j = 0; j < 4; ++j) {
         auto& rec = records_[i][j];
 
-        std::cout << "  Chunk " << j << " ("
-                  << processor_type_to_string(rec.processed_by) << "):\n";
+        std::cout << "  Chunk " << j << " (" << processor_type_to_string(rec.processed_by)
+                  << "):\n";
         std::cout << "    Start: " << rec.start << " cycles\n";
         std::cout << "    End: " << rec.end << " cycles\n";
 
