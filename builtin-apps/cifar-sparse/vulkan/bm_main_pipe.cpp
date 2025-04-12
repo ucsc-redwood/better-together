@@ -171,20 +171,35 @@ static void BM_run_OMP_stage_full(benchmark::State& state) {
   }
 
   for (auto _ : state) {
-    auto t0 = std::thread(
-        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              cores_to_use, num_threads, task.appdata, stage, stage);
-        });
+    state.PauseTiming();
+    // Only setup the records once
+    RecordManager::instance().setup(100,
+                                    {std::make_pair(0, ProcessorType::kLittleCore),
+                                     std::make_pair(1, ProcessorType::kMediumCore),
+                                     std::make_pair(2, ProcessorType::kBigCore)});
+    state.ResumeTiming();
 
-    auto t1 =
-        std::thread(worker_thread<MyTask>, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+    auto t0 = std::thread(worker_thread_record<MyTask>,
+                          0,
+                          std::ref(free_task_pool),
+                          std::ref(q_0_1),
+                          [&](MyTask& task) {
+                            cifar_sparse::omp::v2::dispatch_multi_stage(
+                                cores_to_use, num_threads, task.appdata, stage, stage);
+                          });
+
+    auto t1 = std::thread(
+        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
               cores_to_use_counter_part_a, num_threads_counter_part_a, task.appdata, stage, stage);
         });
 
     auto t2 = std::thread(
-        worker_thread<MyTask>, std::ref(q_1_2), std::ref(free_task_pool), [&](MyTask& task) {
+        worker_thread_record<MyTask>,
+        2,
+        std::ref(q_1_2),
+        std::ref(free_task_pool),
+        [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
               cores_to_use_counter_part_b, num_threads_counter_part_b, task.appdata, stage, stage);
         });
@@ -192,6 +207,13 @@ static void BM_run_OMP_stage_full(benchmark::State& state) {
     t0.join();
     t1.join();
     t2.join();
+
+    state.PauseTiming();
+    // Only dump the records once
+    if (state.iterations() == 0) {
+      RecordManager::instance().dump_records();
+    }
+    state.ResumeTiming();
   }
 }
 

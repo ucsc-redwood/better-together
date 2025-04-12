@@ -96,6 +96,12 @@ class RecordManager {
     }
   }
 
+  // write a function, given a ProcessorType, return the total time, average time, geomean, median,
+  // min, max, standard deviation, cv
+  void print_processor_type_stats(const ProcessorType& processor_type) const {
+
+  }
+
  private:
   RecordManager() = default;
   std::vector<std::array<Record, 4>> records_;
