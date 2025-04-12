@@ -43,8 +43,11 @@ static void BM_run_OMP_stage_full(const int stage_to_measure,
                           std::ref(free_task_pool),
                           std::ref(q_0_1),
                           [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_little_cores, g_little_cores.size(), task.appdata, stage, stage);
+                            cifar_sparse::omp::v2::dispatch_multi_stage(g_little_cores,
+                                                                        g_little_cores.size(),
+                                                                        task.appdata,
+                                                                        stage_to_measure,
+                                                                        stage_to_measure);
                           });
 
     // medium core
