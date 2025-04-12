@@ -10,6 +10,7 @@
 #include "builtin-apps/pipeline/task.hpp"
 
 constexpr size_t kPoolSize = 32;
+constexpr size_t kNumToProcess = 100;
 
 // ----------------------------------------------------------------------------
 // Worker Thread
@@ -67,9 +68,12 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
 
   {
-    RecordManager::instance().setup(0, ProcessorType::kVulkan);
-    RecordManager::instance().setup(1, ProcessorType::kMediumCore);
-    RecordManager::instance().setup(2, ProcessorType::kBigCore);
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kVulkan},
+                                        {1, ProcessorType::kMediumCore},
+                                        {2, ProcessorType::kBigCore},
+                                    });
 
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
@@ -108,6 +112,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_1() {
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kMediumCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kLittleCore},
+                                        {3, ProcessorType::kBigCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -152,6 +164,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kBigCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kLittleCore},
+                                        {3, ProcessorType::kMediumCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -196,6 +216,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kMediumCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kBigCore},
+                                        {3, ProcessorType::kLittleCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -240,6 +268,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kBigCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kMediumCore},
+                                        {3, ProcessorType::kLittleCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -284,6 +320,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_5() {
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kMediumCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kBigCore},
+                                        {3, ProcessorType::kLittleCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -328,6 +372,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_6() {
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kBigCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kMediumCore},
+                                        {3, ProcessorType::kLittleCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -370,6 +422,13 @@ static void BM_pipe_cifar_sparse_vk_schedule_7() {
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kMediumCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kBigCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -405,6 +464,13 @@ static void BM_pipe_cifar_sparse_vk_schedule_8() {
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kBigCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kMediumCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -440,6 +506,13 @@ static void BM_pipe_cifar_sparse_vk_schedule_9() {
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kMediumCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kBigCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
@@ -475,6 +548,13 @@ static void BM_pipe_cifar_sparse_vk_schedule_10() {
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
 
   {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kBigCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kMediumCore},
+                                    });
+
     auto t0 = std::thread(
         worker_thread_normal, 0, std::ref(free_task_pool), std::ref(q_0_1), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(

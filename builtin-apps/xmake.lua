@@ -65,31 +65,31 @@ do
 	})
 end
 
-target("test-cifar-sparse-omp")
-do
-	add_rules("common_flags", "run_on_android")
-	set_kind("binary")
-	add_files({
-		"cifar-sparse/omp/test_main.cpp",
-	})
+-- target("test-cifar-sparse-omp")
+-- do
+-- 	add_rules("common_flags", "run_on_android")
+-- 	set_kind("binary")
+-- 	add_files({
+-- 		"cifar-sparse/omp/test_main.cpp",
+-- 	})
 
-	add_deps("builtin-apps")
+-- 	add_deps("builtin-apps")
 
-	add_packages("gtest")
-end
+-- 	add_packages("gtest")
+-- end
 
-target("bm-mini-cifar-sparse-omp")
-do
-	add_rules("common_flags", "run_on_android")
-	set_kind("binary")
-	add_files({
-		"cifar-sparse/omp/bm_main.cpp",
-	})
+-- target("bm-mini-cifar-sparse-omp")
+-- do
+-- 	add_rules("common_flags", "run_on_android")
+-- 	set_kind("binary")
+-- 	add_files({
+-- 		"cifar-sparse/omp/bm_main.cpp",
+-- 	})
 
-	add_deps("builtin-apps")
+-- 	add_deps("builtin-apps")
 
-	add_packages("benchmark")
-end
+-- 	add_packages("benchmark")
+-- end
 
 -- ----------------------------------------------------------------------------
 -- Vulkan Static Library
@@ -122,50 +122,11 @@ if has_config("use_vulkan") then
 	end
 
 
-	target("test-cifar-sparse-vk")
-	do
-		add_rules("common_flags", "vulkan_config", "run_on_android")
-		set_kind("binary")
-		add_files({
-			"cifar-sparse/vulkan/test_main.cpp",
-		})
-
-		add_deps("builtin-apps-vulkan")
-		add_deps("builtin-apps")
-		
-		add_packages("gtest")
-	end
-
-
-	target("bm-mini-cifar-sparse-vk")
-	do
-		add_rules("common_flags", "vulkan_config", "run_on_android")
-		set_kind("binary")
-		add_files({
-			"cifar-sparse/vulkan/bm_main.cpp",
-		})
-
-		add_deps("builtin-apps-vulkan")
-		add_deps("builtin-apps")
-		
-		add_packages("benchmark")
-	end
-
-	target("bm-pipe-cifar-sparse-vk")
-	do
-		add_rules("common_flags", "vulkan_config", "run_on_android")
-		set_kind("binary")
-		add_files({
-			"cifar-sparse/vulkan/bm_main_pipe.cpp",
-		})
-
-		add_deps("builtin-apps-vulkan")
-		add_deps("builtin-apps")
-		
-		add_packages("benchmark")
-	end
+	includes("cifar-sparse/vulkan/xmake.lua")
 
 end
+
+
 
 -- ----------------------------------------------------------------------------
 -- CUDA Static Library

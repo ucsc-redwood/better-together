@@ -5,49 +5,11 @@
 #include "../sparse_appdata.hpp"
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
+#include "builtin-apps/pipeline/task.hpp"
+#include "builtin-apps/pipeline/worker.hpp"
 #include "dispatchers.hpp"
 
-struct Task {
-  static uint32_t uid_counter;
-  uint32_t uid;
-
-  // ----------------------------------
-  cifar_sparse::v2::AppData appdata;
-  // ----------------------------------
-
-  explicit Task(std::pmr::memory_resource* mr) : appdata(mr) { uid = uid_counter++; }
-
-  void reset() {
-    uid = uid_counter++;
-    appdata.reset();
-  }
-};
-
-uint32_t Task::uid_counter = 0;
-
-using ProcessFunction = std::function<void(Task&)>;
-
-constexpr size_t kPoolSize = 32;
-constexpr size_t kNumToProcess = 100;
-
-void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
-                          SPSCQueue<Task*, kPoolSize>& out_queue,
-                          ProcessFunction process_function) {
-  for (size_t _ = 0; _ < kNumToProcess; ++_) {
-    Task* task = nullptr;
-    while (!in_queue.dequeue(task)) {
-      std::this_thread::yield();
-    }
-
-    // Process the task (timing is handled in the provided process function)
-    process_function(*task);
-
-    // Forward processed task
-    while (!out_queue.enqueue(std::move(task))) {
-      std::this_thread::yield();
-    }
-  }
-}
+using MyTask = Task<cifar_sparse::v2::AppData>;
 
 // ----------------------------------------------------------------------------
 // Vk Baseline
@@ -55,27 +17,27 @@ void worker_thread_normal(SPSCQueue<Task*, kPoolSize>& in_queue,
 
 static void BM_run_VK_baseline(benchmark::State& state) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
 
-  std::vector<std::unique_ptr<Task>> preallocated_tasks;
-  SPSCQueue<Task*, kPoolSize> free_task_pool;
-  SPSCQueue<Task*, kPoolSize> q_0;
-  SPSCQueue<Task*, kPoolSize> q_1;
+  SPSCQueue<MyTask*, kPoolSize> q_0;
+  SPSCQueue<MyTask*, kPoolSize> q_1;
 
   // Init once
   for (size_t i = 0; i < kPoolSize; ++i) {
     spdlog::info("Init task {}", i);
-    preallocated_tasks.emplace_back(std::make_unique<Task>(disp.get_mr()));
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
     free_task_pool.enqueue(preallocated_tasks.back().get());
   }
 
   for (auto _ : state) {
-    auto t0 =
-        std::thread(worker_thread_normal, std::ref(free_task_pool), std::ref(q_0), [&](Task& task) {
+    auto t0 = std::thread(
+        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
           disp.dispatch_multi_stage(task.appdata, 1, 9);
         });
 
     auto t1 =
-        std::thread(worker_thread_normal, std::ref(q_0), std::ref(free_task_pool), [&](Task& _) {
+        std::thread(worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {
           // busy wait for 20ms
           auto start = std::chrono::high_resolution_clock::now();
           while (std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -111,26 +73,26 @@ static void BM_run_VK_stage(benchmark::State& state) {
 
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
-  std::vector<std::unique_ptr<Task>> preallocated_tasks;
-  SPSCQueue<Task*, kPoolSize> free_task_pool;
-  SPSCQueue<Task*, kPoolSize> q_0;
-  SPSCQueue<Task*, kPoolSize> q_1;
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
+  SPSCQueue<MyTask*, kPoolSize> q_0;
+  SPSCQueue<MyTask*, kPoolSize> q_1;
 
   // Init once
   for (size_t i = 0; i < kPoolSize; ++i) {
     spdlog::info("Init task {}", i);
-    preallocated_tasks.emplace_back(std::make_unique<Task>(disp.get_mr()));
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
     free_task_pool.enqueue(preallocated_tasks.back().get());
   }
 
   for (auto _ : state) {
-    auto t0 =
-        std::thread(worker_thread_normal, std::ref(free_task_pool), std::ref(q_0), [&](Task& task) {
+    auto t0 = std::thread(
+        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
           disp.dispatch_multi_stage(task.appdata, stage, stage);
         });
 
     auto t1 =
-        std::thread(worker_thread_normal, std::ref(q_0), std::ref(free_task_pool), [&](Task& _) {
+        std::thread(worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {
           // // busy wait for 20ms
           // auto start = std::chrono::high_resolution_clock::now();
           // while (std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -187,28 +149,28 @@ static void BM_run_OMP_stage(benchmark::State& state) {
 
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
-  std::vector<std::unique_ptr<Task>> preallocated_tasks;
-  SPSCQueue<Task*, kPoolSize> free_task_pool;
-  SPSCQueue<Task*, kPoolSize> q_0;
-  SPSCQueue<Task*, kPoolSize> q_1;
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
+  SPSCQueue<MyTask*, kPoolSize> q_0;
+  SPSCQueue<MyTask*, kPoolSize> q_1;
 
   // Init once
   for (size_t i = 0; i < kPoolSize; ++i) {
     spdlog::info("Init task {}", i);
-    preallocated_tasks.emplace_back(std::make_unique<Task>(disp.get_mr()));
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
     free_task_pool.enqueue(preallocated_tasks.back().get());
   }
 
   for (auto _ : state) {
-    auto t0 =
-        std::thread(worker_thread_normal, std::ref(free_task_pool), std::ref(q_0), [&](Task& task) {
+    auto t0 = std::thread(
+        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
           // disp.dispatch_multi_stage(task.appdata, stage, stage);
           cifar_sparse::omp::v2::dispatch_multi_stage(
               cores_to_use, num_threads, task.appdata, stage, stage);
         });
 
     auto t1 =
-        std::thread(worker_thread_normal, std::ref(q_0), std::ref(free_task_pool), [&](Task& _) {
+        std::thread(worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {
           // // busy wait for 20ms
           // auto start = std::chrono::high_resolution_clock::now();
           // while (std::chrono::duration_cast<std::chrono::milliseconds>(

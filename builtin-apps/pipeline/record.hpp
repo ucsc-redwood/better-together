@@ -1,12 +1,11 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <chrono>
 #include <iostream>
 
 #include "../conf.hpp"
-
-constexpr size_t kNumToProcess = 100;
 
 struct Record {
   ProcessorType processed_by;
@@ -21,9 +20,39 @@ class RecordManager {
     return inst;
   }
 
-  void setup(const int chunk_id, const ProcessorType processed_by) {
-    for (size_t i = 0; i < kNumToProcess; ++i) {
-      records_[i][chunk_id].processed_by = processed_by;
+  /**
+   * @brief Sets up the record manager with the specified number of tasks and processing chunks
+   * 
+   * This method initializes the record manager with a fixed number of tasks to process
+   * and configures which processor type (Vulkan, Medium Core, or Big Core) will handle
+   * each processing chunk. Each task can be processed by up to 4 different chunks.
+   * 
+   * @param num_to_process The total number of tasks to be processed
+   * @param chunks A list of pairs specifying chunk ID and processor type
+   * 
+   * @example
+   * // Setup for a pipeline with 3 chunks:
+   * // - Chunk 0: Vulkan GPU processing
+   * // - Chunk 1: Medium core CPU processing
+   * // - Chunk 2: Big core CPU processing
+   * RecordManager::instance().setup(100, {
+   *     {0, ProcessorType::kVulkan},
+   *     {1, ProcessorType::kMediumCore},
+   *     {2, ProcessorType::kBigCore}
+   * });
+   */
+  void setup(const int num_to_process,
+             const std::initializer_list<std::pair<int, ProcessorType>>& chunks) {
+    records_.resize(num_to_process);
+
+    for (const auto& [chunk_id, processed_by] : chunks) {
+      assert(chunk_id < 4);
+      assert(processed_by == ProcessorType::kVulkan || processed_by == ProcessorType::kMediumCore ||
+             processed_by == ProcessorType::kBigCore);
+
+      for (auto& record : records_) {
+        record[chunk_id].processed_by = processed_by;
+      }
     }
   }
 
@@ -36,7 +65,7 @@ class RecordManager {
   }
 
   void dump_records() const {
-    for (size_t i = 0; i < kNumToProcess; ++i) {
+    for (size_t i = 0; i < records_.size(); ++i) {
       std::cout << "Task " << i << ":\n";
       for (size_t j = 0; j < 4; ++j) {
         std::cout << "  Chunk " << j << ":\n";
@@ -61,5 +90,5 @@ class RecordManager {
 
  private:
   RecordManager() = default;
-  std::array<std::array<Record, 4>, kNumToProcess> records_;
+  std::vector<std::array<Record, 4>> records_;
 };
