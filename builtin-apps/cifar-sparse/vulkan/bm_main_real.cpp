@@ -3,6 +3,7 @@
 #include "../omp/dispatchers.hpp"
 #include "../sparse_appdata.hpp"
 #include "builtin-apps/app.hpp"
+#include "builtin-apps/conf.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 #include "builtin-apps/pipeline/task.hpp"
 #include "builtin-apps/pipeline/worker.hpp"
@@ -88,6 +89,81 @@ static void BM_run_OMP_stage_full(const int stage_to_measure) {
   }
 }
 
+static void BM_run_OMP_stage_non_full(const int stage_to_measure,
+                                      const ProcessorType core_type_to_measure) {
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  SPSCQueue<MyTask*, kPoolSize> free_task_pool;
+  for (size_t i = 0; i < kPoolSize; ++i) {
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
+    free_task_pool.enqueue(preallocated_tasks.back().get());
+  }
+
+  SPSCQueue<MyTask*, kPoolSize> q_0_1;
+  SPSCQueue<MyTask*, kPoolSize> q_1_2;
+  SPSCQueue<MyTask*, kPoolSize> q_2_3;
+
+  // find cores
+  std::vector<int> cores_to_use;
+  ProcessorType counter_part_a;
+  ProcessorType counter_part_b;
+
+  if (core_type_to_measure == ProcessorType::kLittleCore) {
+    cores_to_use = g_little_cores;
+    counter_part_a = ProcessorType::kMediumCore;
+    counter_part_b = ProcessorType::kBigCore;
+  } else if (core_type_to_measure == ProcessorType::kMediumCore) {
+    cores_to_use = g_medium_cores;
+    counter_part_a = ProcessorType::kLittleCore;
+    counter_part_b = ProcessorType::kBigCore;
+  } else if (core_type_to_measure == ProcessorType::kBigCore) {
+    cores_to_use = g_big_cores;
+    counter_part_a = ProcessorType::kLittleCore;
+    counter_part_b = ProcessorType::kMediumCore;
+  }
+
+  // Main benchmark
+  {
+    // Only setup the records once
+    RecordManager::instance().setup(100,
+                                    {std::make_pair(0, core_type_to_measure),
+                                     std::make_pair(1, counter_part_a),
+                                     std::make_pair(2, counter_part_b),
+                                     std::make_pair(3, ProcessorType::kVulkan)});
+
+    //
+    auto t0 = std::thread(
+        worker_thread_record<MyTask>,
+        0,
+        std::ref(free_task_pool),
+        std::ref(q_0_1),
+        [&](MyTask& task) {
+          cifar_sparse::omp::v2::dispatch_multi_stage(
+              cores_to_use, cores_to_use.size(), task.appdata, stage_to_measure, stage_to_measure);
+        });
+
+    // medium core
+    auto t1 = std::thread(
+        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& _) {});
+
+    // big core
+    auto t2 = std::thread(
+        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& _) {});
+
+    // vulkan core
+    auto t3 = std::thread(
+        worker_thread_record<MyTask>, 3, std::ref(q_2_3), std::ref(free_task_pool), [&](MyTask& _) {
+        });
+
+    t0.join();
+    t1.join();
+    t2.join();
+    t3.join();
+
+    RecordManager::instance().print_processor_type_stats(core_type_to_measure);
+  }
+}
+
 // ----------------------------------------------------------------------------
 // Main
 // ----------------------------------------------------------------------------
@@ -98,6 +174,9 @@ int main(int argc, char** argv) {
   int stage = 0;
   app.add_option("--stage", stage, "Stage to run")->required();
 
+  std::string core_type_str;
+  app.add_option("--core-type", core_type_str, "Core type to run");
+
   PARSE_ARGS_END
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
@@ -106,7 +185,18 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  BM_run_OMP_stage_full(stage);
+  if (core_type_str.empty()) {
+    // if empty, run fully occupied benchmark
+    BM_run_OMP_stage_full(stage);
+  } else if (core_type_str == "little") {
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kLittleCore);
+  } else if (core_type_str == "medium") {
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kMediumCore);
+  } else if (core_type_str == "big") {
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kBigCore);
+  } else {
+    throw std::invalid_argument("Invalid core type: " + core_type_str);
+  }
 
   return 0;
 }

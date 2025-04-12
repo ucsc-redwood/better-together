@@ -1,74 +1,22 @@
 
 [1/2] Processing device: 3A021JEHN02756
 Deploying and running 'bm-real-cifar-sparse-vk' on device: 3A021JEHN02756
-build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 469.9 MB/s (2818512 bytes in 0.006s)
-[2025-04-12 16:36:43.356] [info] Little cores: 0 1 2 3 
-[2025-04-12 16:36:43.357] [info] Medium cores: 4 5 
-[2025-04-12 16:36:43.357] [info] Big cores: 6 7 
-[2025-04-12 16:36:43.405] [info] Available Vulkan Layers:
-[2025-04-12 16:36:43.406] [warning] Validation layer requested but not available, continuing without it...
-[2025-04-12 16:36:43.411] [info] Using integrated GPU: Mali-G710
-Statistics for Little:
-  Number of records: 100
-  Total time: 1958.15 ms
-  Average time: 19.5815 ms
-  Geometric mean: 19.529 ms
-  Median: 19.2062 ms
-  Min: 18.8448 ms
-  Max: 29.1658 ms
-  Standard deviation: 1.61098 ms
-  Coefficient of variation: 0.0822704
-  Percentile 90: 19.8874 ms
-  Percentile 95: 21.2056 ms
-  Percentile 99: 29.1658 ms
-
-Statistics for Medium:
-  Number of records: 100
-  Total time: 571.339 ms
-  Average time: 5.71339 ms
-  Geometric mean: 5.63164 ms
-  Median: 5.44486 ms
-  Min: 5.35994 ms
-  Max: 14.9939 ms
-  Standard deviation: 1.27679 ms
-  Coefficient of variation: 0.223473
-  Percentile 90: 5.62174 ms
-  Percentile 95: 6.11637 ms
-  Percentile 99: 14.9939 ms
-
-Statistics for Big:
-  Number of records: 100
-  Total time: 676.842 ms
-  Average time: 6.76842 ms
-  Geometric mean: 6.48851 ms
-  Median: 7.76687 ms
-  Min: 3.76034 ms
-  Max: 10.5248 ms
-  Standard deviation: 1.7832 ms
-  Coefficient of variation: 0.263459
-  Percentile 90: 8.11259 ms
-  Percentile 95: 8.46147 ms
-  Percentile 99: 10.5248 ms
-
-Statistics for GPU:
-  Number of records: 100
-  Total time: 860.053 ms
-  Average time: 8.60053 ms
-  Geometric mean: 8.56182 ms
-  Median: 8.63711 ms
-  Min: 5.8562 ms
-  Max: 12.4236 ms
-  Standard deviation: 0.805959 ms
-  Coefficient of variation: 0.0937104
-  Percentile 90: 9.04826 ms
-  Percentile 95: 9.18949 ms
-  Percentile 99: 12.4236 ms
-
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 473.1 MB/s (2817232 bytes in 0.006s)
+[2025-04-12 16:42:43.269] [info] Little cores: 0 1 2 3 
+[2025-04-12 16:42:43.269] [info] Medium cores: 4 5 
+[2025-04-12 16:42:43.269] [info] Big cores: 6 7 
+[2025-04-12 16:42:43.295] [info] Available Vulkan Layers:
+[2025-04-12 16:42:43.296] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-12 16:42:43.300] [info] Using integrated GPU: Mali-G710
+PROCESSOR=Little|COUNT=100|TOTAL=1939.83|AVG=19.3983|GEOMEAN=19.3734|MEDIAN=19.2703|MIN=18.8396|MAX=29.9711|STDDEV=1.12102|CV=0.0577898|P90=19.6983|P95=19.9073|P99=29.9711
+PROCESSOR=Medium|COUNT=100|TOTAL=555.729|AVG=5.55729|GEOMEAN=5.53795|MEDIAN=5.47176|MIN=5.36462|MAX=11.1418|STDDEV=0.58064|CV=0.104483|P90=5.60754|P95=5.64685|P99=11.1418
+PROCESSOR=Big|COUNT=100|TOTAL=741.586|AVG=7.41586|GEOMEAN=7.23269|MEDIAN=8.00293|MIN=3.76815|MAX=9.12207|STDDEV=1.42346|CV=0.191948|P90=8.139|P95=8.8645|P99=9.12207
+PROCESSOR=GPU|COUNT=100|TOTAL=884.468|AVG=8.84468|GEOMEAN=8.83758|MEDIAN=8.73981|MIN=8.51876|MAX=11.818|STDDEV=0.376556|CV=0.0425743|P90=9.18119|P95=9.28772|P99=11.818
 
 [2/2] Processing device: 9b034f1b
 Deploying and running 'bm-real-cifar-sparse-vk' on device: 9b034f1b
-build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 494.8 MB/s (2818512 bytes in 0.005s)
-[2025-04-12 16:29:23.282] [info] Little cores: 0 1 2 
-[2025-04-12 16:29:23.283] [info] Medium cores: 3 4 
-[2025-04-12 16:29:23.283] [info] Big cores: 5 6 7 
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 513.9 MB/s (2817232 bytes in 0.005s)
+[2025-04-12 16:35:23.154] [info] Little cores: 0 1 2 
+[2025-04-12 16:35:23.154] [info] Medium cores: 3 4 
+[2025-04-12 16:35:23.154] [info] Big cores: 5 6 7 
 [0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m
