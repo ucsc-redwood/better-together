@@ -82,7 +82,10 @@ static void BM_run_OMP_stage_full(const int stage_to_measure,
     t2.join();
     t3.join();
 
-    RecordManager::instance().print_processor_type_stats(core_type_to_measure);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kLittleCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kMediumCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kBigCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kVulkan);
   }
 }
 
