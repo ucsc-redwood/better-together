@@ -174,8 +174,8 @@ int main(int argc, char** argv) {
   int stage = 0;
   app.add_option("--stage", stage, "Stage to run")->required();
 
-  std::string core_type_str;
-  app.add_option("--core-type", core_type_str, "Core type to run");
+  bool full = false;
+  app.add_flag("--full", full, "Run fully occupied benchmark");
 
   PARSE_ARGS_END
 
@@ -185,17 +185,13 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if (core_type_str.empty()) {
-    // if empty, run fully occupied benchmark
+  if (full) {
     BM_run_OMP_stage_full(stage);
-  } else if (core_type_str == "little") {
-    BM_run_OMP_stage_non_full(stage, ProcessorType::kLittleCore);
-  } else if (core_type_str == "medium") {
-    BM_run_OMP_stage_non_full(stage, ProcessorType::kMediumCore);
-  } else if (core_type_str == "big") {
-    BM_run_OMP_stage_non_full(stage, ProcessorType::kBigCore);
   } else {
-    throw std::invalid_argument("Invalid core type: " + core_type_str);
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kLittleCore);
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kMediumCore);
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kBigCore);
+    BM_run_OMP_stage_non_full(stage, ProcessorType::kVulkan);
   }
 
   return 0;
