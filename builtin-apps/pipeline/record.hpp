@@ -77,16 +77,18 @@ class RecordManager {
   void end_tick(const uint32_t processing_id, const int chunk_id) {
     records_[processing_id][chunk_id].end = now_cycles();
   }
-
   void dump_records() const {
     for (size_t i = 0; i < records_.size(); ++i) {
       std::cout << "Task " << i << ":\n";
       for (size_t j = 0; j < 4; ++j) {
-        std::cout << "  Chunk " << j << ":\n";
-        std::cout << "    Start: " << records_[i][j].start << " cycles\n";
-        std::cout << "    End: " << records_[i][j].end << " cycles\n";
+        auto& rec = records_[i][j];
 
-        const auto cycles_elapsed = records_[i][j].end - records_[i][j].start;
+        std::cout << "  Chunk " << j << " ("
+                  << processor_type_to_string(rec.processed_by) << "):\n";
+        std::cout << "    Start: " << rec.start << " cycles\n";
+        std::cout << "    End: " << rec.end << " cycles\n";
+
+        const auto cycles_elapsed = rec.end - rec.start;
         const auto counter_frequency = get_counter_frequency();
         const auto miliseconds_elapsed =
             static_cast<double>(cycles_elapsed) * 1e3 / counter_frequency;
@@ -106,6 +108,21 @@ class RecordManager {
 
   static inline double cycles_to_milliseconds(const uint64_t cycles, const uint32_t frequency) {
     return static_cast<double>(cycles) * 1e3 / frequency;
+  }
+
+  static inline std::string processor_type_to_string(const ProcessorType& processor_type) {
+    switch (processor_type) {
+      case ProcessorType::kVulkan:
+        return "GPU";
+      case ProcessorType::kMediumCore:
+        return "Medium";
+      case ProcessorType::kBigCore:
+        return "Big";
+      case ProcessorType::kLittleCore:
+        return "Little";
+      default:
+        return "Unknown";
+    }
   }
 };
 
