@@ -211,6 +211,13 @@ BENCHMARK(BM_run_OMP_stage_without_full)
     ->Repetitions(5)
     ->Name("OMP/CifarSparse/Stage/Non-Full");
 
+BENCHMARK(BM_run_OMP_stage_full)
+    ->Apply(CustomArgs)
+    ->Unit(benchmark::kMillisecond)
+    ->Iterations(1)
+    ->Repetitions(5)
+    ->Name("OMP/CifarSparse/Stage/Full");
+
 // ----------------------------------------------------------------------------
 // Main
 // ----------------------------------------------------------------------------
