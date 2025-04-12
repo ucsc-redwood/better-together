@@ -14,50 +14,19 @@
 
 using MyTask = Task<cifar_sparse::v2::AppData>;
 
-static void BM_run_OMP_stage_full(const int stage, const ProcessorType core_type) {
-  auto mr = std::pmr::new_delete_resource();
+static void BM_run_OMP_stage_full(const int stage_to_measure,
+                                  const ProcessorType core_type_to_measure) {
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
   std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
   SPSCQueue<MyTask*, kPoolSize> free_task_pool;
   for (size_t i = 0; i < kPoolSize; ++i) {
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(mr));
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
     free_task_pool.enqueue(preallocated_tasks.back().get());
   }
 
-  // The cores we want to measure
-  std::vector<int> cores_to_use;
-  if (core_type == ProcessorType::kLittleCore) {
-    cores_to_use = g_little_cores;
-  } else if (core_type == ProcessorType::kMediumCore) {
-    cores_to_use = g_medium_cores;
-  } else {
-    cores_to_use = g_big_cores;
-  }
-
-  const int num_threads = cores_to_use.size();
-
-  // find the counter part of the cores
-  std::vector<int> cores_to_use_counter_part_a;
-  std::vector<int> cores_to_use_counter_part_b;
-  int num_threads_counter_part_a;
-  int num_threads_counter_part_b;
-
-  if (core_type == ProcessorType::kLittleCore) {
-    cores_to_use_counter_part_a = g_medium_cores;
-    cores_to_use_counter_part_b = g_big_cores;
-
-  } else if (core_type == ProcessorType::kMediumCore) {
-    cores_to_use_counter_part_a = g_little_cores;
-    cores_to_use_counter_part_b = g_big_cores;
-  } else {
-    cores_to_use_counter_part_a = g_little_cores;
-    cores_to_use_counter_part_b = g_medium_cores;
-  }
-
-  num_threads_counter_part_a = cores_to_use_counter_part_a.size();
-  num_threads_counter_part_b = cores_to_use_counter_part_b.size();
-
   SPSCQueue<MyTask*, kPoolSize> q_0_1;
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+  SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   // Main benchmark
   {
@@ -65,38 +34,52 @@ static void BM_run_OMP_stage_full(const int stage, const ProcessorType core_type
     RecordManager::instance().setup(100,
                                     {std::make_pair(0, ProcessorType::kLittleCore),
                                      std::make_pair(1, ProcessorType::kMediumCore),
-                                     std::make_pair(2, ProcessorType::kBigCore)});
+                                     std::make_pair(2, ProcessorType::kBigCore),
+                                     std::make_pair(3, ProcessorType::kVulkan)});
 
+    // little core
     auto t0 = std::thread(worker_thread_record<MyTask>,
                           0,
                           std::ref(free_task_pool),
                           std::ref(q_0_1),
                           [&](MyTask& task) {
                             cifar_sparse::omp::v2::dispatch_multi_stage(
-                                cores_to_use, num_threads, task.appdata, stage, stage);
+                                g_little_cores, g_little_cores.size(), task.appdata, stage, stage);
                           });
 
+    // medium core
     auto t1 = std::thread(
         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              cores_to_use_counter_part_a, num_threads_counter_part_a, task.appdata, stage, stage);
+          cifar_sparse::omp::v2::dispatch_multi_stage(g_medium_cores,
+                                                      g_medium_cores.size(),
+                                                      task.appdata,
+                                                      stage_to_measure,
+                                                      stage_to_measure);
         });
 
+    // big core
     auto t2 = std::thread(
-        worker_thread_record<MyTask>,
-        2,
-        std::ref(q_1_2),
-        std::ref(free_task_pool),
-        [&](MyTask& task) {
+        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
-              cores_to_use_counter_part_b, num_threads_counter_part_b, task.appdata, stage, stage);
+              g_big_cores, g_big_cores.size(), task.appdata, stage_to_measure, stage_to_measure);
         });
+
+    // vulkan core
+    auto t3 =
+        std::thread(worker_thread_record<MyTask>,
+                    3,
+                    std::ref(q_2_3),
+                    std::ref(free_task_pool),
+                    [&](MyTask& task) {
+                      disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
+                    });
 
     t0.join();
     t1.join();
     t2.join();
+    t3.join();
 
-    RecordManager::instance().print_processor_type_stats(core_type);
+    RecordManager::instance().print_processor_type_stats(core_type_to_measure);
   }
 }
 
@@ -126,6 +109,8 @@ int main(int argc, char** argv) {
     BM_run_OMP_stage_full(stage, ProcessorType::kMediumCore);
   } else if (core_type_str == "big") {
     BM_run_OMP_stage_full(stage, ProcessorType::kBigCore);
+  } else if (core_type_str == "gpu") {
+    BM_run_OMP_stage_full(stage, ProcessorType::kVulkan);
   } else {
     throw std::invalid_argument("Invalid core type");
   }
