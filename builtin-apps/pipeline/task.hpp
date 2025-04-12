@@ -1,17 +1,23 @@
 #pragma once
 
-#include "builtin-apps/cifar-sparse/sparse_appdata.hpp"
+#include <memory_resource>
 
+template <typename AppDataT>
 struct Task {
   static uint32_t uid_counter;
   uint32_t uid;
 
   // ----------------------------------
-  cifar_sparse::v2::AppData appdata;
+  AppDataT appdata;
   // ----------------------------------
 
   explicit Task(std::pmr::memory_resource* mr) : appdata(mr) { uid = uid_counter++; }
 
-  // stats 
-  
+  void reset() {
+    // appdata.reset();
+    uid = uid_counter++;
+  }
 };
+
+template <typename AppDataT>
+uint32_t Task<AppDataT>::uid_counter = 0;
