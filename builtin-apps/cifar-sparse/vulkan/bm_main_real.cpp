@@ -14,8 +14,7 @@
 
 using MyTask = Task<cifar_sparse::v2::AppData>;
 
-static void BM_run_OMP_stage_full(const int stage_to_measure,
-                                  const ProcessorType core_type_to_measure) {
+static void BM_run_OMP_stage_full(const int stage_to_measure) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
   std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
   SPSCQueue<MyTask*, kPoolSize> free_task_pool;
@@ -98,8 +97,6 @@ int main(int argc, char** argv) {
 
   int stage = 0;
   app.add_option("--stage", stage, "Stage to run")->required();
-  std::string core_type_str;
-  app.add_option("--core", core_type_str, "Core type to run")->required();
 
   PARSE_ARGS_END
 
@@ -109,17 +106,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if (core_type_str == "little") {
-    BM_run_OMP_stage_full(stage, ProcessorType::kLittleCore);
-  } else if (core_type_str == "medium") {
-    BM_run_OMP_stage_full(stage, ProcessorType::kMediumCore);
-  } else if (core_type_str == "big") {
-    BM_run_OMP_stage_full(stage, ProcessorType::kBigCore);
-  } else if (core_type_str == "gpu") {
-    BM_run_OMP_stage_full(stage, ProcessorType::kVulkan);
-  } else {
-    throw std::invalid_argument("Invalid core type");
-  }
+  BM_run_OMP_stage_full(stage);
 
   return 0;
 }
