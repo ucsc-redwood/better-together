@@ -211,7 +211,7 @@ static void BM_run_OMP_stage_full(benchmark::State& state) {
     state.PauseTiming();
     // Only dump the records once
     if (state.iterations() == 0) {
-      RecordManager::instance().dump_records();
+      RecordManager::instance().print_processor_type_stats(core_type);
     }
     state.ResumeTiming();
   }
@@ -226,19 +226,19 @@ static void CustomArgs(benchmark::internal::Benchmark* b) {
   }
 }
 
-BENCHMARK(BM_run_OMP_stage_without_full)
-    ->Apply(CustomArgs)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Repetitions(5)
-    ->Name("OMP/CifarSparse/Stage/Non-Full");
+// BENCHMARK(BM_run_OMP_stage_without_full)
+//     ->Apply(CustomArgs)
+//     ->Unit(benchmark::kMillisecond)
+//     ->Iterations(1)
+//     ->Repetitions(5)
+//     ->Name("OMP/CifarSparse/Stage/Non-Full");
 
-BENCHMARK(BM_run_OMP_stage_full)
-    ->Apply(CustomArgs)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Repetitions(5)
-    ->Name("OMP/CifarSparse/Stage/Full");
+// BENCHMARK(BM_run_OMP_stage_full)
+//     ->Apply(CustomArgs)
+//     ->Unit(benchmark::kMillisecond)
+//     ->Iterations(1)
+//     ->Repetitions(5)
+//     ->Name("OMP/CifarSparse/Stage/Full");
 
 // ----------------------------------------------------------------------------
 // Main

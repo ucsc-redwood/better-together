@@ -1,8 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <iostream>
+#include <numeric>
+#include <vector>
 
 #include "../conf.hpp"
 
@@ -99,7 +103,89 @@ class RecordManager {
   // write a function, given a ProcessorType, return the total time, average time, geomean, median,
   // min, max, standard deviation, cv
   void print_processor_type_stats(const ProcessorType& processor_type) const {
+    std::vector<double> durations_ms;
+    const auto counter_frequency = get_counter_frequency();
 
+    // Collect all durations for the given processor type
+    for (const auto& record_array : records_) {
+      for (const auto& record : record_array) {
+        if (record.processed_by == processor_type && record.end > record.start) {
+          const auto cycles_elapsed = record.end - record.start;
+          const auto ms_elapsed = cycles_to_milliseconds(cycles_elapsed, counter_frequency);
+          durations_ms.push_back(ms_elapsed);
+        }
+      }
+    }
+
+    if (durations_ms.empty()) {
+      std::cout << "No records found for processor type: "
+                << processor_type_to_string(processor_type) << std::endl;
+      return;
+    }
+
+    // Calculate total time
+    const double total_time = std::accumulate(durations_ms.begin(), durations_ms.end(), 0.0);
+
+    // Calculate average time
+    const double avg_time = total_time / durations_ms.size();
+
+    // Calculate min and max
+    const auto [min_it, max_it] = std::minmax_element(durations_ms.begin(), durations_ms.end());
+    const double min_time = *min_it;
+    const double max_time = *max_it;
+
+    // Calculate median
+    std::vector<double> sorted_durations = durations_ms;
+    std::ranges::sort(sorted_durations);
+
+    const double median_time = sorted_durations.size() % 2 == 0
+                                   ? (sorted_durations[sorted_durations.size() / 2 - 1] +
+                                      sorted_durations[sorted_durations.size() / 2]) /
+                                         2
+                                   : sorted_durations[sorted_durations.size() / 2];
+
+    // Calculate geometric mean
+    double geomean = 0.0;
+    if (!durations_ms.empty()) {
+      double log_sum = 0.0;
+      for (const auto& duration : durations_ms) {
+        log_sum += std::log(duration > 0 ? duration : 0.000001);  // Avoid log(0)
+      }
+      geomean = std::exp(log_sum / durations_ms.size());
+    }
+
+    // Calculate standard deviation
+    double variance = 0.0;
+    for (const auto& duration : durations_ms) {
+      variance += std::pow(duration - avg_time, 2);
+    }
+    variance /= durations_ms.size();
+    const double std_dev = std::sqrt(variance);
+
+    // Calculate coefficient of variation (CV)
+    const double cv = std_dev / avg_time;
+
+    // Calculate 90th, 95th, and 99th percentiles
+
+    const double percentile_90 = sorted_durations[static_cast<int>(0.9 * sorted_durations.size())];
+    const double percentile_95 = sorted_durations[static_cast<int>(0.95 * sorted_durations.size())];
+    const double percentile_99 = sorted_durations[static_cast<int>(0.99 * sorted_durations.size())];
+
+    // Print results
+    std::cout << "Statistics for " << processor_type_to_string(processor_type) << ":\n";
+    std::cout << "  Number of records: " << durations_ms.size() << "\n";
+    std::cout << "  Total time: " << total_time << " ms\n";
+    std::cout << "  Average time: " << avg_time << " ms\n";
+    std::cout << "  Geometric mean: " << geomean << " ms\n";
+    std::cout << "  Median: " << median_time << " ms\n";
+    std::cout << "  Min: " << min_time << " ms\n";
+    std::cout << "  Max: " << max_time << " ms\n";
+    std::cout << "  Standard deviation: " << std_dev << " ms\n";
+    std::cout << "  Coefficient of variation: " << cv << "\n";
+    std::cout << "  Percentile 90: " << percentile_90 << " ms\n";
+    std::cout << "  Percentile 95: " << percentile_95 << " ms\n";
+    std::cout << "  Percentile 99: " << percentile_99 << " ms\n";
+    std::cout << '\n';
   }
 
  private:

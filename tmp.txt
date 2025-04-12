@@ -1,7 +1,375 @@
 
 [1/2] Processing device: 3A021JEHN02756
-Deploying and running 'bm-pipe-cifar-sparse-vk' on device: 3A021JEHN02756
-build/android/arm64-v8a/release/bm-pipe-cifar-sparse-vk: 1 file pushed, 0 skipped. 489.3 MB/s (3018632 bytes in 0.006s)
-[2025-04-11 15:54:59.268] [info] Little cores: 0 1 2 3 
-[2025-04-11 15:54:59.274] [info] Medium cores: 4 5 
-[2025-04-11 15:54:59.274] [info] Big cores: 6 7 
+Deploying and running 'bm-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-cifar-sparse-vk: 1 file pushed, 0 skipped. 481.6 MB/s (2414984 bytes in 0.005s)
+[2025-04-12 16:06:48.890] [info] Little cores: 0 1 2 3 
+[2025-04-12 16:06:48.891] [info] Medium cores: 4 5 
+[2025-04-12 16:06:48.892] [info] Big cores: 6 7 
+Statistics for Little:
+  Number of records: 100
+  Total time: 1978.32 ms
+  Average time: 19.7832 ms
+  Geometric mean: 19.7489 ms
+  Median: 19.5543 ms
+  Min: 18.9538 ms
+  Max: 32.4275 ms
+  Standard deviation: 1.34973 ms
+  Coefficient of variation: 0.0682261
+Statistics for Little:
+  Number of records: 100
+  Total time: 1980.76 ms
+  Average time: 19.8076 ms
+  Geometric mean: 19.7767 ms
+  Median: 19.6024 ms
+  Min: 18.7833 ms
+  Max: 27.5861 ms
+  Standard deviation: 1.20586 ms
+  Coefficient of variation: 0.0608784
+Statistics for Little:
+  Number of records: 100
+  Total time: 1991.75 ms
+  Average time: 19.9175 ms
+  Geometric mean: 19.8391 ms
+  Median: 19.5758 ms
+  Min: 18.8523 ms
+  Max: 39.6333 ms
+  Standard deviation: 2.16322 ms
+  Coefficient of variation: 0.108609
+Statistics for Little:
+  Number of records: 100
+  Total time: 2029.48 ms
+  Average time: 20.2948 ms
+  Geometric mean: 20.1941 ms
+  Median: 19.7405 ms
+  Min: 18.8847 ms
+  Max: 38.8203 ms
+  Standard deviation: 2.36512 ms
+  Coefficient of variation: 0.116538
+Statistics for Little:
+  Number of records: 100
+  Total time: 2030.99 ms
+  Average time: 20.3099 ms
+  Geometric mean: 20.2114 ms
+  Median: 19.8786 ms
+  Min: 18.8505 ms
+  Max: 35.396 ms
+  Standard deviation: 2.32844 ms
+  Coefficient of variation: 0.114646
+-------------------------------------------------------------------------------------------------------
+Benchmark                                                             Time             CPU   Iterations
+-------------------------------------------------------------------------------------------------------
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              1991 ms        0.772 ms            1 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              1994 ms        0.788 ms            1 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              2005 ms         1.37 ms            1 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              2044 ms         1.15 ms            1 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              2045 ms         1.10 ms            1 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_mean         2016 ms         1.04 ms            5 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_median       2005 ms         1.10 ms            5 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_stddev       26.7 ms        0.255 ms            5 Little, 4 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_cv           1.32 %         24.65 %             5 Little, 4 cores
+Statistics for Medium:
+  Number of records: 100
+  Total time: 1983.46 ms
+  Average time: 19.8346 ms
+  Geometric mean: 19.809 ms
+  Median: 19.6603 ms
+  Min: 18.8095 ms
+  Max: 27.2861 ms
+  Standard deviation: 1.0647 ms
+  Coefficient of variation: 0.0536788
+Statistics for Medium:
+  Number of records: 100
+  Total time: 1993.77 ms
+  Average time: 19.9377 ms
+  Geometric mean: 19.8581 ms
+  Median: 19.5884 ms
+  Min: 18.7837 ms
+  Max: 39.2854 ms
+  Standard deviation: 2.16553 ms
+  Coefficient of variation: 0.108615
+Statistics for Medium:
+  Number of records: 100
+  Total time: 2297.01 ms
+  Average time: 22.9701 ms
+  Geometric mean: 22.8432 ms
+  Median: 22.9538 ms
+  Min: 18.8403 ms
+  Max: 27.1644 ms
+  Standard deviation: 2.38595 ms
+  Coefficient of variation: 0.103872
+Statistics for Medium:
+  Number of records: 100
+  Total time: 2256.58 ms
+  Average time: 22.5658 ms
+  Geometric mean: 22.4583 ms
+  Median: 22.2865 ms
+  Min: 18.8486 ms
+  Max: 27.9223 ms
+  Standard deviation: 2.2125 ms
+  Coefficient of variation: 0.0980464
+Statistics for Medium:
+  Number of records: 100
+  Total time: 2171.46 ms
+  Average time: 21.7146 ms
+  Geometric mean: 21.5735 ms
+  Median: 21.5716 ms
+  Min: 18.9292 ms
+  Max: 40.2683 ms
+  Standard deviation: 2.80593 ms
+  Coefficient of variation: 0.129218
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              1999 ms         1.50 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              2010 ms         1.61 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              2316 ms         1.47 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              2274 ms         1.37 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              2188 ms         1.89 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_mean         2157 ms         1.57 ms            5 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_median       2188 ms         1.50 ms            5 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_stddev        147 ms        0.200 ms            5 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_cv           6.81 %         12.76 %             5 Medium, 2 cores
+Statistics for Big:
+  Number of records: 100
+  Total time: 598.897 ms
+  Average time: 5.98897 ms
+  Geometric mean: 5.96485 ms
+  Median: 5.79665 ms
+  Min: 5.71973 ms
+  Max: 9.41162 ms
+  Standard deviation: 0.592983 ms
+  Coefficient of variation: 0.0990126
+Statistics for Big:
+  Number of records: 100
+  Total time: 625.878 ms
+  Average time: 6.25878 ms
+  Geometric mean: 6.23722 ms
+  Median: 6.11493 ms
+  Min: 5.71895 ms
+  Max: 9.76725 ms
+  Standard deviation: 0.581156 ms
+  Coefficient of variation: 0.0928545
+Statistics for Big:
+  Number of records: 100
+  Total time: 617.527 ms
+  Average time: 6.17527 ms
+  Geometric mean: 6.17004 ms
+  Median: 6.11979 ms
+  Min: 6.02686 ms
+  Max: 8.46379 ms
+  Standard deviation: 0.276858 ms
+  Coefficient of variation: 0.0448334
+Statistics for Big:
+  Number of records: 100
+  Total time: 655.369 ms
+  Average time: 6.55369 ms
+  Geometric mean: 6.51907 ms
+  Median: 6.48956 ms
+  Min: 6.02673 ms
+  Max: 13.4541 ms
+  Standard deviation: 0.813107 ms
+  Coefficient of variation: 0.124069
+Statistics for Big:
+  Number of records: 100
+  Total time: 659.751 ms
+  Average time: 6.59751 ms
+  Geometric mean: 6.59096 ms
+  Median: 6.52047 ms
+  Min: 6.43127 ms
+  Max: 8.80351 ms
+  Standard deviation: 0.315337 ms
+  Coefficient of variation: 0.0477963
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              2201 ms         1.25 ms            1 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              2205 ms         1.86 ms            1 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              2174 ms         1.34 ms            1 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              2234 ms         1.44 ms            1 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              2264 ms         1.26 ms            1 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_mean         2216 ms         1.43 ms            5 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_median       2205 ms         1.34 ms            5 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_stddev       34.4 ms        0.252 ms            5 Big, 2 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_cv           1.55 %         17.60 %             5 Big, 2 cores
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-cifar-sparse-vk: 1 file pushed, 0 skipped. 472.6 MB/s (2414984 bytes in 0.005s)
+[2025-04-12 16:00:12.600] [info] Little cores: 0 1 2 
+[2025-04-12 16:00:12.600] [info] Medium cores: 3 4 
+[2025-04-12 16:00:12.600] [info] Big cores: 5 6 7 
+Statistics for Little:
+  Number of records: 100
+  Total time: 3403.94 ms
+  Average time: 34.0394 ms
+  Geometric mean: 33.9443 ms
+  Median: 32.8381 ms
+  Min: 32.0699 ms
+  Max: 47.8141 ms
+  Standard deviation: 2.71476 ms
+  Coefficient of variation: 0.0797535
+Statistics for Little:
+  Number of records: 100
+  Total time: 3414.04 ms
+  Average time: 34.1404 ms
+  Geometric mean: 33.9958 ms
+  Median: 32.7736 ms
+  Min: 32.2242 ms
+  Max: 54.7649 ms
+  Standard deviation: 3.46022 ms
+  Coefficient of variation: 0.101352
+Statistics for Little:
+  Number of records: 100
+  Total time: 3340.46 ms
+  Average time: 33.4046 ms
+  Geometric mean: 33.3503 ms
+  Median: 32.5015 ms
+  Min: 32.0684 ms
+  Max: 41.6441 ms
+  Standard deviation: 1.98905 ms
+  Coefficient of variation: 0.0595442
+Statistics for Little:
+  Number of records: 100
+  Total time: 3297.35 ms
+  Average time: 32.9735 ms
+  Geometric mean: 32.95 ms
+  Median: 32.5243 ms
+  Min: 32.0485 ms
+  Max: 38.4303 ms
+  Standard deviation: 1.29057 ms
+  Coefficient of variation: 0.0391395
+Statistics for Little:
+  Number of records: 100
+  Total time: 3351.75 ms
+  Average time: 33.5175 ms
+  Geometric mean: 33.3777 ms
+  Median: 32.5507 ms
+  Min: 32.2197 ms
+  Max: 66.1162 ms
+  Standard deviation: 3.68977 ms
+  Coefficient of variation: 0.110085
+-------------------------------------------------------------------------------------------------------
+Benchmark                                                             Time             CPU   Iterations
+-------------------------------------------------------------------------------------------------------
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              3416 ms        0.447 ms            1 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              3426 ms        0.401 ms            1 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              3353 ms        0.372 ms            1 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              3310 ms        0.369 ms            1 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5              3364 ms        0.393 ms            1 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_mean         3374 ms        0.397 ms            5 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_median       3364 ms        0.393 ms            5 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_stddev       47.9 ms        0.031 ms            5 Little, 3 cores
+OMP/CifarSparse/Stage/Full/1/0/iterations:1/repeats:5_cv           1.42 %          7.90 %             5 Little, 3 cores
+Statistics for Medium:
+  Number of records: 100
+  Total time: 3282.15 ms
+  Average time: 32.8215 ms
+  Geometric mean: 32.7979 ms
+  Median: 32.39 ms
+  Min: 31.7994 ms
+  Max: 40.5929 ms
+  Standard deviation: 1.30034 ms
+  Coefficient of variation: 0.0396185
+Statistics for Medium:
+  Number of records: 100
+  Total time: 3310.6 ms
+  Average time: 33.106 ms
+  Geometric mean: 33.0363 ms
+  Median: 32.5051 ms
+  Min: 32.0067 ms
+  Max: 50.3722 ms
+  Standard deviation: 2.40766 ms
+  Coefficient of variation: 0.0727256
+Statistics for Medium:
+  Number of records: 100
+  Total time: 3348.39 ms
+  Average time: 33.4839 ms
+  Geometric mean: 33.2779 ms
+  Median: 32.4536 ms
+  Min: 31.9049 ms
+  Max: 68.0806 ms
+  Standard deviation: 4.5039 ms
+  Coefficient of variation: 0.134509
+Statistics for Medium:
+  Number of records: 100
+  Total time: 3284.41 ms
+  Average time: 32.8441 ms
+  Geometric mean: 32.815 ms
+  Median: 32.5417 ms
+  Min: 32.0516 ms
+  Max: 45.7753 ms
+  Standard deviation: 1.50643 ms
+  Coefficient of variation: 0.0458662
+Statistics for Medium:
+  Number of records: 100
+  Total time: 3294.12 ms
+  Average time: 32.9412 ms
+  Geometric mean: 32.9167 ms
+  Median: 32.5798 ms
+  Min: 32.0276 ms
+  Max: 40.0932 ms
+  Standard deviation: 1.33635 ms
+  Coefficient of variation: 0.0405678
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              3301 ms        0.424 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              3332 ms        0.446 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              3386 ms        0.464 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              3303 ms        0.456 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5              3311 ms        0.463 ms            1 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_mean         3327 ms        0.451 ms            5 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_median       3311 ms        0.456 ms            5 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_stddev       35.4 ms        0.016 ms            5 Medium, 2 cores
+OMP/CifarSparse/Stage/Full/1/1/iterations:1/repeats:5_cv           1.07 %          3.61 %             5 Medium, 2 cores
+Statistics for Big:
+  Number of records: 100
+  Total time: 671.263 ms
+  Average time: 6.71263 ms
+  Geometric mean: 6.69961 ms
+  Median: 6.515 ms
+  Min: 6.45766 ms
+  Max: 10.8368 ms
+  Standard deviation: 0.472355 ms
+  Coefficient of variation: 0.0703682
+Statistics for Big:
+  Number of records: 100
+  Total time: 673.201 ms
+  Average time: 6.73201 ms
+  Geometric mean: 6.70536 ms
+  Median: 6.50419 ms
+  Min: 6.45698 ms
+  Max: 13.8248 ms
+  Standard deviation: 0.748031 ms
+  Coefficient of variation: 0.111116
+Statistics for Big:
+  Number of records: 100
+  Total time: 669.672 ms
+  Average time: 6.69672 ms
+  Geometric mean: 6.68285 ms
+  Median: 6.50523 ms
+  Min: 6.45177 ms
+  Max: 11.0064 ms
+  Standard deviation: 0.49036 ms
+  Coefficient of variation: 0.0732239
+Statistics for Big:
+  Number of records: 100
+  Total time: 664.681 ms
+  Average time: 6.64681 ms
+  Geometric mean: 6.64303 ms
+  Median: 6.51227 ms
+  Min: 6.45812 ms
+  Max: 7.16714 ms
+  Standard deviation: 0.226449 ms
+  Coefficient of variation: 0.0340689
+Statistics for Big:
+  Number of records: 100
+  Total time: 664.011 ms
+  Average time: 6.64011 ms
+  Geometric mean: 6.63638 ms
+  Median: 6.51055 ms
+  Min: 6.45333 ms
+  Max: 7.10047 ms
+  Standard deviation: 0.225032 ms
+  Coefficient of variation: 0.0338899
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              3322 ms        0.995 ms            1 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              3320 ms        0.992 ms            1 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              3323 ms        0.921 ms            1 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              3312 ms        0.879 ms            1 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5              3359 ms        0.896 ms            1 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_mean         3327 ms        0.936 ms            5 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_median       3322 ms        0.921 ms            5 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_stddev       18.4 ms        0.054 ms            5 Big, 3 cores
+OMP/CifarSparse/Stage/Full/1/2/iterations:1/repeats:5_cv           0.55 %          5.78 %             5 Big, 3 cores
+[0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m
