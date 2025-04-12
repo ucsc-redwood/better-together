@@ -4,116 +4,79 @@
 #include "../omp/dispatchers.hpp"
 #include "../sparse_appdata.hpp"
 #include "builtin-apps/app.hpp"
-#include "builtin-apps/pipeline/spsc_queue.hpp"
-#include "builtin-apps/pipeline/task.hpp"
-#include "builtin-apps/pipeline/worker.hpp"
 #include "dispatchers.hpp"
 
-using MyTask = Task<cifar_sparse::v2::AppData>;
+// // ----------------------------------------------------------------------------
+// // Realistic Benchmark: Vk Baseline
+// // ----------------------------------------------------------------------------
 
-#define SETUP_CORES_AND_TASKS()                                               \
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;                            \
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;                    \
-  SPSCQueue<MyTask*, kPoolSize> free_task_pool;                               \
-  for (size_t i = 0; i < kPoolSize; ++i) {                                    \
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr())); \
-    free_task_pool.enqueue(preallocated_tasks.back().get());                  \
-  }
+// static void BM_run_VK_baseline(benchmark::State& state) {
+//   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+//   cifar_sparse::v2::AppData appdata(disp.get_mr());
 
-// ----------------------------------------------------------------------------
-// Vk Baseline
-// ----------------------------------------------------------------------------
+//   // Warm up the data structures to avoid first-run anomalies
+//   disp.dispatch_multi_stage(appdata, 1, 9);
 
-static void BM_run_VK_baseline(benchmark::State& state) {
-  SETUP_CORES_AND_TASKS();
+//   for (auto _ : state) {
+//     disp.dispatch_multi_stage(appdata, 1, 9);
+//   }
+// }
 
-  SPSCQueue<MyTask*, kPoolSize> q_0;
-  SPSCQueue<MyTask*, kPoolSize> q_1;
+// BENCHMARK(BM_run_VK_baseline)->Unit(benchmark::kMillisecond)->Name("VK/CifarSparse/Baseline");
 
-  for (auto _ : state) {
-    auto t0 = std::thread(
-        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 1, 9);
-        });
+// // ----------------------------------------------------------------------------
+// // Realistic Benchmark: Vk Stage
+// // ----------------------------------------------------------------------------
 
-    auto t1 = std::thread(
-        worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {});
+// static void BM_run_VK_stage(benchmark::State& state) {
+//   const int stage = state.range(0);
 
-    t0.join();
-    t1.join();
-  }
-}
+//   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+//   cifar_sparse::v2::AppData appdata(disp.get_mr());
 
-BENCHMARK(BM_run_VK_baseline)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Repetitions(5)
-    ->Name("VK/CifarSparse/Baseline");
+//   // Ensure stage is valid
+//   if (stage < 1 || stage > 9) {
+//     state.SkipWithError("Invalid stage number");
+//     return;
+//   }
 
-// ----------------------------------------------------------------------------
-// Vk Stage
-// ----------------------------------------------------------------------------
+//   // Warm up to prevent first-run anomalies
+//   disp.dispatch_multi_stage(appdata, 1, stage);
 
-static void BM_run_VK_stage(benchmark::State& state) {
-  SETUP_CORES_AND_TASKS();
+//   for (auto _ : state) {
+//     disp.dispatch_multi_stage(appdata, stage, stage);
+//   }
+// }
 
-  const int stage = state.range(0);
-
-  if (stage < 1 || stage > 9) {
-    state.SkipWithError("Invalid stage number");
-    return;
-  }
-
-  SPSCQueue<MyTask*, kPoolSize> q_0;
-  SPSCQueue<MyTask*, kPoolSize> q_1;
-
-  for (auto _ : state) {
-    auto t0 = std::thread(
-        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, stage, stage);
-        });
-
-    auto t1 = std::thread(
-        worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {});
-
-    t0.join();
-    t1.join();
-  }
-}
-
-BENCHMARK(BM_run_VK_stage)
-    ->Unit(benchmark::kMillisecond)
-    ->DenseRange(1, 9)
-    ->Iterations(1)
-    ->Repetitions(5)
-    ->Name("VK/CifarSparse/Stage");
+// BENCHMARK(BM_run_VK_stage)
+//     ->DenseRange(1, 9)
+//     ->Unit(benchmark::kMillisecond)
+//     ->Name("VK/CifarSparse/Stage");
 
 // ----------------------------------------------------------------------------
-// Omp Stage
+// Realistic Benchmark: OMP Stage
 // ----------------------------------------------------------------------------
 
 static void BM_run_OMP_stage(benchmark::State& state) {
   const int stage = state.range(0);
   const ProcessorType core_type = static_cast<ProcessorType>(state.range(1));
 
-  std::vector<int> cores_to_use;
-  int num_threads;
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::v2::AppData appdata(mr);
 
+  std::vector<int> cores_to_use;
   if (core_type == ProcessorType::kLittleCore) {
     cores_to_use = g_little_cores;
-    num_threads = g_little_cores.size();
+    state.SetLabel("Little, " + std::to_string(cores_to_use.size()) + " cores");
   } else if (core_type == ProcessorType::kMediumCore) {
     cores_to_use = g_medium_cores;
-    num_threads = g_medium_cores.size();
+    state.SetLabel("Medium, " + std::to_string(cores_to_use.size()) + " cores");
   } else {
     cores_to_use = g_big_cores;
-    num_threads = g_big_cores.size();
+    state.SetLabel("Big, " + std::to_string(cores_to_use.size()) + " cores");
   }
 
-  if (num_threads > (static_cast<int>(cores_to_use.size()))) {
-    state.SkipWithMessage("");
-    return;
-  }
+  const int num_threads = cores_to_use.size();
 
   // Ensure stage is valid
   if (stage < 1 || stage > 9) {
@@ -121,23 +84,11 @@ static void BM_run_OMP_stage(benchmark::State& state) {
     return;
   }
 
-  SETUP_CORES_AND_TASKS();
-
-  SPSCQueue<MyTask*, kPoolSize> q_0;
-  SPSCQueue<MyTask*, kPoolSize> q_1;
+  // Warm up to prevent first-run anomalies
+  cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, 1, stage);
 
   for (auto _ : state) {
-    auto t0 = std::thread(
-        worker_thread<MyTask>, std::ref(free_task_pool), std::ref(q_0), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              cores_to_use, num_threads, task.appdata, stage, stage);
-        });
-
-    auto t1 = std::thread(
-        worker_thread<MyTask>, std::ref(q_0), std::ref(free_task_pool), [&](MyTask& _) {});
-
-    t0.join();
-    t1.join();
+    cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, stage, stage);
   }
 }
 
@@ -152,10 +103,12 @@ static void CustomArgs(benchmark::internal::Benchmark* b) {
 
 BENCHMARK(BM_run_OMP_stage)
     ->Apply(CustomArgs)
-    ->Iterations(1)
-    ->Repetitions(5)
     ->Unit(benchmark::kMillisecond)
     ->Name("OMP/CifarSparse/Stage");
+
+// ----------------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
@@ -165,6 +118,5 @@ int main(int argc, char** argv) {
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();  // Ensure proper cleanup
-
   return 0;
 }

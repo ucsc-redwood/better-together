@@ -65,8 +65,8 @@ static void BM_run_OMP_baseline(benchmark::State& state) {
     return;
   }
 
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::v2::AppData appdata(mr);
 
   // Warm up the data structures to avoid first-run anomalies
   cifar_sparse::omp::v2::dispatch_multi_stage_unrestricted(num_threads, appdata, 1, 9);
@@ -101,19 +101,19 @@ static void BM_run_OMP_stage(benchmark::State& state) {
   const ProcessorType core_type = static_cast<ProcessorType>(state.range(1));
   const int num_threads = state.range(2);
 
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::v2::AppData appdata(mr);
 
   std::vector<int> cores_to_use;
   if (core_type == ProcessorType::kLittleCore) {
     cores_to_use = g_little_cores;
-    state.SetLabel("Little");
+    state.SetLabel("Little, " + std::to_string(num_threads) + " cores");
   } else if (core_type == ProcessorType::kMediumCore) {
     cores_to_use = g_medium_cores;
-    state.SetLabel("Medium");
+    state.SetLabel("Medium, " + std::to_string(num_threads) + " cores");
   } else {
     cores_to_use = g_big_cores;
-    state.SetLabel("Big");
+    state.SetLabel("Big, " + std::to_string(num_threads) + " cores");
   }
 
   if (num_threads > (static_cast<int>(cores_to_use.size()))) {
