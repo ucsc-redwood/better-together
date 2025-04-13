@@ -74,7 +74,8 @@ BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_best)
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
-  app.add_option("--base-dir", g_schedule_base_url, "Base directory")->default_str(kDefaultScheduleBaseDir));
+  app.add_option("--base-dir", g_schedule_base_url, "Base directory")
+      ->default_str(kDefaultScheduleBaseDir);
   app.add_option("-i,--index", g_schedule_id, "Schedule file index")->required();
 
   PARSE_ARGS_END;
