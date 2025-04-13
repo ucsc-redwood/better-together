@@ -148,6 +148,7 @@ def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
     current_chunk = 0
     current_core_type = None
     chunk_time = 0.0
+    chunk_times = []
 
     for i in range(num_stages):
         for c in core_types:
@@ -161,6 +162,7 @@ def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
                     print(
                         f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms"
                     )
+                    chunk_times.append(chunk_time)
                     current_chunk += 1
                     current_core_type = c
                     chunk_time = stage_timings[i][core_types.index(c)]
@@ -169,6 +171,21 @@ def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
     # Print the last chunk
     if current_core_type is not None:
         print(f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms")
+        chunk_times.append(chunk_time)
+
+    # Calculate load balancing metrics
+    if chunk_times:
+        max_time = max(chunk_times)
+        min_time = min(chunk_times)
+        avg_time = sum(chunk_times) / len(chunk_times)
+        load_balance_ratio = min_time / max_time
+        load_imbalance_pct = (1 - load_balance_ratio) * 100
+        time_variance = sum((t - avg_time) ** 2 for t in chunk_times) / len(chunk_times)
+
+        print(f"\nLoad Balancing Metrics:")
+        print(f"Load balance ratio: {load_balance_ratio:.5f}")
+        print(f"Load imbalance percentage: {load_imbalance_pct:.5f}%")
+        print(f"Time variance: {time_variance:.5f}")
 
 
 def get_solution_representation(m, x, num_stages, core_types):
