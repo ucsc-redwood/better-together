@@ -15,6 +15,81 @@
 
 using MyTask = Task<cifar_sparse::v2::AppData>;
 
+// static void BM_run_OMP_stage_full(const int stage_to_measure) {
+//   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+//   std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+//   SPSCQueue<MyTask*, kPoolSize> free_task_pool;
+//   for (size_t i = 0; i < kPoolSize; ++i) {
+//     preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
+//     free_task_pool.enqueue(preallocated_tasks.back().get());
+//   }
+
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
+
+//   // Main benchmark
+//   {
+//     // Only setup the records once
+//     RecordManager::instance().setup(100,
+//                                     {std::make_pair(0, ProcessorType::kLittleCore),
+//                                      std::make_pair(1, ProcessorType::kMediumCore),
+//                                      std::make_pair(2, ProcessorType::kBigCore),
+//                                      std::make_pair(3, ProcessorType::kVulkan)});
+
+//     // little core
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(g_little_cores,
+//                                                                         g_little_cores.size(),
+//                                                                         task.appdata,
+//                                                                         stage_to_measure,
+//                                                                         stage_to_measure);
+//                           });
+
+//     // medium core
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(g_medium_cores,
+//                                                       g_medium_cores.size(),
+//                                                       task.appdata,
+//                                                       stage_to_measure,
+//                                                       stage_to_measure);
+//         });
+
+//     // big core
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_big_cores, g_big_cores.size(), task.appdata, stage_to_measure, stage_to_measure);
+//         });
+
+//     // vulkan core
+//     auto t3 =
+//         std::thread(worker_thread_record<MyTask>,
+//                     3,
+//                     std::ref(q_2_3),
+//                     std::ref(free_task_pool),
+//                     [&](MyTask& task) {
+//                       disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
+//                     });
+
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+
+//     RecordManager::instance().print_processor_type_stats(ProcessorType::kLittleCore);
+//     RecordManager::instance().print_processor_type_stats(ProcessorType::kMediumCore);
+//     RecordManager::instance().print_processor_type_stats(ProcessorType::kBigCore);
+//     RecordManager::instance().print_processor_type_stats(ProcessorType::kVulkan);
+//   }
+// }
+
+
 static void BM_run_OMP_stage_full(const int stage_to_measure) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
   std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
@@ -32,14 +107,41 @@ static void BM_run_OMP_stage_full(const int stage_to_measure) {
   {
     // Only setup the records once
     RecordManager::instance().setup(100,
-                                    {std::make_pair(0, ProcessorType::kLittleCore),
-                                     std::make_pair(1, ProcessorType::kMediumCore),
-                                     std::make_pair(2, ProcessorType::kBigCore),
-                                     std::make_pair(3, ProcessorType::kVulkan)});
+                                    {std::make_pair(0, ProcessorType::kVulkan),
+                                     std::make_pair(1, ProcessorType::kBigCore),
+                                     std::make_pair(2, ProcessorType::kMediumCore),
+                                     std::make_pair(3, ProcessorType::kLittleCore)});
+
+    // vulkan core
+    auto t0 =
+        std::thread(worker_thread_record<MyTask>,
+                    0,
+                    std::ref(q_2_3),
+                    std::ref(free_task_pool),
+                    [&](MyTask& task) {
+                      disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
+                    });
+
+    // big core
+    auto t1 = std::thread(
+        worker_thread_record<MyTask>, 1, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+          cifar_sparse::omp::v2::dispatch_multi_stage(
+              g_big_cores, g_big_cores.size(), task.appdata, stage_to_measure, stage_to_measure);
+        });
+
+    // medium core
+    auto t2 = std::thread(
+        worker_thread_record<MyTask>, 2, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+          cifar_sparse::omp::v2::dispatch_multi_stage(g_medium_cores,
+                                                      g_medium_cores.size(),
+                                                      task.appdata,
+                                                      stage_to_measure,
+                                                      stage_to_measure);
+        });
 
     // little core
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
+    auto t3 = std::thread(worker_thread_record<MyTask>,
+                          3,
                           std::ref(free_task_pool),
                           std::ref(q_0_1),
                           [&](MyTask& task) {
@@ -50,42 +152,15 @@ static void BM_run_OMP_stage_full(const int stage_to_measure) {
                                                                         stage_to_measure);
                           });
 
-    // medium core
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(g_medium_cores,
-                                                      g_medium_cores.size(),
-                                                      task.appdata,
-                                                      stage_to_measure,
-                                                      stage_to_measure);
-        });
-
-    // big core
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_big_cores, g_big_cores.size(), task.appdata, stage_to_measure, stage_to_measure);
-        });
-
-    // vulkan core
-    auto t3 =
-        std::thread(worker_thread_record<MyTask>,
-                    3,
-                    std::ref(q_2_3),
-                    std::ref(free_task_pool),
-                    [&](MyTask& task) {
-                      disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
-                    });
-
     t0.join();
     t1.join();
     t2.join();
     t3.join();
 
-    RecordManager::instance().print_processor_type_stats(ProcessorType::kLittleCore);
-    RecordManager::instance().print_processor_type_stats(ProcessorType::kMediumCore);
-    RecordManager::instance().print_processor_type_stats(ProcessorType::kBigCore);
     RecordManager::instance().print_processor_type_stats(ProcessorType::kVulkan);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kBigCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kMediumCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kLittleCore);
   }
 }
 

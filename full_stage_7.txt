@@ -1,19 +1,75 @@
 
 [1/2] Processing device: 3A021JEHN02756
 Deploying and running 'bm-real-cifar-sparse-vk' on device: 3A021JEHN02756
-build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 504.0 MB/s (2827472 bytes in 0.005s)
-[2025-04-12 17:11:11.622] [info] Little cores: 0 1 2 3 
-[2025-04-12 17:11:11.622] [info] Medium cores: 4 5 
-[2025-04-12 17:11:11.622] [info] Big cores: 6 7 
-PROCESSOR=Little|COUNT=100|TOTAL=623.874|AVG=6.23874|GEOMEAN=6.20566|MEDIAN=6.08492|MIN=5.60706|MAX=12.422|STDDEV=0.761777|CV=0.122104|P90=6.61483|P95=6.85445|P99=12.422
-PROCESSOR=Medium|COUNT=100|TOTAL=302.093|AVG=3.02093|GEOMEAN=2.8202|MEDIAN=3.47373|MIN=1.76359|MAX=5.80457|STDDEV=1.09578|CV=0.36273|P90=4.83049|P95=4.85465|P99=5.80457
-PROCESSOR=Big|COUNT=100|TOTAL=174.858|AVG=1.74858|GEOMEAN=1.71199|MEDIAN=1.68402|MIN=1.29338|MAX=3.8855|STDDEV=0.42501|CV=0.243061|P90=1.94275|P95=3.12537|P99=3.8855
-PROCESSOR=GPU|COUNT=100|TOTAL=235.085|AVG=2.35085|GEOMEAN=2.33752|MEDIAN=2.30424|MIN=2.18148|MAX=5.49044|STDDEV=0.328091|CV=0.139563|P90=2.40352|P95=2.57845|P99=5.49044
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 474.3 MB/s (2829008 bytes in 0.006s)
+[2025-04-12 17:30:24.800] [info] Little cores: 0 1 2 3 
+[2025-04-12 17:30:24.801] [info] Medium cores: 4 5 
+[2025-04-12 17:30:24.801] [info] Big cores: 6 7 
+--------------------------------------------------------
+Statistics for GPU:
+  Number of records: 100
+  Total time: 223.791 ms
+  Average time: 2.23791 ms
+  Geometric mean: 2.22724 ms
+  Median: 2.19857 ms
+  Min: 2.1558 ms
+  Max: 5.09635 ms
+  Standard deviation: 0.290023 ms
+  Coefficient of variation: 0.129595
+  Percentile 90: 2.24748 ms
+  Percentile 95: 2.28251 ms
+  Percentile 99: 5.09635 ms
+PROCESSOR=GPU|COUNT=100|TOTAL=223.791|AVG=2.23791|GEOMEAN=2.22724|MEDIAN=2.19857|MIN=2.1558|MAX=5.09635|STDDEV=0.290023|CV=0.129595|P90=2.24748|P95=2.28251|P99=5.09635
+--------------------------------------------------------
+Statistics for Big:
+  Number of records: 100
+  Total time: 293.156 ms
+  Average time: 2.93156 ms
+  Geometric mean: 2.90907 ms
+  Median: 2.98061 ms
+  Min: 1.67196 ms
+  Max: 4.27791 ms
+  Standard deviation: 0.363361 ms
+  Coefficient of variation: 0.123948
+  Percentile 90: 3.22998 ms
+  Percentile 95: 3.85946 ms
+  Percentile 99: 4.27791 ms
+PROCESSOR=Big|COUNT=100|TOTAL=293.156|AVG=2.93156|GEOMEAN=2.90907|MEDIAN=2.98061|MIN=1.67196|MAX=4.27791|STDDEV=0.363361|CV=0.123948|P90=3.22998|P95=3.85946|P99=4.27791
+--------------------------------------------------------
+Statistics for Medium:
+  Number of records: 100
+  Total time: 168.174 ms
+  Average time: 1.68174 ms
+  Geometric mean: 1.67303 ms
+  Median: 1.63245 ms
+  Min: 1.6193 ms
+  Max: 3.55526 ms
+  Standard deviation: 0.212268 ms
+  Coefficient of variation: 0.126219
+  Percentile 90: 1.66732 ms
+  Percentile 95: 1.98966 ms
+  Percentile 99: 3.55526 ms
+PROCESSOR=Medium|COUNT=100|TOTAL=168.174|AVG=1.68174|GEOMEAN=1.67303|MEDIAN=1.63245|MIN=1.6193|MAX=3.55526|STDDEV=0.212268|CV=0.126219|P90=1.66732|P95=1.98966|P99=3.55526
+--------------------------------------------------------
+Statistics for Little:
+  Number of records: 100
+  Total time: 607.136 ms
+  Average time: 6.07136 ms
+  Geometric mean: 6.05794 ms
+  Median: 5.98395 ms
+  Min: 5.56881 ms
+  Max: 8.44617 ms
+  Standard deviation: 0.42083 ms
+  Coefficient of variation: 0.069314
+  Percentile 90: 6.52515 ms
+  Percentile 95: 6.77958 ms
+  Percentile 99: 8.44617 ms
+PROCESSOR=Little|COUNT=100|TOTAL=607.136|AVG=6.07136|GEOMEAN=6.05794|MEDIAN=5.98395|MIN=5.56881|MAX=8.44617|STDDEV=0.42083|CV=0.069314|P90=6.52515|P95=6.77958|P99=8.44617
 
 [2/2] Processing device: 9b034f1b
 Deploying and running 'bm-real-cifar-sparse-vk' on device: 9b034f1b
-build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 503.5 MB/s (2827472 bytes in 0.005s)
-[2025-04-12 17:03:50.206] [info] Little cores: 0 1 2 
-[2025-04-12 17:03:50.206] [info] Medium cores: 3 4 
-[2025-04-12 17:03:50.206] [info] Big cores: 5 6 7 
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 456.7 MB/s (2829008 bytes in 0.006s)
+[2025-04-12 17:23:03.417] [info] Little cores: 0 1 2 
+[2025-04-12 17:23:03.418] [info] Medium cores: 3 4 
+[2025-04-12 17:23:03.418] [info] Big cores: 5 6 7 
 [0m[1;38;5;3;1mwarning: [38;5;3;1m./builtin-apps/xmake.lua:47[0m: cannot match add_files("builtin-apps/cifar-sparse/sparse_appdata.cpp") in target(builtin-apps)[0m

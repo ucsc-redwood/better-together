@@ -118,6 +118,8 @@ class RecordManager {
     }
 
     if (durations_ms.empty()) {
+      std::cout << "No records found for processor type: "
+                << processor_type_to_string(processor_type) << std::endl;
       std::cout << "PROCESSOR=" << processor_type_to_string(processor_type) << " COUNT=0"
                 << std::endl;
       return;
@@ -170,7 +172,23 @@ class RecordManager {
     const double percentile_95 = sorted_durations[static_cast<int>(0.95 * sorted_durations.size())];
     const double percentile_99 = sorted_durations[static_cast<int>(0.99 * sorted_durations.size())];
 
-    // Print results in a machine-parsable format with consistent delimiters
+    // Human-friendly output first
+    std::cout << "--------------------------------------------------------\n";
+    std::cout << "Statistics for " << processor_type_to_string(processor_type) << ":\n";
+    std::cout << "  Number of records: " << durations_ms.size() << "\n";
+    std::cout << "  Total time: " << total_time << " ms\n";
+    std::cout << "  Average time: " << avg_time << " ms\n";
+    std::cout << "  Geometric mean: " << geomean << " ms\n";
+    std::cout << "  Median: " << median_time << " ms\n";
+    std::cout << "  Min: " << min_time << " ms\n";
+    std::cout << "  Max: " << max_time << " ms\n";
+    std::cout << "  Standard deviation: " << std_dev << " ms\n";
+    std::cout << "  Coefficient of variation: " << cv << "\n";
+    std::cout << "  Percentile 90: " << percentile_90 << " ms\n";
+    std::cout << "  Percentile 95: " << percentile_95 << " ms\n";
+    std::cout << "  Percentile 99: " << percentile_99 << " ms\n";
+
+    // Machine-parsable format after
     std::cout << "PROCESSOR=" << processor_type_to_string(processor_type)
               << "|COUNT=" << durations_ms.size() << "|TOTAL=" << total_time << "|AVG=" << avg_time
               << "|GEOMEAN=" << geomean << "|MEDIAN=" << median_time << "|MIN=" << min_time
