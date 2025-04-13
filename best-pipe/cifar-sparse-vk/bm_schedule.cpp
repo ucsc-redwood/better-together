@@ -145,8 +145,9 @@ namespace device_3A021JEHN02756 {
   }
 
 template <typename QueueT>
+[[nodiscard]]
 std::thread create_thread(
-    QueueT& in, QueueT& out, const std::vector<int>& cores, int start, int end) {
+    QueueT& in, QueueT& out, const std::vector<int>& cores, const int start, const int end) {
   return std::thread(
       worker_thread<MyTask>, std::ref(in), std::ref(out), [&cores, start, end](MyTask& task) {
         cifar_sparse::omp::v2::dispatch_multi_stage(cores, cores.size(), task.appdata, start, end);
@@ -154,8 +155,12 @@ std::thread create_thread(
 }
 
 template <typename QueueT>
-std::thread create_thread(
-    QueueT& in, QueueT& out, cifar_sparse::vulkan::v2::VulkanDispatcher& disp, int start, int end) {
+[[nodiscard]]
+std::thread create_thread(QueueT& in,
+                          QueueT& out,
+                          cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
+                          const int start,
+                          const int end) {
   return std::thread(
       worker_thread<MyTask>, std::ref(in), std::ref(out), [&disp, start, end](MyTask& task) {
         disp.dispatch_multi_stage(task.appdata, start, end);
