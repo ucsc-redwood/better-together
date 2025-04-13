@@ -82,6 +82,27 @@ def add_contiguity_constraints(opt, x, core_types, num_stages):
                     opt.add(Implies(And(x[(i, c)], x[(k, c)]), x[(j, c)]))
 
 
+def add_no_big_cores_constraint(opt, x, num_stages, core_types):
+    """Add constraints to prevent using big cores."""
+    for i in range(num_stages):
+        opt.add(Not(x[(i, "Big")]))
+    print("Adding constraint: No Big cores allowed")
+
+
+def add_no_little_cores_constraint(opt, x, num_stages, core_types):
+    """Add constraints to prevent using little cores."""
+    for i in range(num_stages):
+        opt.add(Not(x[(i, "Little")]))
+    print("Adding constraint: No Little cores allowed")
+
+
+def add_no_gpu_constraint(opt, x, num_stages, core_types):
+    """Add constraints to prevent using GPU."""
+    for i in range(num_stages):
+        opt.add(Not(x[(i, "GPU")]))
+    print("Adding constraint: No GPU allowed")
+
+
 def block_solution(opt, x, num_stages, core_types, model):
     """Add constraint to block the current solution, so we can find a new one."""
     block = []
@@ -183,6 +204,13 @@ def solve_optimization_problem():
     T_chunk = add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings)
     add_contiguity_constraints(opt, x, core_types, num_stages)
 
+    # Enable/disable optional constraints here
+    # Uncomment the constraints you want to apply
+
+    # add_no_big_cores_constraint(opt, x, num_stages, core_types)
+    # add_no_little_cores_constraint(opt, x, num_stages, core_types)
+    # add_no_gpu_constraint(opt, x, num_stages, core_types)
+
     # Find up to num_solutions solutions
     solution_count = 0
     while solution_count < num_solutions and opt.check() == sat:
@@ -194,7 +222,7 @@ def solve_optimization_problem():
         print(f"Optimal chunk time: {m[T_chunk]} = {solution_time} ms")
 
         # Print details
-        print_stage_assignments(m, x, num_stages, core_types, stage_timings)
+        # print_stage_assignments(m, x, num_stages, core_types, stage_timings)
         print_stage_assignments_v2(m, x, num_stages, core_types, stage_timings)
         print_chunk_summary(m, x, num_stages, core_types, stage_timings)
 
