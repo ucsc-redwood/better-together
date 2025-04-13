@@ -57,6 +57,14 @@ do
 	})
 end
 
+target("query-vulkan-hpp-version")
+do
+	add_rules("utility_config", "vulkan_config", "run_on_android")
+	add_files({
+		"query_vulkan_hpp_version.cpp",
+	})
+end
+
 -- -- ----------------------------------------------------------------
 -- -- Utility Target: try determining the block size of CUDA kernels
 -- -- ----------------------------------------------------------------
