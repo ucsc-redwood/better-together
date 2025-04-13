@@ -25,119 +25,20 @@ using MyTask = Task<cifar_sparse::v2::AppData>;
 // Specialized Schedules
 // ----------------------------------------------------------------------------
 
-// Schedule best:
-//   Chunk 1: Stages [1, 2, 3, 4] → gpu_vulkan
-//   Chunk 2: Stage [5] → medium (g_medium_cores)
-//   Chunk 3: Stages [6, 7, 8, 9] → big (g_big_cores)
+// Optimal chunk time: 577227/50000
+// Stage 0: core type Big with time 7.89115
+// Stage 1: core type GPU with time 4.95056
+// Stage 2: core type GPU with time 4.36582
+// Stage 3: core type Medium with time 6.49812
+// Stage 4: core type Medium with time 1.66993
+// Stage 5: core type Medium with time 1.69134
+// Stage 6: core type Medium with time 1.68515
+// Stage 7: core type Little with time 6.29989
+// Stage 8: core type Little with time 0.182615
 static void BM_pipe_cifar_sparse_vk_schedule_best() {
   SETUP_CORES_AND_TASKS();
   SPSCQueue<MyTask*, kPoolSize> q_0_1;
   SPSCQueue<MyTask*, kPoolSize> q_1_2;
-
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kVulkan},
-                                        {1, ProcessorType::kMediumCore},
-                                        {2, ProcessorType::kBigCore},
-                                    });
-
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) { disp.dispatch_multi_stage(task.appdata, 1, 4); });
-
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_medium_cores, g_medium_cores.size(), task.appdata, 5, 5);
-        });
-
-    auto t2 = std::thread(worker_thread_record<MyTask>,
-                          2,
-                          std::ref(q_1_2),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
-                          });
-
-    t0.join();
-    t1.join();
-    t2.join();
-  }
-
-  RecordManager::instance().dump_records();
-}
-
-// Schedule 1:
-//   Chunk 1: Stage [1] → medium (g_medium_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stage [5] → little (g_little_cores)
-//   Chunk 4: Stages [6, 7, 8, 9] → big (g_big_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_1() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
-  SPSCQueue<MyTask*, kPoolSize> q_2_3;
-
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kLittleCore},
-                                        {3, ProcessorType::kBigCore},
-                                    });
-
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-                          });
-
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
-
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
-        });
-
-    auto t3 = std::thread(worker_thread_record<MyTask>,
-                          3,
-                          std::ref(q_2_3),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
-                          });
-
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
-
-  RecordManager::instance().dump_records();
-}
-
-// Schedule 2:
-//   Chunk 1: Stage [1] → big (g_big_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stage [5] → little (g_little_cores)
-//   Chunk 4: Stages [6, 7, 8, 9] → medium (g_medium_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_2() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
   {
@@ -145,8 +46,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
                                     {
                                         {0, ProcessorType::kBigCore},
                                         {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kLittleCore},
-                                        {3, ProcessorType::kMediumCore},
+                                        {2, ProcessorType::kMediumCore},
+                                        {3, ProcessorType::kLittleCore},
                                     });
 
     auto t0 = std::thread(worker_thread_record<MyTask>,
@@ -160,71 +61,13 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
 
     auto t1 = std::thread(
         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
+          disp.dispatch_multi_stage(task.appdata, 2, 3);
         });
 
     auto t2 = std::thread(
         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
-        });
-
-    auto t3 = std::thread(worker_thread_record<MyTask>,
-                          3,
-                          std::ref(q_2_3),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 6, 9);
-                          });
-
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
-
-  RecordManager::instance().dump_records();
-}
-
-// Schedule 3:
-//   Chunk 1: Stage [1] → medium (g_medium_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7] → big (g_big_cores)
-//   Chunk 4: Stages [8, 9] → little (g_little_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_3() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
-  SPSCQueue<MyTask*, kPoolSize> q_2_3;
-
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kBigCore},
-                                        {3, ProcessorType::kLittleCore},
-                                    });
-
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-                          });
-
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
-
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_big_cores, g_big_cores.size(), task.appdata, 5, 7);
+              g_medium_cores, g_medium_cores.size(), task.appdata, 4, 7);
         });
 
     auto t3 = std::thread(worker_thread_record<MyTask>,
@@ -245,371 +88,545 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
   RecordManager::instance().dump_records();
 }
 
-// Schedule 4:
-//   Chunk 1: Stage [1] → big (g_big_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7] → medium (g_medium_cores)
-//   Chunk 4: Stages [8, 9] → little (g_little_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_4() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
-  SPSCQueue<MyTask*, kPoolSize> q_2_3;
+// // Schedule 1:
+// //   Chunk 1: Stage [1] → medium (g_medium_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stage [5] → little (g_little_cores)
+// //   Chunk 4: Stages [6, 7, 8, 9] → big (g_big_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_1() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                        {3, ProcessorType::kLittleCore},
-                                    });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kMediumCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kLittleCore},
+//                                         {3, ProcessorType::kBigCore},
+//                                     });
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-                          });
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+//                           });
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
 
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_medium_cores, g_medium_cores.size(), task.appdata, 5, 7);
-        });
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
+//         });
 
-    auto t3 = std::thread(worker_thread_record<MyTask>,
-                          3,
-                          std::ref(q_2_3),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
-                          });
+//     auto t3 = std::thread(worker_thread_record<MyTask>,
+//                           3,
+//                           std::ref(q_2_3),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 6, 9);
+//                           });
 
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+//   }
 
-  RecordManager::instance().dump_records();
-}
+//   RecordManager::instance().dump_records();
+// }
 
-// Schedule 5:
-//   Chunk 1: Stage [1] → medium (g_medium_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7, 8] → big (g_big_cores)
-//   Chunk 4: Stage [9] → little (g_little_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_5() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
-  SPSCQueue<MyTask*, kPoolSize> q_2_3;
+// // Schedule 2:
+// //   Chunk 1: Stage [1] → big (g_big_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stage [5] → little (g_little_cores)
+// //   Chunk 4: Stages [6, 7, 8, 9] → medium (g_medium_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_2() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kBigCore},
-                                        {3, ProcessorType::kLittleCore},
-                                    });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kBigCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kLittleCore},
+//                                         {3, ProcessorType::kMediumCore},
+//                                     });
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-                          });
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+//                           });
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
 
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_big_cores, g_big_cores.size(), task.appdata, 5, 8);
-        });
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_little_cores, g_little_cores.size(), task.appdata, 5, 5);
+//         });
 
-    auto t3 = std::thread(worker_thread_record<MyTask>,
-                          3,
-                          std::ref(q_2_3),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
-                          });
+//     auto t3 = std::thread(worker_thread_record<MyTask>,
+//                           3,
+//                           std::ref(q_2_3),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 6, 9);
+//                           });
 
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+//   }
 
-  RecordManager::instance().dump_records();
-}
+//   RecordManager::instance().dump_records();
+// }
 
-// Schedule 6:
-//   Chunk 1: Stage [1] → big (g_big_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7, 8] → medium (g_medium_cores)
-//   Chunk 4: Stage [9] → little (g_little_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_6() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
-  SPSCQueue<MyTask*, kPoolSize> q_2_3;
+// // Schedule 3:
+// //   Chunk 1: Stage [1] → medium (g_medium_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7] → big (g_big_cores)
+// //   Chunk 4: Stages [8, 9] → little (g_little_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_3() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                        {3, ProcessorType::kLittleCore},
-                                    });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kMediumCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kBigCore},
+//                                         {3, ProcessorType::kLittleCore},
+//                                     });
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-                          });
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+//                           });
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
 
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_medium_cores, g_medium_cores.size(), task.appdata, 5, 8);
-        });
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_big_cores, g_big_cores.size(), task.appdata, 5, 7);
+//         });
 
-    auto t3 = std::thread(worker_thread_record<MyTask>,
-                          3,
-                          std::ref(q_2_3),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
-                          });
+//     auto t3 = std::thread(worker_thread_record<MyTask>,
+//                           3,
+//                           std::ref(q_2_3),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
+//                           });
 
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+//   }
 
-  RecordManager::instance().dump_records();
-}
+//   RecordManager::instance().dump_records();
+// }
 
-// Schedule 7 (3 chunks):
-//   Chunk 1: Stage [1] → medium (g_medium_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7, 8, 9] → big (g_big_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_7() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
+// // Schedule 4:
+// //   Chunk 1: Stage [1] → big (g_big_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7] → medium (g_medium_cores)
+// //   Chunk 4: Stages [8, 9] → little (g_little_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_4() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kBigCore},
-                                    });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kBigCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kMediumCore},
+//                                         {3, ProcessorType::kLittleCore},
+//                                     });
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-                          });
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+//                           });
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
 
-    auto t2 = std::thread(worker_thread_record<MyTask>,
-                          2,
-                          std::ref(q_1_2),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
-                          });
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_medium_cores, g_medium_cores.size(), task.appdata, 5, 7);
+//         });
 
-    t0.join();
-    t1.join();
-    t2.join();
-  }
+//     auto t3 = std::thread(worker_thread_record<MyTask>,
+//                           3,
+//                           std::ref(q_2_3),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
+//                           });
 
-  RecordManager::instance().dump_records();
-}
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+//   }
 
-// Schedule 8 (3 chunks):
-//   Chunk 1: Stage [1] → big (g_big_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7, 8, 9] → medium (g_medium_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_8() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   RecordManager::instance().dump_records();
+// }
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                    });
+// // Schedule 5:
+// //   Chunk 1: Stage [1] → medium (g_medium_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7, 8] → big (g_big_cores)
+// //   Chunk 4: Stage [9] → little (g_little_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_5() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-                          });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kMediumCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kBigCore},
+//                                         {3, ProcessorType::kLittleCore},
+//                                     });
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+//                           });
 
-    auto t2 = std::thread(worker_thread_record<MyTask>,
-                          2,
-                          std::ref(q_1_2),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
-                          });
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
 
-    t0.join();
-    t1.join();
-    t2.join();
-  }
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_big_cores, g_big_cores.size(), task.appdata, 5, 8);
+//         });
 
-  RecordManager::instance().dump_records();
-}
+//     auto t3 = std::thread(worker_thread_record<MyTask>,
+//                           3,
+//                           std::ref(q_2_3),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
+//                           });
 
-// Schedule 9 (3 chunks, same as Schedule 7):
-//   Chunk 1: Stage [1] → medium (g_medium_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7, 8, 9] → big (g_big_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_9() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+//   }
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kBigCore},
-                                    });
+//   RecordManager::instance().dump_records();
+// }
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
-                          });
+// // Schedule 6:
+// //   Chunk 1: Stage [1] → big (g_big_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7, 8] → medium (g_medium_cores)
+// //   Chunk 4: Stage [9] → little (g_little_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_6() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//   SPSCQueue<MyTask*, kPoolSize> q_2_3;
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kBigCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kMediumCore},
+//                                         {3, ProcessorType::kLittleCore},
+//                                     });
 
-    auto t2 = std::thread(worker_thread_record<MyTask>,
-                          2,
-                          std::ref(q_1_2),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
-                          });
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+//                           });
 
-    t0.join();
-    t1.join();
-    t2.join();
-  }
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
 
-  RecordManager::instance().dump_records();
-}
+//     auto t2 = std::thread(
+//         worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
+//           cifar_sparse::omp::v2::dispatch_multi_stage(
+//               g_medium_cores, g_medium_cores.size(), task.appdata, 5, 8);
+//         });
 
-// Schedule 10 (3 chunks, same as Schedule 8):
-//   Chunk 1: Stage [1] → big (g_big_cores)
-//   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
-//   Chunk 3: Stages [5, 6, 7, 8, 9] → medium (g_medium_cores)
-static void BM_pipe_cifar_sparse_vk_schedule_10() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
+//     auto t3 = std::thread(worker_thread_record<MyTask>,
+//                           3,
+//                           std::ref(q_2_3),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_little_cores, g_little_cores.size(), task.appdata, 9, 9);
+//                           });
 
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                    });
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//     t3.join();
+//   }
 
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-                          });
+//   RecordManager::instance().dump_records();
+// }
 
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 4);
-        });
+// // Schedule 7 (3 chunks):
+// //   Chunk 1: Stage [1] → medium (g_medium_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7, 8, 9] → big (g_big_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_7() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
 
-    auto t2 = std::thread(worker_thread_record<MyTask>,
-                          2,
-                          std::ref(q_1_2),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
-                          });
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kMediumCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kBigCore},
+//                                     });
 
-    t0.join();
-    t1.join();
-    t2.join();
-  }
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+//                           });
 
-  RecordManager::instance().dump_records();
-}
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
+
+//     auto t2 = std::thread(worker_thread_record<MyTask>,
+//                           2,
+//                           std::ref(q_1_2),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
+//                           });
+
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//   }
+
+//   RecordManager::instance().dump_records();
+// }
+
+// // Schedule 8 (3 chunks):
+// //   Chunk 1: Stage [1] → big (g_big_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7, 8, 9] → medium (g_medium_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_8() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kBigCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kMediumCore},
+//                                     });
+
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+//                           });
+
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
+
+//     auto t2 = std::thread(worker_thread_record<MyTask>,
+//                           2,
+//                           std::ref(q_1_2),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
+//                           });
+
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//   }
+
+//   RecordManager::instance().dump_records();
+// }
+
+// // Schedule 9 (3 chunks, same as Schedule 7):
+// //   Chunk 1: Stage [1] → medium (g_medium_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7, 8, 9] → big (g_big_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_9() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kMediumCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kBigCore},
+//                                     });
+
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 1, 1);
+//                           });
+
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
+
+//     auto t2 = std::thread(worker_thread_record<MyTask>,
+//                           2,
+//                           std::ref(q_1_2),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 5, 9);
+//                           });
+
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//   }
+
+//   RecordManager::instance().dump_records();
+// }
+
+// // Schedule 10 (3 chunks, same as Schedule 8):
+// //   Chunk 1: Stage [1] → big (g_big_cores)
+// //   Chunk 2: Stages [2, 3, 4] → gpu_vulkan
+// //   Chunk 3: Stages [5, 6, 7, 8, 9] → medium (g_medium_cores)
+// static void BM_pipe_cifar_sparse_vk_schedule_10() {
+//   SETUP_CORES_AND_TASKS();
+//   SPSCQueue<MyTask*, kPoolSize> q_0_1;
+//   SPSCQueue<MyTask*, kPoolSize> q_1_2;
+
+//   {
+//     RecordManager::instance().setup(kNumToProcess,
+//                                     {
+//                                         {0, ProcessorType::kBigCore},
+//                                         {1, ProcessorType::kVulkan},
+//                                         {2, ProcessorType::kMediumCore},
+//                                     });
+
+//     auto t0 = std::thread(worker_thread_record<MyTask>,
+//                           0,
+//                           std::ref(free_task_pool),
+//                           std::ref(q_0_1),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
+//                           });
+
+//     auto t1 = std::thread(
+//         worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
+//           disp.dispatch_multi_stage(task.appdata, 2, 4);
+//         });
+
+//     auto t2 = std::thread(worker_thread_record<MyTask>,
+//                           2,
+//                           std::ref(q_1_2),
+//                           std::ref(free_task_pool),
+//                           [&](MyTask& task) {
+//                             cifar_sparse::omp::v2::dispatch_multi_stage(
+//                                 g_medium_cores, g_medium_cores.size(), task.appdata, 5, 9);
+//                           });
+
+//     t0.join();
+//     t1.join();
+//     t2.join();
+//   }
+
+//   RecordManager::instance().dump_records();
+// }
 
 // ----------------------------------------------------------------------------
 // Main
@@ -630,36 +647,36 @@ int main(int argc, char** argv) {
   }
 
   switch (schedule_id) {
-    case 1:
-      BM_pipe_cifar_sparse_vk_schedule_1();
-      break;
-    case 2:
-      BM_pipe_cifar_sparse_vk_schedule_2();
-      break;
-    case 3:
-      BM_pipe_cifar_sparse_vk_schedule_3();
-      break;
-    case 4:
-      BM_pipe_cifar_sparse_vk_schedule_4();
-      break;
-    case 5:
-      BM_pipe_cifar_sparse_vk_schedule_5();
-      break;
-    case 6:
-      BM_pipe_cifar_sparse_vk_schedule_6();
-      break;
-    case 7:
-      BM_pipe_cifar_sparse_vk_schedule_7();
-      break;
-    case 8:
-      BM_pipe_cifar_sparse_vk_schedule_8();
-      break;
-    case 9:
-      BM_pipe_cifar_sparse_vk_schedule_9();
-      break;
-    case 10:
-      BM_pipe_cifar_sparse_vk_schedule_10();
-      break;
+    // case 1:
+    //   BM_pipe_cifar_sparse_vk_schedule_1();
+    //   break;
+    // case 2:
+    //   BM_pipe_cifar_sparse_vk_schedule_2();
+    //   break;
+    // case 3:
+    //   BM_pipe_cifar_sparse_vk_schedule_3();
+    //   break;
+    // case 4:
+    //   BM_pipe_cifar_sparse_vk_schedule_4();
+    //   break;
+    // case 5:
+    //   BM_pipe_cifar_sparse_vk_schedule_5();
+    //   break;
+    // case 6:
+    //   BM_pipe_cifar_sparse_vk_schedule_6();
+    //   break;
+    // case 7:
+    //   BM_pipe_cifar_sparse_vk_schedule_7();
+    //   break;
+    // case 8:
+    //   BM_pipe_cifar_sparse_vk_schedule_8();
+    //   break;
+    // case 9:
+    //   BM_pipe_cifar_sparse_vk_schedule_9();
+    //   break;
+    // case 10:
+    //   BM_pipe_cifar_sparse_vk_schedule_10();
+    //   break;
     default:
       BM_pipe_cifar_sparse_vk_schedule_best();
   }
