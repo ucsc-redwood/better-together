@@ -14,8 +14,6 @@ if not is_plat("android") then
 	set_toolchains("clang")
 end
 
--- add_cxxflags("-stdlib=libc++")
-
 -- ----------------------------------------------------------------
 -- Common packages used in the project
 -- ----------------------------------------------------------------
@@ -125,10 +123,6 @@ rule_end()
 
 includes("builtin-apps/common/kiss-vk") -- Keep-It-Simple-Stupid Vulkan library
 includes("builtin-apps") -- the three applications
--- includes("benchmarks")
--- includes("pipe")
--- includes("lpipe")
--- includes("play")
 includes("best-pipe")
 includes("utility")
 

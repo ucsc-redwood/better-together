@@ -74,7 +74,8 @@ using MyTask = Task<cifar_sparse::v2::AppData>;
 //                     std::ref(q_2_3),
 //                     std::ref(free_task_pool),
 //                     [&](MyTask& task) {
-//                       disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
+//                       disp.dispatch_multi_stage(task.appdata, stage_to_measure,
+//                       stage_to_measure);
 //                     });
 
 //     t0.join();
@@ -88,7 +89,6 @@ using MyTask = Task<cifar_sparse::v2::AppData>;
 //     RecordManager::instance().print_processor_type_stats(ProcessorType::kVulkan);
 //   }
 // }
-
 
 static void BM_run_OMP_stage_full(const int stage_to_measure) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
