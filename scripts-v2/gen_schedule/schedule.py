@@ -34,7 +34,7 @@ def create_decision_variables(num_stages, core_types):
 def add_assignment_constraints(opt, x, num_stages, core_types):
     """Add constraints to ensure each stage is assigned exactly one processing unit."""
     for i in range(num_stages):
-        
+
         # At least one PU must be chosen.
         opt.add(Or([x[(i, c)] for c in core_types]))
 
@@ -82,6 +82,18 @@ def add_contiguity_constraints(opt, x, core_types, num_stages):
                     opt.add(Implies(And(x[(i, c)], x[(k, c)]), x[(j, c)]))
 
 
+def block_solution(opt, x, num_stages, core_types, model):
+    """Add constraint to block the current solution, so we can find a new one."""
+    block = []
+    for i in range(num_stages):
+        for c in core_types:
+            if model.evaluate(x[(i, c)]):
+                block.append(Not(x[(i, c)]))
+            else:
+                block.append(x[(i, c)])
+    opt.add(Or(block))
+
+
 def print_stage_assignments(m, x, num_stages, core_types, stage_timings):
     """Print the assignment of stages to core types."""
     for i in range(num_stages):
@@ -90,6 +102,23 @@ def print_stage_assignments(m, x, num_stages, core_types, stage_timings):
                 print(
                     f"Stage {i}: core type {c} with time {stage_timings[i][core_types.index(c)]}"
                 )
+
+
+def print_stage_assignments_v2(m, x, num_stages, core_types, stage_timings):
+    """Print the assignment of stages to core types."""
+    # Group stages by core type
+    core_stages = {}
+    for i in range(num_stages):
+        for c in core_types:
+            if m.evaluate(x[(i, c)]):
+                if c not in core_stages:
+                    core_stages[c] = []
+                core_stages[c].append(i)
+
+    # Print stages grouped by core type
+    print("\nStage assignments:")
+    for core_type, stages in core_stages.items():
+        print(f"{core_type} = {stages}")
 
 
 def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
@@ -121,10 +150,27 @@ def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
         print(f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms")
 
 
+def get_solution_representation(m, x, num_stages, core_types):
+    """Get a representation of the solution for storage."""
+    solution = []
+    for i in range(num_stages):
+        for c in core_types:
+            if m.evaluate(x[(i, c)]):
+                solution.append((i, c))
+                break
+    return solution
+
+
 def solve_optimization_problem():
     """Solve the optimization problem and display the solution."""
     # Initialize data
     num_stages, core_types, type_value, stage_timings = define_data()
+
+    # Number of solutions to find
+    num_solutions = 10
+
+    # Prepare a list to hold up to num_solutions solutions
+    top_solutions = []
 
     # Create optimizer
     opt = Optimize()
@@ -137,16 +183,37 @@ def solve_optimization_problem():
     T_chunk = add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings)
     add_contiguity_constraints(opt, x, core_types, num_stages)
 
-    # Solve and display results
-    if opt.check() == sat:
+    # Find up to num_solutions solutions
+    solution_count = 0
+    while solution_count < num_solutions and opt.check() == sat:
         m = opt.model()
-        print(
-            f"Optimal chunk time: {m[T_chunk]} = {float(m[T_chunk].as_fraction())} ms"
-        )
+        solution_time = float(m[T_chunk].as_fraction())
+
+        # Print solution header
+        print(f"\n=== Solution {solution_count + 1} ===")
+        print(f"Optimal chunk time: {m[T_chunk]} = {solution_time} ms")
+
+        # Print details
         print_stage_assignments(m, x, num_stages, core_types, stage_timings)
+        print_stage_assignments_v2(m, x, num_stages, core_types, stage_timings)
         print_chunk_summary(m, x, num_stages, core_types, stage_timings)
-    else:
+
+        # Store solution
+        solution_repr = get_solution_representation(m, x, num_stages, core_types)
+        top_solutions.append((solution_time, solution_repr))
+
+        # Block this solution to find the next one
+        block_solution(opt, x, num_stages, core_types, m)
+
+        solution_count += 1
+
+    if solution_count == 0:
         print("No solution found.")
+    else:
+        # Print a summary of all solutions
+        print("\n=== Summary of All Solutions ===")
+        for i, (time, _) in enumerate(top_solutions):
+            print(f"Solution {i + 1}: Chunk time = {time} ms")
 
 
 if __name__ == "__main__":
