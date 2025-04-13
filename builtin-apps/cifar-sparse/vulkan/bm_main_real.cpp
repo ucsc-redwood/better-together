@@ -107,19 +107,29 @@ static void BM_run_OMP_stage_non_full(const int stage_to_measure,
   std::vector<int> cores_to_use;
   ProcessorType counter_part_a;
   ProcessorType counter_part_b;
+  ProcessorType counter_part_c;
 
   if (core_type_to_measure == ProcessorType::kLittleCore) {
     cores_to_use = g_little_cores;
     counter_part_a = ProcessorType::kMediumCore;
     counter_part_b = ProcessorType::kBigCore;
+    counter_part_c = ProcessorType::kVulkan;
   } else if (core_type_to_measure == ProcessorType::kMediumCore) {
     cores_to_use = g_medium_cores;
     counter_part_a = ProcessorType::kLittleCore;
     counter_part_b = ProcessorType::kBigCore;
+    counter_part_c = ProcessorType::kVulkan;
   } else if (core_type_to_measure == ProcessorType::kBigCore) {
     cores_to_use = g_big_cores;
     counter_part_a = ProcessorType::kLittleCore;
     counter_part_b = ProcessorType::kMediumCore;
+    counter_part_c = ProcessorType::kVulkan;
+  } else if (core_type_to_measure == ProcessorType::kVulkan) {
+    counter_part_a = ProcessorType::kLittleCore;
+    counter_part_b = ProcessorType::kMediumCore;
+    counter_part_c = ProcessorType::kBigCore;
+  } else {
+    throw "asdasdasdasdasdasdasda";
   }
 
   // Main benchmark
@@ -129,18 +139,25 @@ static void BM_run_OMP_stage_non_full(const int stage_to_measure,
                                     {std::make_pair(0, core_type_to_measure),
                                      std::make_pair(1, counter_part_a),
                                      std::make_pair(2, counter_part_b),
-                                     std::make_pair(3, ProcessorType::kVulkan)});
+                                     std::make_pair(3, counter_part_c)});
 
     //
-    auto t0 = std::thread(
-        worker_thread_record<MyTask>,
-        0,
-        std::ref(free_task_pool),
-        std::ref(q_0_1),
-        [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              cores_to_use, cores_to_use.size(), task.appdata, stage_to_measure, stage_to_measure);
-        });
+    auto t0 =
+        std::thread(worker_thread_record<MyTask>,
+                    0,
+                    std::ref(free_task_pool),
+                    std::ref(q_0_1),
+                    [&](MyTask& task) {
+                      if (core_type_to_measure == ProcessorType::kVulkan) {
+                        disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
+                      } else {
+                        cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use,
+                                                                    cores_to_use.size(),
+                                                                    task.appdata,
+                                                                    stage_to_measure,
+                                                                    stage_to_measure);
+                      }
+                    });
 
     // medium core
     auto t1 = std::thread(

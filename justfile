@@ -237,18 +237,7 @@ analysis:
 
 # make-fig:
 #     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_1.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_1
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_2.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_2
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_3.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_3
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_4.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_4
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_5.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_5
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_6.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_6
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_7.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_7
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_8.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_8
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_9.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_9
-#     python3 scripts-v2/analysis/pipe.py scripts-v2/analysis/BM_pipe_cifar_sparse_vk_schedule_10.txt -o task_execution_timeline_wide_cifar_sparse_vk_schedule_10
-
-
-# -----------------------------------------------------------------------------
+#     python3 scripts-v2
 # Target 1: Run the benchmarks and store the raw output.
 # -----------------------------------------------------------------------------
 
@@ -366,3 +355,30 @@ all:
     just run-benchmarks 
     just process-results 
     just make-fig
+
+
+compare-full-and-non-full stage:
+    # Run non-full benchmark
+    xmake r bm-real-cifar-sparse-vk --stage {{stage}} -l off | tee non_full_stage_{{stage}}.txt
+
+    # Run full benchmark
+    xmake r bm-real-cifar-sparse-vk --stage {{stage}} -l off --full | tee full_stage_{{stage}}.txt
+
+    # Extract and compare AVG metrics
+    @echo "\n====== COMPARISON OF AVG METRICS ======"
+    @echo "Processor | Non-Full (ms) | Full (ms)"
+    @echo "--------------------------------------"
+    @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' non_full_stage_{{stage}}.txt | sort
+    @echo "--------------------------------------"
+    @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' full_stage_{{stage}}.txt | sort
+
+compare-all:
+    just compare-full-and-non-full 1
+    just compare-full-and-non-full 2
+    just compare-full-and-non-full 3
+    just compare-full-and-non-full 4
+    just compare-full-and-non-full 5
+    just compare-full-and-non-full 6
+    just compare-full-and-non-full 7
+    just compare-full-and-non-full 8
+    just compare-full-and-non-full 9
