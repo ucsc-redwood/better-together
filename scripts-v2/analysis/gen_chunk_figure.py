@@ -318,9 +318,9 @@ for chunk_id in range(max_chunk_id + 1):
     for task_id, durations in sorted(task_durations_by_chunk[chunk_id].items()):
         avg_duration_cycles = sum(durations) / len(durations)
         avg_duration_ms = avg_duration_cycles * CYCLES_TO_MS
-        print(
-            f"  Task {task_id}: {avg_duration_cycles:.2f} cycles ({avg_duration_ms:.6f} ms)"
-        )
+        # print(
+        #     f"  Task {task_id}: {avg_duration_cycles:.2f} cycles ({avg_duration_ms:.6f} ms)"
+        # )
 
     # Print average across all tasks for this chunk
     all_durations = [

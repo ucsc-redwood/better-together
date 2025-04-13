@@ -322,4 +322,39 @@ try:
     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_pipe_cifar_sparse_vk_schedule_10.txt
 
 
+# ----------------------------------------------------------------------------
+# Measure Cifar-Sparse Real Time and Gen Figure
+# ----------------------------------------------------------------------------
+
+make_bm_log stage:
+    xmake r gen-records-cifar-sparse-vk --schedule {{stage}} | sed -n '11,1710p' | tee BM_best_raw_stage_{{stage}}.txt
+
+log_to_figure stage:
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_best_raw_stage_{{stage}}.txt --output BM_best_raw_stage_{{stage}}.png --start-time 0.25 --end-time 0.5
+
+try-all:
+    just make_bm_log 0
+    just make_bm_log 1
+    just make_bm_log 2
+    just make_bm_log 3
+    just make_bm_log 4
+    just make_bm_log 5
+    just make_bm_log 6
+    just make_bm_log 7
+    just make_bm_log 8
+    just make_bm_log 9
+    just make_bm_log 10
+
+try-all-figure:
+    just log_to_figure 0
+    just log_to_figure 1
+    just log_to_figure 2
+    just log_to_figure 3
+    just log_to_figure 4
+    just log_to_figure 5
+    just log_to_figure 6
+    just log_to_figure 7
+    just log_to_figure 8
+    just log_to_figure 9
+    just log_to_figure 10
 
