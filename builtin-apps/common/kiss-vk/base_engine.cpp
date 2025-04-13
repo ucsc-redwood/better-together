@@ -52,7 +52,7 @@ BaseEngine::~BaseEngine() {
 // ----------------------------------------------------------------------------
 
 void BaseEngine::initialize_dynamic_loader() {
-  dl_ = vk::DynamicLoader();
+  dl_ = DynamicLoader();
 
   // Load the Vulkan library
   vkGetInstanceProcAddr_ = dl_.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
