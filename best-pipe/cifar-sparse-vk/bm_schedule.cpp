@@ -16,7 +16,7 @@ using MyTask = Task<cifar_sparse::v2::AppData>;
 // Specialized Schedules
 // ----------------------------------------------------------------------------
 
-std::string g_schedule_base_url;
+std::string g_schedule_base_url;  // default 'kDefaultScheduleBaseDir'
 int g_schedule_id;
 
 static void BM_pipe_cifar_sparse_vk_schedule_best(benchmark::State& state) {
@@ -25,8 +25,11 @@ static void BM_pipe_cifar_sparse_vk_schedule_best(benchmark::State& state) {
 
   // --------------------------------------------------------------------------
 
-  const auto schedule_json =
-      fetch_json_from_url(make_full_url(g_device_id, "CifarSparse", g_schedule_id));
+  const auto schedule_json = fetch_json_from_url(
+      make_full_url(g_schedule_base_url, g_device_id, "CifarSparse", g_schedule_id));
+
+  spdlog::info("Schedule JSON: {}", schedule_json.dump(4));
+
   const auto chunk_configs = readChunksFromJson(schedule_json);
 
   std::vector<SPSCQueue<MyTask*, kPoolSize>> concur_qs(chunk_configs.size() + 1);
@@ -75,7 +78,7 @@ int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
   app.add_option("--base-dir", g_schedule_base_url, "Base directory")
-      ->default_str(kDefaultScheduleBaseDir);
+      ->default_val(kDefaultScheduleBaseDir);
   app.add_option("-i,--index", g_schedule_id, "Schedule file index")->required();
 
   PARSE_ARGS_END;

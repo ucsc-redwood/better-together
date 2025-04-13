@@ -16,22 +16,17 @@
 // e.g., http://192.168.1.95/schedule_files_v2/3A021JEHN02756/CifarSparse/schedule_001.json
 
 constexpr const char* kScheduleBaseUrl = "http://192.168.1.95/";
-constexpr const char* kDefaultScheduleBaseDir = "schedule_files_v2/";
+constexpr const char* kDefaultScheduleBaseDir = "schedule_files_v2";
 
 [[nodiscard]]
 static std::string make_full_url(const std::string& base_dir,
                                  const std::string& device_id,
                                  const std::string& app_name,
                                  int schedule_id) {
-  return kScheduleBaseUrl + base_dir + "/" + device_id + "/" + app_name + "/schedule_" +
-         std::to_string(schedule_id) + ".json";
-}
-
-[[nodiscard]]
-static std::string make_full_url(const std::string& device_id,
-                                 const std::string& app_name,
-                                 int schedule_id) {
-  return make_full_url(kDefaultScheduleBaseDir, device_id, app_name, schedule_id);
+  std::stringstream ss;
+  ss << std::setw(3) << std::setfill('0') << schedule_id;
+  return kScheduleBaseUrl + base_dir + "/" + device_id + "/" + app_name + "/schedule_" + ss.str() +
+         ".json";
 }
 
 // ----------------------------------------------------------------------------
