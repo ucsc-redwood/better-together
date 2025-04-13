@@ -301,3 +301,25 @@ compare-all:
     just compare-full-and-non-full 7
     just compare-full-and-non-full 8
     just compare-full-and-non-full 9
+
+
+
+# ----------------------------------------------------------------------------
+# Measure Cifar-Sparse Real Time
+# ----------------------------------------------------------------------------
+
+try:
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_0/ | tee BM_pipe_cifar_sparse_vk_schedule_0.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee BM_pipe_cifar_sparse_vk_schedule_1.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee BM_pipe_cifar_sparse_vk_schedule_2.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee BM_pipe_cifar_sparse_vk_schedule_3.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee BM_pipe_cifar_sparse_vk_schedule_4.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee BM_pipe_cifar_sparse_vk_schedule_5.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee BM_pipe_cifar_sparse_vk_schedule_6.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee BM_pipe_cifar_sparse_vk_schedule_7.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_pipe_cifar_sparse_vk_schedule_8.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_pipe_cifar_sparse_vk_schedule_9.txt
+    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_pipe_cifar_sparse_vk_schedule_10.txt
+
+
+

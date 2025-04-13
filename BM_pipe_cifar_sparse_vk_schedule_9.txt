@@ -1,0 +1,26 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-schedule-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-schedule-cifar-sparse-vk: 1 file pushed, 0 skipped. 478.7 MB/s (3024264 bytes in 0.006s)
+[2025-04-13 16:09:44.104] [info] Little cores: 0 1 2 3 
+[2025-04-13 16:09:44.104] [info] Medium cores: 4 5 
+[2025-04-13 16:09:44.104] [info] Big cores: 6 7 
+-----------------------------------------------------------------------------------------------------------
+Benchmark                                                                 Time             CPU   Iterations
+-----------------------------------------------------------------------------------------------------------
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5               869 ms         1.24 ms            1
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5               800 ms        0.732 ms            1
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5              1023 ms         1.06 ms            1
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5               873 ms        0.872 ms            1
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5               909 ms         1.03 ms            1
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5_mean          895 ms        0.986 ms            5
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5_median        873 ms         1.03 ms            5
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5_stddev       81.8 ms        0.192 ms            5
+BM_pipe_cifar_sparse_vk_schedule_9/iterations:1/repeats:5_cv           9.15 %         19.48 %             5
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-schedule-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-schedule-cifar-sparse-vk: 1 file pushed, 0 skipped. 489.4 MB/s (3024264 bytes in 0.006s)
+[2025-04-13 16:02:30.879] [info] Little cores: 0 1 2 
+[2025-04-13 16:02:30.880] [info] Medium cores: 3 4 
+[2025-04-13 16:02:30.880] [info] Big cores: 5 6 7 
