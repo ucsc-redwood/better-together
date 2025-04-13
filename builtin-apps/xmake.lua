@@ -16,10 +16,14 @@ do
 		"app.hpp",
 		"conf.hpp",
 		"resources_path.hpp",
+		"debug_logger.hpp",
+		"cache.hpp",
+		"config_reader.hpp",
 
 		-- cifar-sparse headers
 		"cifar-sparse/arg_max.hpp",
 		"cifar-sparse/sparse_appdata.hpp",
+		"cifar-sparse/ndarray.hpp",
 		"cifar-sparse/omp/dispatchers.hpp",
 		"cifar-sparse/omp/all_kernels.hpp",
 
@@ -40,8 +44,11 @@ do
 		"tree/omp/func_sort.hpp",
 		"tree/omp/temp_storage.hpp",
 
-		-- Add missing common header
-		"debug_logger.hpp",
+		-- pipeline headers
+		"pipeline/record.hpp",
+		"pipeline/spsc_queue.hpp",
+		"pipeline/task.hpp",
+		"pipeline/worker.hpp",
 	})
 
 	add_files({
@@ -54,7 +61,6 @@ do
 		"cifar-dense/omp/all_kernels.cpp",
 
 		-- cifar-sparse implementations
-		"cifar-sparse/sparse_appdata.cpp",
 		"cifar-sparse/omp/dispatchers.cpp",
 		"cifar-sparse/omp/all_kernels.cpp",
 
@@ -64,32 +70,6 @@ do
 		"tree/omp/dispatchers.cpp",
 	})
 end
-
--- target("test-cifar-sparse-omp")
--- do
--- 	add_rules("common_flags", "run_on_android")
--- 	set_kind("binary")
--- 	add_files({
--- 		"cifar-sparse/omp/test_main.cpp",
--- 	})
-
--- 	add_deps("builtin-apps")
-
--- 	add_packages("gtest")
--- end
-
--- target("bm-mini-cifar-sparse-omp")
--- do
--- 	add_rules("common_flags", "run_on_android")
--- 	set_kind("binary")
--- 	add_files({
--- 		"cifar-sparse/omp/bm_main.cpp",
--- 	})
-
--- 	add_deps("builtin-apps")
-
--- 	add_packages("benchmark")
--- end
 
 -- ----------------------------------------------------------------------------
 -- Vulkan Static Library
@@ -144,6 +124,7 @@ if has_config("use_cuda") then
 			"common/cuda/cu_mem_resource.cuh",
 			"common/cuda/helpers.cuh",
 			"common/cuda/manager.cuh",
+			"common/cuda/cu_bench_helper.cuh",
 
 			-- CIFAR sparse CUDA headers
 			"cifar-sparse/cuda/all_kernels.cuh",
@@ -171,7 +152,6 @@ if has_config("use_cuda") then
 			"tree/cuda/common.cuh",
 			"tree/cuda/func_morton.cuh",
 			"tree/cuda/dispatchers.cuh",
-			"tree/cuda/temp_storage.hpp",
 		})
 
 		add_files({
