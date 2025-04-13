@@ -3,12 +3,14 @@
 #include "vk.hpp"
 
 // Vulkan-Hpp version-safe DynamicLoader
-#if defined(VULKAN_HPP_VERSION) && VULKAN_HPP_VERSION >= 300
+#if defined(VK_HEADER_VERSION) && VK_HEADER_VERSION >= 300
 // Vulkan-Hpp >= 1.3.243 → DynamicLoader moved to detail
 using DynamicLoader = vk::detail::DynamicLoader;
+using DispatchLoaderDynamic = vk::detail::DispatchLoaderDynamic;
 #else
 // Vulkan-Hpp <= 1.3.242 → DynamicLoader is public
 using DynamicLoader = vk::DynamicLoader;
+using DispatchLoaderDynamic = vk::DispatchLoaderDynamic;
 #endif
 
 namespace kiss_vk {
@@ -46,7 +48,7 @@ class BaseEngine {
   std::vector<const char *> enabled_layers_;
 
   DynamicLoader dl_;
-  vk::DispatchLoaderDynamic dldi_;
+  DispatchLoaderDynamic dldi_;
   PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr_;
 };
 
