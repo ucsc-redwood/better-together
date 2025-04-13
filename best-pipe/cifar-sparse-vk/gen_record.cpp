@@ -3,43 +3,25 @@
 #include <vector>
 
 #include "builtin-apps/app.hpp"
-#include "builtin-apps/cifar-sparse/omp/dispatchers.hpp"
-#include "builtin-apps/cifar-sparse/vulkan/dispatchers.hpp"
-#include "builtin-apps/pipeline/record.hpp"
-#include "builtin-apps/pipeline/spsc_queue.hpp"
-#include "builtin-apps/pipeline/task.hpp"
-#include "builtin-apps/pipeline/worker.hpp"
-
-using MyTask = Task<cifar_sparse::v2::AppData>;
-
-#define SETUP_CORES_AND_TASKS()                                               \
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;                            \
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;                    \
-  SPSCQueue<MyTask*, kPoolSize> free_task_pool;                               \
-  for (size_t i = 0; i < kPoolSize; ++i) {                                    \
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr())); \
-    free_task_pool.enqueue(preallocated_tasks.back().get());                  \
-  }
+#include "common.hpp"
 
 // ----------------------------------------------------------------------------
 // Specialized Schedules
 // ----------------------------------------------------------------------------
 
-// Optimal chunk time: 577227/50000
-// Stage 0: core type Big with time 7.89115
-// Stage 1: core type GPU with time 4.95056
-// Stage 2: core type GPU with time 4.36582
-// Stage 3: core type Medium with time 6.49812
-// Stage 4: core type Medium with time 1.66993
-// Stage 5: core type Medium with time 1.69134
-// Stage 6: core type Medium with time 1.68515
-// Stage 7: core type Little with time 6.29989
-// Stage 8: core type Little with time 0.182615
+namespace device_3A021JEHN02756 {
+
+// ----------------------------------------------------------------------------
+// Schedule 0
+// ----------------------------------------------------------------------------
+// Stage assignments:
+// Big = [0]
+// GPU = [1, 2]
+// Medium = [3, 4, 5, 6]
+// Little = [7, 8]
+// ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_best() {
-  SETUP_CORES_AND_TASKS();
-  SPSCQueue<MyTask*, kPoolSize> q_0_1;
-  SPSCQueue<MyTask*, kPoolSize> q_1_2;
-  SPSCQueue<MyTask*, kPoolSize> q_2_3;
+  SETUP_DATA;
 
   {
     RecordManager::instance().setup(kNumToProcess,
@@ -49,35 +31,10 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
                                         {2, ProcessorType::kMediumCore},
                                         {3, ProcessorType::kLittleCore},
                                     });
-
-    auto t0 = std::thread(worker_thread_record<MyTask>,
-                          0,
-                          std::ref(free_task_pool),
-                          std::ref(q_0_1),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_big_cores, g_big_cores.size(), task.appdata, 1, 1);
-                          });
-
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0_1), std::ref(q_1_2), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, 2, 3);
-        });
-
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1_2), std::ref(q_2_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_medium_cores, g_medium_cores.size(), task.appdata, 4, 7);
-        });
-
-    auto t3 = std::thread(worker_thread_record<MyTask>,
-                          3,
-                          std::ref(q_2_3),
-                          std::ref(free_task_pool),
-                          [&](MyTask& task) {
-                            cifar_sparse::omp::v2::dispatch_multi_stage(
-                                g_little_cores, g_little_cores.size(), task.appdata, 8, 9);
-                          });
+    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 3);
+    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 4, 7);
+    auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 8, 9);
 
     t0.join();
     t1.join();
@@ -87,6 +44,8 @@ static void BM_pipe_cifar_sparse_vk_schedule_best() {
 
   RecordManager::instance().dump_records();
 }
+
+}  // namespace device_3A021JEHN02756
 
 // // Schedule 1:
 // //   Chunk 1: Stage [1] → medium (g_medium_cores)
