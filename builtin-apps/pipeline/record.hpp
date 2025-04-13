@@ -90,14 +90,15 @@ class RecordManager {
                   << "):\n";
         std::cout << "    Start: " << rec.start << " cycles\n";
         std::cout << "    End: " << rec.end << " cycles\n";
-
-        const auto cycles_elapsed = rec.end - rec.start;
-        const auto counter_frequency = get_counter_frequency();
-        const auto miliseconds_elapsed =
-            static_cast<double>(cycles_elapsed) * 1e3 / counter_frequency;
-        std::cout << "    Duration: " << miliseconds_elapsed << " ms\n";
+        std::cout << "    Duration: " << rec.end - rec.start << " cycles\n";
       }
     }
+
+    // dump frequency
+    std::cout << "Frequency: " << get_counter_frequency() << " Hz\n";
+    // how to convert cycles to microseconds?
+    std::cout << "1 cycle = " << "1e6 / " << get_counter_frequency() << " us\n";
+    std::cout << "1 cycle = " << "1e3 / " << get_counter_frequency() << " ms\n";
   }
 
   // write a function, given a ProcessorType, return the total time, average time, geomean, median,
