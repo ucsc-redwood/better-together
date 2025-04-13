@@ -114,3 +114,36 @@ just compare-all > full_output.raw
 grep 'PROCESSOR=' full_output.raw > full_output.txt
 py analy.py
 ```
+
+
+```
+Optimal chunk time: 577227/50000 = 11.54454 ms
+Stage 0: core type Big with time 7.89115
+Stage 1: core type GPU with time 4.95056
+Stage 2: core type GPU with time 4.36582
+Stage 3: core type Medium with time 6.49812
+Stage 4: core type Medium with time 1.66993
+Stage 5: core type Medium with time 1.69134
+Stage 6: core type Medium with time 1.68515
+Stage 7: core type Little with time 6.29989
+Stage 8: core type Little with time 0.182615
+
+Math model summary:
+chunk 0 (Big): 7.89115 ms
+chunk 1 (GPU): 9.31638 ms
+chunk 2 (Medium): 11.54454 ms
+chunk 3 (Little): 6.48251 ms
+
+Real measurements:
+  All Tasks Average: 141961.49 cycles (5.776428 ms)
+  All Tasks Average: 166560.19 cycles (6.777352 ms)
+  All Tasks Average: 275456.24 cycles (11.208343 ms)
+  All Tasks Average: 157681.26 cycles (6.416067 ms)
+  Widest Task: 11.208343 ms
+
+diff of optimal and widest real measurement:
+  Raw: 11.208343 - 11.54454 = -0.336197 ms
+  Percentage: -0.336197 / 11.54454 = -2.91%
+
+```
+

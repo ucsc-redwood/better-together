@@ -71,12 +71,40 @@ for c in core_types:
 # Solve and display the solution.
 if opt.check() == sat:
     m = opt.model()
-    print("Optimal chunk time:", m[T_chunk])
+    print(f"Optimal chunk time: {m[T_chunk]} = {float(m[T_chunk].as_fraction())} ms")
     for i in range(num_stages):
         for c in core_types:
             if m.evaluate(x[(i, c)]):
                 print(
                     f"Stage {i}: core type {c} with time {stage_timings[i][core_types.index(c)]}"
                 )
+
+
+    # Print chunk summary
+    print("\nMath model summary:")
+    current_chunk = 0
+    current_core_type = None
+    chunk_time = 0.0
+    for i in range(num_stages):
+        for c in core_types:
+            if m.evaluate(x[(i, c)]):
+                if current_core_type is None:
+                    current_core_type = c
+                    chunk_time = stage_timings[i][core_types.index(c)]
+                elif c == current_core_type:
+                    chunk_time += stage_timings[i][core_types.index(c)]
+                else:
+                    print(f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms")
+                    current_chunk += 1
+                    current_core_type = c
+                    chunk_time = stage_timings[i][core_types.index(c)]
+                break
+    
+    # Print the last chunk
+    if current_core_type is not None:
+        print(f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms")
+
+
 else:
     print("No solution found.")
+
