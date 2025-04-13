@@ -1,0 +1,86 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-real-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 479.4 MB/s (2829008 bytes in 0.006s)
+[2025-04-13 10:11:31.634] [info] Little cores: 0 1 2 3 
+[2025-04-13 10:11:31.638] [info] Medium cores: 4 5 
+[2025-04-13 10:11:31.638] [info] Big cores: 6 7 
+[2025-04-13 10:11:31.704] [info] Available Vulkan Layers:
+[2025-04-13 10:11:31.704] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-13 10:11:31.709] [info] Using integrated GPU: Mali-G710
+--------------------------------------------------------
+Statistics for Little:
+  Number of records: 100
+  Total time: 2317.8 ms
+  Average time: 23.178 ms
+  Geometric mean: 22.4267 ms
+  Median: 21.0945 ms
+  Min: 18.8645 ms
+  Max: 63.3621 ms
+  Standard deviation: 7.47547 ms
+  Coefficient of variation: 0.322524
+  Percentile 90: 26.2698 ms
+  Percentile 95: 44.926 ms
+  Percentile 99: 63.3621 ms
+PROCESSOR=Little|COUNT=100|TOTAL=2317.8|AVG=23.178|GEOMEAN=22.4267|MEDIAN=21.0945|MIN=18.8645|MAX=63.3621|STDDEV=7.47547|CV=0.322524|P90=26.2698|P95=44.926|P99=63.3621
+[2025-04-13 10:11:35.442] [info] Available Vulkan Layers:
+[2025-04-13 10:11:35.442] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-13 10:11:35.445] [info] Using integrated GPU: Mali-G710
+--------------------------------------------------------
+Statistics for Medium:
+  Number of records: 100
+  Total time: 615.677 ms
+  Average time: 6.15677 ms
+  Geometric mean: 5.96631 ms
+  Median: 5.51851 ms
+  Min: 5.45117 ms
+  Max: 15.5101 ms
+  Standard deviation: 1.9455 ms
+  Coefficient of variation: 0.315993
+  Percentile 90: 7.03516 ms
+  Percentile 95: 12.2372 ms
+  Percentile 99: 15.5101 ms
+PROCESSOR=Medium|COUNT=100|TOTAL=615.677|AVG=6.15677|GEOMEAN=5.96631|MEDIAN=5.51851|MIN=5.45117|MAX=15.5101|STDDEV=1.9455|CV=0.315993|P90=7.03516|P95=12.2372|P99=15.5101
+[2025-04-13 10:11:37.312] [info] Available Vulkan Layers:
+[2025-04-13 10:11:37.312] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-13 10:11:37.315] [info] Using integrated GPU: Mali-G710
+--------------------------------------------------------
+Statistics for Big:
+  Number of records: 100
+  Total time: 538.806 ms
+  Average time: 5.38806 ms
+  Geometric mean: 5.16501 ms
+  Median: 4.97194 ms
+  Min: 4.61068 ms
+  Max: 31.9001 ms
+  Standard deviation: 2.84837 ms
+  Coefficient of variation: 0.528646
+  Percentile 90: 5.38371 ms
+  Percentile 95: 5.46724 ms
+  Percentile 99: 31.9001 ms
+PROCESSOR=Big|COUNT=100|TOTAL=538.806|AVG=5.38806|GEOMEAN=5.16501|MEDIAN=4.97194|MIN=4.61068|MAX=31.9001|STDDEV=2.84837|CV=0.528646|P90=5.38371|P95=5.46724|P99=31.9001
+[2025-04-13 10:11:39.241] [info] Available Vulkan Layers:
+[2025-04-13 10:11:39.241] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-13 10:11:39.248] [info] Using integrated GPU: Mali-G710
+--------------------------------------------------------
+Statistics for GPU:
+  Number of records: 100
+  Total time: 463.311 ms
+  Average time: 4.63311 ms
+  Geometric mean: 4.44775 ms
+  Median: 3.95111 ms
+  Min: 3.41825 ms
+  Max: 14.7775 ms
+  Standard deviation: 1.60296 ms
+  Coefficient of variation: 0.34598
+  Percentile 90: 6.35421 ms
+  Percentile 95: 7.96151 ms
+  Percentile 99: 14.7775 ms
+PROCESSOR=GPU|COUNT=100|TOTAL=463.311|AVG=4.63311|GEOMEAN=4.44775|MEDIAN=3.95111|MIN=3.41825|MAX=14.7775|STDDEV=1.60296|CV=0.34598|P90=6.35421|P95=7.96151|P99=14.7775
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-real-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 503.7 MB/s (2829008 bytes in 0.005s)
+[2025-04-13 10:04:16.821] [info] Little cores: 0 1 2 
+[2025-04-13 10:04:16.822] [info] Medium cores: 3 4 
+[2025-04-13 10:04:16.822] [info] Big cores: 5 6 7 
