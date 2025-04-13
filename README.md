@@ -29,23 +29,13 @@ This repository contains the source code for the Redwood project, which is a col
 
 ## Developer Notes
 
-### Collecting benchmarks
+### Mini Benchmark
 
-Baseline
+### Real Benchmark
 
-```bash
-xmake r bm-cifar-dense-omp --benchmark_repetitions=5 --benchmark_filter=Baseline --benchmark_format=json > ./data/raw_benchmarks/cifar-dense-baseline.json
-```
+#### fully occupied
 
+#### non-fully occupied
 
-## Android
-
-### Steps
-
-
-
-
-
-
-
+#### comparing
 

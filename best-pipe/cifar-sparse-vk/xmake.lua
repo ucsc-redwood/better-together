@@ -30,4 +30,5 @@ do
 	add_deps("builtin-apps")
 		
 	add_packages("benchmark")
+	add_packages("libcurl")
 end
