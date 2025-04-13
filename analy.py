@@ -10,8 +10,10 @@ COLOR_GREEN = "\033[92m"
 COLOR_YELLOW = "\033[93m"
 COLOR_RESET = "\033[0m"
 
+
 def colored_text(text, color):
     return f"{color}{text}{COLOR_RESET}"
+
 
 def parse_line(line):
     """
@@ -32,9 +34,11 @@ def parse_line(line):
                 data[key] = value
     return data
 
+
 def group_lines(lines, group_size):
     """Return chunks (groups) of lines of length group_size."""
-    return [lines[i:i+group_size] for i in range(0, len(lines), group_size)]
+    return [lines[i : i + group_size] for i in range(0, len(lines), group_size)]
+
 
 def pearson_correlation(x, y):
     """
@@ -53,8 +57,9 @@ def pearson_correlation(x, y):
         return None
     if sdx == 0 or sdy == 0:
         return None
-    cov = sum((xi - mean_x)*(yi - mean_y) for xi, yi in zip(x, y)) / (n - 1)
+    cov = sum((xi - mean_x) * (yi - mean_y) for xi, yi in zip(x, y)) / (n - 1)
     return cov / (sdx * sdy)
+
 
 def main():
     input_file = "full_output.txt"
@@ -72,15 +77,14 @@ def main():
         sys.exit(1)
 
     # Each set: 4 lines parsed into a list of dictionaries.
-    sets = [ [ parse_line(line) for line in group ] 
-             for group in group_lines(all_lines, 4) ]
-    
+    sets = [[parse_line(line) for line in group] for group in group_lines(all_lines, 4)]
+
     # Every two sets form one comparison group.
     if len(sets) % 2 != 0:
         print("ERROR: The number of sets is not even (each group should have 2 sets).")
         sys.exit(1)
     groups = group_lines(sets, 2)
-    
+
     print(f"Found {len(groups)} groups in the input (expected 9 groups).\n")
 
     # For correlation analysis, we will collect for each processor the paired AVG values
@@ -104,7 +108,7 @@ def main():
 
         # We'll list all processors that appear.
         all_procs = sorted(set(avg_A.keys()) | set(avg_B.keys()))
-        
+
         # Print header for the group.
         print(f"Group {group_index} Comparison (Set A = Non-Full; Set B = Full):")
         print("-" * 80)
@@ -122,7 +126,7 @@ def main():
                 ratio = "N/A"
             else:
                 diff_val = b_val - a_val
-                ratio_val = b_val / a_val if a_val != 0 else float('inf')
+                ratio_val = b_val / a_val if a_val != 0 else float("inf")
                 pct_diff_val = (diff_val / a_val) * 100 if a_val != 0 else 0
 
                 # Colorize the percentage difference: if negative (i.e. full is lower => improvement), use green;
@@ -136,11 +140,13 @@ def main():
                 diff = f"{diff_val:.6f}"
                 pct_diff = pct_diff_str
                 ratio = f"{ratio_val:.6f}"
-                
+
                 # Also, for correlation analysis, store the pair for this processor.
                 corr_data.setdefault(proc, []).append((a_val, b_val))
             # Print the table row.
-            print(f"{proc:10s} {a_val if a_val is not None else 'N/A':10} {b_val if b_val is not None else 'N/A':10} {diff:12} {pct_diff:10} {ratio:10}")
+            print(
+                f"{proc:10s} {a_val if a_val is not None else 'N/A':10} {b_val if b_val is not None else 'N/A':10} {diff:12} {pct_diff:10} {ratio:10}"
+            )
         print("-" * 80)
         print()  # Blank line between groups
 
@@ -163,5 +169,6 @@ def main():
             print(f"{proc:10s} {'N/A':12} {0:12d}")
     print("-" * 60)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

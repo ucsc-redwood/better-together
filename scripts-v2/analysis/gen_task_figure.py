@@ -67,7 +67,9 @@ for line in lines:
     # Match duration in cycles
     duration_match = re.match(r"Duration: (\d+) cycles", line)
     if duration_match:
-        tasks[current_task][current_chunk]["duration_cycles"] = int(duration_match.group(1))
+        tasks[current_task][current_chunk]["duration_cycles"] = int(
+            duration_match.group(1)
+        )
         continue
 
 # Filter tasks based on command-line arguments
@@ -111,15 +113,21 @@ for task_id in tasks:
     for chunk_id in tasks[task_id]:
         if "start" in tasks[task_id][chunk_id] and "end" in tasks[task_id][chunk_id]:
             # Calculate relative time from start (in cycles)
-            tasks[task_id][chunk_id]["start_norm"] = tasks[task_id][chunk_id]["start"] - min_time
-            tasks[task_id][chunk_id]["end_norm"] = tasks[task_id][chunk_id]["end"] - min_time
-            
+            tasks[task_id][chunk_id]["start_norm"] = (
+                tasks[task_id][chunk_id]["start"] - min_time
+            )
+            tasks[task_id][chunk_id]["end_norm"] = (
+                tasks[task_id][chunk_id]["end"] - min_time
+            )
+
             # Use provided duration if available, otherwise calculate it
             if "duration_cycles" in tasks[task_id][chunk_id]:
                 duration_cycles = tasks[task_id][chunk_id]["duration_cycles"]
             else:
-                duration_cycles = tasks[task_id][chunk_id]["end"] - tasks[task_id][chunk_id]["start"]
-            
+                duration_cycles = (
+                    tasks[task_id][chunk_id]["end"] - tasks[task_id][chunk_id]["start"]
+                )
+
             # Store the duration in cycles
             tasks[task_id][chunk_id]["duration_cycles"] = duration_cycles
 
@@ -127,12 +135,7 @@ for task_id in tasks:
 sorted_task_ids = sorted(tasks.keys())
 
 # Colors for different chunks based on their type, not just ID
-chunk_type_colors = {
-    "Big": "red",
-    "GPU": "green",
-    "Medium": "blue",
-    "Little": "purple"
-}
+chunk_type_colors = {"Big": "red", "GPU": "green", "Medium": "blue", "Little": "purple"}
 
 # Fallback to a color map if a type doesn't have a predefined color
 color_map = plt.colormaps["tab10"]
@@ -170,7 +173,7 @@ for i, task_id in enumerate(sorted_task_ids):
             chunk_data = tasks[task_id][chunk_id]
             start_ms = chunk_data["start_norm"] * CYCLES_TO_MS
             duration_ms = chunk_data["duration_cycles"] * CYCLES_TO_MS
-            
+
             # Draw the bar
             bar = ax.barh(
                 y_pos,
@@ -205,9 +208,15 @@ ax.grid(True, axis="x", linestyle="--", alpha=0.7)
 
 # Add legend for chunks with their types
 legend_elements = [
-    plt.Rectangle((0, 0), 1, 1, color=chunk_colors[i], 
-                  label=f"Chunk {i} ({chunk_types.get(i, 'Unknown')})")
-    for i in range(max_chunk_id + 1) if i in chunk_types
+    plt.Rectangle(
+        (0, 0),
+        1,
+        1,
+        color=chunk_colors[i],
+        label=f"Chunk {i} ({chunk_types.get(i, 'Unknown')})",
+    )
+    for i in range(max_chunk_id + 1)
+    if i in chunk_types
 ]
 ax.legend(handles=legend_elements, loc="upper right")
 
