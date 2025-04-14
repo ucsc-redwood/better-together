@@ -14,10 +14,11 @@
 namespace tree {
 
 void HostTreeManager::initialize() {
+  const size_t n_input = 640 * 480;
   constexpr bool kPrint = false;
 
   auto mr = std::pmr::new_delete_resource();
-  appdata_ = std::make_unique<tree::AppData>(mr, kDefaultInputSize);
+  appdata_ = std::make_unique<tree::AppData>(mr, n_input);
 
   auto& appdata = *appdata_;
 
