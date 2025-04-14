@@ -64,7 +64,7 @@ BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-baseline-cifar-sparse-vk
+// xmake r bm-baseline-cifar-sparse-vk -l off
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
