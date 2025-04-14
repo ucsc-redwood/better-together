@@ -29,17 +29,17 @@ namespace shaders {
 // #include "h/tmp_local_inclusive_scan_v2_16_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_32_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_64_spv.h"
-// #include "h/tmp_single_radixsort_warp16_spv.h"
-// #include "h/tmp_single_radixsort_warp32_spv.h"
-// #include "h/tmp_single_radixsort_warp64_spv.h"
-// #include "h/tree_build_octree_spv.h"
-// #include "h/tree_build_radix_tree_spv.h"
-// #include "h/tree_edge_count_spv.h"
-// #include "h/tree_find_dups_spv.h"
-// #include "h/tree_merge_sort_spv.h"
-// #include "h/tree_morton_spv.h"
-// #include "h/tree_move_dups_spv.h"
-// #include "h/tree_naive_prefix_sum_spv.h"
+#include "h/tmp_single_radixsort_warp16_spv.h"
+#include "h/tmp_single_radixsort_warp32_spv.h"
+#include "h/tmp_single_radixsort_warp64_spv.h"
+#include "h/tree_build_octree_spv.h"
+#include "h/tree_build_radix_tree_spv.h"
+#include "h/tree_edge_count_spv.h"
+#include "h/tree_find_dups_spv.h"
+#include "h/tree_merge_sort_spv.h"
+#include "h/tree_morton_spv.h"
+#include "h/tree_move_dups_spv.h"
+#include "h/tree_naive_prefix_sum_spv.h"
 // new shaders
 #include "h/new_cifar_dense_conv2d_spv.h"
 #include "h/new_cifar_dense_linear_spv.h"
@@ -83,17 +83,17 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_16),
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_32),
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_64),
-        // SHADER_ENTRY(tmp_single_radixsort_warp16),
-        // SHADER_ENTRY(tmp_single_radixsort_warp32),
-        // SHADER_ENTRY(tmp_single_radixsort_warp64),
-        // SHADER_ENTRY(tree_build_octree),
-        // SHADER_ENTRY(tree_build_radix_tree),
-        // SHADER_ENTRY(tree_edge_count),
-        // SHADER_ENTRY(tree_find_dups),
-        // SHADER_ENTRY(tree_merge_sort),
-        // SHADER_ENTRY(tree_morton),
-        // SHADER_ENTRY(tree_move_dups),
-        // SHADER_ENTRY(tree_naive_prefix_sum),
+        SHADER_ENTRY(tmp_single_radixsort_warp16),
+        SHADER_ENTRY(tmp_single_radixsort_warp32),
+        SHADER_ENTRY(tmp_single_radixsort_warp64),
+        SHADER_ENTRY(tree_build_octree),
+        SHADER_ENTRY(tree_build_radix_tree),
+        SHADER_ENTRY(tree_edge_count),
+        SHADER_ENTRY(tree_find_dups),
+        SHADER_ENTRY(tree_merge_sort),
+        SHADER_ENTRY(tree_morton),
+        SHADER_ENTRY(tree_move_dups),
+        SHADER_ENTRY(tree_naive_prefix_sum),
         // new shaders
         SHADER_ENTRY(new_cifar_dense_conv2d),
         SHADER_ENTRY(new_cifar_dense_maxpool),
