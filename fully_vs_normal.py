@@ -10,6 +10,12 @@ sns.set(style="whitegrid")
 # Assumed stage names (one per block; file is expected to have 9 blocks)
 STAGE_NAMES = [f"Stage {i}" for i in range(1, 10)]
 
+# Define which stages to skip for each application
+SKIP_STAGES = {
+    "cifar-sparse": [2, 4, 8, 9],  # skip maxpool, linear
+    "cifar-dense": [2, 4, 8, 9],
+}
+
 
 def parse_benchmark_file(filepath, expected_processors):
     """
@@ -90,9 +96,33 @@ def process_device(normal_file, occupied_file, device_id, processors, app_name):
     normal_data = parse_benchmark_file(normal_file, processors)
     occupied_data = parse_benchmark_file(occupied_file, processors)
 
-    # Create DataFrames for normal and occupied conditions
-    df_normal = create_dataframe(normal_data, device_id, "Normal", processors)
-    df_occupied = create_dataframe(occupied_data, device_id, "Occupied", processors)
+    # Apply stage filtering based on application
+    skip_indices = [
+        i - 1 for i in SKIP_STAGES.get(app_name, [])
+    ]  # Convert stage numbers to 0-based indices
+    if (
+        skip_indices and len(normal_data) >= max(skip_indices) + 1
+    ):  # Ensure we have enough stages
+        print(f"Skipping stages {[i+1 for i in skip_indices]} for {app_name}")
+        normal_data = [
+            data for i, data in enumerate(normal_data) if i not in skip_indices
+        ]
+        occupied_data = [
+            data for i, data in enumerate(occupied_data) if i not in skip_indices
+        ]
+        # Adjust stage names for the filtered data
+        included_stages = [
+            stage for i, stage in enumerate(STAGE_NAMES) if i not in skip_indices
+        ]
+    else:
+        included_stages = STAGE_NAMES
+
+    # Create DataFrames for normal and occupied conditions with filtered stages
+    df_normal = pd.DataFrame(normal_data, columns=processors, index=included_stages)
+    df_normal.index.name = f"Stage (Normal)"
+
+    df_occupied = pd.DataFrame(occupied_data, columns=processors, index=included_stages)
+    df_occupied.index.name = f"Stage (Occupied)"
 
     # Calculate ratio and difference DataFrames
     df_ratio = df_occupied / df_normal
