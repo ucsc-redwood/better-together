@@ -75,8 +75,16 @@ def create_dataframe(data, device_name, condition, processors):
     return df
 
 
-def process_device(normal_file, occupied_file, device_id, processors):
-    print(f"Processing device {device_id} ...")
+def process_device(normal_file, occupied_file, device_id, processors, app_name):
+    print(f"Processing device {device_id} for {app_name}...")
+
+    # Check if files exist
+    if not os.path.exists(normal_file):
+        print(f"File not found: {normal_file}")
+        return
+    if not os.path.exists(occupied_file):
+        print(f"File not found: {occupied_file}")
+        return
 
     # Parse the input files
     normal_data = parse_benchmark_file(normal_file, processors)
@@ -95,12 +103,12 @@ def process_device(normal_file, occupied_file, device_id, processors):
     mean_diff = df_diff.mean()
 
     # --- Plotting ---
-    output_prefix = f"{device_id}"
+    output_prefix = f"{device_id}_{app_name}"
 
     # 1. Heatmap for Ratio (Occupied/Normal)
     plt.figure(figsize=(10, 6))
     sns.heatmap(df_ratio, annot=True, fmt=".2f", cmap="coolwarm")
-    plt.title(f"Ratio (Occupied / Normal) Per Stage - Device {device_id}")
+    plt.title(f"Ratio (Occupied / Normal) Per Stage - Device {device_id} - {app_name}")
     plt.ylabel("Stage")
     plt.xlabel("Processor")
     plt.tight_layout()
@@ -112,7 +120,9 @@ def process_device(normal_file, occupied_file, device_id, processors):
     # 2. Heatmap for Difference (Occupied - Normal)
     plt.figure(figsize=(10, 6))
     sns.heatmap(df_diff, annot=True, fmt=".2f", cmap="coolwarm")
-    plt.title(f"Difference (Occupied - Normal) Per Stage (ms) - Device {device_id}")
+    plt.title(
+        f"Difference (Occupied - Normal) Per Stage (ms) - Device {device_id} - {app_name}"
+    )
     plt.ylabel("Stage")
     plt.xlabel("Processor")
     plt.tight_layout()
@@ -124,7 +134,9 @@ def process_device(normal_file, occupied_file, device_id, processors):
     # 3. Bar Chart for Average Ratio Per Processor
     plt.figure(figsize=(8, 4))
     mean_ratio.plot(kind="bar")
-    plt.title(f"Average Ratio Per Processor (Occupied / Normal) - Device {device_id}")
+    plt.title(
+        f"Average Ratio Per Processor (Occupied / Normal) - Device {device_id} - {app_name}"
+    )
     plt.ylabel("Ratio")
     plt.xlabel("Processor")
     plt.tight_layout()
@@ -136,7 +148,9 @@ def process_device(normal_file, occupied_file, device_id, processors):
     # 4. Bar Chart for Average Difference Per Processor
     plt.figure(figsize=(8, 4))
     mean_diff.plot(kind="bar", color="orange")
-    plt.title(f"Average Difference Per Processor (ms) - Device {device_id}")
+    plt.title(
+        f"Average Difference Per Processor (ms) - Device {device_id} - {app_name}"
+    )
     plt.ylabel("Difference (ms)")
     plt.xlabel("Processor")
     plt.tight_layout()
@@ -147,39 +161,30 @@ def process_device(normal_file, occupied_file, device_id, processors):
 
 
 def main():
-    # Hardcode file paths (adjust if needed)
+    # Define applications to process
+    applications = ["cifar-sparse", "cifar-dense"]
+
+    # Define processor configurations and benchmark files for each device
     devices = {
         "3A021JEHN02756": {
-            "normal": "BM_table_cifar_sparse_vk_3A021JEHN02756.txt",
-            "occupied": "BM_table_cifar_sparse_vk_3A021JEHN02756_full.txt",
             "processors": ["Little", "Medium", "Big", "GPU"],
         },
         "9b034f1b": {
-            "normal": "BM_table_cifar_sparse_vk_9b034f1b.txt",
-            "occupied": "BM_table_cifar_sparse_vk_9b034f1b_full.txt",
             "processors": ["Little", "Medium", "Big", "GPU"],
         },
         "jetson": {
-            "normal": "BM_table_cifar_sparse_vk_jetson.txt",
-            "occupied": "BM_table_cifar_sparse_vk_jetson_full.txt",
             "processors": ["Little", "GPU"],
         },
     }
 
-    # Process each device
-    for device_id, paths in devices.items():
-        normal_file = paths["normal"]
-        occupied_file = paths["occupied"]
-        processors = paths["processors"]
+    # Process each device and application
+    for app_name in applications:
+        for device_id, device_info in devices.items():
+            normal_file = f"BM_table_{app_name}_vk_{device_id}.txt"
+            occupied_file = f"BM_table_{app_name}_vk_{device_id}_full.txt"
+            processors = device_info["processors"]
 
-        if not os.path.exists(normal_file):
-            print(f"File not found: {normal_file}")
-            continue
-        if not os.path.exists(occupied_file):
-            print(f"File not found: {occupied_file}")
-            continue
-
-        process_device(normal_file, occupied_file, device_id, processors)
+            process_device(normal_file, occupied_file, device_id, processors, app_name)
 
 
 if __name__ == "__main__":
