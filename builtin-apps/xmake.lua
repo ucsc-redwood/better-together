@@ -19,17 +19,15 @@ do
 		"debug_logger.hpp",
 		"cache.hpp",
 		"config_reader.hpp",
+		"ndarray.hpp",
 
 		-- cifar-sparse headers
-		"cifar-sparse/arg_max.hpp",
 		"cifar-sparse/sparse_appdata.hpp",
-		"cifar-sparse/ndarray.hpp",
 		"cifar-sparse/omp/dispatchers.hpp",
 		"cifar-sparse/omp/all_kernels.hpp",
 
 		-- cifar-dense headers
-		"cifar-dense/arg_max.hpp",
-		"cifar-dense/dense_appdata.hpp",
+		"cifar-dense/appdata.hpp",
 		"cifar-dense/omp/dispatchers.hpp",
 		"cifar-dense/omp/all_kernels.hpp",
 		
@@ -56,9 +54,7 @@ do
 		"app.cpp",
 
 		-- cifar-dense implementations
-		"cifar-dense/dense_appdata.cpp",
 		"cifar-dense/omp/dispatchers.cpp",
-		"cifar-dense/omp/all_kernels.cpp",
 
 		-- cifar-sparse implementations
 		"cifar-sparse/omp/dispatchers.cpp",
@@ -68,6 +64,9 @@ do
 		"tree/safe_tree_appdata.cpp",
 		"tree/omp/dispatchers.cpp",
 	})
+
+	includes("cifar-dense/omp/xmake.lua")
+
 end
 
 -- ----------------------------------------------------------------------------
