@@ -18,33 +18,6 @@ enum class LogKernelType {
 };
 
 // ---------------------------------------------------------------------
-// Old working design
-// ---------------------------------------------------------------------
-
-// template <LogKernelType kernel_type>
-// inline void log_kernel(const int stage, const void *appdata_addr) {
-//   if constexpr (kernel_type == LogKernelType::kOMP) {
-//     uint64_t thread_id = 0;
-
-// #if defined(_WIN32) || defined(_WIN64)
-//     thread_id = (uint64_t)GetCurrentThreadId();
-// #else
-//     thread_id = (uint64_t)pthread_self();
-// #endif
-//     spdlog::debug("[omp][{}][thread {}/{}] process_stage_{}, app_data: {:p}",
-//                   thread_id,
-//                   omp_get_thread_num(),
-//                   omp_get_num_threads(),
-//                   stage,
-//                   appdata_addr);
-//   } else if constexpr (kernel_type == LogKernelType::kCUDA) {
-//     spdlog::debug("[cuda] process_stage_{}, app_data: {:p}", stage, appdata_addr);
-//   } else if constexpr (kernel_type == LogKernelType::kVK) {
-//     spdlog::debug("[vk] process_stage_{}, app_data: {:p}", stage, appdata_addr);
-//   }
-// }
-
-// ---------------------------------------------------------------------
 // New design
 // ---------------------------------------------------------------------
 
@@ -108,13 +81,9 @@ void log_kernel_console_impl(const int stage, const void *appdata_addr) {
   }
 }
 
-// #ifdef NDEBUG
-// #define LOG_KERNEL(kernel_type, stage, appdata) ((void)0)
-// #else
 #define LOG_KERNEL(kernel_type, stage, appdata)           \
   if (g_debug_filelogger) {                               \
     log_kernel_impl<kernel_type>(stage, appdata);         \
   } else {                                                \
     log_kernel_console_impl<kernel_type>(stage, appdata); \
   }
-// #endif
