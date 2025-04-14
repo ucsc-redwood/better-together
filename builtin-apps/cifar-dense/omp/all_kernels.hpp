@@ -10,141 +10,93 @@ namespace cifar_dense::omp {
 namespace v2 {
 
 // ----------------------------------------------------------------------------
-// Convolution 2D (Sparse, Batched)
+// Convolution 2D (Dense, Batched)
 // ----------------------------------------------------------------------------
 
-// Batched dense convolution kernel using raw pointers only.
-// Input layout: (batch, in_channels, in_height, in_width)
-// Output layout: (batch, out_channels, out_height, out_width)
-// The dense weight matrix is given by its CSR components:
-//   - weight_vals: nonzero weight values
-//   - weight_row_ptr: row offsets for each output channel (length = out_channels + 1)
-//   - weight_col_idx: column indices (flat kernel index) for nonzero values
-// kernel parameters: kernel_size, stride, padding, and a flag for ReLU activation.
-inline void conv2d_omp_batched(const float *input_data,
-                               const int batch_size,
-                               const int in_channels,
-                               const int in_height,
-                               const int in_width,
-                               // Sparse weights for this convolution layer:
-                               const float *weight_vals,
-                               const int *weight_row_ptr,
-                               const int *weight_col_idx,
-                               const int out_channels,  // equals number of rows in CSR matrix
-                               const float *bias_data,  // may be nullptr if no bias is used
-                               const int bias_size,     // usually equals out_channels
-                               const int kernel_size,
-                               const int stride,
-                               const int padding,
-                               const bool relu,
-                               float *output_data)  // preallocated output array
-{
-  // Compute spatial output dimensions.
-  const int out_height = (in_height + 2 * padding - kernel_size) / stride + 1;
-  const int out_width = (in_width + 2 * padding - kernel_size) / stride + 1;
-
-// Use collapse on the batch and output channel loops for parallelism.
-#pragma omp for schedule(static) collapse(2)
-  for (int b = 0; b < batch_size; ++b) {
-    for (int out_c = 0; out_c < out_channels; ++out_c) {
-      // Get the CSR index range for the current output channel.
-      int row_start = weight_row_ptr[out_c];
-      int row_end = weight_row_ptr[out_c + 1];
-
-      // Iterate over the spatial positions of the output feature map.
-      for (int oh = 0; oh < out_height; ++oh) {
-        for (int ow = 0; ow < out_width; ++ow) {
-          float sum = 0.0f;
-
-          // Loop over the nonzero dense weights for this output channel.
-          for (int nz = row_start; nz < row_end; ++nz) {
-            int flat_kernel_idx = weight_col_idx[nz];
-            float weight_val = weight_vals[nz];
-
-            // Decode the flat kernel index:
-            //   in_channel = flat_idx / (kernel_size * kernel_size)
-            //   kernel_y = (flat_idx % (kernel_size * kernel_size)) / kernel_size
-            //   kernel_x = (flat_idx % (kernel_size * kernel_size)) % kernel_size
-            const int kernel_area = kernel_size * kernel_size;
-            int in_c = flat_kernel_idx / kernel_area;
-            int rem = flat_kernel_idx % kernel_area;
-            int ky = rem / kernel_size;
-            int kx = rem % kernel_size;
-
-            // Compute corresponding input spatial coordinates.
-            int in_y = oh * stride + ky - padding;
-            int in_x = ow * stride + kx - padding;
-
-            // Check for valid coordinates.
-            if (in_y >= 0 && in_y < in_height && in_x >= 0 && in_x < in_width) {
-              // Compute the index in the input (flattened).
-              int input_idx = ((b * in_channels + in_c) * in_height + in_y) * in_width + in_x;
-              sum += input_data[input_idx] * weight_val;
+inline void conv2d_batch_u(const float* u_input,
+                           const float* u_weights,
+                           const float* u_bias,
+                           float* u_output,
+                           const int N,        // in_shape[0]
+                           const int inC,      // in_shape[1]
+                           const int inH,      // in_shape[2]
+                           const int inW,      // in_shape[3]
+                           const int outC,     // w_shape[0]
+                           const int kH,       // w_shape[2]
+                           const int kW,       // w_shape[3]
+                           const int outH,     // out_shape[2]
+                           const int outW,     // out_shape[3]
+                           const int stride,   // 1
+                           const int padding,  // 0
+                           const bool relu) {
+// Parallelize over (N, outC, outH, outW)
+#pragma omp for collapse(4)
+  for (int n = 0; n < N; n++) {
+    for (int oc = 0; oc < outC; oc++) {
+      for (int oh = 0; oh < outH; oh++) {
+        for (int ow = 0; ow < outW; ow++) {
+          float sum = u_bias[oc];  // start with bias for this out-channel
+          // Accumulate over in_channels and kernel area
+          for (int ic = 0; ic < inC; ic++) {
+            for (int kh = 0; kh < kH; kh++) {
+              for (int kw2 = 0; kw2 < kW; kw2++) {
+                int ih = oh * stride - padding + kh;
+                int iw = ow * stride - padding + kw2;
+                // bounds check
+                if (ih >= 0 && ih < inH && iw >= 0 && iw < inW) {
+                  // sum += u_input(n, ic, ih, iw) * u_weights(oc, ic, kh, kw2);
+                  sum += u_input[n * (inC * inH * inW) + ic * (inH * inW) + ih * (inW) + iw] *
+                         u_weights[oc * (inC * kH * kW) + ic * (kH * kW) + kh * (kW) + kw2];
+                }
+              }
             }
-          }  // end dense weight loop
-
-          // Add bias if provided.
-          if (bias_data && out_c < bias_size) {
-            sum += bias_data[out_c];
           }
-          // Apply ReLU if needed.
-          if (relu && sum < 0.0f) {
-            sum = 0.0f;
-          }
-
-          // Compute the flattened index for the output array.
-          int output_idx = ((b * out_channels + out_c) * out_height + oh) * out_width + ow;
-          output_data[output_idx] = sum;
-        }  // end ow loop
-      }  // end oh loop
-    }  // end out_c loop
-  }  // end batch loop
+          // Optional ReLU
+          if (relu && sum < 0) sum = 0;
+          u_output[n * (outC * outH * outW) + oc * (outH * outW) + oh * (outW) + ow] = sum;
+        }
+      }
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
-// Max Pooling 2D (Sparse, Batched)
+// Max Pooling 2D (Dense, Batched)
 // ----------------------------------------------------------------------------
 
-// A cleaner batched max pooling kernel that processes the full range of outputs.
-// Input layout: (batch, channels, in_height, in_width)
-// Output layout: (batch, channels, out_height, out_width)
-inline void maxpool2d_omp_batched_clean(const float *input_data,
-                                        const int batch_size,
-                                        const int channels,
-                                        const int in_height,
-                                        const int in_width,
-                                        const int pool_size,
-                                        const int stride,
-                                        float *output_data) {
-  // Calculate output spatial dimensions.
-  int out_height = (in_height - pool_size) / stride + 1;
-  int out_width = (in_width - pool_size) / stride + 1;
+inline void maxpool2d_batch_u(const float* u_input,
+                              float* u_output,
+                              const int N,     // in_shape[0]
+                              const int C,     // in_shape[1]
+                              const int inH,   // in_shape[2]
+                              const int inW,   // in_shape[3]
+                              const int outH,  // out_shape[2]
+                              const int outW,  // out_shape[3]
+                              const int pool_size,
+                              const int stride) {
+  // Parallelize over (N, C, outH, outW)
+#pragma omp for collapse(4)
+  for (int n = 0; n < N; n++) {
+    for (int c = 0; c < C; c++) {
+      for (int oh = 0; oh < outH; oh++) {
+        for (int ow = 0; ow < outW; ow++) {
+          int h_start = oh * stride;
+          int w_start = ow * stride;
+          int h_end = std::min(h_start + pool_size, inH);
+          int w_end = std::min(w_start + pool_size, inW);
 
-// Parallelize over batch, channels and output height dimensions.
-// Using collapse helps combine loops into one large iteration space.
-#pragma omp for collapse(3) schedule(static)
-  for (int b = 0; b < batch_size; ++b) {
-    for (int c = 0; c < channels; ++c) {
-      for (int oh = 0; oh < out_height; ++oh) {
-        for (int ow = 0; ow < out_width; ++ow) {
-          float max_val = -std::numeric_limits<float>::max();
-
-          // Iterate over the pooling window.
-          for (int p = 0; p < pool_size * pool_size; ++p) {
-            int ph = p / pool_size;
-            int pw = p % pool_size;
-            int in_y = oh * stride + ph;
-            int in_x = ow * stride + pw;
-
-            // Check for in-bound coordinates.
-            if (in_y < in_height && in_x < in_width) {
-              int input_idx = ((b * channels + c) * in_height + in_y) * in_width + in_x;
-              max_val = std::max(max_val, input_data[input_idx]);
+          float max_val = -std::numeric_limits<float>::infinity();
+          for (int h = h_start; h < h_end; h++) {
+            for (int w = w_start; w < w_end; w++) {
+              // float val = input(n, c, h, w);
+              float val = u_input[n * (C * inH * inW) + c * (inH * inW) + h * (inW) + w];
+              if (val > max_val) {
+                max_val = val;
+              }
             }
           }
-
-          int output_idx = ((b * channels + c) * out_height + oh) * out_width + ow;
-          output_data[output_idx] = max_val;
+          u_output[n * (C * outH * outW) + c * (outH * outW) + oh * (outW) + ow] = max_val;
+          // output(n, c, oh, ow) = max_val;
         }
       }
     }
@@ -154,38 +106,27 @@ inline void maxpool2d_omp_batched_clean(const float *input_data,
 // ----------------------------------------------------------------------------
 // Linear Layer (Sparse, Batched)
 // ----------------------------------------------------------------------------
-
-// Batched dense linear (dense) layer kernel.
-// Assumptions:
-//   - input_data is of shape (batch_size, input_features) (flattened)
-//   - weight matrix is in CSR format with dimensions (out_neurons x input_features)
-//   - output_data will be of shape (batch_size, out_neurons) (flattened)
-inline void linear_omp_batched(
-    const float *input_data,
-    const int batch_size,
-    const int input_features,  // needed for indexing in each sample's input
-    const float *weight_vals,
-    const int *weight_row_ptr,
-    const int *weight_col_idx,
-    const float *bias_data,
-    float *output_data,
-    const int out_neurons) {
-// The parallelization is over batch and the output neurons.
-// schedule(static) collapse(2)
-#pragma omp for schedule(static) collapse(2)
-  for (int b = 0; b < batch_size; b++) {
-    for (int i = 0; i < out_neurons; i++) {
-      float sum = 0.0f;
-      // Loop over the nonzero entries in the i-th row of the weight matrix.
-      for (int idx = weight_row_ptr[i]; idx < weight_row_ptr[i + 1]; ++idx) {
-        int col = weight_col_idx[idx];
-        // Compute the index in the current batch sample's input vector.
-        int input_idx = b * input_features + col;
-        sum += input_data[input_idx] * weight_vals[idx];
+// input:  (N, in_features)
+// weights: (out_features, in_features)
+// bias:   (out_features)
+// output: (N, out_features)
+inline void linear_batch_u(const float* u_input,
+                           const float* u_weights,
+                           const float* u_bias,
+                           float* u_output,
+                           const int N,            // in_shape[0]
+                           const int in_features,  // in_shape[1]
+                           const int out_features  // w_shape[0]
+) {
+  // Parallelize over (N, out_features)
+#pragma omp for collapse(2)
+  for (int n = 0; n < N; n++) {
+    for (int of = 0; of < out_features; of++) {
+      float sum = u_bias[of];
+      for (int inf = 0; inf < in_features; inf++) {
+        sum += u_input[n * (in_features) + inf] * u_weights[of * (in_features) + inf];
       }
-      // Compute the index in the flattened output array:
-      int output_idx = b * out_neurons + i;
-      output_data[output_idx] = sum + bias_data[i];
+      u_output[n * (out_features) + of] = sum;
     }
   }
 }
