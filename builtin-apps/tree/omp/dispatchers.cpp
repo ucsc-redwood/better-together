@@ -149,6 +149,18 @@ void run_stage_7(tree::SafeAppData &appdata) {
                      appdata.u_brt_parents_s4.data(),
                      tree::kMinCoord,
                      tree::kRange);
+
+    process_link_leaf(i,
+                      reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
+                      appdata.u_oct_child_leaf_mask_s7_out.data(),
+                      appdata.u_edge_offset_s6.data(),
+                      appdata.u_edge_count_s5.data(),
+                      appdata.u_morton_keys_unique_s3.data(),
+                      appdata.u_brt_has_leaf_left_s4.data(),
+                      appdata.u_brt_has_leaf_right_s4.data(),
+                      appdata.u_brt_prefix_n_s4.data(),
+                      appdata.u_brt_parents_s4.data(),
+                      appdata.u_brt_left_child_s4.data());
   }
 }
 

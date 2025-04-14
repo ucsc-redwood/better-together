@@ -6,6 +6,7 @@
 #include <memory_resource>
 #include <numeric>
 
+#include "builtin-apps/tree/tree_appdata.hpp"
 #include "omp/func_brt.hpp"
 #include "omp/func_edge.hpp"
 #include "omp/func_morton.hpp"
@@ -14,11 +15,11 @@
 namespace tree {
 
 void HostTreeManager::initialize() {
-  const size_t n_input = 640 * 480;
+  // const size_t n_input = 640 * 480;
   constexpr bool kPrint = false;
 
   auto mr = std::pmr::new_delete_resource();
-  appdata_ = std::make_unique<tree::AppData>(mr, n_input);
+  appdata_ = std::make_unique<tree::AppData>(mr, tree::kDefaultInputSize);
 
   auto& appdata = *appdata_;
 

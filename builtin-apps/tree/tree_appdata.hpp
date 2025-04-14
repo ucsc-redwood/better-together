@@ -11,8 +11,18 @@ namespace tree {
 // From empirical observation, 50% memory is a good ratio for octree
 constexpr auto kMemoryRatio = 0.5f;
 
+// VGA	640×480	4:3   ~= 300k points
+// SVGA	800×600	4:3   ~= 400k points
+// XGA	1024×768	4:3   ~= 768k points
+// WXGA	1280×720	16:9  ~= 845k points
+// WXGA+	1280×800	16:10 ~= 800k points
+// SXGA	1280×1024	5:4   ~= 1M points
+// HD	1366×768	~16:9  ~= 1M points
+// UXGA	1600×1200	4:3  ~= 1.5M points
+// FHD / 1080p	1920×1080	16:9 ~= 2M points
+
 // Default problem size, other sizes are
-constexpr auto kDefaultInputSize = 3840 * 2160;
+constexpr auto kDefaultInputSize = 1366 * 768;
 constexpr auto kMinCoord = 0.0f;
 constexpr auto kRange = 1024.0f;
 
