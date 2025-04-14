@@ -58,7 +58,7 @@ class RecordManager {
    *     {2, ProcessorType::kBigCore}
    * });
    */
-  void setup(const int num_to_process,
+  void setup(const size_t num_to_process,
              const std::initializer_list<std::pair<int, ProcessorType>>& chunks) {
     records_.resize(num_to_process);
 
