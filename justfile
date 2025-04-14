@@ -286,7 +286,10 @@ try:
 #     @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' full_stage_{{stage}}.txt
 
 
-# This is ued to generate pipeline graph
+# ----------------------------------------------------------------------------
+# Use this to generate BM table 
+# ----------------------------------------------------------------------------
+
 run-benchmarks-cifar-sparse-vk device:
     rm -rf BM_table_cifar_sparse_vk_{{device}}.txt
     xmake r bm-table-cifar-sparse-vk --stage 1 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
@@ -301,3 +304,19 @@ run-benchmarks-cifar-sparse-vk device:
 
     awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_{{device}}.txt > BM_table_cifar_sparse_vk_{{device}}.txt.tmp
     cat BM_table_cifar_sparse_vk_{{device}}.txt.tmp
+
+
+run-benchmarks-cifar-sparse-vk-jetson:
+    rm -rf BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 1 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 2 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 3 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 4 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 5 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 6 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 7 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+    xmake r bm-table-cifar-sparse-vk --stage 8 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt  
+    xmake r bm-table-cifar-sparse-vk --stage 9 -l off --device-to-measure jetson | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt
+
+    awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_jetson.txt > BM_table_cifar_sparse_vk_jetson.txt.tmp
+    cat BM_table_cifar_sparse_vk_jetson.txt.tmp
