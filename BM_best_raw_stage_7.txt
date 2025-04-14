@@ -1,1700 +1,1700 @@
 Task 0:
   Chunk 0 (Big):
-    Start: 6235688538800 cycles
-    End: 6235688772181 cycles
-    Duration: 233381 cycles
+    Start: 6277738164298 cycles
+    End: 6277738424618 cycles
+    Duration: 260320 cycles
   Chunk 1 (GPU):
-    Start: 6235688772216 cycles
-    End: 6235689175356 cycles
-    Duration: 403140 cycles
+    Start: 6277738424675 cycles
+    End: 6277738926898 cycles
+    Duration: 502223 cycles
   Chunk 2 (Little):
-    Start: 6235689175451 cycles
-    End: 6235689536846 cycles
-    Duration: 361395 cycles
+    Start: 6277738926938 cycles
+    End: 6277739248608 cycles
+    Duration: 321670 cycles
   Chunk 3 (Medium):
-    Start: 6235689536862 cycles
-    End: 6235689677678 cycles
-    Duration: 140816 cycles
+    Start: 6277739272236 cycles
+    End: 6277739504090 cycles
+    Duration: 231854 cycles
 Task 1:
   Chunk 0 (Big):
-    Start: 6235688772194 cycles
-    End: 6235688976684 cycles
-    Duration: 204490 cycles
+    Start: 6277738424649 cycles
+    End: 6277738645761 cycles
+    Duration: 221112 cycles
   Chunk 1 (GPU):
-    Start: 6235689175380 cycles
-    End: 6235689485716 cycles
-    Duration: 310336 cycles
+    Start: 6277738926912 cycles
+    End: 6277739238263 cycles
+    Duration: 311351 cycles
   Chunk 2 (Little):
-    Start: 6235689536863 cycles
-    End: 6235689824121 cycles
-    Duration: 287258 cycles
+    Start: 6277739248628 cycles
+    End: 6277739594064 cycles
+    Duration: 345436 cycles
   Chunk 3 (Medium):
-    Start: 6235689824133 cycles
-    End: 6235689960277 cycles
-    Duration: 136144 cycles
+    Start: 6277739594089 cycles
+    End: 6277739790017 cycles
+    Duration: 195928 cycles
 Task 2:
   Chunk 0 (Big):
-    Start: 6235688976684 cycles
-    End: 6235689189717 cycles
-    Duration: 213033 cycles
+    Start: 6277738645780 cycles
+    End: 6277738774443 cycles
+    Duration: 128663 cycles
   Chunk 1 (GPU):
-    Start: 6235689485726 cycles
-    End: 6235689770847 cycles
-    Duration: 285121 cycles
+    Start: 6277739238288 cycles
+    End: 6277739535702 cycles
+    Duration: 297414 cycles
   Chunk 2 (Little):
-    Start: 6235689824135 cycles
-    End: 6235690103861 cycles
-    Duration: 279726 cycles
+    Start: 6277739594078 cycles
+    End: 6277739877862 cycles
+    Duration: 283784 cycles
   Chunk 3 (Medium):
-    Start: 6235690103880 cycles
-    End: 6235690235733 cycles
-    Duration: 131853 cycles
+    Start: 6277739877878 cycles
+    End: 6277740059355 cycles
+    Duration: 181477 cycles
 Task 3:
   Chunk 0 (Big):
-    Start: 6235689189726 cycles
-    End: 6235689409448 cycles
-    Duration: 219722 cycles
+    Start: 6277738774443 cycles
+    End: 6277738947834 cycles
+    Duration: 173391 cycles
   Chunk 1 (GPU):
-    Start: 6235689770852 cycles
-    End: 6235690057273 cycles
-    Duration: 286421 cycles
+    Start: 6277739535712 cycles
+    End: 6277739828774 cycles
+    Duration: 293062 cycles
   Chunk 2 (Little):
-    Start: 6235690103874 cycles
-    End: 6235690383533 cycles
-    Duration: 279659 cycles
+    Start: 6277739877878 cycles
+    End: 6277740161216 cycles
+    Duration: 283338 cycles
   Chunk 3 (Medium):
-    Start: 6235690383542 cycles
-    End: 6235690512532 cycles
-    Duration: 128990 cycles
+    Start: 6277740175352 cycles
+    End: 6277740322582 cycles
+    Duration: 147230 cycles
 Task 4:
   Chunk 0 (Big):
-    Start: 6235689409453 cycles
-    End: 6235689512455 cycles
-    Duration: 103002 cycles
+    Start: 6277738947834 cycles
+    End: 6277739149882 cycles
+    Duration: 202048 cycles
   Chunk 1 (GPU):
-    Start: 6235690057287 cycles
-    End: 6235690337084 cycles
-    Duration: 279797 cycles
+    Start: 6277739828785 cycles
+    End: 6277740093212 cycles
+    Duration: 264427 cycles
   Chunk 2 (Little):
-    Start: 6235690383547 cycles
-    End: 6235690668137 cycles
-    Duration: 284590 cycles
+    Start: 6277740161227 cycles
+    End: 6277740447688 cycles
+    Duration: 286461 cycles
   Chunk 3 (Medium):
-    Start: 6235690668150 cycles
-    End: 6235690798177 cycles
-    Duration: 130027 cycles
+    Start: 6277740447698 cycles
+    End: 6277740582789 cycles
+    Duration: 135091 cycles
 Task 5:
   Chunk 0 (Big):
-    Start: 6235689512455 cycles
-    End: 6235689615984 cycles
-    Duration: 103529 cycles
+    Start: 6277739149882 cycles
+    End: 6277739283020 cycles
+    Duration: 133138 cycles
   Chunk 1 (GPU):
-    Start: 6235690337085 cycles
-    End: 6235690568189 cycles
-    Duration: 231104 cycles
+    Start: 6277740093221 cycles
+    End: 6277740327837 cycles
+    Duration: 234616 cycles
   Chunk 2 (Little):
-    Start: 6235690668146 cycles
-    End: 6235690957979 cycles
-    Duration: 289833 cycles
+    Start: 6277740447697 cycles
+    End: 6277740731213 cycles
+    Duration: 283516 cycles
   Chunk 3 (Medium):
-    Start: 6235690957989 cycles
-    End: 6235691086737 cycles
-    Duration: 128748 cycles
+    Start: 6277740731224 cycles
+    End: 6277740865156 cycles
+    Duration: 133932 cycles
 Task 6:
   Chunk 0 (Big):
-    Start: 6235689615984 cycles
-    End: 6235689720112 cycles
-    Duration: 104128 cycles
+    Start: 6277739283020 cycles
+    End: 6277739396385 cycles
+    Duration: 113365 cycles
   Chunk 1 (GPU):
-    Start: 6235690568194 cycles
-    End: 6235690799173 cycles
-    Duration: 230979 cycles
+    Start: 6277740327844 cycles
+    End: 6277740560970 cycles
+    Duration: 233126 cycles
   Chunk 2 (Little):
-    Start: 6235690957993 cycles
-    End: 6235691246043 cycles
-    Duration: 288050 cycles
+    Start: 6277740731227 cycles
+    End: 6277741025627 cycles
+    Duration: 294400 cycles
   Chunk 3 (Medium):
-    Start: 6235691246065 cycles
-    End: 6235691375122 cycles
-    Duration: 129057 cycles
+    Start: 6277741025636 cycles
+    End: 6277741157666 cycles
+    Duration: 132030 cycles
 Task 7:
   Chunk 0 (Big):
-    Start: 6235689720112 cycles
-    End: 6235689835042 cycles
-    Duration: 114930 cycles
+    Start: 6277739396386 cycles
+    End: 6277739500973 cycles
+    Duration: 104587 cycles
   Chunk 1 (GPU):
-    Start: 6235690799183 cycles
-    End: 6235690990804 cycles
-    Duration: 191621 cycles
+    Start: 6277740560985 cycles
+    End: 6277740795483 cycles
+    Duration: 234498 cycles
   Chunk 2 (Little):
-    Start: 6235691246062 cycles
-    End: 6235691550755 cycles
-    Duration: 304693 cycles
+    Start: 6277741025640 cycles
+    End: 6277741317858 cycles
+    Duration: 292218 cycles
   Chunk 3 (Medium):
-    Start: 6235691550770 cycles
-    End: 6235691679579 cycles
-    Duration: 128809 cycles
+    Start: 6277741317882 cycles
+    End: 6277741450705 cycles
+    Duration: 132823 cycles
 Task 8:
   Chunk 0 (Big):
-    Start: 6235689835043 cycles
-    End: 6235689940562 cycles
-    Duration: 105519 cycles
+    Start: 6277739500974 cycles
+    End: 6277739603377 cycles
+    Duration: 102403 cycles
   Chunk 1 (GPU):
-    Start: 6235690990813 cycles
-    End: 6235691182413 cycles
-    Duration: 191600 cycles
+    Start: 6277740795486 cycles
+    End: 6277741015997 cycles
+    Duration: 220511 cycles
   Chunk 2 (Little):
-    Start: 6235691550782 cycles
-    End: 6235691852528 cycles
-    Duration: 301746 cycles
+    Start: 6277741317875 cycles
+    End: 6277741605446 cycles
+    Duration: 287571 cycles
   Chunk 3 (Medium):
-    Start: 6235691852550 cycles
-    End: 6235691982407 cycles
-    Duration: 129857 cycles
+    Start: 6277741605466 cycles
+    End: 6277741740383 cycles
+    Duration: 134917 cycles
 Task 9:
   Chunk 0 (Big):
-    Start: 6235689940565 cycles
-    End: 6235690046248 cycles
-    Duration: 105683 cycles
+    Start: 6277739603378 cycles
+    End: 6277739706124 cycles
+    Duration: 102746 cycles
   Chunk 1 (GPU):
-    Start: 6235691182414 cycles
-    End: 6235691374898 cycles
-    Duration: 192484 cycles
+    Start: 6277741016016 cycles
+    End: 6277741211106 cycles
+    Duration: 195090 cycles
   Chunk 2 (Little):
-    Start: 6235691852553 cycles
-    End: 6235692144856 cycles
-    Duration: 292303 cycles
+    Start: 6277741605458 cycles
+    End: 6277741897035 cycles
+    Duration: 291577 cycles
   Chunk 3 (Medium):
-    Start: 6235692144893 cycles
-    End: 6235692274734 cycles
-    Duration: 129841 cycles
+    Start: 6277741897047 cycles
+    End: 6277742026328 cycles
+    Duration: 129281 cycles
 Task 10:
   Chunk 0 (Big):
-    Start: 6235690046249 cycles
-    End: 6235690151639 cycles
-    Duration: 105390 cycles
+    Start: 6277739706125 cycles
+    End: 6277739810594 cycles
+    Duration: 104469 cycles
   Chunk 1 (GPU):
-    Start: 6235691374904 cycles
-    End: 6235691565571 cycles
-    Duration: 190667 cycles
+    Start: 6277741211120 cycles
+    End: 6277741404886 cycles
+    Duration: 193766 cycles
   Chunk 2 (Little):
-    Start: 6235692144885 cycles
-    End: 6235692458687 cycles
-    Duration: 313802 cycles
+    Start: 6277741897054 cycles
+    End: 6277742208510 cycles
+    Duration: 311456 cycles
   Chunk 3 (Medium):
-    Start: 6235692458709 cycles
-    End: 6235692590208 cycles
-    Duration: 131499 cycles
+    Start: 6277742208525 cycles
+    End: 6277742338011 cycles
+    Duration: 129486 cycles
 Task 11:
   Chunk 0 (Big):
-    Start: 6235690151640 cycles
-    End: 6235690260245 cycles
-    Duration: 108605 cycles
+    Start: 6277739810595 cycles
+    End: 6277739913067 cycles
+    Duration: 102472 cycles
   Chunk 1 (GPU):
-    Start: 6235691565571 cycles
-    End: 6235691757248 cycles
-    Duration: 191677 cycles
+    Start: 6277741404900 cycles
+    End: 6277741598576 cycles
+    Duration: 193676 cycles
   Chunk 2 (Little):
-    Start: 6235692458701 cycles
-    End: 6235692761029 cycles
-    Duration: 302328 cycles
+    Start: 6277742208514 cycles
+    End: 6277742502814 cycles
+    Duration: 294300 cycles
   Chunk 3 (Medium):
-    Start: 6235692761041 cycles
-    End: 6235692893501 cycles
-    Duration: 132460 cycles
+    Start: 6277742502833 cycles
+    End: 6277742631479 cycles
+    Duration: 128646 cycles
 Task 12:
   Chunk 0 (Big):
-    Start: 6235690260245 cycles
-    End: 6235690369991 cycles
-    Duration: 109746 cycles
+    Start: 6277739913072 cycles
+    End: 6277740016329 cycles
+    Duration: 103257 cycles
   Chunk 1 (GPU):
-    Start: 6235691757259 cycles
-    End: 6235691929167 cycles
-    Duration: 171908 cycles
+    Start: 6277741598590 cycles
+    End: 6277741799585 cycles
+    Duration: 200995 cycles
   Chunk 2 (Little):
-    Start: 6235692761044 cycles
-    End: 6235693069689 cycles
-    Duration: 308645 cycles
+    Start: 6277742502825 cycles
+    End: 6277742809349 cycles
+    Duration: 306524 cycles
   Chunk 3 (Medium):
-    Start: 6235693069708 cycles
-    End: 6235693200803 cycles
-    Duration: 131095 cycles
+    Start: 6277742809368 cycles
+    End: 6277742941923 cycles
+    Duration: 132555 cycles
 Task 13:
   Chunk 0 (Big):
-    Start: 6235690369991 cycles
-    End: 6235690479117 cycles
-    Duration: 109126 cycles
+    Start: 6277740016330 cycles
+    End: 6277740118743 cycles
+    Duration: 102413 cycles
   Chunk 1 (GPU):
-    Start: 6235691929168 cycles
-    End: 6235692098384 cycles
-    Duration: 169216 cycles
+    Start: 6277741799599 cycles
+    End: 6277742000530 cycles
+    Duration: 200931 cycles
   Chunk 2 (Little):
-    Start: 6235693069727 cycles
-    End: 6235693373674 cycles
-    Duration: 303947 cycles
+    Start: 6277742809362 cycles
+    End: 6277743108651 cycles
+    Duration: 299289 cycles
   Chunk 3 (Medium):
-    Start: 6235693373697 cycles
-    End: 6235693504297 cycles
-    Duration: 130600 cycles
+    Start: 6277743108663 cycles
+    End: 6277743239517 cycles
+    Duration: 130854 cycles
 Task 14:
   Chunk 0 (Big):
-    Start: 6235690479118 cycles
-    End: 6235690588621 cycles
-    Duration: 109503 cycles
+    Start: 6277740118743 cycles
+    End: 6277740223382 cycles
+    Duration: 104639 cycles
   Chunk 1 (GPU):
-    Start: 6235692098388 cycles
-    End: 6235692269449 cycles
-    Duration: 171061 cycles
+    Start: 6277742000548 cycles
+    End: 6277742203621 cycles
+    Duration: 203073 cycles
   Chunk 2 (Little):
-    Start: 6235693373700 cycles
-    End: 6235693667589 cycles
-    Duration: 293889 cycles
+    Start: 6277743108665 cycles
+    End: 6277743405101 cycles
+    Duration: 296436 cycles
   Chunk 3 (Medium):
-    Start: 6235693667597 cycles
-    End: 6235693797613 cycles
-    Duration: 130016 cycles
+    Start: 6277743405115 cycles
+    End: 6277743535678 cycles
+    Duration: 130563 cycles
 Task 15:
   Chunk 0 (Big):
-    Start: 6235690588621 cycles
-    End: 6235690697371 cycles
-    Duration: 108750 cycles
+    Start: 6277740223383 cycles
+    End: 6277740329481 cycles
+    Duration: 106098 cycles
   Chunk 1 (GPU):
-    Start: 6235692269449 cycles
-    End: 6235692421481 cycles
-    Duration: 152032 cycles
+    Start: 6277742203644 cycles
+    End: 6277742401886 cycles
+    Duration: 198242 cycles
   Chunk 2 (Little):
-    Start: 6235693667600 cycles
-    End: 6235693974127 cycles
-    Duration: 306527 cycles
+    Start: 6277743405116 cycles
+    End: 6277743702264 cycles
+    Duration: 297148 cycles
   Chunk 3 (Medium):
-    Start: 6235693974148 cycles
-    End: 6235694104692 cycles
-    Duration: 130544 cycles
+    Start: 6277743702279 cycles
+    End: 6277743829877 cycles
+    Duration: 127598 cycles
 Task 16:
   Chunk 0 (Big):
-    Start: 6235690697372 cycles
-    End: 6235690815735 cycles
-    Duration: 118363 cycles
+    Start: 6277740329482 cycles
+    End: 6277740435775 cycles
+    Duration: 106293 cycles
   Chunk 1 (GPU):
-    Start: 6235692421499 cycles
-    End: 6235692575471 cycles
-    Duration: 153972 cycles
+    Start: 6277742401894 cycles
+    End: 6277742598215 cycles
+    Duration: 196321 cycles
   Chunk 2 (Little):
-    Start: 6235693974153 cycles
-    End: 6235694294125 cycles
-    Duration: 319972 cycles
+    Start: 6277743702280 cycles
+    End: 6277743993029 cycles
+    Duration: 290749 cycles
   Chunk 3 (Medium):
-    Start: 6235694294143 cycles
-    End: 6235694422491 cycles
-    Duration: 128348 cycles
+    Start: 6277743993044 cycles
+    End: 6277744121232 cycles
+    Duration: 128188 cycles
 Task 17:
   Chunk 0 (Big):
-    Start: 6235690815735 cycles
-    End: 6235690924180 cycles
-    Duration: 108445 cycles
+    Start: 6277740435775 cycles
+    End: 6277740542780 cycles
+    Duration: 107005 cycles
   Chunk 1 (GPU):
-    Start: 6235692575488 cycles
-    End: 6235692726712 cycles
-    Duration: 151224 cycles
+    Start: 6277742598230 cycles
+    End: 6277742797015 cycles
+    Duration: 198785 cycles
   Chunk 2 (Little):
-    Start: 6235694294138 cycles
-    End: 6235694587393 cycles
-    Duration: 293255 cycles
+    Start: 6277743993040 cycles
+    End: 6277744279154 cycles
+    Duration: 286114 cycles
   Chunk 3 (Medium):
-    Start: 6235694587412 cycles
-    End: 6235694715752 cycles
-    Duration: 128340 cycles
+    Start: 6277744279176 cycles
+    End: 6277744407755 cycles
+    Duration: 128579 cycles
 Task 18:
   Chunk 0 (Big):
-    Start: 6235690924180 cycles
-    End: 6235691033738 cycles
-    Duration: 109558 cycles
+    Start: 6277740542780 cycles
+    End: 6277740649374 cycles
+    Duration: 106594 cycles
   Chunk 1 (GPU):
-    Start: 6235692726735 cycles
-    End: 6235692874352 cycles
-    Duration: 147617 cycles
+    Start: 6277742797029 cycles
+    End: 6277742994326 cycles
+    Duration: 197297 cycles
   Chunk 2 (Little):
-    Start: 6235694587415 cycles
-    End: 6235694880425 cycles
-    Duration: 293010 cycles
+    Start: 6277744279175 cycles
+    End: 6277744579161 cycles
+    Duration: 299986 cycles
   Chunk 3 (Medium):
-    Start: 6235694880441 cycles
-    End: 6235695009823 cycles
-    Duration: 129382 cycles
+    Start: 6277744579172 cycles
+    End: 6277744706869 cycles
+    Duration: 127697 cycles
 Task 19:
   Chunk 0 (Big):
-    Start: 6235691033738 cycles
-    End: 6235691144280 cycles
-    Duration: 110542 cycles
+    Start: 6277740649374 cycles
+    End: 6277740758175 cycles
+    Duration: 108801 cycles
   Chunk 1 (GPU):
-    Start: 6235692874373 cycles
-    End: 6235693016827 cycles
-    Duration: 142454 cycles
+    Start: 6277742994336 cycles
+    End: 6277743191283 cycles
+    Duration: 196947 cycles
   Chunk 2 (Little):
-    Start: 6235694880439 cycles
-    End: 6235695175681 cycles
-    Duration: 295242 cycles
+    Start: 6277744579173 cycles
+    End: 6277744878079 cycles
+    Duration: 298906 cycles
   Chunk 3 (Medium):
-    Start: 6235695175691 cycles
-    End: 6235695303564 cycles
-    Duration: 127873 cycles
+    Start: 6277744878100 cycles
+    End: 6277745005953 cycles
+    Duration: 127853 cycles
 Task 20:
   Chunk 0 (Big):
-    Start: 6235691144281 cycles
-    End: 6235691251585 cycles
-    Duration: 107304 cycles
+    Start: 6277740758176 cycles
+    End: 6277740864571 cycles
+    Duration: 106395 cycles
   Chunk 1 (GPU):
-    Start: 6235693016852 cycles
-    End: 6235693160711 cycles
-    Duration: 143859 cycles
+    Start: 6277743191283 cycles
+    End: 6277743385674 cycles
+    Duration: 194391 cycles
   Chunk 2 (Little):
-    Start: 6235695175696 cycles
-    End: 6235695474543 cycles
-    Duration: 298847 cycles
+    Start: 6277744878098 cycles
+    End: 6277745169964 cycles
+    Duration: 291866 cycles
   Chunk 3 (Medium):
-    Start: 6235695474563 cycles
-    End: 6235695602303 cycles
-    Duration: 127740 cycles
+    Start: 6277745169984 cycles
+    End: 6277745299049 cycles
+    Duration: 129065 cycles
 Task 21:
   Chunk 0 (Big):
-    Start: 6235691251585 cycles
-    End: 6235691363548 cycles
-    Duration: 111963 cycles
+    Start: 6277740864571 cycles
+    End: 6277740984435 cycles
+    Duration: 119864 cycles
   Chunk 1 (GPU):
-    Start: 6235693160727 cycles
-    End: 6235693302062 cycles
-    Duration: 141335 cycles
+    Start: 6277743385691 cycles
+    End: 6277743582028 cycles
+    Duration: 196337 cycles
   Chunk 2 (Little):
-    Start: 6235695474564 cycles
-    End: 6235695767957 cycles
-    Duration: 293393 cycles
+    Start: 6277745169982 cycles
+    End: 6277745463402 cycles
+    Duration: 293420 cycles
   Chunk 3 (Medium):
-    Start: 6235695767981 cycles
-    End: 6235695897011 cycles
-    Duration: 129030 cycles
+    Start: 6277745463417 cycles
+    End: 6277745592650 cycles
+    Duration: 129233 cycles
 Task 22:
   Chunk 0 (Big):
-    Start: 6235691363548 cycles
-    End: 6235691476297 cycles
-    Duration: 112749 cycles
+    Start: 6277740984436 cycles
+    End: 6277741090955 cycles
+    Duration: 106519 cycles
   Chunk 1 (GPU):
-    Start: 6235693302087 cycles
-    End: 6235693441842 cycles
-    Duration: 139755 cycles
+    Start: 6277743582050 cycles
+    End: 6277743774229 cycles
+    Duration: 192179 cycles
   Chunk 2 (Little):
-    Start: 6235695767976 cycles
-    End: 6235696062609 cycles
-    Duration: 294633 cycles
+    Start: 6277745463415 cycles
+    End: 6277745756847 cycles
+    Duration: 293432 cycles
   Chunk 3 (Medium):
-    Start: 6235696062619 cycles
-    End: 6235696190736 cycles
-    Duration: 128117 cycles
+    Start: 6277745756857 cycles
+    End: 6277745887743 cycles
+    Duration: 130886 cycles
 Task 23:
   Chunk 0 (Big):
-    Start: 6235691476298 cycles
-    End: 6235691591458 cycles
-    Duration: 115160 cycles
+    Start: 6277741090955 cycles
+    End: 6277741198673 cycles
+    Duration: 107718 cycles
   Chunk 1 (GPU):
-    Start: 6235693441850 cycles
-    End: 6235693582382 cycles
-    Duration: 140532 cycles
+    Start: 6277743774243 cycles
+    End: 6277743966694 cycles
+    Duration: 192451 cycles
   Chunk 2 (Little):
-    Start: 6235696062624 cycles
-    End: 6235696364649 cycles
-    Duration: 302025 cycles
+    Start: 6277745756855 cycles
+    End: 6277746048061 cycles
+    Duration: 291206 cycles
   Chunk 3 (Medium):
-    Start: 6235696364668 cycles
-    End: 6235696493354 cycles
-    Duration: 128686 cycles
+    Start: 6277746048077 cycles
+    End: 6277746177683 cycles
+    Duration: 129606 cycles
 Task 24:
   Chunk 0 (Big):
-    Start: 6235691591459 cycles
-    End: 6235691709027 cycles
-    Duration: 117568 cycles
+    Start: 6277741198673 cycles
+    End: 6277741305658 cycles
+    Duration: 106985 cycles
   Chunk 1 (GPU):
-    Start: 6235693582398 cycles
-    End: 6235693723253 cycles
-    Duration: 140855 cycles
+    Start: 6277743966702 cycles
+    End: 6277744158826 cycles
+    Duration: 192124 cycles
   Chunk 2 (Little):
-    Start: 6235696364671 cycles
-    End: 6235696669766 cycles
-    Duration: 305095 cycles
+    Start: 6277746048078 cycles
+    End: 6277746332794 cycles
+    Duration: 284716 cycles
   Chunk 3 (Medium):
-    Start: 6235696669784 cycles
-    End: 6235696803009 cycles
-    Duration: 133225 cycles
+    Start: 6277746332813 cycles
+    End: 6277746463020 cycles
+    Duration: 130207 cycles
 Task 25:
   Chunk 0 (Big):
-    Start: 6235691709033 cycles
-    End: 6235691832184 cycles
-    Duration: 123151 cycles
+    Start: 6277741305658 cycles
+    End: 6277741414635 cycles
+    Duration: 108977 cycles
   Chunk 1 (GPU):
-    Start: 6235693723269 cycles
-    End: 6235693867672 cycles
-    Duration: 144403 cycles
+    Start: 6277744158846 cycles
+    End: 6277744351778 cycles
+    Duration: 192932 cycles
   Chunk 2 (Little):
-    Start: 6235696669781 cycles
-    End: 6235696964682 cycles
-    Duration: 294901 cycles
+    Start: 6277746332812 cycles
+    End: 6277746623162 cycles
+    Duration: 290350 cycles
   Chunk 3 (Medium):
-    Start: 6235696964697 cycles
-    End: 6235697096114 cycles
-    Duration: 131417 cycles
+    Start: 6277746623178 cycles
+    End: 6277746754457 cycles
+    Duration: 131279 cycles
 Task 26:
   Chunk 0 (Big):
-    Start: 6235691832185 cycles
-    End: 6235691948068 cycles
-    Duration: 115883 cycles
+    Start: 6277741414636 cycles
+    End: 6277741522342 cycles
+    Duration: 107706 cycles
   Chunk 1 (GPU):
-    Start: 6235693867696 cycles
-    End: 6235694008366 cycles
-    Duration: 140670 cycles
+    Start: 6277744351795 cycles
+    End: 6277744526625 cycles
+    Duration: 174830 cycles
   Chunk 2 (Little):
-    Start: 6235696964696 cycles
-    End: 6235697266814 cycles
-    Duration: 302118 cycles
+    Start: 6277746623173 cycles
+    End: 6277746915027 cycles
+    Duration: 291854 cycles
   Chunk 3 (Medium):
-    Start: 6235697266832 cycles
-    End: 6235697398619 cycles
-    Duration: 131787 cycles
+    Start: 6277746915039 cycles
+    End: 6277747044301 cycles
+    Duration: 129262 cycles
 Task 27:
   Chunk 0 (Big):
-    Start: 6235691948069 cycles
-    End: 6235692062057 cycles
-    Duration: 113988 cycles
+    Start: 6277741522343 cycles
+    End: 6277741630145 cycles
+    Duration: 107802 cycles
   Chunk 1 (GPU):
-    Start: 6235694008385 cycles
-    End: 6235694149901 cycles
-    Duration: 141516 cycles
+    Start: 6277744526634 cycles
+    End: 6277744696315 cycles
+    Duration: 169681 cycles
   Chunk 2 (Little):
-    Start: 6235697266829 cycles
-    End: 6235697556649 cycles
-    Duration: 289820 cycles
+    Start: 6277746915040 cycles
+    End: 6277747212940 cycles
+    Duration: 297900 cycles
   Chunk 3 (Medium):
-    Start: 6235697556666 cycles
-    End: 6235697687935 cycles
-    Duration: 131269 cycles
+    Start: 6277747212954 cycles
+    End: 6277747342268 cycles
+    Duration: 129314 cycles
 Task 28:
   Chunk 0 (Big):
-    Start: 6235692062058 cycles
-    End: 6235692176431 cycles
-    Duration: 114373 cycles
+    Start: 6277741630146 cycles
+    End: 6277741737257 cycles
+    Duration: 107111 cycles
   Chunk 1 (GPU):
-    Start: 6235694149924 cycles
-    End: 6235694289550 cycles
-    Duration: 139626 cycles
+    Start: 6277744696330 cycles
+    End: 6277744864573 cycles
+    Duration: 168243 cycles
   Chunk 2 (Little):
-    Start: 6235697556665 cycles
-    End: 6235697850023 cycles
-    Duration: 293358 cycles
+    Start: 6277747212951 cycles
+    End: 6277747510903 cycles
+    Duration: 297952 cycles
   Chunk 3 (Medium):
-    Start: 6235697850036 cycles
-    End: 6235697984805 cycles
-    Duration: 134769 cycles
+    Start: 6277747510911 cycles
+    End: 6277747638752 cycles
+    Duration: 127841 cycles
 Task 29:
   Chunk 0 (Big):
-    Start: 6235692176431 cycles
-    End: 6235692290764 cycles
-    Duration: 114333 cycles
+    Start: 6277741737266 cycles
+    End: 6277741842484 cycles
+    Duration: 105218 cycles
   Chunk 1 (GPU):
-    Start: 6235694289567 cycles
-    End: 6235694426782 cycles
-    Duration: 137215 cycles
+    Start: 6277744864585 cycles
+    End: 6277745033793 cycles
+    Duration: 169208 cycles
   Chunk 2 (Little):
-    Start: 6235697850038 cycles
-    End: 6235698149056 cycles
-    Duration: 299018 cycles
+    Start: 6277747510912 cycles
+    End: 6277747811794 cycles
+    Duration: 300882 cycles
   Chunk 3 (Medium):
-    Start: 6235698149080 cycles
-    End: 6235698338947 cycles
-    Duration: 189867 cycles
+    Start: 6277747811803 cycles
+    End: 6277747940501 cycles
+    Duration: 128698 cycles
 Task 30:
   Chunk 0 (Big):
-    Start: 6235692290764 cycles
-    End: 6235692403060 cycles
-    Duration: 112296 cycles
+    Start: 6277741842485 cycles
+    End: 6277741947698 cycles
+    Duration: 105213 cycles
   Chunk 1 (GPU):
-    Start: 6235694426800 cycles
-    End: 6235694564748 cycles
-    Duration: 137948 cycles
+    Start: 6277745033807 cycles
+    End: 6277745203393 cycles
+    Duration: 169586 cycles
   Chunk 2 (Little):
-    Start: 6235698149077 cycles
-    End: 6235698442170 cycles
-    Duration: 293093 cycles
+    Start: 6277747811805 cycles
+    End: 6277748106742 cycles
+    Duration: 294937 cycles
   Chunk 3 (Medium):
-    Start: 6235698442183 cycles
-    End: 6235698573344 cycles
-    Duration: 131161 cycles
+    Start: 6277748106753 cycles
+    End: 6277748235213 cycles
+    Duration: 128460 cycles
 Task 31:
   Chunk 0 (Big):
-    Start: 6235692403063 cycles
-    End: 6235692516938 cycles
-    Duration: 113875 cycles
+    Start: 6277741947703 cycles
+    End: 6277742055061 cycles
+    Duration: 107358 cycles
   Chunk 1 (GPU):
-    Start: 6235694564759 cycles
-    End: 6235694701645 cycles
-    Duration: 136886 cycles
+    Start: 6277745203402 cycles
+    End: 6277745372012 cycles
+    Duration: 168610 cycles
   Chunk 2 (Little):
-    Start: 6235698442180 cycles
-    End: 6235698742618 cycles
-    Duration: 300438 cycles
+    Start: 6277748106752 cycles
+    End: 6277748407575 cycles
+    Duration: 300823 cycles
   Chunk 3 (Medium):
-    Start: 6235698742632 cycles
-    End: 6235698873605 cycles
-    Duration: 130973 cycles
+    Start: 6277748407588 cycles
+    End: 6277748536384 cycles
+    Duration: 128796 cycles
 Task 32:
   Chunk 0 (Big):
-    Start: 6235692516939 cycles
-    End: 6235692629289 cycles
-    Duration: 112350 cycles
+    Start: 6277742055069 cycles
+    End: 6277742160582 cycles
+    Duration: 105513 cycles
   Chunk 1 (GPU):
-    Start: 6235694701660 cycles
-    End: 6235694838921 cycles
-    Duration: 137261 cycles
+    Start: 6277745372013 cycles
+    End: 6277745540542 cycles
+    Duration: 168529 cycles
   Chunk 2 (Little):
-    Start: 6235698742637 cycles
-    End: 6235699033490 cycles
-    Duration: 290853 cycles
+    Start: 6277748407592 cycles
+    End: 6277748711069 cycles
+    Duration: 303477 cycles
   Chunk 3 (Medium):
-    Start: 6235699033500 cycles
-    End: 6235699239407 cycles
-    Duration: 205907 cycles
+    Start: 6277748711084 cycles
+    End: 6277748840134 cycles
+    Duration: 129050 cycles
 Task 33:
   Chunk 0 (Big):
-    Start: 6235692629290 cycles
-    End: 6235692740719 cycles
-    Duration: 111429 cycles
+    Start: 6277742160583 cycles
+    End: 6277742270447 cycles
+    Duration: 109864 cycles
   Chunk 1 (GPU):
-    Start: 6235694838937 cycles
-    End: 6235694975916 cycles
-    Duration: 136979 cycles
+    Start: 6277745540549 cycles
+    End: 6277745708666 cycles
+    Duration: 168117 cycles
   Chunk 2 (Little):
-    Start: 6235699033505 cycles
-    End: 6235699321289 cycles
-    Duration: 287784 cycles
+    Start: 6277748711091 cycles
+    End: 6277749016622 cycles
+    Duration: 305531 cycles
   Chunk 3 (Medium):
-    Start: 6235699321304 cycles
-    End: 6235699455219 cycles
-    Duration: 133915 cycles
+    Start: 6277749016633 cycles
+    End: 6277749145510 cycles
+    Duration: 128877 cycles
 Task 34:
   Chunk 0 (Big):
-    Start: 6235692740720 cycles
-    End: 6235692863395 cycles
-    Duration: 122675 cycles
+    Start: 6277742270448 cycles
+    End: 6277742383255 cycles
+    Duration: 112807 cycles
   Chunk 1 (GPU):
-    Start: 6235694975944 cycles
-    End: 6235695113366 cycles
-    Duration: 137422 cycles
+    Start: 6277745708681 cycles
+    End: 6277745875331 cycles
+    Duration: 166650 cycles
   Chunk 2 (Little):
-    Start: 6235699321306 cycles
-    End: 6235699615604 cycles
-    Duration: 294298 cycles
+    Start: 6277749016635 cycles
+    End: 6277749312799 cycles
+    Duration: 296164 cycles
   Chunk 3 (Medium):
-    Start: 6235699615624 cycles
-    End: 6235699747909 cycles
-    Duration: 132285 cycles
+    Start: 6277749312812 cycles
+    End: 6277749443812 cycles
+    Duration: 131000 cycles
 Task 35:
   Chunk 0 (Big):
-    Start: 6235692863396 cycles
-    End: 6235692974798 cycles
-    Duration: 111402 cycles
+    Start: 6277742383255 cycles
+    End: 6277742496320 cycles
+    Duration: 113065 cycles
   Chunk 1 (GPU):
-    Start: 6235695113390 cycles
-    End: 6235695254626 cycles
-    Duration: 141236 cycles
+    Start: 6277745875342 cycles
+    End: 6277746043078 cycles
+    Duration: 167736 cycles
   Chunk 2 (Little):
-    Start: 6235699615627 cycles
-    End: 6235699970381 cycles
-    Duration: 354754 cycles
+    Start: 6277749312814 cycles
+    End: 6277749604356 cycles
+    Duration: 291542 cycles
   Chunk 3 (Medium):
-    Start: 6235699970391 cycles
-    End: 6235700099966 cycles
-    Duration: 129575 cycles
+    Start: 6277749604374 cycles
+    End: 6277749730985 cycles
+    Duration: 126611 cycles
 Task 36:
   Chunk 0 (Big):
-    Start: 6235692974799 cycles
-    End: 6235693087511 cycles
-    Duration: 112712 cycles
+    Start: 6277742496321 cycles
+    End: 6277742611049 cycles
+    Duration: 114728 cycles
   Chunk 1 (GPU):
-    Start: 6235695254631 cycles
-    End: 6235695391259 cycles
-    Duration: 136628 cycles
+    Start: 6277746043079 cycles
+    End: 6277746211277 cycles
+    Duration: 168198 cycles
   Chunk 2 (Little):
-    Start: 6235699970394 cycles
-    End: 6235700288092 cycles
-    Duration: 317698 cycles
+    Start: 6277749604370 cycles
+    End: 6277749901586 cycles
+    Duration: 297216 cycles
   Chunk 3 (Medium):
-    Start: 6235700288108 cycles
-    End: 6235700416877 cycles
-    Duration: 128769 cycles
+    Start: 6277749901600 cycles
+    End: 6277750028700 cycles
+    Duration: 127100 cycles
 Task 37:
   Chunk 0 (Big):
-    Start: 6235693087529 cycles
-    End: 6235693205382 cycles
-    Duration: 117853 cycles
+    Start: 6277742611049 cycles
+    End: 6277742722077 cycles
+    Duration: 111028 cycles
   Chunk 1 (GPU):
-    Start: 6235695391288 cycles
-    End: 6235695527244 cycles
-    Duration: 135956 cycles
+    Start: 6277746211288 cycles
+    End: 6277746377412 cycles
+    Duration: 166124 cycles
   Chunk 2 (Little):
-    Start: 6235700288107 cycles
-    End: 6235700566652 cycles
-    Duration: 278545 cycles
+    Start: 6277749901596 cycles
+    End: 6277750197947 cycles
+    Duration: 296351 cycles
   Chunk 3 (Medium):
-    Start: 6235700566671 cycles
-    End: 6235700695061 cycles
-    Duration: 128390 cycles
+    Start: 6277750197963 cycles
+    End: 6277750326124 cycles
+    Duration: 128161 cycles
 Task 38:
   Chunk 0 (Big):
-    Start: 6235693205383 cycles
-    End: 6235693321423 cycles
-    Duration: 116040 cycles
+    Start: 6277742722087 cycles
+    End: 6277742833022 cycles
+    Duration: 110935 cycles
   Chunk 1 (GPU):
-    Start: 6235695527266 cycles
-    End: 6235695664903 cycles
-    Duration: 137637 cycles
+    Start: 6277746377423 cycles
+    End: 6277746527672 cycles
+    Duration: 150249 cycles
   Chunk 2 (Little):
-    Start: 6235700566666 cycles
-    End: 6235700854424 cycles
-    Duration: 287758 cycles
+    Start: 6277750197959 cycles
+    End: 6277750492019 cycles
+    Duration: 294060 cycles
   Chunk 3 (Medium):
-    Start: 6235700854441 cycles
-    End: 6235700985070 cycles
-    Duration: 130629 cycles
+    Start: 6277750492034 cycles
+    End: 6277750618628 cycles
+    Duration: 126594 cycles
 Task 39:
   Chunk 0 (Big):
-    Start: 6235693321423 cycles
-    End: 6235693438917 cycles
-    Duration: 117494 cycles
+    Start: 6277742833026 cycles
+    End: 6277742943997 cycles
+    Duration: 110971 cycles
   Chunk 1 (GPU):
-    Start: 6235695664923 cycles
-    End: 6235695801153 cycles
-    Duration: 136230 cycles
+    Start: 6277746527684 cycles
+    End: 6277746676520 cycles
+    Duration: 148836 cycles
   Chunk 2 (Little):
-    Start: 6235700854436 cycles
-    End: 6235701154981 cycles
-    Duration: 300545 cycles
+    Start: 6277750492030 cycles
+    End: 6277750783546 cycles
+    Duration: 291516 cycles
   Chunk 3 (Medium):
-    Start: 6235701154996 cycles
-    End: 6235701283603 cycles
-    Duration: 128607 cycles
+    Start: 6277750783563 cycles
+    End: 6277750912493 cycles
+    Duration: 128930 cycles
 Task 40:
   Chunk 0 (Big):
-    Start: 6235693438918 cycles
-    End: 6235693557512 cycles
-    Duration: 118594 cycles
+    Start: 6277742943998 cycles
+    End: 6277743054187 cycles
+    Duration: 110189 cycles
   Chunk 1 (GPU):
-    Start: 6235695801165 cycles
-    End: 6235695941756 cycles
-    Duration: 140591 cycles
+    Start: 6277746676527 cycles
+    End: 6277746825284 cycles
+    Duration: 148757 cycles
   Chunk 2 (Little):
-    Start: 6235701154997 cycles
-    End: 6235701443881 cycles
-    Duration: 288884 cycles
+    Start: 6277750783561 cycles
+    End: 6277751098729 cycles
+    Duration: 315168 cycles
   Chunk 3 (Medium):
-    Start: 6235701443896 cycles
-    End: 6235701574111 cycles
-    Duration: 130215 cycles
+    Start: 6277751098746 cycles
+    End: 6277751227786 cycles
+    Duration: 129040 cycles
 Task 41:
   Chunk 0 (Big):
-    Start: 6235693557512 cycles
-    End: 6235693673894 cycles
-    Duration: 116382 cycles
+    Start: 6277743054187 cycles
+    End: 6277743165715 cycles
+    Duration: 111528 cycles
   Chunk 1 (GPU):
-    Start: 6235695941783 cycles
-    End: 6235696080638 cycles
-    Duration: 138855 cycles
+    Start: 6277746825299 cycles
+    End: 6277746972485 cycles
+    Duration: 147186 cycles
   Chunk 2 (Little):
-    Start: 6235701443895 cycles
-    End: 6235701804324 cycles
-    Duration: 360429 cycles
+    Start: 6277751098746 cycles
+    End: 6277751430042 cycles
+    Duration: 331296 cycles
   Chunk 3 (Medium):
-    Start: 6235701804340 cycles
-    End: 6235701933057 cycles
-    Duration: 128717 cycles
+    Start: 6277751430065 cycles
+    End: 6277751687264 cycles
+    Duration: 257199 cycles
 Task 42:
   Chunk 0 (Big):
-    Start: 6235693673895 cycles
-    End: 6235693792204 cycles
-    Duration: 118309 cycles
+    Start: 6277743165715 cycles
+    End: 6277743278556 cycles
+    Duration: 112841 cycles
   Chunk 1 (GPU):
-    Start: 6235696080651 cycles
-    End: 6235696220607 cycles
-    Duration: 139956 cycles
+    Start: 6277746972498 cycles
+    End: 6277747121002 cycles
+    Duration: 148504 cycles
   Chunk 2 (Little):
-    Start: 6235701804338 cycles
-    End: 6235702188018 cycles
-    Duration: 383680 cycles
+    Start: 6277751430060 cycles
+    End: 6277752023135 cycles
+    Duration: 593075 cycles
   Chunk 3 (Medium):
-    Start: 6235702188034 cycles
-    End: 6235702329394 cycles
-    Duration: 141360 cycles
+    Start: 6277752023152 cycles
+    End: 6277752200322 cycles
+    Duration: 177170 cycles
 Task 43:
   Chunk 0 (Big):
-    Start: 6235693792205 cycles
-    End: 6235693908137 cycles
-    Duration: 115932 cycles
+    Start: 6277743278558 cycles
+    End: 6277743391527 cycles
+    Duration: 112969 cycles
   Chunk 1 (GPU):
-    Start: 6235696220635 cycles
-    End: 6235696369014 cycles
-    Duration: 148379 cycles
+    Start: 6277747121014 cycles
+    End: 6277747270395 cycles
+    Duration: 149381 cycles
   Chunk 2 (Little):
-    Start: 6235702188030 cycles
-    End: 6235702467320 cycles
-    Duration: 279290 cycles
+    Start: 6277752023146 cycles
+    End: 6277752379117 cycles
+    Duration: 355971 cycles
   Chunk 3 (Medium):
-    Start: 6235702467327 cycles
-    End: 6235702597597 cycles
-    Duration: 130270 cycles
+    Start: 6277752379140 cycles
+    End: 6277752507095 cycles
+    Duration: 127955 cycles
 Task 44:
   Chunk 0 (Big):
-    Start: 6235693908142 cycles
-    End: 6235694026345 cycles
-    Duration: 118203 cycles
+    Start: 6277743391528 cycles
+    End: 6277743534630 cycles
+    Duration: 143102 cycles
   Chunk 1 (GPU):
-    Start: 6235696369032 cycles
-    End: 6235696512627 cycles
-    Duration: 143595 cycles
+    Start: 6277747270406 cycles
+    End: 6277747420439 cycles
+    Duration: 150033 cycles
   Chunk 2 (Little):
-    Start: 6235702467328 cycles
-    End: 6235702829879 cycles
-    Duration: 362551 cycles
+    Start: 6277752379136 cycles
+    End: 6277752657134 cycles
+    Duration: 277998 cycles
   Chunk 3 (Medium):
-    Start: 6235702829893 cycles
-    End: 6235702960564 cycles
-    Duration: 130671 cycles
+    Start: 6277752657146 cycles
+    End: 6277752788056 cycles
+    Duration: 130910 cycles
 Task 45:
   Chunk 0 (Big):
-    Start: 6235694026347 cycles
-    End: 6235694143676 cycles
-    Duration: 117329 cycles
+    Start: 6277743535686 cycles
+    End: 6277743646231 cycles
+    Duration: 110545 cycles
   Chunk 1 (GPU):
-    Start: 6235696512630 cycles
-    End: 6235696652979 cycles
-    Duration: 140349 cycles
+    Start: 6277747420467 cycles
+    End: 6277747569887 cycles
+    Duration: 149420 cycles
   Chunk 2 (Little):
-    Start: 6235702829886 cycles
-    End: 6235703189511 cycles
-    Duration: 359625 cycles
+    Start: 6277752657144 cycles
+    End: 6277752987646 cycles
+    Duration: 330502 cycles
   Chunk 3 (Medium):
-    Start: 6235703189530 cycles
-    End: 6235703318914 cycles
-    Duration: 129384 cycles
+    Start: 6277752987660 cycles
+    End: 6277753190029 cycles
+    Duration: 202369 cycles
 Task 46:
   Chunk 0 (Big):
-    Start: 6235694143677 cycles
-    End: 6235694259332 cycles
-    Duration: 115655 cycles
+    Start: 6277743829889 cycles
+    End: 6277743941273 cycles
+    Duration: 111384 cycles
   Chunk 1 (GPU):
-    Start: 6235696652980 cycles
-    End: 6235696793536 cycles
-    Duration: 140556 cycles
+    Start: 6277747569902 cycles
+    End: 6277747719693 cycles
+    Duration: 149791 cycles
   Chunk 2 (Little):
-    Start: 6235703189526 cycles
-    End: 6235703541865 cycles
-    Duration: 352339 cycles
+    Start: 6277752987654 cycles
+    End: 6277753266046 cycles
+    Duration: 278392 cycles
   Chunk 3 (Medium):
-    Start: 6235703541878 cycles
-    End: 6235703671659 cycles
-    Duration: 129781 cycles
+    Start: 6277753266092 cycles
+    End: 6277753424175 cycles
+    Duration: 158083 cycles
 Task 47:
   Chunk 0 (Big):
-    Start: 6235694422508 cycles
-    End: 6235694538904 cycles
-    Duration: 116396 cycles
+    Start: 6277744121244 cycles
+    End: 6277744231755 cycles
+    Duration: 110511 cycles
   Chunk 1 (GPU):
-    Start: 6235696793545 cycles
-    End: 6235696938931 cycles
-    Duration: 145386 cycles
+    Start: 6277747719707 cycles
+    End: 6277747868429 cycles
+    Duration: 148722 cycles
   Chunk 2 (Little):
-    Start: 6235703541879 cycles
-    End: 6235703901948 cycles
-    Duration: 360069 cycles
+    Start: 6277753266067 cycles
+    End: 6277753547629 cycles
+    Duration: 281562 cycles
   Chunk 3 (Medium):
-    Start: 6235703901965 cycles
-    End: 6235704105071 cycles
-    Duration: 203106 cycles
+    Start: 6277753547647 cycles
+    End: 6277753678508 cycles
+    Duration: 130861 cycles
 Task 48:
   Chunk 0 (Big):
-    Start: 6235694715774 cycles
-    End: 6235694832591 cycles
-    Duration: 116817 cycles
+    Start: 6277744407768 cycles
+    End: 6277744518910 cycles
+    Duration: 111142 cycles
   Chunk 1 (GPU):
-    Start: 6235696938948 cycles
-    End: 6235697080327 cycles
-    Duration: 141379 cycles
+    Start: 6277747868441 cycles
+    End: 6277748018220 cycles
+    Duration: 149779 cycles
   Chunk 2 (Little):
-    Start: 6235703901962 cycles
-    End: 6235704182232 cycles
-    Duration: 280270 cycles
+    Start: 6277753547645 cycles
+    End: 6277753831511 cycles
+    Duration: 283866 cycles
   Chunk 3 (Medium):
-    Start: 6235704182316 cycles
-    End: 6235704310165 cycles
-    Duration: 127849 cycles
+    Start: 6277753831566 cycles
+    End: 6277753965750 cycles
+    Duration: 134184 cycles
 Task 49:
   Chunk 0 (Big):
-    Start: 6235695009843 cycles
-    End: 6235695126254 cycles
-    Duration: 116411 cycles
+    Start: 6277744706879 cycles
+    End: 6277744819004 cycles
+    Duration: 112125 cycles
   Chunk 1 (GPU):
-    Start: 6235697080340 cycles
-    End: 6235697219118 cycles
-    Duration: 138778 cycles
+    Start: 6277748018221 cycles
+    End: 6277748166681 cycles
+    Duration: 148460 cycles
   Chunk 2 (Little):
-    Start: 6235704182248 cycles
-    End: 6235704467307 cycles
-    Duration: 285059 cycles
+    Start: 6277753831522 cycles
+    End: 6277754115459 cycles
+    Duration: 283937 cycles
   Chunk 3 (Medium):
-    Start: 6235704467328 cycles
-    End: 6235704594969 cycles
-    Duration: 127641 cycles
+    Start: 6277754115469 cycles
+    End: 6277754245882 cycles
+    Duration: 130413 cycles
 Task 50:
   Chunk 0 (Big):
-    Start: 6235695303579 cycles
-    End: 6235695419846 cycles
-    Duration: 116267 cycles
+    Start: 6277745005969 cycles
+    End: 6277745117913 cycles
+    Duration: 111944 cycles
   Chunk 1 (GPU):
-    Start: 6235697219132 cycles
-    End: 6235697358199 cycles
-    Duration: 139067 cycles
+    Start: 6277748166693 cycles
+    End: 6277748314106 cycles
+    Duration: 147413 cycles
   Chunk 2 (Little):
-    Start: 6235704467324 cycles
-    End: 6235704821159 cycles
-    Duration: 353835 cycles
+    Start: 6277754115471 cycles
+    End: 6277754469641 cycles
+    Duration: 354170 cycles
   Chunk 3 (Medium):
-    Start: 6235704821180 cycles
-    End: 6235704949501 cycles
-    Duration: 128321 cycles
+    Start: 6277754469650 cycles
+    End: 6277754673170 cycles
+    Duration: 203520 cycles
 Task 51:
   Chunk 0 (Big):
-    Start: 6235695602326 cycles
-    End: 6235695718176 cycles
-    Duration: 115850 cycles
+    Start: 6277745299062 cycles
+    End: 6277745415376 cycles
+    Duration: 116314 cycles
   Chunk 1 (GPU):
-    Start: 6235697358214 cycles
-    End: 6235697502895 cycles
-    Duration: 144681 cycles
+    Start: 6277748314121 cycles
+    End: 6277748462224 cycles
+    Duration: 148103 cycles
   Chunk 2 (Little):
-    Start: 6235704821182 cycles
-    End: 6235705181791 cycles
-    Duration: 360609 cycles
+    Start: 6277754469651 cycles
+    End: 6277754748965 cycles
+    Duration: 279314 cycles
   Chunk 3 (Medium):
-    Start: 6235705181807 cycles
-    End: 6235705382882 cycles
-    Duration: 201075 cycles
+    Start: 6277754749020 cycles
+    End: 6277754878654 cycles
+    Duration: 129634 cycles
 Task 52:
   Chunk 0 (Big):
-    Start: 6235695897026 cycles
-    End: 6235696024587 cycles
-    Duration: 127561 cycles
+    Start: 6277745592662 cycles
+    End: 6277745709318 cycles
+    Duration: 116656 cycles
   Chunk 1 (GPU):
-    Start: 6235697502902 cycles
-    End: 6235697648289 cycles
-    Duration: 145387 cycles
+    Start: 6277748462232 cycles
+    End: 6277748610846 cycles
+    Duration: 148614 cycles
   Chunk 2 (Little):
-    Start: 6235705181813 cycles
-    End: 6235705463569 cycles
-    Duration: 281756 cycles
+    Start: 6277754748988 cycles
+    End: 6277755028674 cycles
+    Duration: 279686 cycles
   Chunk 3 (Medium):
-    Start: 6235705463586 cycles
-    End: 6235705595459 cycles
-    Duration: 131873 cycles
+    Start: 6277755028690 cycles
+    End: 6277755158405 cycles
+    Duration: 129715 cycles
 Task 53:
   Chunk 0 (Big):
-    Start: 6235696190753 cycles
-    End: 6235696313310 cycles
-    Duration: 122557 cycles
+    Start: 6277745887754 cycles
+    End: 6277746025027 cycles
+    Duration: 137273 cycles
   Chunk 1 (GPU):
-    Start: 6235697648298 cycles
-    End: 6235697788020 cycles
-    Duration: 139722 cycles
+    Start: 6277748610870 cycles
+    End: 6277748761252 cycles
+    Duration: 150382 cycles
   Chunk 2 (Little):
-    Start: 6235705463583 cycles
-    End: 6235705764923 cycles
-    Duration: 301340 cycles
+    Start: 6277755028684 cycles
+    End: 6277755308726 cycles
+    Duration: 280042 cycles
   Chunk 3 (Medium):
-    Start: 6235705764943 cycles
-    End: 6235705894912 cycles
-    Duration: 129969 cycles
+    Start: 6277755308740 cycles
+    End: 6277755438133 cycles
+    Duration: 129393 cycles
 Task 54:
   Chunk 0 (Big):
-    Start: 6235696493383 cycles
-    End: 6235696613142 cycles
-    Duration: 119759 cycles
+    Start: 6277746177698 cycles
+    End: 6277746293474 cycles
+    Duration: 115776 cycles
   Chunk 1 (GPU):
-    Start: 6235697788024 cycles
-    End: 6235697926452 cycles
-    Duration: 138428 cycles
+    Start: 6277748761254 cycles
+    End: 6277748910217 cycles
+    Duration: 148963 cycles
   Chunk 2 (Little):
-    Start: 6235705764935 cycles
-    End: 6235706118687 cycles
-    Duration: 353752 cycles
+    Start: 6277755308736 cycles
+    End: 6277755588365 cycles
+    Duration: 279629 cycles
   Chunk 3 (Medium):
-    Start: 6235706118703 cycles
-    End: 6235706259477 cycles
-    Duration: 140774 cycles
+    Start: 6277755588381 cycles
+    End: 6277755717930 cycles
+    Duration: 129549 cycles
 Task 55:
   Chunk 0 (Big):
-    Start: 6235696803036 cycles
-    End: 6235696928913 cycles
-    Duration: 125877 cycles
+    Start: 6277746463027 cycles
+    End: 6277746579821 cycles
+    Duration: 116794 cycles
   Chunk 1 (GPU):
-    Start: 6235697926464 cycles
-    End: 6235698069534 cycles
-    Duration: 143070 cycles
+    Start: 6277748910219 cycles
+    End: 6277749057285 cycles
+    Duration: 147066 cycles
   Chunk 2 (Little):
-    Start: 6235706118698 cycles
-    End: 6235706471853 cycles
-    Duration: 353155 cycles
+    Start: 6277755588377 cycles
+    End: 6277755869481 cycles
+    Duration: 281104 cycles
   Chunk 3 (Medium):
-    Start: 6235706471870 cycles
-    End: 6235706599889 cycles
-    Duration: 128019 cycles
+    Start: 6277755869492 cycles
+    End: 6277756002650 cycles
+    Duration: 133158 cycles
 Task 56:
   Chunk 0 (Big):
-    Start: 6235697096128 cycles
-    End: 6235697212402 cycles
-    Duration: 116274 cycles
+    Start: 6277746754465 cycles
+    End: 6277746870534 cycles
+    Duration: 116069 cycles
   Chunk 1 (GPU):
-    Start: 6235698069544 cycles
-    End: 6235698215934 cycles
-    Duration: 146390 cycles
+    Start: 6277749057292 cycles
+    End: 6277749207647 cycles
+    Duration: 150355 cycles
   Chunk 2 (Little):
-    Start: 6235706471863 cycles
-    End: 6235706819640 cycles
-    Duration: 347777 cycles
+    Start: 6277755869494 cycles
+    End: 6277756150577 cycles
+    Duration: 281083 cycles
   Chunk 3 (Medium):
-    Start: 6235706819654 cycles
-    End: 6235706949438 cycles
-    Duration: 129784 cycles
+    Start: 6277756150646 cycles
+    End: 6277756299836 cycles
+    Duration: 149190 cycles
 Task 57:
   Chunk 0 (Big):
-    Start: 6235697398652 cycles
-    End: 6235697519127 cycles
-    Duration: 120475 cycles
+    Start: 6277747044313 cycles
+    End: 6277747159850 cycles
+    Duration: 115537 cycles
   Chunk 1 (GPU):
-    Start: 6235698215947 cycles
-    End: 6235698409738 cycles
-    Duration: 193791 cycles
+    Start: 6277749207647 cycles
+    End: 6277749356381 cycles
+    Duration: 148734 cycles
   Chunk 2 (Little):
-    Start: 6235706819653 cycles
-    End: 6235707100989 cycles
-    Duration: 281336 cycles
+    Start: 6277756150591 cycles
+    End: 6277756431712 cycles
+    Duration: 281121 cycles
   Chunk 3 (Medium):
-    Start: 6235707100998 cycles
-    End: 6235707229233 cycles
-    Duration: 128235 cycles
+    Start: 6277756431728 cycles
+    End: 6277756560743 cycles
+    Duration: 129015 cycles
 Task 58:
   Chunk 0 (Big):
-    Start: 6235697687963 cycles
-    End: 6235697813415 cycles
-    Duration: 125452 cycles
+    Start: 6277747342287 cycles
+    End: 6277747458003 cycles
+    Duration: 115716 cycles
   Chunk 1 (GPU):
-    Start: 6235698409769 cycles
-    End: 6235698549460 cycles
-    Duration: 139691 cycles
+    Start: 6277749356392 cycles
+    End: 6277749504208 cycles
+    Duration: 147816 cycles
   Chunk 2 (Little):
-    Start: 6235707100999 cycles
-    End: 6235707384324 cycles
-    Duration: 283325 cycles
+    Start: 6277756431727 cycles
+    End: 6277756716331 cycles
+    Duration: 284604 cycles
   Chunk 3 (Medium):
-    Start: 6235707384342 cycles
-    End: 6235707517136 cycles
-    Duration: 132794 cycles
+    Start: 6277756716354 cycles
+    End: 6277756856592 cycles
+    Duration: 140238 cycles
 Task 59:
   Chunk 0 (Big):
-    Start: 6235697984825 cycles
-    End: 6235698113980 cycles
-    Duration: 129155 cycles
+    Start: 6277747638762 cycles
+    End: 6277747755601 cycles
+    Duration: 116839 cycles
   Chunk 1 (GPU):
-    Start: 6235698549471 cycles
-    End: 6235698690226 cycles
-    Duration: 140755 cycles
+    Start: 6277749504209 cycles
+    End: 6277749653310 cycles
+    Duration: 149101 cycles
   Chunk 2 (Little):
-    Start: 6235707384335 cycles
-    End: 6235707672725 cycles
-    Duration: 288390 cycles
+    Start: 6277756716348 cycles
+    End: 6277756992991 cycles
+    Duration: 276643 cycles
   Chunk 3 (Medium):
-    Start: 6235707672738 cycles
-    End: 6235707802236 cycles
-    Duration: 129498 cycles
+    Start: 6277756993003 cycles
+    End: 6277757125797 cycles
+    Duration: 132794 cycles
 Task 60:
   Chunk 0 (Big):
-    Start: 6235698338961 cycles
-    End: 6235698465316 cycles
-    Duration: 126355 cycles
+    Start: 6277747940517 cycles
+    End: 6277748057559 cycles
+    Duration: 117042 cycles
   Chunk 1 (GPU):
-    Start: 6235698690238 cycles
-    End: 6235698828846 cycles
-    Duration: 138608 cycles
+    Start: 6277749653319 cycles
+    End: 6277749805140 cycles
+    Duration: 151821 cycles
   Chunk 2 (Little):
-    Start: 6235707672735 cycles
-    End: 6235707956707 cycles
-    Duration: 283972 cycles
+    Start: 6277756992999 cycles
+    End: 6277757271713 cycles
+    Duration: 278714 cycles
   Chunk 3 (Medium):
-    Start: 6235707956723 cycles
-    End: 6235708084548 cycles
-    Duration: 127825 cycles
+    Start: 6277757271725 cycles
+    End: 6277757414192 cycles
+    Duration: 142467 cycles
 Task 61:
   Chunk 0 (Big):
-    Start: 6235698573364 cycles
-    End: 6235698696593 cycles
-    Duration: 123229 cycles
+    Start: 6277748235225 cycles
+    End: 6277748351383 cycles
+    Duration: 116158 cycles
   Chunk 1 (GPU):
-    Start: 6235698828861 cycles
-    End: 6235698967768 cycles
-    Duration: 138907 cycles
+    Start: 6277749805152 cycles
+    End: 6277749958048 cycles
+    Duration: 152896 cycles
   Chunk 2 (Little):
-    Start: 6235707956715 cycles
-    End: 6235708248355 cycles
-    Duration: 291640 cycles
+    Start: 6277757271724 cycles
+    End: 6277757569435 cycles
+    Duration: 297711 cycles
   Chunk 3 (Medium):
-    Start: 6235708248371 cycles
-    End: 6235708375991 cycles
-    Duration: 127620 cycles
+    Start: 6277757569455 cycles
+    End: 6277757701354 cycles
+    Duration: 131899 cycles
 Task 62:
   Chunk 0 (Big):
-    Start: 6235698873625 cycles
-    End: 6235698998179 cycles
-    Duration: 124554 cycles
+    Start: 6277748536407 cycles
+    End: 6277748652597 cycles
+    Duration: 116190 cycles
   Chunk 1 (GPU):
-    Start: 6235698998199 cycles
-    End: 6235699140457 cycles
-    Duration: 142258 cycles
+    Start: 6277749958056 cycles
+    End: 6277750108151 cycles
+    Duration: 150095 cycles
   Chunk 2 (Little):
-    Start: 6235708248370 cycles
-    End: 6235708535451 cycles
-    Duration: 287081 cycles
+    Start: 6277757569446 cycles
+    End: 6277757852082 cycles
+    Duration: 282636 cycles
   Chunk 3 (Medium):
-    Start: 6235708535465 cycles
-    End: 6235708663423 cycles
-    Duration: 127958 cycles
+    Start: 6277757852097 cycles
+    End: 6277757983964 cycles
+    Duration: 131867 cycles
 Task 63:
   Chunk 0 (Big):
-    Start: 6235699239417 cycles
-    End: 6235699367142 cycles
-    Duration: 127725 cycles
+    Start: 6277748840148 cycles
+    End: 6277748956640 cycles
+    Duration: 116492 cycles
   Chunk 1 (GPU):
-    Start: 6235699420318 cycles
-    End: 6235699563018 cycles
-    Duration: 142700 cycles
+    Start: 6277750108157 cycles
+    End: 6277750265656 cycles
+    Duration: 157499 cycles
   Chunk 2 (Little):
-    Start: 6235708535464 cycles
-    End: 6235708871781 cycles
-    Duration: 336317 cycles
+    Start: 6277757852089 cycles
+    End: 6277758133655 cycles
+    Duration: 281566 cycles
   Chunk 3 (Medium):
-    Start: 6235708871799 cycles
-    End: 6235709002275 cycles
-    Duration: 130476 cycles
+    Start: 6277758133675 cycles
+    End: 6277758267453 cycles
+    Duration: 133778 cycles
 Task 64:
   Chunk 0 (Big):
-    Start: 6235699455235 cycles
-    End: 6235699652343 cycles
-    Duration: 197108 cycles
+    Start: 6277749145517 cycles
+    End: 6277749262183 cycles
+    Duration: 116666 cycles
   Chunk 1 (GPU):
-    Start: 6235699652527 cycles
-    End: 6235699802847 cycles
-    Duration: 150320 cycles
+    Start: 6277750265656 cycles
+    End: 6277750417056 cycles
+    Duration: 151400 cycles
   Chunk 2 (Little):
-    Start: 6235708871797 cycles
-    End: 6235709161543 cycles
-    Duration: 289746 cycles
+    Start: 6277758133676 cycles
+    End: 6277758412521 cycles
+    Duration: 278845 cycles
   Chunk 3 (Medium):
-    Start: 6235709161556 cycles
-    End: 6235709290033 cycles
-    Duration: 128477 cycles
+    Start: 6277758412535 cycles
+    End: 6277758549529 cycles
+    Duration: 136994 cycles
 Task 65:
   Chunk 0 (Big):
-    Start: 6235699747943 cycles
-    End: 6235699872983 cycles
-    Duration: 125040 cycles
+    Start: 6277749443825 cycles
+    End: 6277749560440 cycles
+    Duration: 116615 cycles
   Chunk 1 (GPU):
-    Start: 6235699873042 cycles
-    End: 6235700012814 cycles
-    Duration: 139772 cycles
+    Start: 6277750417071 cycles
+    End: 6277750565043 cycles
+    Duration: 147972 cycles
   Chunk 2 (Little):
-    Start: 6235709161553 cycles
-    End: 6235709511714 cycles
-    Duration: 350161 cycles
+    Start: 6277758412533 cycles
+    End: 6277758692373 cycles
+    Duration: 279840 cycles
   Chunk 3 (Medium):
-    Start: 6235709511729 cycles
-    End: 6235709643703 cycles
-    Duration: 131974 cycles
+    Start: 6277758692387 cycles
+    End: 6277758825762 cycles
+    Duration: 133375 cycles
 Task 66:
   Chunk 0 (Big):
-    Start: 6235700099976 cycles
-    End: 6235700222688 cycles
-    Duration: 122712 cycles
+    Start: 6277749730996 cycles
+    End: 6277749855830 cycles
+    Duration: 124834 cycles
   Chunk 1 (GPU):
-    Start: 6235700222838 cycles
-    End: 6235700363500 cycles
-    Duration: 140662 cycles
+    Start: 6277750565055 cycles
+    End: 6277750718827 cycles
+    Duration: 153772 cycles
   Chunk 2 (Little):
-    Start: 6235709511735 cycles
-    End: 6235709870447 cycles
-    Duration: 358712 cycles
+    Start: 6277758692377 cycles
+    End: 6277758972980 cycles
+    Duration: 280603 cycles
   Chunk 3 (Medium):
-    Start: 6235709870470 cycles
-    End: 6235710084203 cycles
-    Duration: 213733 cycles
+    Start: 6277758973039 cycles
+    End: 6277759187681 cycles
+    Duration: 214642 cycles
 Task 67:
   Chunk 0 (Big):
-    Start: 6235700416893 cycles
-    End: 6235700664025 cycles
-    Duration: 247132 cycles
+    Start: 6277750028716 cycles
+    End: 6277750167270 cycles
+    Duration: 138554 cycles
   Chunk 1 (GPU):
-    Start: 6235700664051 cycles
-    End: 6235700905873 cycles
-    Duration: 241822 cycles
+    Start: 6277750718829 cycles
+    End: 6277750873218 cycles
+    Duration: 154389 cycles
   Chunk 2 (Little):
-    Start: 6235709870462 cycles
-    End: 6235710157340 cycles
-    Duration: 286878 cycles
+    Start: 6277758972991 cycles
+    End: 6277759252529 cycles
+    Duration: 279538 cycles
   Chunk 3 (Medium):
-    Start: 6235710157423 cycles
-    End: 6235710289349 cycles
-    Duration: 131926 cycles
+    Start: 6277759252594 cycles
+    End: 6277759393710 cycles
+    Duration: 141116 cycles
 Task 68:
   Chunk 0 (Big):
-    Start: 6235700695099 cycles
-    End: 6235700837897 cycles
-    Duration: 142798 cycles
+    Start: 6277750326139 cycles
+    End: 6277750443285 cycles
+    Duration: 117146 cycles
   Chunk 1 (GPU):
-    Start: 6235700905883 cycles
-    End: 6235701054693 cycles
-    Duration: 148810 cycles
+    Start: 6277750873218 cycles
+    End: 6277751024938 cycles
+    Duration: 151720 cycles
   Chunk 2 (Little):
-    Start: 6235710157354 cycles
-    End: 6235710448276 cycles
-    Duration: 290922 cycles
+    Start: 6277759252546 cycles
+    End: 6277759535300 cycles
+    Duration: 282754 cycles
   Chunk 3 (Medium):
-    Start: 6235710448285 cycles
-    End: 6235710580146 cycles
-    Duration: 131861 cycles
+    Start: 6277759535312 cycles
+    End: 6277759664353 cycles
+    Duration: 129041 cycles
 Task 69:
   Chunk 0 (Big):
-    Start: 6235700985088 cycles
-    End: 6235701176818 cycles
-    Duration: 191730 cycles
+    Start: 6277750618638 cycles
+    End: 6277750741365 cycles
+    Duration: 122727 cycles
   Chunk 1 (GPU):
-    Start: 6235701176971 cycles
-    End: 6235701325678 cycles
-    Duration: 148707 cycles
+    Start: 6277751024957 cycles
+    End: 6277751173511 cycles
+    Duration: 148554 cycles
   Chunk 2 (Little):
-    Start: 6235710448293 cycles
-    End: 6235710736373 cycles
-    Duration: 288080 cycles
+    Start: 6277759535311 cycles
+    End: 6277759817272 cycles
+    Duration: 281961 cycles
   Chunk 3 (Medium):
-    Start: 6235710736391 cycles
-    End: 6235710865612 cycles
-    Duration: 129221 cycles
+    Start: 6277759817285 cycles
+    End: 6277759946088 cycles
+    Duration: 128803 cycles
 Task 70:
   Chunk 0 (Big):
-    Start: 6235701283623 cycles
-    End: 6235701399523 cycles
-    Duration: 115900 cycles
+    Start: 6277750912506 cycles
+    End: 6277751029762 cycles
+    Duration: 117256 cycles
   Chunk 1 (GPU):
-    Start: 6235701399538 cycles
-    End: 6235701547050 cycles
-    Duration: 147512 cycles
+    Start: 6277751173523 cycles
+    End: 6277751329938 cycles
+    Duration: 156415 cycles
   Chunk 2 (Little):
-    Start: 6235710736385 cycles
-    End: 6235711014776 cycles
-    Duration: 278391 cycles
+    Start: 6277759817282 cycles
+    End: 6277760095314 cycles
+    Duration: 278032 cycles
   Chunk 3 (Medium):
-    Start: 6235711014787 cycles
-    End: 6235711142328 cycles
-    Duration: 127541 cycles
+    Start: 6277760095319 cycles
+    End: 6277760223165 cycles
+    Duration: 127846 cycles
 Task 71:
   Chunk 0 (Big):
-    Start: 6235701574123 cycles
-    End: 6235701700682 cycles
-    Duration: 126559 cycles
+    Start: 6277751227795 cycles
+    End: 6277751349698 cycles
+    Duration: 121903 cycles
   Chunk 1 (GPU):
-    Start: 6235701708889 cycles
-    End: 6235701856391 cycles
-    Duration: 147502 cycles
+    Start: 6277751349723 cycles
+    End: 6277751534352 cycles
+    Duration: 184629 cycles
   Chunk 2 (Little):
-    Start: 6235711014783 cycles
-    End: 6235711290747 cycles
-    Duration: 275964 cycles
+    Start: 6277760095318 cycles
+    End: 6277760368655 cycles
+    Duration: 273337 cycles
   Chunk 3 (Medium):
-    Start: 6235711290762 cycles
-    End: 6235711418482 cycles
-    Duration: 127720 cycles
+    Start: 6277760368671 cycles
+    End: 6277760497797 cycles
+    Duration: 129126 cycles
 Task 72:
   Chunk 0 (Big):
-    Start: 6235701933078 cycles
-    End: 6235702059755 cycles
-    Duration: 126677 cycles
+    Start: 6277751687278 cycles
+    End: 6277751909119 cycles
+    Duration: 221841 cycles
   Chunk 1 (GPU):
-    Start: 6235702059763 cycles
-    End: 6235702222844 cycles
-    Duration: 163081 cycles
+    Start: 6277751909217 cycles
+    End: 6277752062909 cycles
+    Duration: 153692 cycles
   Chunk 2 (Little):
-    Start: 6235711290766 cycles
-    End: 6235711564882 cycles
-    Duration: 274116 cycles
+    Start: 6277760368666 cycles
+    End: 6277760643192 cycles
+    Duration: 274526 cycles
   Chunk 3 (Medium):
-    Start: 6235711564894 cycles
-    End: 6235711692335 cycles
-    Duration: 127441 cycles
+    Start: 6277760643206 cycles
+    End: 6277760771769 cycles
+    Duration: 128563 cycles
 Task 73:
   Chunk 0 (Big):
-    Start: 6235702329412 cycles
-    End: 6235702455993 cycles
-    Duration: 126581 cycles
+    Start: 6277752200331 cycles
+    End: 6277752390111 cycles
+    Duration: 189780 cycles
   Chunk 1 (GPU):
-    Start: 6235702456119 cycles
-    End: 6235702634975 cycles
-    Duration: 178856 cycles
+    Start: 6277752390132 cycles
+    End: 6277752551945 cycles
+    Duration: 161813 cycles
   Chunk 2 (Little):
-    Start: 6235711564901 cycles
-    End: 6235711845606 cycles
-    Duration: 280705 cycles
+    Start: 6277760643199 cycles
+    End: 6277760917691 cycles
+    Duration: 274492 cycles
   Chunk 3 (Medium):
-    Start: 6235711845621 cycles
-    End: 6235711973282 cycles
-    Duration: 127661 cycles
+    Start: 6277760917706 cycles
+    End: 6277761046158 cycles
+    Duration: 128452 cycles
 Task 74:
   Chunk 0 (Big):
-    Start: 6235702598865 cycles
-    End: 6235702725275 cycles
-    Duration: 126410 cycles
+    Start: 6277752507181 cycles
+    End: 6277752635395 cycles
+    Duration: 128214 cycles
   Chunk 1 (GPU):
-    Start: 6235702790406 cycles
-    End: 6235702962800 cycles
-    Duration: 172394 cycles
+    Start: 6277752635447 cycles
+    End: 6277752792665 cycles
+    Duration: 157218 cycles
   Chunk 2 (Little):
-    Start: 6235711845626 cycles
-    End: 6235712122072 cycles
-    Duration: 276446 cycles
+    Start: 6277760917699 cycles
+    End: 6277761195896 cycles
+    Duration: 278197 cycles
   Chunk 3 (Medium):
-    Start: 6235712122105 cycles
-    End: 6235712249925 cycles
-    Duration: 127820 cycles
+    Start: 6277761195907 cycles
+    End: 6277761324105 cycles
+    Duration: 128198 cycles
 Task 75:
   Chunk 0 (Big):
-    Start: 6235702960587 cycles
-    End: 6235703087474 cycles
-    Duration: 126887 cycles
+    Start: 6277752788063 cycles
+    End: 6277752903851 cycles
+    Duration: 115788 cycles
   Chunk 1 (GPU):
-    Start: 6235703087565 cycles
-    End: 6235703260352 cycles
-    Duration: 172787 cycles
+    Start: 6277752915750 cycles
+    End: 6277753069824 cycles
+    Duration: 154074 cycles
   Chunk 2 (Little):
-    Start: 6235712122099 cycles
-    End: 6235712401507 cycles
-    Duration: 279408 cycles
+    Start: 6277761195906 cycles
+    End: 6277761472355 cycles
+    Duration: 276449 cycles
   Chunk 3 (Medium):
-    Start: 6235712401531 cycles
-    End: 6235712530184 cycles
-    Duration: 128653 cycles
+    Start: 6277761472363 cycles
+    End: 6277761600897 cycles
+    Duration: 128534 cycles
 Task 76:
   Chunk 0 (Big):
-    Start: 6235703318931 cycles
-    End: 6235703445474 cycles
-    Duration: 126543 cycles
+    Start: 6277753190042 cycles
+    End: 6277753322807 cycles
+    Duration: 132765 cycles
   Chunk 1 (GPU):
-    Start: 6235703445581 cycles
-    End: 6235703619181 cycles
-    Duration: 173600 cycles
+    Start: 6277753322828 cycles
+    End: 6277753493369 cycles
+    Duration: 170541 cycles
   Chunk 2 (Little):
-    Start: 6235712401523 cycles
-    End: 6235712681081 cycles
-    Duration: 279558 cycles
+    Start: 6277761472363 cycles
+    End: 6277761747448 cycles
+    Duration: 275085 cycles
   Chunk 3 (Medium):
-    Start: 6235712681098 cycles
-    End: 6235712808584 cycles
-    Duration: 127486 cycles
+    Start: 6277761747455 cycles
+    End: 6277761877603 cycles
+    Duration: 130148 cycles
 Task 77:
   Chunk 0 (Big):
-    Start: 6235703671673 cycles
-    End: 6235703799192 cycles
-    Duration: 127519 cycles
+    Start: 6277753424183 cycles
+    End: 6277753541683 cycles
+    Duration: 117500 cycles
   Chunk 1 (GPU):
-    Start: 6235703799208 cycles
-    End: 6235703992177 cycles
-    Duration: 192969 cycles
+    Start: 6277753541773 cycles
+    End: 6277753710357 cycles
+    Duration: 168584 cycles
   Chunk 2 (Little):
-    Start: 6235712681094 cycles
-    End: 6235712954577 cycles
-    Duration: 273483 cycles
+    Start: 6277761747454 cycles
+    End: 6277762023510 cycles
+    Duration: 276056 cycles
   Chunk 3 (Medium):
-    Start: 6235712954587 cycles
-    End: 6235713080897 cycles
-    Duration: 126310 cycles
+    Start: 6277762023523 cycles
+    End: 6277762151398 cycles
+    Duration: 127875 cycles
 Task 78:
   Chunk 0 (Big):
-    Start: 6235704105078 cycles
-    End: 6235704231447 cycles
-    Duration: 126369 cycles
+    Start: 6277753678521 cycles
+    End: 6277753868166 cycles
+    Duration: 189645 cycles
   Chunk 1 (GPU):
-    Start: 6235704264550 cycles
-    End: 6235704461382 cycles
-    Duration: 196832 cycles
+    Start: 6277753875996 cycles
+    End: 6277754052382 cycles
+    Duration: 176386 cycles
   Chunk 2 (Little):
-    Start: 6235712954586 cycles
-    End: 6235713232779 cycles
-    Duration: 278193 cycles
+    Start: 6277762023526 cycles
+    End: 6277762298724 cycles
+    Duration: 275198 cycles
   Chunk 3 (Medium):
-    Start: 6235713232788 cycles
-    End: 6235713359970 cycles
-    Duration: 127182 cycles
+    Start: 6277762298741 cycles
+    End: 6277762428130 cycles
+    Duration: 129389 cycles
 Task 79:
   Chunk 0 (Big):
-    Start: 6235704310187 cycles
-    End: 6235704438436 cycles
-    Duration: 128249 cycles
+    Start: 6277753965761 cycles
+    End: 6277754083926 cycles
+    Duration: 118165 cycles
   Chunk 1 (GPU):
-    Start: 6235704461384 cycles
-    End: 6235704654473 cycles
-    Duration: 193089 cycles
+    Start: 6277754083945 cycles
+    End: 6277754252586 cycles
+    Duration: 168641 cycles
   Chunk 2 (Little):
-    Start: 6235713232792 cycles
-    End: 6235713507088 cycles
-    Duration: 274296 cycles
+    Start: 6277762298735 cycles
+    End: 6277762571271 cycles
+    Duration: 272536 cycles
   Chunk 3 (Medium):
-    Start: 6235713507115 cycles
-    End: 6235713633971 cycles
-    Duration: 126856 cycles
+    Start: 6277762571283 cycles
+    End: 6277762699845 cycles
+    Duration: 128562 cycles
 Task 80:
   Chunk 0 (Big):
-    Start: 6235704594983 cycles
-    End: 6235704722454 cycles
-    Duration: 127471 cycles
+    Start: 6277754245897 cycles
+    End: 6277754365877 cycles
+    Duration: 119980 cycles
   Chunk 1 (GPU):
-    Start: 6235704722477 cycles
-    End: 6235704914672 cycles
-    Duration: 192195 cycles
+    Start: 6277754390681 cycles
+    End: 6277754558234 cycles
+    Duration: 167553 cycles
   Chunk 2 (Little):
-    Start: 6235713507115 cycles
-    End: 6235713783057 cycles
-    Duration: 275942 cycles
+    Start: 6277762571284 cycles
+    End: 6277762848962 cycles
+    Duration: 277678 cycles
   Chunk 3 (Medium):
-    Start: 6235713783066 cycles
-    End: 6235713911021 cycles
-    Duration: 127955 cycles
+    Start: 6277762848973 cycles
+    End: 6277762977420 cycles
+    Duration: 128447 cycles
 Task 81:
   Chunk 0 (Big):
-    Start: 6235704949525 cycles
-    End: 6235705076955 cycles
-    Duration: 127430 cycles
+    Start: 6277754673185 cycles
+    End: 6277754795476 cycles
+    Duration: 122291 cycles
   Chunk 1 (GPU):
-    Start: 6235705077007 cycles
-    End: 6235705270358 cycles
-    Duration: 193351 cycles
+    Start: 6277754795520 cycles
+    End: 6277754989792 cycles
+    Duration: 194272 cycles
   Chunk 2 (Little):
-    Start: 6235713783065 cycles
-    End: 6235714056030 cycles
-    Duration: 272965 cycles
+    Start: 6277762848974 cycles
+    End: 6277763122376 cycles
+    Duration: 273402 cycles
   Chunk 3 (Medium):
-    Start: 6235714056043 cycles
-    End: 6235714182458 cycles
-    Duration: 126415 cycles
+    Start: 6277763122386 cycles
+    End: 6277763251210 cycles
+    Duration: 128824 cycles
 Task 82:
   Chunk 0 (Big):
-    Start: 6235705382905 cycles
-    End: 6235705509482 cycles
-    Duration: 126577 cycles
+    Start: 6277754878668 cycles
+    End: 6277754996198 cycles
+    Duration: 117530 cycles
   Chunk 1 (GPU):
-    Start: 6235705509494 cycles
-    End: 6235705705631 cycles
-    Duration: 196137 cycles
+    Start: 6277754996221 cycles
+    End: 6277755191299 cycles
+    Duration: 195078 cycles
   Chunk 2 (Little):
-    Start: 6235714056049 cycles
-    End: 6235714333093 cycles
-    Duration: 277044 cycles
+    Start: 6277763122385 cycles
+    End: 6277763395942 cycles
+    Duration: 273557 cycles
   Chunk 3 (Medium):
-    Start: 6235714333107 cycles
-    End: 6235714459676 cycles
-    Duration: 126569 cycles
+    Start: 6277763395952 cycles
+    End: 6277763524215 cycles
+    Duration: 128263 cycles
 Task 83:
   Chunk 0 (Big):
-    Start: 6235705595482 cycles
-    End: 6235705722115 cycles
-    Duration: 126633 cycles
+    Start: 6277755158415 cycles
+    End: 6277755274049 cycles
+    Duration: 115634 cycles
   Chunk 1 (GPU):
-    Start: 6235705722126 cycles
-    End: 6235705916053 cycles
-    Duration: 193927 cycles
+    Start: 6277755274134 cycles
+    End: 6277755472512 cycles
+    Duration: 198378 cycles
   Chunk 2 (Little):
-    Start: 6235714333110 cycles
-    End: 6235714606843 cycles
-    Duration: 273733 cycles
+    Start: 6277763395945 cycles
+    End: 6277763670600 cycles
+    Duration: 274655 cycles
   Chunk 3 (Medium):
-    Start: 6235714606864 cycles
-    End: 6235714733917 cycles
-    Duration: 127053 cycles
+    Start: 6277763670612 cycles
+    End: 6277763799993 cycles
+    Duration: 129381 cycles
 Task 84:
   Chunk 0 (Big):
-    Start: 6235705894919 cycles
-    End: 6235706021062 cycles
-    Duration: 126143 cycles
+    Start: 6277755438145 cycles
+    End: 6277755632528 cycles
+    Duration: 194383 cycles
   Chunk 1 (GPU):
-    Start: 6235706033788 cycles
-    End: 6235706228676 cycles
-    Duration: 194888 cycles
+    Start: 6277755632902 cycles
+    End: 6277755825036 cycles
+    Duration: 192134 cycles
   Chunk 2 (Little):
-    Start: 6235714606867 cycles
-    End: 6235714880195 cycles
-    Duration: 273328 cycles
+    Start: 6277763670610 cycles
+    End: 6277763943979 cycles
+    Duration: 273369 cycles
   Chunk 3 (Medium):
-    Start: 6235714880206 cycles
-    End: 6235715008037 cycles
-    Duration: 127831 cycles
+    Start: 6277763943994 cycles
+    End: 6277764072416 cycles
+    Duration: 128422 cycles
 Task 85:
   Chunk 0 (Big):
-    Start: 6235706259499 cycles
-    End: 6235706386138 cycles
-    Duration: 126639 cycles
+    Start: 6277755717942 cycles
+    End: 6277755842007 cycles
+    Duration: 124065 cycles
   Chunk 1 (GPU):
-    Start: 6235706386289 cycles
-    End: 6235706587420 cycles
-    Duration: 201131 cycles
+    Start: 6277755842027 cycles
+    End: 6277756032510 cycles
+    Duration: 190483 cycles
   Chunk 2 (Little):
-    Start: 6235714880211 cycles
-    End: 6235715153013 cycles
-    Duration: 272802 cycles
+    Start: 6277763943985 cycles
+    End: 6277764330482 cycles
+    Duration: 386497 cycles
   Chunk 3 (Medium):
-    Start: 6235715153030 cycles
-    End: 6235715281254 cycles
-    Duration: 128224 cycles
+    Start: 6277764330504 cycles
+    End: 6277764458732 cycles
+    Duration: 128228 cycles
 Task 86:
   Chunk 0 (Big):
-    Start: 6235706599895 cycles
-    End: 6235706735606 cycles
-    Duration: 135711 cycles
+    Start: 6277756002664 cycles
+    End: 6277756117862 cycles
+    Duration: 115198 cycles
   Chunk 1 (GPU):
-    Start: 6235706735653 cycles
-    End: 6235706967368 cycles
-    Duration: 231715 cycles
+    Start: 6277756117872 cycles
+    End: 6277756309999 cycles
+    Duration: 192127 cycles
   Chunk 2 (Little):
-    Start: 6235715153032 cycles
-    End: 6235715428772 cycles
-    Duration: 275740 cycles
+    Start: 6277764330501 cycles
+    End: 6277764611241 cycles
+    Duration: 280740 cycles
   Chunk 3 (Medium):
-    Start: 6235715428783 cycles
-    End: 6235715556402 cycles
-    Duration: 127619 cycles
+    Start: 6277764611265 cycles
+    End: 6277764739283 cycles
+    Duration: 128018 cycles
 Task 87:
   Chunk 0 (Big):
-    Start: 6235706949457 cycles
-    End: 6235707150667 cycles
-    Duration: 201210 cycles
+    Start: 6277756299843 cycles
+    End: 6277756542624 cycles
+    Duration: 242781 cycles
   Chunk 1 (GPU):
-    Start: 6235707150714 cycles
-    End: 6235707382185 cycles
-    Duration: 231471 cycles
+    Start: 6277756542643 cycles
+    End: 6277756742572 cycles
+    Duration: 199929 cycles
   Chunk 2 (Little):
-    Start: 6235715428788 cycles
-    End: 6235715701885 cycles
-    Duration: 273097 cycles
+    Start: 6277764611263 cycles
+    End: 6277764889254 cycles
+    Duration: 277991 cycles
   Chunk 3 (Medium):
-    Start: 6235715701907 cycles
-    End: 6235715829036 cycles
-    Duration: 127129 cycles
+    Start: 6277764889265 cycles
+    End: 6277765018114 cycles
+    Duration: 128849 cycles
 Task 88:
   Chunk 0 (Big):
-    Start: 6235707229261 cycles
-    End: 6235707357035 cycles
-    Duration: 127774 cycles
+    Start: 6277756560773 cycles
+    End: 6277756748354 cycles
+    Duration: 187581 cycles
   Chunk 1 (GPU):
-    Start: 6235707382195 cycles
-    End: 6235707632433 cycles
-    Duration: 250238 cycles
+    Start: 6277756748371 cycles
+    End: 6277756942274 cycles
+    Duration: 193903 cycles
   Chunk 2 (Little):
-    Start: 6235715701905 cycles
-    End: 6235715976285 cycles
-    Duration: 274380 cycles
+    Start: 6277764889266 cycles
+    End: 6277765162111 cycles
+    Duration: 272845 cycles
   Chunk 3 (Medium):
-    Start: 6235715976300 cycles
-    End: 6235716103852 cycles
-    Duration: 127552 cycles
+    Start: 6277765162131 cycles
+    End: 6277765290575 cycles
+    Duration: 128444 cycles
 Task 89:
   Chunk 0 (Big):
-    Start: 6235707517154 cycles
-    End: 6235707644569 cycles
-    Duration: 127415 cycles
+    Start: 6277756856610 cycles
+    End: 6277757047805 cycles
+    Duration: 191195 cycles
   Chunk 1 (GPU):
-    Start: 6235707644579 cycles
-    End: 6235707924800 cycles
-    Duration: 280221 cycles
+    Start: 6277757047826 cycles
+    End: 6277757242208 cycles
+    Duration: 194382 cycles
   Chunk 2 (Little):
-    Start: 6235715976309 cycles
-    End: 6235716249952 cycles
-    Duration: 273643 cycles
+    Start: 6277765162132 cycles
+    End: 6277765436593 cycles
+    Duration: 274461 cycles
   Chunk 3 (Medium):
-    Start: 6235716249961 cycles
-    End: 6235716378413 cycles
-    Duration: 128452 cycles
+    Start: 6277765436606 cycles
+    End: 6277765565286 cycles
+    Duration: 128680 cycles
 Task 90:
   Chunk 0 (Big):
-    Start: 6235707802256 cycles
-    End: 6235707931229 cycles
-    Duration: 128973 cycles
+    Start: 6277757125807 cycles
+    End: 6277757323312 cycles
+    Duration: 197505 cycles
   Chunk 1 (GPU):
-    Start: 6235707931241 cycles
-    End: 6235708174709 cycles
-    Duration: 243468 cycles
+    Start: 6277757323379 cycles
+    End: 6277757517337 cycles
+    Duration: 193958 cycles
   Chunk 2 (Little):
-    Start: 6235716249966 cycles
-    End: 6235716530722 cycles
-    Duration: 280756 cycles
+    Start: 6277765436601 cycles
+    End: 6277765709679 cycles
+    Duration: 273078 cycles
   Chunk 3 (Medium):
-    Start: 6235716530737 cycles
-    End: 6235716660973 cycles
-    Duration: 130236 cycles
+    Start: 6277765709689 cycles
+    End: 6277765838717 cycles
+    Duration: 129028 cycles
 Task 91:
   Chunk 0 (Big):
-    Start: 6235708084563 cycles
-    End: 6235708290668 cycles
-    Duration: 206105 cycles
+    Start: 6277757414207 cycles
+    End: 6277757538391 cycles
+    Duration: 124184 cycles
   Chunk 1 (GPU):
-    Start: 6235708290755 cycles
-    End: 6235708520394 cycles
-    Duration: 229639 cycles
+    Start: 6277757538518 cycles
+    End: 6277757733755 cycles
+    Duration: 195237 cycles
   Chunk 2 (Little):
-    Start: 6235716530735 cycles
-    End: 6235716804195 cycles
-    Duration: 273460 cycles
+    Start: 6277765709692 cycles
+    End: 6277765986551 cycles
+    Duration: 276859 cycles
   Chunk 3 (Medium):
-    Start: 6235716804214 cycles
-    End: 6235716934124 cycles
-    Duration: 129910 cycles
+    Start: 6277765986571 cycles
+    End: 6277766116051 cycles
+    Duration: 129480 cycles
 Task 92:
   Chunk 0 (Big):
-    Start: 6235708376008 cycles
-    End: 6235708513266 cycles
-    Duration: 137258 cycles
+    Start: 6277757701363 cycles
+    End: 6277757898378 cycles
+    Duration: 197015 cycles
   Chunk 1 (GPU):
-    Start: 6235708520406 cycles
-    End: 6235708750632 cycles
-    Duration: 230226 cycles
+    Start: 6277757930095 cycles
+    End: 6277758127772 cycles
+    Duration: 197677 cycles
   Chunk 2 (Little):
-    Start: 6235716804215 cycles
-    End: 6235717078147 cycles
-    Duration: 273932 cycles
+    Start: 6277765986569 cycles
+    End: 6277766263480 cycles
+    Duration: 276911 cycles
   Chunk 3 (Medium):
-    Start: 6235717078159 cycles
-    End: 6235717205742 cycles
-    Duration: 127583 cycles
+    Start: 6277766263503 cycles
+    End: 6277766392576 cycles
+    Duration: 129073 cycles
 Task 93:
   Chunk 0 (Big):
-    Start: 6235708663441 cycles
-    End: 6235708799653 cycles
-    Duration: 136212 cycles
+    Start: 6277757983981 cycles
+    End: 6277758107936 cycles
+    Duration: 123955 cycles
   Chunk 1 (GPU):
-    Start: 6235708799836 cycles
-    End: 6235709030839 cycles
-    Duration: 231003 cycles
+    Start: 6277758127783 cycles
+    End: 6277758319472 cycles
+    Duration: 191689 cycles
   Chunk 2 (Little):
-    Start: 6235717078163 cycles
-    End: 6235717360384 cycles
-    Duration: 282221 cycles
+    Start: 6277766263497 cycles
+    End: 6277766545040 cycles
+    Duration: 281543 cycles
   Chunk 3 (Medium):
-    Start: 6235717360409 cycles
-    End: 6235717490128 cycles
-    Duration: 129719 cycles
+    Start: 6277766545053 cycles
+    End: 6277766674323 cycles
+    Duration: 129270 cycles
 Task 94:
   Chunk 0 (Big):
-    Start: 6235709002294 cycles
-    End: 6235709137972 cycles
-    Duration: 135678 cycles
+    Start: 6277758267472 cycles
+    End: 6277758391424 cycles
+    Duration: 123952 cycles
   Chunk 1 (GPU):
-    Start: 6235709138053 cycles
-    End: 6235709371335 cycles
-    Duration: 233282 cycles
+    Start: 6277758391463 cycles
+    End: 6277758585976 cycles
+    Duration: 194513 cycles
   Chunk 2 (Little):
-    Start: 6235717360419 cycles
-    End: 6235717646767 cycles
-    Duration: 286348 cycles
+    Start: 6277766545050 cycles
+    End: 6277766824912 cycles
+    Duration: 279862 cycles
   Chunk 3 (Medium):
-    Start: 6235717646781 cycles
-    End: 6235717776692 cycles
-    Duration: 129911 cycles
+    Start: 6277766824921 cycles
+    End: 6277766954135 cycles
+    Duration: 129214 cycles
 Task 95:
   Chunk 0 (Big):
-    Start: 6235709290053 cycles
-    End: 6235709426267 cycles
-    Duration: 136214 cycles
+    Start: 6277758549558 cycles
+    End: 6277758665464 cycles
+    Duration: 115906 cycles
   Chunk 1 (GPU):
-    Start: 6235709426308 cycles
-    End: 6235709657804 cycles
-    Duration: 231496 cycles
+    Start: 6277758665486 cycles
+    End: 6277758859242 cycles
+    Duration: 193756 cycles
   Chunk 2 (Little):
-    Start: 6235717646786 cycles
-    End: 6235717920997 cycles
-    Duration: 274211 cycles
+    Start: 6277766824921 cycles
+    End: 6277767101240 cycles
+    Duration: 276319 cycles
   Chunk 3 (Medium):
-    Start: 6235717921009 cycles
-    End: 6235718048855 cycles
-    Duration: 127846 cycles
+    Start: 6277767101256 cycles
+    End: 6277767230551 cycles
+    Duration: 129295 cycles
 Task 96:
   Chunk 0 (Big):
-    Start: 6235709643718 cycles
-    End: 6235709779480 cycles
-    Duration: 135762 cycles
+    Start: 6277758825776 cycles
+    End: 6277758940876 cycles
+    Duration: 115100 cycles
   Chunk 1 (GPU):
-    Start: 6235709779495 cycles
-    End: 6235710009589 cycles
-    Duration: 230094 cycles
+    Start: 6277758940901 cycles
+    End: 6277759136651 cycles
+    Duration: 195750 cycles
   Chunk 2 (Little):
-    Start: 6235717921012 cycles
-    End: 6235718199508 cycles
-    Duration: 278496 cycles
+    Start: 6277767101249 cycles
+    End: 6277767383276 cycles
+    Duration: 282027 cycles
   Chunk 3 (Medium):
-    Start: 6235718199516 cycles
-    End: 6235718330614 cycles
-    Duration: 131098 cycles
+    Start: 6277767383289 cycles
+    End: 6277767512570 cycles
+    Duration: 129281 cycles
 Task 97:
   Chunk 0 (Big):
-    Start: 6235710084211 cycles
-    End: 6235710219027 cycles
-    Duration: 134816 cycles
+    Start: 6277759187690 cycles
+    End: 6277759303373 cycles
+    Duration: 115683 cycles
   Chunk 1 (GPU):
-    Start: 6235710257141 cycles
-    End: 6235710488681 cycles
-    Duration: 231540 cycles
+    Start: 6277759303394 cycles
+    End: 6277759502782 cycles
+    Duration: 199388 cycles
   Chunk 2 (Little):
-    Start: 6235718199532 cycles
-    End: 6235718476495 cycles
-    Duration: 276963 cycles
+    Start: 6277767383285 cycles
+    End: 6277767659928 cycles
+    Duration: 276643 cycles
   Chunk 3 (Medium):
-    Start: 6235718476512 cycles
-    End: 6235718603215 cycles
-    Duration: 126703 cycles
+    Start: 6277767659940 cycles
+    End: 6277767789576 cycles
+    Duration: 129636 cycles
 Task 98:
   Chunk 0 (Big):
-    Start: 6235710289377 cycles
-    End: 6235710426676 cycles
-    Duration: 137299 cycles
+    Start: 6277759393718 cycles
+    End: 6277759586869 cycles
+    Duration: 193151 cycles
   Chunk 1 (GPU):
-    Start: 6235710488687 cycles
-    End: 6235710724758 cycles
-    Duration: 236071 cycles
+    Start: 6277759586952 cycles
+    End: 6277759781027 cycles
+    Duration: 194075 cycles
   Chunk 2 (Little):
-    Start: 6235718476515 cycles
-    End: 6235718757444 cycles
-    Duration: 280929 cycles
+    Start: 6277767659934 cycles
+    End: 6277767934311 cycles
+    Duration: 274377 cycles
   Chunk 3 (Medium):
-    Start: 6235718757456 cycles
-    End: 6235718884577 cycles
-    Duration: 127121 cycles
+    Start: 6277767934324 cycles
+    End: 6277768064263 cycles
+    Duration: 129939 cycles
 Task 99:
   Chunk 0 (Big):
-    Start: 6235710590338 cycles
-    End: 6235710725848 cycles
-    Duration: 135510 cycles
+    Start: 6277759664378 cycles
+    End: 6277759791981 cycles
+    Duration: 127603 cycles
   Chunk 1 (GPU):
-    Start: 6235710725878 cycles
-    End: 6235710963233 cycles
-    Duration: 237355 cycles
+    Start: 6277759791985 cycles
+    End: 6277759987928 cycles
+    Duration: 195943 cycles
   Chunk 2 (Little):
-    Start: 6235718757463 cycles
-    End: 6235719033875 cycles
-    Duration: 276412 cycles
+    Start: 6277767934325 cycles
+    End: 6277768208560 cycles
+    Duration: 274235 cycles
   Chunk 3 (Medium):
-    Start: 6235719033883 cycles
-    End: 6235719160578 cycles
-    Duration: 126695 cycles
+    Start: 6277768208576 cycles
+    End: 6277768337086 cycles
+    Duration: 128510 cycles

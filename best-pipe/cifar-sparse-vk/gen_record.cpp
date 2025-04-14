@@ -1,7 +1,5 @@
 #include <omp.h>
 
-#include <vector>
-
 #include "builtin-apps/app.hpp"
 #include "common.hpp"
 
@@ -10,40 +8,6 @@
 // ----------------------------------------------------------------------------
 
 namespace device_3A021JEHN02756 {
-
-// ----------------------------------------------------------------------------
-// Schedule 0
-// ----------------------------------------------------------------------------
-// Stage assignments:
-// Big = [0]
-// GPU = [1, 2]
-// Medium = [3, 4, 5, 6]
-// Little = [7, 8]
-// ----------------------------------------------------------------------------
-static void BM_pipe_cifar_sparse_vk_schedule_best() {
-  SETUP_DATA;
-
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                        {3, ProcessorType::kLittleCore},
-                                    });
-    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 3);
-    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 4, 7);
-    auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 8, 9);
-
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
-
-  RecordManager::instance().dump_records();
-}
 
 // ----------------------------------------------------------------------------
 // Schedule 1
@@ -443,7 +407,8 @@ int main(int argc, char** argv) {
       device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_10();
       break;
     default:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_best();
+      std::cerr << "Invalid schedule ID. Please choose a schedule between 1 and 10." << std::endl;
+      return 1;
   }
 
   return 0;

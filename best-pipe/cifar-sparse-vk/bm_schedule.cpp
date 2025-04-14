@@ -7,36 +7,6 @@
 namespace device_3A021JEHN02756 {
 
 // ----------------------------------------------------------------------------
-// Schedule 0
-// ----------------------------------------------------------------------------
-// Stage assignments:
-// Big = [0]
-// GPU = [1, 2]
-// Medium = [3, 4, 5, 6]
-// Little = [7, 8]
-// ----------------------------------------------------------------------------
-static void BM_pipe_cifar_sparse_vk_schedule_0(benchmark::State& state) {
-  SETUP_DATA;
-
-  for (auto _ : state) {
-    auto t0 = create_thread(q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread(q_1, q_2, disp, 2, 3);
-    auto t2 = create_thread(q_2, q_3, g_medium_cores, 4, 7);
-    auto t3 = create_thread(q_3, q_0, g_little_cores, 8, 9);
-
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
-}
-
-BENCHMARK(BM_pipe_cifar_sparse_vk_schedule_0)
-    ->Unit(benchmark::kMillisecond)
-    ->Iterations(1)
-    ->Repetitions(5);
-
-// ----------------------------------------------------------------------------
 // Schedule 1
 // ----------------------------------------------------------------------------
 // Stage assignments:

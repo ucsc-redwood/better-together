@@ -326,14 +326,15 @@ try:
 # Measure Cifar-Sparse Real Time and Gen Figure
 # ----------------------------------------------------------------------------
 
+# py scripts-v2/gen_schedule/schedule.py
+
 make_bm_log stage:
     xmake r gen-records-cifar-sparse-vk --schedule {{stage}} | sed -n '11,1710p' | tee BM_best_raw_stage_{{stage}}.txt
 
 log_to_figure stage:
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_best_raw_stage_{{stage}}.txt --output BM_best_raw_stage_{{stage}}.png --start-time 0.25 --end-time 0.5
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_best_raw_stage_{{stage}}.txt --output BM_best_raw_stage_{{stage}}.png --start-time 0 --end-time 1
 
 try-all:
-    just make_bm_log 0
     just make_bm_log 1
     just make_bm_log 2
     just make_bm_log 3
@@ -345,16 +346,32 @@ try-all:
     just make_bm_log 9
     just make_bm_log 10
 
-try-all-figure:
-    just log_to_figure 0
-    just log_to_figure 1
-    just log_to_figure 2
-    just log_to_figure 3
-    just log_to_figure 4
-    just log_to_figure 5
-    just log_to_figure 6
-    just log_to_figure 7
-    just log_to_figure 8
-    just log_to_figure 9
-    just log_to_figure 10
 
+# Average task durations for each schedule:
+# Schedule 0: 12.2012 ms
+# Schedule 1: 12.416778 ms
+# Schedule 2: 11.824737 ms
+# Schedule 3: 7.610159 ms
+# Schedule 4: 9.040559 ms
+# Schedule 5: 12.960554 ms
+# Schedule 6: 7.108262 ms
+# Schedule 7: 12.148757 ms
+# Schedule 8: 6.685347 ms
+# Schedule 9: 7.954996 ms
+# Schedule 10: 12.057925 ms
+try-all-figure:
+    just log_to_figure 1 | tee BM_best_raw_schedule_1_analysis.txt
+    just log_to_figure 2 | tee BM_best_raw_schedule_2_analysis.txt
+    just log_to_figure 3 | tee BM_best_raw_schedule_3_analysis.txt
+    just log_to_figure 4 | tee BM_best_raw_schedule_4_analysis.txt
+    just log_to_figure 5 | tee BM_best_raw_schedule_5_analysis.txt
+    just log_to_figure 6 | tee BM_best_raw_schedule_6_analysis.txt
+    just log_to_figure 7 | tee BM_best_raw_schedule_7_analysis.txt
+    just log_to_figure 8 | tee BM_best_raw_schedule_8_analysis.txt
+    just log_to_figure 9 | tee BM_best_raw_schedule_9_analysis.txt
+    just log_to_figure 10 | tee BM_best_raw_schedule_10_analysis.txt
+        cat BM_best_raw_schedule_*_analysis.txt | grep "All Tasks Average:" | awk -F'[()]' '{print $2}' | awk '{
+                                                                        if (NR%4==1) max=$1
+                                                                        if ($1>max) max=$1
+                                                                        if (NR%4==0) print max
+                                                                        }'
