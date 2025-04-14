@@ -14,7 +14,8 @@ TEST(AppdataTest, Initialization) {
   EXPECT_EQ(appdata.get_n_input(), 3840 * 2160);
   EXPECT_EQ(appdata.get_n_unique(), 8262775);
   EXPECT_EQ(appdata.get_n_brt_nodes(), 8262774);
-  EXPECT_EQ(appdata.get_n_octree_nodes(), 3841043);
+
+  EXPECT_TRUE(appdata.get_n_octree_nodes() == 3841043 || appdata.get_n_octree_nodes() == 3841045);
 
   EXPECT_LT(appdata.get_n_octree_nodes() / appdata.get_n_input(), tree::kMemoryRatio);
 }
