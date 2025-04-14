@@ -33,44 +33,51 @@ void run_stage_1(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_input.d2();    // Expected 32
   const int in_width = appdata.u_input.d3();     // Expected 32
 
-  const int out_channels = appdata.conv1_dense.rows;  // Expected 16
+  const int out_channels = appdata.u_conv1_w.d0();  // Expected 16
+  const int out_height = appdata.u_conv1_out.d2();  // Expected 32
+  const int out_width = appdata.u_conv1_out.d3();   // Expected 32
 
-  v2::conv2d_omp_batched(appdata.u_input.data(),
-                         batch_size,   // 128
-                         in_channels,  // 3
-                         in_height,    // 32
-                         in_width,     // 32
-                         appdata.conv1_dense.values_data(),
-                         appdata.conv1_dense.row_ptr_data(),
-                         appdata.conv1_dense.col_idx_data(),
-                         out_channels,  // 16
-                         appdata.u_conv1_b.data(),
-                         appdata.u_conv1_b.size(),
-                         kKernelSize,
-                         kStride,
-                         kPadding,
-                         kRelu,
-                         appdata.u_conv1_out.data());
+  v2::conv2d_batch_u(appdata.u_input.data(),
+                     appdata.u_conv1_w.data(),
+                     appdata.u_conv1_b.data(),
+                     appdata.u_conv1_out.data(),
+                     batch_size,    // 128
+                     in_channels,   // 3
+                     in_height,     // 32
+                     in_width,      // 32
+                     out_channels,  // 16
+                     kKernelSize,   // 3
+                     kKernelSize,   // 3
+                     out_height,    // 32
+                     out_width,     // 32
+                     kStride,       // 1
+                     kPadding,      // 1
+                     kRelu);
 }
 
 void run_stage_2(cifar_dense::v2::AppData &appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 2, &appdata);
 
-  // Extract dimensions from the convolution output NDArray4D.
+  // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
   const int channels = appdata.u_conv1_out.d1();    // Expected: 16
   const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
   const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
 
-  // Call the clean batched max pool kernel.
-  maxpool2d_omp_batched_clean(appdata.u_conv1_out.data(),  // input_data pointer
-                              batch_size,                  // number of images
-                              channels,                    // number of channels per image
-                              in_height,                   // height of the input feature map
-                              in_width,                    // width of the input feature map
-                              kPoolSize,
-                              kPoolStride,
-                              appdata.u_pool1_out.data());
+  const int out_height = appdata.u_pool1_out.d2();  // Expected: 16
+  const int out_width = appdata.u_pool1_out.d3();   // Expected: 16
+
+  // Call the batched max pool kernel
+  v2::maxpool2d_batch_u(appdata.u_conv1_out.data(),  // input_data pointer
+                        appdata.u_pool1_out.data(),  // output_data pointer
+                        batch_size,                  // number of images
+                        channels,                    // number of channels per image
+                        in_height,                   // height of the input feature map
+                        in_width,                    // width of the input feature map
+                        out_height,                  // height of the output feature map
+                        out_width,                   // width of the output feature map
+                        kPoolSize,                   // pool size (2)
+                        kPoolStride);                // pool stride (2)
 }
 
 void run_stage_3(cifar_dense::v2::AppData &appdata) {
@@ -82,24 +89,26 @@ void run_stage_3(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_pool1_out.d2();    // Expected: 16
   const int in_width = appdata.u_pool1_out.d3();     // Expected: 16
 
-  const int out_channels = appdata.conv2_dense.rows;  // Expected: 32
+  const int out_channels = appdata.u_conv2_w.d0();  // Expected: 32
+  const int out_height = appdata.u_conv2_out.d2();  // Expected: 16
+  const int out_width = appdata.u_conv2_out.d3();   // Expected: 16
 
-  v2::conv2d_omp_batched(appdata.u_pool1_out.data(),
-                         batch_size,   // 128
-                         in_channels,  // 16
-                         in_height,    // 16
-                         in_width,     // 16
-                         appdata.conv2_dense.values_data(),
-                         appdata.conv2_dense.row_ptr_data(),
-                         appdata.conv2_dense.col_idx_data(),
-                         out_channels,  // 32
-                         appdata.u_conv2_b.data(),
-                         appdata.u_conv2_b.size(),
-                         kKernelSize,
-                         kStride,
-                         kPadding,
-                         kRelu,
-                         appdata.u_conv2_out.data());
+  v2::conv2d_batch_u(appdata.u_pool1_out.data(),
+                     appdata.u_conv2_w.data(),
+                     appdata.u_conv2_b.data(),
+                     appdata.u_conv2_out.data(),
+                     batch_size,    // 128
+                     in_channels,   // 16
+                     in_height,     // 16
+                     in_width,      // 16
+                     out_channels,  // 32
+                     kKernelSize,   // 3
+                     kKernelSize,   // 3
+                     out_height,    // 16
+                     out_width,     // 16
+                     kStride,       // 1
+                     kPadding,      // 1
+                     kRelu);
 }
 
 void run_stage_4(cifar_dense::v2::AppData &appdata) {
@@ -111,15 +120,20 @@ void run_stage_4(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_conv2_out.d2();   // Expected: 16
   const int in_width = appdata.u_conv2_out.d3();    // Expected: 16
 
-  // Call the clean batched max pool kernel
-  maxpool2d_omp_batched_clean(appdata.u_conv2_out.data(),  // input_data pointer
-                              batch_size,                  // number of images
-                              channels,                    // number of channels per image
-                              in_height,                   // height of the input feature map
-                              in_width,                    // width of the input feature map
-                              kPoolSize,
-                              kPoolStride,
-                              appdata.u_pool2_out.data());
+  const int out_height = appdata.u_pool2_out.d2();  // Expected: 8
+  const int out_width = appdata.u_pool2_out.d3();   // Expected: 8
+
+  // Call the batched max pool kernel
+  v2::maxpool2d_batch_u(appdata.u_conv2_out.data(),  // input_data pointer
+                        appdata.u_pool2_out.data(),  // output_data pointer
+                        batch_size,                  // number of images
+                        channels,                    // number of channels per image
+                        in_height,                   // height of the input feature map
+                        in_width,                    // width of the input feature map
+                        out_height,                  // height of the output feature map
+                        out_width,                   // width of the output feature map
+                        kPoolSize,                   // pool size (2)
+                        kPoolStride);                // pool stride (2)
 }
 
 void run_stage_5(cifar_dense::v2::AppData &appdata) {
@@ -131,24 +145,26 @@ void run_stage_5(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_pool2_out.d2();    // Expected: 8
   const int in_width = appdata.u_pool2_out.d3();     // Expected: 8
 
-  const int out_channels = appdata.conv3_dense.rows;  // Expected: 64
+  const int out_channels = appdata.u_conv3_w.d0();  // Expected: 64
+  const int out_height = appdata.u_conv3_out.d2();  // Expected: 8
+  const int out_width = appdata.u_conv3_out.d3();   // Expected: 8
 
-  v2::conv2d_omp_batched(appdata.u_pool2_out.data(),
-                         batch_size,   // 128
-                         in_channels,  // 32
-                         in_height,    // 8
-                         in_width,     // 8
-                         appdata.conv3_dense.values_data(),
-                         appdata.conv3_dense.row_ptr_data(),
-                         appdata.conv3_dense.col_idx_data(),
-                         out_channels,  // 64
-                         appdata.u_conv3_b.data(),
-                         appdata.u_conv3_b.size(),
-                         kKernelSize,
-                         kStride,
-                         kPadding,
-                         kRelu,
-                         appdata.u_conv3_out.data());
+  v2::conv2d_batch_u(appdata.u_pool2_out.data(),
+                     appdata.u_conv3_w.data(),
+                     appdata.u_conv3_b.data(),
+                     appdata.u_conv3_out.data(),
+                     batch_size,    // 128
+                     in_channels,   // 32
+                     in_height,     // 8
+                     in_width,      // 8
+                     out_channels,  // 64
+                     kKernelSize,   // 3
+                     kKernelSize,   // 3
+                     out_height,    // 8
+                     out_width,     // 8
+                     kStride,       // 1
+                     kPadding,      // 1
+                     kRelu);
 }
 
 void run_stage_6(cifar_dense::v2::AppData &appdata) {
@@ -160,24 +176,26 @@ void run_stage_6(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_conv3_out.d2();    // Expected: 8
   const int in_width = appdata.u_conv3_out.d3();     // Expected: 8
 
-  const int out_channels = appdata.conv4_dense.rows;  // Expected: 64
+  const int out_channels = appdata.u_conv4_w.d0();  // Expected: 64
+  const int out_height = appdata.u_conv4_out.d2();  // Expected: 8
+  const int out_width = appdata.u_conv4_out.d3();   // Expected: 8
 
-  v2::conv2d_omp_batched(appdata.u_conv3_out.data(),
-                         batch_size,   // 128
-                         in_channels,  // 64
-                         in_height,    // 8
-                         in_width,     // 8
-                         appdata.conv4_dense.values_data(),
-                         appdata.conv4_dense.row_ptr_data(),
-                         appdata.conv4_dense.col_idx_data(),
-                         out_channels,  // 64
-                         appdata.u_conv4_b.data(),
-                         appdata.u_conv4_b.size(),
-                         kKernelSize,
-                         kStride,
-                         kPadding,
-                         kRelu,
-                         appdata.u_conv4_out.data());
+  v2::conv2d_batch_u(appdata.u_conv3_out.data(),
+                     appdata.u_conv4_w.data(),
+                     appdata.u_conv4_b.data(),
+                     appdata.u_conv4_out.data(),
+                     batch_size,    // 128
+                     in_channels,   // 64
+                     in_height,     // 8
+                     in_width,      // 8
+                     out_channels,  // 64
+                     kKernelSize,   // 3
+                     kKernelSize,   // 3
+                     out_height,    // 8
+                     out_width,     // 8
+                     kStride,       // 1
+                     kPadding,      // 1
+                     kRelu);
 }
 
 void run_stage_7(cifar_dense::v2::AppData &appdata) {
@@ -189,24 +207,26 @@ void run_stage_7(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_conv4_out.d2();    // Expected: 8
   const int in_width = appdata.u_conv4_out.d3();     // Expected: 8
 
-  const int out_channels = appdata.conv5_dense.rows;  // Expected: 64
+  const int out_channels = appdata.u_conv5_w.d0();  // Expected: 64
+  const int out_height = appdata.u_conv5_out.d2();  // Expected: 8
+  const int out_width = appdata.u_conv5_out.d3();   // Expected: 8
 
-  v2::conv2d_omp_batched(appdata.u_conv4_out.data(),
-                         batch_size,   // 128
-                         in_channels,  // 64
-                         in_height,    // 8
-                         in_width,     // 8
-                         appdata.conv5_dense.values_data(),
-                         appdata.conv5_dense.row_ptr_data(),
-                         appdata.conv5_dense.col_idx_data(),
-                         out_channels,  // 64
-                         appdata.u_conv5_b.data(),
-                         appdata.u_conv5_b.size(),
-                         kKernelSize,
-                         kStride,
-                         kPadding,
-                         kRelu,
-                         appdata.u_conv5_out.data());
+  v2::conv2d_batch_u(appdata.u_conv4_out.data(),
+                     appdata.u_conv5_w.data(),
+                     appdata.u_conv5_b.data(),
+                     appdata.u_conv5_out.data(),
+                     batch_size,    // 128
+                     in_channels,   // 64
+                     in_height,     // 8
+                     in_width,      // 8
+                     out_channels,  // 64
+                     kKernelSize,   // 3
+                     kKernelSize,   // 3
+                     out_height,    // 8
+                     out_width,     // 8
+                     kStride,       // 1
+                     kPadding,      // 1
+                     kRelu);
 }
 
 void run_stage_8(cifar_dense::v2::AppData &appdata) {
@@ -218,15 +238,20 @@ void run_stage_8(cifar_dense::v2::AppData &appdata) {
   const int in_height = appdata.u_conv5_out.d2();   // Expected: 8
   const int in_width = appdata.u_conv5_out.d3();    // Expected: 8
 
-  // Call the clean batched max pool kernel
-  maxpool2d_omp_batched_clean(appdata.u_conv5_out.data(),  // input_data pointer
-                              batch_size,                  // number of images
-                              channels,                    // number of channels per image
-                              in_height,                   // height of the input feature map
-                              in_width,                    // width of the input feature map
-                              kPoolSize,
-                              kPoolStride,
-                              appdata.u_pool3_out.data());
+  const int out_height = appdata.u_pool3_out.d2();  // Expected: 4
+  const int out_width = appdata.u_pool3_out.d3();   // Expected: 4
+
+  // Call the batched max pool kernel
+  v2::maxpool2d_batch_u(appdata.u_conv5_out.data(),  // input_data pointer
+                        appdata.u_pool3_out.data(),  // output_data pointer
+                        batch_size,                  // number of images
+                        channels,                    // number of channels per image
+                        in_height,                   // height of the input feature map
+                        in_width,                    // width of the input feature map
+                        out_height,                  // height of the output feature map
+                        out_width,                   // width of the output feature map
+                        kPoolSize,                   // pool size (2)
+                        kPoolStride);                // pool stride (2)
 }
 
 void run_stage_9(cifar_dense::v2::AppData &appdata) {
@@ -241,20 +266,24 @@ void run_stage_9(cifar_dense::v2::AppData &appdata) {
 
   // Total features per image = channels * height * width
   const int input_features = channels * pool_height * pool_width;  // 64 * 4 * 4 = 1024
+  const int out_features = appdata.u_linear_w.rows();              // Expected: 10
 
-  // Output neurons = number of classes
-  const int out_neurons = appdata.linear_dense.rows;  // Expected: 10
+  // We need to create a temporary buffer for the flattened input
+  // The pool3 output is (batch_size, channels, pool_height, pool_width)
+  // We need to flatten it to (batch_size, channels*pool_height*pool_width)
+
+  // Since the linear_batch_u function expects a flattened input, we need to ensure
+  // that the data is correctly laid out. The pool3_out is already in the right layout,
+  // but we need to interpret it as a 2D array.
 
   // Use the batched dense linear layer kernel
-  v2::linear_omp_batched(appdata.u_pool3_out.data(),  // Input data (flattened 4D->2D)
-                         batch_size,                  // 128
-                         input_features,              // 1024
-                         appdata.linear_dense.values_data(),
-                         appdata.linear_dense.row_ptr_data(),
-                         appdata.linear_dense.col_idx_data(),
-                         appdata.u_linear_b.data(),
-                         appdata.u_linear_out.data(),
-                         out_neurons);  // 10
+  v2::linear_batch_u(appdata.u_pool3_out.data(),  // Input data (flattened 4D->2D)
+                     appdata.u_linear_w.data(),
+                     appdata.u_linear_b.data(),
+                     appdata.u_linear_out.data(),
+                     batch_size,      // 128
+                     input_features,  // 1024
+                     out_features);   // 10
 }
 
 }  // namespace v2
