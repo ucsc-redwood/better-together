@@ -77,7 +77,6 @@ on_load(function(target)
     -- JIT compilation is not supported on Tegra devices in safe context
     target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", {force = true})
 
-
 	-- Add NVTX library for Nsight Systems to visualize regions of interest
 	target:add("ldflags", "-lnvToolsExt", {force = true})
 
