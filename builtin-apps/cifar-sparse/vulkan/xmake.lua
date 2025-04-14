@@ -18,24 +18,6 @@ do
 end
 
 -- ----------------------------------------------------------------------------
--- Default google benchmark on individual stages without interference
--- ----------------------------------------------------------------------------
-
-target("bm-mini-cifar-sparse-vk")
-do
-	add_rules("common_flags", "vulkan_config", "run_on_android")
-	set_kind("binary")
-	add_files({
-		"./bm_main_mini.cpp",
-	})
-
-	add_deps("builtin-apps-vulkan")
-	add_deps("builtin-apps")
-	
-	add_packages("benchmark")
-end
-
--- ----------------------------------------------------------------------------
 -- Run stages with interference (100 tasks)
 -- ----------------------------------------------------------------------------
 
