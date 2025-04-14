@@ -7,18 +7,15 @@ import seaborn as sns
 # Set plotting style (optional)
 sns.set(style="whitegrid")
 
-# Names of the processors in the assumed order in the files
-PROCESSORS = ["Little", "Medium", "Big", "GPU"]
-
 # Assumed stage names (one per block; file is expected to have 9 blocks)
 STAGE_NAMES = [f"Stage {i}" for i in range(1, 10)]
 
 
-def parse_benchmark_file(filepath):
+def parse_benchmark_file(filepath, expected_processors):
     """
     Parse the benchmark file and return a list of lists.
-    Each inner list corresponds to one stage, containing four float AVG values
-    for the processors in the order defined by PROCESSORS.
+    Each inner list corresponds to one stage, containing float AVG values
+    for the processors in the order defined by the device's processors list.
 
     Expected file format (each block separated by a blank line):
       PROCESSOR=Little|AVG=19.0214
@@ -49,9 +46,9 @@ def parse_benchmark_file(filepath):
     # Parse each block to get the AVG values
     data = []
     for block in stages:
-        if len(block) != len(PROCESSORS):
+        if len(block) != len(expected_processors):
             raise ValueError(
-                f"Expected {len(PROCESSORS)} lines per stage, got {len(block)} in block: {block}"
+                f"Expected {len(expected_processors)} lines per stage, got {len(block)} in block: {block}"
             )
         stage_values = []
         for line in block:
@@ -67,27 +64,27 @@ def parse_benchmark_file(filepath):
     return data
 
 
-def create_dataframe(data, device_name, condition):
+def create_dataframe(data, device_name, condition, processors):
     """
     Convert parsed data into a Pandas DataFrame.
     'data' is a list of lists;
     'condition' is a string, e.g., 'Normal' or 'Occupied'.
     """
-    df = pd.DataFrame(data, columns=PROCESSORS, index=STAGE_NAMES)
+    df = pd.DataFrame(data, columns=processors, index=STAGE_NAMES)
     df.index.name = f"Stage ({condition})"
     return df
 
 
-def process_device(normal_file, occupied_file, device_id):
+def process_device(normal_file, occupied_file, device_id, processors):
     print(f"Processing device {device_id} ...")
 
     # Parse the input files
-    normal_data = parse_benchmark_file(normal_file)
-    occupied_data = parse_benchmark_file(occupied_file)
+    normal_data = parse_benchmark_file(normal_file, processors)
+    occupied_data = parse_benchmark_file(occupied_file, processors)
 
     # Create DataFrames for normal and occupied conditions
-    df_normal = create_dataframe(normal_data, device_id, "Normal")
-    df_occupied = create_dataframe(occupied_data, device_id, "Occupied")
+    df_normal = create_dataframe(normal_data, device_id, "Normal", processors)
+    df_occupied = create_dataframe(occupied_data, device_id, "Occupied", processors)
 
     # Calculate ratio and difference DataFrames
     df_ratio = df_occupied / df_normal
@@ -155,10 +152,17 @@ def main():
         "3A021JEHN02756": {
             "normal": "BM_table_cifar_sparse_vk_3A021JEHN02756.txt",
             "occupied": "BM_table_cifar_sparse_vk_3A021JEHN02756_full.txt",
+            "processors": ["Little", "Medium", "Big", "GPU"],
         },
         "9b034f1b": {
             "normal": "BM_table_cifar_sparse_vk_9b034f1b.txt",
             "occupied": "BM_table_cifar_sparse_vk_9b034f1b_full.txt",
+            "processors": ["Little", "Medium", "Big", "GPU"],
+        },
+        "jetson": {
+            "normal": "BM_table_cifar_sparse_vk_jetson.txt",
+            "occupied": "BM_table_cifar_sparse_vk_jetson_full.txt",
+            "processors": ["Little", "GPU"],
         },
     }
 
@@ -166,6 +170,7 @@ def main():
     for device_id, paths in devices.items():
         normal_file = paths["normal"]
         occupied_file = paths["occupied"]
+        processors = paths["processors"]
 
         if not os.path.exists(normal_file):
             print(f"File not found: {normal_file}")
@@ -174,7 +179,7 @@ def main():
             print(f"File not found: {occupied_file}")
             continue
 
-        process_device(normal_file, occupied_file, device_id)
+        process_device(normal_file, occupied_file, device_id, processors)
 
 
 if __name__ == "__main__":
