@@ -88,7 +88,6 @@ if has_config("use_vulkan") then
 			"cifar-sparse/vulkan/dispatchers.hpp",
 			"cifar-dense/vulkan/dispatchers.hpp",
 			"tree/vulkan/dispatchers.hpp",
-			"tree/vulkan/tmp_storage.hpp",
 			"tree/vulkan/vk_appdata.hpp",
 		})
 
@@ -103,6 +102,7 @@ if has_config("use_vulkan") then
 
 	includes("cifar-dense/vulkan/xmake.lua")
 	includes("cifar-sparse/vulkan/xmake.lua")
+	includes("tree/vulkan/xmake.lua")
 end
 
 
