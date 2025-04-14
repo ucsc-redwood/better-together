@@ -303,7 +303,7 @@ run-benchmarks-cifar-sparse-vk-full device:
     xmake r bm-table-cifar-sparse-vk --stage 8 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}_full.txt.tmp  
     xmake r bm-table-cifar-sparse-vk --stage 9 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}_full.txt.tmp
 
-    awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_{{device}}_full.txt.tmp > BM_table_cifar_sparse_vk_{{device}}_full.txt
+    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_{{device}}_full.txt.tmp > BM_table_cifar_sparse_vk_{{device}}_full.txt
     cat BM_table_cifar_sparse_vk_{{device}}_full.txt
 
 run-benchmarks-cifar-sparse-vk device:
@@ -319,7 +319,7 @@ run-benchmarks-cifar-sparse-vk device:
     xmake r bm-table-cifar-sparse-vk --stage 8 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt.tmp  
     xmake r bm-table-cifar-sparse-vk --stage 9 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt.tmp
 
-    awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_{{device}}.txt.tmp > BM_table_cifar_sparse_vk_{{device}}.txt
+    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_{{device}}.txt.tmp > BM_table_cifar_sparse_vk_{{device}}.txt
     cat BM_table_cifar_sparse_vk_{{device}}.txt
 
 run-benchmarks-cifar-sparse-vk-all:
