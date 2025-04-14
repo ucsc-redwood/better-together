@@ -3,7 +3,7 @@
 -- Test, just test if the dispatchers are working
 -- ----------------------------------------------------------------------------
 
-target("test-cifar-sparse-vk")
+target("test-cifar-dense-vk")
 do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
 	set_kind("binary")

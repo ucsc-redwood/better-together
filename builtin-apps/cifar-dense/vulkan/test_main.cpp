@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../sparse_appdata.hpp"
+#include "../appdata.hpp"
 #include "builtin-apps/app.hpp"
 #include "dispatchers.hpp"
 
@@ -9,11 +9,11 @@
 // ----------------------------------------------------------------------------
 
 TEST(AppdataTest, Initialization) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
-  EXPECT_EQ(appdata.conv1_sparse.rows, 16);
-  EXPECT_EQ(appdata.conv1_sparse.cols, 27);
+  EXPECT_EQ(appdata.u_conv1_w.d0(), 16);
+  EXPECT_EQ(appdata.u_linear_w.rows(), 10);
 }
 
 // ----------------------------------------------------------------------------
@@ -21,14 +21,14 @@ TEST(AppdataTest, Initialization) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage1Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
   // Run stage 1
   disp.run_stage_1(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv1_out.d0(), 512);
+  EXPECT_EQ(appdata.u_conv1_out.d0(), 128);
   EXPECT_EQ(appdata.u_conv1_out.d1(), 16);
   EXPECT_EQ(appdata.u_conv1_out.d2(), 32);
   EXPECT_EQ(appdata.u_conv1_out.d3(), 32);
@@ -42,14 +42,14 @@ TEST(Stage1Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage2Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
   // Run stage 2
   disp.run_stage_2(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool1_out.d0(), 512);
+  EXPECT_EQ(appdata.u_pool1_out.d0(), 128);
   EXPECT_EQ(appdata.u_pool1_out.d1(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d2(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
@@ -63,14 +63,14 @@ TEST(Stage2Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage3Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
   // Run stage 3
   disp.run_stage_3(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv2_out.d0(), 512);
+  EXPECT_EQ(appdata.u_conv2_out.d0(), 128);
   EXPECT_EQ(appdata.u_conv2_out.d1(), 32);
   EXPECT_EQ(appdata.u_conv2_out.d2(), 16);
   EXPECT_EQ(appdata.u_conv2_out.d3(), 16);
@@ -84,14 +84,14 @@ TEST(Stage3Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage4Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
   // Run stage 4
   disp.run_stage_4(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool2_out.d0(), 512);
+  EXPECT_EQ(appdata.u_pool2_out.d0(), 128);
   EXPECT_EQ(appdata.u_pool2_out.d1(), 32);
   EXPECT_EQ(appdata.u_pool2_out.d2(), 8);
   EXPECT_EQ(appdata.u_pool2_out.d3(), 8);
@@ -105,14 +105,14 @@ TEST(Stage4Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage5Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
   // Run stage 5
   disp.run_stage_5(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv3_out.d0(), 512);
+  EXPECT_EQ(appdata.u_conv3_out.d0(), 128);
   EXPECT_EQ(appdata.u_conv3_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv3_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv3_out.d3(), 8);
@@ -126,17 +126,17 @@ TEST(Stage5Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage6Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
 
   // Run stage 6
   disp.run_stage_6(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool3_out.d0(), 512);
-  EXPECT_EQ(appdata.u_pool3_out.d1(), 64);
-  EXPECT_EQ(appdata.u_pool3_out.d2(), 4);
-  EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
+  EXPECT_EQ(appdata.u_conv4_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv4_out.d1(), 64);
+  EXPECT_EQ(appdata.u_conv4_out.d2(), 8);
+  EXPECT_EQ(appdata.u_conv4_out.d3(), 8);
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_6(appdata));
@@ -147,8 +147,17 @@ TEST(Stage6Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage7Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
+
+  // Run stage 7
+  disp.run_stage_7(appdata);
+
+  // Check output dimensions
+  EXPECT_EQ(appdata.u_conv5_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv5_out.d1(), 64);
+  EXPECT_EQ(appdata.u_conv5_out.d2(), 8);
+  EXPECT_EQ(appdata.u_conv5_out.d3(), 8);
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_7(appdata));
@@ -159,8 +168,17 @@ TEST(Stage7Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage8Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
+
+  // Run stage 8
+  disp.run_stage_8(appdata);
+
+  // Check output dimensions
+  EXPECT_EQ(appdata.u_pool3_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool3_out.d1(), 64);
+  EXPECT_EQ(appdata.u_pool3_out.d2(), 4);
+  EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_8(appdata));
@@ -171,8 +189,15 @@ TEST(Stage8Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage9Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::v2::AppData appdata(disp.get_mr());
+
+  // Run stage 9
+  disp.run_stage_9(appdata);
+
+  // Check output dimensions
+  EXPECT_EQ(appdata.u_linear_out.rows(), 128);
+  EXPECT_EQ(appdata.u_linear_out.cols(), 10);
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_9(appdata));

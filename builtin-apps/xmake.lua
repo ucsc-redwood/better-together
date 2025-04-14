@@ -100,8 +100,8 @@ if has_config("use_vulkan") then
 	end
 
 
+	includes("cifar-dense/vulkan/xmake.lua")
 	includes("cifar-sparse/vulkan/xmake.lua")
-
 end
 
 
