@@ -16,38 +16,15 @@ static void BM_run_stage_full(const int stage_to_measure) {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kVulkan},
-                                        {1, ProcessorType::kBigCore},
-                                        {2, ProcessorType::kMediumCore},
-                                        {3, ProcessorType::kLittleCore},
+                                        {0, ProcessorType::kLittleCore},
+                                        {1, ProcessorType::kMediumCore},
+                                        {2, ProcessorType::kBigCore},
+                                        {3, ProcessorType::kVulkan},
                                     });
 
-    // vulkan core
+    // little core
     auto t0 = std::thread(
         worker_thread_record<MyTask>, 0, std::ref(q_0), std::ref(q_1), [&](MyTask& task) {
-          disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
-        });
-
-    // big core
-    auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_1), std::ref(q_2), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(
-              g_big_cores, g_big_cores.size(), task.appdata, stage_to_measure, stage_to_measure);
-        });
-
-    // medium core
-    auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_2), std::ref(q_3), [&](MyTask& task) {
-          cifar_sparse::omp::v2::dispatch_multi_stage(g_medium_cores,
-                                                      g_medium_cores.size(),
-                                                      task.appdata,
-                                                      stage_to_measure,
-                                                      stage_to_measure);
-        });
-
-    // little core
-    auto t3 = std::thread(
-        worker_thread_record<MyTask>, 3, std::ref(q_3), std::ref(q_0), [&](MyTask& task) {
           cifar_sparse::omp::v2::dispatch_multi_stage(g_little_cores,
                                                       g_little_cores.size(),
                                                       task.appdata,
@@ -55,15 +32,38 @@ static void BM_run_stage_full(const int stage_to_measure) {
                                                       stage_to_measure);
         });
 
+    // medium core
+    auto t1 = std::thread(
+        worker_thread_record<MyTask>, 1, std::ref(q_1), std::ref(q_2), [&](MyTask& task) {
+          cifar_sparse::omp::v2::dispatch_multi_stage(g_medium_cores,
+                                                      g_medium_cores.size(),
+                                                      task.appdata,
+                                                      stage_to_measure,
+                                                      stage_to_measure);
+        });
+
+    // big core
+    auto t2 = std::thread(
+        worker_thread_record<MyTask>, 2, std::ref(q_2), std::ref(q_3), [&](MyTask& task) {
+          cifar_sparse::omp::v2::dispatch_multi_stage(
+              g_big_cores, g_big_cores.size(), task.appdata, stage_to_measure, stage_to_measure);
+        });
+
+    // vulkan core
+    auto t3 = std::thread(
+        worker_thread_record<MyTask>, 3, std::ref(q_3), std::ref(q_0), [&](MyTask& task) {
+          disp.dispatch_multi_stage(task.appdata, stage_to_measure, stage_to_measure);
+        });
+
     t0.join();
     t1.join();
     t2.join();
     t3.join();
 
-    RecordManager::instance().print_processor_type_stats(ProcessorType::kVulkan);
-    RecordManager::instance().print_processor_type_stats(ProcessorType::kBigCore);
-    RecordManager::instance().print_processor_type_stats(ProcessorType::kMediumCore);
     RecordManager::instance().print_processor_type_stats(ProcessorType::kLittleCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kMediumCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kBigCore);
+    RecordManager::instance().print_processor_type_stats(ProcessorType::kVulkan);
   }
 }
 
@@ -123,11 +123,11 @@ static void BM_run_stage_non_full(const int stage_to_measure,
         });
 
     auto t1 = std::thread(
-        worker_thread_record<MyTask>, 1, std::ref(q_0), std::ref(q_1), [&](MyTask& _) {});
+        worker_thread_record<MyTask>, 1, std::ref(q_1), std::ref(q_2), [&](MyTask& _) {});
     auto t2 = std::thread(
-        worker_thread_record<MyTask>, 2, std::ref(q_1), std::ref(q_2), [&](MyTask& _) {});
+        worker_thread_record<MyTask>, 2, std::ref(q_2), std::ref(q_3), [&](MyTask& _) {});
     auto t3 = std::thread(
-        worker_thread_record<MyTask>, 3, std::ref(q_2), std::ref(q_3), [&](MyTask& _) {});
+        worker_thread_record<MyTask>, 3, std::ref(q_3), std::ref(q_0), [&](MyTask& _) {});
 
     t0.join();
     t1.join();
@@ -143,11 +143,14 @@ static void BM_run_stage_non_full(const int stage_to_measure,
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-table-cifar-sparse-vk --stage 1
-// xmake r bm-table-cifar-sparse-vk --stage 1 --full
+// xmake r bm-table-cifar-sparse-vk --stage 1 --device_to_measure 3A021JEHN02756
+// xmake r bm-table-cifar-sparse-vk --stage 1 --device_to_measure jetson --full
 
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN
+
+  std::string device_to_measure;
+  app.add_option("--device-to-measure", device_to_measure, "Device to measure")->required();
 
   int stage = 0;
   app.add_option("--stage", stage, "Stage to run")->required();
@@ -157,11 +160,12 @@ int main(int argc, char** argv) {
 
   PARSE_ARGS_END
 
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
-
-  if (g_device_id != "3A021JEHN02756") {
+  // So that we don't output anything when the device is not the one we want to measure
+  if (device_to_measure != g_device_id) {
     return 0;
   }
+
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   if (full) {
     BM_run_stage_full(stage);

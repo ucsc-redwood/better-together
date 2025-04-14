@@ -272,15 +272,39 @@ try:
 
 
 
+# # This is ued to generate pipeline graph
+# run-benchmarks-cifar-sparse-vk stage:
+#     xmake r bm-table-cifar-sparse-vk --stage {{stage}} -l off | tee non_full_stage_{{stage}}.txt
+#     xmake r bm-table-cifar-sparse-vk --stage {{stage}} -l off --full | tee full_stage_{{stage}}.txt
+
+#     # Extract and compare AVG metrics
+#     @echo "\n====== COMPARISON OF AVG METRICS ======"
+#     @echo "Processor | Non-Full (ms) | Full (ms)"
+#     @echo "--------------------------------------"
+#     @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' non_full_stage_{{stage}}.txt
+#     @echo "--------------------------------------"
+#     @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' full_stage_{{stage}}.txt
+
+
 # This is ued to generate pipeline graph
-run-benchmarks:
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 3 | tee BM_pipe_cifar_sparse_vk_schedule_3.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 4 | tee BM_pipe_cifar_sparse_vk_schedule_4.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 5 | tee BM_pipe_cifar_sparse_vk_schedule_5.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 6 | tee BM_pipe_cifar_sparse_vk_schedule_6.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 7 | tee BM_pipe_cifar_sparse_vk_schedule_7.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
+run-benchmarks-cifar-sparse-vk device:
+    rm -rf BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 1 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 2 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 3 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 4 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 5 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 6 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 7 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+    xmake r bm-table-cifar-sparse-vk --stage 8 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt  
+    xmake r bm-table-cifar-sparse-vk --stage 9 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
+
+    awk -F'|' '{
+    proc=""; avg="";
+    for(i=1;i<=NF;i++) {
+        if($i ~ /^PROCESSOR=/) proc=$i;
+        if($i ~ /^AVG=/) avg=$i;
+        }
+        print proc "|" avg
+        if(NR%4==0) print ""
+    }' BM_table_cifar_sparse_vk_{{device}}.txt 
