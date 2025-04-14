@@ -62,7 +62,6 @@ do
 
 		-- cifar-sparse implementations
 		"cifar-sparse/omp/dispatchers.cpp",
-		"cifar-sparse/omp/all_kernels.cpp",
 
 		-- tree implementations
 		"tree/tree_appdata.cpp",
