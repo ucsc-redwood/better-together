@@ -1,21 +1,24 @@
 -- ----------------------------------------------------------------------------
--- Generate the measurement of "schedules" instance on 100 tasks
+-- Run stages with interference (100 tasks)
+-- Use this to generate Table, which will feed into optimizer
 -- ----------------------------------------------------------------------------
 
-target("gen-records-cifar-sparse-vk")
+target("bm-table-cifar-sparse-vk")
 do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
 	set_kind("binary")
 	add_files({
-		"gen_record.cpp",
+		"bm_for_table.cpp",
 	})
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
 end
 
+
 -- ----------------------------------------------------------------------------
 -- Measure the real time performance of "schedules" on 100 tasks
+-- The Result. 
 -- ----------------------------------------------------------------------------
 
 target("bm-schedule-cifar-sparse-vk")
@@ -23,12 +26,28 @@ do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
 	set_kind("binary")
 	add_files({
-		"bm_schedule.cpp",
+		"bm_real_schedule.cpp",
 	})
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
 		
 	add_packages("benchmark")
-	add_packages("libcurl")
 end
+
+-- ----------------------------------------------------------------------------
+-- Generate the Log/Graph of "schedules" (100 tasks)
+-- ----------------------------------------------------------------------------
+
+target("bm-gen-logs-cifar-sparse-vk")
+do
+	add_rules("common_flags", "vulkan_config", "run_on_android")
+	set_kind("binary")
+	add_files({
+		"bm_gen_log.cpp",
+	})
+
+	add_deps("builtin-apps-vulkan")
+	add_deps("builtin-apps")
+end
+
