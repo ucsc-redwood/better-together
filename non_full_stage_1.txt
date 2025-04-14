@@ -1,0 +1,134 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-table-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-table-cifar-sparse-vk: 1 file pushed, 0 skipped. 504.7 MB/s (2810064 bytes in 0.005s)
+[2025-04-13 20:06:04.543] [info] Little cores: 0 1 2 3 
+[2025-04-13 20:06:04.544] [info] Medium cores: 4 5 
+[2025-04-13 20:06:04.544] [info] Big cores: 6 7 
+--------------------------------------------------------
+Statistics for Little:
+  Number of records: 100
+  Total time: 2857.85 ms
+  Average time: 28.5785 ms
+  Geometric mean: 26.9349 ms
+  Median: 29.0668 ms
+  Min: 18.6977 ms
+  Max: 39.502 ms
+  Standard deviation: 9.54722 ms
+  Coefficient of variation: 0.334071
+  Percentile 90: 38.2282 ms
+  Percentile 95: 38.3124 ms
+  Percentile 99: 39.502 ms
+PROCESSOR=Little|COUNT=100|TOTAL=2857.85|AVG=28.5785|GEOMEAN=26.9349|MEDIAN=29.0668|MIN=18.6977|MAX=39.502|STDDEV=9.54722|CV=0.334071|P90=38.2282|P95=38.3124|P99=39.502
+--------------------------------------------------------
+Statistics for Medium:
+  Number of records: 100
+  Total time: 563.291 ms
+  Average time: 5.63291 ms
+  Geometric mean: 5.56241 ms
+  Median: 5.39001 ms
+  Min: 5.34656 ms
+  Max: 14.5228 ms
+  Standard deviation: 1.16564 ms
+  Coefficient of variation: 0.206935
+  Percentile 90: 5.44759 ms
+  Percentile 95: 7.37805 ms
+  Percentile 99: 14.5228 ms
+PROCESSOR=Medium|COUNT=100|TOTAL=563.291|AVG=5.63291|GEOMEAN=5.56241|MEDIAN=5.39001|MIN=5.34656|MAX=14.5228|STDDEV=1.16564|CV=0.206935|P90=5.44759|P95=7.37805|P99=14.5228
+--------------------------------------------------------
+Statistics for Big:
+  Number of records: 100
+  Total time: 421.499 ms
+  Average time: 4.21499 ms
+  Geometric mean: 4.18288 ms
+  Median: 4.16734 ms
+  Min: 3.69873 ms
+  Max: 8.0494 ms
+  Standard deviation: 0.616291 ms
+  Coefficient of variation: 0.146214
+  Percentile 90: 4.22742 ms
+  Percentile 95: 4.66166 ms
+  Percentile 99: 8.0494 ms
+PROCESSOR=Big|COUNT=100|TOTAL=421.499|AVG=4.21499|GEOMEAN=4.18288|MEDIAN=4.16734|MIN=3.69873|MAX=8.0494|STDDEV=0.616291|CV=0.146214|P90=4.22742|P95=4.66166|P99=8.0494
+--------------------------------------------------------
+Statistics for GPU:
+  Number of records: 100
+  Total time: 510.684 ms
+  Average time: 5.10684 ms
+  Geometric mean: 5.01861 ms
+  Median: 4.70439 ms
+  Min: 4.36414 ms
+  Max: 12.4627 ms
+  Standard deviation: 1.1501 ms
+  Coefficient of variation: 0.225208
+  Percentile 90: 5.97062 ms
+  Percentile 95: 7.65133 ms
+  Percentile 99: 12.4627 ms
+PROCESSOR=GPU|COUNT=100|TOTAL=510.684|AVG=5.10684|GEOMEAN=5.01861|MEDIAN=4.70439|MIN=4.36414|MAX=12.4627|STDDEV=1.1501|CV=0.225208|P90=5.97062|P95=7.65133|P99=12.4627
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-table-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-table-cifar-sparse-vk: 1 file pushed, 0 skipped. 492.2 MB/s (2810064 bytes in 0.005s)
+[2025-04-13 19:58:48.015] [info] Little cores: 0 1 2 
+[2025-04-13 19:58:48.016] [info] Medium cores: 3 4 
+[2025-04-13 19:58:48.016] [info] Big cores: 5 6 7 
+--------------------------------------------------------
+Statistics for Little:
+  Number of records: 100
+  Total time: 3337.36 ms
+  Average time: 33.3736 ms
+  Geometric mean: 33.3181 ms
+  Median: 32.4926 ms
+  Min: 31.9232 ms
+  Max: 48.1759 ms
+  Standard deviation: 2.06916 ms
+  Coefficient of variation: 0.0619999
+  Percentile 90: 35.2967 ms
+  Percentile 95: 35.5134 ms
+  Percentile 99: 48.1759 ms
+PROCESSOR=Little|COUNT=100|TOTAL=3337.36|AVG=33.3736|GEOMEAN=33.3181|MEDIAN=32.4926|MIN=31.9232|MAX=48.1759|STDDEV=2.06916|CV=0.0619999|P90=35.2967|P95=35.5134|P99=48.1759
+--------------------------------------------------------
+Statistics for Medium:
+  Number of records: 100
+  Total time: 883.891 ms
+  Average time: 8.83891 ms
+  Geometric mean: 7.96171 ms
+  Median: 6.06242 ms
+  Min: 6.01984 ms
+  Max: 17.3533 ms
+  Standard deviation: 4.43641 ms
+  Coefficient of variation: 0.501918
+  Percentile 90: 16.6546 ms
+  Percentile 95: 17.2903 ms
+  Percentile 99: 17.3533 ms
+PROCESSOR=Medium|COUNT=100|TOTAL=883.891|AVG=8.83891|GEOMEAN=7.96171|MEDIAN=6.06242|MIN=6.01984|MAX=17.3533|STDDEV=4.43641|CV=0.501918|P90=16.6546|P95=17.2903|P99=17.3533
+--------------------------------------------------------
+Statistics for Big:
+  Number of records: 100
+  Total time: 690.768 ms
+  Average time: 6.90768 ms
+  Geometric mean: 6.61472 ms
+  Median: 5.27076 ms
+  Min: 5.2013 ms
+  Max: 15.5401 ms
+  Standard deviation: 2.12605 ms
+  Coefficient of variation: 0.30778
+  Percentile 90: 9.24203 ms
+  Percentile 95: 9.27182 ms
+  Percentile 99: 15.5401 ms
+PROCESSOR=Big|COUNT=100|TOTAL=690.768|AVG=6.90768|GEOMEAN=6.61472|MEDIAN=5.27076|MIN=5.2013|MAX=15.5401|STDDEV=2.12605|CV=0.30778|P90=9.24203|P95=9.27182|P99=15.5401
+--------------------------------------------------------
+Statistics for GPU:
+  Number of records: 100
+  Total time: 542.77 ms
+  Average time: 5.4277 ms
+  Geometric mean: 5.37714 ms
+  Median: 5.32057 ms
+  Min: 4.88552 ms
+  Max: 15.709 ms
+  Standard deviation: 1.05644 ms
+  Coefficient of variation: 0.194639
+  Percentile 90: 5.58359 ms
+  Percentile 95: 5.71589 ms
+  Percentile 99: 15.709 ms
+PROCESSOR=GPU|COUNT=100|TOTAL=542.77|AVG=5.4277|GEOMEAN=5.37714|MEDIAN=5.32057|MIN=4.88552|MAX=15.709|STDDEV=1.05644|CV=0.194639|P90=5.58359|P95=5.71589|P99=15.709
