@@ -8,8 +8,8 @@
 
 namespace tree {
 
-// From empirical observation, 60% memory is a good ratio for octree
-constexpr auto kMemoryRatio = 0.6f;
+// From empirical observation, 50% memory is a good ratio for octree
+constexpr auto kMemoryRatio = 0.5f;
 
 // Default problem size, other sizes are
 constexpr auto kDefaultInputSize = 3840 * 2160;
