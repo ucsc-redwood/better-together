@@ -3,8 +3,6 @@
 #include <memory_resource>
 #include <vector>
 
-namespace cifar_sparse {
-
 /* ========= 1D NDArray ========= */
 class Ndarray1D {
  private:
@@ -102,5 +100,3 @@ class Ndarray4D {
   [[nodiscard]] std::pmr::vector<float>& pmr_vec() { return data_; }
   [[nodiscard]] const std::pmr::vector<float>& pmr_vec() const { return data_; }
 };
-
-}  // namespace cifar_sparse
