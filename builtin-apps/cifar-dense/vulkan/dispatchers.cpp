@@ -1,114 +1,245 @@
 #include "dispatchers.hpp"
 
-#include "builtin-apps/common/kiss-vk/engine.hpp"
-#include "builtin-apps/common/kiss-vk/vma_pmr.hpp"
-#include "builtin-apps/debug_logger.hpp"
+#include <cstdint>
 
-namespace cifar_dense::vulkan {
+#include "../../debug_logger.hpp"
 
-struct Conv2dPushConstants {
-  uint32_t input_height;
-  uint32_t input_width;
-  uint32_t weight_output_channels;
-  uint32_t weight_input_channels;
-  uint32_t weight_height;
-  uint32_t weight_width;
-  uint32_t bias_number_of_elements;
-  uint32_t kernel_size;
-  uint32_t stride;
-  uint32_t padding;
-  uint32_t output_height;
-  uint32_t output_width;
-  bool relu;
+namespace cifar_sparse::vulkan {
+
+// Convolution parameters
+constexpr int kKernelSize = 3;
+constexpr int kStride = 1;
+constexpr int kPadding = 1;
+
+// Pooling parameters
+constexpr int kPoolSize = 2;
+constexpr int kPoolStride = 2;
+
+constexpr bool kRelu = true;
+
+// ----------------------------------------------------------------------------
+// V2
+// ----------------------------------------------------------------------------
+
+namespace v2 {
+
+// // Push constants holding all kernel parameters.
+// layout(push_constant) uniform Params {
+//   int batch_size;    // Number of batches.
+//   int in_channels;   // Input channels.
+//   int in_height;     // Input height.
+//   int in_width;      // Input width.
+//   int out_channels;  // Output channels.
+//   int out_height;    // Output height.
+//   int out_width;     // Output width.
+//   int kernel_size;   // Kernel size (assumed square: kernel_size x kernel_size).
+//   int stride;        // Convolution stride.
+//   int padding;       // Padding.
+//   int relu;          // Flag for ReLU activation (nonzero true).
+//   int bias_size;     // Bias vector size (0 if bias is not used).
+// }
+// params;
+
+struct Conv2dPushConstants_v2 {
+  int32_t batch_size;
+  int32_t in_channels;
+  int32_t in_height;
+  int32_t in_width;
+  int32_t out_channels;
+  int32_t out_height;
+  int32_t out_width;
+  int32_t kernel_size;
+  int32_t stride;
+  int32_t padding;
+  int32_t relu;
+  int32_t bias_size;
 };
 
-struct MaxpoolPushConstants {
-  uint32_t input_channels;
-  uint32_t input_height;
-  uint32_t input_width;
-  uint32_t pool_size;
-  uint32_t stride;
-  uint32_t output_height;
-  uint32_t output_width;
+// // Push constant block to pass convolution parameters.
+// layout(push_constant) uniform Params {
+//   int batch_size;  // Number of batches.
+//   int channels;    // Number of channels.
+//   int in_height;   // Input height.
+//   int in_width;    // Input width.
+//   int out_height;  // Output height, computed as (in_height - pool_size) / stride + 1.
+//   int out_width;   // Output width, computed as (in_width - pool_size) / stride + 1.
+//   int pool_size;   // Size of the pooling window (assumed square).
+//   int stride;      // Stride of the pooling operation.
+// }
+// params;
+
+struct MaxpoolPushConstants_v2 {
+  int32_t batch_size;
+  int32_t channels;
+  int32_t in_height;
+  int32_t in_width;
+  int32_t out_height;
+  int32_t out_width;
+  int32_t pool_size;
+  int32_t stride;
 };
 
-struct LinearPushConstants {
-  uint32_t in_features;
-  uint32_t out_features;
+// // Push constants for kernel parameters.
+// layout(push_constant) uniform Params {
+//   int batch_size;      // Number of samples in the batch.
+//   int input_features;  // Number of features in each input sample.
+//   int out_neurons;     // Number of output neurons (rows in the weight matrix).
+// }
+// params;
+
+struct LinearPushConstants_v2 {
+  int32_t batch_size;
+  int32_t input_features;
+  int32_t out_neurons;
 };
 
-Singleton::Singleton() : engine(kiss_vk::Engine()), seq(engine.make_seq()) {
-  spdlog::info("Singleton instance created.");
+// ----------------------------------------------------------------------------
+// Constructor (v2)
+// ----------------------------------------------------------------------------
 
-  auto conv2d_algo = engine.make_algo("cifar_conv2d")
+VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
+  spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
+
+  // // Work-group size: 256 threads per work-group.
+  // layout(local_size_x = 256) in;
+
+  // // Bindings for the input and output data.
+  // layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  //   float input_data[];  // Input layout: [batch, in_channels, in_height, in_width]
+  // };
+
+  // layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer {
+  //   float output_data[];  // Output layout: [batch, out_channels, out_height, out_width]
+  // };
+
+  // // Bindings for sparse weight tensors in CSR format.
+  // layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer {
+  //   float weight_vals[];  // Nonzero weight values.
+  // };
+
+  // layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer {
+  //   int weight_row_ptr[];  // Row pointers: length = out_channels + 1.
+  // };
+
+  // layout(std430, set = 0, binding = 4) readonly buffer WeightColIdxBuffer {
+  //   int weight_col_idx[];  // Column indices (flat kernel index).
+  // };
+
+  // // Binding for bias vector (if available). If no bias is used, set bias_size to 0.
+  // layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+  auto conv2d_algo = engine.make_algo("new_cifar_sparse_conv2d")
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
-                         ->num_buffers(4)
-                         ->push_constant<Conv2dPushConstants>()
+                         ->num_buffers(6)
+                         ->push_constant<Conv2dPushConstants_v2>()
                          ->build();
 
   cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
 
-  auto maxpool2d_algo = engine.make_algo("cifar_maxpool2d")
-                            ->work_group_size(256, 1, 1)
-                            ->num_sets(1)
-                            ->num_buffers(2)
-                            ->push_constant<MaxpoolPushConstants>()
-                            ->build();
+  // // Configure work-group size (256 threads per workgroup).
+  // layout(local_size_x = 256) in;
 
-  cached_algorithms.try_emplace("maxpool2d", std::move(maxpool2d_algo));
+  // // Input data buffer: flattened tensor of shape [batch, channels, in_height, in_width]
+  // layout(std430, set = 0, binding = 0) readonly buffer InputBuffer { float input_data[]; };
 
-  auto linear_algo = engine.make_algo("cifar_linear")
+  // // Output data buffer: flattened tensor of shape [batch, channels, out_height, out_width]
+  // layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer { float output_data[]; };
+
+  auto maxpool_algo = engine.make_algo("new_cifar_sparse_maxpool")
+                          ->work_group_size(256, 1, 1)
+                          ->num_sets(1)
+                          ->num_buffers(2)
+                          ->push_constant<MaxpoolPushConstants_v2>()
+                          ->build();
+
+  cached_algorithms.try_emplace("maxpool", std::move(maxpool_algo));
+
+  // // Work-group size: 256 invocations per workgroup.
+  // layout(local_size_x = 256) in;
+
+  // // Input data buffer: flattened tensor of shape [batch_size, input_features]
+  // layout(std430, set = 0, binding = 0) readonly buffer InputBuffer { float input_data[]; };
+
+  // // Output data buffer: flattened tensor of shape [batch_size, out_neurons]
+  // layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer { float output_data[]; };
+
+  // // Sparse weight values (nonzeros) for the CSR matrix (dimensions: [out_neurons,
+  // input_features]) layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer { float
+  // weight_vals[]; };
+
+  // // CSR row pointers: length = out_neurons + 1.
+  // layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer { int weight_row_ptr[];
+  // };
+
+  // // CSR column indices: flat indices of nonzero weight locations (i.e. input feature indices).
+  // layout(std430, set = 0, binding = 4) readonly buffer WeightColIdxBuffer { int weight_col_idx[];
+  // };
+
+  // // Bias vector: one element per output neuron.
+  // layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+  auto linear_algo = engine.make_algo("new_cifar_sparse_linear")
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
-                         ->num_buffers(4)
-                         ->push_constant<LinearPushConstants>()
+                         ->num_buffers(6)
+                         ->push_constant<LinearPushConstants_v2>()
                          ->build();
 
   cached_algorithms.try_emplace("linear", std::move(linear_algo));
 }
 
-inline void log_kernel(const int stage, const void *appdata_addr) {
-  spdlog::debug("[vk] process_stage_{}, app_data: {:p}", stage, appdata_addr);
-}
+// ----------------------------------------------------------------------------
+// Stage 1 (v2)
+// ----------------------------------------------------------------------------
 
-void Singleton::process_stage_1(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv1OutChannels * cifar_dense::kConv1OutHeight * cifar_dense::kConv1OutWidth;
-
-  LOG_KERNEL(LogKernelType::kVK, 1, &app_data);
-
+void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
+  LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_image),
-                                  engine.get_buffer_info(app_data.u_conv1_weights),
-                                  engine.get_buffer_info(app_data.u_conv1_bias),
-                                  engine.get_buffer_info(app_data.u_conv1_out),
+                                  engine.get_buffer_info(appdata.u_input.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv1_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv1_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv1_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv1_b.pmr_vec()),
                               });
 
-  algo->update_push_constant(Conv2dPushConstants{
-      .input_height = cifar_dense::kInputHeight,
-      .input_width = cifar_dense::kInputWidth,
-      .weight_output_channels = cifar_dense::kConv1OutChannels,
-      .weight_input_channels = cifar_dense::kInputChannels,
-      .weight_height = cifar_dense::kKernelSize,
-      .weight_width = cifar_dense::kKernelSize,
-      .bias_number_of_elements = cifar_dense::kConv1BiasSize,
-      .kernel_size = cifar_dense::kKernelSize,
-      .stride = cifar_dense::kStride,
-      .padding = cifar_dense::kPadding,
-      .output_height = cifar_dense::kConv1OutHeight,
-      .output_width = cifar_dense::kConv1OutWidth,
-      .relu = cifar_dense::kRelu,
+  const int batch_size = appdata.u_input.d0();   // Expected 128
+  const int in_channels = appdata.u_input.d1();  // Expected 3 (RGB)
+  const int in_height = appdata.u_input.d2();    // Expected 32
+  const int in_width = appdata.u_input.d3();     // Expected 32
+
+  const int out_channels = appdata.conv1_sparse.rows;  // Expected 16
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv1_b.size(),
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -116,35 +247,48 @@ void Singleton::process_stage_1(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_2(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv1OutChannels * cifar_dense::kPool1OutHeight * cifar_dense::kPool1OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 2 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 2, &app_data);
+void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("maxpool").get();
 
-  auto algo = cached_algorithms.at("maxpool2d").get();
+  LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_conv1_out),
-                                  engine.get_buffer_info(app_data.u_pool1_out),
+                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
                               });
 
-  algo->update_push_constant(MaxpoolPushConstants{
-      .input_channels = cifar_dense::kConv1OutChannels,
-      .input_height = cifar_dense::kConv1OutHeight,
-      .input_width = cifar_dense::kConv1OutWidth,
-      .pool_size = cifar_dense::kPoolSize,
-      .stride = cifar_dense::kPoolStride,
-      .output_height = cifar_dense::kPool1OutHeight,
-      .output_width = cifar_dense::kPool1OutWidth,
+  // Extract dimensions from the convolution output NDArray4D.
+  const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
+  const int channels = appdata.u_conv1_out.d1();    // Expected: 16
+  const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
+  const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
+
+  const int out_height = (in_height - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width - kPoolSize) / kPoolStride + 1;
+
+  const int total_output = batch_size * channels * out_height * out_width;
+
+  algo->update_push_constant(MaxpoolPushConstants_v2{
+      .batch_size = batch_size,
+      .channels = channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_height = out_height,
+      .out_width = out_width,
+      .pool_size = kPoolSize,
+      .stride = kPoolStride,
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -152,43 +296,57 @@ void Singleton::process_stage_2(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_3(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv2OutChannels * cifar_dense::kConv2OutHeight * cifar_dense::kConv2OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 3 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 3, &app_data);
-
+void VulkanDispatcher::run_stage_3(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
+  LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_pool1_out),
-                                  engine.get_buffer_info(app_data.u_conv2_weights),
-                                  engine.get_buffer_info(app_data.u_conv2_bias),
-                                  engine.get_buffer_info(app_data.u_conv2_out),
+                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv2_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv2_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv2_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
                               });
 
-  algo->update_push_constant(Conv2dPushConstants{
-      .input_height = cifar_dense::kPool1OutHeight,
-      .input_width = cifar_dense::kPool1OutWidth,
-      .weight_output_channels = cifar_dense::kConv2OutChannels,
-      .weight_input_channels = cifar_dense::kConv1OutChannels,
-      .weight_height = cifar_dense::kKernelSize,
-      .weight_width = cifar_dense::kKernelSize,
-      .bias_number_of_elements = cifar_dense::kConv2BiasSize,
-      .kernel_size = cifar_dense::kKernelSize,
-      .stride = cifar_dense::kStride,
-      .padding = cifar_dense::kPadding,
-      .output_height = cifar_dense::kConv2OutHeight,
-      .output_width = cifar_dense::kConv2OutWidth,
-      .relu = cifar_dense::kRelu,
+  const int batch_size = appdata.u_pool1_out.d0();
+  const int in_channels = appdata.u_pool1_out.d1();
+  const int in_height = appdata.u_pool1_out.d2();
+  const int in_width = appdata.u_pool1_out.d3();
+
+  const int out_channels = appdata.conv2_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv2_b.size(),
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -196,35 +354,48 @@ void Singleton::process_stage_3(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_4(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv2OutChannels * cifar_dense::kPool2OutHeight * cifar_dense::kPool2OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 4 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 4, &app_data);
+void VulkanDispatcher::run_stage_4(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("maxpool").get();
 
-  auto algo = cached_algorithms.at("maxpool2d").get();
+  LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
 
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_conv2_out),
-                                  engine.get_buffer_info(app_data.u_pool2_out),
+                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
                               });
 
-  algo->update_push_constant(MaxpoolPushConstants{
-      .input_channels = cifar_dense::kConv2OutChannels,
-      .input_height = cifar_dense::kConv2OutHeight,
-      .input_width = cifar_dense::kConv2OutWidth,
-      .pool_size = cifar_dense::kPoolSize,
-      .stride = cifar_dense::kPoolStride,
-      .output_height = cifar_dense::kPool2OutHeight,
-      .output_width = cifar_dense::kPool2OutWidth,
+  // Extract dimensions from the convolution output NDArray4D
+  const int batch_size = appdata.u_conv2_out.d0();
+  const int channels = appdata.u_conv2_out.d1();
+  const int in_height = appdata.u_conv2_out.d2();
+  const int in_width = appdata.u_conv2_out.d3();
+
+  const int out_height = (in_height - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width - kPoolSize) / kPoolStride + 1;
+
+  const int total_output = batch_size * channels * out_height * out_width;
+
+  algo->update_push_constant(MaxpoolPushConstants_v2{
+      .batch_size = batch_size,
+      .channels = channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_height = out_height,
+      .out_width = out_width,
+      .pool_size = kPoolSize,
+      .stride = kPoolStride,
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -232,43 +403,57 @@ void Singleton::process_stage_4(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_5(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv3OutChannels * cifar_dense::kConv3OutHeight * cifar_dense::kConv3OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 5 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 5, &app_data);
-
+void VulkanDispatcher::run_stage_5(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
+  LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
+
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_pool2_out),
-                                  engine.get_buffer_info(app_data.u_conv3_weights),
-                                  engine.get_buffer_info(app_data.u_conv3_bias),
-                                  engine.get_buffer_info(app_data.u_conv3_out),
+                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv3_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv3_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv3_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
                               });
 
-  algo->update_push_constant(Conv2dPushConstants{
-      .input_height = cifar_dense::kPool2OutHeight,
-      .input_width = cifar_dense::kPool2OutWidth,
-      .weight_output_channels = cifar_dense::kConv3OutChannels,
-      .weight_input_channels = cifar_dense::kConv2OutChannels,
-      .weight_height = cifar_dense::kKernelSize,
-      .weight_width = cifar_dense::kKernelSize,
-      .bias_number_of_elements = cifar_dense::kConv3BiasSize,
-      .kernel_size = cifar_dense::kKernelSize,
-      .stride = cifar_dense::kStride,
-      .padding = cifar_dense::kPadding,
-      .output_height = cifar_dense::kConv3OutHeight,
-      .output_width = cifar_dense::kConv3OutWidth,
-      .relu = cifar_dense::kRelu,
+  const int batch_size = appdata.u_pool2_out.d0();
+  const int in_channels = appdata.u_pool2_out.d1();
+  const int in_height = appdata.u_pool2_out.d2();
+  const int in_width = appdata.u_pool2_out.d3();
+
+  const int out_channels = appdata.conv3_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv3_b.size(),
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -276,43 +461,57 @@ void Singleton::process_stage_5(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_6(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv4OutChannels * cifar_dense::kConv4OutHeight * cifar_dense::kConv4OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 6 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 6, &app_data);
-
+void VulkanDispatcher::run_stage_6(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
+  LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
+
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_conv3_out),
-                                  engine.get_buffer_info(app_data.u_conv4_weights),
-                                  engine.get_buffer_info(app_data.u_conv4_bias),
-                                  engine.get_buffer_info(app_data.u_conv4_out),
+                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv4_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv4_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv4_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
                               });
 
-  algo->update_push_constant(Conv2dPushConstants{
-      .input_height = cifar_dense::kConv3OutHeight,
-      .input_width = cifar_dense::kConv3OutWidth,
-      .weight_output_channels = cifar_dense::kConv4OutChannels,
-      .weight_input_channels = cifar_dense::kConv3OutChannels,
-      .weight_height = cifar_dense::kKernelSize,
-      .weight_width = cifar_dense::kKernelSize,
-      .bias_number_of_elements = cifar_dense::kConv4BiasSize,
-      .kernel_size = cifar_dense::kKernelSize,
-      .stride = cifar_dense::kStride,
-      .padding = cifar_dense::kPadding,
-      .output_height = cifar_dense::kConv4OutHeight,
-      .output_width = cifar_dense::kConv4OutWidth,
-      .relu = cifar_dense::kRelu,
+  const int batch_size = appdata.u_conv3_out.d0();
+  const int in_channels = appdata.u_conv3_out.d1();
+  const int in_height = appdata.u_conv3_out.d2();
+  const int in_width = appdata.u_conv3_out.d3();
+
+  const int out_channels = appdata.conv4_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv4_b.size(),
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -320,43 +519,57 @@ void Singleton::process_stage_6(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_7(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv5OutChannels * cifar_dense::kConv5OutHeight * cifar_dense::kConv5OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 7 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 7, &app_data);
-
+void VulkanDispatcher::run_stage_7(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
+  LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
+
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_conv4_out),
-                                  engine.get_buffer_info(app_data.u_conv5_weights),
-                                  engine.get_buffer_info(app_data.u_conv5_bias),
-                                  engine.get_buffer_info(app_data.u_conv5_out),
+                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv5_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv5_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.conv5_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
                               });
 
-  algo->update_push_constant(Conv2dPushConstants{
-      .input_height = cifar_dense::kConv4OutHeight,
-      .input_width = cifar_dense::kConv4OutWidth,
-      .weight_output_channels = cifar_dense::kConv5OutChannels,
-      .weight_input_channels = cifar_dense::kConv4OutChannels,
-      .weight_height = cifar_dense::kKernelSize,
-      .weight_width = cifar_dense::kKernelSize,
-      .bias_number_of_elements = cifar_dense::kConv5BiasSize,
-      .kernel_size = cifar_dense::kKernelSize,
-      .stride = cifar_dense::kStride,
-      .padding = cifar_dense::kPadding,
-      .output_height = cifar_dense::kConv5OutHeight,
-      .output_width = cifar_dense::kConv5OutWidth,
-      .relu = cifar_dense::kRelu,
+  const int batch_size = appdata.u_conv4_out.d0();
+  const int in_channels = appdata.u_conv4_out.d1();
+  const int in_height = appdata.u_conv4_out.d2();
+  const int in_width = appdata.u_conv4_out.d3();
+
+  const int out_channels = appdata.conv5_sparse.rows;
+
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
+
+  const int total_output = batch_size * out_channels * out_height * out_width;
+
+  algo->update_push_constant(Conv2dPushConstants_v2{
+      .batch_size = batch_size,
+      .in_channels = in_channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_channels = out_channels,
+      .out_height = out_height,
+      .out_width = out_width,
+      .kernel_size = kKernelSize,
+      .stride = kStride,
+      .padding = kPadding,
+      .relu = kRelu,
+      .bias_size = appdata.u_conv5_b.size(),
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -364,35 +577,48 @@ void Singleton::process_stage_7(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_8(cifar_dense::AppData &app_data) {
-  const int total_iterations =
-      cifar_dense::kConv5OutChannels * cifar_dense::kPool3OutHeight * cifar_dense::kPool3OutWidth;
+// ----------------------------------------------------------------------------
+// Stage 8 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 8, &app_data);
+void VulkanDispatcher::run_stage_8(cifar_sparse::v2::AppData& appdata) {
+  auto algo = cached_algorithms.at("maxpool").get();
 
-  auto algo = cached_algorithms.at("maxpool2d").get();
+  LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
 
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_conv5_out),
-                                  engine.get_buffer_info(app_data.u_pool3_out),
+                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
                               });
 
-  algo->update_push_constant(MaxpoolPushConstants{
-      .input_channels = cifar_dense::kConv5OutChannels,
-      .input_height = cifar_dense::kConv5OutHeight,
-      .input_width = cifar_dense::kConv5OutWidth,
-      .pool_size = cifar_dense::kPoolSize,
-      .stride = cifar_dense::kPoolStride,
-      .output_height = cifar_dense::kPool3OutHeight,
-      .output_width = cifar_dense::kPool3OutWidth,
+  // Extract dimensions from the convolution output NDArray4D
+  const int batch_size = appdata.u_conv5_out.d0();
+  const int channels = appdata.u_conv5_out.d1();
+  const int in_height = appdata.u_conv5_out.d2();
+  const int in_width = appdata.u_conv5_out.d3();
+
+  const int out_height = (in_height - kPoolSize) / kPoolStride + 1;
+  const int out_width = (in_width - kPoolSize) / kPoolStride + 1;
+
+  const int total_output = batch_size * channels * out_height * out_width;
+
+  algo->update_push_constant(MaxpoolPushConstants_v2{
+      .batch_size = batch_size,
+      .channels = channels,
+      .in_height = in_height,
+      .in_width = in_width,
+      .out_height = out_height,
+      .out_width = out_width,
+      .pool_size = kPoolSize,
+      .stride = kPoolStride,
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -400,31 +626,48 @@ void Singleton::process_stage_8(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-void Singleton::process_stage_9(cifar_dense::AppData &app_data) {
-  constexpr int total_iterations = cifar_dense::kLinearOutFeatures;  // 10
+// ----------------------------------------------------------------------------
+// Stage 9 (v2)
+// ----------------------------------------------------------------------------
 
-  LOG_KERNEL(LogKernelType::kVK, 9, &app_data);
-
+void VulkanDispatcher::run_stage_9(cifar_sparse::v2::AppData& appdata) {
   auto algo = cached_algorithms.at("linear").get();
 
+  LOG_KERNEL(LogKernelType::kVK, 9, &appdata);
+
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(app_data.u_pool3_out),
-                                  engine.get_buffer_info(app_data.u_linear_weights),
-                                  engine.get_buffer_info(app_data.u_linear_bias),
-                                  engine.get_buffer_info(app_data.u_linear_out),
+                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_linear_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.linear_sparse.values_pmr_vec()),
+                                  engine.get_buffer_info(appdata.linear_sparse.row_ptr_pmr_vec()),
+                                  engine.get_buffer_info(appdata.linear_sparse.col_idx_pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_linear_b.pmr_vec()),
                               });
 
-  algo->update_push_constant(LinearPushConstants{
-      .in_features = cifar_dense::kLinearInFeatures,
-      .out_features = cifar_dense::kLinearOutFeatures,
+  // Calculate flattened input size (total number of features per sample)
+  const int batch_size = appdata.u_pool3_out.d0();
+  const int channels = appdata.u_pool3_out.d1();
+  const int height = appdata.u_pool3_out.d2();
+  const int width = appdata.u_pool3_out.d3();
+  const int input_features = channels * height * width;
+
+  // Number of output neurons is the number of rows in the weight matrix
+  const int out_neurons = appdata.linear_sparse.rows;
+
+  const int total_output = batch_size * out_neurons;
+
+  algo->update_push_constant(LinearPushConstants_v2{
+      .batch_size = batch_size,
+      .input_features = input_features,
+      .out_neurons = out_neurons,
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_iterations, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -432,4 +675,6 @@ void Singleton::process_stage_9(cifar_dense::AppData &app_data) {
   seq->reset_fence();
 }
 
-}  // namespace cifar_dense::vulkan
+}  // namespace v2
+
+}  // namespace cifar_sparse::vulkan
