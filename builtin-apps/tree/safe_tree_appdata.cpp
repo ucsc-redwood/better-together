@@ -1,5 +1,6 @@
 #include "safe_tree_appdata.hpp"
 
+#include <omp.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -38,6 +39,7 @@ void HostTreeManager::initialize() {
     const int start = 0;
     const int end = appdata.get_n_input();
 
+#pragma omp parallel for
     for (int i = start; i < end; ++i) {
       appdata.u_morton_keys_s1[i] =
           tree::omp::xyz_to_morton32(appdata.u_input_points_s0[i], tree::kMinCoord, tree::kRange);
@@ -85,6 +87,7 @@ void HostTreeManager::initialize() {
   {
     const int start = 0;
     const int end = appdata.get_n_unique();
+#pragma omp parallel for
     for (int i = start; i < end; ++i) {
       tree::omp::process_radix_tree_i(i,
                                       appdata.get_n_brt_nodes(),
@@ -108,6 +111,7 @@ void HostTreeManager::initialize() {
     const int start = 0;
     const int end = appdata.get_n_brt_nodes();
 
+#pragma omp parallel for
     for (int i = start; i < end; ++i) {
       tree::omp::process_edge_count_i(i,
                                       appdata.u_brt_prefix_n_s4.data(),
@@ -149,6 +153,7 @@ void HostTreeManager::initialize() {
     const int start = 1;
     const int end = appdata.get_n_octree_nodes();
 
+#pragma omp parallel for
     for (int i = start; i < end; ++i) {
       tree::omp::process_oct_node(i,
                                   reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7.data()),
