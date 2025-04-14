@@ -3,8 +3,7 @@
 #include <memory_resource>
 #include <vector>
 
-// #include "builtin-apps/cifar-sparse/ndarray.h"
-#include "ndarray.hpp"
+#include "../ndarray.hpp"
 
 namespace cifar_sparse {
 
