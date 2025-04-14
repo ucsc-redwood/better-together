@@ -231,7 +231,8 @@ static void BM_run_stage_non_full(const int stage_to_measure,
 
 // e.g.,
 // xmake r bm-table-cifar-dense-vk --stage 1 -l off --device-to-measure 3A021JEHN02756
-// xmake r bm-table-cifar-dense-vk --stage 1 -l off --device jetson --device-to-measure jetson --full
+// xmake r bm-table-cifar-dense-vk --stage 1 -l off --device jetson --device-to-measure jetson
+// --full
 
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN
