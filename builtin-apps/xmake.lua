@@ -67,6 +67,7 @@ do
 
 	includes("cifar-dense/omp/xmake.lua")
 	includes("cifar-sparse/omp/xmake.lua")
+	includes("tree/omp/xmake.lua")
 end
 
 -- ----------------------------------------------------------------------------
