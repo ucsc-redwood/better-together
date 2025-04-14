@@ -16,10 +16,14 @@ do
 		"app.hpp",
 		"conf.hpp",
 		"resources_path.hpp",
+		"debug_logger.hpp",
+		"cache.hpp",
+		"config_reader.hpp",
 
 		-- cifar-sparse headers
 		"cifar-sparse/arg_max.hpp",
 		"cifar-sparse/sparse_appdata.hpp",
+		"cifar-sparse/ndarray.hpp",
 		"cifar-sparse/omp/dispatchers.hpp",
 		"cifar-sparse/omp/all_kernels.hpp",
 
@@ -40,8 +44,11 @@ do
 		"tree/omp/func_sort.hpp",
 		"tree/omp/temp_storage.hpp",
 
-		-- Add missing common header
-		"debug_logger.hpp",
+		-- pipeline headers
+		"pipeline/record.hpp",
+		"pipeline/spsc_queue.hpp",
+		"pipeline/task.hpp",
+		"pipeline/worker.hpp",
 	})
 
 	add_files({
@@ -54,7 +61,6 @@ do
 		"cifar-dense/omp/all_kernels.cpp",
 
 		-- cifar-sparse implementations
-		"cifar-sparse/sparse_appdata.cpp",
 		"cifar-sparse/omp/dispatchers.cpp",
 		"cifar-sparse/omp/all_kernels.cpp",
 
@@ -94,7 +100,13 @@ if has_config("use_vulkan") then
 			"tree/vulkan/dispatchers.cpp",
 		})
 	end
+
+
+	includes("cifar-sparse/vulkan/xmake.lua")
+
 end
+
+
 
 -- ----------------------------------------------------------------------------
 -- CUDA Static Library
@@ -105,13 +117,14 @@ if has_config("use_cuda") then
 	do
 		set_kind("static")
 		set_group("static-libs")
-		add_rules("common_flags")
+		add_rules("common_flags", "cuda_config")
 
 		add_headerfiles({
 			-- Common CUDA headers
 			"common/cuda/cu_mem_resource.cuh",
 			"common/cuda/helpers.cuh",
 			"common/cuda/manager.cuh",
+			"common/cuda/cu_bench_helper.cuh",
 
 			-- CIFAR sparse CUDA headers
 			"cifar-sparse/cuda/all_kernels.cuh",
@@ -139,7 +152,6 @@ if has_config("use_cuda") then
 			"tree/cuda/common.cuh",
 			"tree/cuda/func_morton.cuh",
 			"tree/cuda/dispatchers.cuh",
-			"tree/cuda/temp_storage.hpp",
 		})
 
 		add_files({
@@ -167,6 +179,5 @@ if has_config("use_cuda") then
 
 		-- Best CUDA library
 		add_packages("cub")
-		add_cugencodes("native")
 	end
 end

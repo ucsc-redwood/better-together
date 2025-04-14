@@ -1,0 +1,34 @@
+Detected 4 chunks in the data
+Total time span: 29975606 cycles
+Filtering time range: 6277933088606.0 to 6277963064212.0 cycles
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/scripts-v2/analysis/BM_best_raw_stage_10.png
+Time range displayed: 0.00ms to 1219.71ms
+
+======= TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Medium):
+  All Tasks Average: 166499.94 cycles (6.774900 ms)
+
+Chunk 1 (GPU):
+  All Tasks Average: 177111.53 cycles (7.206687 ms)
+
+Chunk 2 (Little):
+  All Tasks Average: 292335.51 cycles (11.895162 ms)
+
+Chunk 3 (Big):
+  All Tasks Average: 124110.13 cycles (5.050054 ms)
+
+
+======= WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 2 (Little)
+Total execution time: 29233551.00 cycles (1189.516235 ms)
+Percentage of selected region execution time: 38.46%
+
+Execution time breakdown for all chunks in region:
+  Chunk 2 (Little): 29233551.00 cycles (1189.516235 ms), 38.46%
+  Chunk 1 (GPU): 17711153.00 cycles (720.668660 ms), 23.30%
+  Chunk 0 (Medium): 16649994.00 cycles (677.489990 ms), 21.91%
+  Chunk 3 (Big): 12411013.00 cycles (505.005412 ms), 16.33%

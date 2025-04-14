@@ -1,0 +1,11 @@
+{
+    "Tree": {
+      "num_stages": 7
+    },
+    "CifarDense": {
+      "num_stages": 9
+    },
+    "CifarSparse": {
+      "num_stages": 9
+    }
+  }

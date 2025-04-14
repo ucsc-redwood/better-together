@@ -1,0 +1,77 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [N, C, H, W]
+};
+
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, C, P, Q]
+};
+
+layout(push_constant) uniform Params {
+  int N;        // Batch size
+  int C;        // Number of channels
+  int H;        // Input height
+  int W;        // Input width
+  int pool_h;   // Pooling kernel height
+  int pool_w;   // Pooling kernel width
+  int stride;   // Pooling stride
+  int padding;  // Pooling padding
+}
+params;
+
+void main() {
+  // Map workgroup IDs to the batch (n) and channel (c) indices.
+  int n = int(gl_WorkGroupID.z);
+  int c = int(gl_WorkGroupID.y);
+
+  // Compute a 1D global index for the spatial dimensions.
+  int globalIndex = int(gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x);
+
+  // Compute the output spatial dimensions P and Q.
+  int P = (params.H + 2 * params.padding - params.pool_h) / params.stride + 1;
+  int Q = (params.W + 2 * params.padding - params.pool_w) / params.stride + 1;
+
+  // If the global index exceeds the number of output positions, exit.
+  if (globalIndex >= P * Q) return;
+
+  // Map the 1D index to 2D coordinates (p, q)
+  int p = globalIndex / Q;
+  int q = globalIndex % Q;
+
+  // Initialize max value to a very low number (equivalent to -FLT_MAX).
+  float max_val = -3.402823466e+38;
+  bool found_valid_input = false;
+
+  // Loop over the pooling window.
+  for (int r = 0; r < params.pool_h; ++r) {
+    for (int s = 0; s < params.pool_w; ++s) {
+      // Compute the corresponding input coordinates.
+      int in_y = p * params.stride + r - params.padding;
+      int in_x = q * params.stride + s - params.padding;
+
+      // Check if the input coordinates are within bounds.
+      if (in_y >= 0 && in_y < params.H && in_x >= 0 && in_x < params.W) {
+        // Compute the flat index for the input tensor stored as [N, C, H, W].
+        int inputIndex = ((n * params.C + c) * params.H + in_y) * params.W + in_x;
+        float val = input_data[inputIndex];
+        max_val = max(max_val, val);
+        found_valid_input = true;
+      }
+    }
+  }
+
+  // If no valid inputs were found in the pooling region, set max_val to 0.
+  if (!found_valid_input) {
+    max_val = 0.0;
+  }
+
+  // Compute the flat index for the output tensor stored as [N, C, P, Q].
+  int outputIndex = ((n * params.C + c) * P + p) * Q + q;
+  output_data[outputIndex] = max_val;
+}

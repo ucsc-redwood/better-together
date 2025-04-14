@@ -58,19 +58,17 @@ do
 end
 
 -- ----------------------------------------------------------------
--- Utility Target: try determining the block size of CUDA kernels
+-- Utility Target: Query the current Vulkan-Hpp version
+-- Vulkan-Hpp version: 309
+-- And 
+-- Vulkan-Hpp version: 290
 -- ----------------------------------------------------------------
 
-if has_config("use_cuda") then
-	target("determine-cuda-kernel-block-size")
-	do
-		add_rules("pipe_config", "common_flags")
-
-		add_files({
-			"determine_cuda_kernel_block_size.cu",
-		})
-
-		add_deps("builtin-apps", "builtin-apps-cuda")
-		add_cugencodes("native")
-	end
+target("query-vulkan-hpp-version")
+do
+	add_rules("utility_config", "vulkan_config", "run_on_android")
+	add_files({
+		"query_vulkan_hpp_version.cpp",
+	})
 end
+
