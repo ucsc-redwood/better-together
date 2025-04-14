@@ -1,0 +1,79 @@
+{
+    "3A021JEHN02756": {
+      "name": "Google Pixel 7a",
+      "pinnable_cores": {
+        "little": 4,
+        "medium": 2,
+        "big": 2,
+        "gpu": 1
+      },
+      "gpu_backend": "vulkan",
+      "description": "N/A"
+    },
+    "9b034f1b": {
+      "name": "OnePlus 11",
+      "pinnable_cores": {
+        "little": 3,
+        "medium": 2,
+        "big": 0,
+        "gpu": 1
+      },
+      "gpu_backend": "vulkan",
+      "description": "N/A"
+    },
+    "ce0717178d7758b00b7e": {
+      "name": "Samsung Galaxy Note",
+      "pinnable_cores": {
+        "little": 4,
+        "medium": 0,
+        "big": 4,
+        "gpu": 1
+      },
+      "gpu_backend": "vulkan",
+      "description": "N/A"
+    },
+    "jetson": {
+      "name": "NVIDIA Jetson Orin Nano",
+      "pinnable_cores": {
+        "little": 6,
+        "medium": 0,
+        "big": 0,
+        "gpu": 1
+      },
+      "gpu_backend": "cuda",
+      "description": "N/A"
+    },
+    "jetsonlowpower": {
+      "name": "NVIDIA Jetson Orin Nano (Low Power Mode)",
+      "pinnable_cores": {
+        "little": 4,
+        "medium": 0,
+        "big": 0,
+        "gpu": 1
+      },
+      "gpu_backend": "cuda",
+      "description": "N/A"
+    },
+    "minipc": {
+      "name": "AMD Mini PC",
+      "pinnable_cores": {
+        "big": 16,
+        "medium": 0,
+        "little": 0,
+        "gpu": 1
+      },
+      "gpu_backend": "vulkan",
+      "description": "N/A"
+    },
+    "pc": {
+      "name": "Nvidia PC",
+      "pinnable_cores": {
+        "little": 12,
+        "medium": 0,
+        "big": 8,
+        "gpu": 1
+      },
+      "gpu_backend": "cuda",
+      "description": "N/A"
+    }
+  }

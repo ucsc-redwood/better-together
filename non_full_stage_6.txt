@@ -1,0 +1,74 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-real-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 496.2 MB/s (2829008 bytes in 0.005s)
+[2025-04-13 10:21:22.246] [info] Little cores: 0 1 2 3 
+[2025-04-13 10:21:22.247] [info] Medium cores: 4 5 
+[2025-04-13 10:21:22.247] [info] Big cores: 6 7 
+--------------------------------------------------------
+Statistics for Little:
+  Number of records: 100
+  Total time: 575.231 ms
+  Average time: 5.75231 ms
+  Geometric mean: 5.73968 ms
+  Median: 5.69012 ms
+  Min: 5.5295 ms
+  Max: 10.208 ms
+  Standard deviation: 0.45921 ms
+  Coefficient of variation: 0.0798306
+  Percentile 90: 5.85181 ms
+  Percentile 95: 5.91158 ms
+  Percentile 99: 10.208 ms
+PROCESSOR=Little|COUNT=100|TOTAL=575.231|AVG=5.75231|GEOMEAN=5.73968|MEDIAN=5.69012|MIN=5.5295|MAX=10.208|STDDEV=0.45921|CV=0.0798306|P90=5.85181|P95=5.91158|P99=10.208
+--------------------------------------------------------
+Statistics for Medium:
+  Number of records: 100
+  Total time: 191.528 ms
+  Average time: 1.91528 ms
+  Geometric mean: 1.80771 ms
+  Median: 1.64724 ms
+  Min: 1.62187 ms
+  Max: 5.84469 ms
+  Standard deviation: 0.883716 ms
+  Coefficient of variation: 0.461403
+  Percentile 90: 1.9091 ms
+  Percentile 95: 4.66793 ms
+  Percentile 99: 5.84469 ms
+PROCESSOR=Medium|COUNT=100|TOTAL=191.528|AVG=1.91528|GEOMEAN=1.80771|MEDIAN=1.64724|MIN=1.62187|MAX=5.84469|STDDEV=0.883716|CV=0.461403|P90=1.9091|P95=4.66793|P99=5.84469
+--------------------------------------------------------
+Statistics for Big:
+  Number of records: 100
+  Total time: 150 ms
+  Average time: 1.5 ms
+  Geometric mean: 1.38765 ms
+  Median: 1.2524 ms
+  Min: 1.15393 ms
+  Max: 6.55477 ms
+  Standard deviation: 0.853449 ms
+  Coefficient of variation: 0.568968
+  Percentile 90: 1.6263 ms
+  Percentile 95: 3.86011 ms
+  Percentile 99: 6.55477 ms
+PROCESSOR=Big|COUNT=100|TOTAL=150|AVG=1.5|GEOMEAN=1.38765|MEDIAN=1.2524|MIN=1.15393|MAX=6.55477|STDDEV=0.853449|CV=0.568968|P90=1.6263|P95=3.86011|P99=6.55477
+--------------------------------------------------------
+Statistics for GPU:
+  Number of records: 100
+  Total time: 197.742 ms
+  Average time: 1.97742 ms
+  Geometric mean: 1.93808 ms
+  Median: 1.88696 ms
+  Min: 1.57841 ms
+  Max: 6.88529 ms
+  Standard deviation: 0.546748 ms
+  Coefficient of variation: 0.276495
+  Percentile 90: 2.30273 ms
+  Percentile 95: 2.33618 ms
+  Percentile 99: 6.88529 ms
+PROCESSOR=GPU|COUNT=100|TOTAL=197.742|AVG=1.97742|GEOMEAN=1.93808|MEDIAN=1.88696|MIN=1.57841|MAX=6.88529|STDDEV=0.546748|CV=0.276495|P90=2.30273|P95=2.33618|P99=6.88529
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-real-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-real-cifar-sparse-vk: 1 file pushed, 0 skipped. 511.2 MB/s (2829008 bytes in 0.005s)
+[2025-04-13 10:14:03.654] [info] Little cores: 0 1 2 
+[2025-04-13 10:14:03.654] [info] Medium cores: 3 4 
+[2025-04-13 10:14:03.654] [info] Big cores: 5 6 7 

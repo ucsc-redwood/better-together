@@ -1,0 +1,49 @@
+compare-full-and-non-full:
+    # Run non-full benchmark for stage 1
+    xmake r bm-real-cifar-sparse-vk --stage 1 -l off | tee non_full_stage_1.txt
+    
+    # Run full benchmark for stage 1
+    xmake r bm-real-cifar-sparse-vk --stage 1 -l off --full | tee full_stage_1.txt
+    
+    # Extract and compare AVG metrics
+    @echo "\n====== COMPARISON OF AVG METRICS ======"
+    @echo "Processor | Non-Full (ms) | Full (ms)"
+    @echo "--------------------------------------"
+    @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' non_full_stage_1.txt | sort
+    @echo "--------------------------------------"
+    @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' full_stage_1.txt | sort
+
+compare-all-metrics:
+    # Run benchmarks if needed
+    xmake r bm-real-cifar-sparse-vk --stage 1 -l off | tee non_full_stage_1.txt
+    xmake r bm-real-cifar-sparse-vk --stage 1 -l off --full | tee full_stage_1.txt
+    
+    # Create a detailed CSV comparison
+    @echo "Processor,Metric,Non-Full,Full" > stage_1_comparison.csv
+    @for metric in "COUNT" "AVG" "MEDIAN" "MIN" "MAX" "STDDEV" "CV"; do \
+        awk -F'|' -v metric="$$metric" ' \
+        /PROCESSOR=/ { \
+            for (i=1; i<=NF; i++) { \
+                if ($$i ~ "^"metric"=") { \
+                    split($$i, val, "="); \
+                    split($$1, p, "="); \
+                    printf "%s,%s,%s\n", p[2], metric, val[2]; \
+                } \
+            } \
+        }' non_full_stage_1.txt | sort > non_full_metrics.tmp; \
+        awk -F'|' -v metric="$$metric" ' \
+        /PROCESSOR=/ { \
+            for (i=1; i<=NF; i++) { \
+                if ($$i ~ "^"metric"=") { \
+                    split($$i, val, "="); \
+                    split($$1, p, "="); \
+                    printf "%s,%s,%s\n", p[2], metric, val[2]; \
+                } \
+            } \
+        }' full_stage_1.txt | sort > full_metrics.tmp; \
+        paste -d, non_full_metrics.tmp full_metrics.tmp | awk -F, '{print $$1","$$2","$$3","$$6}' >> stage_1_comparison.csv; \
+    done
+    @rm non_full_metrics.tmp full_metrics.tmp
+    
+    @echo "\nComparison saved to stage_1_comparison.csv"
+    @cat stage_1_comparison.csv | column -t -s','

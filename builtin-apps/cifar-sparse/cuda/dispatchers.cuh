@@ -3,6 +3,7 @@
 #include <cuda_runtime_api.h>
 
 #include "../sparse_appdata.hpp"
+#include "builtin-apps/common/cuda/manager.cuh"
 
 namespace cifar_sparse::cuda {
 
@@ -42,5 +43,45 @@ void run_stage(AppData &appdata) {
     process_stage_9(appdata);
   }
 }
+
+namespace v2 {
+
+template <typename MemResourceT>
+  requires std::is_same_v<MemResourceT, ::cuda::CudaManagedResource> ||
+           std::is_same_v<MemResourceT, ::cuda::CudaPinnedResource>
+class CudaDispatcher final : public ::cuda::CudaManager<MemResourceT> {
+ public:
+  CudaDispatcher() = default;
+
+  void run_stage_1_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_2_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_3_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_4_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_5_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_6_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_7_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_8_async(cifar_sparse::v2::AppData &appdata);
+  void run_stage_9_async(cifar_sparse::v2::AppData &appdata);
+
+  using StageFn = void (CudaDispatcher::*)(cifar_sparse::v2::AppData &);
+
+  static constexpr std::array<StageFn, 9> stage_functions = {
+      &CudaDispatcher::run_stage_1_async,
+      &CudaDispatcher::run_stage_2_async,
+      &CudaDispatcher::run_stage_3_async,
+      &CudaDispatcher::run_stage_4_async,
+      &CudaDispatcher::run_stage_5_async,
+      &CudaDispatcher::run_stage_6_async,
+      &CudaDispatcher::run_stage_7_async,
+      &CudaDispatcher::run_stage_8_async,
+      &CudaDispatcher::run_stage_9_async,
+  };
+
+ private:
+  // create a manager
+  ::cuda::CudaManager<MemResourceT> mgr_;
+};
+
+}  // namespace v2
 
 }  // namespace cifar_sparse::cuda

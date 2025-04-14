@@ -14,8 +14,6 @@ if not is_plat("android") then
 	set_toolchains("clang")
 end
 
--- add_cxxflags("-stdlib=libc++")
-
 -- ----------------------------------------------------------------
 -- Common packages used in the project
 -- ----------------------------------------------------------------
@@ -31,7 +29,8 @@ add_requires("glm") -- tree applications
 add_requires("nlohmann_json")
 add_requires("libcurl")
 add_requires("cnpy")
-
+add_requires("benchmark")
+add_requires("gtest")
 
 -- OpenMP is handled differently on Android
 if not is_plat("android") then
@@ -53,15 +52,11 @@ on_load(function(target)
 	target:add("packages", "cli11")
 	target:add("packages", "spdlog")
 	target:add("packages", "glm")
-
-	-- if has cuda 
-	if has_config("cuda") then
-	    target:add("cuflags", "-Xcompiler", "-fopenmp", {force = true})
-	    target:add("ldflags", "-fopenmp", {force = true})
-	end
-
+	target:add("packages", "nlohmann_json")
+	
 	-- -- for adding debugging
 	-- target:add("cxxflags", "-pg")
+	target:add("includedirs", "$(projectdir)")
 end)
 rule_end()
 
@@ -74,6 +69,23 @@ option("use_cuda")
     set_showmenu(true)
     set_values("yes", "no")
 option_end()
+
+rule("cuda_config")
+on_load(function(target)
+    -- Avoid JIT compilation by targeting specific GPU architecture (SM87)
+    -- This improves runtime performance and ensures deterministic behavior
+    -- JIT compilation is not supported on Tegra devices in safe context
+    target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", {force = true})
+
+
+	-- Add NVTX library for Nsight Systems to visualize regions of interest
+	target:add("ldflags", "-lnvToolsExt", {force = true})
+
+	-- Add OpenMP support for parallel execution on CPU
+	target:add("cuflags", "-Xcompiler", "-fopenmp", {force = true})
+	target:add("ldflags", "-fopenmp", {force = true})
+end)
+rule_end()
 
 -- ----------------------------------------------------------------
 -- Vulkan configuration
@@ -111,9 +123,6 @@ rule_end()
 
 includes("builtin-apps/common/kiss-vk") -- Keep-It-Simple-Stupid Vulkan library
 includes("builtin-apps") -- the three applications
-includes("benchmarks")
-includes("pipe")
-includes("lpipe")
-includes("play")
+includes("best-pipe")
 includes("utility")
 

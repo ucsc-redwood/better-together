@@ -237,4 +237,84 @@ __global__ void linear(const float* input_data,
   //   }
 }
 
+// ----------------------------------------------------------------------------
+// v2
+// ----------------------------------------------------------------------------
+
+namespace v2 {
+
+__global__ void conv2d_cuda_kernel(const float* input_data,
+                                   int batch_size,
+                                   int in_channels,
+                                   int in_height,
+                                   int in_width,
+                                   const float* weight_vals,
+                                   const int* weight_row_ptr,
+                                   const int* weight_col_idx,
+                                   int out_channels,
+                                   const float* bias_data,
+                                   int bias_size,
+                                   int kernel_size,
+                                   int stride,
+                                   int padding,
+                                   bool relu,
+                                   float* output_data,
+                                   int out_height,
+                                   int out_width) {
+  // Compute a linear index across the entire output tensor.
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  int total_output = batch_size * out_channels * out_height * out_width;
+  if (index >= total_output) return;
+
+  // Decode the 1D index into 4D indices: (b, out_c, oh, ow).
+  int ow = index % out_width;
+  int tmp = index / out_width;
+  int oh = tmp % out_height;
+  tmp = tmp / out_height;
+  int out_c = tmp % out_channels;
+  int b = tmp / out_channels;
+
+  float sum = 0.0f;
+  // Get the start and end indices in the CSR for this output channel.
+  int row_start = weight_row_ptr[out_c];
+  int row_end = weight_row_ptr[out_c + 1];
+  int kernel_area = kernel_size * kernel_size;
+
+  // Loop over each nonzero weight contributing to this output channel.
+  for (int nz = row_start; nz < row_end; nz++) {
+    int flat_kernel_idx = weight_col_idx[nz];
+    float weight_val = weight_vals[nz];
+
+    // Decode the flat index into an input channel and kernel (ky, kx) position.
+    int in_c = flat_kernel_idx / kernel_area;
+    int rem = flat_kernel_idx % kernel_area;
+    int ky = rem / kernel_size;
+    int kx = rem % kernel_size;
+
+    // Compute the corresponding input spatial coordinates.
+    int in_y = oh * stride + ky - padding;
+    int in_x = ow * stride + kx - padding;
+
+    // If within the input boundaries, accumulate the weighted input.
+    if (in_y >= 0 && in_y < in_height && in_x >= 0 && in_x < in_width) {
+      int input_idx = ((b * in_channels + in_c) * in_height + in_y) * in_width + in_x;
+      sum += input_data[input_idx] * weight_val;
+    }
+  }
+
+  // Add bias if provided.
+  if (bias_data != nullptr && out_c < bias_size) {
+    sum += bias_data[out_c];
+  }
+  // Apply ReLU activation if needed.
+  if (relu && sum < 0.0f) {
+    sum = 0.0f;
+  }
+
+  // Write the computed sum to the output tensor.
+  output_data[index] = sum;
+}
+
+}  // namespace v2
+
 }  // namespace cifar_sparse::cuda

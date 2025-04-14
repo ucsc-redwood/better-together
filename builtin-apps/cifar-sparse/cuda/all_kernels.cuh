@@ -59,4 +59,26 @@ __global__ void linear(const float* input_data,
                        const float* bias_data,
                        float* output_data);
 
+namespace v2 {
+
+__global__ void conv2d_cuda_kernel(const float* input_data,
+                                   int batch_size,
+                                   int in_channels,
+                                   int in_height,
+                                   int in_width,
+                                   const float* weight_vals,
+                                   const int* weight_row_ptr,
+                                   const int* weight_col_idx,
+                                   int out_channels,
+                                   const float* bias_data,
+                                   int bias_size,
+                                   int kernel_size,
+                                   int stride,
+                                   int padding,
+                                   bool relu,
+                                   float* output_data,
+                                   int out_height,
+                                   int out_width);
+}
+
 }  // namespace cifar_sparse::cuda
