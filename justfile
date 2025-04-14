@@ -346,7 +346,7 @@ run-benchmarks-cifar-sparse-vk-jetson-full:
     xmake r bm-table-cifar-sparse-vk --stage 8 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson_full.txt.tmp
     xmake r bm-table-cifar-sparse-vk --stage 9 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson_full.txt.tmp
 
-    awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%2==0)print ""}' BM_table_cifar_sparse_vk_jetson_full.txt.tmp > BM_table_cifar_sparse_vk_jetson_full.txt
+    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%2==0)print ""}' BM_table_cifar_sparse_vk_jetson_full.txt.tmp > BM_table_cifar_sparse_vk_jetson_full.txt
     cat BM_table_cifar_sparse_vk_jetson_full.txt
 
 run-benchmarks-cifar-sparse-vk-jetson:
@@ -362,7 +362,7 @@ run-benchmarks-cifar-sparse-vk-jetson:
     xmake r bm-table-cifar-sparse-vk --stage 8 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt.tmp
     xmake r bm-table-cifar-sparse-vk --stage 9 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_jetson.txt.tmp
 
-    awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%2==0)print ""}' BM_table_cifar_sparse_vk_jetson.txt.tmp > BM_table_cifar_sparse_vk_jetson.txt
+    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%2==0)print ""}' BM_table_cifar_sparse_vk_jetson.txt.tmp > BM_table_cifar_sparse_vk_jetson.txt
     cat BM_table_cifar_sparse_vk_jetson.txt
 
 run-benchmarks-cifar-sparse-vk-jetson-all:
