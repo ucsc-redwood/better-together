@@ -42,8 +42,6 @@ rm-android-tmp:
     adb -s 9b034f1b shell "rm -rf /data/local/tmp/*"
     adb -s ce0717178d7758b00b7e shell "rm -rf /data/local/tmp/*"
     
-    xmake push-all-resources
-
 # List all files in the temporary directory of Android devices
 cat-android-tmp:
     adb -s 3A021JEHN02756 shell "ls -la /data/local/tmp"
