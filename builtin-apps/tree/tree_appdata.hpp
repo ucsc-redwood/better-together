@@ -12,7 +12,7 @@ namespace tree {
 constexpr auto kMemoryRatio = 0.6f;
 
 // Default problem size, other sizes are
-constexpr auto kDefaultInputSize = 640 * 480;
+constexpr auto kDefaultInputSize = 3840 * 2160;
 constexpr auto kMinCoord = 0.0f;
 constexpr auto kRange = 1024.0f;
 
