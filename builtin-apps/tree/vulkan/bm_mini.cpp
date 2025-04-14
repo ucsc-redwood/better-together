@@ -18,7 +18,7 @@ static void BM_InitializeTree(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_InitializeTree)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_InitializeTree)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Initialize");
 
 // ----------------------------------------------------------------
 // Stage 1
@@ -36,7 +36,7 @@ static void BM_Stage1(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage1");
 
 // ----------------------------------------------------------------
 // Stage 2
@@ -54,7 +54,7 @@ static void BM_Stage2(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage2");
 
 // ----------------------------------------------------------------
 // Stage 3
@@ -72,7 +72,7 @@ static void BM_Stage3(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage3");
 
 // ----------------------------------------------------------------
 // Stage 4
@@ -90,7 +90,7 @@ static void BM_Stage4(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage4");
 
 // ----------------------------------------------------------------
 // Stage 5
@@ -108,7 +108,7 @@ static void BM_Stage5(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage5");
 
 // ----------------------------------------------------------------
 // Stage 6
@@ -126,7 +126,7 @@ static void BM_Stage6(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage6");
 
 // ----------------------------------------------------------------
 // Stage 7
@@ -144,7 +144,7 @@ static void BM_Stage7(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Stage7");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
