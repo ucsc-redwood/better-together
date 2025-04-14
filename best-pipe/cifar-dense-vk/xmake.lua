@@ -16,22 +16,22 @@ do
 	add_packages("benchmark")
 end
 
--- -- ----------------------------------------------------------------------------
--- -- Run stages with interference (100 tasks)
--- -- Use this to generate Table, which will feed into optimizer
--- -- ----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
+-- Run stages with interference (100 tasks)
+-- Use this to generate Table, which will feed into optimizer
+-- ----------------------------------------------------------------------------
 
--- target("bm-table-cifar-sparse-vk")
--- do
--- 	add_rules("common_flags", "vulkan_config", "run_on_android")
--- 	set_kind("binary")
--- 	add_files({
--- 		"bm_for_table.cpp",
--- 	})
+target("bm-table-cifar-dense-vk")
+do
+	add_rules("common_flags", "vulkan_config", "run_on_android")
+	set_kind("binary")
+	add_files({
+		"bm_for_table.cpp",
+	})
 
--- 	add_deps("builtin-apps-vulkan")
--- 	add_deps("builtin-apps")
--- end
+	add_deps("builtin-apps-vulkan")
+	add_deps("builtin-apps")
+end
 
 
 -- -- ----------------------------------------------------------------------------
