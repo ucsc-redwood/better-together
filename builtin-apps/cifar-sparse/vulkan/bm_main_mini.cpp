@@ -68,8 +68,19 @@ static void BM_run_OMP_baseline(benchmark::State& state) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::v2::AppData appdata(mr);
 
-  // Warm up the data structures to avoid first-run anomalies
-  cifar_sparse::omp::v2::dispatch_multi_stage_unrestricted(num_threads, appdata, 1, 9);
+#pragma omp parallel
+  {
+    // Warm up the data structures to avoid first-run anomalies
+    cifar_sparse::omp::v2::run_stage_1(appdata);
+    cifar_sparse::omp::v2::run_stage_2(appdata);
+    cifar_sparse::omp::v2::run_stage_3(appdata);
+    cifar_sparse::omp::v2::run_stage_4(appdata);
+    cifar_sparse::omp::v2::run_stage_5(appdata);
+    cifar_sparse::omp::v2::run_stage_6(appdata);
+    cifar_sparse::omp::v2::run_stage_7(appdata);
+    cifar_sparse::omp::v2::run_stage_8(appdata);
+    cifar_sparse::omp::v2::run_stage_9(appdata);
+  }
 
   for (auto _ : state) {
 #pragma omp parallel num_threads(num_threads)
