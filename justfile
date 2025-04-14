@@ -299,12 +299,5 @@ run-benchmarks-cifar-sparse-vk device:
     xmake r bm-table-cifar-sparse-vk --stage 8 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt  
     xmake r bm-table-cifar-sparse-vk --stage 9 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_cifar_sparse_vk_{{device}}.txt
 
-    awk -F'|' '{
-    proc=""; avg="";
-    for(i=1;i<=NF;i++) {
-        if($i ~ /^PROCESSOR=/) proc=$i;
-        if($i ~ /^AVG=/) avg=$i;
-        }
-        print proc "|" avg
-        if(NR%4==0) print ""
-    }' BM_table_cifar_sparse_vk_{{device}}.txt 
+    awk -F'|' '{for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i}print p "|" a; if(NR%4==0)print ""}' BM_table_cifar_sparse_vk_{{device}}.txt > BM_table_cifar_sparse_vk_{{device}}.txt.tmp
+    cat BM_table_cifar_sparse_vk_{{device}}.txt.tmp
