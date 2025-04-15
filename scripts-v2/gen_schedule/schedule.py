@@ -8,16 +8,25 @@ def define_data():
     core_types = ["Little", "Medium", "Big", "GPU"]
 
     # this is a avg table of Stages x Core Types
+    # Stage 1: 28.94 7.69 10.68 5.28
+    # Stage 2: 55.03 27.91 33.87 3.41
+    # Stage 3: 25.15 6.53 6.73 3.09
+    # Stage 4: 27.07 14.11 17.14 2.43
+    # Stage 5: 13.78 3.85 3.87 1.93
+    # Stage 6: 13.79 3.96 3.89 1.99
+    # Stage 7: 14.34 4.03 3.94 2.15
+    # Stage 8: 15.57 7.46 10.15 1.43
+    # Stage 9: 0.08 0.03 0.03 0.40
     stage_timings = [
-        [19.552, 5.55563, 7.57856, 8.95232],
-        [23.0134, 12.1197, 17.6247, 5.18886],
-        [10.3059, 2.95321, 4.13628, 4.27768],
-        [11.6225, 6.70497, 9.32441, 2.88852],
-        [5.8033, 1.66077, 2.58046, 2.2316],
-        [5.78249, 1.78607, 2.43648, 2.25711],
-        [5.9269, 2.55935, 1.40773, 2.36957],
-        [6.31366, 4.35724, 4.52771, 1.53629],
-        [0.184275, 0.025363, 0.0340247, 0.291732],
+        [28.94, 7.69, 10.68, 5.28],
+        [55.03, 27.91, 33.87, 3.41],
+        [25.15, 6.53, 6.73, 3.09],
+        [27.07, 14.11, 17.14, 2.43],
+        [13.78, 3.85, 3.87, 1.93],
+        [13.79, 3.96, 3.89, 1.99],
+        [14.34, 4.03, 3.94, 2.15],
+        [15.57, 7.46, 10.15, 1.43],
+        [0.08, 0.03, 0.03, 0.40],
     ]
 
     return num_stages, core_types, type_value, stage_timings
@@ -206,7 +215,7 @@ def solve_optimization_problem():
     num_stages, core_types, type_value, stage_timings = define_data()
 
     # Number of solutions to find
-    num_solutions = 100
+    num_solutions = 10
 
     # Prepare a list to hold up to num_solutions solutions
     top_solutions = []
@@ -260,10 +269,6 @@ def solve_optimization_problem():
         print("\n=== Summary of All Solutions ===")
         for i, (time, _) in enumerate(top_solutions):
             print(f"Solution {i + 1}: Chunk time = {time} ms")
-            
-        
-
-
 
 
 if __name__ == "__main__":
