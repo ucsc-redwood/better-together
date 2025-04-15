@@ -1,5 +1,6 @@
 #include <omp.h>
 
+#include <barrier>
 #include <queue>
 
 #include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
@@ -48,25 +49,26 @@ void clean_up_q(std::queue<MyTask*>& q) {
   }
 }
 
-void similuation_thread(tree::vulkan::VulkanDispatcher& disp, std::function<void(MyTask*)> func) {
+// Add the barrier-less version back for compatibility with existing code
+void similuation_thread(tree::vulkan::VulkanDispatcher& disp,
+                        std::mutex& mutex,
+                        std::function<void(MyTask*)> func) {
   thread_local std::queue<MyTask*> q;
-  init_q(q, disp);
-
-  while (!done.load(std::memory_order_relaxed)) {
-    if (q.empty()) {
-      init_q(q, disp);
-      continue;
-    }
-
-    MyTask* task = q.front();
-    q.pop();
-
-    func(task);
-
-    // After done -> push back for reuse
-    task->reset();
-    q.push(task);
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    init_q(q, disp);
   }
+
+  // while (!done.load(std::memory_order_relaxed)) {
+  //   MyTask* task = q.front();
+  //   q.pop();
+
+  //   func(task);
+
+  //   // After done -> push back for reuse
+  //   task->reset();
+  //   q.push(task);
+  // }
 
   clean_up_q(q);
 }
@@ -87,63 +89,72 @@ static void warmup_processors(int seconds_to_run) {
   std::atomic<int> big_count(0);
   std::atomic<int> vulkan_count(0);
 
+
+
   // Create task functions
   auto little_func = [&little_count](MyTask* task) {
     if (g_little_cores.empty()) return;
     // Use a simple workload for warmup
-    tree::omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task->appdata, 1, 1);
+    // tree::omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task->appdata, 1, 1);
     little_count++;
   };
 
   auto medium_func = [&medium_count](MyTask* task) {
     if (g_medium_cores.empty()) return;
-    tree::omp::dispatch_multi_stage(g_medium_cores, g_medium_cores.size(), task->appdata, 1, 1);
+    // tree::omp::dispatch_multi_stage(g_medium_cores, g_medium_cores.size(), task->appdata, 1, 1);
     medium_count++;
   };
 
   auto big_func = [&big_count](MyTask* task) {
     if (g_big_cores.empty()) return;
-    tree::omp::dispatch_multi_stage(g_big_cores, g_big_cores.size(), task->appdata, 1, 1);
+    // tree::omp::dispatch_multi_stage(g_big_cores, g_big_cores.size(), task->appdata, 1, 1);
     big_count++;
   };
 
   auto vulkan_func = [&disp, &vulkan_count](MyTask* task) {
-    disp.dispatch_multi_stage(task->appdata, 1, 1);
+    // disp.dispatch_multi_stage(task->appdata, 1, 1);
     vulkan_count++;
   };
 
   // Create threads for all processor types
   std::vector<std::thread> threads;
 
+  std::mutex mutex;
+  std::barrier<> barrier(4);
+
   if (!g_little_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), little_func);
+    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(mutex),
+                        little_func);
   }
 
   if (!g_medium_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), medium_func);
+    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(mutex),
+                        medium_func);
   }
 
   if (!g_big_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), big_func);
+    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(mutex),
+                        big_func);
   }
 
-  threads.emplace_back(similuation_thread, std::ref(disp), vulkan_func);
+  threads.emplace_back(similuation_thread, std::ref(disp), std::ref(mutex),
+                      vulkan_func);
 
-  // Run warmup for specified time
-  std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
+  // // Run warmup for specified time
+  // std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
 
-  // Signal threads to stop
-  done.store(true);
+  // // Signal threads to stop
+  // done.store(true);
 
-  // Join all threads
-  for (auto& t : threads) {
-    t.join();
-  }
+  // // Join all threads
+  // for (auto& t : threads) {
+  //   t.join();
+  // }
 
-  // Output warmup statistics
-  std::cout << "Warmup completed: " << "Little=" << little_count.load() << ", "
-            << "Medium=" << medium_count.load() << ", " << "Big=" << big_count.load() << ", "
-            << "Vulkan=" << vulkan_count.load() << std::endl;
+  // // Output warmup statistics
+  // std::cout << "Warmup completed: " << "Little=" << little_count.load() << ", "
+  //           << "Medium=" << medium_count.load() << ", " << "Big=" << big_count.load() << ", "
+  //           << "Vulkan=" << vulkan_count.load() << std::endl;
 }
 
 static void BM_run_normal(const ProcessorType pt, const int stage, const int seconds_to_run) {
@@ -185,7 +196,8 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
 
   // Run a short warmup
   const int warmup_seconds = 2;
-  std::thread warmup_thread(similuation_thread, std::ref(disp), warmup_func);
+  std::mutex warmup_mutex;
+  std::thread warmup_thread(similuation_thread, std::ref(disp), std::ref(warmup_mutex), warmup_func);
   std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
   done.store(true);
   warmup_thread.join();
@@ -217,19 +229,20 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
   };
 
   std::thread t1;
+  std::mutex mutex;
   if (pt == ProcessorType::kVulkan) {
     if (cores_to_use.empty()) {
       // This is fine for Vulkan
     } else {
       SPDLOG_WARN("Unexpected cores for Vulkan processor type");
     }
-    t1 = std::thread(similuation_thread, std::ref(disp), gpu_func);
+    t1 = std::thread(similuation_thread, std::ref(disp), std::ref(mutex), gpu_func);
   } else {
     if (cores_to_use.empty()) {
       SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
       return;
     }
-    t1 = std::thread(similuation_thread, std::ref(disp), cpu_func);
+    t1 = std::thread(similuation_thread, std::ref(disp), std::ref(mutex), cpu_func);
   }
 
   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
@@ -295,20 +308,25 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   // Run warmup with all processors
   std::vector<std::thread> warmup_threads;
   const int warmup_seconds = 2;
+  std::mutex warmup_mutex;
 
   if (!g_little_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), little_warmup_func);
+    warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex),
+                              little_warmup_func);
   }
 
   if (!g_medium_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), medium_warmup_func);
+    warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex),
+                              medium_warmup_func);
   }
 
   if (!g_big_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), big_warmup_func);
+    warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex),
+                              big_warmup_func);
   }
 
-  warmup_threads.emplace_back(similuation_thread, std::ref(disp), vulkan_warmup_func);
+  warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex),
+                            vulkan_warmup_func);
 
   std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
   done.store(true);
@@ -357,22 +375,27 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
 
   // Launch threads for all processor types
   std::vector<std::thread> threads;
+  std::mutex benchmark_mutex;
 
   // Create threads for all available core types (we want all to run concurrently)
   if (!g_little_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), little_func);
+    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(benchmark_mutex),
+                        little_func);
   }
 
   if (!g_medium_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), medium_func);
+    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(benchmark_mutex),
+                        medium_func);
   }
 
   if (!g_big_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), big_func);
+    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(benchmark_mutex),
+                        big_func);
   }
 
   // Always create Vulkan thread
-  threads.emplace_back(similuation_thread, std::ref(disp), gpu_func);
+  threads.emplace_back(similuation_thread, std::ref(disp), std::ref(benchmark_mutex),
+                      gpu_func);
 
   // Sleep for the specified time to let the benchmark run
   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
@@ -514,132 +537,132 @@ int main(int argc, char** argv) {
     android::warmup_processors(warmup_seconds);
   }
 
-  // Run normal benchmark (one processor type at a time)
-  std::cout << "Running normal benchmark (one processor at a time)...\n";
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    if (!g_little_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kLittleCore, stage, seconds_to_run);
-    }
-    if (!g_medium_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kMediumCore, stage, seconds_to_run);
-    }
-    if (!g_big_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kBigCore, stage, seconds_to_run);
-    }
-    android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run);
-  }
+  // // Run normal benchmark (one processor type at a time)
+  // std::cout << "Running normal benchmark (one processor at a time)...\n";
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   if (!g_little_cores.empty()) {
+  //     android::BM_run_normal(ProcessorType::kLittleCore, stage, seconds_to_run);
+  //   }
+  //   if (!g_medium_cores.empty()) {
+  //     android::BM_run_normal(ProcessorType::kMediumCore, stage, seconds_to_run);
+  //   }
+  //   if (!g_big_cores.empty()) {
+  //     android::BM_run_normal(ProcessorType::kBigCore, stage, seconds_to_run);
+  //   }
+  //   android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run);
+  // }
 
-  // Run fully benchmark (each processor type in isolation, but with all stages active)
-  std::cout << "Running fully benchmark (each processor in isolation, all stages active)...\n";
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    // Run for each processor type
-    if (!g_little_cores.empty()) {
-      android::BM_run_fully(ProcessorType::kLittleCore, stage, seconds_to_run);
-    }
-    if (!g_medium_cores.empty()) {
-      android::BM_run_fully(ProcessorType::kMediumCore, stage, seconds_to_run);
-    }
-    if (!g_big_cores.empty()) {
-      android::BM_run_fully(ProcessorType::kBigCore, stage, seconds_to_run);
-    }
-    android::BM_run_fully(ProcessorType::kVulkan, stage, seconds_to_run);
-  }
+  // // Run fully benchmark (each processor type in isolation, but with all stages active)
+  // std::cout << "Running fully benchmark (each processor in isolation, all stages active)...\n";
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   // Run for each processor type
+  //   if (!g_little_cores.empty()) {
+  //     android::BM_run_fully(ProcessorType::kLittleCore, stage, seconds_to_run);
+  //   }
+  //   if (!g_medium_cores.empty()) {
+  //     android::BM_run_fully(ProcessorType::kMediumCore, stage, seconds_to_run);
+  //   }
+  //   if (!g_big_cores.empty()) {
+  //     android::BM_run_fully(ProcessorType::kBigCore, stage, seconds_to_run);
+  //   }
+  //   android::BM_run_fully(ProcessorType::kVulkan, stage, seconds_to_run);
+  // }
 
-  // Print the normal benchmark table with higher precision
-  std::cout << "\nNormal Benchmark Results Table (ms per task):\n";
-  std::cout << "Stage | Little Core | Medium Core | Big Core | Vulkan \n";
-  std::cout << "------|------------|-------------|----------|--------\n";
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
-              << std::setw(11) << android::bm_norm_table[stage - 1][kLittleIdx]
-              << " | "  // Little Core
-              << std::setw(11) << android::bm_norm_table[stage - 1][kMediumIdx]
-              << " | "                                                                // Medium Core
-              << std::setw(8) << android::bm_norm_table[stage - 1][kBigIdx] << " | "  // Big Core
-              << std::setw(6) << android::bm_norm_table[stage - 1][kVulkanIdx]        // Vulkan
-              << "\n";
-  }
+  // // Print the normal benchmark table with higher precision
+  // std::cout << "\nNormal Benchmark Results Table (ms per task):\n";
+  // std::cout << "Stage | Little Core | Medium Core | Big Core | Vulkan \n";
+  // std::cout << "------|------------|-------------|----------|--------\n";
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
+  //             << std::setw(11) << android::bm_norm_table[stage - 1][kLittleIdx]
+  //             << " | "  // Little Core
+  //             << std::setw(11) << android::bm_norm_table[stage - 1][kMediumIdx]
+  //             << " | "                                                                // Medium Core
+  //             << std::setw(8) << android::bm_norm_table[stage - 1][kBigIdx] << " | "  // Big Core
+  //             << std::setw(6) << android::bm_norm_table[stage - 1][kVulkanIdx]        // Vulkan
+  //             << "\n";
+  // }
 
-  // Calculate sums for normal benchmark
-  double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0;
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    little_norm_sum += android::bm_norm_table[stage - 1][kLittleIdx];
-    medium_norm_sum += android::bm_norm_table[stage - 1][kMediumIdx];
-    big_norm_sum += android::bm_norm_table[stage - 1][kBigIdx];
-    vulkan_norm_sum += android::bm_norm_table[stage - 1][kVulkanIdx];
-  }
+  // // Calculate sums for normal benchmark
+  // double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0;
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   little_norm_sum += android::bm_norm_table[stage - 1][kLittleIdx];
+  //   medium_norm_sum += android::bm_norm_table[stage - 1][kMediumIdx];
+  //   big_norm_sum += android::bm_norm_table[stage - 1][kBigIdx];
+  //   vulkan_norm_sum += android::bm_norm_table[stage - 1][kVulkanIdx];
+  // }
 
-  // Print sum for normal benchmark
-  std::cout << "\nNormal Benchmark - Sum of stages " << start_stage << "-" << end_stage << ":"
-            << std::endl;
-  std::cout << std::fixed << std::setprecision(4);
-  std::cout << "Little Core: " << little_norm_sum << " ms" << std::endl;
-  std::cout << "Medium Core: " << medium_norm_sum << " ms" << std::endl;
-  std::cout << "Big Core: " << big_norm_sum << " ms" << std::endl;
-  std::cout << "Vulkan: " << vulkan_norm_sum << " ms" << std::endl;
+  // // Print sum for normal benchmark
+  // std::cout << "\nNormal Benchmark - Sum of stages " << start_stage << "-" << end_stage << ":"
+  //           << std::endl;
+  // std::cout << std::fixed << std::setprecision(4);
+  // std::cout << "Little Core: " << little_norm_sum << " ms" << std::endl;
+  // std::cout << "Medium Core: " << medium_norm_sum << " ms" << std::endl;
+  // std::cout << "Big Core: " << big_norm_sum << " ms" << std::endl;
+  // std::cout << "Vulkan: " << vulkan_norm_sum << " ms" << std::endl;
 
-  // Print the fully benchmark table with higher precision
-  std::cout << "\nFully Benchmark Results Table (ms per task):\n";
-  std::cout << "Stage | Little Core | Medium Core | Big Core | Vulkan \n";
-  std::cout << "------|------------|-------------|----------|--------\n";
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
-              << std::setw(11) << android::bm_full_table[stage - 1][kLittleIdx]
-              << " | "  // Little Core
-              << std::setw(11) << android::bm_full_table[stage - 1][kMediumIdx]
-              << " | "                                                                // Medium Core
-              << std::setw(8) << android::bm_full_table[stage - 1][kBigIdx] << " | "  // Big Core
-              << std::setw(6) << android::bm_full_table[stage - 1][kVulkanIdx]        // Vulkan
-              << "\n";
-  }
+  // // Print the fully benchmark table with higher precision
+  // std::cout << "\nFully Benchmark Results Table (ms per task):\n";
+  // std::cout << "Stage | Little Core | Medium Core | Big Core | Vulkan \n";
+  // std::cout << "------|------------|-------------|----------|--------\n";
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
+  //             << std::setw(11) << android::bm_full_table[stage - 1][kLittleIdx]
+  //             << " | "  // Little Core
+  //             << std::setw(11) << android::bm_full_table[stage - 1][kMediumIdx]
+  //             << " | "                                                                // Medium Core
+  //             << std::setw(8) << android::bm_full_table[stage - 1][kBigIdx] << " | "  // Big Core
+  //             << std::setw(6) << android::bm_full_table[stage - 1][kVulkanIdx]        // Vulkan
+  //             << "\n";
+  // }
 
-  // Calculate sums for fully benchmark
-  double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0;
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    little_full_sum += android::bm_full_table[stage - 1][kLittleIdx];
-    medium_full_sum += android::bm_full_table[stage - 1][kMediumIdx];
-    big_full_sum += android::bm_full_table[stage - 1][kBigIdx];
-    vulkan_full_sum += android::bm_full_table[stage - 1][kVulkanIdx];
-  }
+  // // Calculate sums for fully benchmark
+  // double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0;
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   little_full_sum += android::bm_full_table[stage - 1][kLittleIdx];
+  //   medium_full_sum += android::bm_full_table[stage - 1][kMediumIdx];
+  //   big_full_sum += android::bm_full_table[stage - 1][kBigIdx];
+  //   vulkan_full_sum += android::bm_full_table[stage - 1][kVulkanIdx];
+  // }
 
-  // Print sum for fully benchmark
-  std::cout << "\nFully Benchmark - Sum of stages " << start_stage << "-" << end_stage << ":"
-            << std::endl;
-  std::cout << std::fixed << std::setprecision(4);
-  std::cout << "Little Core: " << little_full_sum << " ms" << std::endl;
-  std::cout << "Medium Core: " << medium_full_sum << " ms" << std::endl;
-  std::cout << "Big Core: " << big_full_sum << " ms" << std::endl;
-  std::cout << "Vulkan: " << vulkan_full_sum << " ms" << std::endl;
+  // // Print sum for fully benchmark
+  // std::cout << "\nFully Benchmark - Sum of stages " << start_stage << "-" << end_stage << ":"
+  //           << std::endl;
+  // std::cout << std::fixed << std::setprecision(4);
+  // std::cout << "Little Core: " << little_full_sum << " ms" << std::endl;
+  // std::cout << "Medium Core: " << medium_full_sum << " ms" << std::endl;
+  // std::cout << "Big Core: " << big_full_sum << " ms" << std::endl;
+  // std::cout << "Vulkan: " << vulkan_full_sum << " ms" << std::endl;
 
-  // Compare normal vs fully
-  std::cout << "\nPerformance Comparison (Fully vs Normal):" << std::endl;
-  std::cout << "Processor  | Normal (ms) | Fully (ms) | Ratio\n";
-  std::cout << "-----------|-------------|-----------|-------\n";
+  // // Compare normal vs fully
+  // std::cout << "\nPerformance Comparison (Fully vs Normal):" << std::endl;
+  // std::cout << "Processor  | Normal (ms) | Fully (ms) | Ratio\n";
+  // std::cout << "-----------|-------------|-----------|-------\n";
 
-  auto print_comparison = [](const std::string& name, double normal, double fully) {
-    if (normal > 0) {
-      std::cout << std::left << std::setw(11) << name << "| " << std::right << std::fixed
-                << std::setprecision(2) << std::setw(11) << normal << " | " << std::setw(10)
-                << fully << " | ";
+  // auto print_comparison = [](const std::string& name, double normal, double fully) {
+  //   if (normal > 0) {
+  //     std::cout << std::left << std::setw(11) << name << "| " << std::right << std::fixed
+  //               << std::setprecision(2) << std::setw(11) << normal << " | " << std::setw(10)
+  //               << fully << " | ";
 
-      // Calculate ratio (fully / normal)
-      if (fully > 0) {
-        double ratio = fully / normal;
-        std::cout << std::setw(5) << ratio << "x";
-      } else {
-        std::cout << "N/A";
-      }
-      std::cout << std::endl;
-    }
-  };
+  //     // Calculate ratio (fully / normal)
+  //     if (fully > 0) {
+  //       double ratio = fully / normal;
+  //       std::cout << std::setw(5) << ratio << "x";
+  //     } else {
+  //       std::cout << "N/A";
+  //     }
+  //     std::cout << std::endl;
+  //   }
+  // };
 
-  print_comparison("Little Core", little_norm_sum, little_full_sum);
-  print_comparison("Medium Core", medium_norm_sum, medium_full_sum);
-  print_comparison("Big Core", big_norm_sum, big_full_sum);
-  print_comparison("Vulkan", vulkan_norm_sum, vulkan_full_sum);
+  // print_comparison("Little Core", little_norm_sum, little_full_sum);
+  // print_comparison("Medium Core", medium_norm_sum, medium_full_sum);
+  // print_comparison("Big Core", big_norm_sum, big_full_sum);
+  // print_comparison("Vulkan", vulkan_norm_sum, vulkan_full_sum);
 
-  // Dump tables in a format that's easy to load in Python
-  dump_tables_for_python(start_stage, end_stage);
+  // // Dump tables in a format that's easy to load in Python
+  // dump_tables_for_python(start_stage, end_stage);
 
   return 0;
 }
