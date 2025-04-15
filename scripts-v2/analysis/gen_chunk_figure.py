@@ -3,6 +3,7 @@ import re
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import defaultdict
+import sys
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 import argparse
@@ -98,34 +99,53 @@ for task_id in tasks:
             chunk_types[chunk_id] = tasks[task_id][chunk_id]["type"]
 
 # Adjust timescale: subtract the minimum time to make visualization easier
-min_time = min(
-    [
+try:
+    # Get non-zero start times
+    start_times = [
         chunk_data["start"]
         for task_data in tasks.values()
         for chunk_data in task_data.values()
-        if "start" in chunk_data
+        if "start" in chunk_data and chunk_data["start"] > 0
     ]
-)
 
-# Find the maximum end time for percentage calculation
-max_time = max(
-    [
+    if not start_times:
+        print("WARNING: No valid start times found in the data.")
+        sys.exit(1)
+
+    min_time = min(start_times)
+
+    # Find the maximum end time for percentage calculation
+    end_times = [
         chunk_data["end"]
         for task_data in tasks.values()
         for chunk_data in task_data.values()
-        if "end" in chunk_data
+        if "end" in chunk_data and chunk_data["end"] > 0
     ]
-)
 
-# Calculate total time span
-time_span = max_time - min_time
+    if not end_times:
+        print("WARNING: No valid end times found in the data.")
+        sys.exit(1)
 
-# Calculate the actual start and end times based on percentages
-filter_start_time = min_time + (args.start_time * time_span)
-filter_end_time = min_time + (args.end_time * time_span)
+    max_time = max(end_times)
 
-print(f"Total time span: {time_span} cycles")
-print(f"Filtering time range: {filter_start_time} to {filter_end_time} cycles")
+    # Calculate total time span
+    time_span = max_time - min_time
+
+    if time_span <= 0:
+        print("WARNING: Invalid time span (<=0).")
+        sys.exit(1)
+
+    # Calculate the actual start and end times based on percentages
+    filter_start_time = min_time + (args.start_time * time_span)
+    filter_end_time = min_time + (args.end_time * time_span)
+
+    print(f"Total time span: {time_span} cycles")
+    print(f"Min time: {min_time} cycles, Max time: {max_time} cycles")
+    print(f"Filtering time range: {filter_start_time} to {filter_end_time} cycles")
+
+except Exception as e:
+    print(f"ERROR: Failed to calculate time span: {e}")
+    sys.exit(1)
 
 # Calculate durations and normalize time
 for task_id in tasks:
@@ -174,8 +194,12 @@ for task_id in tasks:
             start_time = tasks[task_id][chunk_id]["start"]
             end_time = tasks[task_id][chunk_id]["end"]
 
-            # Skip chunks entirely outside our time range
-            if end_time < filter_start_time or start_time > filter_end_time:
+            # Skip chunks entirely outside our time range or with zero duration
+            if (
+                end_time < filter_start_time
+                or start_time > filter_end_time
+                or tasks[task_id][chunk_id]["duration_cycles"] == 0
+            ):
                 continue
 
             # Track tasks in this region
@@ -221,8 +245,20 @@ chunk_names = [
 y_ticks = []
 y_labels = []
 
-for i, chunk_id in enumerate(range(max_chunk_id + 1)):
-    y_pos = max_chunk_id - i  # Reverse order to have Chunk 0 at the bottom
+# Get active chunks (those with data to display)
+active_chunks = [
+    chunk_id for chunk_id in range(max_chunk_id + 1) if chunks_data[chunk_id]
+]
+active_chunks.sort(reverse=True)  # Sort in reverse order for display
+
+# Check if there's any data to display
+if not active_chunks:
+    print("WARNING: No chunks with non-zero duration found in the selected time range.")
+    print("No figure will be generated.")
+    sys.exit(0)
+
+for i, chunk_id in enumerate(active_chunks):
+    y_pos = i  # Position based on active chunks only
     y_ticks.append(y_pos)
     y_labels.append(chunk_names[chunk_id])
 
@@ -266,7 +302,8 @@ ax.set_yticks(y_ticks)
 ax.set_yticklabels(y_labels)
 ax.set_xlabel("Time (ms, converted from cycles)", fontsize=12)
 ax.set_title(
-    f"Chunk Execution Timeline ({args.start_time*100:.0f}%-{args.end_time*100:.0f}% of execution)",
+    f"Chunk Execution Timeline ({args.start_time*100:.0f}%-{args.end_time*100:.0f}% of execution)\n"
+    f"Time range: {display_start_ms:.2f}ms - {display_end_ms:.2f}ms, {len(active_chunks)} active chunks",
     fontsize=14,
 )
 ax.grid(True, axis="x", linestyle="--", alpha=0.7)
@@ -279,20 +316,17 @@ output_filename = args.output
 if not output_filename.lower().endswith(".png"):
     output_filename += ".png"
 
-# Check if output path has a directory component
+# Use the current working directory for output
+output_path = output_filename
 if os.path.dirname(output_filename):
-    # Use the specified path directly
-    output_path = output_filename
+    # Create directories if needed when path has directory components
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-else:
-    # Only a filename was given, put it in the base_dir
-    output_path = os.path.join(base_dir, output_filename)
 
 plt.tight_layout()
 plt.savefig(output_path)
 plt.close()
 
-print(f"Chunk execution timeline saved to {output_path}")
+print(f"Chunk execution timeline saved to {os.path.abspath(output_path)}")
 print(f"Time range displayed: {display_start_ms:.2f}ms to {display_end_ms:.2f}ms")
 
 # ----- ANALYSIS OUTPUT -----
