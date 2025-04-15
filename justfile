@@ -54,18 +54,7 @@ cat-android-tmp:
 # ----------------------------------------------------------------------------
 
 
-# This is ued to generate pipeline graph
-run-benchmarks:
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 3 | tee BM_pipe_cifar_sparse_vk_schedule_3.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 4 | tee BM_pipe_cifar_sparse_vk_schedule_4.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 5 | tee BM_pipe_cifar_sparse_vk_schedule_5.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 6 | tee BM_pipe_cifar_sparse_vk_schedule_6.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 7 | tee BM_pipe_cifar_sparse_vk_schedule_7.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt
-    xmake r gen-record-pipe-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt
+
 
 # # This is used to compute the real measurement of the pipeline schedule
 # run-best-benchmarks:
@@ -290,81 +279,119 @@ try:
 # Use this to generate BM table for Android devices (full and non-full)
 # ----------------------------------------------------------------------------
 
-run-benchmarks-vk-full app device:
-    rm -f BM_table_{{app}}_vk_{{device}}_full.txt
-    rm -f BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 1 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 2 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 3 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 4 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 5 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 6 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 7 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 8 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp  
-    xmake r bm-table-{{app}}-vk --stage 9 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+# run-benchmarks-vk-full app device:
+#     rm -f BM_table_{{app}}_vk_{{device}}_full.txt
+#     rm -f BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 1 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 2 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 3 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 4 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 5 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 6 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 7 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 8 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp  
+#     xmake r bm-table-{{app}}-vk --stage 9 -l off --full --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}_full.txt.tmp
 
-    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%4==0)print ""}' BM_table_{{app}}_vk_{{device}}_full.txt.tmp > BM_table_{{app}}_vk_{{device}}_full.txt
-    cat BM_table_{{app}}_vk_{{device}}_full.txt
+#     awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%4==0)print ""}' BM_table_{{app}}_vk_{{device}}_full.txt.tmp > BM_table_{{app}}_vk_{{device}}_full.txt
+#     cat BM_table_{{app}}_vk_{{device}}_full.txt
 
-run-benchmarks-vk app device:
-    rm -f BM_table_{{app}}_vk_{{device}}.txt
-    rm -f BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 1 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 2 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 3 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 4 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 5 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 6 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 7 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 8 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp  
-    xmake r bm-table-{{app}}-vk --stage 9 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+# run-benchmarks-vk app device:
+#     rm -f BM_table_{{app}}_vk_{{device}}.txt
+#     rm -f BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 1 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 2 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 3 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 4 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 5 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 6 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 7 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 8 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp  
+#     xmake r bm-table-{{app}}-vk --stage 9 -l off --device-to-measure {{device}} | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_{{device}}.txt.tmp
 
-    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%4==0)print ""}' BM_table_{{app}}_vk_{{device}}.txt.tmp > BM_table_{{app}}_vk_{{device}}.txt
-    cat BM_table_{{app}}_vk_{{device}}.txt
+#     awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%4==0)print ""}' BM_table_{{app}}_vk_{{device}}.txt.tmp > BM_table_{{app}}_vk_{{device}}.txt
+#     cat BM_table_{{app}}_vk_{{device}}.txt
 
-run-benchmarks-vk-all app:
-    just run-benchmarks-vk-full {{app}} 3A021JEHN02756
-    just run-benchmarks-vk {{app}} 3A021JEHN02756
-    just run-benchmarks-vk-full {{app}} 9b034f1b
-    just run-benchmarks-vk {{app}} 9b034f1b
+# run-benchmarks-vk-all app:
+#     just run-benchmarks-vk-full {{app}} 3A021JEHN02756
+#     just run-benchmarks-vk {{app}} 3A021JEHN02756
+#     just run-benchmarks-vk-full {{app}} 9b034f1b
+#     just run-benchmarks-vk {{app}} 9b034f1b
 
 
-# ----------------------------------------------------------------------------
-# Use this to generate BM table for Jetson devices (full and non-full)
-# ----------------------------------------------------------------------------
+# # ----------------------------------------------------------------------------
+# # Use this to generate BM table for Jetson devices (full and non-full)
+# # ----------------------------------------------------------------------------
 
-run-benchmarks-vk-jetson-full app:
-    rm -f BM_table_{{app}}_vk_jetson_full.txt
-    rm -f BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 1 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 2 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 3 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 4 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 5 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 6 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 7 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 8 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 9 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+# run-benchmarks-vk-jetson-full app:
+#     rm -f BM_table_{{app}}_vk_jetson_full.txt
+#     rm -f BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 1 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 2 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 3 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 4 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 5 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 6 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 7 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 8 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 9 --device jetson --device-to-measure jetson --full | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson_full.txt.tmp
 
-    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%2==0)print ""}' BM_table_{{app}}_vk_jetson_full.txt.tmp > BM_table_{{app}}_vk_jetson_full.txt
-    cat BM_table_{{app}}_vk_jetson_full.txt
+#     awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%2==0)print ""}' BM_table_{{app}}_vk_jetson_full.txt.tmp > BM_table_{{app}}_vk_jetson_full.txt
+#     cat BM_table_{{app}}_vk_jetson_full.txt
 
-run-benchmarks-vk-jetson app:
-    rm -f BM_table_{{app}}_vk_jetson.txt
-    rm -f BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 1 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 2 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 3 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 4 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 5 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 6 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 7 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 8 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
-    xmake r bm-table-{{app}}-vk --stage 9 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+# run-benchmarks-vk-jetson app:
+#     rm -f BM_table_{{app}}_vk_jetson.txt
+#     rm -f BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 1 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 2 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 3 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 4 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 5 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 6 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 7 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 8 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
+#     xmake r bm-table-{{app}}-vk --stage 9 --device jetson --device-to-measure jetson  | grep "PROCESSOR=" | tee -a BM_table_{{app}}_vk_jetson.txt.tmp
 
-    awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%2==0)print ""}' BM_table_{{app}}_vk_jetson.txt.tmp > BM_table_{{app}}_vk_jetson.txt
-    cat BM_table_{{app}}_vk_jetson.txt
+#     awk -F'|' '{p=a=min=max="";for(i=1;i<=NF;i++){if($i~/^PROCESSOR=/)p=$i;if($i~/^AVG=/)a=$i;if($i~/^MIN=/)min=$i;if($i~/^MAX=/)max=$i}print p"|"a"|"min"|"max; if(NR%2==0)print ""}' BM_table_{{app}}_vk_jetson.txt.tmp > BM_table_{{app}}_vk_jetson.txt
+#     cat BM_table_{{app}}_vk_jetson.txt
 
-run-benchmarks-vk-jetson-all app:
-    just run-benchmarks-vk-jetson-full {{app}}
-    just run-benchmarks-vk-jetson {{app}}
+# run-benchmarks-vk-jetson-all app:
+#     just run-benchmarks-vk-jetson-full {{app}}
+#     just run-benchmarks-vk-jetson {{app}}
+
+
+
+# This is ued to generate pipeline graph
+gen-log:
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 3 | tee BM_pipe_cifar_sparse_vk_schedule_3.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 4 | tee BM_pipe_cifar_sparse_vk_schedule_4.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 5 | tee BM_pipe_cifar_sparse_vk_schedule_5.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 6 | tee BM_pipe_cifar_sparse_vk_schedule_6.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 7 | tee BM_pipe_cifar_sparse_vk_schedule_7.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.raw.txt.tmp
+    xmake r bm-gen-logs-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.raw.txt.tmp
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_1.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_1.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_2.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_2.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_3.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_3.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_4.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_4.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_5.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_5.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_6.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_6.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_7.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_7.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_8.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_8.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_9.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_9.txt
+    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_10.raw.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_10.txt
+    rm BM_pipe_cifar_sparse_vk_schedule_*.raw.txt.tmp
+
+gen-log-make-fig:
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_1.txt --output BM_pipe_cifar_sparse_vk_schedule_1.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_2.txt --output BM_pipe_cifar_sparse_vk_schedule_2.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_3.txt --output BM_pipe_cifar_sparse_vk_schedule_3.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_4.txt --output BM_pipe_cifar_sparse_vk_schedule_4.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_5.txt --output BM_pipe_cifar_sparse_vk_schedule_5.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_6.txt --output BM_pipe_cifar_sparse_vk_schedule_6.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_7.txt --output BM_pipe_cifar_sparse_vk_schedule_7.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_8.txt --output BM_pipe_cifar_sparse_vk_schedule_8.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_9.txt --output BM_pipe_cifar_sparse_vk_schedule_9.png --start-time 0 --end-time 1
+    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_10.txt --output BM_pipe_cifar_sparse_vk_schedule_10.png --start-time 0 --end-time 1
