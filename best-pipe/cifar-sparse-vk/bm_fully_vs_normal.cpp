@@ -9,6 +9,8 @@
 #include "builtin-apps/pipeline/worker.hpp"
 #include "common.hpp"
 
+#include <queue>
+
 // ----------------------------------------------------------------------------
 // Realistic Benchmark:  Stage
 // ----------------------------------------------------------------------------
