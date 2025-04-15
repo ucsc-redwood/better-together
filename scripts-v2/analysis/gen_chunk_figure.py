@@ -317,7 +317,8 @@ if not output_filename.lower().endswith(".png"):
     output_filename += ".png"
 
 # Use the current working directory for output
-output_path = output_filename
+base_dir = os.path.dirname(os.path.abspath(__file__))
+output_path = os.path.join(base_dir, output_filename)
 if os.path.dirname(output_filename):
     # Create directories if needed when path has directory components
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
