@@ -49,11 +49,7 @@ void clean_up_q(std::queue<MyTask*>& q) {
   }
 }
 
-void similuation_thread(cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
-                        std::function<void(MyTask*)> func) {
-  thread_local std::queue<MyTask*> q;
-  init_q(q, disp);
-
+void similuation_thread(std::queue<MyTask*> q, std::function<void(MyTask*)> func) {
   while (!done.load(std::memory_order_relaxed)) {
     MyTask* task = q.front();
     q.pop();
@@ -64,8 +60,6 @@ void similuation_thread(cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
     task->reset();
     q.push(task);
   }
-
-  clean_up_q(q);
 }
 
 // Add a warmup function to run before benchmarks
@@ -115,19 +109,31 @@ static void warmup_processors(int seconds_to_run) {
   // Create threads for all processor types
   std::vector<std::thread> threads;
 
+  std::queue<MyTask*> q_little;
+  init_q(q_little, disp);
+
+  std::queue<MyTask*> q_medium;
+  init_q(q_medium, disp);
+
+  std::queue<MyTask*> q_big;
+  init_q(q_big, disp);
+
+  std::queue<MyTask*> q_vulkan;
+  init_q(q_vulkan, disp);
+
   if (!g_little_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), little_func);
+    threads.emplace_back(similuation_thread, std::ref(q_little), little_func);
   }
 
   if (!g_medium_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), medium_func);
+    threads.emplace_back(similuation_thread, std::ref(q_medium), medium_func);
   }
 
   if (!g_big_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), big_func);
+    threads.emplace_back(similuation_thread, std::ref(q_big), big_func);
   }
 
-  threads.emplace_back(similuation_thread, std::ref(disp), vulkan_func);
+  threads.emplace_back(similuation_thread, std::ref(q_vulkan), vulkan_func);
 
   // Run warmup for specified time
   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
@@ -139,6 +145,11 @@ static void warmup_processors(int seconds_to_run) {
   for (auto& t : threads) {
     t.join();
   }
+
+  clean_up_q(q_little);
+  clean_up_q(q_medium);
+  clean_up_q(q_big);
+  clean_up_q(q_vulkan);
 
   // Output warmup statistics
   std::cout << "Warmup completed: " << "Little=" << little_count.load() << ", "
@@ -155,6 +166,18 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
   // Short warmup before starting the actual benchmark
   std::atomic<int> warmup_count(0);
   std::function<void(MyTask*)> warmup_func;
+
+  std::queue<MyTask*> q_little;
+  init_q(q_little, disp);
+
+  std::queue<MyTask*> q_medium;
+  init_q(q_medium, disp);
+
+  std::queue<MyTask*> q_big;
+  init_q(q_big, disp);
+
+  std::queue<MyTask*> q_vulkan;
+  init_q(q_vulkan, disp);
 
   // Create appropriate function for the processor type
   if (pt == ProcessorType::kVulkan) {
@@ -185,7 +208,7 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
 
   // Run a short warmup
   const int warmup_seconds = 2;
-  std::thread warmup_thread(similuation_thread, std::ref(disp), warmup_func);
+  std::thread warmup_thread(similuation_thread, std::ref(q_little), warmup_func);
   std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
   done.store(true);
   warmup_thread.join();
@@ -224,13 +247,13 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
     } else {
       SPDLOG_WARN("Unexpected cores for Vulkan processor type");
     }
-    t1 = std::thread(similuation_thread, std::ref(disp), gpu_func);
+    t1 = std::thread(similuation_thread, std::ref(q_vulkan), gpu_func);
   } else {
     if (cores_to_use.empty()) {
       SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
       return;
     }
-    t1 = std::thread(similuation_thread, std::ref(disp), cpu_func);
+    t1 = std::thread(similuation_thread, std::ref(q_little), cpu_func);
   }
 
   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
@@ -244,6 +267,11 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
   std::cout << "\tTotal processed: " << total_processed << std::endl;
   std::cout << "\tAverage time per task: " << duration.count() / total_processed << " ms"
             << std::endl;
+
+  clean_up_q(q_little);
+  clean_up_q(q_medium);
+  clean_up_q(q_big);
+  clean_up_q(q_vulkan);
 
   // update the table
 
@@ -269,6 +297,18 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   std::atomic<int> medium_warmup(0);
   std::atomic<int> big_warmup(0);
   std::atomic<int> vulkan_warmup(0);
+
+  std::queue<MyTask*> q_little;
+  init_q(q_little, disp);
+
+  std::queue<MyTask*> q_medium;
+  init_q(q_medium, disp);
+
+  std::queue<MyTask*> q_big;
+  init_q(q_big, disp);
+
+  std::queue<MyTask*> q_vulkan;
+  init_q(q_vulkan, disp);
 
   // Create warmup functions
   auto little_warmup_func = [&little_warmup, stage](MyTask* task) {
@@ -302,18 +342,18 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   const int warmup_seconds = 2;
 
   if (!g_little_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), little_warmup_func);
+    warmup_threads.emplace_back(similuation_thread, std::ref(q_little), little_warmup_func);
   }
 
   if (!g_medium_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), medium_warmup_func);
+    warmup_threads.emplace_back(similuation_thread, std::ref(q_medium), medium_warmup_func);
   }
 
   if (!g_big_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), big_warmup_func);
+    warmup_threads.emplace_back(similuation_thread, std::ref(q_big), big_warmup_func);
   }
 
-  warmup_threads.emplace_back(similuation_thread, std::ref(disp), vulkan_warmup_func);
+  warmup_threads.emplace_back(similuation_thread, std::ref(q_vulkan), vulkan_warmup_func);
 
   std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
   done.store(true);
@@ -366,19 +406,19 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
 
   // Create threads for all available core types (we want all to run concurrently)
   if (!g_little_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), little_func);
+    threads.emplace_back(similuation_thread, std::ref(q_little), little_func);
   }
 
   if (!g_medium_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), medium_func);
+    threads.emplace_back(similuation_thread, std::ref(q_medium), medium_func);
   }
 
   if (!g_big_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), big_func);
+    threads.emplace_back(similuation_thread, std::ref(q_big), big_func);
   }
 
   // Always create Vulkan thread
-  threads.emplace_back(similuation_thread, std::ref(disp), gpu_func);
+  threads.emplace_back(similuation_thread, std::ref(q_vulkan), gpu_func);
 
   // Sleep for the specified time to let the benchmark run
   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
@@ -391,8 +431,15 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
     t.join();
   }
 
+
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+
+  clean_up_q(q_little);
+  clean_up_q(q_medium);
+  clean_up_q(q_big);
+  clean_up_q(q_vulkan);
 
   // Get the count for the processor type we're measuring
   int count = 0;
