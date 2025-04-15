@@ -308,18 +308,22 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   std::mutex warmup_mutex;
 
   if (!g_little_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex), little_warmup_func);
+    warmup_threads.emplace_back(
+        similuation_thread, std::ref(disp), std::ref(warmup_mutex), little_warmup_func);
   }
 
   if (!g_medium_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex), medium_warmup_func);
+    warmup_threads.emplace_back(
+        similuation_thread, std::ref(disp), std::ref(warmup_mutex), medium_warmup_func);
   }
 
   if (!g_big_cores.empty()) {
-    warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex), big_warmup_func);
+    warmup_threads.emplace_back(
+        similuation_thread, std::ref(disp), std::ref(warmup_mutex), big_warmup_func);
   }
 
-  warmup_threads.emplace_back(similuation_thread, std::ref(disp), std::ref(warmup_mutex), vulkan_warmup_func);
+  warmup_threads.emplace_back(
+      similuation_thread, std::ref(disp), std::ref(warmup_mutex), vulkan_warmup_func);
 
   std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
   done.store(true);
@@ -372,11 +376,13 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
 
   // Create threads for all available core types (we want all to run concurrently)
   if (!g_little_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(benchmark_mutex), little_func);
+    threads.emplace_back(
+        similuation_thread, std::ref(disp), std::ref(benchmark_mutex), little_func);
   }
 
   if (!g_medium_cores.empty()) {
-    threads.emplace_back(similuation_thread, std::ref(disp), std::ref(benchmark_mutex), medium_func);
+    threads.emplace_back(
+        similuation_thread, std::ref(disp), std::ref(benchmark_mutex), medium_func);
   }
 
   if (!g_big_cores.empty()) {
