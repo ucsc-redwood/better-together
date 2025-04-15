@@ -55,11 +55,6 @@ void similuation_thread(cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
   init_q(q, disp);
 
   while (!done.load(std::memory_order_relaxed)) {
-    if (q.empty()) {
-      init_q(q, disp);
-      continue;
-    }
-
     MyTask* task = q.front();
     q.pop();
 
