@@ -86,6 +86,11 @@ static void BM_run_little_core(const ProcessorType pt, const int stage, const in
     cores_to_use = g_medium_cores;
   }
 
+  if (cores_to_use.empty()) {
+    SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
+    return;
+  }
+
   auto cpu_func = [&total_processed, stage, cores_to_use](MyTask* task) {
     cifar_sparse::omp::v2::dispatch_multi_stage(
         cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
