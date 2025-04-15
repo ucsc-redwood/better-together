@@ -1,0 +1,2070 @@
+
+=== Solution 1 ===
+Optimal chunk time: 4649/400 = 11.6225 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2]
+Little = [3]
+Medium = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 9.46654 ms
+chunk 2 (Little): 11.62250 ms
+chunk 3 (Medium): 10.38879 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.65206
+Load imbalance percentage: 34.79406%
+Time variance: 2.17725
+
+=== Solution 2 ===
+Optimal chunk time: 4649/400 = 11.6225 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2]
+Little = [3]
+Big = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 9.46654 ms
+chunk 2 (Little): 11.62250 ms
+chunk 3 (Big): 10.98640 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.47801
+Load imbalance percentage: 52.19935%
+Time variance: 5.55989
+
+=== Solution 3 ===
+Optimal chunk time: 121197/10000 = 12.1197 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1]
+Little = [2]
+GPU = [3, 4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 12.11970 ms
+chunk 2 (Little): 10.30590 ms
+chunk 3 (GPU): 11.57482 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.62531
+Load imbalance percentage: 37.46908%
+Time variance: 3.07671
+
+=== Solution 4 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3]
+Little = [4, 5]
+Big = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Little): 11.58579 ms
+chunk 3 (Big): 5.96946 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.44966
+Load imbalance percentage: 55.03357%
+Time variance: 9.72982
+
+=== Solution 5 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3]
+Little = [4, 5]
+Medium = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Little): 11.58579 ms
+chunk 3 (Medium): 6.94195 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.56187
+Load imbalance percentage: 43.81288%
+Time variance: 5.67105
+
+=== Solution 6 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3]
+Little = [4]
+Medium = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Little): 5.80330 ms
+chunk 3 (Medium): 8.72802 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.46971
+Load imbalance percentage: 53.02896%
+Time variance: 5.74517
+
+=== Solution 7 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3]
+Medium = [4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Medium): 6.00619 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.48613
+Load imbalance percentage: 51.38680%
+Time variance: 6.33193
+
+=== Solution 8 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3]
+Medium = [4, 5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Medium): 10.36343 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01491
+Load imbalance percentage: 98.50851%
+Time variance: 21.30973
+
+=== Solution 9 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3]
+Medium = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Medium): 10.38879 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.61340
+Load imbalance percentage: 38.66027%
+Time variance: 3.84206
+
+=== Solution 10 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3]
+Big = [4, 5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Big): 10.95238 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01491
+Load imbalance percentage: 98.50851%
+Time variance: 23.14101
+
+=== Solution 11 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3]
+Big = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Big): 10.98640 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.44966
+Load imbalance percentage: 55.03357%
+Time variance: 8.62209
+
+=== Solution 12 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3]
+Little = [4]
+Big = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Little): 5.80330 ms
+chunk 3 (Big): 8.40594 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.44966
+Load imbalance percentage: 55.03357%
+Time variance: 7.48204
+
+=== Solution 13 ===
+Optimal chunk time: 617753/50000 = 12.35506 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3]
+Big = [4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Big): 6.42467 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.44966
+Load imbalance percentage: 55.03357%
+Time variance: 7.33476
+
+=== Solution 14 ===
+Optimal chunk time: 2484967/200000 = 12.424835 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1]
+GPU = [2, 3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 12.11970 ms
+chunk 2 (GPU): 11.65491 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.60995
+Load imbalance percentage: 39.00474%
+Time variance: 3.85168
+
+=== Solution 15 ===
+Optimal chunk time: 2484967/200000 = 12.424835 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3]
+Medium = [4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Medium): 3.44684 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.27742
+Load imbalance percentage: 72.25846%
+Time variance: 13.95863
+
+=== Solution 16 ===
+Optimal chunk time: 2484967/200000 = 12.424835 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2]
+Medium = [3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 9.46654 ms
+chunk 2 (Medium): 10.15181 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.60995
+Load imbalance percentage: 39.00474%
+Time variance: 3.00376
+
+=== Solution 17 ===
+Optimal chunk time: 2484967/200000 = 12.424835 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3]
+Big = [4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 12.35506 ms
+chunk 2 (Big): 5.01694 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.40378
+Load imbalance percentage: 59.62168%
+Time variance: 12.65239
+
+=== Solution 18 ===
+Optimal chunk time: 317779/25000 = 12.71116 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2]
+Medium = [3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 9.46654 ms
+chunk 2 (Medium): 12.71116 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.51120
+Load imbalance percentage: 48.88008%
+Time variance: 5.56376
+
+=== Solution 19 ===
+Optimal chunk time: 655251/50000 = 13.10502 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1]
+Medium = [2, 3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 5.18886 ms
+chunk 2 (Medium): 13.10502 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.39594
+Load imbalance percentage: 60.40555%
+Time variance: 10.95165
+
+=== Solution 20 ===
+Optimal chunk time: 87653/6250 = 14.02448 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1]
+GPU = [2, 3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 12.11970 ms
+chunk 2 (GPU): 14.02448 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.46333
+Load imbalance percentage: 53.66719%
+Time variance: 9.70131
+
+=== Solution 21 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Medium = [3]
+Big = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Medium): 6.70497 ms
+chunk 3 (Big): 10.98640 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.47415
+Load imbalance percentage: 52.58550%
+Time variance: 6.98248
+
+=== Solution 22 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3]
+Big = [4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 9.65818 ms
+chunk 2 (Big): 5.01694 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.35478
+Load imbalance percentage: 64.52248%
+Time variance: 11.89796
+
+=== Solution 23 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3]
+Big = [4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 9.65818 ms
+chunk 2 (Big): 6.42467 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.45432
+Load imbalance percentage: 54.56765%
+Time variance: 9.90682
+
+=== Solution 24 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3]
+Little = [4]
+Big = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 9.65818 ms
+chunk 2 (Little): 5.80330 ms
+chunk 3 (Big): 8.40594 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.41038
+Load imbalance percentage: 58.96170%
+Time variance: 9.10703
+
+=== Solution 25 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3]
+Big = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 9.65818 ms
+chunk 2 (Big): 10.98640 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.68298
+Load imbalance percentage: 31.70174%
+Time variance: 3.53490
+
+=== Solution 26 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3]
+Big = [4, 5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 9.65818 ms
+chunk 2 (Big): 10.95238 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01303
+Load imbalance percentage: 98.69689%
+Time variance: 27.02768
+
+=== Solution 27 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2]
+Medium = [3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 4.13628 ms
+chunk 2 (Medium): 10.15181 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.29250
+Load imbalance percentage: 70.75011%
+Time variance: 14.31327
+
+=== Solution 28 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2]
+Medium = [3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 4.13628 ms
+chunk 2 (Medium): 12.71116 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.29250
+Load imbalance percentage: 70.75011%
+Time variance: 17.39202
+
+=== Solution 29 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Medium = [3, 4, 5, 6]
+Big = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Medium): 12.71116 ms
+chunk 3 (Big): 4.56173 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.32259
+Load imbalance percentage: 67.74148%
+Time variance: 13.35712
+
+=== Solution 30 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Medium = [3, 4, 5]
+Big = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Medium): 10.15181 ms
+chunk 3 (Big): 5.96946 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.42213
+Load imbalance percentage: 57.78666%
+Time variance: 8.35761
+
+=== Solution 31 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Medium = [3, 4]
+Big = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Medium): 8.36574 ms
+chunk 3 (Big): 8.40594 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.59159
+Load imbalance percentage: 40.84129%
+Time variance: 5.52085
+
+=== Solution 32 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5]
+Little = [6, 7]
+Big = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 13.10502 ms
+chunk 2 (Little): 12.24056 ms
+chunk 3 (Big): 0.03402 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.00241
+Load imbalance percentage: 99.75939%
+Time variance: 32.76847
+
+=== Solution 33 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 13.10502 ms
+chunk 2 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.87863
+Load imbalance percentage: 12.13721%
+Time variance: 0.49801
+
+=== Solution 34 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5]
+Little = [6]
+Big = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 13.10502 ms
+chunk 2 (Little): 5.92690 ms
+chunk 3 (Big): 4.56173 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.32259
+Load imbalance percentage: 67.74148%
+Time variance: 17.91816
+
+=== Solution 35 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4]
+Big = [5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 11.31895 ms
+chunk 2 (Big): 2.43648 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.17230
+Load imbalance percentage: 82.77032%
+Time variance: 20.48746
+
+=== Solution 36 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4]
+Big = [5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 11.31895 ms
+chunk 2 (Big): 3.84421 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.27185
+Load imbalance percentage: 72.81549%
+Time variance: 16.16050
+
+=== Solution 37 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4]
+Big = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 11.31895 ms
+chunk 2 (Big): 8.40594 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.59443
+Load imbalance percentage: 40.55698%
+Time variance: 5.48261
+
+=== Solution 38 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4]
+Big = [5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 11.31895 ms
+chunk 2 (Big): 8.37192 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01303
+Load imbalance percentage: 98.69689%
+Time variance: 27.23425
+
+=== Solution 39 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5]
+Big = [6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 13.10502 ms
+chunk 2 (Big): 5.93544 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01303
+Load imbalance percentage: 98.69689%
+Time variance: 32.16421
+
+=== Solution 40 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5]
+Big = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 13.10502 ms
+chunk 2 (Big): 5.96946 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.42213
+Load imbalance percentage: 57.78666%
+Time variance: 13.19630
+
+=== Solution 41 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5]
+Big = [6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 13.10502 ms
+chunk 2 (Big): 1.40773 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.09955
+Load imbalance percentage: 90.04517%
+Time variance: 26.75150
+
+=== Solution 42 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3]
+Little = [4, 5]
+Big = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 9.65818 ms
+chunk 2 (Little): 11.58579 ms
+chunk 3 (Big): 5.96946 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.42213
+Load imbalance percentage: 57.78666%
+Time variance: 8.89185
+
+=== Solution 43 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4]
+Little = [5, 6]
+Big = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 11.31895 ms
+chunk 2 (Little): 11.70939 ms
+chunk 3 (Big): 4.56173 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.32259
+Load imbalance percentage: 67.74148%
+Time variance: 12.65911
+
+=== Solution 44 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4]
+Little = [5]
+Big = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 11.31895 ms
+chunk 2 (Little): 5.78249 ms
+chunk 3 (Big): 5.96946 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.40891
+Load imbalance percentage: 59.10886%
+Time variance: 12.74462
+
+=== Solution 45 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2]
+Little = [3]
+Big = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 2.95321 ms
+chunk 2 (Little): 11.62250 ms
+chunk 3 (Big): 10.98640 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.20884
+Load imbalance percentage: 79.11624%
+Time variance: 17.59753
+
+=== Solution 46 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2]
+Little = [3]
+Medium = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 4.13628 ms
+chunk 2 (Little): 11.62250 ms
+chunk 3 (Medium): 10.38879 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.29250
+Load imbalance percentage: 70.75011%
+Time variance: 13.57385
+
+=== Solution 47 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Big = [3, 4]
+Medium = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Big): 11.90487 ms
+chunk 3 (Medium): 8.72802 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.61721
+Load imbalance percentage: 38.27939%
+Time variance: 4.00947
+
+=== Solution 48 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Big = [3]
+Medium = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Big): 9.32441 ms
+chunk 3 (Medium): 10.38879 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.65938
+Load imbalance percentage: 34.06201%
+Time variance: 3.38088
+
+=== Solution 49 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3]
+Medium = [4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 13.46069 ms
+chunk 2 (Medium): 3.44684 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.24374
+Load imbalance percentage: 75.62551%
+Time variance: 18.73327
+
+=== Solution 50 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3]
+Medium = [4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 13.46069 ms
+chunk 2 (Medium): 6.00619 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.42473
+Load imbalance percentage: 57.52695%
+Time variance: 14.33448
+
+=== Solution 51 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3]
+Little = [4]
+Medium = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 13.46069 ms
+chunk 2 (Little): 5.80330 ms
+chunk 3 (Medium): 8.72802 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.41038
+Load imbalance percentage: 58.96170%
+Time variance: 11.80458
+
+=== Solution 52 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3]
+Little = [4, 5]
+Medium = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 13.46069 ms
+chunk 2 (Little): 11.58579 ms
+chunk 3 (Medium): 6.94195 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.49090
+Load imbalance percentage: 50.90966%
+Time variance: 7.89977
+
+=== Solution 53 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3]
+Medium = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 13.46069 ms
+chunk 2 (Medium): 10.38879 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.73465
+Load imbalance percentage: 26.53518%
+Time variance: 2.66445
+
+=== Solution 54 ===
+Optimal chunk time: 707059/50000 = 14.14118 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3]
+Medium = [4, 5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 13.46069 ms
+chunk 2 (Medium): 10.36343 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01303
+Load imbalance percentage: 98.69689%
+Time variance: 31.18757
+
+=== Solution 55 ===
+Optimal chunk time: 286827/20000 = 14.34135 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2]
+Big = [3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 9.46654 ms
+chunk 2 (Big): 14.34135 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.38739
+Load imbalance percentage: 61.26146%
+Time variance: 10.99115
+
+=== Solution 56 ===
+Optimal chunk time: 286827/20000 = 14.34135 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Big = [3, 4, 5]
+Medium = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Big): 14.34135 ms
+chunk 3 (Medium): 6.94195 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.48405
+Load imbalance percentage: 51.59484%
+Time variance: 9.30815
+
+=== Solution 57 ===
+Optimal chunk time: 286827/20000 = 14.34135 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2]
+Big = [3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 2.95321 ms
+chunk 2 (Big): 14.34135 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.20592
+Load imbalance percentage: 79.40773%
+Time variance: 21.95194
+
+=== Solution 58 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4]
+Little = [5, 6]
+Big = [7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Little): 11.70939 ms
+chunk 3 (Big): 4.56173 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.31273
+Load imbalance percentage: 68.72667%
+Time variance: 17.51768
+
+=== Solution 59 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4]
+Little = [5]
+Big = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Little): 5.78249 ms
+chunk 3 (Big): 5.96946 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.38087
+Load imbalance percentage: 61.91294%
+Time variance: 14.59917
+
+=== Solution 60 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4]
+Little = [5, 6]
+Medium = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Little): 11.70939 ms
+chunk 3 (Medium): 4.38260 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.30045
+Load imbalance percentage: 69.95472%
+Time variance: 15.15466
+
+=== Solution 61 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4]
+Little = [5]
+Medium = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Little): 5.78249 ms
+chunk 3 (Medium): 6.94195 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.39642
+Load imbalance percentage: 60.35768%
+Time variance: 11.87774
+
+=== Solution 62 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4]
+Medium = [5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Medium): 1.78607 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.12245
+Load imbalance percentage: 87.75546%
+Time variance: 24.24154
+
+=== Solution 63 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4]
+Medium = [5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Medium): 4.34542 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.29790
+Load imbalance percentage: 70.20963%
+Time variance: 14.72989
+
+=== Solution 64 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4]
+Medium = [5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Medium): 8.70266 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01263
+Load imbalance percentage: 98.73669%
+Time variance: 26.22910
+
+=== Solution 65 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4]
+Medium = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Medium): 8.72802 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.51955
+Load imbalance percentage: 48.04458%
+Time variance: 9.41760
+
+=== Solution 66 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4]
+Big = [5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Big): 2.43648 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.16703
+Load imbalance percentage: 83.29652%
+Time variance: 24.40889
+
+=== Solution 67 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4]
+Big = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Big): 8.40594 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.38087
+Load imbalance percentage: 61.91294%
+Time variance: 14.20945
+
+=== Solution 68 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4]
+Big = [5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Big): 8.37192 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01263
+Load imbalance percentage: 98.73669%
+Time variance: 26.96448
+
+=== Solution 69 ===
+Optimal chunk time: 729333/50000 = 14.58666 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4]
+Big = [5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 14.58666 ms
+chunk 2 (Big): 3.84421 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.26354
+Load imbalance percentage: 73.64571%
+Time variance: 17.07790
+
+=== Solution 70 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1, 2]
+GPU = [3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (GPU): 7.37723 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.48944
+Load imbalance percentage: 51.05637%
+Time variance: 10.71289
+
+=== Solution 71 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1, 2]
+GPU = [3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (GPU): 9.74680 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.43110
+Load imbalance percentage: 56.88998%
+Time variance: 10.90544
+
+=== Solution 72 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1, 2]
+GPU = [3, 4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (GPU): 11.57482 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.50279
+Load imbalance percentage: 49.72066%
+Time variance: 9.37467
+
+=== Solution 73 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1, 2]
+GPU = [3, 4, 5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (GPU): 11.28309 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01223
+Load imbalance percentage: 98.77744%
+Time variance: 30.23638
+
+=== Solution 74 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1, 2]
+Little = [3]
+GPU = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (Little): 11.62250 ms
+chunk 3 (GPU): 8.68630 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.50279
+Load imbalance percentage: 49.72066%
+Time variance: 8.44132
+
+=== Solution 75 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+GPU = [0]
+Medium = [1, 2]
+Little = [3]
+Big = [4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 8.95232 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (Little): 11.62250 ms
+chunk 3 (Big): 10.98640 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.59393
+Load imbalance percentage: 40.60656%
+Time variance: 4.85865
+
+=== Solution 76 ===
+Optimal chunk time: 1507291/100000 = 15.07291 ms
+
+Stage assignments:
+GPU = [0]
+Medium = [1, 2]
+Big = [3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 8.95232 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (Big): 14.34135 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.59393
+Load imbalance percentage: 40.60656%
+Time variance: 5.61138
+
+=== Solution 77 ===
+Optimal chunk time: 1556077/100000 = 15.56077 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1]
+GPU = [2, 3, 4, 5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 12.11970 ms
+chunk 2 (GPU): 15.56077 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01184
+Load imbalance percentage: 98.81577%
+Time variance: 33.10906
+
+=== Solution 78 ===
+Optimal chunk time: 1566437/100000 = 15.66437 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5, 6]
+Big = [7]
+Little = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 15.66437 ms
+chunk 2 (Big): 4.52771 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01176
+Load imbalance percentage: 98.82360%
+Time variance: 42.00363
+
+=== Solution 79 ===
+Optimal chunk time: 1566437/100000 = 15.66437 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5, 6]
+Big = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 15.66437 ms
+chunk 2 (Big): 4.56173 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.29122
+Load imbalance percentage: 70.87828%
+Time variance: 24.15049
+
+=== Solution 80 ===
+Optimal chunk time: 1566437/100000 = 15.66437 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1]
+Medium = [2, 3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 5.18886 ms
+chunk 2 (Medium): 15.66437 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.33125
+Load imbalance percentage: 66.87476%
+Time variance: 16.73327
+
+=== Solution 81 ===
+Optimal chunk time: 1566437/100000 = 15.66437 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5, 6]
+Little = [7]
+Big = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 15.66437 ms
+chunk 2 (Little): 6.31366 ms
+chunk 3 (Big): 0.03402 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.00217
+Load imbalance percentage: 99.78279%
+Time variance: 39.61121
+
+=== Solution 82 ===
+Optimal chunk time: 1566437/100000 = 15.66437 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2, 3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 15.66437 ms
+chunk 2 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.41482
+Load imbalance percentage: 58.51774%
+Time variance: 16.08476
+
+=== Solution 83 ===
+Optimal chunk time: 393727/25000 = 15.74908 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2]
+Big = [3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 9.46654 ms
+chunk 2 (Big): 15.74908 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.35276
+Load imbalance percentage: 64.72410%
+Time variance: 15.87226
+
+=== Solution 84 ===
+Optimal chunk time: 393727/25000 = 15.74908 ms
+
+Stage assignments:
+GPU = [0, 1]
+Medium = [2]
+Big = [3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Medium): 2.95321 ms
+chunk 2 (Big): 15.74908 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.18752
+Load imbalance percentage: 81.24836%
+Time variance: 28.00364
+
+=== Solution 85 ===
+Optimal chunk time: 393727/25000 = 15.74908 ms
+
+Stage assignments:
+GPU = [0]
+Medium = [1, 2]
+Big = [3, 4, 5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 8.95232 ms
+chunk 1 (Medium): 15.07291 ms
+chunk 2 (Big): 15.74908 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.41259
+Load imbalance percentage: 58.74086%
+Time variance: 15.57829
+
+=== Solution 86 ===
+Optimal chunk time: 393727/25000 = 15.74908 ms
+
+Stage assignments:
+GPU = [0, 1]
+Little = [2]
+Big = [3, 4, 5, 6]
+Medium = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Little): 10.30590 ms
+chunk 2 (Big): 15.74908 ms
+chunk 3 (Medium): 4.38260 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.27828
+Load imbalance percentage: 72.17232%
+Time variance: 19.15219
+
+=== Solution 87 ===
+Optimal chunk time: 7926251/500000 = 15.852502 ms
+
+Stage assignments:
+Big = [0]
+Medium = [1]
+GPU = [2, 3, 4, 5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (Medium): 12.11970 ms
+chunk 2 (GPU): 15.85250 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.47807
+Load imbalance percentage: 52.19329%
+Time variance: 11.44599
+
+=== Solution 88 ===
+Optimal chunk time: 320823/20000 = 16.04115 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3, 4]
+Medium = [5, 6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 16.04115 ms
+chunk 2 (Medium): 4.34542 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.27089
+Load imbalance percentage: 72.91080%
+Time variance: 24.40515
+
+=== Solution 89 ===
+Optimal chunk time: 320823/20000 = 16.04115 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3, 4]
+Medium = [5, 6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 16.04115 ms
+chunk 2 (Medium): 8.72802 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.54410
+Load imbalance percentage: 45.58979%
+Time variance: 9.59933
+
+=== Solution 90 ===
+Optimal chunk time: 320823/20000 = 16.04115 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3, 4]
+Medium = [5, 6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 16.04115 ms
+chunk 2 (Medium): 8.70266 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01149
+Load imbalance percentage: 98.85124%
+Time variance: 37.86496
+
+=== Solution 91 ===
+Optimal chunk time: 320823/20000 = 16.04115 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3, 4]
+Medium = [5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 16.04115 ms
+chunk 2 (Medium): 1.78607 ms
+chunk 3 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.11134
+Load imbalance percentage: 88.86570%
+Time variance: 30.54205
+
+=== Solution 92 ===
+Optimal chunk time: 320823/20000 = 16.04115 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3, 4]
+Little = [5]
+Medium = [6, 7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 16.04115 ms
+chunk 2 (Little): 5.78249 ms
+chunk 3 (Medium): 6.94195 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.36048
+Load imbalance percentage: 63.95215%
+Time variance: 19.66789
+
+=== Solution 93 ===
+Optimal chunk time: 320823/20000 = 16.04115 ms
+
+Stage assignments:
+GPU = [0, 1]
+Big = [2, 3, 4]
+Little = [5, 6]
+Medium = [7, 8]
+
+Math model summary:
+chunk 0 (GPU): 14.14118 ms
+chunk 1 (Big): 16.04115 ms
+chunk 2 (Little): 11.70939 ms
+chunk 3 (Medium): 4.38260 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.27321
+Load imbalance percentage: 72.67900%
+Time variance: 19.57006
+
+=== Solution 94 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4, 5]
+Little = [6, 7]
+Medium = [8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Little): 12.24056 ms
+chunk 3 (Medium): 0.02536 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.00151
+Load imbalance percentage: 99.84942%
+Time variance: 38.61803
+
+=== Solution 95 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4, 5]
+Little = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Little): 12.42483 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.44993
+Load imbalance percentage: 55.00675%
+Time variance: 14.31750
+
+=== Solution 96 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4, 5]
+Little = [6]
+Medium = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Little): 5.92690 ms
+chunk 3 (Medium): 4.38260 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.26019
+Load imbalance percentage: 73.98087%
+Time variance: 23.47686
+
+=== Solution 97 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4, 5]
+Medium = [6]
+Little = [7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Medium): 2.55935 ms
+chunk 3 (Little): 6.49794 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.15195
+Load imbalance percentage: 84.80536%
+Time variance: 27.42486
+
+=== Solution 98 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4, 5]
+Medium = [6, 7, 8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Medium): 6.94195 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.41214
+Load imbalance percentage: 58.78623%
+Time variance: 20.47726
+
+=== Solution 99 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Big = [0]
+GPU = [1, 2, 3, 4, 5]
+Medium = [6, 7]
+Little = [8]
+
+Math model summary:
+chunk 0 (Big): 7.57856 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Medium): 6.91659 ms
+chunk 3 (Little): 0.18427 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.01094
+Load imbalance percentage: 98.90598%
+Time variance: 35.14809
+
+=== Solution 100 ===
+Optimal chunk time: 1684377/100000 = 16.84377 ms
+
+Stage assignments:
+Medium = [0]
+GPU = [1, 2, 3, 4, 5]
+Little = [6, 7]
+Big = [8]
+
+Math model summary:
+chunk 0 (Medium): 5.55563 ms
+chunk 1 (GPU): 16.84377 ms
+chunk 2 (Little): 12.24056 ms
+chunk 3 (Big): 0.03402 ms
+
+Load Balancing Metrics:
+Load balance ratio: 0.00202
+Load imbalance percentage: 99.79800%
+Time variance: 40.95969
+
+=== Summary of All Solutions ===
+Solution 1: Chunk time = 11.6225 ms
+Solution 2: Chunk time = 11.6225 ms
+Solution 3: Chunk time = 12.1197 ms
+Solution 4: Chunk time = 12.35506 ms
+Solution 5: Chunk time = 12.35506 ms
+Solution 6: Chunk time = 12.35506 ms
+Solution 7: Chunk time = 12.35506 ms
+Solution 8: Chunk time = 12.35506 ms
+Solution 9: Chunk time = 12.35506 ms
+Solution 10: Chunk time = 12.35506 ms
+Solution 11: Chunk time = 12.35506 ms
+Solution 12: Chunk time = 12.35506 ms
+Solution 13: Chunk time = 12.35506 ms
+Solution 14: Chunk time = 12.424835 ms
+Solution 15: Chunk time = 12.424835 ms
+Solution 16: Chunk time = 12.424835 ms
+Solution 17: Chunk time = 12.424835 ms
+Solution 18: Chunk time = 12.71116 ms
+Solution 19: Chunk time = 13.10502 ms
+Solution 20: Chunk time = 14.02448 ms
+Solution 21: Chunk time = 14.14118 ms
+Solution 22: Chunk time = 14.14118 ms
+Solution 23: Chunk time = 14.14118 ms
+Solution 24: Chunk time = 14.14118 ms
+Solution 25: Chunk time = 14.14118 ms
+Solution 26: Chunk time = 14.14118 ms
+Solution 27: Chunk time = 14.14118 ms
+Solution 28: Chunk time = 14.14118 ms
+Solution 29: Chunk time = 14.14118 ms
+Solution 30: Chunk time = 14.14118 ms
+Solution 31: Chunk time = 14.14118 ms
+Solution 32: Chunk time = 14.14118 ms
+Solution 33: Chunk time = 14.14118 ms
+Solution 34: Chunk time = 14.14118 ms
+Solution 35: Chunk time = 14.14118 ms
+Solution 36: Chunk time = 14.14118 ms
+Solution 37: Chunk time = 14.14118 ms
+Solution 38: Chunk time = 14.14118 ms
+Solution 39: Chunk time = 14.14118 ms
+Solution 40: Chunk time = 14.14118 ms
+Solution 41: Chunk time = 14.14118 ms
+Solution 42: Chunk time = 14.14118 ms
+Solution 43: Chunk time = 14.14118 ms
+Solution 44: Chunk time = 14.14118 ms
+Solution 45: Chunk time = 14.14118 ms
+Solution 46: Chunk time = 14.14118 ms
+Solution 47: Chunk time = 14.14118 ms
+Solution 48: Chunk time = 14.14118 ms
+Solution 49: Chunk time = 14.14118 ms
+Solution 50: Chunk time = 14.14118 ms
+Solution 51: Chunk time = 14.14118 ms
+Solution 52: Chunk time = 14.14118 ms
+Solution 53: Chunk time = 14.14118 ms
+Solution 54: Chunk time = 14.14118 ms
+Solution 55: Chunk time = 14.34135 ms
+Solution 56: Chunk time = 14.34135 ms
+Solution 57: Chunk time = 14.34135 ms
+Solution 58: Chunk time = 14.58666 ms
+Solution 59: Chunk time = 14.58666 ms
+Solution 60: Chunk time = 14.58666 ms
+Solution 61: Chunk time = 14.58666 ms
+Solution 62: Chunk time = 14.58666 ms
+Solution 63: Chunk time = 14.58666 ms
+Solution 64: Chunk time = 14.58666 ms
+Solution 65: Chunk time = 14.58666 ms
+Solution 66: Chunk time = 14.58666 ms
+Solution 67: Chunk time = 14.58666 ms
+Solution 68: Chunk time = 14.58666 ms
+Solution 69: Chunk time = 14.58666 ms
+Solution 70: Chunk time = 15.07291 ms
+Solution 71: Chunk time = 15.07291 ms
+Solution 72: Chunk time = 15.07291 ms
+Solution 73: Chunk time = 15.07291 ms
+Solution 74: Chunk time = 15.07291 ms
+Solution 75: Chunk time = 15.07291 ms
+Solution 76: Chunk time = 15.07291 ms
+Solution 77: Chunk time = 15.56077 ms
+Solution 78: Chunk time = 15.66437 ms
+Solution 79: Chunk time = 15.66437 ms
+Solution 80: Chunk time = 15.66437 ms
+Solution 81: Chunk time = 15.66437 ms
+Solution 82: Chunk time = 15.66437 ms
+Solution 83: Chunk time = 15.74908 ms
+Solution 84: Chunk time = 15.74908 ms
+Solution 85: Chunk time = 15.74908 ms
+Solution 86: Chunk time = 15.74908 ms
+Solution 87: Chunk time = 15.852502 ms
+Solution 88: Chunk time = 16.04115 ms
+Solution 89: Chunk time = 16.04115 ms
+Solution 90: Chunk time = 16.04115 ms
+Solution 91: Chunk time = 16.04115 ms
+Solution 92: Chunk time = 16.04115 ms
+Solution 93: Chunk time = 16.04115 ms
+Solution 94: Chunk time = 16.84377 ms
+Solution 95: Chunk time = 16.84377 ms
+Solution 96: Chunk time = 16.84377 ms
+Solution 97: Chunk time = 16.84377 ms
+Solution 98: Chunk time = 16.84377 ms
+Solution 99: Chunk time = 16.84377 ms
+Solution 100: Chunk time = 16.84377 ms

@@ -4,10 +4,16 @@ from z3 import Optimize, Bool, Real, Sum, If, Or, Not, RealVal, sat, Implies, An
 def define_data():
     """Define the problem data."""
     num_stages = 9
+    # core_types = ["GPU", "Big", "Medium", "Little"]
+    # type_value = {"GPU": 0, "Big": 1, "Medium": 2, "Little": 3}
+
     type_value = {"Little": 0, "Medium": 1, "Big": 2, "GPU": 3}
     core_types = ["Little", "Medium", "Big", "GPU"]
 
+    # 3A021JEHN02756 cifar-sparse
+
     # this is a avg table of Stages x Core Types
+
     stage_timings = [
         [19.552, 5.55563, 7.57856, 8.95232],
         [23.0134, 12.1197, 17.6247, 5.18886],
