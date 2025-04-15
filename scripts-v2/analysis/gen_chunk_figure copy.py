@@ -182,7 +182,6 @@ chunks_data = {chunk_id: [] for chunk_id in range(max_chunk_id + 1)}
 tasks_in_region = set()
 task_durations_by_chunk = defaultdict(lambda: defaultdict(list))
 chunk_total_durations = defaultdict(float)
-chunk_avg_durations_ms = {}  # New dictionary to store average durations per chunk
 
 # Fill in the chunks_data dictionary and filter by time range
 for task_id in tasks:
@@ -223,18 +222,6 @@ for task_id in tasks:
                 }
             )
 
-# Calculate average duration for each chunk
-for chunk_id in task_durations_by_chunk:
-    all_durations = [
-        d
-        for task_durations in task_durations_by_chunk[chunk_id].values()
-        for d in task_durations
-    ]
-    if all_durations:
-        avg_duration_cycles = sum(all_durations) / len(all_durations)
-        avg_duration_ms = avg_duration_cycles * CYCLES_TO_MS
-        chunk_avg_durations_ms[chunk_id] = avg_duration_ms
-
 # Sort chunk data by start time
 for chunk_id in chunks_data:
     chunks_data[chunk_id].sort(key=lambda x: x["start_ms"])
@@ -249,15 +236,10 @@ fig, ax = plt.subplots(figsize=(30, 8))  # Increased width to 30 inches
 # Task colors - use a color map for different tasks
 task_color_map = plt.colormaps["tab20"]
 
-# Define chunk names for y-axis labels based on their types and including average duration
-chunk_names = []
-for i in range(max_chunk_id + 1):
-    chunk_type = chunk_types.get(i, "Unknown")
-    if i in chunk_avg_durations_ms:
-        avg_duration = chunk_avg_durations_ms[i]
-        chunk_names.append(f"Chunk {i} ({chunk_type})")
-    else:
-        chunk_names.append(f"Chunk {i} ({chunk_type})")
+# Define chunk names for y-axis labels based on their types
+chunk_names = [
+    f"Chunk {i} ({chunk_types.get(i, 'Unknown')})" for i in range(max_chunk_id + 1)
+]
 
 # Draw the chunks
 y_ticks = []
@@ -314,28 +296,6 @@ for i, chunk_id in enumerate(active_chunks):
                 fontweight="bold",
                 fontsize=8,
             )
-    
-    # Add average duration text at the right side of each chunk's row
-    if chunk_id in chunk_avg_durations_ms:
-        avg_duration = chunk_avg_durations_ms[chunk_id]
-        # Calculate total duration for this chunk
-        total_duration_cycles = chunk_total_durations[chunk_id]
-        total_duration_ms = total_duration_cycles * CYCLES_TO_MS
-        
-        ax.text(
-            display_end_ms + (display_end_ms - display_start_ms) * 0.01,  # Position slightly to the right of the display range
-            y_pos,
-            f"Avg: {avg_duration:.4f} ms | Total: {total_duration_ms:.4f} ms",
-            ha="left",
-            va="center",
-            color="black",
-            fontweight="bold",
-            fontsize=10,
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray', boxstyle='round,pad=0.3')
-        )
-
-# Adjust the right margin to make room for the annotations
-plt.subplots_adjust(right=0.95)
 
 # Set chart properties
 ax.set_yticks(y_ticks)
@@ -406,13 +366,8 @@ for chunk_id in range(max_chunk_id + 1):
     if all_durations:
         avg_all_tasks_cycles = sum(all_durations) / len(all_durations)
         avg_all_tasks_ms = avg_all_tasks_cycles * CYCLES_TO_MS
-        total_duration_cycles = chunk_total_durations[chunk_id]
-        total_duration_ms = total_duration_cycles * CYCLES_TO_MS
         print(
             f"  All Tasks Average: {avg_all_tasks_cycles:.2f} cycles ({avg_all_tasks_ms:.6f} ms)"
-        )
-        print(
-            f"  Total Duration: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms)"
         )
     print()
 
@@ -440,18 +395,10 @@ if chunk_total_durations:
         chunk_total_durations.items(), key=lambda x: x[1], reverse=True
     ):
         chunk_type = chunk_types.get(chunk_id, "Unknown")
-        total_duration_cycles = duration
-        total_duration_ms = duration * CYCLES_TO_MS
+        duration_ms = duration * CYCLES_TO_MS
         chunk_percentage = (duration / total_execution_cycles) * 100
-        
-        # Add average duration info if available
-        avg_info = ""
-        if chunk_id in chunk_avg_durations_ms:
-            avg_duration_ms = chunk_avg_durations_ms[chunk_id]
-            avg_info = f" | Avg task: {avg_duration_ms:.6f} ms"
-            
         print(
-            f"  Chunk {chunk_id} ({chunk_type}): Total: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms){avg_info}, {chunk_percentage:.2f}%"
+            f"  Chunk {chunk_id} ({chunk_type}): {duration:.2f} cycles ({duration_ms:.6f} ms), {chunk_percentage:.2f}%"
         )
 else:
     print("No chunk execution data found in the selected region.")
