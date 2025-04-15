@@ -3,17 +3,16 @@
 #include <queue>
 
 #include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
-#include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
-#include "builtin-apps/cifar-dense/vulkan/dispatchers.hpp"
 #include "builtin-apps/conf.hpp"
 #include "builtin-apps/pipeline/task.hpp"
-#include "common.hpp"
+#include "builtin-apps/tree/omp/dispatchers.hpp"
+#include "builtin-apps/tree/vulkan/dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
 // Realistic Benchmark:  Stage
 // ----------------------------------------------------------------------------
 
-using MyTask = Task<cifar_dense::v2::AppData>;
+using MyTask = Task<tree::vulkan::VkAppData_Safe>;
 
 // Little: 0, Big: 2, Medium: 1, Vulkan: 3
 constexpr int kLittleIdx = 0;
@@ -21,7 +20,7 @@ constexpr int kMediumIdx = 1;
 constexpr int kBigIdx = 2;
 constexpr int kVulkanIdx = 3;
 
-constexpr int kNumStages = 9;
+constexpr int kNumStages = 7;
 
 namespace android {
 
@@ -35,7 +34,7 @@ std::array<std::array<double, 4>, kNumStages> bm_full_table;
 // Reset the done flag
 void reset_done_flag() { done.store(false); }
 
-void init_q(std::queue<MyTask*>& q, cifar_dense::vulkan::v2::VulkanDispatcher& disp) {
+void init_q(std::queue<MyTask*>& q, tree::vulkan::VulkanDispatcher& disp) {
   constexpr int kPhysicalTasks = 10;
 
   for (int i = 0; i < kPhysicalTasks; i++) {
@@ -69,7 +68,7 @@ static void warmup_processors(int seconds_to_run) {
   std::cout << "Warming up processors for " << seconds_to_run << " seconds..." << std::endl;
 
   // Create dispatcher
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  tree::vulkan::VulkanDispatcher disp;
 
   // Reset done flag
   reset_done_flag();
@@ -84,22 +83,19 @@ static void warmup_processors(int seconds_to_run) {
   auto little_func = [&little_count](MyTask* task) {
     if (g_little_cores.empty()) return;
     // Use a simple workload for warmup
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_little_cores, g_little_cores.size(), task->appdata, 1, 1);
+    tree::omp::dispatch_multi_stage(g_little_cores, g_little_cores.size(), task->appdata, 1, 1);
     little_count++;
   };
 
   auto medium_func = [&medium_count](MyTask* task) {
     if (g_medium_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_medium_cores, g_medium_cores.size(), task->appdata, 1, 1);
+    tree::omp::dispatch_multi_stage(g_medium_cores, g_medium_cores.size(), task->appdata, 1, 1);
     medium_count++;
   };
 
   auto big_func = [&big_count](MyTask* task) {
     if (g_big_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_big_cores, g_big_cores.size(), task->appdata, 1, 1);
+    tree::omp::dispatch_multi_stage(g_big_cores, g_big_cores.size(), task->appdata, 1, 1);
     big_count++;
   };
 
@@ -160,7 +156,7 @@ static void warmup_processors(int seconds_to_run) {
 }
 
 static void BM_run_normal(const ProcessorType pt, const int stage, const int seconds_to_run) {
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  tree::vulkan::VulkanDispatcher disp;
 
   // Reset the done flag before starting a new benchmark
   reset_done_flag();
@@ -202,7 +198,7 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
     }
 
     warmup_func = [&warmup_count, stage, cores_to_use](MyTask* task) {
-      cifar_dense::omp::v2::dispatch_multi_stage(
+      tree::omp::dispatch_multi_stage(
           cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
       warmup_count++;
     };
@@ -237,8 +233,7 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
   }
 
   auto cpu_func = [&total_processed, stage, cores_to_use](MyTask* task) {
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
+    tree::omp::dispatch_multi_stage(cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
     total_processed++;
   };
 
@@ -289,7 +284,7 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
                          const int stage,
                          const int seconds_to_run) {
   // Create dispatchers for each processor type
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  tree::vulkan::VulkanDispatcher disp;
 
   // Reset the done flag before starting a new benchmark
   reset_done_flag();
@@ -315,22 +310,21 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   // Create warmup functions
   auto little_warmup_func = [&little_warmup, stage](MyTask* task) {
     if (g_little_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
+    tree::omp::dispatch_multi_stage(
         g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
     little_warmup++;
   };
 
   auto medium_warmup_func = [&medium_warmup, stage](MyTask* task) {
     if (g_medium_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
+    tree::omp::dispatch_multi_stage(
         g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
     medium_warmup++;
   };
 
   auto big_warmup_func = [&big_warmup, stage](MyTask* task) {
     if (g_big_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
+    tree::omp::dispatch_multi_stage(g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
     big_warmup++;
   };
 
@@ -384,22 +378,21 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   // Create CPU task functions for each core type
   auto little_func = [&little_processed, stage](MyTask* task) {
     if (g_little_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
+    tree::omp::dispatch_multi_stage(
         g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
     little_processed++;
   };
 
   auto medium_func = [&medium_processed, stage](MyTask* task) {
     if (g_medium_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
+    tree::omp::dispatch_multi_stage(
         g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
     medium_processed++;
   };
 
   auto big_func = [&big_processed, stage](MyTask* task) {
     if (g_big_cores.empty()) return;
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
+    tree::omp::dispatch_multi_stage(g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
     big_processed++;
   };
 
@@ -490,8 +483,8 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-table-cifar-dense-vk --stage 1 --device-to-measure 3A021JEHN02756
-// xmake r bm-table-cifar-dense-vk --stage 1 --device jetson --device-to-measure jetson --full
+// xmake r bm-table-cifar-sparse-vk --stage 1 --device-to-measure 3A021JEHN02756
+// xmake r bm-table-cifar-sparse-vk --stage 1 --device jetson --device-to-measure jetson --full
 
 void dump_tables_for_python(int start_stage, int end_stage) {
   // Correct enum values based on debug output
