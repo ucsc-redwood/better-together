@@ -61,8 +61,7 @@ void similuation_thread(cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
   clean_up_q(q);
 }
 
-// static void BM_run_little_core(int start_stage, int end_stage, int seconds_to_run) {
-static void BM_run_little_core(const ProcessorType pt, const int stage, const int seconds_to_run) {
+static void BM_run_normal(const ProcessorType pt, const int stage, const int seconds_to_run) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
   // Reset the done flag before starting a new benchmark
@@ -120,6 +119,68 @@ static void BM_run_little_core(const ProcessorType pt, const int stage, const in
   // 2, ProcessorType::kVulkan = 3
   bm_table[stage][static_cast<int>(pt)] = duration.count() / total_processed;
 }
+
+
+
+static void BM_run_fully(const ProcessorType pt, const int stage, const int seconds_to_run) {
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+
+  // Reset the done flag before starting a new benchmark
+  reset_done_flag();
+
+  auto start = std::chrono::high_resolution_clock::now();
+
+  int total_processed = 0;  // Initialize here, now explicitly shown for clarity
+
+  auto gpu_func = [&disp, &total_processed, stage](MyTask* task) {
+    disp.dispatch_multi_stage(task->appdata, stage, stage);
+    total_processed++;
+  };
+
+  std::vector<int> cores_to_use;
+  if (pt == ProcessorType::kLittleCore) {
+    cores_to_use = g_little_cores;
+  } else if (pt == ProcessorType::kBigCore) {
+    cores_to_use = g_big_cores;
+  } else if (pt == ProcessorType::kMediumCore) {
+    cores_to_use = g_medium_cores;
+  }
+
+  if (cores_to_use.empty()) {
+    SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
+    return;
+  }
+
+  auto cpu_func = [&total_processed, stage, cores_to_use](MyTask* task) {
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
+    total_processed++;
+  };
+
+  std::thread t1;
+  if (pt == ProcessorType::kVulkan) {
+    t1 = std::thread(similuation_thread, std::ref(disp), gpu_func);
+  } else {
+    t1 = std::thread(similuation_thread, std::ref(disp), cpu_func);
+  }
+
+  std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
+  done.store(true);
+
+  t1.join();
+
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  SPDLOG_DEBUG("Total processed: {}", total_processed);
+  SPDLOG_DEBUG("Average time per task: {} ms", duration.count() / total_processed);
+
+  // update the table
+
+  // map ProcessorType::kLittleCore = 0, ProcessorType::kBigCore = 1, ProcessorType::kMediumCore =
+  // 2, ProcessorType::kVulkan = 3
+  bm_table[stage][static_cast<int>(pt)] = duration.count() / total_processed;
+}
+
 
 }  // namespace android
 
