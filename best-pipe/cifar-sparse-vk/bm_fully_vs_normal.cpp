@@ -51,10 +51,8 @@ void clean_up_q(std::queue<MyTask*>& q) {
 
 void similuation_thread(cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
                         std::function<void(MyTask*)> func) {
-  std::queue<MyTask*> q;
+  thread_local std::queue<MyTask*> q;
   init_q(q, disp);
-
-  int processed = 0;
 
   while (!done.load(std::memory_order_relaxed)) {
     if (q.empty()) {
@@ -66,7 +64,6 @@ void similuation_thread(cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
     q.pop();
 
     func(task);
-    processed++;
 
     // After done -> push back for reuse
     task->reset();
@@ -144,7 +141,10 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
   }
 }
 
-static void BM_run_fully(const int stage, const int seconds_to_run) {
+static void BM_run_fully(const ProcessorType pt_to_measure,
+                         const int stage,
+                         const int seconds_to_run) {
+  // Create dispatchers for each processor type
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
   // Reset the done flag before starting a new benchmark
@@ -152,11 +152,11 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
-  // Create task counters for each processing unit
-  int little_processed = 0;
-  int medium_processed = 0;
-  int big_processed = 0;
-  int vulkan_processed = 0;
+  // Use atomic counters for task tracking, but we'll only report on the one we're measuring
+  std::atomic<int> little_processed(0);
+  std::atomic<int> medium_processed(0);
+  std::atomic<int> big_processed(0);
+  std::atomic<int> vulkan_processed(0);
 
   // Create GPU task function
   auto gpu_func = [&disp, &vulkan_processed, stage](MyTask* task) {
@@ -186,10 +186,10 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
     big_processed++;
   };
 
-  // Launch threads for each processor type
+  // Launch threads for all processor types
   std::vector<std::thread> threads;
 
-  // Only create threads for core types that exist
+  // Create threads for all available core types (we want all to run concurrently)
   if (!g_little_cores.empty()) {
     threads.emplace_back(similuation_thread, std::ref(disp), little_func);
   }
@@ -212,34 +212,52 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   done.store(true);
 
   // Wait for all threads to finish
-  for (size_t i = 0; i < threads.size(); i++) {
-    threads[i].join();
+  for (auto& t : threads) {
+    t.join();
   }
 
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-  std::cout << "Stage: " << stage << std::endl;
-  std::cout << "\tTotal processed (little): " << little_processed << std::endl;
-  std::cout << "\tTotal processed (medium): " << medium_processed << std::endl;
-  std::cout << "\tTotal processed (big): " << big_processed << std::endl;
-  std::cout << "\tTotal processed (vulkan): " << vulkan_processed << std::endl;
+  // Get the count for the processor type we're measuring
+  int count = 0;
+  std::string proc_name;
 
-  // Update the table with average times per task for each processor type
-  if (little_processed > 0) {
-    bm_full_table[stage - 1][kLittleIdx] = static_cast<double>(duration.count()) / little_processed;
+  switch (pt_to_measure) {
+    case ProcessorType::kLittleCore:
+      count = little_processed.load();
+      proc_name = "Little Core";
+      break;
+    case ProcessorType::kMediumCore:
+      count = medium_processed.load();
+      proc_name = "Medium Core";
+      break;
+    case ProcessorType::kBigCore:
+      count = big_processed.load();
+      proc_name = "Big Core";
+      break;
+    case ProcessorType::kVulkan:
+      count = vulkan_processed.load();
+      proc_name = "Vulkan";
+      break;
+    default:
+      proc_name = "Unknown";
   }
 
-  if (medium_processed > 0) {
-    bm_full_table[stage - 1][kMediumIdx] = static_cast<double>(duration.count()) / medium_processed;
+  // Report stats for the processor type we're measuring
+  std::cout << "Stage: " << stage << " (" << proc_name << " - with all processors running)"
+            << std::endl;
+  std::cout << "\tTotal processed: " << count << std::endl;
+  if (count > 0) {
+    std::cout << "\tAverage time per task: " << duration.count() / count << " ms" << std::endl;
+  } else {
+    std::cout << "\tNo tasks processed" << std::endl;
   }
 
-  if (big_processed > 0) {
-    bm_full_table[stage - 1][kBigIdx] = static_cast<double>(duration.count()) / big_processed;
-  }
-
-  if (vulkan_processed > 0) {
-    bm_full_table[stage - 1][kVulkanIdx] = static_cast<double>(duration.count()) / vulkan_processed;
+  // Only update the table entry for the processor type we're measuring
+  if (count > 0) {
+    bm_full_table[stage - 1][static_cast<int>(pt_to_measure)] =
+        static_cast<double>(duration.count()) / count;
   }
 }
 
@@ -346,10 +364,20 @@ int main(int argc, char** argv) {
     //           << ", Vulkan: " << static_cast<int>(ProcessorType::kVulkan) << std::endl;
   }
 
-  // Run fully benchmark (all processor types simultaneously)
-  std::cout << "Running fully benchmark (all processors simultaneously)...\n";
+  // Run fully benchmark (each processor type in isolation, but with all stages active)
+  std::cout << "Running fully benchmark (each processor in isolation, all stages active)...\n";
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    android::BM_run_fully(stage, seconds_to_run);
+    // Run for each processor type
+    if (!g_little_cores.empty()) {
+      android::BM_run_fully(ProcessorType::kLittleCore, stage, seconds_to_run);
+    }
+    if (!g_medium_cores.empty()) {
+      android::BM_run_fully(ProcessorType::kMediumCore, stage, seconds_to_run);
+    }
+    if (!g_big_cores.empty()) {
+      android::BM_run_fully(ProcessorType::kBigCore, stage, seconds_to_run);
+    }
+    android::BM_run_fully(ProcessorType::kVulkan, stage, seconds_to_run);
   }
 
   // Print the normal benchmark table with higher precision
