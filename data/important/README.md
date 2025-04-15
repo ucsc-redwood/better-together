@@ -1,5 +1,36 @@
 # Cifar Sparse
 
+
+
+Device	Max Stage-wise Diff %	Comment / Stability
+Jetson	3.57%	✅ Extremely stable across all PUs and stages
+JetsonLowPower	6.82%	✅ Stable, slightly higher noise but still very reasonable
+Google	11.56%	⚠️ Noticeable variation on Little Core (Normal run) but within acceptable limits
+OnePlus	17.01%	⚠️ Highest deviation found in Big Core (Normal run), likely frequency scaling or thermal effect
+Overall Takeaways:
+1. Jetson Family (Jetson + JetsonLowPower)
+Highly stable across all runs, stages, and PUs.
+
+Almost lab-level clean data.
+
+Excellent for penalty modeling.
+
+2. Google
+Mostly stable.
+
+Little Core Normal run has slightly higher variation (~11%).
+
+No concern for Fully Loaded runs — very stable.
+
+3. OnePlus
+Fully Loaded runs are stable (<3.5%).
+
+Normal runs → Big Core has ~17% difference.
+
+Likely due to DVFS / Turbo / thermal governor behavior.
+
+
+
 ## google
 
 ### Run 1
@@ -296,7 +327,96 @@ Stage 9: 0.16 0.02 0.01 0.40
 ### Run 2
 
 ```
+Normal Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan
+------|------------|-------------|----------|--------
+    1 |     35.1164 |      7.4246 |   6.1602 | 5.9524
+    2 |     28.6240 |     16.8200 |  19.9940 | 4.0107
+    3 |     18.2705 |      3.9429 |   4.9775 | 3.7554
+    4 |     14.8026 |      8.6756 |   7.3280 | 2.6454
+    5 |     10.1794 |      2.3195 |   2.8406 | 2.4385
+    6 |      9.8816 |      2.3166 |   2.7955 | 2.4601
+    7 |      9.8731 |      2.3205 |   1.7684 | 2.2542
+    8 |      7.6414 |      4.5767 |   3.8630 | 2.6612
+    9 |      0.0366 |      0.0178 |   0.0147 | 0.9369
 
+Normal Benchmark - Sum of stages 1-9:
+Little Core: 134.4255 ms
+Medium Core: 48.4142 ms
+Big Core: 49.7420 ms
+Vulkan: 27.1148 ms
+
+Fully Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan
+------|------------|-------------|----------|--------
+    1 |     39.4030 |      8.6892 |   5.9942 | 3.5652
+    2 |     45.5992 |     21.4328 |  14.4313 | 3.2426
+    3 |     28.9823 |      4.8969 |   3.4254 | 3.1239
+    4 |     22.4622 |     11.2849 |   7.1403 | 1.9771
+    5 |     16.1864 |      2.8338 |   1.9631 | 1.6597
+    6 |     15.7614 |      2.7104 |   2.0782 | 1.7633
+    7 |     15.1466 |      3.0763 |   1.9772 | 1.7128
+    8 |     11.6988 |      5.2740 |   3.7794 | 1.1564
+    9 |      0.1051 |      0.0200 |   0.0146 | 0.4070
+
+Fully Benchmark - Sum of stages 1-9:
+Little Core: 195.3450 ms
+Medium Core: 60.2183 ms
+Big Core: 40.8036 ms
+Vulkan: 18.6080 ms
+
+Performance Comparison (Fully vs Normal):
+Processor  | Normal (ms) | Fully (ms) | Ratio
+-----------|-------------|-----------|-------
+Little Core|      134.43 |     195.35 |  1.45x
+Medium Core|       48.41 |      60.22 |  1.24x
+Big Core   |       49.74 |      40.80 |  0.82x
+Vulkan     |       27.11 |      18.61 |  0.69x
+
+### PYTHON_DATA_START ###
+# NORMAL_BENCHMARK_DATA
+stage,little,medium,big,vulkan
+1,35.12,7.42,6.16,5.95
+2,28.62,16.82,19.99,4.01
+3,18.27,3.94,4.98,3.76
+4,14.80,8.68,7.33,2.65
+5,10.18,2.32,2.84,2.44
+6,9.88,2.32,2.80,2.46
+7,9.87,2.32,1.77,2.25
+8,7.64,4.58,3.86,2.66
+9,0.04,0.02,0.01,0.94
+# FULLY_BENCHMARK_DATA
+stage,little,medium,big,vulkan
+1,39.40,8.69,5.99,3.57
+2,45.60,21.43,14.43,3.24
+3,28.98,4.90,3.43,3.12
+4,22.46,11.28,7.14,1.98
+5,16.19,2.83,1.96,1.66
+6,15.76,2.71,2.08,1.76
+7,15.15,3.08,1.98,1.71
+8,11.70,5.27,3.78,1.16
+9,0.11,0.02,0.01,0.41
+# RAW_NORMAL_TABLE_DATA
+Stage 1: 35.12 7.42 6.16 5.95
+Stage 2: 28.62 16.82 19.99 4.01
+Stage 3: 18.27 3.94 4.98 3.76
+Stage 4: 14.80 8.68 7.33 2.65
+Stage 5: 10.18 2.32 2.84 2.44
+Stage 6: 9.88 2.32 2.80 2.46
+Stage 7: 9.87 2.32 1.77 2.25
+Stage 8: 7.64 4.58 3.86 2.66
+Stage 9: 0.04 0.02 0.01 0.94
+# RAW_FULLY_TABLE_DATA
+Stage 1: 39.40 8.69 5.99 3.57
+Stage 2: 45.60 21.43 14.43 3.24
+Stage 3: 28.98 4.90 3.43 3.12
+Stage 4: 22.46 11.28 7.14 1.98
+Stage 5: 16.19 2.83 1.96 1.66
+Stage 6: 15.76 2.71 2.08 1.76
+Stage 7: 15.15 3.08 1.98 1.71
+Stage 8: 11.70 5.27 3.78 1.16
+Stage 9: 0.11 0.02 0.01 0.41
+### PYTHON_DATA_END ###
 ```
 
 
