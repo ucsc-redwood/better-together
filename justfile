@@ -360,7 +360,7 @@ try:
 
 
 
-# This is ued to generate pipeline graph
+# This is ued to generate Execution Log
 gen-log:
     xmake r bm-gen-logs-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.raw.txt.tmp
     xmake r bm-gen-logs-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.raw.txt.tmp
