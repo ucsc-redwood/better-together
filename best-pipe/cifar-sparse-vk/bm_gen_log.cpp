@@ -14,11 +14,42 @@ namespace device_3A021JEHN02756 {
 // ----------------------------------------------------------------------------
 // Stage assignments:
 // Big = [0]
-// GPU = [1, 2]
-// Medium = [3, 4, 5, 6]
-// Little = [7, 8]
+// GPU = [1, 2, 3, 4, 5]
+// Medium = [6, 7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_1() {
+  SETUP_DATA;
+
+  {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kBigCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kMediumCore},
+                                    });
+
+    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 6);
+    auto t2 = create_thread_record(2, q_2, q_0, g_medium_cores, 7, 9);
+
+    t0.join();
+    t1.join();
+    t2.join();
+  }
+
+  RecordManager::instance().dump_records();
+}
+
+// ----------------------------------------------------------------------------
+// Schedule 2
+// ----------------------------------------------------------------------------
+// Stage assignments:
+// Big = [0]
+// GPU = [1, 2, 3, 4, 5]
+// Medium = [6, 7]
+// Little = [8]
+// ----------------------------------------------------------------------------
+static void BM_pipe_cifar_sparse_vk_schedule_2() {
   SETUP_DATA;
 
   {
@@ -31,44 +62,9 @@ static void BM_pipe_cifar_sparse_vk_schedule_1() {
                                     });
 
     auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 3);
-    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 4, 7);
-    auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 8, 9);
-
-    t0.join();
-    t1.join();
-    t2.join();
-    t3.join();
-  }
-
-  RecordManager::instance().dump_records();
-}
-
-// ----------------------------------------------------------------------------
-// Schedule 2
-// ----------------------------------------------------------------------------
-// Stage assignments:
-// Big = [0]
-// GPU = [1, 2]
-// Little = [3]
-// Medium = [4, 5, 6, 7, 8]
-// ----------------------------------------------------------------------------
-static void BM_pipe_cifar_sparse_vk_schedule_2() {
-  SETUP_DATA;
-
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kLittleCore},
-                                        {3, ProcessorType::kMediumCore},
-                                    });
-
-    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 3);
-    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 4, 4);
-    auto t3 = create_thread_record(3, q_3, q_0, g_medium_cores, 5, 9);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 6);
+    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 7, 8);
+    auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 9, 9);
 
     t0.join();
     t1.join();
@@ -84,9 +80,9 @@ static void BM_pipe_cifar_sparse_vk_schedule_2() {
 // ----------------------------------------------------------------------------
 // Stage assignments:
 // Big = [0]
-// GPU = [1, 2, 3]
-// Medium = [4, 5, 6]
-// Little = [7, 8]
+// GPU = [1, 2, 3, 4]
+// Little = [5]
+// Medium = [6, 7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_3() {
   SETUP_DATA;
@@ -96,14 +92,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
                                     {
                                         {0, ProcessorType::kBigCore},
                                         {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                        {3, ProcessorType::kLittleCore},
+                                        {2, ProcessorType::kLittleCore},
+                                        {3, ProcessorType::kMediumCore},
                                     });
 
     auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 5, 7);
-    auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 8, 9);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 5);
+    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 6, 6);
+    auto t3 = create_thread_record(3, q_3, q_0, g_medium_cores, 7, 9);
 
     t0.join();
     t1.join();
@@ -118,9 +114,9 @@ static void BM_pipe_cifar_sparse_vk_schedule_3() {
 // Schedule 4
 // ----------------------------------------------------------------------------
 // Stage assignments:
-// Big = [0]
-// GPU = [1, 2, 3]
-// Medium = [4, 5, 6, 7]
+// Medium = [0]
+// GPU = [1, 2, 3, 4, 5]
+// Big = [6, 7]
 // Little = [8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_4() {
@@ -129,15 +125,15 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kBigCore},
+                                        {0, ProcessorType::kMediumCore},
                                         {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
+                                        {2, ProcessorType::kBigCore},
                                         {3, ProcessorType::kLittleCore},
                                     });
 
-    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 5, 8);
+    auto t0 = create_thread_record(0, q_0, q_1, g_medium_cores, 1, 1);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 6);
+    auto t2 = create_thread_record(2, q_2, q_3, g_big_cores, 7, 8);
     auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 9, 9);
 
     t0.join();
@@ -153,9 +149,10 @@ static void BM_pipe_cifar_sparse_vk_schedule_4() {
 // Schedule 5
 // ----------------------------------------------------------------------------
 // Stage assignments:
-// Big = [0]
-// GPU = [1, 2, 3]
-// Medium = [4, 5, 6, 7, 8]
+// Medium = [0]
+// GPU = [1, 2, 3, 4]
+// Little = [5]
+// Big = [6, 7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_5() {
   SETUP_DATA;
@@ -163,48 +160,16 @@ static void BM_pipe_cifar_sparse_vk_schedule_5() {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kMediumCore},
-                                    });
-
-    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_0, g_medium_cores, 5, 9);
-
-    t0.join();
-    t1.join();
-    t2.join();
-  }
-
-  RecordManager::instance().dump_records();
-}
-
-// ----------------------------------------------------------------------------
-// Schedule 6
-// ----------------------------------------------------------------------------
-// Stage assignments:
-// Big = [0]
-// GPU = [1, 2, 3]
-// Little = [4]
-// Medium = [5, 6, 7, 8]
-// ----------------------------------------------------------------------------
-static void BM_pipe_cifar_sparse_vk_schedule_6() {
-  SETUP_DATA;
-
-  {
-    RecordManager::instance().setup(kNumToProcess,
-                                    {
-                                        {0, ProcessorType::kBigCore},
+                                        {0, ProcessorType::kMediumCore},
                                         {1, ProcessorType::kVulkan},
                                         {2, ProcessorType::kLittleCore},
-                                        {3, ProcessorType::kMediumCore},
+                                        {3, ProcessorType::kBigCore},
                                     });
 
-    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 5, 5);
-    auto t3 = create_thread_record(3, q_3, q_0, g_medium_cores, 6, 9);
+    auto t0 = create_thread_record(0, q_0, q_1, g_medium_cores, 1, 1);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 5);
+    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 6, 6);
+    auto t3 = create_thread_record(3, q_3, q_0, g_big_cores, 7, 9);
 
     t0.join();
     t1.join();
@@ -216,12 +181,43 @@ static void BM_pipe_cifar_sparse_vk_schedule_6() {
 }
 
 // ----------------------------------------------------------------------------
+// Schedule 6
+// ----------------------------------------------------------------------------
+// Stage assignments:
+// Medium = [0]
+// GPU = [1, 2, 3, 4, 5]
+// Big = [6, 7, 8]
+// ----------------------------------------------------------------------------
+static void BM_pipe_cifar_sparse_vk_schedule_6() {
+  SETUP_DATA;
+
+  {
+    RecordManager::instance().setup(kNumToProcess,
+                                    {
+                                        {0, ProcessorType::kMediumCore},
+                                        {1, ProcessorType::kVulkan},
+                                        {2, ProcessorType::kBigCore},
+                                    });
+
+    auto t0 = create_thread_record(0, q_0, q_1, g_medium_cores, 1, 1);
+    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 6);
+    auto t2 = create_thread_record(2, q_2, q_0, g_big_cores, 7, 9);
+
+    t0.join();
+    t1.join();
+    t2.join();
+  }
+
+  RecordManager::instance().dump_records();
+}
+
+// ----------------------------------------------------------------------------
 // Schedule 7
 // ----------------------------------------------------------------------------
 // Stage assignments:
-// Big = [0]
-// GPU = [1, 2, 3]
-// Little = [4, 5]
+// GPU = [0, 1, 2, 3]
+// Big = [4]
+// Little = [5]
 // Medium = [6, 7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_7() {
@@ -230,15 +226,15 @@ static void BM_pipe_cifar_sparse_vk_schedule_7() {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kBigCore},
-                                        {1, ProcessorType::kVulkan},
+                                        {0, ProcessorType::kVulkan},
+                                        {1, ProcessorType::kBigCore},
                                         {2, ProcessorType::kLittleCore},
                                         {3, ProcessorType::kMediumCore},
                                     });
 
-    auto t0 = create_thread_record(0, q_0, q_1, g_big_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 5, 6);
+    auto t0 = create_thread_record(0, q_0, q_1, disp, 1, 4);
+    auto t1 = create_thread_record(1, q_1, q_2, g_big_cores, 5, 5);
+    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 6, 6);
     auto t3 = create_thread_record(3, q_3, q_0, g_medium_cores, 7, 9);
 
     t0.join();
@@ -254,10 +250,10 @@ static void BM_pipe_cifar_sparse_vk_schedule_7() {
 // Schedule 8
 // ----------------------------------------------------------------------------
 // Stage assignments:
-// Medium = [0]
-// GPU = [1, 2, 3]
-// Little = [4]
-// Big = [5, 6, 7, 8]
+// GPU = [0, 1, 2, 3]
+// Medium = [4]
+// Little = [5]
+// Big = [6, 7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_8() {
   SETUP_DATA;
@@ -265,16 +261,16 @@ static void BM_pipe_cifar_sparse_vk_schedule_8() {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
+                                        {0, ProcessorType::kVulkan},
+                                        {1, ProcessorType::kMediumCore},
                                         {2, ProcessorType::kLittleCore},
                                         {3, ProcessorType::kBigCore},
                                     });
 
-    auto t0 = create_thread_record(0, q_0, q_1, g_medium_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 5, 5);
-    auto t3 = create_thread_record(3, q_3, q_0, g_big_cores, 6, 9);
+    auto t0 = create_thread_record(0, q_0, q_1, disp, 1, 4);
+    auto t1 = create_thread_record(1, q_1, q_2, g_medium_cores, 5, 5);
+    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 6, 6);
+    auto t3 = create_thread_record(3, q_3, q_0, g_big_cores, 7, 9);
 
     t0.join();
     t1.join();
@@ -289,10 +285,10 @@ static void BM_pipe_cifar_sparse_vk_schedule_8() {
 // Schedule 9
 // ----------------------------------------------------------------------------
 // Stage assignments:
-// Medium = [0]
-// GPU = [1, 2, 3]
-// Big = [4, 5, 6]
-// Little = [7, 8]
+// GPU = [0, 1, 2, 3]
+// Little = [4]
+// Medium = [5, 6]
+// Big = [7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_9() {
   SETUP_DATA;
@@ -300,16 +296,16 @@ static void BM_pipe_cifar_sparse_vk_schedule_9() {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kBigCore},
-                                        {3, ProcessorType::kLittleCore},
+                                        {0, ProcessorType::kVulkan},
+                                        {1, ProcessorType::kLittleCore},
+                                        {2, ProcessorType::kMediumCore},
+                                        {3, ProcessorType::kBigCore},
                                     });
 
-    auto t0 = create_thread_record(0, q_0, q_1, g_medium_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_big_cores, 5, 7);
-    auto t3 = create_thread_record(3, q_3, q_0, g_little_cores, 8, 9);
+    auto t0 = create_thread_record(0, q_0, q_1, disp, 1, 4);
+    auto t1 = create_thread_record(1, q_1, q_2, g_little_cores, 5, 5);
+    auto t2 = create_thread_record(2, q_2, q_3, g_medium_cores, 6, 7);
+    auto t3 = create_thread_record(3, q_3, q_0, g_big_cores, 8, 9);
 
     t0.join();
     t1.join();
@@ -324,10 +320,9 @@ static void BM_pipe_cifar_sparse_vk_schedule_9() {
 // Schedule 10
 // ----------------------------------------------------------------------------
 // Stage assignments:
-// Medium = [0]
-// GPU = [1, 2, 3]
-// Little = [4, 5]
-// Big = [6, 7, 8]
+// GPU = [0, 1, 2, 3]
+// Medium = [4, 5, 6]
+// Big = [7, 8]
 // ----------------------------------------------------------------------------
 static void BM_pipe_cifar_sparse_vk_schedule_10() {
   SETUP_DATA;
@@ -335,21 +330,18 @@ static void BM_pipe_cifar_sparse_vk_schedule_10() {
   {
     RecordManager::instance().setup(kNumToProcess,
                                     {
-                                        {0, ProcessorType::kMediumCore},
-                                        {1, ProcessorType::kVulkan},
-                                        {2, ProcessorType::kLittleCore},
-                                        {3, ProcessorType::kBigCore},
+                                        {0, ProcessorType::kVulkan},
+                                        {1, ProcessorType::kMediumCore},
+                                        {2, ProcessorType::kBigCore},
                                     });
 
-    auto t0 = create_thread_record(0, q_0, q_1, g_medium_cores, 1, 1);
-    auto t1 = create_thread_record(1, q_1, q_2, disp, 2, 4);
-    auto t2 = create_thread_record(2, q_2, q_3, g_little_cores, 5, 6);
-    auto t3 = create_thread_record(3, q_3, q_0, g_big_cores, 7, 9);
+    auto t0 = create_thread_record(0, q_0, q_1, disp, 1, 4);
+    auto t1 = create_thread_record(1, q_1, q_2, g_medium_cores, 5, 7);
+    auto t2 = create_thread_record(2, q_2, q_0, g_big_cores, 8, 9);
 
     t0.join();
     t1.join();
     t2.join();
-    t3.join();
   }
 
   RecordManager::instance().dump_records();

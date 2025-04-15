@@ -1,3 +1,13 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-gen-logs-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-gen-logs-cifar-sparse-vk: 1 file pushed, 0 skipped. 470.6 MB/s (2701520 bytes in 0.005s)
+[2025-04-15 14:44:50.250] [info] Little cores: 0 1 2 3 
+[2025-04-15 14:44:50.251] [info] Medium cores: 4 5 
+[2025-04-15 14:44:50.251] [info] Big cores: 6 7 
+[2025-04-15 14:44:50.290] [info] Available Vulkan Layers:
+[2025-04-15 14:44:50.290] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-15 14:44:50.296] [info] Using integrated GPU: Mali-G710
 Task 0:
   Chunk 0 (Medium):
     Start: 38183146387 cycles
@@ -1698,3 +1708,13 @@ Task 99:
     Start: 0 cycles
     End: 0 cycles
     Duration: 0 cycles
+Frequency: 24576000 Hz
+1 cycle = 1e6 / 24576000 us
+1 cycle = 1e3 / 24576000 ms
+
+[2/2] Processing device: 9b034f1b
+Deploying and running 'bm-gen-logs-cifar-sparse-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-gen-logs-cifar-sparse-vk: 1 file pushed, 0 skipped. 471.6 MB/s (2701520 bytes in 0.005s)
+[2025-04-15 14:37:20.903] [info] Little cores: 0 1 2 
+[2025-04-15 14:37:20.904] [info] Medium cores: 3 4 
+[2025-04-15 14:37:20.904] [info] Big cores: 5 6 7 
