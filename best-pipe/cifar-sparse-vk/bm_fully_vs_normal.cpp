@@ -21,14 +21,16 @@ constexpr int kMediumIdx = 1;
 constexpr int kBigIdx = 2;
 constexpr int kVulkanIdx = 3;
 
+constexpr int kNumStages = 9;
+
 namespace android {
 
 std::atomic<bool> done = false;
 
-// create a 2D table, 9 stage times 4 type of cores, initialize it with 0
+// create a 2D table, kNumStages stage times 4 type of cores, initialize it with 0
 // access by bm_table[stage][core_type] = value
-std::array<std::array<double, 4>, 9> bm_norm_table;
-std::array<std::array<double, 4>, 9> bm_full_table;
+std::array<std::array<double, 4>, kNumStages> bm_norm_table;
+std::array<std::array<double, 4>, kNumStages> bm_full_table;
 
 // Reset the done flag
 void reset_done_flag() { done.store(false); }
@@ -431,10 +433,8 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
     t.join();
   }
 
-
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-
 
   clean_up_q(q_little);
   clean_up_q(q_medium);
@@ -545,7 +545,7 @@ int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN
 
   int start_stage = 1;
-  int end_stage = 9;
+  int end_stage = kNumStages;
   int seconds_to_run = 10;
   int warmup_seconds = 1;
 
@@ -559,7 +559,7 @@ int main(int argc, char** argv) {
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   // Initialize tables with 0
-  for (int stage = 0; stage < 9; stage++) {
+  for (int stage = 0; stage < kNumStages; stage++) {
     for (int processor = 0; processor < 4; processor++) {
       android::bm_norm_table[stage][processor] = 0.0;
       android::bm_full_table[stage][processor] = 0.0;
