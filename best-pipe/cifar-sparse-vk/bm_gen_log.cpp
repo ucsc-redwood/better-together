@@ -7,22 +7,36 @@
 // Specialized Schedules
 // ----------------------------------------------------------------------------
 
-struct Stage {
+struct Chunk {
   ProcessorType core;
   std::vector<int> indices;  // e.g., {0} or {1, 2, 3, 4, 5}
 };
 
 struct Schedule {
-  std::vector<Stage> stages;
+  std::vector<Chunk> chunks;
 
-  void setup_record_manager() {
-    std::vector<std::pair<int, ProcessorType>> chunks;
+  [[nodiscard]] size_t n_chunks() const { return chunks.size(); }
 
-    for (size_t i = 0; i < stages.size(); ++i) {
-      chunks.push_back(std::make_pair(i, stages[i].core));
+  void setup_record_manager() const {
+    std::vector<std::pair<int, ProcessorType>> chunk_records;
+
+    for (size_t i = 0; i < chunks.size(); ++i) {
+      chunk_records.push_back(std::make_pair(i, chunks[i].core));
     }
 
-    RecordManager::instance().setup(kNumToProcess, chunks);
+    RecordManager::instance().setup(kNumToProcess, chunk_records);
+  }
+
+  void print() const {
+    constexpr const char* kProcessorTypeNames[] = {"L", "M", "B", "V"};
+
+    for (const auto& chunk : chunks) {
+      std::cout << "[" << kProcessorTypeNames[static_cast<int>(chunk.core)] << "] ";
+      for (const auto& index : chunk.indices) {
+        std::cout << index << " ";
+      }
+      std::cout << std::endl;
+    }
   }
 };
 
@@ -44,19 +58,12 @@ std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
 // ----------------------------------------------------------------------------
 using QueueT = SPSCQueue<MyTask*, kPoolSize>;
 
-static void BM_pipe_cifar_sparse_vk_schedule_auto() {
-  Schedule schedule;
-  schedule.stages = {
-      {.core = ProcessorType::kBigCore, .indices = {0}},
-      {.core = ProcessorType::kVulkan, .indices = {1, 2, 3, 4, 5}},
-      {.core = ProcessorType::kMediumCore, .indices = {6, 7, 8}},
-  };
-
-  auto n_stages = schedule.stages.size();
+static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
+  auto n_chunks = schedule.n_chunks();
 
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
   std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
-  std::vector<QueueT> queues(n_stages);
+  std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
     preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
     queues[0].enqueue(preallocated_tasks.back().get());
@@ -67,14 +74,14 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto() {
 
     schedule.setup_record_manager();
 
-    for (size_t i = 0; i < n_stages; ++i) {
+    for (size_t i = 0; i < n_chunks; ++i) {
       QueueT& q_in = queues[i];
-      QueueT& q_out = queues[(i + 1) % n_stages];
+      QueueT& q_out = queues[(i + 1) % n_chunks];
 
-      const int start = schedule.stages[i].indices.front() + 1;
-      const int end = schedule.stages[i].indices.back() + 1;
+      const int start = schedule.chunks[i].indices.front() + 1;
+      const int end = schedule.chunks[i].indices.back() + 1;
 
-      const ProcessorType pt = schedule.stages[i].core;
+      const ProcessorType pt = schedule.chunks[i].core;
 
       if (pt == ProcessorType::kVulkan) {
         threads.emplace_back(create_thread_record(i, q_in, q_out, disp, start, end));
@@ -452,7 +459,14 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  BM_pipe_cifar_sparse_vk_schedule_auto();
+  Schedule schedule;
+  schedule.chunks = {
+      {.core = ProcessorType::kBigCore, .indices = {0}},
+      {.core = ProcessorType::kVulkan, .indices = {1, 2, 3, 4, 5}},
+      {.core = ProcessorType::kMediumCore, .indices = {6, 7, 8}},
+  };
+
+  BM_pipe_cifar_sparse_vk_schedule_auto(schedule);
 
   // switch (schedule_id) {
   //   case 1:
