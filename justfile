@@ -411,7 +411,7 @@ make-table:
 
 # Will need to use the latest schedule
 run-schedules-gen-real-time-part-1:
-    rm tmp.txt tmp2.txt
+    rm -f tmp.txt tmp2.txt
     rm -rf tmp_folder
     mkdir -p tmp_folder
     xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
@@ -423,21 +423,17 @@ run-schedules-gen-real-time-part-2:
     cat accumulated_time.txt
 
 run-schedules-gen-real-time-n-times:
-    echo "1/5..."
+    echo "1/3..."
     just run-schedules-gen-real-time-part-1
     just run-schedules-gen-real-time-part-2
-    echo "2/5..."
+    echo "2/3..."
     just run-schedules-gen-real-time-part-1
     just run-schedules-gen-real-time-part-2
-    echo "3/5..."
+    echo "3/3..."
     just run-schedules-gen-real-time-part-1
     just run-schedules-gen-real-time-part-2
-    echo "4/5..."
-    just run-schedules-gen-real-time-part-1
-    just run-schedules-gen-real-time-part-2
-    echo "5/5..."
-    just run-schedules-gen-real-time-part-1
-    just run-schedules-gen-real-time-part-2
+
+    python3 parse_times.py --input accumulated_time.txt
 
 cat-math:
     python3 scripts-v2/gen_schedule/schedule.py
