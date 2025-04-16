@@ -181,15 +181,13 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   reset_done_flag();
 
   MyQueue q_0;
-  init_q(&q_0, disp);
-
   MyQueue q_1;
-  init_q(&q_1, disp);
-
   MyQueue q_2;
-  init_q(&q_2, disp);
-
   MyQueue q_3;
+
+  init_q(&q_0, disp);
+  init_q(&q_1, disp);
+  init_q(&q_2, disp);
   init_q(&q_3, disp);
 
   // Use atomic counters for task tracking, but we'll only report on the one we're measuring
@@ -198,16 +196,12 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   std::atomic<int> big_processed(0);
   std::atomic<int> vuk_processed(0);
 
-  // Create GPU task function
   auto gpu_func = [&disp, &vuk_processed, stage](MyTask* task) {
     disp.dispatch_multi_stage(task->appdata, stage, stage);
     vuk_processed++;
   };
 
-  // Create CPU task functions for each core type
   auto lit_func = [&lit_processed, stage](MyTask* task) {
-    if (g_little_cores.empty()) return;
-
     cifar_sparse::omp::v2::dispatch_multi_stage(
         g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
 
@@ -215,8 +209,6 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   };
 
   auto med_func = [&med_processed, stage](MyTask* task) {
-    if (g_medium_cores.empty()) return;
-
     cifar_sparse::omp::v2::dispatch_multi_stage(
         g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
 
@@ -224,8 +216,6 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   };
 
   auto big_func = [&big_processed, stage](MyTask* task) {
-    if (g_big_cores.empty()) return;
-
     cifar_sparse::omp::v2::dispatch_multi_stage(
         g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
 
