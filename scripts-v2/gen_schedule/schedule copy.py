@@ -266,10 +266,6 @@ def solve_optimization_problem():
         print("\n=== Summary of All Solutions ===")
         for i, (time, _) in enumerate(top_solutions):
             print(f"Solution {i + 1}: Chunk time = {time} ms")
-            
-        
-
-
 
 
 if __name__ == "__main__":

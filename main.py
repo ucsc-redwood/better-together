@@ -4,7 +4,7 @@ import pandas as pd
 
 def parse_benchmark_data(raw_data: str) -> pd.DataFrame:
     """Parse benchmark data with 4 lines per stage into a structured DataFrame."""
-    pattern = re.compile(r'(\w+)=([^|]+)')
+    pattern = re.compile(r"(\w+)=([^|]+)")
     records = []
 
     lines = raw_data.strip().splitlines()
@@ -26,13 +26,13 @@ def parse_benchmark_data(raw_data: str) -> pd.DataFrame:
     return df
 
 
-
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) != 2:
         print("Usage: python main.py <benchmark_file>")
         sys.exit(1)
-    
+
     with open(sys.argv[1], "r") as f:
         raw_input = f.read()
 

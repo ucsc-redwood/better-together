@@ -134,6 +134,8 @@ def append_or_create_csv(df, file_path):
         df.to_csv(file_path, mode="w", header=True, index=False)
 
 
+# Example usage
+# py scripts-v2/collect/bm.py --log_folder data/2025-4-15/cifar-sparse/ --target bm-fully-cifar-sparse-vk --repeat 3
 def main():
     parser = argparse.ArgumentParser(
         description="Run benchmark, parse output, and store results."
@@ -150,13 +152,19 @@ def main():
         required=True,
         help="Number of times to run the benchmark command",
     )
+    parser.add_argument(
+        "--target",
+        type=str,
+        required=True,
+        help="Name of the benchmark target to run",
+    )
     args = parser.parse_args()
 
     # Ensure the log folder exists.
     os.makedirs(args.log_folder, exist_ok=True)
 
     # The benchmark command to run.
-    command = "xmake r bm-fully-cifar-sparse-vk -l off -t 1 -p"
+    command = f"xmake r {args.target} -l off -t 2 -p"
 
     for run_num in range(1, args.repeat + 1):
         print(f"\n=== Run {run_num} of {args.repeat} ===")
