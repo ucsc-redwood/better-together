@@ -21,11 +21,11 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
     queues[0].enqueue(preallocated_tasks.back().get());
   }
 
+  Logger<kNumToProcess> logger(schedule);
+
   // Run the schedule
   {
     std::vector<std::thread> threads;
-
-    schedule.setup_record_manager();
 
     for (size_t i = 0; i < n_chunks; ++i) {
       QueueT& q_in = queues[i];
@@ -37,10 +37,10 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
       const ProcessorType pt = schedule.chunks[i].core;
 
       if (pt == ProcessorType::kVulkan) {
-        threads.emplace_back(create_thread_record(i, q_in, q_out, disp, start, end));
+        threads.emplace_back(create_thread_record(i, logger, q_in, q_out, disp, start, end));
       } else {
         threads.emplace_back(
-            create_thread_record(i, q_in, q_out, get_cores_by_type(pt), start, end));
+            create_thread_record(i, logger, q_in, q_out, get_cores_by_type(pt), start, end));
       }
     }
 
@@ -51,7 +51,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
 
   std::cout << "### Python Begin ###" << std::endl;
 
-  RecordManager::instance().dump_records_for_python();
+  logger.dump_records_for_python();
 
   schedule.print();
 
