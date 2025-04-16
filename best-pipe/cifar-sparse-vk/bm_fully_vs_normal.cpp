@@ -23,14 +23,29 @@ constexpr int kVulkanIdx = 3;
 
 constexpr int kNumStages = 9;
 
-namespace android {
+// ----------------------------------------------------------------------------
+// Tables
+// ----------------------------------------------------------------------------
 
 // create a 2D table, kNumStages stage times 4 type of cores, initialize it with 0
 // access by bm_table[stage][core_type] = value
 std::array<std::array<double, 4>, kNumStages> bm_norm_table;
 std::array<std::array<double, 4>, kNumStages> bm_full_table;
 
-// Reset the done flag
+void init_tables() {
+  for (int stage = 0; stage < kNumStages; stage++) {
+    for (int processor = 0; processor < 4; processor++) {
+      bm_norm_table[stage][processor] = 0.0;
+      bm_full_table[stage][processor] = 0.0;
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Android
+// ----------------------------------------------------------------------------
+
+namespace android {
 
 std::atomic<bool> done = false;
 
@@ -313,20 +328,18 @@ void dump_tables_for_python(int start_stage, int end_stage) {
   std::cout << "# NORMAL_BENCHMARK_DATA" << std::endl;
   std::cout << "stage,little,medium,big,vulkan" << std::endl;
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << stage << "," << android::bm_norm_table[stage - 1][kLittleIdx] << ","
-              << android::bm_norm_table[stage - 1][kMediumIdx] << ","
-              << android::bm_norm_table[stage - 1][kBigIdx] << ","
-              << android::bm_norm_table[stage - 1][kVulkanIdx] << std::endl;
+    std::cout << stage << "," << bm_norm_table[stage - 1][kLittleIdx] << ","
+              << bm_norm_table[stage - 1][kMediumIdx] << "," << bm_norm_table[stage - 1][kBigIdx]
+              << "," << bm_norm_table[stage - 1][kVulkanIdx] << std::endl;
   }
 
   // Dump fully benchmark data in CSV format
   std::cout << "# FULLY_BENCHMARK_DATA" << std::endl;
   std::cout << "stage,little,medium,big,vulkan" << std::endl;
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << stage << "," << android::bm_full_table[stage - 1][kLittleIdx] << ","
-              << android::bm_full_table[stage - 1][kMediumIdx] << ","
-              << android::bm_full_table[stage - 1][kBigIdx] << ","
-              << android::bm_full_table[stage - 1][kVulkanIdx] << std::endl;
+    std::cout << stage << "," << bm_full_table[stage - 1][kLittleIdx] << ","
+              << bm_full_table[stage - 1][kMediumIdx] << "," << bm_full_table[stage - 1][kBigIdx]
+              << "," << bm_full_table[stage - 1][kVulkanIdx] << std::endl;
   }
 
   // Add raw data dump that includes all values directly for debugging
@@ -334,7 +347,7 @@ void dump_tables_for_python(int start_stage, int end_stage) {
   for (int stage = start_stage; stage <= end_stage; stage++) {
     std::cout << "Stage " << stage << ": ";
     for (int i = 0; i < 4; i++) {
-      std::cout << android::bm_norm_table[stage - 1][i] << " ";
+      std::cout << bm_norm_table[stage - 1][i] << " ";
     }
     std::cout << std::endl;
   }
@@ -343,7 +356,7 @@ void dump_tables_for_python(int start_stage, int end_stage) {
   for (int stage = start_stage; stage <= end_stage; stage++) {
     std::cout << "Stage " << stage << ": ";
     for (int i = 0; i < 4; i++) {
-      std::cout << android::bm_full_table[stage - 1][i] << " ";
+      std::cout << bm_full_table[stage - 1][i] << " ";
     }
     std::cout << std::endl;
   }
@@ -364,30 +377,24 @@ int main(int argc, char** argv) {
 
   PARSE_ARGS_END
 
+  init_tables();
+
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
-  // Initialize tables with 0
-  for (int stage = 0; stage < kNumStages; stage++) {
-    for (int processor = 0; processor < 4; processor++) {
-      android::bm_norm_table[stage][processor] = 0.0;
-      android::bm_full_table[stage][processor] = 0.0;
-    }
-  }
-
-  // Run normal benchmark (one processor type at a time)
-  std::cout << "Running normal benchmark (one processor at a time)...\n";
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    if (!g_little_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kLittleCore, stage, seconds_to_run);
-    }
-    if (!g_medium_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kMediumCore, stage, seconds_to_run);
-    }
-    if (!g_big_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kBigCore, stage, seconds_to_run);
-    }
-    android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run);
-  }
+  // // Run normal benchmark (one processor type at a time)
+  // std::cout << "Running normal benchmark (one processor at a time)...\n";
+  // for (int stage = start_stage; stage <= end_stage; stage++) {
+  //   if (!g_little_cores.empty()) {
+  //     android::BM_run_normal(ProcessorType::kLittleCore, stage, seconds_to_run);
+  //   }
+  //   if (!g_medium_cores.empty()) {
+  //     android::BM_run_normal(ProcessorType::kMediumCore, stage, seconds_to_run);
+  //   }
+  //   if (!g_big_cores.empty()) {
+  //     android::BM_run_normal(ProcessorType::kBigCore, stage, seconds_to_run);
+  //   }
+  //   android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run);
+  // }
 
   // Run fully benchmark (each processor type in isolation, but with all stages active)
   std::cout << "Running fully benchmark (each processor in isolation, all stages active)...\n";
@@ -411,22 +418,20 @@ int main(int argc, char** argv) {
   std::cout << "------|------------|-------------|----------|--------\n";
   for (int stage = start_stage; stage <= end_stage; stage++) {
     std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
-              << std::setw(11) << android::bm_norm_table[stage - 1][kLittleIdx]
-              << " | "  // Little Core
-              << std::setw(11) << android::bm_norm_table[stage - 1][kMediumIdx]
-              << " | "                                                                // Medium Core
-              << std::setw(8) << android::bm_norm_table[stage - 1][kBigIdx] << " | "  // Big Core
-              << std::setw(6) << android::bm_norm_table[stage - 1][kVulkanIdx]        // Vulkan
+              << std::setw(11) << bm_norm_table[stage - 1][kLittleIdx] << " | "  // Little Core
+              << std::setw(11) << bm_norm_table[stage - 1][kMediumIdx] << " | "  // Medium Core
+              << std::setw(8) << bm_norm_table[stage - 1][kBigIdx] << " | "      // Big Core
+              << std::setw(6) << bm_norm_table[stage - 1][kVulkanIdx]            // Vulkan
               << "\n";
   }
 
   // Calculate sums for normal benchmark
   double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0;
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    little_norm_sum += android::bm_norm_table[stage - 1][kLittleIdx];
-    medium_norm_sum += android::bm_norm_table[stage - 1][kMediumIdx];
-    big_norm_sum += android::bm_norm_table[stage - 1][kBigIdx];
-    vulkan_norm_sum += android::bm_norm_table[stage - 1][kVulkanIdx];
+    little_norm_sum += bm_norm_table[stage - 1][kLittleIdx];
+    medium_norm_sum += bm_norm_table[stage - 1][kMediumIdx];
+    big_norm_sum += bm_norm_table[stage - 1][kBigIdx];
+    vulkan_norm_sum += bm_norm_table[stage - 1][kVulkanIdx];
   }
 
   // Print sum for normal benchmark
@@ -444,22 +449,20 @@ int main(int argc, char** argv) {
   std::cout << "------|------------|-------------|----------|--------\n";
   for (int stage = start_stage; stage <= end_stage; stage++) {
     std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
-              << std::setw(11) << android::bm_full_table[stage - 1][kLittleIdx]
-              << " | "  // Little Core
-              << std::setw(11) << android::bm_full_table[stage - 1][kMediumIdx]
-              << " | "                                                                // Medium Core
-              << std::setw(8) << android::bm_full_table[stage - 1][kBigIdx] << " | "  // Big Core
-              << std::setw(6) << android::bm_full_table[stage - 1][kVulkanIdx]        // Vulkan
+              << std::setw(11) << bm_full_table[stage - 1][kLittleIdx] << " | "  // Little Core
+              << std::setw(11) << bm_full_table[stage - 1][kMediumIdx] << " | "  // Medium Core
+              << std::setw(8) << bm_full_table[stage - 1][kBigIdx] << " | "      // Big Core
+              << std::setw(6) << bm_full_table[stage - 1][kVulkanIdx]            // Vulkan
               << "\n";
   }
 
   // Calculate sums for fully benchmark
   double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0;
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    little_full_sum += android::bm_full_table[stage - 1][kLittleIdx];
-    medium_full_sum += android::bm_full_table[stage - 1][kMediumIdx];
-    big_full_sum += android::bm_full_table[stage - 1][kBigIdx];
-    vulkan_full_sum += android::bm_full_table[stage - 1][kVulkanIdx];
+    little_full_sum += bm_full_table[stage - 1][kLittleIdx];
+    medium_full_sum += bm_full_table[stage - 1][kMediumIdx];
+    big_full_sum += bm_full_table[stage - 1][kBigIdx];
+    vulkan_full_sum += bm_full_table[stage - 1][kVulkanIdx];
   }
 
   // Print sum for fully benchmark
