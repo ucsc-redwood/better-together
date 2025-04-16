@@ -9,6 +9,44 @@
 // ----------------------------------------------------------------------------
 using QueueT = SPSCQueue<MyTask*, kPoolSize>;
 
+static void BM_pipe_warmup(const Schedule schedule) {
+  auto n_chunks = schedule.n_chunks();
+
+  // Initialize the dispatcher and queues
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  std::vector<QueueT> queues(n_chunks);
+  for (size_t i = 0; i < kPoolSize; ++i) {
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
+    queues[0].enqueue(preallocated_tasks.back().get());
+  }
+
+  // Run the schedule
+  {
+    std::vector<std::thread> threads;
+
+    for (size_t i = 0; i < n_chunks; ++i) {
+      QueueT& q_in = queues[i];
+      QueueT& q_out = queues[(i + 1) % n_chunks];
+
+      const int start = schedule.chunks[i].indices.front() + 1;
+      const int end = schedule.chunks[i].indices.back() + 1;
+
+      const ProcessorType pt = schedule.chunks[i].core;
+
+      if (pt == ProcessorType::kVulkan) {
+        threads.emplace_back(create_thread(q_in, q_out, disp, start, end));
+      } else {
+        threads.emplace_back(create_thread(q_in, q_out, get_cores_by_type(pt), start, end));
+      }
+    }
+
+    for (auto& thread : threads) {
+      thread.join();
+    }
+  }
+}
+
 static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
   auto n_chunks = schedule.n_chunks();
 
@@ -63,12 +101,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
 // ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
-  PARSE_ARGS_BEGIN
-
-  // int schedule_id = 0;
-  // app.add_option("--schedule", schedule_id, "Schedule to run")->required();
-
-  PARSE_ARGS_END
+  parse_args(argc, argv);
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
@@ -76,9 +109,9 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // assert(schedule_id >= 1 && schedule_id <= 10);
-
-  // Schedule schedule = schedules[schedule_id - 1];
+  // Warmup
+  BM_pipe_warmup(device_3A021JEHN02756::schedules[0]);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   for (const auto& schedule : device_3A021JEHN02756::schedules) {
     BM_pipe_cifar_sparse_vk_schedule_auto(schedule);
