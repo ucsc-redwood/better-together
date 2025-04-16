@@ -39,10 +39,6 @@ PREDICTED_TIMES = [
 ]
 
 
-def geometric_mean(data):
-    return np.exp(np.mean(np.log(data)))
-
-
 def parse_accumulated_times(file_path):
     with open(file_path, "r") as file:
         content = file.read()
@@ -71,9 +67,7 @@ def parse_accumulated_times(file_path):
     return all_runs_data
 
 
-def create_visualization(
-    avg_executions, geo_executions, std_executions, predicted_times
-):
+def create_visualization(avg_executions, std_executions, predicted_times):
     plt.figure(figsize=(12, 6))
 
     # Create x-axis values
@@ -90,9 +84,6 @@ def create_visualization(
         color="blue",
         alpha=0.7,
     )
-
-    # Plot geometric mean
-    plt.plot(x, geo_executions, "g-", label="Measured (Geometric)", linewidth=2)
 
     # Plot predicted values
     plt.plot(x, predicted_times, "r--", label="Predicted", linewidth=2)
@@ -127,7 +118,6 @@ def main():
 
     # Calculate statistics across all runs for each execution
     avg_executions = df.mean(axis=0)
-    geo_executions = df.apply(geometric_mean, axis=0)
     std_executions = df.std(axis=0)
 
     # Calculate percentage error (coefficient of variation)
@@ -136,31 +126,23 @@ def main():
     # Use predicted times as is (already in seconds)
     predicted_times = PREDICTED_TIMES
 
-    # Calculate difference between measured and predicted (both arithmetic and geometric)
+    # Calculate difference between measured and predicted
     diff_times_arith = avg_executions - predicted_times
-    diff_times_geo = geo_executions - predicted_times
     diff_percent_arith = (diff_times_arith / predicted_times) * 100
-    diff_percent_geo = (diff_times_geo / predicted_times) * 100
 
     # Calculate correlation between measured and predicted
     correlation_arith, p_value_arith = stats.pearsonr(avg_executions, predicted_times)
-    correlation_geo, p_value_geo = stats.pearsonr(geo_executions, predicted_times)
 
     # Create visualization
-    create_visualization(
-        avg_executions, geo_executions, std_executions, predicted_times
-    )
+    create_visualization(avg_executions, std_executions, predicted_times)
 
     # Create a DataFrame for the statistics
     stats_df = pd.DataFrame(
         {
             "Measured Avg (s)": avg_executions,
-            "Measured Geo (s)": geo_executions,
             "Predicted (s)": predicted_times,
             "Diff Arith (s)": diff_times_arith,
-            "Diff Geo (s)": diff_times_geo,
             "Diff Arith %": diff_percent_arith,
-            "Diff Geo %": diff_percent_geo,
             "Error %": percent_error,
         }
     )
@@ -175,35 +157,28 @@ def main():
     print(
         f"Arithmetic mean correlation: {correlation_arith:.4f} (p-value: {p_value_arith:.4f})"
     )
-    print(
-        f"Geometric mean correlation: {correlation_geo:.4f} (p-value: {p_value_geo:.4f})"
-    )
     print("\nIndividual runs data has been saved to 'execution_times.csv'")
     print("Execution statistics have been saved to 'execution_statistics.csv'")
     print("Visualization has been saved to 'execution_times_comparison.png'")
 
     # Print the statistics in a formatted table
     print("\nExecution Statistics (Measured vs Predicted):")
-    print("=" * 120)
+    print("=" * 100)
     print(
-        f"{'Execution':<12} {'Arith (s)':<12} {'Geo (s)':<12} {'Predicted (s)':<12} {'Diff Arith %':<12} {'Diff Geo %':<12} {'Error %':<12}"
+        f"{'Execution':<12} {'Arith (s)':<12} {'Predicted (s)':<12} {'Diff Arith %':<12} {'Error %':<12}"
     )
-    print("-" * 120)
+    print("-" * 100)
 
-    for i, (avg, geo, pred, diff_arith_pct, diff_geo_pct, err_pct) in enumerate(
+    for i, (avg, pred, diff_arith_pct, err_pct) in enumerate(
         zip(
             avg_executions,
-            geo_executions,
             predicted_times,
             diff_percent_arith,
-            diff_percent_geo,
             percent_error,
         ),
         1,
     ):
-        print(
-            f"{i:<12} {avg:.4f} {geo:.4f} {pred:.4f} {diff_arith_pct:+.1f}% {diff_geo_pct:+.1f}% {err_pct:.1f}%"
-        )
+        print(f"{i:<12} {avg:.4f} {pred:.4f} {diff_arith_pct:+.1f}% {err_pct:.1f}%")
 
 
 if __name__ == "__main__":
