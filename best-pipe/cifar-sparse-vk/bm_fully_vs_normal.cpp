@@ -16,10 +16,10 @@
 using MyTask = Task<cifar_sparse::v2::AppData>;
 
 // Little: 0, Big: 2, Medium: 1, Vulkan: 3
-constexpr int kLittleIdx = 0;
-constexpr int kMediumIdx = 1;
+constexpr int kLitIdx = 0;
+constexpr int kMedIdx = 1;
 constexpr int kBigIdx = 2;
-constexpr int kVulkanIdx = 3;
+constexpr int kVukIdx = 3;
 
 constexpr int kNumStages = 9;
 
@@ -261,15 +261,16 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   const auto vuk_time = static_cast<double>(duration.count()) / vuk_count;
 
   fmt::print("Stage: {}\n", stage);
-  fmt::print("\tLittle: \t{:.4f} ms \t({})\n", lit_time, lit_count);
-  fmt::print("\tMedium: \t{:.4f} ms \t({})\n", med_time, med_count);
-  fmt::print("\tBig   : \t{:.4f} ms \t({})\n", big_time, big_count);
-  fmt::print("\tVulkan: \t{:.4f} ms \t({})\n", vuk_time, vuk_count);
+  fmt::print("\tLittle \t{:.4f} ms \t({})\n", lit_time, lit_count);
+  fmt::print("\tMedium \t{:.4f} ms \t({})\n", med_time, med_count);
+  fmt::print("\tBig    \t{:.4f} ms \t({})\n", big_time, big_count);
+  fmt::print("\tVulkan \t{:.4f} ms \t({})\n", vuk_time, vuk_count);
+  std::fflush(stdout);
 
-  if (lit_count > 0) bm_full_table[stage - 1][kLittleIdx] = lit_time;
-  if (med_count > 0) bm_full_table[stage - 1][kMediumIdx] = med_time;
+  if (lit_count > 0) bm_full_table[stage - 1][kLitIdx] = lit_time;
+  if (med_count > 0) bm_full_table[stage - 1][kMedIdx] = med_time;
   if (big_count > 0) bm_full_table[stage - 1][kBigIdx] = big_time;
-  if (vuk_count > 0) bm_full_table[stage - 1][kVulkanIdx] = vuk_time;
+  if (vuk_count > 0) bm_full_table[stage - 1][kVukIdx] = vuk_time;
 }
 
 }  // namespace android
