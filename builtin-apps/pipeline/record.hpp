@@ -58,20 +58,6 @@ class RecordManager {
    *     {2, ProcessorType::kBigCore}
    * });
    */
-  // void setup(const size_t num_to_process,
-  //            const std::initializer_list<std::pair<int, ProcessorType>>& chunks) {
-  //   records_.resize(num_to_process);
-
-  //   for (const auto& [chunk_id, processed_by] : chunks) {
-  //     assert(chunk_id < 4);
-  //     assert(processed_by == ProcessorType::kVulkan || processed_by == ProcessorType::kMediumCore ||
-  //            processed_by == ProcessorType::kBigCore);
-
-  //     for (auto& record : records_) {
-  //       record[chunk_id].processed_by = processed_by;
-  //     }
-  //   }
-  // }
   void setup(const size_t num_to_process,
              const std::vector<std::pair<int, ProcessorType>>& chunks) {
     records_.resize(num_to_process);
@@ -94,6 +80,7 @@ class RecordManager {
   void end_tick(const uint32_t processing_id, const int chunk_id) {
     records_[processing_id][chunk_id].end = now_cycles();
   }
+
   void dump_records() const {
     for (size_t i = 0; i < records_.size(); ++i) {
       std::cout << "Task " << i << ":\n";
@@ -113,6 +100,25 @@ class RecordManager {
     // how to convert cycles to microseconds?
     std::cout << "1 cycle = " << "1e6 / " << get_counter_frequency() << " us\n";
     std::cout << "1 cycle = " << "1e3 / " << get_counter_frequency() << " ms\n";
+  }
+
+  void dump_records_for_python() const {
+    const auto freq = get_counter_frequency();  // in Hz
+    for (size_t i = 0; i < records_.size(); ++i) {
+      for (size_t j = 0; j < 4; ++j) {
+        const auto& rec = records_[i][j];
+        if (rec.end > rec.start) {  // skip empty chunks
+          std::cout << "Task=" << i << " Chunk=" << j
+                    << " Processor=" << processor_type_to_string(rec.processed_by)
+                    << " Start=" << rec.start << " End=" << rec.end
+                    << " Duration=" << (rec.end - rec.start) << "\n";
+        }
+      }
+    }
+
+    std::cout << "# Frequency=" << freq << " Hz\n";
+    std::cout << "# 1 cycle = " << (1e6 / freq) << " us\n";
+    std::cout << "# 1 cycle = " << (1e3 / freq) << " ms\n";
   }
 
   // write a function, given a ProcessorType, return the total time, average time, geomean, median,
