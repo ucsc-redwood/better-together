@@ -58,8 +58,22 @@ class RecordManager {
    *     {2, ProcessorType::kBigCore}
    * });
    */
+  // void setup(const size_t num_to_process,
+  //            const std::initializer_list<std::pair<int, ProcessorType>>& chunks) {
+  //   records_.resize(num_to_process);
+
+  //   for (const auto& [chunk_id, processed_by] : chunks) {
+  //     assert(chunk_id < 4);
+  //     assert(processed_by == ProcessorType::kVulkan || processed_by == ProcessorType::kMediumCore ||
+  //            processed_by == ProcessorType::kBigCore);
+
+  //     for (auto& record : records_) {
+  //       record[chunk_id].processed_by = processed_by;
+  //     }
+  //   }
+  // }
   void setup(const size_t num_to_process,
-             const std::initializer_list<std::pair<int, ProcessorType>>& chunks) {
+             const std::vector<std::pair<int, ProcessorType>>& chunks) {
     records_.resize(num_to_process);
 
     for (const auto& [chunk_id, processed_by] : chunks) {

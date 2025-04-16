@@ -7,6 +7,91 @@
 // Specialized Schedules
 // ----------------------------------------------------------------------------
 
+struct Stage {
+  ProcessorType core;
+  std::vector<int> indices;  // e.g., {0} or {1, 2, 3, 4, 5}
+};
+
+struct Schedule {
+  std::vector<Stage> stages;
+
+  void setup_record_manager() {
+    std::vector<std::pair<int, ProcessorType>> chunks;
+
+    for (size_t i = 0; i < stages.size(); ++i) {
+      chunks.push_back(std::make_pair(i, stages[i].core));
+    }
+
+    RecordManager::instance().setup(kNumToProcess, chunks);
+  }
+};
+
+std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
+  switch (core_type) {
+    case ProcessorType::kLittleCore:
+      return g_little_cores;
+    case ProcessorType::kMediumCore:
+      return g_medium_cores;
+    case ProcessorType::kBigCore:
+      return g_big_cores;
+    default:
+      throw std::invalid_argument("Invalid core type");
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Schedule Auto
+// ----------------------------------------------------------------------------
+using QueueT = SPSCQueue<MyTask*, kPoolSize>;
+
+static void BM_pipe_cifar_sparse_vk_schedule_auto() {
+  Schedule schedule;
+  schedule.stages = {
+      {.core = ProcessorType::kBigCore, .indices = {0}},
+      {.core = ProcessorType::kVulkan, .indices = {1, 2, 3, 4, 5}},
+      {.core = ProcessorType::kMediumCore, .indices = {6, 7, 8}},
+  };
+
+  auto n_stages = schedule.stages.size();
+
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  std::vector<QueueT> queues(n_stages);
+  for (size_t i = 0; i < kPoolSize; ++i) {
+    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
+    queues[0].enqueue(preallocated_tasks.back().get());
+  }
+
+  {
+    std::vector<std::thread> threads;
+
+    schedule.setup_record_manager();
+
+    for (size_t i = 0; i < n_stages; ++i) {
+      QueueT& q_in = queues[i];
+      QueueT& q_out = queues[(i + 1) % n_stages];
+
+      const int start = schedule.stages[i].indices.front() + 1;
+      const int end = schedule.stages[i].indices.back() + 1;
+
+      const ProcessorType pt = schedule.stages[i].core;
+
+      if (pt == ProcessorType::kVulkan) {
+        threads.emplace_back(create_thread_record(i, q_in, q_out, disp, start, end));
+      } else {
+        threads.emplace_back(
+            create_thread_record(i, q_in, q_out, get_cores_by_type(pt), start, end));
+      }
+    }
+
+    for (auto& thread : threads) {
+      thread.join();
+    }
+  }
+
+  RecordManager::instance().dump_records();
+}
+
 namespace device_3A021JEHN02756 {
 
 // ----------------------------------------------------------------------------
@@ -367,41 +452,43 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  switch (schedule_id) {
-    case 1:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_1();
-      break;
-    case 2:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_2();
-      break;
-    case 3:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_3();
-      break;
-    case 4:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_4();
-      break;
-    case 5:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_5();
-      break;
-    case 6:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_6();
-      break;
-    case 7:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_7();
-      break;
-    case 8:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_8();
-      break;
-    case 9:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_9();
-      break;
-    case 10:
-      device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_10();
-      break;
-    default:
-      std::cerr << "Invalid schedule ID. Please choose a schedule between 1 and 10." << std::endl;
-      return 1;
-  }
+  BM_pipe_cifar_sparse_vk_schedule_auto();
+
+  // switch (schedule_id) {
+  //   case 1:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_1();
+  //     break;
+  //   case 2:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_2();
+  //     break;
+  //   case 3:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_3();
+  //     break;
+  //   case 4:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_4();
+  //     break;
+  //   case 5:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_5();
+  //     break;
+  //   case 6:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_6();
+  //     break;
+  //   case 7:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_7();
+  //     break;
+  //   case 8:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_8();
+  //     break;
+  //   case 9:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_9();
+  //     break;
+  //   case 10:
+  //     device_3A021JEHN02756::BM_pipe_cifar_sparse_vk_schedule_10();
+  //     break;
+  //   default:
+  //     std::cerr << "Invalid schedule ID. Please choose a schedule between 1 and 10." <<
+  //     std::endl; return 1;
+  // }
 
   return 0;
 }
