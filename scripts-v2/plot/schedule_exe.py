@@ -142,7 +142,24 @@ def calculate_time_range(tasks, args, schedule_index):
             )
             return None
 
-        min_time = min(start_times)
+        # Find the minimum start time, but also check for outliers
+        # Sort the start times
+        sorted_starts = sorted(start_times)
+        min_time = sorted_starts[0]
+
+        # Check for potential outliers (very early starts that might skew visualization)
+        if len(sorted_starts) > 1:
+            # Calculate the gap between the smallest and second smallest
+            gap = sorted_starts[1] - sorted_starts[0]
+
+            # If the gap is large, it might indicate an outlier
+            if gap > 1000000:  # arbitrary threshold, adjust as needed
+                print(
+                    f"WARNING: Possible outlier detected - earliest time: {sorted_starts[0]}, next: {sorted_starts[1]}, gap: {gap}"
+                )
+                print(f"This might cause some chunks to appear at incorrect positions.")
+                # You could consider setting min_time = sorted_starts[1] here to exclude the outlier,
+                # but that's a decision that depends on the specific dataset and requirements
 
         # Find the maximum end time for percentage calculation
         end_times = [
@@ -194,6 +211,32 @@ def calculate_time_range(tasks, args, schedule_index):
 
 def normalize_task_times(tasks, min_time):
     """Normalize task times relative to min_time and calculate durations."""
+    # First, find all valid start and end times
+    all_start_times = []
+    for task_id in tasks:
+        for chunk_id in tasks[task_id]:
+            if (
+                "start" in tasks[task_id][chunk_id]
+                and tasks[task_id][chunk_id]["start"] > 0
+            ):
+                all_start_times.append(tasks[task_id][chunk_id]["start"])
+
+    # For debugging purposes, print out some stats
+    if all_start_times:
+        min_start = min(all_start_times)
+        max_start = max(all_start_times)
+        print(
+            f"  Time stats - min start: {min_start}, max start: {max_start}, global min: {min_time}"
+        )
+
+        # If there's a large gap between min_time and min_start, warn about potential issue
+        if min_start - min_time > 100000:  # arbitrary threshold to detect outliers
+            print(
+                f"  WARNING: Large gap detected between global min time ({min_time}) and minimum start time ({min_start})"
+            )
+            print(f"  This might cause some chunks to appear at incorrect positions.")
+
+    # Now normalize all task times
     for task_id in tasks:
         for chunk_id in tasks[task_id]:
             if (
@@ -201,21 +244,17 @@ def normalize_task_times(tasks, min_time):
                 and "end" in tasks[task_id][chunk_id]
             ):
                 # Calculate relative time from start (in cycles)
-                tasks[task_id][chunk_id]["start_norm"] = (
-                    tasks[task_id][chunk_id]["start"] - min_time
-                )
-                tasks[task_id][chunk_id]["end_norm"] = (
-                    tasks[task_id][chunk_id]["end"] - min_time
-                )
+                start_time = tasks[task_id][chunk_id]["start"]
+                end_time = tasks[task_id][chunk_id]["end"]
+
+                tasks[task_id][chunk_id]["start_norm"] = start_time - min_time
+                tasks[task_id][chunk_id]["end_norm"] = end_time - min_time
 
                 # Use provided duration if available, otherwise calculate it
                 if "duration_cycles" in tasks[task_id][chunk_id]:
                     duration_cycles = tasks[task_id][chunk_id]["duration_cycles"]
                 else:
-                    duration_cycles = (
-                        tasks[task_id][chunk_id]["end"]
-                        - tasks[task_id][chunk_id]["start"]
-                    )
+                    duration_cycles = end_time - start_time
 
                 # Store the duration in cycles
                 tasks[task_id][chunk_id]["duration_cycles"] = duration_cycles
@@ -227,6 +266,9 @@ def collect_chunk_data(tasks, time_range, CYCLES_TO_MS, max_chunk_id):
     tasks_in_region = set()
     task_durations_by_chunk = defaultdict(lambda: defaultdict(list))
     chunk_total_durations = defaultdict(float)
+
+    # Debug: print min time to help debug positioning issues
+    min_time = time_range["min_time"]
 
     for task_id in tasks:
         for chunk_id in tasks[task_id]:
@@ -255,6 +297,10 @@ def collect_chunk_data(tasks, time_range, CYCLES_TO_MS, max_chunk_id):
 
                 # Track total duration for each chunk
                 chunk_total_durations[chunk_id] += duration_cycles
+
+                # Ensure start_norm is calculated correctly
+                if "start_norm" not in tasks[task_id][chunk_id]:
+                    tasks[task_id][chunk_id]["start_norm"] = start_time - min_time
 
                 chunks_data[chunk_id].append(
                     {
