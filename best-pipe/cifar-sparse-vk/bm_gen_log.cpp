@@ -113,8 +113,9 @@ int main(int argc, char** argv) {
   BM_pipe_warmup(device_3A021JEHN02756::schedules[0]);
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  for (const auto& schedule : device_3A021JEHN02756::schedules) {
-    BM_pipe_cifar_sparse_vk_schedule_auto(schedule);
+  const auto n_to_run = 30;
+  for (size_t i = 0; i < n_to_run && i < device_3A021JEHN02756::schedules.size(); ++i) {
+    BM_pipe_cifar_sparse_vk_schedule_auto(device_3A021JEHN02756::schedules[i]);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }

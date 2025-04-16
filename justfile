@@ -421,10 +421,15 @@ run-schedules-gen-real-time:
     cat accumulated_time.txt
 
 run-schedules-gen-real-time-n-times:
+    echo "1/5..."
     just run-schedules-gen-real-time
+    echo "2/5..."
     just run-schedules-gen-real-time
+    echo "3/5..."
     just run-schedules-gen-real-time
+    echo "4/5..."
     just run-schedules-gen-real-time
+    echo "5/5..."
     just run-schedules-gen-real-time
 
 cat-math:
