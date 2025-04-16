@@ -332,74 +332,11 @@ void dump_tables_for_python(int start_stage, int end_stage) {
                bm_full_table[stage - 1][kVukIdx]);
   }
 
-  // // Add raw data dump that includes all values directly for debugging
-  // fmt::print("# RAW_NORMAL_TABLE_DATA\n");
-  // for (int stage = start_stage; stage <= end_stage; stage++) {
-  //   fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n",
-  //              stage,
-  //              bm_norm_table[stage - 1][0],
-  //              bm_norm_table[stage - 1][1],
-  //              bm_norm_table[stage - 1][2],
-  //              bm_norm_table[stage - 1][3]);
-  // }
-
-  // fmt::print("# RAW_FULLY_TABLE_DATA\n");
-  // for (int stage = start_stage; stage <= end_stage; stage++) {
-  //   fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n",
-  //              stage,
-  //              bm_full_table[stage - 1][0],
-  //              bm_full_table[stage - 1][1],
-  //              bm_full_table[stage - 1][2],
-  //              bm_full_table[stage - 1][3]);
-  // }
-
   fmt::print("### PYTHON_DATA_END ###\n");
   std::fflush(stdout);
 }
 
-// ----------------------------------------------------------------------------
-// Main
-// ----------------------------------------------------------------------------
-
-int main(int argc, char** argv) {
-  PARSE_ARGS_BEGIN
-
-  int start_stage = 1;
-  int end_stage = kNumStages;
-  int seconds_to_run = 10;
-  bool print_progress = false;
-
-  app.add_option("-s, --start-stage", start_stage, "Start stage");
-  app.add_option("-e, --end-stage", end_stage, "End stage");
-  app.add_option("-t, --seconds-to-run", seconds_to_run, "Seconds to run for normal benchmark");
-  app.add_flag("-p, --print-progress", print_progress, "Print progress");
-
-  PARSE_ARGS_END
-
-  init_tables();
-
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
-
-  // Run normal benchmark (one processor type at a time)
-  spdlog::info("Running normal benchmark (one processor at a time)...");
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    if (!g_little_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kLittleCore, stage, seconds_to_run);
-    }
-    if (!g_medium_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kMediumCore, stage, seconds_to_run);
-    }
-    if (!g_big_cores.empty()) {
-      android::BM_run_normal(ProcessorType::kBigCore, stage, seconds_to_run);
-    }
-    android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run);
-  }
-
-  spdlog::info("Running fully benchmark (each processor in isolation, all stages active)...");
-  for (int stage = start_stage; stage <= end_stage; stage++) {
-    android::BM_run_fully(stage, seconds_to_run);
-  }
-
+void print_normal_benchmark_table(int start_stage, int end_stage) {
   // Print the normal benchmark table with higher precision
   fmt::print("\nNormal Benchmark Results Table (ms per task):\n");
   fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan \n");
@@ -478,8 +415,53 @@ int main(int argc, char** argv) {
   print_comparison("Medium Core", medium_norm_sum, medium_full_sum);
   print_comparison("Big Core", big_norm_sum, big_full_sum);
   print_comparison("Vulkan", vulkan_norm_sum, vulkan_full_sum);
+}
 
-  // Dump tables in a format that's easy to load in Python
+// ----------------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------------
+
+int main(int argc, char** argv) {
+  PARSE_ARGS_BEGIN
+
+  int start_stage = 1;
+  int end_stage = kNumStages;
+  int seconds_to_run = 10;
+  bool print_progress = false;
+
+  app.add_option("-s, --start-stage", start_stage, "Start stage");
+  app.add_option("-e, --end-stage", end_stage, "End stage");
+  app.add_option("-t, --seconds-to-run", seconds_to_run, "Seconds to run for normal benchmark");
+  app.add_flag("-p, --print-progress", print_progress, "Print progress");
+
+  PARSE_ARGS_END
+
+  init_tables();
+
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
+
+  // Run normal benchmark (one processor type at a time)
+  spdlog::info("Running normal benchmark (one processor at a time)...");
+  for (int stage = start_stage; stage <= end_stage; stage++) {
+    if (!g_little_cores.empty()) {
+      android::BM_run_normal(ProcessorType::kLittleCore, stage, seconds_to_run, print_progress);
+    }
+    if (!g_medium_cores.empty()) {
+      android::BM_run_normal(ProcessorType::kMediumCore, stage, seconds_to_run, print_progress);
+    }
+    if (!g_big_cores.empty()) {
+      android::BM_run_normal(ProcessorType::kBigCore, stage, seconds_to_run, print_progress);
+    }
+    android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run, print_progress);
+  }
+
+  spdlog::info("Running fully benchmark (each processor in isolation, all stages active)...");
+  for (int stage = start_stage; stage <= end_stage; stage++) {
+    android::BM_run_fully(stage, seconds_to_run, print_progress);
+  }
+
+  print_normal_benchmark_table(start_stage, end_stage);
+
   dump_tables_for_python(start_stage, end_stage);
 
   return 0;
