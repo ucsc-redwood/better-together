@@ -314,16 +314,18 @@ for i, chunk_id in enumerate(active_chunks):
                 fontweight="bold",
                 fontsize=8,
             )
-    
+
     # Add average duration text at the right side of each chunk's row
     if chunk_id in chunk_avg_durations_ms:
         avg_duration = chunk_avg_durations_ms[chunk_id]
         # Calculate total duration for this chunk
         total_duration_cycles = chunk_total_durations[chunk_id]
         total_duration_ms = total_duration_cycles * CYCLES_TO_MS
-        
+
         ax.text(
-            display_end_ms + (display_end_ms - display_start_ms) * 0.01,  # Position slightly to the right of the display range
+            display_end_ms
+            + (display_end_ms - display_start_ms)
+            * 0.01,  # Position slightly to the right of the display range
             y_pos,
             f"Avg: {avg_duration:.4f} ms | Total: {total_duration_ms:.4f} ms",
             ha="left",
@@ -331,7 +333,9 @@ for i, chunk_id in enumerate(active_chunks):
             color="black",
             fontweight="bold",
             fontsize=10,
-            bbox=dict(facecolor='white', alpha=0.8, edgecolor='gray', boxstyle='round,pad=0.3')
+            bbox=dict(
+                facecolor="white", alpha=0.8, edgecolor="gray", boxstyle="round,pad=0.3"
+            ),
         )
 
 # Adjust the right margin to make room for the annotations
@@ -443,13 +447,13 @@ if chunk_total_durations:
         total_duration_cycles = duration
         total_duration_ms = duration * CYCLES_TO_MS
         chunk_percentage = (duration / total_execution_cycles) * 100
-        
+
         # Add average duration info if available
         avg_info = ""
         if chunk_id in chunk_avg_durations_ms:
             avg_duration_ms = chunk_avg_durations_ms[chunk_id]
             avg_info = f" | Avg task: {avg_duration_ms:.6f} ms"
-            
+
         print(
             f"  Chunk {chunk_id} ({chunk_type}): Total: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms){avg_info}, {chunk_percentage:.2f}%"
         )
