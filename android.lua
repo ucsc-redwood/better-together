@@ -4,6 +4,7 @@ local ANDROID_CONFIG = {
 	-- ignored_devices = { "ZY22FLDDK7" },
 	ignored_devices = { "ZY22FLDDK7", "ce0717178d7758b00b7e" },
 	-- ignored_devices = { "3A021JEHN02756", "9b034f1b" },
+	-- ignored_devices = { "3A021JEHN02756", "9b034f1b" },
 	remote_base_path = "/data/local/tmp", -- Base directory for all executables
 }
 

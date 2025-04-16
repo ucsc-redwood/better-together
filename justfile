@@ -399,7 +399,7 @@ gen-log-make-fig:
 
 
 
-
+# Used to compare non-full and full, uisng heatmap
 make-table:
     python3 scripts-v2/collect/bm.py --log_folder data/2025-4-15/cifar-sparse/ --repeat 3 --target bm-fully-cifar-sparse-vk
     python3 scripts-v2/plot/heat.py --folder data/2025-4-15/cifar-sparse/ --exclude_stages 2,4,8,9
@@ -407,5 +407,25 @@ make-table:
     python3 scripts-v2/collect/bm.py --log_folder data/2025-4-15/cifar-dense/ --repeat 3 --target bm-fully-cifar-dense-vk
     python3 scripts-v2/plot/heat.py --folder data/2025-4-15/cifar-dense/ --exclude_stages 2,4,8,9
 
-    
-    
+
+
+# Will need to use the latest schedule
+run-schedules-gen-real-time:
+    rm tmp.txt tmp2.txt
+    rm -rf tmp_folder
+    mkdir -p tmp_folder
+    xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
+    python3 scripts-v2/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
+    echo "--------------------------------" >> accumulated_time.txt
+    cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
+    cat accumulated_time.txt
+
+run-schedules-gen-real-time-n-times:
+    just run-schedules-gen-real-time
+    just run-schedules-gen-real-time
+    just run-schedules-gen-real-time
+    just run-schedules-gen-real-time
+    just run-schedules-gen-real-time
+
+cat-math:
+    python3 scripts-v2/gen_schedule/schedule.py

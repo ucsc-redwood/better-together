@@ -1,0 +1,2016 @@
+Found 47 schedule(s) in the input file.
+
+=== Processing Schedule 1 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4], 'M': [5, 6, 7, 8]}
+Detected 3 chunks in Schedule 1
+Total time span: 25601676 cycles
+Min time: 139828652791 cycles, Max time: 139854254467 cycles
+Filtering time range: 139828652791.0 to 139854254467.0 cycles
+  Time stats - min start: 139828652791, max start: 139854080153, global min: 139828652791
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_1_timeline.png
+Time range displayed: 0.00ms to 1041.73ms
+
+======= SCHEDULE 1 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 1 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 103603.11 cycles (4.215621 ms)
+  Total Duration: 10360311.00 cycles (421.562134 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 251934.90 cycles (10.251257 ms)
+  Total Duration: 25193490.00 cycles (1025.125732 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 181291.35 cycles (7.376764 ms)
+  Total Duration: 18129135.00 cycles (737.676392 ms)
+
+
+======= SCHEDULE 1 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 25193490.00 cycles (1025.125732 ms)
+Percentage of selected region execution time: 46.93%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 25193490.00 cycles (1025.125732 ms) | Avg task: 10.251257 ms, 46.93%
+  Chunk 2 (Med/V): Total: 18129135.00 cycles (737.676392 ms) | Avg task: 7.376764 ms, 33.77%
+  Chunk 0 (Big/B): Total: 10360311.00 cycles (421.562134 ms) | Avg task: 4.215621 ms, 19.30%
+
+=== Processing Schedule 2 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4], 'M': [5, 6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 2
+Total time span: 19264156 cycles
+Min time: 139901811367 cycles, Max time: 139921075523 cycles
+Filtering time range: 139901811367.0 to 139921075523.0 cycles
+  Time stats - min start: 139901811367, max start: 139921074689, global min: 139901811367
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_2_timeline.png
+Time range displayed: 0.00ms to 783.86ms
+
+======= SCHEDULE 2 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 2 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 105741.53 cycles (4.302634 ms)
+  Total Duration: 10574153.00 cycles (430.263387 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 177002.04 cycles (7.202231 ms)
+  Total Duration: 17700204.00 cycles (720.223145 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 178458.25 cycles (7.261485 ms)
+  Total Duration: 17845825.00 cycles (726.148478 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 1374.46 cycles (0.055927 ms)
+  Total Duration: 137446.00 cycles (5.592692 ms)
+
+
+======= SCHEDULE 2 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 2 (Med/V)
+Total execution time: 17845825.00 cycles (726.148478 ms)
+Percentage of selected region execution time: 38.58%
+
+Execution time breakdown for all chunks in region:
+  Chunk 2 (Med/V): Total: 17845825.00 cycles (726.148478 ms) | Avg task: 7.261485 ms, 38.58%
+  Chunk 1 (Vlk/V): Total: 17700204.00 cycles (720.223145 ms) | Avg task: 7.202231 ms, 38.26%
+  Chunk 0 (Big/B): Total: 10574153.00 cycles (430.263387 ms) | Avg task: 4.302634 ms, 22.86%
+  Chunk 3 (Lut/V): Total: 137446.00 cycles (5.592692 ms) | Avg task: 0.055927 ms, 0.30%
+
+=== Processing Schedule 3 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3], 'L': [4], 'M': [5, 6, 7, 8]}
+Detected 4 chunks in Schedule 3
+Total time span: 18718886 cycles
+Min time: 139968182959 cycles, Max time: 139986901845 cycles
+Filtering time range: 139968182959.0 to 139986901845.0 cycles
+  Time stats - min start: 139968182959, max start: 139986727576, global min: 139968182959
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_3_timeline.png
+Time range displayed: 0.00ms to 761.67ms
+
+======= SCHEDULE 3 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 3 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 110416.37 cycles (4.492854 ms)
+  Total Duration: 11041637.00 cycles (449.285360 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 150909.62 cycles (6.140528 ms)
+  Total Duration: 15090962.00 cycles (614.052816 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 147819.30 cycles (6.014783 ms)
+  Total Duration: 14781930.00 cycles (601.478271 ms)
+
+Chunk 3 (Med/V):
+  All Tasks Average: 179952.44 cycles (7.322284 ms)
+  Total Duration: 17995244.00 cycles (732.228353 ms)
+
+
+======= SCHEDULE 3 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 3 (Med/V)
+Total execution time: 17995244.00 cycles (732.228353 ms)
+Percentage of selected region execution time: 30.55%
+
+Execution time breakdown for all chunks in region:
+  Chunk 3 (Med/V): Total: 17995244.00 cycles (732.228353 ms) | Avg task: 7.322284 ms, 30.55%
+  Chunk 1 (Vlk/V): Total: 15090962.00 cycles (614.052816 ms) | Avg task: 6.140528 ms, 25.62%
+  Chunk 2 (Lut/V): Total: 14781930.00 cycles (601.478271 ms) | Avg task: 6.014783 ms, 25.09%
+  Chunk 0 (Big/B): Total: 11041637.00 cycles (449.285360 ms) | Avg task: 4.492854 ms, 18.74%
+
+=== Processing Schedule 4 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3], 'B': [4, 5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 4
+Total time span: 21559099 cycles
+Min time: 140034230537 cycles, Max time: 140055789636 cycles
+Filtering time range: 140034230537.0 to 140055789636.0 cycles
+  Time stats - min start: 140034230537, max start: 140055633003, global min: 140034230537
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_4_timeline.png
+Time range displayed: 0.00ms to 877.24ms
+
+======= SCHEDULE 4 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 4 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 160515.82 cycles (6.531405 ms)
+  Total Duration: 16051582.00 cycles (653.140544 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 158867.66 cycles (6.464342 ms)
+  Total Duration: 15886766.00 cycles (646.434163 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 109770.45 cycles (4.466571 ms)
+  Total Duration: 10977045.00 cycles (446.657104 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 209336.65 cycles (8.517930 ms)
+  Total Duration: 20933665.00 cycles (851.793009 ms)
+
+
+======= SCHEDULE 4 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 3 (Lut/V)
+Total execution time: 20933665.00 cycles (851.793009 ms)
+Percentage of selected region execution time: 32.79%
+
+Execution time breakdown for all chunks in region:
+  Chunk 3 (Lut/V): Total: 20933665.00 cycles (851.793009 ms) | Avg task: 8.517930 ms, 32.79%
+  Chunk 0 (Med/M): Total: 16051582.00 cycles (653.140544 ms) | Avg task: 6.531405 ms, 25.14%
+  Chunk 1 (Vlk/V): Total: 15886766.00 cycles (646.434163 ms) | Avg task: 6.464342 ms, 24.88%
+  Chunk 2 (Big/V): Total: 10977045.00 cycles (446.657104 ms) | Avg task: 4.466571 ms, 17.19%
+
+=== Processing Schedule 5 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4], 'M': [5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 5
+Total time span: 21026686 cycles
+Min time: 140104369051 cycles, Max time: 140125395737 cycles
+Filtering time range: 140104369051.0 to 140125395737.0 cycles
+  Time stats - min start: 140104369051, max start: 140125246703, global min: 140104369051
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_5_timeline.png
+Time range displayed: 0.00ms to 855.58ms
+
+======= SCHEDULE 5 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 5 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 109929.24 cycles (4.473032 ms)
+  Total Duration: 10992924.00 cycles (447.303223 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 204628.05 cycles (8.326337 ms)
+  Total Duration: 20462805.00 cycles (832.633667 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 98384.46 cycles (4.003274 ms)
+  Total Duration: 9838446.00 cycles (400.327393 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 159993.60 cycles (6.510156 ms)
+  Total Duration: 15999360.00 cycles (651.015625 ms)
+
+
+======= SCHEDULE 5 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 20462805.00 cycles (832.633667 ms)
+Percentage of selected region execution time: 35.72%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 20462805.00 cycles (832.633667 ms) | Avg task: 8.326337 ms, 35.72%
+  Chunk 3 (Lut/V): Total: 15999360.00 cycles (651.015625 ms) | Avg task: 6.510156 ms, 27.93%
+  Chunk 0 (Big/B): Total: 10992924.00 cycles (447.303223 ms) | Avg task: 4.473032 ms, 19.19%
+  Chunk 2 (Med/V): Total: 9838446.00 cycles (400.327393 ms) | Avg task: 4.003274 ms, 17.17%
+
+=== Processing Schedule 6 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4], 'B': [5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 6
+Total time span: 19350664 cycles
+Min time: 140172226696 cycles, Max time: 140191577360 cycles
+Filtering time range: 140172226696.0 to 140191577360.0 cycles
+  Time stats - min start: 140172226696, max start: 140191429323, global min: 140172226696
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_6_timeline.png
+Time range displayed: 0.00ms to 787.38ms
+
+======= SCHEDULE 6 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 6 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 158425.29 cycles (6.446342 ms)
+  Total Duration: 15842529.00 cycles (644.634155 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 184528.04 cycles (7.508465 ms)
+  Total Duration: 18452804.00 cycles (750.846517 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 77653.88 cycles (3.159744 ms)
+  Total Duration: 7765388.00 cycles (315.974447 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 158272.21 cycles (6.440113 ms)
+  Total Duration: 15827221.00 cycles (644.011271 ms)
+
+
+======= SCHEDULE 6 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 18452804.00 cycles (750.846517 ms)
+Percentage of selected region execution time: 31.88%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 18452804.00 cycles (750.846517 ms) | Avg task: 7.508465 ms, 31.88%
+  Chunk 0 (Med/M): Total: 15842529.00 cycles (644.634155 ms) | Avg task: 6.446342 ms, 27.37%
+  Chunk 3 (Lut/V): Total: 15827221.00 cycles (644.011271 ms) | Avg task: 6.440113 ms, 27.34%
+  Chunk 2 (Big/V): Total: 7765388.00 cycles (315.974447 ms) | Avg task: 3.159744 ms, 13.41%
+
+=== Processing Schedule 7 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3], 'M': [4, 5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 7
+Total time span: 18395045 cycles
+Min time: 140238285761 cycles, Max time: 140256680806 cycles
+Filtering time range: 140238285761.0 to 140256680806.0 cycles
+  Time stats - min start: 140238285761, max start: 140256530753, global min: 140238285761
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_7_timeline.png
+Time range displayed: 0.00ms to 748.50ms
+
+======= SCHEDULE 7 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 7 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 118934.32 cycles (4.839450 ms)
+  Total Duration: 11893432.00 cycles (483.944987 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 172235.31 cycles (7.008273 ms)
+  Total Duration: 17223531.00 cycles (700.827271 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 145662.98 cycles (5.927042 ms)
+  Total Duration: 14566298.00 cycles (592.704183 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 159273.56 cycles (6.480858 ms)
+  Total Duration: 15927356.00 cycles (648.085775 ms)
+
+
+======= SCHEDULE 7 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 17223531.00 cycles (700.827271 ms)
+Percentage of selected region execution time: 28.89%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 17223531.00 cycles (700.827271 ms) | Avg task: 7.008273 ms, 28.89%
+  Chunk 3 (Lut/V): Total: 15927356.00 cycles (648.085775 ms) | Avg task: 6.480858 ms, 26.72%
+  Chunk 2 (Med/V): Total: 14566298.00 cycles (592.704183 ms) | Avg task: 5.927042 ms, 24.44%
+  Chunk 0 (Big/B): Total: 11893432.00 cycles (483.944987 ms) | Avg task: 4.839450 ms, 19.95%
+
+=== Processing Schedule 8 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4], 'L': [5], 'B': [6, 7, 8]}
+Detected 4 chunks in Schedule 8
+Total time span: 15446612 cycles
+Min time: 140305104322 cycles, Max time: 140320550934 cycles
+Filtering time range: 140305104322.0 to 140320550934.0 cycles
+  Time stats - min start: 140305104322, max start: 140320446246, global min: 140305104322
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_8_timeline.png
+Time range displayed: 0.00ms to 628.52ms
+
+======= SCHEDULE 8 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 8 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 149331.99 cycles (6.076334 ms)
+  Total Duration: 14933199.00 cycles (607.633423 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 149091.61 cycles (6.066553 ms)
+  Total Duration: 14909161.00 cycles (606.655314 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 147155.26 cycles (5.987763 ms)
+  Total Duration: 14715526.00 cycles (598.776286 ms)
+
+Chunk 3 (Big/V):
+  All Tasks Average: 108988.46 cycles (4.434752 ms)
+  Total Duration: 10898846.00 cycles (443.475179 ms)
+
+
+======= SCHEDULE 8 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Med/M)
+Total execution time: 14933199.00 cycles (607.633423 ms)
+Percentage of selected region execution time: 26.93%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Med/M): Total: 14933199.00 cycles (607.633423 ms) | Avg task: 6.076334 ms, 26.93%
+  Chunk 1 (Vlk/V): Total: 14909161.00 cycles (606.655314 ms) | Avg task: 6.066553 ms, 26.88%
+  Chunk 2 (Lut/V): Total: 14715526.00 cycles (598.776286 ms) | Avg task: 5.987763 ms, 26.54%
+  Chunk 3 (Big/V): Total: 10898846.00 cycles (443.475179 ms) | Avg task: 4.434752 ms, 19.65%
+
+=== Processing Schedule 9 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4], 'L': [5], 'M': [6, 7, 8]}
+Detected 4 chunks in Schedule 9
+Total time span: 18253900 cycles
+Min time: 140369386411 cycles, Max time: 140387640311 cycles
+Filtering time range: 140369386411.0 to 140387640311.0 cycles
+  Time stats - min start: 140369386411, max start: 140387511529, global min: 140369386411
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_9_timeline.png
+Time range displayed: 0.00ms to 742.75ms
+
+======= SCHEDULE 9 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 9 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 108598.10 cycles (4.418868 ms)
+  Total Duration: 10859810.00 cycles (441.886800 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 177757.83 cycles (7.232985 ms)
+  Total Duration: 17775783.00 cycles (723.298462 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 147699.27 cycles (6.009899 ms)
+  Total Duration: 14769927.00 cycles (600.989868 ms)
+
+Chunk 3 (Med/V):
+  All Tasks Average: 132963.41 cycles (5.410295 ms)
+  Total Duration: 13296341.00 cycles (541.029500 ms)
+
+
+======= SCHEDULE 9 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 17775783.00 cycles (723.298462 ms)
+Percentage of selected region execution time: 31.35%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 17775783.00 cycles (723.298462 ms) | Avg task: 7.232985 ms, 31.35%
+  Chunk 2 (Lut/V): Total: 14769927.00 cycles (600.989868 ms) | Avg task: 6.009899 ms, 26.05%
+  Chunk 3 (Med/V): Total: 13296341.00 cycles (541.029500 ms) | Avg task: 5.410295 ms, 23.45%
+  Chunk 0 (Big/B): Total: 10859810.00 cycles (441.886800 ms) | Avg task: 4.418868 ms, 19.15%
+
+=== Processing Schedule 10 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4], 'B': [5, 6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 10
+Total time span: 19082294 cycles
+Min time: 140436102989 cycles, Max time: 140455185283 cycles
+Filtering time range: 140436102989.0 to 140455185283.0 cycles
+  Time stats - min start: 140436102989, max start: 140455183589, global min: 140436102989
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_10_timeline.png
+Time range displayed: 0.00ms to 776.46ms
+
+======= SCHEDULE 10 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 10 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 159603.12 cycles (6.494268 ms)
+  Total Duration: 15960312.00 cycles (649.426758 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 184295.51 cycles (7.499003 ms)
+  Total Duration: 18429551.00 cycles (749.900350 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 150833.07 cycles (6.137413 ms)
+  Total Duration: 15083307.00 cycles (613.741333 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 4950.90 cycles (0.201453 ms)
+  Total Duration: 495090.00 cycles (20.145264 ms)
+
+
+======= SCHEDULE 10 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 18429551.00 cycles (749.900350 ms)
+Percentage of selected region execution time: 36.88%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 18429551.00 cycles (749.900350 ms) | Avg task: 7.499003 ms, 36.88%
+  Chunk 0 (Med/M): Total: 15960312.00 cycles (649.426758 ms) | Avg task: 6.494268 ms, 31.94%
+  Chunk 2 (Big/V): Total: 15083307.00 cycles (613.741333 ms) | Avg task: 6.137413 ms, 30.19%
+  Chunk 3 (Lut/V): Total: 495090.00 cycles (20.145264 ms) | Avg task: 0.201453 ms, 0.99%
+
+=== Processing Schedule 11 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3], 'L': [4], 'B': [5, 6, 7, 8]}
+Detected 4 chunks in Schedule 11
+Total time span: 18278845 cycles
+Min time: 140504259414 cycles, Max time: 140522538259 cycles
+Filtering time range: 140504259414.0 to 140522538259.0 cycles
+  Time stats - min start: 140504259414, max start: 140522391057, global min: 140504259414
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_11_timeline.png
+Time range displayed: 0.00ms to 743.77ms
+
+======= SCHEDULE 11 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 11 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 158172.09 cycles (6.436039 ms)
+  Total Duration: 15817209.00 cycles (643.603882 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 135740.71 cycles (5.523304 ms)
+  Total Duration: 13574071.00 cycles (552.330363 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 158144.89 cycles (6.434932 ms)
+  Total Duration: 15814489.00 cycles (643.493205 ms)
+
+Chunk 3 (Big/V):
+  All Tasks Average: 167953.41 cycles (6.834042 ms)
+  Total Duration: 16795341.00 cycles (683.404175 ms)
+
+
+======= SCHEDULE 11 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 3 (Big/V)
+Total execution time: 16795341.00 cycles (683.404175 ms)
+Percentage of selected region execution time: 27.09%
+
+Execution time breakdown for all chunks in region:
+  Chunk 3 (Big/V): Total: 16795341.00 cycles (683.404175 ms) | Avg task: 6.834042 ms, 27.09%
+  Chunk 0 (Med/M): Total: 15817209.00 cycles (643.603882 ms) | Avg task: 6.436039 ms, 25.51%
+  Chunk 2 (Lut/V): Total: 15814489.00 cycles (643.493205 ms) | Avg task: 6.434932 ms, 25.51%
+  Chunk 1 (Vlk/V): Total: 13574071.00 cycles (552.330363 ms) | Avg task: 5.523304 ms, 21.89%
+
+=== Processing Schedule 12 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4], 'B': [5, 6, 7, 8]}
+Detected 3 chunks in Schedule 12
+Total time span: 17398502 cycles
+Min time: 140570343997 cycles, Max time: 140587742499 cycles
+Filtering time range: 140570343997.0 to 140587742499.0 cycles
+  Time stats - min start: 140570343997, max start: 140587603509, global min: 140570343997
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_12_timeline.png
+Time range displayed: 0.00ms to 707.95ms
+
+======= SCHEDULE 12 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 12 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 156129.39 cycles (6.352921 ms)
+  Total Duration: 15612939.00 cycles (635.292114 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 162609.31 cycles (6.616590 ms)
+  Total Duration: 16260931.00 cycles (661.658976 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 139038.86 cycles (5.657506 ms)
+  Total Duration: 13903886.00 cycles (565.750570 ms)
+
+
+======= SCHEDULE 12 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 16260931.00 cycles (661.658976 ms)
+Percentage of selected region execution time: 35.52%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 16260931.00 cycles (661.658976 ms) | Avg task: 6.616590 ms, 35.52%
+  Chunk 0 (Med/M): Total: 15612939.00 cycles (635.292114 ms) | Avg task: 6.352921 ms, 34.11%
+  Chunk 2 (Big/V): Total: 13903886.00 cycles (565.750570 ms) | Avg task: 5.657506 ms, 30.37%
+
+=== Processing Schedule 13 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3], 'M': [4, 5, 6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 13
+Total time span: 22601084 cycles
+Min time: 140634412991 cycles, Max time: 140657014075 cycles
+Filtering time range: 140634412991.0 to 140657014075.0 cycles
+  Time stats - min start: 140634412991, max start: 140657013256, global min: 140634412991
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_13_timeline.png
+Time range displayed: 0.00ms to 919.64ms
+
+======= SCHEDULE 13 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 13 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 111124.38 cycles (4.521663 ms)
+  Total Duration: 11112438.00 cycles (452.166260 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 153519.49 cycles (6.246724 ms)
+  Total Duration: 15351949.00 cycles (624.672404 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 221837.70 cycles (9.026599 ms)
+  Total Duration: 22183770.00 cycles (902.659912 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 2146.41 cycles (0.087338 ms)
+  Total Duration: 214641.00 cycles (8.733765 ms)
+
+
+======= SCHEDULE 13 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 2 (Med/V)
+Total execution time: 22183770.00 cycles (902.659912 ms)
+Percentage of selected region execution time: 45.40%
+
+Execution time breakdown for all chunks in region:
+  Chunk 2 (Med/V): Total: 22183770.00 cycles (902.659912 ms) | Avg task: 9.026599 ms, 45.40%
+  Chunk 1 (Vlk/V): Total: 15351949.00 cycles (624.672404 ms) | Avg task: 6.246724 ms, 31.42%
+  Chunk 0 (Big/B): Total: 11112438.00 cycles (452.166260 ms) | Avg task: 4.521663 ms, 22.74%
+  Chunk 3 (Lut/V): Total: 214641.00 cycles (8.733765 ms) | Avg task: 0.087338 ms, 0.44%
+
+=== Processing Schedule 14 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3], 'M': [4, 5, 6, 7, 8]}
+Detected 3 chunks in Schedule 14
+Total time span: 32122142 cycles
+Min time: 140705506128 cycles, Max time: 140737628270 cycles
+Filtering time range: 140705506128.0 to 140737628270.0 cycles
+  Time stats - min start: 140705506128, max start: 140737409479, global min: 140705506128
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_14_timeline.png
+Time range displayed: 0.00ms to 1307.05ms
+
+======= SCHEDULE 14 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 14 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 106531.50 cycles (4.334778 ms)
+  Total Duration: 10653150.00 cycles (433.477783 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 316865.79 cycles (12.893302 ms)
+  Total Duration: 31686579.00 cycles (1289.330200 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 226744.97 cycles (9.226276 ms)
+  Total Duration: 22674497.00 cycles (922.627645 ms)
+
+
+======= SCHEDULE 14 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 31686579.00 cycles (1289.330200 ms)
+Percentage of selected region execution time: 48.74%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 31686579.00 cycles (1289.330200 ms) | Avg task: 12.893302 ms, 48.74%
+  Chunk 2 (Med/V): Total: 22674497.00 cycles (922.627645 ms) | Avg task: 9.226276 ms, 34.88%
+  Chunk 0 (Big/B): Total: 10653150.00 cycles (433.477783 ms) | Avg task: 4.334778 ms, 16.39%
+
+=== Processing Schedule 15 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3], 'L': [4], 'M': [5, 6, 7, 8]}
+Detected 4 chunks in Schedule 15
+Total time span: 20123001 cycles
+Min time: 140785031544 cycles, Max time: 140805154545 cycles
+Filtering time range: 140785031544.0 to 140805154545.0 cycles
+  Time stats - min start: 140785031544, max start: 140804981578, global min: 140785031544
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_15_timeline.png
+Time range displayed: 0.00ms to 818.81ms
+
+======= SCHEDULE 15 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 15 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 196690.14 cycles (8.003342 ms)
+  Total Duration: 19669014.00 cycles (800.334229 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 142718.50 cycles (5.807231 ms)
+  Total Duration: 14271850.00 cycles (580.723063 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 145479.81 cycles (5.919589 ms)
+  Total Duration: 14547981.00 cycles (591.958862 ms)
+
+Chunk 3 (Med/B):
+  All Tasks Average: 175439.30 cycles (7.138643 ms)
+  Total Duration: 17543930.00 cycles (713.864339 ms)
+
+
+======= SCHEDULE 15 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 19669014.00 cycles (800.334229 ms)
+Percentage of selected region execution time: 29.79%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 19669014.00 cycles (800.334229 ms) | Avg task: 8.003342 ms, 29.79%
+  Chunk 3 (Med/B): Total: 17543930.00 cycles (713.864339 ms) | Avg task: 7.138643 ms, 26.57%
+  Chunk 2 (Lut/V): Total: 14547981.00 cycles (591.958862 ms) | Avg task: 5.919589 ms, 22.03%
+  Chunk 1 (Big/V): Total: 14271850.00 cycles (580.723063 ms) | Avg task: 5.807231 ms, 21.61%
+
+=== Processing Schedule 16 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3], 'L': [4], 'B': [5, 6, 7, 8]}
+Detected 4 chunks in Schedule 16
+Total time span: 18991656 cycles
+Min time: 140853029581 cycles, Max time: 140872021237 cycles
+Filtering time range: 140853029581.0 to 140872021237.0 cycles
+  Time stats - min start: 140853029581, max start: 140871875978, global min: 140853029581
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_16_timeline.png
+Time range displayed: 0.00ms to 772.77ms
+
+======= SCHEDULE 16 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 16 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 185502.20 cycles (7.548104 ms)
+  Total Duration: 18550220.00 cycles (754.810384 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 158604.00 cycles (6.453613 ms)
+  Total Duration: 15860400.00 cycles (645.361328 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 145417.37 cycles (5.917048 ms)
+  Total Duration: 14541737.00 cycles (591.704793 ms)
+
+Chunk 3 (Big/M):
+  All Tasks Average: 142992.06 cycles (5.818362 ms)
+  Total Duration: 14299206.00 cycles (581.836182 ms)
+
+
+======= SCHEDULE 16 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 18550220.00 cycles (754.810384 ms)
+Percentage of selected region execution time: 29.33%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 18550220.00 cycles (754.810384 ms) | Avg task: 7.548104 ms, 29.33%
+  Chunk 1 (Med/V): Total: 15860400.00 cycles (645.361328 ms) | Avg task: 6.453613 ms, 25.08%
+  Chunk 2 (Lut/V): Total: 14541737.00 cycles (591.704793 ms) | Avg task: 5.917048 ms, 22.99%
+  Chunk 3 (Big/M): Total: 14299206.00 cycles (581.836182 ms) | Avg task: 5.818362 ms, 22.61%
+
+=== Processing Schedule 17 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4], 'B': [5, 6, 7, 8]}
+Detected 3 chunks in Schedule 17
+Total time span: 23116096 cycles
+Min time: 140920487451 cycles, Max time: 140943603547 cycles
+Filtering time range: 140920487451.0 to 140943603547.0 cycles
+  Time stats - min start: 140920487451, max start: 140943457281, global min: 140920487451
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_17_timeline.png
+Time range displayed: 0.00ms to 940.60ms
+
+======= SCHEDULE 17 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 17 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 227691.26 cycles (9.264781 ms)
+  Total Duration: 22769126.00 cycles (926.478109 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 202438.97 cycles (8.237263 ms)
+  Total Duration: 20243897.00 cycles (823.726278 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 141303.26 cycles (5.749644 ms)
+  Total Duration: 14130326.00 cycles (574.964437 ms)
+
+
+======= SCHEDULE 17 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 22769126.00 cycles (926.478109 ms)
+Percentage of selected region execution time: 39.85%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 22769126.00 cycles (926.478109 ms) | Avg task: 9.264781 ms, 39.85%
+  Chunk 1 (Med/V): Total: 20243897.00 cycles (823.726278 ms) | Avg task: 8.237263 ms, 35.43%
+  Chunk 2 (Big/V): Total: 14130326.00 cycles (574.964437 ms) | Avg task: 5.749644 ms, 24.73%
+
+=== Processing Schedule 18 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4], 'B': [5, 6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 18
+Total time span: 21401635 cycles
+Min time: 140991263617 cycles, Max time: 141012665252 cycles
+Filtering time range: 140991263617.0 to 141012665252.0 cycles
+  Time stats - min start: 140991263617, max start: 141012664269, global min: 140991263617
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_18_timeline.png
+Time range displayed: 0.00ms to 870.83ms
+
+======= SCHEDULE 18 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 18 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 193305.42 cycles (7.865618 ms)
+  Total Duration: 19330542.00 cycles (786.561768 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 208230.27 cycles (8.472911 ms)
+  Total Duration: 20823027.00 cycles (847.291138 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 147917.60 cycles (6.018783 ms)
+  Total Duration: 14791760.00 cycles (601.878255 ms)
+
+Chunk 3 (Lut/M):
+  All Tasks Average: 2407.02 cycles (0.097942 ms)
+  Total Duration: 240702.00 cycles (9.794189 ms)
+
+
+======= SCHEDULE 18 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 20823027.00 cycles (847.291138 ms)
+Percentage of selected region execution time: 37.73%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 20823027.00 cycles (847.291138 ms) | Avg task: 8.472911 ms, 37.73%
+  Chunk 0 (Vlk/V): Total: 19330542.00 cycles (786.561768 ms) | Avg task: 7.865618 ms, 35.03%
+  Chunk 2 (Big/V): Total: 14791760.00 cycles (601.878255 ms) | Avg task: 6.018783 ms, 26.80%
+  Chunk 3 (Lut/M): Total: 240702.00 cycles (9.794189 ms) | Avg task: 0.097942 ms, 0.44%
+
+=== Processing Schedule 19 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4], 'B': [5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 19
+Total time span: 21333265 cycles
+Min time: 141061588278 cycles, Max time: 141082921543 cycles
+Filtering time range: 141061588278.0 to 141082921543.0 cycles
+  Time stats - min start: 141061588278, max start: 141082772960, global min: 141061588278
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_19_timeline.png
+Time range displayed: 0.00ms to 868.05ms
+
+======= SCHEDULE 19 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 19 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 192056.62 cycles (7.814804 ms)
+  Total Duration: 19205662.00 cycles (781.480387 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 207473.44 cycles (8.442116 ms)
+  Total Duration: 20747344.00 cycles (844.211589 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 76405.73 cycles (3.108957 ms)
+  Total Duration: 7640573.00 cycles (310.895711 ms)
+
+Chunk 3 (Lut/M):
+  All Tasks Average: 157427.19 cycles (6.405729 ms)
+  Total Duration: 15742719.00 cycles (640.572876 ms)
+
+
+======= SCHEDULE 19 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 20747344.00 cycles (844.211589 ms)
+Percentage of selected region execution time: 32.76%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 20747344.00 cycles (844.211589 ms) | Avg task: 8.442116 ms, 32.76%
+  Chunk 0 (Vlk/V): Total: 19205662.00 cycles (781.480387 ms) | Avg task: 7.814804 ms, 30.32%
+  Chunk 3 (Lut/M): Total: 15742719.00 cycles (640.572876 ms) | Avg task: 6.405729 ms, 24.86%
+  Chunk 2 (Big/V): Total: 7640573.00 cycles (310.895711 ms) | Avg task: 3.108957 ms, 12.06%
+
+=== Processing Schedule 20 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4], 'L': [5], 'B': [6, 7, 8]}
+Detected 4 chunks in Schedule 20
+Total time span: 22054814 cycles
+Min time: 141132206313 cycles, Max time: 141154261127 cycles
+Filtering time range: 141132206313.0 to 141154261127.0 cycles
+  Time stats - min start: 141132206313, max start: 141154142847, global min: 141132206313
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_20_timeline.png
+Time range displayed: 0.00ms to 897.41ms
+
+======= SCHEDULE 20 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 20 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 185043.16 cycles (7.529425 ms)
+  Total Duration: 18504316.00 cycles (752.942546 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 214841.77 cycles (8.741934 ms)
+  Total Duration: 21484177.00 cycles (874.193400 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 146103.72 cycles (5.944976 ms)
+  Total Duration: 14610372.00 cycles (594.497559 ms)
+
+Chunk 3 (Big/M):
+  All Tasks Average: 116543.58 cycles (4.742170 ms)
+  Total Duration: 11654358.00 cycles (474.217041 ms)
+
+
+======= SCHEDULE 20 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 21484177.00 cycles (874.193400 ms)
+Percentage of selected region execution time: 32.43%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 21484177.00 cycles (874.193400 ms) | Avg task: 8.741934 ms, 32.43%
+  Chunk 0 (Vlk/V): Total: 18504316.00 cycles (752.942546 ms) | Avg task: 7.529425 ms, 27.93%
+  Chunk 2 (Lut/V): Total: 14610372.00 cycles (594.497559 ms) | Avg task: 5.944976 ms, 22.05%
+  Chunk 3 (Big/M): Total: 11654358.00 cycles (474.217041 ms) | Avg task: 4.742170 ms, 17.59%
+
+=== Processing Schedule 21 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3], 'B': [4, 5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 21
+Total time span: 19365516 cycles
+Min time: 141201676948 cycles, Max time: 141221042464 cycles
+Filtering time range: 141201676948.0 to 141221042464.0 cycles
+  Time stats - min start: 141201676948, max start: 141220892533, global min: 141201676948
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_21_timeline.png
+Time range displayed: 0.00ms to 787.98ms
+
+======= SCHEDULE 21 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 21 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 189451.98 cycles (7.708821 ms)
+  Total Duration: 18945198.00 cycles (770.882080 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 166730.35 cycles (6.784275 ms)
+  Total Duration: 16673035.00 cycles (678.427531 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 108256.41 cycles (4.404965 ms)
+  Total Duration: 10825641.00 cycles (440.496460 ms)
+
+Chunk 3 (Lut/M):
+  All Tasks Average: 166102.85 cycles (6.758742 ms)
+  Total Duration: 16610285.00 cycles (675.874227 ms)
+
+
+======= SCHEDULE 21 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 18945198.00 cycles (770.882080 ms)
+Percentage of selected region execution time: 30.05%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 18945198.00 cycles (770.882080 ms) | Avg task: 7.708821 ms, 30.05%
+  Chunk 1 (Med/V): Total: 16673035.00 cycles (678.427531 ms) | Avg task: 6.784275 ms, 26.44%
+  Chunk 3 (Lut/M): Total: 16610285.00 cycles (675.874227 ms) | Avg task: 6.758742 ms, 26.34%
+  Chunk 2 (Big/V): Total: 10825641.00 cycles (440.496460 ms) | Avg task: 4.404965 ms, 17.17%
+
+=== Processing Schedule 22 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3], 'M': [4, 5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 22
+Total time span: 19383263 cycles
+Min time: 141268471807 cycles, Max time: 141287855070 cycles
+Filtering time range: 141268471807.0 to 141287855070.0 cycles
+  Time stats - min start: 141268471807, max start: 141287707242, global min: 141268471807
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_22_timeline.png
+Time range displayed: 0.00ms to 788.71ms
+
+======= SCHEDULE 22 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 22 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 189567.55 cycles (7.713523 ms)
+  Total Duration: 18956755.00 cycles (771.352336 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 144980.74 cycles (5.899281 ms)
+  Total Duration: 14498074.00 cycles (589.928141 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 135500.03 cycles (5.513510 ms)
+  Total Duration: 13550003.00 cycles (551.351034 ms)
+
+Chunk 3 (Lut/B):
+  All Tasks Average: 158773.11 cycles (6.460494 ms)
+  Total Duration: 15877311.00 cycles (646.049438 ms)
+
+
+======= SCHEDULE 22 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 18956755.00 cycles (771.352336 ms)
+Percentage of selected region execution time: 30.15%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 18956755.00 cycles (771.352336 ms) | Avg task: 7.713523 ms, 30.15%
+  Chunk 3 (Lut/B): Total: 15877311.00 cycles (646.049438 ms) | Avg task: 6.460494 ms, 25.25%
+  Chunk 1 (Big/V): Total: 14498074.00 cycles (589.928141 ms) | Avg task: 5.899281 ms, 23.06%
+  Chunk 2 (Med/V): Total: 13550003.00 cycles (551.351034 ms) | Avg task: 5.513510 ms, 21.55%
+
+=== Processing Schedule 23 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3], 'M': [4, 5, 6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 23
+Total time span: 22756970 cycles
+Min time: 141336182497 cycles, Max time: 141358939467 cycles
+Filtering time range: 141336182497.0 to 141358939467.0 cycles
+  Time stats - min start: 141336182497, max start: 141358938623, global min: 141336182497
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_23_timeline.png
+Time range displayed: 0.00ms to 925.98ms
+
+======= SCHEDULE 23 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 23 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 182988.15 cycles (7.445807 ms)
+  Total Duration: 18298815.00 cycles (744.580688 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 142953.48 cycles (5.816792 ms)
+  Total Duration: 14295348.00 cycles (581.679199 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 221558.14 cycles (9.015224 ms)
+  Total Duration: 22155814.00 cycles (901.522380 ms)
+
+Chunk 3 (Lut/B):
+  All Tasks Average: 1212.09 cycles (0.049320 ms)
+  Total Duration: 121209.00 cycles (4.932007 ms)
+
+
+======= SCHEDULE 23 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 2 (Med/V)
+Total execution time: 22155814.00 cycles (901.522380 ms)
+Percentage of selected region execution time: 40.38%
+
+Execution time breakdown for all chunks in region:
+  Chunk 2 (Med/V): Total: 22155814.00 cycles (901.522380 ms) | Avg task: 9.015224 ms, 40.38%
+  Chunk 0 (Vlk/V): Total: 18298815.00 cycles (744.580688 ms) | Avg task: 7.445807 ms, 33.35%
+  Chunk 1 (Big/V): Total: 14295348.00 cycles (581.679199 ms) | Avg task: 5.816792 ms, 26.05%
+  Chunk 3 (Lut/B): Total: 121209.00 cycles (4.932007 ms) | Avg task: 0.049320 ms, 0.22%
+
+=== Processing Schedule 24 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3], 'M': [4, 5, 6, 7, 8]}
+Detected 3 chunks in Schedule 24
+Total time span: 25236823 cycles
+Min time: 141406641570 cycles, Max time: 141431878393 cycles
+Filtering time range: 141406641570.0 to 141431878393.0 cycles
+  Time stats - min start: 141406641570, max start: 141431662266, global min: 141406641570
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_24_timeline.png
+Time range displayed: 0.00ms to 1026.89ms
+
+======= SCHEDULE 24 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 24 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 248829.09 cycles (10.124882 ms)
+  Total Duration: 24882909.00 cycles (1012.488159 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 144841.34 cycles (5.893609 ms)
+  Total Duration: 14484134.00 cycles (589.360921 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 226477.18 cycles (9.215380 ms)
+  Total Duration: 22647718.00 cycles (921.538005 ms)
+
+
+======= SCHEDULE 24 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 24882909.00 cycles (1012.488159 ms)
+Percentage of selected region execution time: 40.12%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 24882909.00 cycles (1012.488159 ms) | Avg task: 10.124882 ms, 40.12%
+  Chunk 2 (Med/V): Total: 22647718.00 cycles (921.538005 ms) | Avg task: 9.215380 ms, 36.52%
+  Chunk 1 (Big/V): Total: 14484134.00 cycles (589.360921 ms) | Avg task: 5.893609 ms, 23.36%
+
+=== Processing Schedule 25 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1], 'M': [2, 3], 'L': [4], 'B': [5, 6, 7, 8]}
+Detected 4 chunks in Schedule 25
+Total time span: 24736575 cycles
+Min time: 141480688016 cycles, Max time: 141505424591 cycles
+Filtering time range: 141480688016.0 to 141505424591.0 cycles
+  Time stats - min start: 141480688016, max start: 141505270653, global min: 141480688016
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_25_timeline.png
+Time range displayed: 0.00ms to 1006.53ms
+
+======= SCHEDULE 25 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 25 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 180883.15 cycles (7.360154 ms)
+  Total Duration: 18088315.00 cycles (736.015422 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 241377.70 cycles (9.821684 ms)
+  Total Duration: 24137770.00 cycles (982.168376 ms)
+
+Chunk 2 (Lut/M):
+  All Tasks Average: 144308.48 cycles (5.871927 ms)
+  Total Duration: 14430848.00 cycles (587.192708 ms)
+
+Chunk 3 (Big/M):
+  All Tasks Average: 147320.40 cycles (5.994482 ms)
+  Total Duration: 14732040.00 cycles (599.448242 ms)
+
+
+======= SCHEDULE 25 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 24137770.00 cycles (982.168376 ms)
+Percentage of selected region execution time: 33.81%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 24137770.00 cycles (982.168376 ms) | Avg task: 9.821684 ms, 33.81%
+  Chunk 0 (Vlk/V): Total: 18088315.00 cycles (736.015422 ms) | Avg task: 7.360154 ms, 25.34%
+  Chunk 3 (Big/M): Total: 14732040.00 cycles (599.448242 ms) | Avg task: 5.994482 ms, 20.64%
+  Chunk 2 (Lut/M): Total: 14430848.00 cycles (587.192708 ms) | Avg task: 5.871927 ms, 20.21%
+
+=== Processing Schedule 26 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1], 'M': [2, 3], 'B': [4, 5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 26
+Total time span: 24742345 cycles
+Min time: 141553765708 cycles, Max time: 141578508053 cycles
+Filtering time range: 141553765708.0 to 141578508053.0 cycles
+  Time stats - min start: 141553765708, max start: 141578358600, global min: 141553765708
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_26_timeline.png
+Time range displayed: 0.00ms to 1006.77ms
+
+======= SCHEDULE 26 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 26 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 156077.05 cycles (6.350791 ms)
+  Total Duration: 15607705.00 cycles (635.079142 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 241373.37 cycles (9.821508 ms)
+  Total Duration: 24137337.00 cycles (982.150757 ms)
+
+Chunk 2 (Big/M):
+  All Tasks Average: 116572.87 cycles (4.743362 ms)
+  Total Duration: 11657287.00 cycles (474.336222 ms)
+
+Chunk 3 (Lut/M):
+  All Tasks Average: 163528.63 cycles (6.653997 ms)
+  Total Duration: 16352863.00 cycles (665.399699 ms)
+
+
+======= SCHEDULE 26 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 24137337.00 cycles (982.150757 ms)
+Percentage of selected region execution time: 35.62%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 24137337.00 cycles (982.150757 ms) | Avg task: 9.821508 ms, 35.62%
+  Chunk 3 (Lut/M): Total: 16352863.00 cycles (665.399699 ms) | Avg task: 6.653997 ms, 24.14%
+  Chunk 0 (Vlk/V): Total: 15607705.00 cycles (635.079142 ms) | Avg task: 6.350791 ms, 23.04%
+  Chunk 2 (Big/M): Total: 11657287.00 cycles (474.336222 ms) | Avg task: 4.743362 ms, 17.21%
+
+=== Processing Schedule 27 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4, 5], 'L': [6], 'M': [7, 8]}
+Detected 4 chunks in Schedule 27
+Total time span: 21533494 cycles
+Min time: 141627590242 cycles, Max time: 141649123736 cycles
+Filtering time range: 141627590242.0 to 141649123736.0 cycles
+  Time stats - min start: 141627590242, max start: 141649038216, global min: 141627590242
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_27_timeline.png
+Time range displayed: 0.00ms to 876.20ms
+
+======= SCHEDULE 27 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 27 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 114973.95 cycles (4.678302 ms)
+  Total Duration: 11497395.00 cycles (467.830200 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 210943.73 cycles (8.583322 ms)
+  Total Duration: 21094373.00 cycles (858.332235 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 144433.51 cycles (5.877015 ms)
+  Total Duration: 14443351.00 cycles (587.701457 ms)
+
+Chunk 3 (Med/V):
+  All Tasks Average: 84867.86 cycles (3.453282 ms)
+  Total Duration: 8486786.00 cycles (345.328206 ms)
+
+
+======= SCHEDULE 27 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 21094373.00 cycles (858.332235 ms)
+Percentage of selected region execution time: 37.99%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 21094373.00 cycles (858.332235 ms) | Avg task: 8.583322 ms, 37.99%
+  Chunk 2 (Lut/V): Total: 14443351.00 cycles (587.701457 ms) | Avg task: 5.877015 ms, 26.01%
+  Chunk 0 (Big/B): Total: 11497395.00 cycles (467.830200 ms) | Avg task: 4.678302 ms, 20.71%
+  Chunk 3 (Med/V): Total: 8486786.00 cycles (345.328206 ms) | Avg task: 3.453282 ms, 15.29%
+
+=== Processing Schedule 28 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4, 5], 'M': [6, 7, 8]}
+Detected 3 chunks in Schedule 28
+Total time span: 20468586 cycles
+Min time: 141696696648 cycles, Max time: 141717165234 cycles
+Filtering time range: 141696696648.0 to 141717165234.0 cycles
+  Time stats - min start: 141696696648, max start: 141717037421, global min: 141696696648
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_28_timeline.png
+Time range displayed: 0.00ms to 832.87ms
+
+======= SCHEDULE 28 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 28 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 113038.92 cycles (4.599565 ms)
+  Total Duration: 11303892.00 cycles (459.956543 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 201231.89 cycles (8.188147 ms)
+  Total Duration: 20123189.00 cycles (818.814657 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 130374.08 cycles (5.304935 ms)
+  Total Duration: 13037408.00 cycles (530.493490 ms)
+
+
+======= SCHEDULE 28 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 20123189.00 cycles (818.814657 ms)
+Percentage of selected region execution time: 45.26%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 20123189.00 cycles (818.814657 ms) | Avg task: 8.188147 ms, 45.26%
+  Chunk 2 (Med/V): Total: 13037408.00 cycles (530.493490 ms) | Avg task: 5.304935 ms, 29.32%
+  Chunk 0 (Big/B): Total: 11303892.00 cycles (459.956543 ms) | Avg task: 4.599565 ms, 25.42%
+
+=== Processing Schedule 29 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4, 5], 'M': [6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 29
+Total time span: 21877628 cycles
+Min time: 141764835399 cycles, Max time: 141786713027 cycles
+Filtering time range: 141764835399.0 to 141786713027.0 cycles
+  Time stats - min start: 141764835399, max start: 141786711857, global min: 141764835399
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_29_timeline.png
+Time range displayed: 0.00ms to 890.20ms
+
+======= SCHEDULE 29 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 29 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 112738.70 cycles (4.587349 ms)
+  Total Duration: 11273870.00 cycles (458.734945 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 215171.26 cycles (8.755341 ms)
+  Total Duration: 21517126.00 cycles (875.534098 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 134520.12 cycles (5.473638 ms)
+  Total Duration: 13452012.00 cycles (547.363770 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 1828.16 cycles (0.074388 ms)
+  Total Duration: 182816.00 cycles (7.438802 ms)
+
+
+======= SCHEDULE 29 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 21517126.00 cycles (875.534098 ms)
+Percentage of selected region execution time: 46.35%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 21517126.00 cycles (875.534098 ms) | Avg task: 8.755341 ms, 46.35%
+  Chunk 2 (Med/V): Total: 13452012.00 cycles (547.363770 ms) | Avg task: 5.473638 ms, 28.98%
+  Chunk 0 (Big/B): Total: 11273870.00 cycles (458.734945 ms) | Avg task: 4.587349 ms, 24.28%
+  Chunk 3 (Lut/V): Total: 182816.00 cycles (7.438802 ms) | Avg task: 0.074388 ms, 0.39%
+
+=== Processing Schedule 30 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4, 5], 'L': [6], 'B': [7, 8]}
+Detected 4 chunks in Schedule 30
+Total time span: 17560477 cycles
+Min time: 141834547440 cycles, Max time: 141852107917 cycles
+Filtering time range: 141834547440.0 to 141852107917.0 cycles
+  Time stats - min start: 141834547440, max start: 141852028109, global min: 141834547440
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_30_timeline.png
+Time range displayed: 0.00ms to 714.54ms
+
+======= SCHEDULE 30 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 30 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 147370.58 cycles (5.996524 ms)
+  Total Duration: 14737058.00 cycles (599.652425 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 171292.69 cycles (6.969917 ms)
+  Total Duration: 17129269.00 cycles (696.991740 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 148602.70 cycles (6.046659 ms)
+  Total Duration: 14860270.00 cycles (604.665934 ms)
+
+Chunk 3 (Big/V):
+  All Tasks Average: 77571.99 cycles (3.156412 ms)
+  Total Duration: 7757199.00 cycles (315.641235 ms)
+
+
+======= SCHEDULE 30 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 17129269.00 cycles (696.991740 ms)
+Percentage of selected region execution time: 31.44%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 17129269.00 cycles (696.991740 ms) | Avg task: 6.969917 ms, 31.44%
+  Chunk 2 (Lut/V): Total: 14860270.00 cycles (604.665934 ms) | Avg task: 6.046659 ms, 27.27%
+  Chunk 0 (Med/M): Total: 14737058.00 cycles (599.652425 ms) | Avg task: 5.996524 ms, 27.05%
+  Chunk 3 (Big/V): Total: 7757199.00 cycles (315.641235 ms) | Avg task: 3.156412 ms, 14.24%
+
+=== Processing Schedule 31 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4, 5], 'B': [6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 31
+Total time span: 21440747 cycles
+Min time: 141899647776 cycles, Max time: 141921088523 cycles
+Filtering time range: 141899647776.0 to 141921088523.0 cycles
+  Time stats - min start: 141899647776, max start: 141920931205, global min: 141899647776
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_31_timeline.png
+Time range displayed: 0.00ms to 872.43ms
+
+======= SCHEDULE 31 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 31 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 196039.56 cycles (7.976870 ms)
+  Total Duration: 19603956.00 cycles (797.687012 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 179189.92 cycles (7.291257 ms)
+  Total Duration: 17918992.00 cycles (729.125651 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 49584.14 cycles (2.017584 ms)
+  Total Duration: 4958414.00 cycles (201.758382 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 207307.04 cycles (8.435345 ms)
+  Total Duration: 20730704.00 cycles (843.534505 ms)
+
+
+======= SCHEDULE 31 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 3 (Lut/V)
+Total execution time: 20730704.00 cycles (843.534505 ms)
+Percentage of selected region execution time: 32.80%
+
+Execution time breakdown for all chunks in region:
+  Chunk 3 (Lut/V): Total: 20730704.00 cycles (843.534505 ms) | Avg task: 8.435345 ms, 32.80%
+  Chunk 0 (Med/M): Total: 19603956.00 cycles (797.687012 ms) | Avg task: 7.976870 ms, 31.01%
+  Chunk 1 (Vlk/V): Total: 17918992.00 cycles (729.125651 ms) | Avg task: 7.291257 ms, 28.35%
+  Chunk 2 (Big/V): Total: 4958414.00 cycles (201.758382 ms) | Avg task: 2.017584 ms, 7.84%
+
+=== Processing Schedule 32 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4, 5], 'B': [6, 7, 8]}
+Detected 3 chunks in Schedule 32
+Total time span: 22514797 cycles
+Min time: 141969089884 cycles, Max time: 141991604681 cycles
+Filtering time range: 141969089884.0 to 141991604681.0 cycles
+  Time stats - min start: 141969089884, max start: 141991489352, global min: 141969089884
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_32_timeline.png
+Time range displayed: 0.00ms to 916.13ms
+
+======= SCHEDULE 32 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 32 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 145826.39 cycles (5.933691 ms)
+  Total Duration: 14582639.00 cycles (593.369100 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 221888.46 cycles (9.028665 ms)
+  Total Duration: 22188846.00 cycles (902.866455 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 120819.83 cycles (4.916171 ms)
+  Total Duration: 12081983.00 cycles (491.617147 ms)
+
+
+======= SCHEDULE 32 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 22188846.00 cycles (902.866455 ms)
+Percentage of selected region execution time: 45.42%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 22188846.00 cycles (902.866455 ms) | Avg task: 9.028665 ms, 45.42%
+  Chunk 0 (Med/M): Total: 14582639.00 cycles (593.369100 ms) | Avg task: 5.933691 ms, 29.85%
+  Chunk 2 (Big/V): Total: 12081983.00 cycles (491.617147 ms) | Avg task: 4.916171 ms, 24.73%
+
+=== Processing Schedule 33 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'M': [0], 'V': [1, 2, 3, 4, 5], 'B': [6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 33
+Total time span: 21390354 cycles
+Min time: 142039430976 cycles, Max time: 142060821330 cycles
+Filtering time range: 142039430976.0 to 142060821330.0 cycles
+  Time stats - min start: 142039430976, max start: 142060820582, global min: 142039430976
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_33_timeline.png
+Time range displayed: 0.00ms to 870.38ms
+
+======= SCHEDULE 33 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 33 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Med/M):
+  All Tasks Average: 147974.03 cycles (6.021079 ms)
+  Total Duration: 14797403.00 cycles (602.107869 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 210593.43 cycles (8.569069 ms)
+  Total Duration: 21059343.00 cycles (856.906860 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 121109.54 cycles (4.927960 ms)
+  Total Duration: 12110954.00 cycles (492.795980 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 1346.23 cycles (0.054778 ms)
+  Total Duration: 134623.00 cycles (5.477824 ms)
+
+
+======= SCHEDULE 33 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 21059343.00 cycles (856.906860 ms)
+Percentage of selected region execution time: 43.78%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 21059343.00 cycles (856.906860 ms) | Avg task: 8.569069 ms, 43.78%
+  Chunk 0 (Med/M): Total: 14797403.00 cycles (602.107869 ms) | Avg task: 6.021079 ms, 30.76%
+  Chunk 2 (Big/V): Total: 12110954.00 cycles (492.795980 ms) | Avg task: 4.927960 ms, 25.18%
+  Chunk 3 (Lut/V): Total: 134623.00 cycles (5.477824 ms) | Avg task: 0.054778 ms, 0.28%
+
+=== Processing Schedule 34 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'B': [0], 'V': [1, 2, 3, 4, 5], 'M': [6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 34
+Total time span: 23817159 cycles
+Min time: 142108110353 cycles, Max time: 142131927512 cycles
+Filtering time range: 142108110353.0 to 142131927512.0 cycles
+  Time stats - min start: 142108110353, max start: 142131781313, global min: 142108110353
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_34_timeline.png
+Time range displayed: 0.00ms to 969.12ms
+
+======= SCHEDULE 34 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 34 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Big/B):
+  All Tasks Average: 116818.76 cycles (4.753368 ms)
+  Total Duration: 11681876.00 cycles (475.336751 ms)
+
+Chunk 1 (Vlk/V):
+  All Tasks Average: 234119.18 cycles (9.526334 ms)
+  Total Duration: 23411918.00 cycles (952.633382 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 46152.55 cycles (1.877952 ms)
+  Total Duration: 4615255.00 cycles (187.795207 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 157644.35 cycles (6.414565 ms)
+  Total Duration: 15764435.00 cycles (641.456502 ms)
+
+
+======= SCHEDULE 34 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Vlk/V)
+Total execution time: 23411918.00 cycles (952.633382 ms)
+Percentage of selected region execution time: 42.20%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Vlk/V): Total: 23411918.00 cycles (952.633382 ms) | Avg task: 9.526334 ms, 42.20%
+  Chunk 3 (Lut/V): Total: 15764435.00 cycles (641.456502 ms) | Avg task: 6.414565 ms, 28.42%
+  Chunk 0 (Big/B): Total: 11681876.00 cycles (475.336751 ms) | Avg task: 4.753368 ms, 21.06%
+  Chunk 2 (Med/V): Total: 4615255.00 cycles (187.795207 ms) | Avg task: 1.877952 ms, 8.32%
+
+=== Processing Schedule 35 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4, 5], 'B': [6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 35
+Total time span: 25882279 cycles
+Min time: 142179108152 cycles, Max time: 142204990431 cycles
+Filtering time range: 142179108152.0 to 142204990431.0 cycles
+  Time stats - min start: 142179108152, max start: 142204841022, global min: 142179108152
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_35_timeline.png
+Time range displayed: 0.00ms to 1053.15ms
+
+======= SCHEDULE 35 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 35 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 185706.83 cycles (7.556430 ms)
+  Total Duration: 18570683.00 cycles (755.643026 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 253142.92 cycles (10.300412 ms)
+  Total Duration: 25314292.00 cycles (1030.041178 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 37491.96 cycles (1.525552 ms)
+  Total Duration: 3749196.00 cycles (152.555176 ms)
+
+Chunk 3 (Lut/M):
+  All Tasks Average: 155518.19 cycles (6.328051 ms)
+  Total Duration: 15551819.00 cycles (632.805135 ms)
+
+
+======= SCHEDULE 35 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 25314292.00 cycles (1030.041178 ms)
+Percentage of selected region execution time: 40.06%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 25314292.00 cycles (1030.041178 ms) | Avg task: 10.300412 ms, 40.06%
+  Chunk 0 (Vlk/V): Total: 18570683.00 cycles (755.643026 ms) | Avg task: 7.556430 ms, 29.39%
+  Chunk 3 (Lut/M): Total: 15551819.00 cycles (632.805135 ms) | Avg task: 6.328051 ms, 24.61%
+  Chunk 2 (Big/V): Total: 3749196.00 cycles (152.555176 ms) | Avg task: 1.525552 ms, 5.93%
+
+=== Processing Schedule 36 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4, 5], 'B': [6, 7, 8]}
+Detected 3 chunks in Schedule 36
+Total time span: 25132395 cycles
+Min time: 142252564586 cycles, Max time: 142277696981 cycles
+Filtering time range: 142252564586.0 to 142277696981.0 cycles
+  Time stats - min start: 142252564586, max start: 142277583204, global min: 142252564586
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_36_timeline.png
+Time range displayed: 0.00ms to 1022.64ms
+
+======= SCHEDULE 36 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 36 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 208662.53 cycles (8.490500 ms)
+  Total Duration: 20866253.00 cycles (849.050008 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 246787.47 cycles (10.041808 ms)
+  Total Duration: 24678747.00 cycles (1004.180786 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 115598.20 cycles (4.703703 ms)
+  Total Duration: 11559820.00 cycles (470.370280 ms)
+
+
+======= SCHEDULE 36 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 24678747.00 cycles (1004.180786 ms)
+Percentage of selected region execution time: 43.22%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 24678747.00 cycles (1004.180786 ms) | Avg task: 10.041808 ms, 43.22%
+  Chunk 0 (Vlk/V): Total: 20866253.00 cycles (849.050008 ms) | Avg task: 8.490500 ms, 36.54%
+  Chunk 2 (Big/V): Total: 11559820.00 cycles (470.370280 ms) | Avg task: 4.703703 ms, 20.24%
+
+=== Processing Schedule 37 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4, 5], 'B': [6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 37
+Total time span: 26414809 cycles
+Min time: 142326351263 cycles, Max time: 142352766072 cycles
+Filtering time range: 142326351263.0 to 142352766072.0 cycles
+  Time stats - min start: 142326351263, max start: 142352765298, global min: 142326351263
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_37_timeline.png
+Time range displayed: 0.00ms to 1074.82ms
+
+======= SCHEDULE 37 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 37 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 182234.92 cycles (7.415158 ms)
+  Total Duration: 18223492.00 cycles (741.515788 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 259694.87 cycles (10.567011 ms)
+  Total Duration: 25969487.00 cycles (1056.701131 ms)
+
+Chunk 2 (Big/V):
+  All Tasks Average: 116808.65 cycles (4.752956 ms)
+  Total Duration: 11680865.00 cycles (475.295614 ms)
+
+Chunk 3 (Lut/M):
+  All Tasks Average: 1862.70 cycles (0.075793 ms)
+  Total Duration: 186270.00 cycles (7.579346 ms)
+
+
+======= SCHEDULE 37 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 25969487.00 cycles (1056.701131 ms)
+Percentage of selected region execution time: 46.32%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 25969487.00 cycles (1056.701131 ms) | Avg task: 10.567011 ms, 46.32%
+  Chunk 0 (Vlk/V): Total: 18223492.00 cycles (741.515788 ms) | Avg task: 7.415158 ms, 32.51%
+  Chunk 2 (Big/V): Total: 11680865.00 cycles (475.295614 ms) | Avg task: 4.752956 ms, 20.84%
+  Chunk 3 (Lut/M): Total: 186270.00 cycles (7.579346 ms) | Avg task: 0.075793 ms, 0.33%
+
+=== Processing Schedule 38 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'M': [3, 4, 5], 'L': [6], 'B': [7, 8]}
+Detected 4 chunks in Schedule 38
+Total time span: 25853055 cycles
+Min time: 142400610424 cycles, Max time: 142426463479 cycles
+Filtering time range: 142400610424.0 to 142426463479.0 cycles
+  Time stats - min start: 142400610424, max start: 142426377660, global min: 142400610424
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_38_timeline.png
+Time range displayed: 0.00ms to 1051.96ms
+
+======= SCHEDULE 38 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 38 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 227100.56 cycles (9.240745 ms)
+  Total Duration: 22710056.00 cycles (924.074544 ms)
+
+Chunk 1 (Med/V):
+  All Tasks Average: 252733.06 cycles (10.283735 ms)
+  Total Duration: 25273306.00 cycles (1028.373454 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 143651.94 cycles (5.845212 ms)
+  Total Duration: 14365194.00 cycles (584.521240 ms)
+
+Chunk 3 (Big/M):
+  All Tasks Average: 80858.44 cycles (3.290138 ms)
+  Total Duration: 8085844.00 cycles (329.013835 ms)
+
+
+======= SCHEDULE 38 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 1 (Med/V)
+Total execution time: 25273306.00 cycles (1028.373454 ms)
+Percentage of selected region execution time: 35.88%
+
+Execution time breakdown for all chunks in region:
+  Chunk 1 (Med/V): Total: 25273306.00 cycles (1028.373454 ms) | Avg task: 10.283735 ms, 35.88%
+  Chunk 0 (Vlk/V): Total: 22710056.00 cycles (924.074544 ms) | Avg task: 9.240745 ms, 32.24%
+  Chunk 2 (Lut/V): Total: 14365194.00 cycles (584.521240 ms) | Avg task: 5.845212 ms, 20.40%
+  Chunk 3 (Big/M): Total: 8085844.00 cycles (329.013835 ms) | Avg task: 3.290138 ms, 11.48%
+
+=== Processing Schedule 39 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3, 4], 'L': [5], 'M': [6, 7, 8]}
+Detected 4 chunks in Schedule 39
+Total time span: 19452091 cycles
+Min time: 142474132479 cycles, Max time: 142493584570 cycles
+Filtering time range: 142474132479.0 to 142493584570.0 cycles
+  Time stats - min start: 142474132479, max start: 142493457948, global min: 142474132479
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_39_timeline.png
+Time range displayed: 0.00ms to 791.51ms
+
+======= SCHEDULE 39 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 39 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 188727.06 cycles (7.679324 ms)
+  Total Duration: 18872706.00 cycles (767.932373 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 183719.21 cycles (7.475554 ms)
+  Total Duration: 18371921.00 cycles (747.555379 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 148383.57 cycles (6.037743 ms)
+  Total Duration: 14838357.00 cycles (603.774292 ms)
+
+Chunk 3 (Med/B):
+  All Tasks Average: 130217.01 cycles (5.298544 ms)
+  Total Duration: 13021701.00 cycles (529.854370 ms)
+
+
+======= SCHEDULE 39 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 18872706.00 cycles (767.932373 ms)
+Percentage of selected region execution time: 28.99%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 18872706.00 cycles (767.932373 ms) | Avg task: 7.679324 ms, 28.99%
+  Chunk 1 (Big/V): Total: 18371921.00 cycles (747.555379 ms) | Avg task: 7.475554 ms, 28.22%
+  Chunk 2 (Lut/V): Total: 14838357.00 cycles (603.774292 ms) | Avg task: 6.037743 ms, 22.79%
+  Chunk 3 (Med/B): Total: 13021701.00 cycles (529.854370 ms) | Avg task: 5.298544 ms, 20.00%
+
+=== Processing Schedule 40 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3, 4], 'M': [5, 6, 7, 8]}
+Detected 3 chunks in Schedule 40
+Total time span: 24926031 cycles
+Min time: 142542474471 cycles, Max time: 142567400502 cycles
+Filtering time range: 142542474471.0 to 142567400502.0 cycles
+  Time stats - min start: 142542474471, max start: 142567225894, global min: 142542474471
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_40_timeline.png
+Time range displayed: 0.00ms to 1014.24ms
+
+======= SCHEDULE 40 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 40 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 245669.48 cycles (9.996317 ms)
+  Total Duration: 24566948.00 cycles (999.631673 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 183679.94 cycles (7.473956 ms)
+  Total Duration: 18367994.00 cycles (747.395589 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 181636.55 cycles (7.390810 ms)
+  Total Duration: 18163655.00 cycles (739.081014 ms)
+
+
+======= SCHEDULE 40 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 24566948.00 cycles (999.631673 ms)
+Percentage of selected region execution time: 40.21%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 24566948.00 cycles (999.631673 ms) | Avg task: 9.996317 ms, 40.21%
+  Chunk 1 (Big/V): Total: 18367994.00 cycles (747.395589 ms) | Avg task: 7.473956 ms, 30.06%
+  Chunk 2 (Med/V): Total: 18163655.00 cycles (739.081014 ms) | Avg task: 7.390810 ms, 29.73%
+
+=== Processing Schedule 41 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3, 4], 'M': [5, 6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 41
+Total time span: 20735469 cycles
+Min time: 142615187592 cycles, Max time: 142635923061 cycles
+Filtering time range: 142615187592.0 to 142635923061.0 cycles
+  Time stats - min start: 142615187592, max start: 142635922126, global min: 142615187592
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_41_timeline.png
+Time range displayed: 0.00ms to 843.73ms
+
+======= SCHEDULE 41 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 41 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 202952.48 cycles (8.258158 ms)
+  Total Duration: 20295248.00 cycles (825.815755 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 183673.01 cycles (7.473674 ms)
+  Total Duration: 18367301.00 cycles (747.367391 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 182074.40 cycles (7.408626 ms)
+  Total Duration: 18207440.00 cycles (740.862630 ms)
+
+Chunk 3 (Lut/B):
+  All Tasks Average: 1395.71 cycles (0.056792 ms)
+  Total Duration: 139571.00 cycles (5.679159 ms)
+
+
+======= SCHEDULE 41 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 20295248.00 cycles (825.815755 ms)
+Percentage of selected region execution time: 35.60%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 20295248.00 cycles (825.815755 ms) | Avg task: 8.258158 ms, 35.60%
+  Chunk 1 (Big/V): Total: 18367301.00 cycles (747.367391 ms) | Avg task: 7.473674 ms, 32.22%
+  Chunk 2 (Med/V): Total: 18207440.00 cycles (740.862630 ms) | Avg task: 7.408626 ms, 31.94%
+  Chunk 3 (Lut/B): Total: 139571.00 cycles (5.679159 ms) | Avg task: 0.056792 ms, 0.24%
+
+=== Processing Schedule 42 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2], 'B': [3, 4], 'M': [5, 6], 'L': [7, 8]}
+Detected 4 chunks in Schedule 42
+Total time span: 23293122 cycles
+Min time: 142682913850 cycles, Max time: 142706206972 cycles
+Filtering time range: 142682913850.0 to 142706206972.0 cycles
+  Time stats - min start: 142682913850, max start: 142706058199, global min: 142682913850
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_42_timeline.png
+Time range displayed: 0.00ms to 947.80ms
+
+======= SCHEDULE 42 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 42 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 228670.57 cycles (9.304629 ms)
+  Total Duration: 22867057.00 cycles (930.462931 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 185646.40 cycles (7.553971 ms)
+  Total Duration: 18564640.00 cycles (755.397135 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 94695.06 cycles (3.853152 ms)
+  Total Duration: 9469506.00 cycles (385.315186 ms)
+
+Chunk 3 (Lut/B):
+  All Tasks Average: 159147.35 cycles (6.475722 ms)
+  Total Duration: 15914735.00 cycles (647.572225 ms)
+
+
+======= SCHEDULE 42 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 22867057.00 cycles (930.462931 ms)
+Percentage of selected region execution time: 34.22%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 22867057.00 cycles (930.462931 ms) | Avg task: 9.304629 ms, 34.22%
+  Chunk 1 (Big/V): Total: 18564640.00 cycles (755.397135 ms) | Avg task: 7.553971 ms, 27.78%
+  Chunk 3 (Lut/B): Total: 15914735.00 cycles (647.572225 ms) | Avg task: 6.475722 ms, 23.82%
+  Chunk 2 (Med/V): Total: 9469506.00 cycles (385.315186 ms) | Avg task: 3.853152 ms, 14.17%
+
+=== Processing Schedule 43 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2, 3], 'B': [4, 5, 6], 'M': [7, 8]}
+Detected 3 chunks in Schedule 43
+Total time span: 27916392 cycles
+Min time: 142756432860 cycles, Max time: 142784349252 cycles
+Filtering time range: 142756432860.0 to 142784349252.0 cycles
+  Time stats - min start: 142756432860, max start: 142784264959, global min: 142756432860
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_43_timeline.png
+Time range displayed: 0.00ms to 1135.92ms
+
+======= SCHEDULE 43 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 43 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 277157.97 cycles (11.277587 ms)
+  Total Duration: 27715797.00 cycles (1127.758667 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 113704.19 cycles (4.626635 ms)
+  Total Duration: 11370419.00 cycles (462.663534 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 89414.38 cycles (3.638280 ms)
+  Total Duration: 8941438.00 cycles (363.828044 ms)
+
+
+======= SCHEDULE 43 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 27715797.00 cycles (1127.758667 ms)
+Percentage of selected region execution time: 57.71%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 27715797.00 cycles (1127.758667 ms) | Avg task: 11.277587 ms, 57.71%
+  Chunk 1 (Big/V): Total: 11370419.00 cycles (462.663534 ms) | Avg task: 4.626635 ms, 23.67%
+  Chunk 2 (Med/V): Total: 8941438.00 cycles (363.828044 ms) | Avg task: 3.638280 ms, 18.62%
+
+=== Processing Schedule 44 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2, 3], 'B': [4, 5, 6], 'M': [7], 'L': [8]}
+Detected 4 chunks in Schedule 44
+Total time span: 22319715 cycles
+Min time: 142832325057 cycles, Max time: 142854644772 cycles
+Filtering time range: 142832325057.0 to 142854644772.0 cycles
+  Time stats - min start: 142832325057, max start: 142854644081, global min: 142832325057
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_44_timeline.png
+Time range displayed: 0.00ms to 908.19ms
+
+======= SCHEDULE 44 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 44 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 221070.14 cycles (8.995367 ms)
+  Total Duration: 22107014.00 cycles (899.536702 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 128323.94 cycles (5.221514 ms)
+  Total Duration: 12832394.00 cycles (522.151449 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 99625.18 cycles (4.053759 ms)
+  Total Duration: 9962518.00 cycles (405.375895 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 84165.63 cycles (3.424708 ms)
+  Total Duration: 8416563.00 cycles (342.470825 ms)
+
+
+======= SCHEDULE 44 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 22107014.00 cycles (899.536702 ms)
+Percentage of selected region execution time: 41.46%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 22107014.00 cycles (899.536702 ms) | Avg task: 8.995367 ms, 41.46%
+  Chunk 1 (Big/V): Total: 12832394.00 cycles (522.151449 ms) | Avg task: 5.221514 ms, 24.07%
+  Chunk 2 (Med/V): Total: 9962518.00 cycles (405.375895 ms) | Avg task: 4.053759 ms, 18.68%
+  Chunk 3 (Lut/V): Total: 8416563.00 cycles (342.470825 ms) | Avg task: 3.424708 ms, 15.79%
+
+=== Processing Schedule 45 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2, 3], 'B': [4, 5], 'L': [6], 'M': [7, 8]}
+Detected 4 chunks in Schedule 45
+Total time span: 17295491 cycles
+Min time: 142901971258 cycles, Max time: 142919266749 cycles
+Filtering time range: 142901971258.0 to 142919266749.0 cycles
+  Time stats - min start: 142901971258, max start: 142919183386, global min: 142901971258
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_45_timeline.png
+Time range displayed: 0.00ms to 703.76ms
+
+======= SCHEDULE 45 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 45 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 169382.49 cycles (6.892191 ms)
+  Total Duration: 16938249.00 cycles (689.219116 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 76491.29 cycles (3.112439 ms)
+  Total Duration: 7649129.00 cycles (311.243856 ms)
+
+Chunk 2 (Lut/V):
+  All Tasks Average: 149579.77 cycles (6.086416 ms)
+  Total Duration: 14957977.00 cycles (608.641642 ms)
+
+Chunk 3 (Med/V):
+  All Tasks Average: 89563.74 cycles (3.644358 ms)
+  Total Duration: 8956374.00 cycles (364.435791 ms)
+
+
+======= SCHEDULE 45 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 16938249.00 cycles (689.219116 ms)
+Percentage of selected region execution time: 34.92%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 16938249.00 cycles (689.219116 ms) | Avg task: 6.892191 ms, 34.92%
+  Chunk 2 (Lut/V): Total: 14957977.00 cycles (608.641642 ms) | Avg task: 6.086416 ms, 30.84%
+  Chunk 3 (Med/V): Total: 8956374.00 cycles (364.435791 ms) | Avg task: 3.644358 ms, 18.47%
+  Chunk 1 (Big/V): Total: 7649129.00 cycles (311.243856 ms) | Avg task: 3.112439 ms, 15.77%
+
+=== Processing Schedule 46 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2, 3], 'B': [4, 5], 'M': [6, 7, 8]}
+Detected 3 chunks in Schedule 46
+Total time span: 19137096 cycles
+Min time: 142968123446 cycles, Max time: 142987260542 cycles
+Filtering time range: 142968123446.0 to 142987260542.0 cycles
+  Time stats - min start: 142968123446, max start: 142987131728, global min: 142968123446
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_46_timeline.png
+Time range displayed: 0.00ms to 778.69ms
+
+======= SCHEDULE 46 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 46 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 189346.82 cycles (7.704542 ms)
+  Total Duration: 18934682.00 cycles (770.454183 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 76589.71 cycles (3.116443 ms)
+  Total Duration: 7658971.00 cycles (311.644328 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 141097.08 cycles (5.741255 ms)
+  Total Duration: 14109708.00 cycles (574.125488 ms)
+
+
+======= SCHEDULE 46 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 18934682.00 cycles (770.454183 ms)
+Percentage of selected region execution time: 46.52%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 18934682.00 cycles (770.454183 ms) | Avg task: 7.704542 ms, 46.52%
+  Chunk 2 (Med/V): Total: 14109708.00 cycles (574.125488 ms) | Avg task: 5.741255 ms, 34.66%
+  Chunk 1 (Big/V): Total: 7658971.00 cycles (311.644328 ms) | Avg task: 3.116443 ms, 18.82%
+
+=== Processing Schedule 47 ===
+Detected frequency: 24576000 Hz
+Detected schedule annotations: {'V': [0, 1, 2, 3], 'B': [4, 5], 'M': [6, 7], 'L': [8]}
+Detected 4 chunks in Schedule 47
+Total time span: 21070570 cycles
+Min time: 143034509583 cycles, Max time: 143055580153 cycles
+Filtering time range: 143034509583.0 to 143055580153.0 cycles
+  Time stats - min start: 143034509583, max start: 143055578842, global min: 143034509583
+Chunk execution timeline saved to /home/doremy/Desktop/better-together/tmp_folder/schedule_47_timeline.png
+Time range displayed: 0.00ms to 857.36ms
+
+======= SCHEDULE 47 - TASKS IN SELECTED REGION =======
+Found 100 tasks in the region 0.00-1.00
+Tasks: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+
+======= SCHEDULE 47 - AVERAGE TASK DURATIONS BY CHUNK =======
+Chunk 0 (Vlk/V):
+  All Tasks Average: 208606.31 cycles (8.488212 ms)
+  Total Duration: 20860631.00 cycles (848.821248 ms)
+
+Chunk 1 (Big/V):
+  All Tasks Average: 74733.74 cycles (3.040924 ms)
+  Total Duration: 7473374.00 cycles (304.092367 ms)
+
+Chunk 2 (Med/V):
+  All Tasks Average: 131657.82 cycles (5.357170 ms)
+  Total Duration: 13165782.00 cycles (535.717041 ms)
+
+Chunk 3 (Lut/V):
+  All Tasks Average: 1675.68 cycles (0.068184 ms)
+  Total Duration: 167568.00 cycles (6.818359 ms)
+
+
+======= SCHEDULE 47 - WIDEST CHUNK IN REGION =======
+Widest chunk: Chunk 0 (Vlk/V)
+Total execution time: 20860631.00 cycles (848.821248 ms)
+Percentage of selected region execution time: 50.06%
+
+Execution time breakdown for all chunks in region:
+  Chunk 0 (Vlk/V): Total: 20860631.00 cycles (848.821248 ms) | Avg task: 8.488212 ms, 50.06%
+  Chunk 2 (Med/V): Total: 13165782.00 cycles (535.717041 ms) | Avg task: 5.357170 ms, 31.60%
+  Chunk 1 (Big/V): Total: 7473374.00 cycles (304.092367 ms) | Avg task: 3.040924 ms, 17.94%
+  Chunk 3 (Lut/V): Total: 167568.00 cycles (6.818359 ms) | Avg task: 0.068184 ms, 0.40%
+
+All 47 schedules have been processed.
