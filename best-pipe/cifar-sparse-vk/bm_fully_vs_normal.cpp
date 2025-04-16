@@ -282,51 +282,53 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 // e.g.,
 // xmake r bm-table-cifar-sparse-vk --stage 1 --device-to-measure 3A021JEHN02756
 // xmake r bm-table-cifar-sparse-vk --stage 1 --device jetson --device-to-measure jetson --full
-
 void dump_tables_for_python(int start_stage, int end_stage) {
-  // Correct enum values based on debug output
-
   // First dump a marker that can be easily grep'ed
-  std::cout << "\n### PYTHON_DATA_START ###" << std::endl;
+  fmt::print("\n### PYTHON_DATA_START ###\n");
 
   // Dump normal benchmark data in CSV format
-  std::cout << "# NORMAL_BENCHMARK_DATA" << std::endl;
-  std::cout << "stage,little,medium,big,vulkan" << std::endl;
+  fmt::print("# NORMAL_BENCHMARK_DATA\n");
+  fmt::print("stage,little,medium,big,vulkan\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << stage << "," << bm_norm_table[stage - 1][kLittleIdx] << ","
-              << bm_norm_table[stage - 1][kMediumIdx] << "," << bm_norm_table[stage - 1][kBigIdx]
-              << "," << bm_norm_table[stage - 1][kVulkanIdx] << std::endl;
+    fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n", stage, 
+              bm_norm_table[stage - 1][kLitIdx],
+              bm_norm_table[stage - 1][kMedIdx],
+              bm_norm_table[stage - 1][kBigIdx],
+              bm_norm_table[stage - 1][kVukIdx]);
   }
 
   // Dump fully benchmark data in CSV format
-  std::cout << "# FULLY_BENCHMARK_DATA" << std::endl;
-  std::cout << "stage,little,medium,big,vulkan" << std::endl;
+  fmt::print("# FULLY_BENCHMARK_DATA\n");
+  fmt::print("stage,little,medium,big,vulkan\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << stage << "," << bm_full_table[stage - 1][kLittleIdx] << ","
-              << bm_full_table[stage - 1][kMediumIdx] << "," << bm_full_table[stage - 1][kBigIdx]
-              << "," << bm_full_table[stage - 1][kVulkanIdx] << std::endl;
+    fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n", stage,
+              bm_full_table[stage - 1][kLitIdx],
+              bm_full_table[stage - 1][kMedIdx],
+              bm_full_table[stage - 1][kBigIdx],
+              bm_full_table[stage - 1][kVukIdx]);
   }
 
   // Add raw data dump that includes all values directly for debugging
-  std::cout << "# RAW_NORMAL_TABLE_DATA" << std::endl;
+  fmt::print("# RAW_NORMAL_TABLE_DATA\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << "Stage " << stage << ": ";
-    for (int i = 0; i < 4; i++) {
-      std::cout << bm_norm_table[stage - 1][i] << " ";
-    }
-    std::cout << std::endl;
+    fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n", stage,
+              bm_norm_table[stage - 1][0],
+              bm_norm_table[stage - 1][1],
+              bm_norm_table[stage - 1][2],
+              bm_norm_table[stage - 1][3]);
   }
 
-  std::cout << "# RAW_FULLY_TABLE_DATA" << std::endl;
+  fmt::print("# RAW_FULLY_TABLE_DATA\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << "Stage " << stage << ": ";
-    for (int i = 0; i < 4; i++) {
-      std::cout << bm_full_table[stage - 1][i] << " ";
-    }
-    std::cout << std::endl;
+    fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n", stage,
+              bm_full_table[stage - 1][0],
+              bm_full_table[stage - 1][1],
+              bm_full_table[stage - 1][2],
+              bm_full_table[stage - 1][3]);
   }
 
-  std::cout << "### PYTHON_DATA_END ###" << std::endl;
+  fmt::print("### PYTHON_DATA_END ###\n");
+  std::fflush(stdout);
 }
 
 int main(int argc, char** argv) {
