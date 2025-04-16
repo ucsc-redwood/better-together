@@ -45,18 +45,38 @@ print("--------------------------------")
 penalty_table_multiplier = avg_table_fully / avg_table_normal
 print(penalty_table_multiplier)
 
-# Define 10 different schedules
+# Define 30 different schedules
 schedules = [
-    {"medium": [0], "vulkan": [1, 2], "big": [3, 4, 5, 6], "little": [7, 8]},
-    {"big": [0], "vulkan": [1, 2], "medium": [3, 4, 5, 6], "little": [7, 8]},
-    {"medium": [0], "vulkan": [1], "big": [2, 3, 4, 5, 6], "little": [7, 8]},
-    {"vulkan": [0], "medium": [1], "big": [2, 3, 4, 5, 6], "little": [7, 8]},
-    {"medium": [0], "vulkan": [1, 2], "little": [3], "big": [4, 5, 6, 7, 8]},
-    {"big": [0], "vulkan": [1, 2], "little": [3], "medium": [4, 5, 6, 7, 8]},
-    {"big": [0], "medium": [1], "vulkan": [2, 3, 4, 5], "little": [6, 7, 8]},
-    {"big": [0], "vulkan": [1, 2], "medium": [3, 4, 5], "little": [6, 7, 8]},
-    {"medium": [0], "vulkan": [1, 2], "big": [3, 4, 5], "little": [6, 7, 8]},
-    {"medium": [0], "vulkan": [1], "big": [2, 3, 4, 5], "little": [6, 7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4], "medium": [5, 6, 7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4], "medium": [5, 6, 7], "little": [8]},
+    {"big": [0], "vulkan": [1, 2, 3], "little": [4], "medium": [5, 6, 7, 8]},
+    {"medium": [0], "vulkan": [1, 2, 3], "big": [4, 5, 6], "little": [7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4], "medium": [5, 6], "little": [7, 8]},
+    {"medium": [0], "vulkan": [1, 2, 3, 4], "big": [5, 6], "little": [7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3], "medium": [4, 5, 6], "little": [7, 8]},
+    {"medium": [0], "vulkan": [1, 2, 3, 4], "little": [5], "big": [6, 7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4], "little": [5], "medium": [6, 7, 8]},
+    {"medium": [0], "vulkan": [1, 2, 3, 4], "big": [5, 6, 7], "little": [8]},
+    {"medium": [0], "vulkan": [1, 2, 3], "little": [4], "big": [5, 6, 7, 8]},
+    {"medium": [0], "vulkan": [1, 2, 3, 4], "big": [5, 6, 7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3], "medium": [4, 5, 6, 7], "little": [8]},
+    {"big": [0], "vulkan": [1, 2, 3], "medium": [4, 5, 6, 7, 8]},
+    {"vulkan": [0, 1, 2], "big": [3], "little": [4], "medium": [5, 6, 7, 8]},
+    {"vulkan": [0, 1, 2], "medium": [3], "little": [4], "big": [5, 6, 7, 8]},
+    {"vulkan": [0, 1, 2], "medium": [3, 4], "big": [5, 6, 7, 8]},
+    {"vulkan": [0, 1, 2], "medium": [3, 4], "big": [5, 6, 7], "little": [8]},
+    {"vulkan": [0, 1, 2], "medium": [3, 4], "big": [5, 6], "little": [7, 8]},
+    {"vulkan": [0, 1, 2], "medium": [3, 4], "little": [5], "big": [6, 7, 8]},
+    {"vulkan": [0, 1, 2], "medium": [3], "big": [4, 5, 6], "little": [7, 8]},
+    {"vulkan": [0, 1, 2], "big": [3], "medium": [4, 5, 6], "little": [7, 8]},
+    {"vulkan": [0, 1, 2], "big": [3], "medium": [4, 5, 6, 7], "little": [8]},
+    {"vulkan": [0, 1, 2], "big": [3], "medium": [4, 5, 6, 7, 8]},
+    {"vulkan": [0, 1], "medium": [2, 3], "little": [4], "big": [5, 6, 7, 8]},
+    {"vulkan": [0, 1], "medium": [2, 3], "big": [4, 5, 6], "little": [7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4, 5], "little": [6], "medium": [7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4, 5], "medium": [6, 7, 8]},
+    {"big": [0], "vulkan": [1, 2, 3, 4, 5], "medium": [6, 7], "little": [8]},
+    {"medium": [0], "vulkan": [1, 2, 3, 4, 5], "little": [6], "big": [7, 8]},
 ]
 
 # add 1 to stages
@@ -78,11 +98,28 @@ def print_schedule_time(schedule):
     for pu, time in chunk_times.items():
         print(f"\t{pu}: {time:.4f} seconds")
 
+    # find the min chunk time and max chunk time per chunk
+    min_chunk_time = min(chunk_times.values())
+    max_chunk_time = max(chunk_times.values())
+    print(f"\tMin chunk time: {min_chunk_time:.4f} seconds")
+    print(f"\tMax chunk time: {max_chunk_time:.4f} seconds")
+    print(f"\tDifference: {max_chunk_time - min_chunk_time:.4f} seconds")
+    print(f"\tDifference percentage: {(max_chunk_time - min_chunk_time) / min_chunk_time * 100:.4f}%")
+    
+    
     print()
     print("Total time per chunk (using normal table):")
     for pu, time in chunk_times.items():
         total_time = avg_table_normal.loc[schedule[pu], pu].sum()
         print(f"\t{pu}: {total_time:.4f} seconds")
+
+    # find the min chunk time and max chunk time per chunk
+    min_chunk_time = min(chunk_times.values())
+    max_chunk_time = max(chunk_times.values())
+    print(f"\tMin chunk time: {min_chunk_time:.4f} seconds")
+    print(f"\tMax chunk time: {max_chunk_time:.4f} seconds")
+    print(f"\tDifference: {max_chunk_time - min_chunk_time:.4f} seconds")
+    print(f"\tDifference percentage: {(max_chunk_time - min_chunk_time) / min_chunk_time * 100:.4f}%")
 
 
 for schedule in schedules:
