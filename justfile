@@ -396,3 +396,10 @@ gen-log-make-fig:
     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_8.txt --output BM_pipe_cifar_sparse_vk_schedule_8.png --start-time 0 --end-time 1
     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_9.txt --output BM_pipe_cifar_sparse_vk_schedule_9.png --start-time 0 --end-time 1
     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_10.txt --output BM_pipe_cifar_sparse_vk_schedule_10.png --start-time 0 --end-time 1
+
+
+
+
+make-table:
+    python3 scripts-v2/collect/bm.py --log_folder data/2025-4-15/cifar-sparse/ --repeat 3 --target bm-fully-cifar-sparse-vk
+    python3 scripts-v2/plot/heat.py --folder data/2025-4-15/cifar-sparse/ --exclude_stages 2,4,8,9
