@@ -25,15 +25,14 @@ constexpr int kNumStages = 9;
 
 namespace android {
 
+std::atomic<bool> done = false;
+
 // create a 2D table, kNumStages stage times 4 type of cores, initialize it with 0
 // access by bm_table[stage][core_type] = value
 std::array<std::array<double, 4>, kNumStages> bm_norm_table;
 std::array<std::array<double, 4>, kNumStages> bm_full_table;
 
 // Reset the done flag
-
-std::atomic<bool> done = false;
-
 void reset_done_flag() { done.store(false); }
 
 void init_q(std::queue<MyTask*>& q, cifar_sparse::vulkan::v2::VulkanDispatcher& disp) {
@@ -65,11 +64,52 @@ void similuation_thread(std::queue<MyTask*> q, std::function<void(MyTask*)> func
   }
 }
 
-static void BM_run_normal(const ProcessorType pt, const int stage, const int seconds_to_run) {
+// Add a warmup function to run before benchmarks
+static void warmup_processors(int seconds_to_run) {
+  std::cout << "Warming up processors for " << seconds_to_run << " seconds..." << std::endl;
+
+  // Create dispatcher
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
-  // Reset the done flag before starting a new benchmark
+  // Reset done flag
   reset_done_flag();
+
+  // Create counters for each processor type
+  std::atomic<int> little_count(0);
+  std::atomic<int> medium_count(0);
+  std::atomic<int> big_count(0);
+  std::atomic<int> vulkan_count(0);
+
+  // Create task functions
+  auto little_func = [&little_count](MyTask* task) {
+    if (g_little_cores.empty()) return;
+    // Use a simple workload for warmup
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        g_little_cores, g_little_cores.size(), task->appdata, 1, 1);
+    little_count++;
+  };
+
+  auto medium_func = [&medium_count](MyTask* task) {
+    if (g_medium_cores.empty()) return;
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        g_medium_cores, g_medium_cores.size(), task->appdata, 1, 1);
+    medium_count++;
+  };
+
+  auto big_func = [&big_count](MyTask* task) {
+    if (g_big_cores.empty()) return;
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        g_big_cores, g_big_cores.size(), task->appdata, 1, 1);
+    big_count++;
+  };
+
+  auto vulkan_func = [&disp, &vulkan_count](MyTask* task) {
+    disp.dispatch_multi_stage(task->appdata, 1, 1);
+    vulkan_count++;
+  };
+
+  // Create threads for all processor types
+  std::vector<std::thread> threads;
 
   std::queue<MyTask*> q_little;
   init_q(q_little, disp);
@@ -82,6 +122,101 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
 
   std::queue<MyTask*> q_vulkan;
   init_q(q_vulkan, disp);
+
+  if (!g_little_cores.empty()) {
+    threads.emplace_back(similuation_thread, std::ref(q_little), little_func);
+  }
+
+  if (!g_medium_cores.empty()) {
+    threads.emplace_back(similuation_thread, std::ref(q_medium), medium_func);
+  }
+
+  if (!g_big_cores.empty()) {
+    threads.emplace_back(similuation_thread, std::ref(q_big), big_func);
+  }
+
+  threads.emplace_back(similuation_thread, std::ref(q_vulkan), vulkan_func);
+
+  // Run warmup for specified time
+  std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
+
+  // Signal threads to stop
+  done.store(true);
+
+  // Join all threads
+  for (auto& t : threads) {
+    t.join();
+  }
+
+  clean_up_q(q_little);
+  clean_up_q(q_medium);
+  clean_up_q(q_big);
+  clean_up_q(q_vulkan);
+
+  // Output warmup statistics
+  std::cout << "Warmup completed: " << "Little=" << little_count.load() << ", "
+            << "Medium=" << medium_count.load() << ", " << "Big=" << big_count.load() << ", "
+            << "Vulkan=" << vulkan_count.load() << std::endl;
+}
+
+static void BM_run_normal(const ProcessorType pt, const int stage, const int seconds_to_run) {
+  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+
+  // Reset the done flag before starting a new benchmark
+  reset_done_flag();
+
+  // Short warmup before starting the actual benchmark
+  std::atomic<int> warmup_count(0);
+  std::function<void(MyTask*)> warmup_func;
+
+  std::queue<MyTask*> q_little;
+  init_q(q_little, disp);
+
+  std::queue<MyTask*> q_medium;
+  init_q(q_medium, disp);
+
+  std::queue<MyTask*> q_big;
+  init_q(q_big, disp);
+
+  std::queue<MyTask*> q_vulkan;
+  init_q(q_vulkan, disp);
+
+  // Create appropriate function for the processor type
+  if (pt == ProcessorType::kVulkan) {
+    warmup_func = [&disp, &warmup_count, stage](MyTask* task) {
+      disp.dispatch_multi_stage(task->appdata, stage, stage);
+      warmup_count++;
+    };
+  } else {
+    std::vector<int> cores_to_use;
+    if (pt == ProcessorType::kLittleCore) {
+      cores_to_use = g_little_cores;
+    } else if (pt == ProcessorType::kBigCore) {
+      cores_to_use = g_big_cores;
+    } else if (pt == ProcessorType::kMediumCore) {
+      cores_to_use = g_medium_cores;
+    }
+
+    if (cores_to_use.empty()) {
+      return;
+    }
+
+    warmup_func = [&warmup_count, stage, cores_to_use](MyTask* task) {
+      cifar_sparse::omp::v2::dispatch_multi_stage(
+          cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
+      warmup_count++;
+    };
+  }
+
+  // Run a short warmup
+  const int warmup_seconds = 2;
+  std::thread warmup_thread(similuation_thread, std::ref(q_little), warmup_func);
+  std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
+  done.store(true);
+  warmup_thread.join();
+
+  // Reset done flag for the actual benchmark
+  reset_done_flag();
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -159,6 +294,12 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   // Reset the done flag before starting a new benchmark
   reset_done_flag();
 
+  // Short warmup before starting the actual benchmark
+  std::atomic<int> little_warmup(0);
+  std::atomic<int> medium_warmup(0);
+  std::atomic<int> big_warmup(0);
+  std::atomic<int> vulkan_warmup(0);
+
   std::queue<MyTask*> q_little;
   init_q(q_little, disp);
 
@@ -170,6 +311,61 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
 
   std::queue<MyTask*> q_vulkan;
   init_q(q_vulkan, disp);
+
+  // Create warmup functions
+  auto little_warmup_func = [&little_warmup, stage](MyTask* task) {
+    if (g_little_cores.empty()) return;
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
+    little_warmup++;
+  };
+
+  auto medium_warmup_func = [&medium_warmup, stage](MyTask* task) {
+    if (g_medium_cores.empty()) return;
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
+    medium_warmup++;
+  };
+
+  auto big_warmup_func = [&big_warmup, stage](MyTask* task) {
+    if (g_big_cores.empty()) return;
+    cifar_sparse::omp::v2::dispatch_multi_stage(
+        g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
+    big_warmup++;
+  };
+
+  auto vulkan_warmup_func = [&disp, &vulkan_warmup, stage](MyTask* task) {
+    disp.dispatch_multi_stage(task->appdata, stage, stage);
+    vulkan_warmup++;
+  };
+
+  // Run warmup with all processors
+  std::vector<std::thread> warmup_threads;
+  const int warmup_seconds = 2;
+
+  if (!g_little_cores.empty()) {
+    warmup_threads.emplace_back(similuation_thread, std::ref(q_little), little_warmup_func);
+  }
+
+  if (!g_medium_cores.empty()) {
+    warmup_threads.emplace_back(similuation_thread, std::ref(q_medium), medium_warmup_func);
+  }
+
+  if (!g_big_cores.empty()) {
+    warmup_threads.emplace_back(similuation_thread, std::ref(q_big), big_warmup_func);
+  }
+
+  warmup_threads.emplace_back(similuation_thread, std::ref(q_vulkan), vulkan_warmup_func);
+
+  std::this_thread::sleep_for(std::chrono::seconds(warmup_seconds));
+  done.store(true);
+
+  for (auto& t : warmup_threads) {
+    t.join();
+  }
+
+  // Reset done flag for the actual benchmark
+  reset_done_flag();
 
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -188,28 +384,22 @@ static void BM_run_fully(const ProcessorType pt_to_measure,
   // Create CPU task functions for each core type
   auto little_func = [&little_processed, stage](MyTask* task) {
     if (g_little_cores.empty()) return;
-
     cifar_sparse::omp::v2::dispatch_multi_stage(
         g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
-
     little_processed++;
   };
 
   auto medium_func = [&medium_processed, stage](MyTask* task) {
     if (g_medium_cores.empty()) return;
-
     cifar_sparse::omp::v2::dispatch_multi_stage(
         g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
-
     medium_processed++;
   };
 
   auto big_func = [&big_processed, stage](MyTask* task) {
     if (g_big_cores.empty()) return;
-
     cifar_sparse::omp::v2::dispatch_multi_stage(
         g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
-
     big_processed++;
   };
 
@@ -357,10 +547,12 @@ int main(int argc, char** argv) {
   int start_stage = 1;
   int end_stage = kNumStages;
   int seconds_to_run = 10;
+  int warmup_seconds = 1;
 
   app.add_option("-s, --start-stage", start_stage, "Start stage");
   app.add_option("-e, --end-stage", end_stage, "End stage");
   app.add_option("-t, --seconds-to-run", seconds_to_run, "Seconds to run for normal benchmark");
+  app.add_option("-w, --warmup", warmup_seconds, "Seconds to warmup before benchmarks");
 
   PARSE_ARGS_END
 
@@ -372,6 +564,11 @@ int main(int argc, char** argv) {
       android::bm_norm_table[stage][processor] = 0.0;
       android::bm_full_table[stage][processor] = 0.0;
     }
+  }
+
+  // Global warmup to stabilize system state
+  if (warmup_seconds > 0) {
+    android::warmup_processors(warmup_seconds);
   }
 
   // Run normal benchmark (one processor type at a time)
