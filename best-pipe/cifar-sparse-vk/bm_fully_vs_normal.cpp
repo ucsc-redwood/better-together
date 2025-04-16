@@ -226,6 +226,8 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 
   auto start = std::chrono::high_resolution_clock::now();
 
+  // ----------------------------------------------------------------------------
+
   if (!g_little_cores.empty()) threads.emplace_back(similuation_thread, &q_0, lit_func);
   if (!g_medium_cores.empty()) threads.emplace_back(similuation_thread, &q_1, med_func);
   if (!g_big_cores.empty()) threads.emplace_back(similuation_thread, &q_2, big_func);
@@ -238,6 +240,8 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 
   for (auto& t : threads) t.join();
 
+  // ----------------------------------------------------------------------------
+
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
@@ -246,6 +250,7 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   clean_up_q(&q_2);
   clean_up_q(&q_3);
 
+  // Print human readable time to console
   const auto lit_count = lit_processed.load();
   const auto med_count = med_processed.load();
   const auto big_count = big_processed.load();
@@ -263,6 +268,7 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
   fmt::print("\tVulkan \t{:.4f} ms \t({})\n", vuk_time, vuk_count);
   std::fflush(stdout);
 
+  // update the table
   if (lit_count > 0) bm_full_table[stage - 1][kLitIdx] = lit_time;
   if (med_count > 0) bm_full_table[stage - 1][kMedIdx] = med_time;
   if (big_count > 0) bm_full_table[stage - 1][kBigIdx] = big_time;
