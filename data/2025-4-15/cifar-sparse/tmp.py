@@ -104,9 +104,10 @@ def print_schedule_time(schedule):
     print(f"\tMin chunk time: {min_chunk_time:.4f} seconds")
     print(f"\tMax chunk time: {max_chunk_time:.4f} seconds")
     print(f"\tDifference: {max_chunk_time - min_chunk_time:.4f} seconds")
-    print(f"\tDifference percentage: {(max_chunk_time - min_chunk_time) / min_chunk_time * 100:.4f}%")
-    
-    
+    print(
+        f"\tDifference percentage: {(max_chunk_time - min_chunk_time) / min_chunk_time * 100:.4f}%"
+    )
+
     print()
     print("Total time per chunk (using normal table):")
     for pu, time in chunk_times.items():
@@ -119,7 +120,9 @@ def print_schedule_time(schedule):
     print(f"\tMin chunk time: {min_chunk_time:.4f} seconds")
     print(f"\tMax chunk time: {max_chunk_time:.4f} seconds")
     print(f"\tDifference: {max_chunk_time - min_chunk_time:.4f} seconds")
-    print(f"\tDifference percentage: {(max_chunk_time - min_chunk_time) / min_chunk_time * 100:.4f}%")
+    print(
+        f"\tDifference percentage: {(max_chunk_time - min_chunk_time) / min_chunk_time * 100:.4f}%"
+    )
 
 
 for schedule in schedules:

@@ -24,6 +24,12 @@ def parse_arguments():
         help="End time as percentage (0.0-1.0) of overall execution",
         default=1.0,
     )
+    parser.add_argument(
+        "--schedules",
+        type=str,
+        help="Specify which schedules to show (e.g., '1', '1-5', '1,3,5'). Use -1 for all schedules.",
+        default="-1",
+    )
     args = parser.parse_args()
 
     # Validate percentage inputs
@@ -35,6 +41,48 @@ def parse_arguments():
         raise ValueError("end-time must be greater than start-time")
 
     return args
+
+
+def parse_schedule_selection(selection_str, total_schedules):
+    """Parse the schedule selection string."""
+    if selection_str == "-1":
+        # Return all schedules
+        return list(range(total_schedules))
+
+    selected_schedules = set()
+
+    # Split by comma
+    parts = selection_str.split(",")
+    for part in parts:
+        part = part.strip()
+        if "-" in part:
+            # Range of schedules
+            try:
+                start, end = map(int, part.split("-"))
+                # Convert to 0-based indexing
+                start_idx = start - 1
+                end_idx = end - 1
+
+                if start_idx < 0 or end_idx >= total_schedules or start_idx > end_idx:
+                    print(f"Warning: Invalid range '{part}'. Using valid portion.")
+                    start_idx = max(0, start_idx)
+                    end_idx = min(total_schedules - 1, end_idx)
+
+                selected_schedules.update(range(start_idx, end_idx + 1))
+            except ValueError:
+                print(f"Warning: Could not parse range '{part}'. Skipping.")
+        else:
+            # Single schedule
+            try:
+                idx = int(part) - 1  # Convert to 0-based indexing
+                if 0 <= idx < total_schedules:
+                    selected_schedules.add(idx)
+                else:
+                    print(f"Warning: Schedule {part} is out of range. Skipping.")
+            except ValueError:
+                print(f"Warning: Could not parse schedule number '{part}'. Skipping.")
+
+    return sorted(list(selected_schedules))
 
 
 def extract_python_sections(content):
@@ -180,10 +228,6 @@ def calculate_time_range(tasks, args, schedule_index):
         filter_start_time = min_time + (args.start_time * time_span)
         filter_end_time = min_time + (args.end_time * time_span)
 
-        print(f"Total time span: {time_span} cycles")
-        print(f"Min time: {min_time} cycles, Max time: {max_time} cycles")
-        print(f"Filtering time range: {filter_start_time} to {filter_end_time} cycles")
-
         return {
             "min_time": min_time,
             "max_time": max_time,
@@ -210,21 +254,6 @@ def normalize_task_times(tasks, min_time):
                 and tasks[task_id][chunk_id]["start"] > 0
             ):
                 all_start_times.append(tasks[task_id][chunk_id]["start"])
-
-    # For debugging purposes, print out some stats
-    if all_start_times:
-        min_start = min(all_start_times)
-        max_start = max(all_start_times)
-        print(
-            f"  Time stats - min start: {min_start}, max start: {max_start}, global min: {min_time}"
-        )
-
-        # If there's a large gap between min_time and min_start, warn about potential issue
-        if min_start - min_time > 100000:  # arbitrary threshold to detect outliers
-            print(
-                f"  WARNING: Large gap detected between global min time ({min_time}) and minimum start time ({min_start})"
-            )
-            print(f"  This might cause some chunks to appear at incorrect positions.")
 
     # Now normalize all task times
     for task_id in tasks:
@@ -340,186 +369,340 @@ def create_chunk_labels(max_chunk_id, chunk_types, schedule_annotations):
     return chunk_names
 
 
-def print_analysis(
-    schedule_index,
-    tasks_in_region,
-    task_durations_by_chunk,
+def print_schedule_header(
+    schedule_index, frequency, schedule_annotations, max_chunk_id
+):
+    """Print a clean header for the schedule."""
+    schedule_number = schedule_index + 1
+
+    # Create a box around the schedule number
+    header_width = 70
+    box_line = "+" + "-" * (header_width - 2) + "+"
+
+    print(box_line)
+    print(f"| SCHEDULE {schedule_number:<61} |")
+    print(box_line)
+
+    # Print frequency
+    print(f"| Frequency: {frequency/1e6:.2f} MHz{' ' * (header_width - 24)} |")
+
+    # Print cores and their chunks
+    print(f"| Core Assignments:{' ' * (header_width - 18)} |")
+    for core_type, chunks in sorted(schedule_annotations.items()):
+        chunk_str = ", ".join(map(str, chunks))
+        print(f"|   {core_type}: {chunk_str:<{header_width - 7 - len(core_type)}} |")
+
+    # Print number of chunks
+    print(f"| Total Chunks: {max_chunk_id + 1:<{header_width - 16}} |")
+    print(box_line)
+
+
+def print_task_summary(tasks_in_region, args):
+    """Print a summary of tasks in the selected region."""
+    sorted_tasks = sorted(tasks_in_region)
+    num_tasks = len(sorted_tasks)
+
+    print(f"Tasks in region {args.start_time:.2f}-{args.end_time:.2f}: {num_tasks}")
+
+    # Format task IDs in rows
+    if sorted_tasks:
+        task_str = ""
+        for i, task_id in enumerate(sorted_tasks):
+            task_str += f"{task_id:4}"
+            if (i + 1) % 15 == 0:  # 15 tasks per line
+                print(f"  {task_str}")
+                task_str = ""
+        if task_str:  # Print any remaining tasks
+            print(f"  {task_str}")
+
+
+def print_chunk_summary(
     chunk_total_durations,
     chunk_avg_durations_ms,
     chunk_types,
     schedule_annotations,
     CYCLES_TO_MS,
-    args,
-    max_chunk_id,
 ):
-    """Print analysis of the schedule execution."""
-    # 1. Print all tasks in the region
-    print(f"\n======= SCHEDULE {schedule_index+1} - TASKS IN SELECTED REGION =======")
-    sorted_tasks = sorted(tasks_in_region)
-    print(
-        f"Found {len(sorted_tasks)} tasks in the region {args.start_time:.2f}-{args.end_time:.2f}"
-    )
-    print(f"Tasks: {', '.join(map(str, sorted_tasks))}")
-
-    # 2. Calculate and print average duration for each task in each chunk
-    print(
-        f"\n======= SCHEDULE {schedule_index+1} - AVERAGE TASK DURATIONS BY CHUNK ======="
-    )
-    for chunk_id in range(max_chunk_id + 1):
-        if chunk_id not in task_durations_by_chunk:
-            continue
-
-        # Find which core type this chunk belongs to based on schedule annotations
-        core_type = "Unknown"
-        for core, chunks in schedule_annotations.items():
-            if chunk_id in chunks:
-                core_type = core
-                break
-
-        processor_type = chunk_types.get(chunk_id, "Unknown")
-        print(f"Chunk {chunk_id} ({processor_type}/{core_type}):")
-
-        # Print average across all tasks for this chunk
-        all_durations = [
-            d
-            for task_durations in task_durations_by_chunk[chunk_id].values()
-            for d in task_durations
-        ]
-        if all_durations:
-            avg_all_tasks_cycles = sum(all_durations) / len(all_durations)
-            avg_all_tasks_ms = avg_all_tasks_cycles * CYCLES_TO_MS
-            total_duration_cycles = chunk_total_durations[chunk_id]
-            total_duration_ms = total_duration_cycles * CYCLES_TO_MS
-            print(
-                f"  All Tasks Average: {avg_all_tasks_cycles:.2f} cycles ({avg_all_tasks_ms:.6f} ms)"
-            )
-            print(
-                f"  Total Duration: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms)"
-            )
-        print()
-
-    # 3. Find the widest chunk (most execution time) in the region
-    print(f"\n======= SCHEDULE {schedule_index+1} - WIDEST CHUNK IN REGION =======")
-    if chunk_total_durations:
-        widest_chunk_id = max(chunk_total_durations, key=chunk_total_durations.get)
-        widest_chunk_duration_cycles = chunk_total_durations[widest_chunk_id]
-        widest_chunk_duration_ms = widest_chunk_duration_cycles * CYCLES_TO_MS
-
-        # Find which core type this chunk belongs to based on schedule annotations
-        core_type = "Unknown"
-        for core, chunks in schedule_annotations.items():
-            if widest_chunk_id in chunks:
-                core_type = core
-                break
-
-        processor_type = chunk_types.get(widest_chunk_id, "Unknown")
-
-        print(f"Widest chunk: Chunk {widest_chunk_id} ({processor_type}/{core_type})")
-        print(
-            f"Total execution time: {widest_chunk_duration_cycles:.2f} cycles ({widest_chunk_duration_ms:.6f} ms)"
-        )
-
-        # Calculate percentage of time spent in this chunk
-        total_execution_cycles = sum(chunk_total_durations.values())
-        percentage = (widest_chunk_duration_cycles / total_execution_cycles) * 100
-        print(f"Percentage of selected region execution time: {percentage:.2f}%")
-
-        # Show execution breakdown for all chunks
-        print(f"\nExecution time breakdown for all chunks in region:")
-        for chunk_id, duration in sorted(
-            chunk_total_durations.items(), key=lambda x: x[1], reverse=True
-        ):
-            # Find which core type this chunk belongs to based on schedule annotations
-            c_type = "Unknown"
-            for core, chunks in schedule_annotations.items():
-                if chunk_id in chunks:
-                    c_type = core
-                    break
-
-            p_type = chunk_types.get(chunk_id, "Unknown")
-            total_duration_cycles = duration
-            total_duration_ms = duration * CYCLES_TO_MS
-            chunk_percentage = (duration / total_execution_cycles) * 100
-
-            # Add average duration info if available
-            avg_info = ""
-            if chunk_id in chunk_avg_durations_ms:
-                avg_duration_ms = chunk_avg_durations_ms[chunk_id]
-                avg_info = f" | Avg task: {avg_duration_ms:.6f} ms"
-
-            print(
-                f"  Chunk {chunk_id} ({p_type}/{c_type}): Total: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms){avg_info}, {chunk_percentage:.2f}%"
-            )
-    else:
-        print(
-            f"No chunk execution data found in the selected region for Schedule {schedule_index+1}."
-        )
-
-
-def print_schedule_summary(
-    schedule_index, 
-    chunk_total_durations, 
-    chunk_avg_durations_ms,
-    chunk_types,
-    schedule_annotations,
-    CYCLES_TO_MS
-):
-    """Print a summary of the schedule execution."""
-    print(f"\n======= SCHEDULE {schedule_index+1} - SUMMARY =======")
-    
+    """Print a summary of chunk performance."""
     if not chunk_total_durations:
         print("No data available for this schedule.")
         return
-        
-    # Calculate total execution time for this schedule
+
+    # Calculate total execution time
     total_execution_cycles = sum(chunk_total_durations.values())
     total_execution_ms = total_execution_cycles * CYCLES_TO_MS
-    
-    print(f"Total execution time: {total_execution_cycles:.2f} cycles ({total_execution_ms:.6f} ms)")
-    
-    # Group chunks by processor type
+
+    # Print total execution time
+    print(f"\nTotal Execution Time: {total_execution_ms:.6f} ms")
+
+    # Print chunk execution times sorted by duration (descending)
+    print("\n  CHUNK EXECUTION BREAKDOWN")
+    print("  +-------------------------------------------------+")
+    print("  | Chunk | Processor | Core   | Duration (ms) | %  |")
+    print("  +-------------------------------------------------+")
+
+    for chunk_id, duration in sorted(
+        chunk_total_durations.items(), key=lambda x: x[1], reverse=True
+    ):
+        # Find core type
+        c_type = "Unknown"
+        for core, chunks in schedule_annotations.items():
+            if chunk_id in chunks:
+                c_type = core
+                break
+
+        p_type = chunk_types.get(chunk_id, "Unknown")
+        duration_ms = duration * CYCLES_TO_MS
+        percentage = (duration / total_execution_cycles) * 100
+
+        # Add average duration if available
+        avg_ms = chunk_avg_durations_ms.get(chunk_id, 0)
+
+        print(
+            f"  | {chunk_id:5} | {p_type:8} | {c_type:6} | {duration_ms:11.6f} | {percentage:3.0f} |"
+        )
+
+    print("  +-------------------------------------------------+")
+
+    # Group by processor type
+    print("\n  PROCESSOR TYPE SUMMARY")
+    print("  +-------------------------------------+")
+    print("  | Processor | Duration (ms) | % Total |")
+    print("  +-------------------------------------+")
+
     processor_totals = defaultdict(float)
-    core_totals = defaultdict(float)
-    
     for chunk_id, duration in chunk_total_durations.items():
-        # Get processor type
         p_type = chunk_types.get(chunk_id, "Unknown")
         processor_totals[p_type] += duration
-        
-        # Get core type
+
+    for p_type, duration in sorted(
+        processor_totals.items(), key=lambda x: x[1], reverse=True
+    ):
+        duration_ms = duration * CYCLES_TO_MS
+        percentage = (duration / total_execution_cycles) * 100
+        print(f"  | {p_type:9} | {duration_ms:11.6f} | {percentage:7.1f} |")
+
+    print("  +-------------------------------------+")
+
+    # Group by core type
+    print("\n  CORE TYPE SUMMARY")
+    print("  +----------------------------------+")
+    print("  | Core    | Duration (ms) | % Total |")
+    print("  +----------------------------------+")
+
+    core_totals = defaultdict(float)
+    for chunk_id, duration in chunk_total_durations.items():
         c_type = "Unknown"
         for core, chunks in schedule_annotations.items():
             if chunk_id in chunks:
                 c_type = core
                 break
         core_totals[c_type] += duration
-    
-    # Print processor type breakdown
-    print("\nExecution time by processor type:")
-    for p_type, duration in sorted(processor_totals.items(), key=lambda x: x[1], reverse=True):
+
+    for c_type, duration in sorted(
+        core_totals.items(), key=lambda x: x[1], reverse=True
+    ):
         duration_ms = duration * CYCLES_TO_MS
         percentage = (duration / total_execution_cycles) * 100
-        print(f"  {p_type}: {duration:.2f} cycles ({duration_ms:.6f} ms), {percentage:.2f}%")
-    
-    # Print core type breakdown
-    print("\nExecution time by core type:")
-    for c_type, duration in sorted(core_totals.items(), key=lambda x: x[1], reverse=True):
-        duration_ms = duration * CYCLES_TO_MS
-        percentage = (duration / total_execution_cycles) * 100
-        print(f"  {c_type}: {duration:.2f} cycles ({duration_ms:.6f} ms), {percentage:.2f}%")
+        print(f"  | {c_type:7} | {duration_ms:11.6f} | {percentage:7.1f} |")
+
+    print("  +----------------------------------+")
+
+
+def calculate_gapness_metrics(chunks_data, time_range, CYCLES_TO_MS):
+    """Calculate metrics for 'gapness' in the schedule execution."""
+    # First, organize data by chunk
+    chunk_timelines = {}
+    for chunk_id, tasks in chunks_data.items():
+        if tasks:
+            # Convert to sorted list of (start_ms, end_ms) pairs
+            task_intervals = [
+                (t["start_ms"], t["start_ms"] + t["duration_ms"]) for t in tasks
+            ]
+            task_intervals.sort()
+            chunk_timelines[chunk_id] = task_intervals
+
+    # Calculate metrics for each chunk
+    chunk_metrics = {}
+    for chunk_id, intervals in chunk_timelines.items():
+        if not intervals:
+            continue
+
+        # Calculate total time span for this chunk
+        chunk_start = intervals[0][0]
+        chunk_end = intervals[-1][1]
+        chunk_span = chunk_end - chunk_start
+
+        # Calculate total execution time (sum of all task durations)
+        execution_time = sum(end - start for start, end in intervals)
+
+        # Calculate total gap time
+        last_end = intervals[0][0]
+        gap_time = 0
+
+        for start, end in intervals:
+            if start > last_end:
+                gap_time += start - last_end
+            last_end = max(last_end, end)
+
+        # Calculate metrics
+        if chunk_span > 0:
+            gap_percentage = (gap_time / chunk_span) * 100
+            utilization = (execution_time / chunk_span) * 100
+        else:
+            gap_percentage = 0
+            utilization = 100
+
+        # Calculate average gap size
+        num_gaps = 0
+        avg_gap = 0
+        last_end = intervals[0][1]
+
+        for i in range(1, len(intervals)):
+            start, _ = intervals[i]
+            if start > last_end:
+                num_gaps += 1
+                avg_gap += start - last_end
+            last_end = max(last_end, intervals[i][1])
+
+        if num_gaps > 0:
+            avg_gap /= num_gaps
+
+        # Store metrics
+        chunk_metrics[chunk_id] = {
+            "span_ms": chunk_span,
+            "execution_ms": execution_time,
+            "gap_ms": gap_time,
+            "gap_percentage": gap_percentage,
+            "utilization": utilization,
+            "num_gaps": num_gaps,
+            "avg_gap_ms": avg_gap,
+        }
+
+    # Calculate overall schedule metrics
+    if chunk_metrics:
+        overall_span = 0
+        overall_execution = 0
+        overall_gap = 0
+
+        # Find global start and end times across all chunks
+        all_starts = []
+        all_ends = []
+
+        for chunk_id, intervals in chunk_timelines.items():
+            if intervals:
+                all_starts.append(intervals[0][0])
+                all_ends.append(intervals[-1][1])
+
+        if all_starts and all_ends:
+            global_start = min(all_starts)
+            global_end = max(all_ends)
+            overall_span = global_end - global_start
+
+            # Calculate overall execution and gap time
+            for chunk_id, metrics in chunk_metrics.items():
+                overall_execution += metrics["execution_ms"]
+                overall_gap += metrics["gap_ms"]
+
+            # Adjust for parallel execution in different chunks
+            overall_execution = min(overall_execution, overall_span)
+
+            # Calculate "density" - higher is better (less gaps)
+            schedule_density = (
+                overall_execution / overall_span if overall_span > 0 else 1.0
+            )
+
+            # Calculate cross-chunk gaps (overlaps between chunks)
+            # This is a measure of how well the chunks are utilizing the overall timeline
+            merged_timeline = []
+            for chunk_id, intervals in chunk_timelines.items():
+                merged_timeline.extend(intervals)
+
+            merged_timeline.sort()
+            merged_execution = 0
+            last_end = merged_timeline[0][0]
+
+            for start, end in merged_timeline:
+                if start > last_end:
+                    # There's a gap
+                    pass
+                # Extend the current interval if needed
+                merged_execution += max(0, end - max(start, last_end))
+                last_end = max(last_end, end)
+
+            cross_chunk_utilization = (
+                merged_execution / (last_end - merged_timeline[0][0])
+                if (last_end - merged_timeline[0][0]) > 0
+                else 1.0
+            )
+
+            return chunk_metrics, {
+                "span_ms": overall_span,
+                "execution_ms": overall_execution,
+                "gap_ms": overall_gap,
+                "density": schedule_density * 100,  # Convert to percentage
+                "cross_chunk_utilization": cross_chunk_utilization
+                * 100,  # Convert to percentage
+            }
+
+    return chunk_metrics, {}
+
+
+def print_gapness_metrics(chunk_metrics, overall_metrics):
+    """Print the gapness metrics for chunks and the overall schedule."""
+    if not overall_metrics:
+        print("No gapness metrics available.")
+        return
+
+    # Print overall metrics first
+    print("\n  SCHEDULE GAPNESS METRICS")
+    print("  +--------------------------------------------------+")
+    print("  | Metric                    | Value                |")
+    print("  +--------------------------------------------------+")
+    print(
+        f"  | Total Time Span           | {overall_metrics['span_ms']:.6f} ms       |"
+    )
+    print(
+        f"  | Schedule Density          | {overall_metrics['density']:.2f}%                |"
+    )
+    print(
+        f"  | Cross-Chunk Utilization   | {overall_metrics['cross_chunk_utilization']:.2f}%                |"
+    )
+    print("  +--------------------------------------------------+")
+    print("  | Higher density/utilization values indicate fewer gaps |")
+    print("  +--------------------------------------------------+")
+
+    # Print chunk metrics
+    print("\n  CHUNK GAPNESS METRICS")
+    print(
+        "  +-------------------------------------------------------------------------+"
+    )
+    print(
+        "  | Chunk | Time Span (ms) | Utilization (%) | Gaps | Avg Gap (ms) | Gap % |"
+    )
+    print(
+        "  +-------------------------------------------------------------------------+"
+    )
+
+    # Sort chunks by utilization (ascending - worst first)
+    for chunk_id, metrics in sorted(
+        chunk_metrics.items(), key=lambda x: x[1]["utilization"]
+    ):
+        print(
+            f"  | {chunk_id:5} | {metrics['span_ms']:13.6f} | {metrics['utilization']:14.2f} | {metrics['num_gaps']:4} | "
+            f"{metrics['avg_gap_ms']:11.6f} | {metrics['gap_percentage']:5.1f} |"
+        )
+
+    print(
+        "  +-------------------------------------------------------------------------+"
+    )
 
 
 def process_schedule(section, schedule_index, args):
     """Process a single schedule section."""
-    print(f"\n=== Processing Schedule {schedule_index+1} ===")
-
     # Parse the task data
     frequency = extract_frequency(section)
-    print(f"Detected frequency: {frequency} Hz")
-
     schedule_annotations = extract_schedule_annotations(section)
-    if schedule_annotations:
-        print(f"Detected schedule annotations: {schedule_annotations}")
 
     tasks = parse_task_data(section)
     if not tasks:
@@ -530,9 +713,11 @@ def process_schedule(section, schedule_index, args):
     max_chunk_id = max(
         [chunk_id for task_data in tasks.values() for chunk_id in task_data.keys()]
     )
-    print(f"Detected {max_chunk_id + 1} chunks in Schedule {schedule_index+1}")
 
-    # Collect all chunk types for the legend
+    # Print the schedule header
+    print_schedule_header(schedule_index, frequency, schedule_annotations, max_chunk_id)
+
+    # Collect all chunk types
     chunk_types = get_chunk_types(tasks)
 
     # Calculate time range
@@ -563,29 +748,28 @@ def process_schedule(section, schedule_index, args):
     # Create chunk labels
     chunk_names = create_chunk_labels(max_chunk_id, chunk_types, schedule_annotations)
 
-    # Print analysis
-    print_analysis(
-        schedule_index,
-        tasks_in_region,
-        task_durations_by_chunk,
+    # Calculate gapness metrics
+    chunk_gapness, overall_gapness = calculate_gapness_metrics(
+        chunks_data, time_range, CYCLES_TO_MS
+    )
+
+    # Print task summary
+    print_task_summary(tasks_in_region, args)
+
+    # Print chunk summary
+    print_chunk_summary(
         chunk_total_durations,
         chunk_avg_durations_ms,
         chunk_types,
         schedule_annotations,
         CYCLES_TO_MS,
-        args,
-        max_chunk_id,
     )
-    
-    # Print schedule summary
-    print_schedule_summary(
-        schedule_index,
-        chunk_total_durations,
-        chunk_avg_durations_ms,
-        chunk_types,
-        schedule_annotations,
-        CYCLES_TO_MS
-    )
+
+    # Print gapness metrics
+    print_gapness_metrics(chunk_gapness, overall_gapness)
+
+    # Print a separator
+    print("\n" + "=" * 72)
 
 
 def main():
@@ -599,11 +783,23 @@ def main():
     # Extract Python sections
     python_sections = extract_python_sections(content)
 
-    # Process each Python section
-    for schedule_index, section in enumerate(python_sections):
-        process_schedule(section, schedule_index, args)
+    # Parse the schedules to display
+    selected_schedules = parse_schedule_selection(args.schedules, len(python_sections))
 
-    print(f"\nAll {len(python_sections)} schedules have been processed.")
+    if not selected_schedules:
+        print("No valid schedules selected. Exiting.")
+        return
+
+    # Show how many schedules were selected
+    print(
+        f"Processing {len(selected_schedules)} out of {len(python_sections)} schedules."
+    )
+
+    # Process each selected schedule
+    for idx in selected_schedules:
+        process_schedule(python_sections[idx], idx, args)
+
+    print(f"\nFinished processing {len(selected_schedules)} schedule(s).")
 
 
 if __name__ == "__main__":
