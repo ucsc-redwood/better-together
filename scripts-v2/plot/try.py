@@ -706,6 +706,9 @@ Task=99 Chunk=3 Processor=Big Start=819599577815 End=819599658540 Duration=80725
 
 
 import re
+import matplotlib.pyplot as plt
+import numpy as np
+from collections import defaultdict
 
 
 def parse_task_data(section):
@@ -743,39 +746,295 @@ def to_ms(cycles):
     return cycles * CYCLES_TO_MS
 
 
-# find the min start and max end first
-min_start = float("inf")
-max_end = float("-inf")
+def create_gantt_chart(schedule_data, output_filename=None, time_window=None):
+    """
+    Create a Gantt chart from the schedule data.
 
-tasks = parse_task_data(schedule_10)
-for task_id in tasks:
-    for chunk_id in tasks[task_id]:
-        raw_start = tasks[task_id][chunk_id]["start"]
-        raw_end = tasks[task_id][chunk_id]["end"]
-        min_start = min(min_start, raw_start)
-        max_end = max(max_end, raw_end)
+    Args:
+        schedule_data: String containing the schedule data
+        output_filename: If provided, save the chart to this file
+        time_window: Optional tuple (start_time_percentage, end_time_percentage) to zoom in
+                     on a specific portion of the timeline (values between 0.0 and 1.0)
+    """
+    # Parse the task data
+    tasks = parse_task_data(schedule_data)
 
-print(f"Min start: {min_start}")
-print(f"Max end: {max_end}")
-total_duration = max_end - min_start
-tasks = parse_task_data(schedule_10)
-for task_id in tasks:
-    print(task_id)
-    for chunk_id in tasks[task_id]:
-        raw_start = tasks[task_id][chunk_id]["start"]
-        raw_end = tasks[task_id][chunk_id]["end"]
+    # Find the min start and max end
+    min_start = float("inf")
+    max_end = float("-inf")
 
-        start = raw_start - min_start
-        end = raw_end - min_start
+    for task_id in tasks:
+        for chunk_id in tasks[task_id]:
+            raw_start = tasks[task_id][chunk_id]["start"]
+            raw_end = tasks[task_id][chunk_id]["end"]
+            min_start = min(min_start, raw_start)
+            max_end = max(max_end, raw_end)
 
-        duration = tasks[task_id][chunk_id]["duration_cycles"]
-        print(f"Chunk {chunk_id}: {to_ms(start):.2f} - {to_ms(end):.2f} ({to_ms(duration):.2f} ms)")
-    print()
+    # Calculate global time range
+    total_duration_cycles = max_end - min_start
+    total_duration_ms = to_ms(total_duration_cycles)
+
+    # Apply time window if specified
+    if time_window:
+        start_pct, end_pct = time_window
+        start_pct = max(0.0, min(start_pct, 1.0))
+        end_pct = max(start_pct, min(end_pct, 1.0))
+
+        window_start_cycles = min_start + start_pct * total_duration_cycles
+        window_end_cycles = min_start + end_pct * total_duration_cycles
+    else:
+        window_start_cycles = min_start
+        window_end_cycles = max_end
+
+    # Identify all unique chunk IDs and processor types
+    all_chunks = set()
+    processor_by_chunk = {}
+
+    for task_id in tasks:
+        for chunk_id in tasks[task_id]:
+            all_chunks.add(chunk_id)
+            processor_type = tasks[task_id][chunk_id]["type"]
+            processor_by_chunk[chunk_id] = processor_type
+
+    # Sort chunks in ascending order
+    all_chunks = sorted(all_chunks)
+
+    # Set up colors for different tasks
+    task_color_map = plt.colormaps["tab20"](np.linspace(0, 1, len(tasks)))
+
+    # Set up the figure
+    fig, ax = plt.subplots(figsize=(14, len(all_chunks) * 0.8 + 2))
+
+    # Create a mapping of chunk_id to y-position
+    chunk_positions = {chunk_id: i for i, chunk_id in enumerate(all_chunks)}
+
+    # Create bars for each task in each chunk
+    for task_id in sorted(tasks.keys()):
+        for chunk_id in sorted(tasks[task_id].keys()):
+            chunk = tasks[task_id][chunk_id]
+
+            # Skip chunks outside the window
+            if chunk["end"] < window_start_cycles or chunk["start"] > window_end_cycles:
+                continue
+
+            # Calculate normalized time values
+            start_ms = to_ms(chunk["start"] - min_start)
+            duration_ms = to_ms(chunk["duration_cycles"])
+
+            # Get y-position for this chunk
+            y_pos = chunk_positions[chunk_id]
+
+            # Draw the bar
+            color = task_color_map[task_id % min(20, len(task_color_map))]
+
+            bar = ax.barh(
+                y_pos,
+                duration_ms,
+                left=start_ms,
+                height=0.5,
+                color=color,
+                alpha=0.8,
+                edgecolor="black",
+                linewidth=0.5,
+            )
+
+            # Add task ID label inside the bar if wide enough
+            if (
+                duration_ms > total_duration_ms * 0.01
+            ):  # Only add label if bar is wide enough
+                text_x = start_ms + duration_ms / 2
+                ax.text(
+                    text_x,
+                    y_pos,
+                    f"T{task_id}",
+                    ha="center",
+                    va="center",
+                    color="black",
+                    fontweight="bold",
+                    fontsize=8,
+                )
+
+    # Set up y-axis labels with processor types
+    y_ticks = list(chunk_positions.values())
+    y_labels = [
+        f"Chunk {chunk_id}\n({processor_by_chunk[chunk_id]})" for chunk_id in all_chunks
+    ]
+
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(y_labels)
+
+    # Set up plot details
+    window_start_ms = to_ms(window_start_cycles - min_start)
+    window_end_ms = to_ms(window_end_cycles - min_start)
+
+    ax.set_xlim(window_start_ms, window_end_ms)
+    ax.set_ylim(-0.5, len(all_chunks) - 0.5)
+    ax.set_xlabel("Time (ms)")
+    ax.set_title(
+        f"Chunk Execution Timeline\nTotal Duration: {total_duration_ms:.2f} ms"
+    )
+
+    # Add gridlines
+    ax.grid(axis="x", linestyle="--", alpha=0.7)
+
+    # Add a legend for tasks (showing a subset if there are too many)
+    handles, labels = [], []
+    max_legend_items = min(20, len(tasks))
+    step = max(1, len(tasks) // max_legend_items)
+
+    for i in range(0, len(tasks), step):
+        handles.append(
+            plt.Rectangle(
+                (0, 0),
+                1,
+                1,
+                color=task_color_map[i % min(20, len(task_color_map))],
+                alpha=0.8,
+            )
+        )
+        labels.append(f"Task {i}")
+
+    # Add a legend entry for the last task if it's not already included
+    if (len(tasks) - 1) % step != 0:
+        handles.append(
+            plt.Rectangle(
+                (0, 0),
+                1,
+                1,
+                color=task_color_map[(len(tasks) - 1) % min(20, len(task_color_map))],
+                alpha=0.8,
+            )
+        )
+        labels.append(f"Task {len(tasks) - 1}")
+
+    legend = ax.legend(handles, labels, loc="upper right", ncol=2, title="Tasks")
+
+    plt.tight_layout()
+
+    # Save or show the chart
+    if output_filename:
+        plt.savefig(output_filename)
+        print(f"Chart saved as {output_filename}")
+    else:
+        plt.show()
 
 
-print(f"Total duration: {to_ms(total_duration):.2f} ms")
+def create_chunk_summary_chart(schedule_data, output_filename=None):
+    """
+    Create a summary chart showing average duration and total workload for each chunk.
 
-# print the average duration
-avg_duration = total_duration / len(tasks)
-avg_duration_ms = to_ms(avg_duration)
-print(f"Average duration: {avg_duration_ms:.2f} ms")
+    Args:
+        schedule_data: String containing the schedule data
+        output_filename: If provided, save the chart to this file
+    """
+    # Parse the task data
+    tasks = parse_task_data(schedule_data)
+
+    # Find the global min start time
+    min_start = float("inf")
+    for task_id in tasks:
+        for chunk_id in tasks[task_id]:
+            min_start = min(min_start, tasks[task_id][chunk_id]["start"])
+
+    # Collect data by chunk
+    chunk_data = defaultdict(lambda: {"count": 0, "total_duration": 0, "processor": ""})
+
+    for task_id in tasks:
+        for chunk_id in tasks[task_id]:
+            chunk = tasks[task_id][chunk_id]
+            chunk_data[chunk_id]["count"] += 1
+            chunk_data[chunk_id]["total_duration"] += chunk["duration_cycles"]
+            chunk_data[chunk_id]["processor"] = chunk["type"]
+
+    # Calculate averages
+    for chunk_id in chunk_data:
+        chunk_data[chunk_id]["avg_duration"] = (
+            chunk_data[chunk_id]["total_duration"] / chunk_data[chunk_id]["count"]
+        )
+
+    # Sort chunks
+    sorted_chunks = sorted(chunk_data.keys())
+
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+
+    # Colors by processor type
+    processor_colors = {
+        "Big": "tab:blue",
+        "Medium": "tab:orange",
+        "GPU": "tab:green",
+        "DSP": "tab:red",
+        "NPU": "tab:purple",
+    }
+
+    # 1. Average duration by chunk
+    avg_durations = [to_ms(chunk_data[c]["avg_duration"]) for c in sorted_chunks]
+    colors = [
+        processor_colors.get(chunk_data[c]["processor"], "gray") for c in sorted_chunks
+    ]
+
+    bars1 = ax1.bar(sorted_chunks, avg_durations, color=colors)
+    ax1.set_xlabel("Chunk ID")
+    ax1.set_ylabel("Average Duration (ms)")
+    ax1.set_title("Average Task Execution Time by Chunk")
+    ax1.set_xticks(sorted_chunks)
+
+    # Add processor type info
+    for i, c in enumerate(sorted_chunks):
+        ax1.text(
+            i,
+            avg_durations[i] + 0.1,
+            chunk_data[c]["processor"],
+            ha="center",
+            rotation=90,
+            fontsize=8,
+        )
+
+    # 2. Total workload by chunk
+    total_durations = [to_ms(chunk_data[c]["total_duration"]) for c in sorted_chunks]
+
+    bars2 = ax2.bar(sorted_chunks, total_durations, color=colors)
+    ax2.set_xlabel("Chunk ID")
+    ax2.set_ylabel("Total Duration (ms)")
+    ax2.set_title("Total Processing Time by Chunk")
+    ax2.set_xticks(sorted_chunks)
+
+    # Add task count info
+    for i, c in enumerate(sorted_chunks):
+        ax2.text(
+            i,
+            total_durations[i] + 0.1,
+            f"{chunk_data[c]['count']} tasks",
+            ha="center",
+            rotation=90,
+            fontsize=8,
+        )
+
+    plt.tight_layout()
+
+    # Save or show the chart
+    if output_filename:
+        plt.savefig(output_filename)
+        print(f"Summary chart saved as {output_filename}")
+    else:
+        plt.show()
+
+
+# Sample usage:
+if __name__ == "__main__":
+    # Create Gantt chart for schedule_1
+    create_gantt_chart(schedule_1, output_filename="schedule_1_gantt.png")
+
+    # Create Gantt chart for schedule_10
+    create_gantt_chart(schedule_10, output_filename="schedule_10_gantt.png")
+
+    # Create Gantt chart with a specific time window (middle 50%)
+    create_gantt_chart(
+        schedule_1,
+        output_filename="schedule_1_middle_gantt.png",
+        time_window=(0.25, 0.75),
+    )
+
+    # Create summary charts
+    create_chunk_summary_chart(schedule_1, output_filename="schedule_1_summary.png")
+    create_chunk_summary_chart(schedule_10, output_filename="schedule_10_summary.png")
