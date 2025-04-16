@@ -290,41 +290,45 @@ void dump_tables_for_python(int start_stage, int end_stage) {
   fmt::print("# NORMAL_BENCHMARK_DATA\n");
   fmt::print("stage,little,medium,big,vulkan\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n", stage, 
-              bm_norm_table[stage - 1][kLitIdx],
-              bm_norm_table[stage - 1][kMedIdx],
-              bm_norm_table[stage - 1][kBigIdx],
-              bm_norm_table[stage - 1][kVukIdx]);
+    fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n",
+               stage,
+               bm_norm_table[stage - 1][kLitIdx],
+               bm_norm_table[stage - 1][kMedIdx],
+               bm_norm_table[stage - 1][kBigIdx],
+               bm_norm_table[stage - 1][kVukIdx]);
   }
 
   // Dump fully benchmark data in CSV format
   fmt::print("# FULLY_BENCHMARK_DATA\n");
   fmt::print("stage,little,medium,big,vulkan\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n", stage,
-              bm_full_table[stage - 1][kLitIdx],
-              bm_full_table[stage - 1][kMedIdx],
-              bm_full_table[stage - 1][kBigIdx],
-              bm_full_table[stage - 1][kVukIdx]);
+    fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n",
+               stage,
+               bm_full_table[stage - 1][kLitIdx],
+               bm_full_table[stage - 1][kMedIdx],
+               bm_full_table[stage - 1][kBigIdx],
+               bm_full_table[stage - 1][kVukIdx]);
   }
 
   // Add raw data dump that includes all values directly for debugging
   fmt::print("# RAW_NORMAL_TABLE_DATA\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n", stage,
-              bm_norm_table[stage - 1][0],
-              bm_norm_table[stage - 1][1],
-              bm_norm_table[stage - 1][2],
-              bm_norm_table[stage - 1][3]);
+    fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n",
+               stage,
+               bm_norm_table[stage - 1][0],
+               bm_norm_table[stage - 1][1],
+               bm_norm_table[stage - 1][2],
+               bm_norm_table[stage - 1][3]);
   }
 
   fmt::print("# RAW_FULLY_TABLE_DATA\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n", stage,
-              bm_full_table[stage - 1][0],
-              bm_full_table[stage - 1][1],
-              bm_full_table[stage - 1][2],
-              bm_full_table[stage - 1][3]);
+    fmt::print("Stage {}: {:.4f} {:.4f} {:.4f} {:.4f}\n",
+               stage,
+               bm_full_table[stage - 1][0],
+               bm_full_table[stage - 1][1],
+               bm_full_table[stage - 1][2],
+               bm_full_table[stage - 1][3]);
   }
 
   fmt::print("### PYTHON_DATA_END ###\n");
