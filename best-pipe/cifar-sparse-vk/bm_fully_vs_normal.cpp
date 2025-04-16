@@ -82,6 +82,10 @@ void similuation_thread(MyQueue* q, std::function<void(MyTask*)> func) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// Normal Benchmark
+// ----------------------------------------------------------------------------
+
 static void BM_run_normal(const ProcessorType pt, const int stage, const int seconds_to_run) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
@@ -167,6 +171,10 @@ static void BM_run_normal(const ProcessorType pt, const int stage, const int sec
   }
 }
 
+// ----------------------------------------------------------------------------
+// Fully Occupied Benchmark
+// ----------------------------------------------------------------------------
+
 static void BM_run_fully(const int stage, const int seconds_to_run) {
   cifar_sparse::vulkan::v2::VulkanDispatcher disp;
 
@@ -183,8 +191,6 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 
   MyQueue q_3;
   init_q(&q_3, disp);
-
-  auto start = std::chrono::high_resolution_clock::now();
 
   // Use atomic counters for task tracking, but we'll only report on the one we're measuring
   std::atomic<int> lit_processed(0);
@@ -228,6 +234,8 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 
   std::vector<std::thread> threads;
 
+  auto start = std::chrono::high_resolution_clock::now();
+
   if (!g_little_cores.empty()) threads.emplace_back(similuation_thread, &q_0, lit_func);
   if (!g_medium_cores.empty()) threads.emplace_back(similuation_thread, &q_1, med_func);
   if (!g_big_cores.empty()) threads.emplace_back(similuation_thread, &q_2, big_func);
@@ -238,9 +246,7 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 
   done.store(true);  // Signal all threads to stop
 
-  for (auto& t : threads) {
-    t.join();
-  }
+  for (auto& t : threads) t.join();
 
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -276,12 +282,9 @@ static void BM_run_fully(const int stage, const int seconds_to_run) {
 }  // namespace android
 
 // ----------------------------------------------------------------------------
-// Main
+// Printing
 // ----------------------------------------------------------------------------
 
-// e.g.,
-// xmake r bm-table-cifar-sparse-vk --stage 1 --device-to-measure 3A021JEHN02756
-// xmake r bm-table-cifar-sparse-vk --stage 1 --device jetson --device-to-measure jetson --full
 void dump_tables_for_python(int start_stage, int end_stage) {
   // First dump a marker that can be easily grep'ed
   fmt::print("\n### PYTHON_DATA_START ###\n");
@@ -335,6 +338,10 @@ void dump_tables_for_python(int start_stage, int end_stage) {
   std::fflush(stdout);
 }
 
+// ----------------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------------
+
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN
 
@@ -367,22 +374,11 @@ int main(int argc, char** argv) {
   //   android::BM_run_normal(ProcessorType::kVulkan, stage, seconds_to_run);
   // }
 
-  // Run fully benchmark (each processor type in isolation, but with all stages active)
   std::cout << "Running fully benchmark (each processor in isolation, all stages active)...\n";
   for (int stage = start_stage; stage <= end_stage; stage++) {
     android::BM_run_fully(stage, seconds_to_run);
-    // // Run for each processor type
-    // if (!g_little_cores.empty()) {
-    //   android::BM_run_fully(ProcessorType::kLittleCore, stage, seconds_to_run);
-    // }
-    // if (!g_medium_cores.empty()) {
-    //   android::BM_run_fully(ProcessorType::kMediumCore, stage, seconds_to_run);
-    // }
-    // if (!g_big_cores.empty()) {
-    //   android::BM_run_fully(ProcessorType::kBigCore, stage, seconds_to_run);
-    // }
-    // android::BM_run_fully(ProcessorType::kVulkan, stage, seconds_to_run);
   }
+
   // Print the normal benchmark table with higher precision
   fmt::print("\nNormal Benchmark Results Table (ms per task):\n");
   fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan \n");
