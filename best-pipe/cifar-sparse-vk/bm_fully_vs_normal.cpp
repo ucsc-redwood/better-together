@@ -379,88 +379,77 @@ int main(int argc, char** argv) {
     // }
     // android::BM_run_fully(ProcessorType::kVulkan, stage, seconds_to_run);
   }
-
   // Print the normal benchmark table with higher precision
-  std::cout << "\nNormal Benchmark Results Table (ms per task):\n";
-  std::cout << "Stage | Little Core | Medium Core | Big Core | Vulkan \n";
-  std::cout << "------|------------|-------------|----------|--------\n";
+  fmt::print("\nNormal Benchmark Results Table (ms per task):\n");
+  fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan \n");
+  fmt::print("------|------------|-------------|----------|--------\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
-              << std::setw(11) << bm_norm_table[stage - 1][kLittleIdx] << " | "  // Little Core
-              << std::setw(11) << bm_norm_table[stage - 1][kMediumIdx] << " | "  // Medium Core
-              << std::setw(8) << bm_norm_table[stage - 1][kBigIdx] << " | "      // Big Core
-              << std::setw(6) << bm_norm_table[stage - 1][kVulkanIdx]            // Vulkan
-              << "\n";
+    fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f}\n",
+               stage,
+               bm_norm_table[stage - 1][kLitIdx],
+               bm_norm_table[stage - 1][kMedIdx],
+               bm_norm_table[stage - 1][kBigIdx],
+               bm_norm_table[stage - 1][kVukIdx]);
   }
 
   // Calculate sums for normal benchmark
   double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0;
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    little_norm_sum += bm_norm_table[stage - 1][kLittleIdx];
-    medium_norm_sum += bm_norm_table[stage - 1][kMediumIdx];
+    little_norm_sum += bm_norm_table[stage - 1][kLitIdx];
+    medium_norm_sum += bm_norm_table[stage - 1][kMedIdx];
     big_norm_sum += bm_norm_table[stage - 1][kBigIdx];
-    vulkan_norm_sum += bm_norm_table[stage - 1][kVulkanIdx];
+    vulkan_norm_sum += bm_norm_table[stage - 1][kVukIdx];
   }
 
   // Print sum for normal benchmark
-  std::cout << "\nNormal Benchmark - Sum of stages " << start_stage << "-" << end_stage << ":"
-            << std::endl;
-  std::cout << std::fixed << std::setprecision(4);
-  std::cout << "Little Core: " << little_norm_sum << " ms" << std::endl;
-  std::cout << "Medium Core: " << medium_norm_sum << " ms" << std::endl;
-  std::cout << "Big Core: " << big_norm_sum << " ms" << std::endl;
-  std::cout << "Vulkan: " << vulkan_norm_sum << " ms" << std::endl;
+  fmt::print("\nNormal Benchmark - Sum of stages {}-{}:\n", start_stage, end_stage);
+  fmt::print("Little Core: {:.4f} ms\n", little_norm_sum);
+  fmt::print("Medium Core: {:.4f} ms\n", medium_norm_sum);
+  fmt::print("Big Core: {:.4f} ms\n", big_norm_sum);
+  fmt::print("Vulkan: {:.4f} ms\n", vulkan_norm_sum);
 
   // Print the fully benchmark table with higher precision
-  std::cout << "\nFully Benchmark Results Table (ms per task):\n";
-  std::cout << "Stage | Little Core | Medium Core | Big Core | Vulkan \n";
-  std::cout << "------|------------|-------------|----------|--------\n";
+  fmt::print("\nFully Benchmark Results Table (ms per task):\n");
+  fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan \n");
+  fmt::print("------|------------|-------------|----------|--------\n");
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    std::cout << std::setw(5) << stage << " | " << std::fixed << std::setprecision(4)
-              << std::setw(11) << bm_full_table[stage - 1][kLittleIdx] << " | "  // Little Core
-              << std::setw(11) << bm_full_table[stage - 1][kMediumIdx] << " | "  // Medium Core
-              << std::setw(8) << bm_full_table[stage - 1][kBigIdx] << " | "      // Big Core
-              << std::setw(6) << bm_full_table[stage - 1][kVulkanIdx]            // Vulkan
-              << "\n";
+    fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f}\n",
+               stage,
+               bm_full_table[stage - 1][kLitIdx],
+               bm_full_table[stage - 1][kMedIdx],
+               bm_full_table[stage - 1][kBigIdx],
+               bm_full_table[stage - 1][kVukIdx]);
   }
 
   // Calculate sums for fully benchmark
   double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0;
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    little_full_sum += bm_full_table[stage - 1][kLittleIdx];
-    medium_full_sum += bm_full_table[stage - 1][kMediumIdx];
+    little_full_sum += bm_full_table[stage - 1][kLitIdx];
+    medium_full_sum += bm_full_table[stage - 1][kMedIdx];
     big_full_sum += bm_full_table[stage - 1][kBigIdx];
-    vulkan_full_sum += bm_full_table[stage - 1][kVulkanIdx];
+    vulkan_full_sum += bm_full_table[stage - 1][kVukIdx];
   }
 
   // Print sum for fully benchmark
-  std::cout << "\nFully Benchmark - Sum of stages " << start_stage << "-" << end_stage << ":"
-            << std::endl;
-  std::cout << std::fixed << std::setprecision(4);
-  std::cout << "Little Core: " << little_full_sum << " ms" << std::endl;
-  std::cout << "Medium Core: " << medium_full_sum << " ms" << std::endl;
-  std::cout << "Big Core: " << big_full_sum << " ms" << std::endl;
-  std::cout << "Vulkan: " << vulkan_full_sum << " ms" << std::endl;
+  fmt::print("\nFully Benchmark - Sum of stages {}-{}:\n", start_stage, end_stage);
+  fmt::print("Little Core: {:.4f} ms\n", little_full_sum);
+  fmt::print("Medium Core: {:.4f} ms\n", medium_full_sum);
+  fmt::print("Big Core: {:.4f} ms\n", big_full_sum);
+  fmt::print("Vulkan: {:.4f} ms\n", vulkan_full_sum);
 
   // Compare normal vs fully
-  std::cout << "\nPerformance Comparison (Fully vs Normal):" << std::endl;
-  std::cout << "Processor  | Normal (ms) | Fully (ms) | Ratio\n";
-  std::cout << "-----------|-------------|-----------|-------\n";
+  fmt::print("\nPerformance Comparison (Fully vs Normal):\n");
+  fmt::print("Processor  | Normal (ms) | Fully (ms) | Ratio\n");
+  fmt::print("-----------|-------------|-----------|-------\n");
 
   auto print_comparison = [](const std::string& name, double normal, double fully) {
     if (normal > 0) {
-      std::cout << std::left << std::setw(11) << name << "| " << std::right << std::fixed
-                << std::setprecision(2) << std::setw(11) << normal << " | " << std::setw(10)
-                << fully << " | ";
-
-      // Calculate ratio (fully / normal)
+      fmt::print("{:<11}| {:11.2f} | {:10.2f} | ", name, normal, fully);
       if (fully > 0) {
-        double ratio = fully / normal;
-        std::cout << std::setw(5) << ratio << "x";
+        fmt::print("{:5.2f}x\n", fully / normal);
       } else {
-        std::cout << "N/A";
+        fmt::print("N/A\n");
       }
-      std::cout << std::endl;
     }
   };
 
