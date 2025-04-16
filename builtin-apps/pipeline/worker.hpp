@@ -39,6 +39,7 @@ void worker_thread(SPSCQueue<TaskT*, kPoolSize>& in_queue,
 
 template <typename TaskT>
 void worker_thread_record(const int chunk_id,
+                          Logger<kNumToProcess>& logger,
                           SPSCQueue<TaskT*, kPoolSize>& in_queue,
                           SPSCQueue<TaskT*, kPoolSize>& out_queue,
                           std::function<void(TaskT&)> process_function) {
@@ -48,11 +49,11 @@ void worker_thread_record(const int chunk_id,
       std::this_thread::yield();
     }
 
-    RecordManager::instance().start_tick(processing_id, chunk_id);
+    logger.start_tick(processing_id, chunk_id);
 
     process_function(*task);
 
-    RecordManager::instance().end_tick(processing_id, chunk_id);
+    logger.end_tick(processing_id, chunk_id);
 
     while (!out_queue.enqueue(std::move(task))) {
       std::this_thread::yield();

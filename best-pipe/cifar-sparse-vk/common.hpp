@@ -45,6 +45,7 @@ std::thread create_thread(QueueT& in,
 template <typename QueueT>
 [[nodiscard]]
 std::thread create_thread_record(const int i,
+                                 Logger<kNumToProcess>& logger,
                                  QueueT& in,
                                  QueueT& out,
                                  const std::vector<int>& cores,
@@ -52,6 +53,7 @@ std::thread create_thread_record(const int i,
                                  const int end) {
   return std::thread(worker_thread_record<MyTask>,
                      i,
+                     std::ref(logger),
                      std::ref(in),
                      std::ref(out),
                      [&cores, start, end](MyTask& task) {
@@ -63,6 +65,7 @@ std::thread create_thread_record(const int i,
 template <typename QueueT>
 [[nodiscard]]
 std::thread create_thread_record(const int i,
+                                 Logger<kNumToProcess>& logger,
                                  QueueT& in,
                                  QueueT& out,
                                  cifar_sparse::vulkan::v2::VulkanDispatcher& disp,
@@ -71,6 +74,7 @@ std::thread create_thread_record(const int i,
   return std::thread(
       worker_thread_record<MyTask>,
       i,
+      std::ref(logger),
       std::ref(in),
       std::ref(out),
       [&disp, start, end](MyTask& task) { disp.dispatch_multi_stage(task.appdata, start, end); });
