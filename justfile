@@ -96,18 +96,14 @@ run-schedule:
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
 
+
+#  py parse_schedules_by_widest.py . --model data/2025-4-17/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
+
+
+
 # # log-to-timeline:
 #     python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_000.log 
 
-tmp:
-    rm -f accumuated_time.txt
-    echo "--------------------------------" >> accumuated_time.txt
-    python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_000.log >> accumuated_time.txt
-    echo "--------------------------------" >> accumuated_time.txt
-    python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_001.log >> accumuated_time.txt
-    echo "--------------------------------" >> accumuated_time.txt
-    python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_002.log >> accumuated_time.txt
-    cat accumuated_time.txt
 
 # run-schedule:
 #     rm -f 3A021JEHN02756_cifar-dense_schedules.log
