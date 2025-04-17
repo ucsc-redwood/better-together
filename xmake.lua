@@ -24,6 +24,8 @@ end
 -- - glm-1.0.1
 add_requires("spdlog") -- everything
 add_requires("cli11") -- all binaries
+
+add_requires("libmorton") -- octree applications
 add_requires("glm") -- tree applications
 
 add_requires("nlohmann_json")
@@ -53,6 +55,7 @@ on_load(function(target)
 	target:add("packages", "spdlog")
 	target:add("packages", "glm")
 	target:add("packages", "nlohmann_json")
+	target:add("packages", "libmorton")
 	
 	-- -- for adding debugging
 	-- target:add("cxxflags", "-pg")
