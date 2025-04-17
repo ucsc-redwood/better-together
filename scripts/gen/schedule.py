@@ -2,6 +2,7 @@ from z3 import Optimize, Bool, Real, Sum, If, Or, Not, RealVal, sat, Implies, An
 import pandas as pd
 import argparse
 import numpy as np
+import json
 
 
 def load_csv_and_compute_averages(csv_path):
@@ -46,12 +47,11 @@ def load_csv_and_compute_averages(csv_path):
 def define_data(stage_timings=None):
     """Define the problem data."""
     num_stages = 9
-    type_value = {"Little": 0, "Medium": 1, "Big": 2, "GPU": 3}
     core_types = ["Little", "Medium", "Big", "GPU"]
 
     # Use provided stage timings if available, otherwise use default values
     if stage_timings is not None:
-        return num_stages, core_types, type_value, stage_timings
+        return num_stages, core_types, stage_timings
 
     # Default timings if no CSV is provided
     default_stage_timings = [
@@ -66,7 +66,7 @@ def define_data(stage_timings=None):
         [0.0536, 0.0175, 0.0167, 0.2801],
     ]
 
-    return num_stages, core_types, type_value, default_stage_timings
+    return num_stages, core_types, default_stage_timings
 
 
 def create_decision_variables(num_stages, core_types):
@@ -283,13 +283,105 @@ def get_solution_representation(m, x, num_stages, core_types):
     return solution
 
 
+def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
+    """
+    Extract a detailed representation of the solution including stage assignments,
+    core types, and timing information.
+    """
+    # Get assignment of stages to core types
+    stage_assignments = {}
+    for i in range(num_stages):
+        for c in core_types:
+            if m.evaluate(x[(i, c)]):
+                stage_assignments[i] = {
+                    "core_type": c,
+                    "time": stage_timings[i][core_types.index(c)],
+                }
+                break
+
+    # Extract chunk information
+    chunks = []
+    current_chunk = 0
+    current_core_type = None
+    chunk_stages = []
+    chunk_time = 0.0
+
+    for i in range(num_stages):
+        stage_core_type = stage_assignments[i]["core_type"]
+        stage_time = stage_assignments[i]["time"]
+
+        if current_core_type is None:
+            # First stage
+            current_core_type = stage_core_type
+            chunk_stages.append(i)
+            chunk_time = stage_time
+        elif stage_core_type == current_core_type:
+            # Continuing the current chunk
+            chunk_stages.append(i)
+            chunk_time += stage_time
+        else:
+            # New chunk starts
+            chunks.append(
+                {
+                    "id": current_chunk,
+                    "core_type": current_core_type,
+                    "stages": chunk_stages.copy(),
+                    "time": chunk_time,
+                }
+            )
+            current_chunk += 1
+            current_core_type = stage_core_type
+            chunk_stages = [i]
+            chunk_time = stage_time
+
+    # Add the last chunk
+    if chunk_stages:
+        chunks.append(
+            {
+                "id": current_chunk,
+                "core_type": current_core_type,
+                "stages": chunk_stages.copy(),
+                "time": chunk_time,
+            }
+        )
+
+    # Calculate load balancing metrics
+    chunk_times = [chunk["time"] for chunk in chunks]
+    if chunk_times:
+        max_time = max(chunk_times)
+        min_time = min(chunk_times)
+        avg_time = sum(chunk_times) / len(chunk_times)
+        load_balance_ratio = min_time / max_time
+        load_imbalance_pct = (1 - load_balance_ratio) * 100
+        time_variance = sum((t - avg_time) ** 2 for t in chunk_times) / len(chunk_times)
+
+        metrics = {
+            "max_time": max_time,
+            "min_time": min_time,
+            "gapness": max_time - min_time,
+            "avg_time": avg_time,
+            "load_balance_ratio": load_balance_ratio,
+            "load_imbalance_pct": load_imbalance_pct,
+            "time_variance": time_variance,
+        }
+    else:
+        metrics = {}
+
+    return {
+        "stage_assignments": stage_assignments,
+        "chunks": chunks,
+        "metrics": metrics,
+    }
+
+
 def solve_optimization_problem(stage_timings, num_solutions=30):
     """Solve the optimization problem and display the solution."""
     # Initialize data
-    num_stages, core_types, type_value, fully_stage_timings = define_data(stage_timings)
+    num_stages, core_types, fully_stage_timings = define_data(stage_timings)
 
     # Prepare a list to hold up to num_solutions solutions
     top_solutions = []
+    detailed_solutions = []
 
     # Create optimizer
     opt = Optimize()
@@ -335,6 +427,16 @@ def solve_optimization_problem(stage_timings, num_solutions=30):
             m, x, num_stages, core_types, fully_stage_timings
         )
 
+        # Get detailed solution for JSON output
+        detailed_solution = get_detailed_solution(
+            m, x, num_stages, core_types, fully_stage_timings
+        )
+        detailed_solution["solution_id"] = solution_count + 1
+        detailed_solution["metrics"]["max_time"] = max_time
+        detailed_solution["metrics"]["min_time"] = min_time
+        detailed_solution["metrics"]["gapness"] = gapness_value
+        detailed_solutions.append(detailed_solution)
+
         # Store solution
         solution_repr = get_solution_representation(m, x, num_stages, core_types)
         top_solutions.append((gapness_value, max_time, solution_repr))
@@ -353,6 +455,36 @@ def solve_optimization_problem(stage_timings, num_solutions=30):
             print(
                 f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms"
             )
+
+    return detailed_solutions
+
+
+def dump_solutions_as_json(solutions, output_format="pretty", output_file=None):
+    """
+    Dump solutions in a format that can be easily parsed by Python.
+
+    Args:
+        solutions: List of solution dictionaries
+        output_format: 'pretty' for formatted JSON or 'compact' for compact JSON
+        output_file: Path to a file to write the JSON output to. If None, output to console only.
+    """
+    print("\n\n=== MACHINE PARSABLE OUTPUT START ===")
+    if output_format == "pretty":
+        json_str = json.dumps(solutions, indent=2)
+    else:
+        json_str = json.dumps(solutions)
+
+    print(json_str)
+    print("=== MACHINE PARSABLE OUTPUT END ===")
+
+    # Write to file if path is specified
+    if output_file:
+        try:
+            with open(output_file, "w") as f:
+                f.write(json_str)
+            print(f"\nSolutions written to {output_file}")
+        except Exception as e:
+            print(f"\nError writing to file {output_file}: {str(e)}")
 
 
 def parse_arguments():
@@ -373,6 +505,17 @@ def parse_arguments():
         help="Number of solutions to find",
         default=30,
     )
+    parser.add_argument(
+        "--output_file",
+        type=str,
+        help="Path to write the JSON output file (optional)",
+        default=None,
+    )
+    parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Write JSON in compact format instead of pretty format",
+    )
     return parser.parse_args()
 
 
@@ -382,4 +525,8 @@ if __name__ == "__main__":
     if args.csv_path:
         print(f"Loading data from CSV file: {args.csv_path}")
         stage_timings = load_csv_and_compute_averages(args.csv_path)
-        solve_optimization_problem(stage_timings, args.num_solutions)
+        solutions = solve_optimization_problem(stage_timings, args.num_solutions)
+
+        # Dump solutions in a machine-parsable format
+        output_format = "compact" if args.compact else "pretty"
+        dump_solutions_as_json(solutions, output_format, args.output_file)
