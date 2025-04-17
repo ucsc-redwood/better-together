@@ -74,14 +74,14 @@ void run_stage_4(tree::SafeAppData &appdata) {
 
 #pragma omp for
   for (int i = start; i < end; ++i) {
-    process_radix_tree_i(i,
-                         appdata.get_n_brt_nodes(),
-                         appdata.u_morton_keys_unique_s3.data(),
-                         appdata.u_brt_prefix_n_s4_out.data(),
-                         appdata.u_brt_has_leaf_left_s4_out.data(),
-                         appdata.u_brt_has_leaf_right_s4_out.data(),
-                         appdata.u_brt_left_child_s4_out.data(),
-                         appdata.u_brt_parents_s4_out.data());
+    v1::process_radix_tree_i(i,
+                             appdata.get_n_brt_nodes(),
+                             appdata.u_morton_keys_unique_s3.data(),
+                             appdata.u_brt_prefix_n_s4_out.data(),
+                             appdata.u_brt_has_leaf_left_s4_out.data(),
+                             appdata.u_brt_has_leaf_right_s4_out.data(),
+                             appdata.u_brt_left_child_s4_out.data(),
+                             appdata.u_brt_parents_s4_out.data());
   }
 }
 
@@ -97,10 +97,10 @@ void run_stage_5(tree::SafeAppData &appdata) {
 
 #pragma omp for
   for (int i = start; i < end; ++i) {
-    process_edge_count_i(i,
-                         appdata.u_brt_prefix_n_s4.data(),
-                         appdata.u_brt_parents_s4.data(),
-                         appdata.u_edge_count_s5_out.data());
+    v1::process_edge_count_i(i,
+                             appdata.u_brt_prefix_n_s4.data(),
+                             appdata.u_brt_parents_s4.data(),
+                             appdata.u_edge_count_s5_out.data());
   }
 }
 

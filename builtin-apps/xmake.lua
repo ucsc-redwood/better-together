@@ -66,6 +66,9 @@ do
 		"tree/tree_appdata.cpp",
 		"tree/safe_tree_appdata.cpp",
 		"tree/omp/dispatchers.cpp",
+
+		-- octree implementations
+		"octree/omp/dispatchers.cpp",
 	})
 
 	includes("cifar-dense/omp/xmake.lua")

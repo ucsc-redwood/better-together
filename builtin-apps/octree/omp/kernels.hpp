@@ -7,12 +7,17 @@
 
 namespace octree::omp {
 
+// ----------------------------------------------------------------------------
+// Stage 1 (xyz -> morton)
+// ----------------------------------------------------------------------------
+
 inline void compute_morton_codes(const glm::vec4* positions, const size_t n, uint32_t* codes_out) {
   // 1a) find bounding box via a parallel reduction
   float xmin = FLT_MAX, ymin = FLT_MAX, zmin = FLT_MAX;
   float xmax = -FLT_MAX, ymax = -FLT_MAX, zmax = -FLT_MAX;
 
-#pragma omp for reduction(min : xmin, ymin, zmin) reduction(max : xmax, ymax, zmax) schedule(static)
+  // #pragma omp for reduction(min : xmin, ymin, zmin) reduction(max : xmax, ymax, zmax)
+  // schedule(static)
   for (size_t i = 0; i < n; ++i) {
     const glm::vec4& p = positions[i];
     xmin = fminf(xmin, p.x);
