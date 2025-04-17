@@ -45,6 +45,8 @@ void run_stage_3(AppData &app) {
   {
     auto end_it = std::unique(app.u_morton_codes.begin(), app.u_morton_codes.begin() + app.n);
     app.m = std::distance(app.u_morton_codes.begin(), end_it);
+
+    assert(size_t(app.m) <= app.reserved_n);
   }
 
 #pragma omp barrier

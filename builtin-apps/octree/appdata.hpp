@@ -19,24 +19,27 @@ constexpr auto kDefaultInputSize = 1366 * 768;
 constexpr auto kMinCoord = 0.0;
 constexpr auto kMaxCoord = 1024.0;
 
+constexpr auto kFraction = 0.5f;
+
 struct AppData {
   explicit AppData(std::pmr::memory_resource* mr, const size_t n_input = kDefaultInputSize)
       : n(n_input),
+        reserved_n(n_input * kFraction),
         m(std::numeric_limits<size_t>::max()),
         total_children(std::numeric_limits<size_t>::max()),
         u_positions(n_input, mr),
         u_morton_codes(n_input, mr),
-        u_parents(n_input, mr),
-        u_left_child(n_input, mr),
-        u_has_leaf_left(n_input, mr),
-        u_has_leaf_right(n_input, mr),
-        u_prefix_length(n_input, mr),
-        u_edge_count(n_input, mr),
-        u_offsets(n_input, mr),
-        u_children(8 * n_input, mr) {
+        u_parents(reserved_n, mr),
+        u_left_child(reserved_n, mr),
+        u_has_leaf_left(reserved_n, mr),
+        u_has_leaf_right(reserved_n, mr),
+        u_prefix_length(reserved_n, mr),
+        u_edge_count(reserved_n, mr),
+        u_offsets(reserved_n, mr),
+        u_children(8 * reserved_n, mr) {
     // generate random positions
-    static std::mt19937 gen(114514);
-    static std::uniform_real_distribution dis(kMinCoord, kMaxCoord);
+    std::mt19937 gen(114514);
+    std::uniform_real_distribution dis(kMinCoord, kMaxCoord);
     std::ranges::generate(u_positions,
                           [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
 
@@ -61,7 +64,9 @@ struct AppData {
   // ----------------------------------------------------------------------------
 
   const size_t n;  // number of input points
-  size_t m;        // num nuque and brt nodes
+  const size_t reserved_n;
+
+  size_t m;  // num nuque and brt nodes
   size_t total_children;
 
   UsmVec<glm::vec4> u_positions;
