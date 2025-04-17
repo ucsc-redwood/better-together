@@ -12,7 +12,7 @@ class ScheduleRunner:
         self.tmp_dir = "tmp_folder"
         self.accumulated_file = "accumulated_time.txt"
 
-    def run_schedule(self, device, app):
+    def run_schedule(self, device, app, n_to_run):
         """Run benchmarking schedules for the given device and app."""
         if not device or not app:
             print("Error: Both device and app must be specified")
@@ -24,7 +24,7 @@ class ScheduleRunner:
 
         # Run the benchmark command
         schedule_url = f"http://192.168.1.204:8080/{device}_{app}_vk_schedules.json"
-        cmd = self._build_benchmark_command(device, app, schedule_url)
+        cmd = self._build_benchmark_command(device, app, schedule_url, n_to_run)
 
         try:
             print(f"Running command: {' '.join(cmd)}")
@@ -55,62 +55,6 @@ class ScheduleRunner:
             print(f"Error running schedule: {e}")
             return False
 
-    def run_schedule_part_2(self, device, app):
-        """Process logs and accumulate benchmark results."""
-        if not device or not app:
-            print("Error: Both device and app must be specified")
-            return False
-
-        log_file = f"{device}_{app}_schedules.log"
-        tmp2_file = "tmp2.txt"
-
-        if not os.path.exists(log_file):
-            print(f"Error: Log file {log_file} does not exist")
-            return False
-
-        # Run the processing script
-        cmd = [
-            "python3",
-            "scripts/plot/schedule_exe.py",
-            "--output-dir",
-            f"{self.tmp_dir}/",
-            log_file,
-        ]
-
-        try:
-            print(f"Running command: {' '.join(cmd)}")
-
-            # Use Popen for real-time output
-            with open(tmp2_file, "w") as out:
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    bufsize=1,
-                )
-
-                # Process output in real-time
-                for line in iter(process.stdout.readline, ""):
-                    print(line, end="")  # Print to console
-                    out.write(line)  # Write to output file
-
-                # Wait for process to complete
-                return_code = process.wait()
-                if return_code != 0:
-                    print(f"Command failed with return code {return_code}")
-                    return False
-
-            # Extract and accumulate execution time information with UIDs
-            self._extract_execution_time_with_uid(tmp2_file, log_file)
-
-            # Display accumulated results
-            self._display_accumulated_results()
-            return True
-        except subprocess.SubprocessError as e:
-            print(f"Error processing schedule results: {e}")
-            return False
-
     def _cleanup_files(self, log_file):
         """Clean up log files and temporary directories."""
         if os.path.exists(log_file):
@@ -119,7 +63,7 @@ class ScheduleRunner:
             shutil.rmtree(self.tmp_dir)
         os.makedirs(self.tmp_dir, exist_ok=True)
 
-    def _build_benchmark_command(self, device, app, schedule_url):
+    def _build_benchmark_command(self, device, app, schedule_url, n_to_run):
         """Build the benchmark command with appropriate parameters."""
         return [
             "xmake",
@@ -132,7 +76,7 @@ class ScheduleRunner:
             "--schedule-url",
             schedule_url,
             "--n-schedules-to-run",
-            "10",
+            str(n_to_run),
         ]
 
     def _extract_execution_time_with_uid(self, tmp2_file, log_file):
@@ -193,6 +137,13 @@ def parse_arguments():
         help="Application to run",
     )
 
+    parser.add_argument(
+        "--n-schedules-to-run",
+        type=int,
+        default=10,
+        help="Number of schedules to run",
+    )
+
     return parser.parse_args()
 
 
@@ -205,14 +156,7 @@ def main():
         if not args.device or not args.app:
             print("Error: Both --device and --app are required for 'run'")
             sys.exit(1)
-        success = runner.run_schedule(args.device, args.app)
-        if not success:
-            sys.exit(1)
-    elif args.task == "part2":
-        if not args.device or not args.app:
-            print("Error: Both --device and --app are required for 'part2'")
-            sys.exit(1)
-        success = runner.run_schedule_part_2(args.device, args.app)
+        success = runner.run_schedule(args.device, args.app, args.n_schedules_to_run)
         if not success:
             sys.exit(1)
 

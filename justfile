@@ -50,6 +50,9 @@ cat-android-tmp:
 # Used to compare non-full and full, uisng heatmap
 # ----------------------------------------------------------------------------
 
+# 1) Running the fully BM
+# 2) Running the normal BM
+# 3) Ran multiple times, store the results to a file
 collect-bm-data app:
     python3 scripts/collect/bm.py --log_folder data/2025-4-16/{{app}}/ \
         --repeat 3 --target bm-fully-{{app}}-vk
@@ -58,6 +61,7 @@ collect-bm-data-all:
     just collect-bm-data cifar-sparse
     just collect-bm-data cifar-dense
 
+# 1) From the stored file, make the heatmap
 make-bm-heatmap:
     python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-sparse/ --exclude_stages 2,4,8,9
     python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-dense/ --exclude_stages 2,4,8,9
@@ -71,16 +75,16 @@ make-bm-heatmap:
 # 4) Write the schedules to .json file
 gen-schedules-z3:
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/3A021JEHN02756_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
+        -n 30 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
 
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-dense_vk_schedules.json
+        -n 30 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-dense_vk_schedules.json
 
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/9b034f1b_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar-sparse_vk_schedules.json
+        -n 30 --output_file data/2025-4-16/schdules/9b034f1b_cifar-sparse_vk_schedules.json
 
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/9b034f1b_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar-dense_vk_schedules.json
+        -n 30 --output_file data/2025-4-16/schdules/9b034f1b_cifar-dense_vk_schedules.json
 
 
 # Running the schedules
