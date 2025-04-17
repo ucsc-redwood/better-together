@@ -157,4 +157,86 @@ static inline void build_radix_tree(const uint32_t* codes,
   }
 }
 
+//-----------------------------------------------------------------------------
+// Step 5: count, for each radix‐tree node i, how many distinct octants appear
+// in its [first..last] code‐range.
+//
+// codes           : sorted, unique Morton codes (30 bits: xyz interleaved)
+// n               : number of codes / nodes
+// left_child      : from build_radix_tree()
+// prefix_length   : from build_radix_tree()
+// edge_count_out  : length‑n raw array to fill
+//
+static inline void compute_edge_count_kernel(const uint32_t* codes,
+                                             int n,
+                                             const int* left_child,
+                                             const int* prefix_length,
+                                             int* edge_count_out) {
+  constexpr int MORTON_BITS = 30;
+#pragma omp for schedule(static)
+  for (int i = 0; i < n; ++i) {
+    int j = left_child[i];
+    int first = (i < j ? i : j);
+    int last = (i < j ? j : i);
+
+    // which bit‐triplet depth do we inspect?
+    int depth = prefix_length[i];
+    int shift = MORTON_BITS - depth - 3;  // next 3 bits
+    assert(shift >= 0);
+
+    // mark which of the 8 octants appear
+    bool seen[8] = {false};
+    for (int k = first; k <= last; ++k) {
+      int oct = (codes[k] >> shift) & 0x7;
+      seen[oct] = true;
+    }
+    int cnt = 0;
+    for (int o = 0; o < 8; ++o)
+      if (seen[o]) ++cnt;
+    edge_count_out[i] = cnt;
+  }
+}
+
+//-----------------------------------------------------------------------------
+// Step 7: scatter each node’s children into a flat array via the offsets.
+//
+// codes, n, left_child, prefix_length  : as above
+// edge_count             : computed in Step 5
+// offsets                : exclusive prefix‐sum of edge_count (length n)
+// children_out           : length = offsets[n-1] + edge_count[n-1]
+//
+static inline void build_octree_nodes_kernel(const uint32_t* codes,
+                                             int n,
+                                             const int* left_child,
+                                             const int* prefix_length,
+                                             const int* edge_count,
+                                             const int* offsets,
+                                             int* children_out) {
+  constexpr int MORTON_BITS = 30;
+#pragma omp for schedule(static)
+  for (int i = 0; i < n; ++i) {
+    int j = left_child[i];
+    int first = (i < j ? i : j);
+    int last = (i < j ? j : i);
+
+    int depth = prefix_length[i];
+    int shift = MORTON_BITS - depth - 3;
+    assert(shift >= 0);
+
+    // per‐octant cursor
+    int local_cursor[8] = {0};
+    bool used[8] = {false};
+    int base = offsets[i];
+
+    for (int k = first; k <= last; ++k) {
+      int oct = (codes[k] >> shift) & 0x7;
+      if (!used[oct]) {
+        int out_idx = base + local_cursor[oct]++;
+        children_out[out_idx] = k;
+        used[oct] = true;
+      }
+    }
+  }
+}
+
 }  // namespace octree::omp

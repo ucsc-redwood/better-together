@@ -1,5 +1,7 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
+
 #include <glm/vec4.hpp>
 #include <iostream>
 #include <memory_resource>
@@ -17,10 +19,9 @@ constexpr auto kDefaultInputSize = 1366 * 768;
 
 struct AppData {
   explicit AppData(std::pmr::memory_resource* mr, const size_t n_input = kDefaultInputSize)
-      : n_input(n_input),
-        n_unique_codes(std::numeric_limits<size_t>::max()),
-        n_brt_nodes(std::numeric_limits<size_t>::max()),
-        n_octree_nodes(std::numeric_limits<size_t>::max()),
+      : n(n_input),
+        m(std::numeric_limits<size_t>::max()),
+        total_children(std::numeric_limits<size_t>::max()),
         u_positions(n_input, mr),
         u_morton_codes(n_input, mr),
         u_parents(n_input, mr),
@@ -36,16 +37,30 @@ struct AppData {
     static std::uniform_real_distribution dis(0.0, 9999999999.0);
     std::ranges::generate(u_positions,
                           [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
+
+    // compute the memory usage
+    size_t total_memory = 0;
+    total_memory += u_positions.size() * sizeof(glm::vec4);
+    total_memory += u_morton_codes.size() * sizeof(MortonT);
+    total_memory += u_parents.size() * sizeof(int);
+    total_memory += u_left_child.size() * sizeof(int);
+    total_memory += u_has_leaf_left.size() * sizeof(uint8_t);
+    total_memory += u_has_leaf_right.size() * sizeof(uint8_t);
+    total_memory += u_prefix_length.size() * sizeof(int);
+    total_memory += u_edge_count.size() * sizeof(int);
+    total_memory += u_offsets.size() * sizeof(int);
+    total_memory += u_children.size() * sizeof(int) * 8;
+
+    spdlog::trace("Memory usage: {} MB", total_memory / 1024.0 / 1024.0);
   }
 
   // ----------------------------------------------------------------------------
   // Data
   // ----------------------------------------------------------------------------
 
-  const size_t n_input;
-  size_t n_unique_codes;
-  size_t n_brt_nodes;
-  size_t n_octree_nodes;
+  const size_t n;  // number of input points
+  size_t m;        // num nuque and brt nodes
+  size_t total_children;
 
   UsmVec<glm::vec4> u_positions;
   UsmVec<MortonT> u_morton_codes;
@@ -69,7 +84,7 @@ struct AppData {
   // Print the flat radix tree in AppData.
   // Assumes `n_brt_nodes` is set to the active node count.
   void print_radix_tree(const AppData& app, const size_t n_display) {
-    auto num_display = std::min(n_display, app.n_brt_nodes);
+    auto num_display = std::min(n_display, app.m);
 
     std::cout << "=== Radix Tree (" << num_display << " nodes) ===\n";
     for (size_t i = 0; i < num_display; ++i) {
@@ -84,6 +99,30 @@ struct AppData {
                 << "  " << "L=" << lc << (leafL ? "[leaf]" : "[int]") << "  " << "R=" << rc
                 << (leafR ? "[leaf]" : "[int]") << "\n";
     }
+    std::cout << "=====================================\n";
+  }
+
+  inline void print_octree_nodes(const AppData& app) {
+    size_t totalChildren = app.u_offsets[app.m - 1] + app.u_edge_count[app.m - 1];
+
+    std::cout << "=== Octree (" << app.m << " internal nodes, " << totalChildren
+              << " total child refs) ===\n";
+
+    for (size_t i = 0; i < app.m; ++i) {
+      int offset = app.u_offsets[i];
+      int cnt = app.u_edge_count[i];
+
+      std::cout << "Node[" << i << "] " << "children_count=" << cnt << " -> { ";
+
+      for (int j = 0; j < cnt; ++j) {
+        int childIdx = app.u_children[offset + j];
+        std::cout << childIdx;
+        if (j + 1 < cnt) std::cout << ", ";
+      }
+
+      std::cout << " }\n";
+    }
+
     std::cout << "=====================================\n";
   }
 };
