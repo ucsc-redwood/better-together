@@ -6,6 +6,12 @@ from collections import defaultdict
 import sys
 import argparse
 
+# =======================================================================================
+#  Given a log file (contains multiple schedules), plot the execution timeline for each
+#  example: 
+#  python3 scripts/plot/timeline.py 3A021JEHN02756_cifar-sparse_schedules.log --output-dir tmp_folder
+# =======================================================================================
+
 
 def parse_arguments():
     """Parse command line arguments."""
@@ -65,6 +71,14 @@ def extract_frequency(section):
     if freq_match:
         return int(freq_match.group(1))
     return 24576000  # Default frequency in Hz
+
+
+def extract_schedule_uid(section):
+    """Extract Schedule_UID from a Python section."""
+    uid_match = re.search(r"Schedule_UID: ([\w\-]+)", section)
+    if uid_match:
+        return uid_match.group(1)
+    return None
 
 
 def extract_schedule_annotations(section):
@@ -361,6 +375,7 @@ def create_gantt_chart(
     chunk_total_durations,
     CYCLES_TO_MS,
     schedule_index,
+    schedule_uid,
     args,
     output_dir,
 ):
@@ -470,11 +485,16 @@ def create_gantt_chart(
     ax.set_yticks(y_ticks)
     ax.set_yticklabels(y_labels)
     ax.set_xlabel("Time (ms, converted from cycles)", fontsize=12)
-    ax.set_title(
-        f"Schedule {schedule_index+1} - Chunk Execution Timeline ({args.start_time*100:.0f}%-{args.end_time*100:.0f}% of execution)\n"
-        f"Time range: {display_start_ms:.2f}ms - {display_end_ms:.2f}ms, {len(active_chunks)} active chunks",
-        fontsize=14,
-    )
+    
+    # Add schedule_uid to the title if available
+    title = f"Schedule {schedule_index+1}"
+    if schedule_uid:
+        title += f" [UID: {schedule_uid}]"
+    
+    title += f" - Chunk Execution Timeline ({args.start_time*100:.0f}%-{args.end_time*100:.0f}% of execution)\n"
+    title += f"Time range: {display_start_ms:.2f}ms - {display_end_ms:.2f}ms, {len(active_chunks)} active chunks"
+    
+    ax.set_title(title, fontsize=14)
     ax.grid(True, axis="x", linestyle="--", alpha=0.7)
 
     # Set the x-axis limits to our desired time range
@@ -616,6 +636,11 @@ def process_schedule(section, schedule_index, args):
     # Parse the task data
     frequency = extract_frequency(section)
     print(f"Detected frequency: {frequency} Hz")
+    
+    # Extract Schedule_UID
+    schedule_uid = extract_schedule_uid(section)
+    if schedule_uid:
+        print(f"Detected Schedule_UID: {schedule_uid}")
 
     schedule_annotations = extract_schedule_annotations(section)
     if schedule_annotations:
@@ -672,6 +697,7 @@ def process_schedule(section, schedule_index, args):
         chunk_total_durations,
         CYCLES_TO_MS,
         schedule_index,
+        schedule_uid,
         args,
         args.output_dir,
     )
