@@ -71,16 +71,16 @@ make-bm-heatmap:
 # 4) Write the schedules to .json file
 gen-schedules-z3:
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/3A021JEHN02756_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar_sparse_vk_schedules.json
+        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
 
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar_dense_vk_schedules.json
+        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-dense_vk_schedules.json
 
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/9b034f1b_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar_sparse_vk_schedules.json
+        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar-sparse_vk_schedules.json
 
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/9b034f1b_fully.csv \
-        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar_dense_vk_schedules.json
+        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar-dense_vk_schedules.json
 
 
 # Running the schedules
