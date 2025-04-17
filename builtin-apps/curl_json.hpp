@@ -83,20 +83,3 @@ static nlohmann::json fetch_json_from_url(const std::string& url) {
   nlohmann::json j = nlohmann::json::parse(readBuffer);
   return j;
 }
-
-// // Example main function to test the above function.
-// int main() {
-//   // Replace with your actual remote JSON URL.
-//   std::string url = "https://api.example.com/data.json";
-
-//   try {
-//     nlohmann::json data = fetch_json_from_url(url);
-//     // Print the fetched and parsed JSON with indentation.
-//     std::cout << data.dump(4) << std::endl;
-//   } catch (const std::exception& ex) {
-//     std::cerr << "Error: " << ex.what() << std::endl;
-//     return EXIT_FAILURE;
-//   }
-
-//   return EXIT_SUCCESS;
-// }
