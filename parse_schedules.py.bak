@@ -39,6 +39,18 @@ def parse_arguments():
         help="Output directory for visualization files",
         default="./results",
     )
+    parser.add_argument(
+        "--start-time",
+        type=float,
+        help="Start time as percentage (0.0-1.0) of overall execution",
+        default=0.0,
+    )
+    parser.add_argument(
+        "--end-time",
+        type=float,
+        help="End time as percentage (0.0-1.0) of overall execution",
+        default=1.0,
+    )
     return parser.parse_args()
 
 
@@ -170,17 +182,31 @@ def process_log_file(log_file):
         task_metrics = {}
         chunk_metrics = defaultdict(lambda: {"total_duration": 0, "task_count": 0})
 
+        # Calculate total end-to-end time for this schedule
+        min_start_time = float('inf')
+        max_end_time = 0
+
         for task_id, chunks in tasks.items():
             task_total_duration = 0
             task_metrics[task_id] = {"chunks": {}}
 
+            # Find minimum start time and maximum end time
             for chunk_id, chunk_data in chunks.items():
+                start_time = chunk_data["start"]
+                end_time = chunk_data["end"]
+
+                if start_time < min_start_time:
+                    min_start_time = start_time
+                if end_time > max_end_time:
+                    max_end_time = end_time
+
+                # Process chunk data
                 duration_ms = chunk_data["duration_cycles"] * cycles_to_ms
 
                 # Update task metrics
                 task_metrics[task_id]["chunks"][chunk_id] = {
-                    "start_ms": chunk_data["start"] * cycles_to_ms,
-                    "end_ms": chunk_data["end"] * cycles_to_ms,
+                    "start_ms": start_time * cycles_to_ms,
+                    "end_ms": end_time * cycles_to_ms,
                     "duration_ms": duration_ms,
                 }
                 task_total_duration += duration_ms
@@ -200,6 +226,9 @@ def process_log_file(log_file):
             else:
                 metrics["avg_duration"] = 0
 
+        # Calculate total execution time of this schedule
+        total_execution_time_ms = (max_end_time - min_start_time) * cycles_to_ms if min_start_time != float('inf') else 0
+
         # Create schedule data
         schedule_data = {
             "device": device,
@@ -211,6 +240,9 @@ def process_log_file(log_file):
             "num_tasks": len(task_metrics),
             "num_chunks": len(chunk_metrics),
             "log_file": log_file,
+            "min_start_time": min_start_time,
+            "max_end_time": max_end_time,
+            "total_execution_time_ms": total_execution_time_ms,
         }
 
         schedules_data.append(schedule_data)
@@ -251,10 +283,10 @@ def print_individual_statistics(schedules_data):
 
 
 def create_comparison_visualization(
-    widest_chunks, model_predictions, output_dir, raw_data
+    avg_times, model_predictions, output_dir, raw_data, window_str=""
 ):
     """Create visualization comparing measured results with model predictions."""
-    if not model_predictions or not widest_chunks:
+    if not model_predictions or not avg_times:
         return
 
     # Create output directory if it doesn't exist
@@ -267,7 +299,7 @@ def create_comparison_visualization(
     error_bars = []
 
     # Matching UIDs that have both measurements and predictions
-    matching_uids = sorted(set(widest_chunks.keys()) & set(model_predictions.keys()))
+    matching_uids = sorted(set(avg_times.keys()) & set(model_predictions.keys()))
 
     if not matching_uids:
         print("No matching UIDs found between measurements and predictions")
@@ -276,21 +308,17 @@ def create_comparison_visualization(
     # Collect data
     for uid in matching_uids:
         schedule_uids.append(uid)
-        measured_times.append(widest_chunks[uid]["duration_ms"])
+        measured_times.append(avg_times[uid]["avg_time_ms"])
         predicted_times.append(model_predictions[uid])
 
         # Calculate standard deviation for error bars from raw data
         std_dev = 0
         if uid in raw_data:
-            # If we have raw data for this schedule, calculate std dev across log files
-            durations = []
-            for schedule in raw_data[uid]:
-                chunk_id = widest_chunks[uid]["chunk_id"]
-                if chunk_id in schedule["chunks"]:
-                    durations.append(schedule["chunks"][chunk_id]["avg_duration"])
-
-            if len(durations) > 1:
-                std_dev = np.std(durations)
+            # Calculate std dev for the total execution times
+            if "execution_times_ms" in avg_times[uid]:
+                execution_times = avg_times[uid]["execution_times_ms"]
+                if len(execution_times) > 1:
+                    std_dev = np.std(execution_times)
 
         error_bars.append(std_dev)
 
@@ -327,7 +355,10 @@ def create_comparison_visualization(
     # Add labels and title
     plt.xlabel("Schedule UID")
     plt.ylabel("Time (ms)")
-    plt.title("Comparison of Measured vs Predicted Execution Times")
+    title = "Comparison of Measured vs Predicted Execution Times"
+    if window_str:
+        title += f" ({window_str})"
+    plt.title(title)
     plt.xticks(x, [uid.split("-")[1] for uid in schedule_uids], rotation=45, ha="right")
     plt.legend()
 
@@ -352,8 +383,13 @@ def create_comparison_visualization(
     plt.tight_layout()
 
     # Save figure
-    plt.savefig(os.path.join(output_dir, "comparison_chart.png"), dpi=300)
-    print(f"Visualization saved to {os.path.join(output_dir, 'comparison_chart.png')}")
+    filename = "comparison_chart"
+    if window_str:
+        filename += f"_{window_str.replace(' ', '_')}"
+    filename += ".png"
+
+    plt.savefig(os.path.join(output_dir, filename), dpi=300)
+    print(f"Visualization saved to {os.path.join(output_dir, filename)}")
 
     # Create scatter plot for correlation
     plt.figure(figsize=(10, 8))
@@ -366,7 +402,10 @@ def create_comparison_visualization(
     # Add labels
     plt.xlabel("Predicted Time (ms)")
     plt.ylabel("Measured Time (ms)")
-    plt.title("Correlation between Predicted and Measured Times")
+    title = "Correlation between Predicted and Measured Times"
+    if window_str:
+        title += f" ({window_str})"
+    plt.title(title)
 
     # Add schedule labels to points
     for i, uid in enumerate(schedule_uids):
@@ -395,95 +434,22 @@ def create_comparison_visualization(
     plt.tight_layout()
 
     # Save scatter plot
-    plt.savefig(os.path.join(output_dir, "correlation_plot.png"), dpi=300)
-    print(
-        f"Correlation plot saved to {os.path.join(output_dir, 'correlation_plot.png')}"
-    )
+    scatter_filename = "correlation_plot"
+    if window_str:
+        scatter_filename += f"_{window_str.replace(' ', '_')}"
+    scatter_filename += ".png"
+
+    plt.savefig(os.path.join(output_dir, scatter_filename), dpi=300)
+    print(f"Correlation plot saved to {os.path.join(output_dir, scatter_filename)}")
 
 
-def calculate_aggregated_statistics(all_schedules):
-    """Aggregate statistics across all log files, grouped by schedule UID."""
-    # Group schedules by their UID
-    grouped_schedules = defaultdict(list)
-    for schedule in all_schedules:
-        grouped_schedules[schedule["schedule_uid"]].append(schedule)
-
-    # Calculate aggregated statistics for each schedule UID
-    aggregated_stats = {}
-
-    for schedule_uid, schedules in grouped_schedules.items():
-        # Initialize aggregation data structure
-        chunk_data = defaultdict(lambda: {"durations": [], "task_counts": []})
-        log_files = set()
-        devices = set()
-        applications = set()
-
-        # Collect data from all instances of this schedule
-        for schedule in schedules:
-            log_files.add(os.path.basename(schedule["log_file"]))
-            devices.add(schedule["device"])
-            applications.add(schedule["application"])
-
-            # Collect chunk data
-            for chunk_id, chunk_metrics in schedule["chunks"].items():
-                chunk_data[chunk_id]["durations"].append(chunk_metrics["avg_duration"])
-                chunk_data[chunk_id]["task_counts"].append(chunk_metrics["task_count"])
-
-        # Calculate averages
-        avg_by_chunk = {}
-        for chunk_id, data in chunk_data.items():
-            if data["durations"]:
-                avg_duration = sum(data["durations"]) / len(data["durations"])
-                avg_task_count = sum(data["task_counts"]) / len(data["task_counts"])
-                avg_by_chunk[chunk_id] = {
-                    "avg_duration_ms": avg_duration,
-                    "avg_task_count": avg_task_count,
-                    "sample_count": len(data["durations"]),
-                }
-
-        # Store aggregated stats
-        aggregated_stats[schedule_uid] = {
-            "devices": list(devices),
-            "applications": list(applications),
-            "log_files": list(log_files),
-            "num_samples": len(schedules),
-            "chunks": avg_by_chunk,
-        }
-
-    return aggregated_stats, grouped_schedules
-
-
-def print_aggregated_statistics(aggregated_stats):
-    """Print the aggregated statistics across all log files."""
-    print("\n===== AGGREGATED STATISTICS BY SCHEDULE =====")
-
-    for i, (schedule_uid, stats) in enumerate(sorted(aggregated_stats.items())):
-        print(f"\nSchedule {i+1}: {schedule_uid}")
-        print(
-            f"Samples: {stats['num_samples']} (from {len(stats['log_files'])} log files)"
-        )
-        print(f"Devices: {', '.join(stats['devices'])}")
-        print(f"Applications: {', '.join(stats['applications'])}")
-
-        print("\nAverage time by chunks (across all log files):")
-        for chunk_id, chunk_stats in sorted(stats["chunks"].items()):
-            avg_duration = chunk_stats["avg_duration_ms"]
-            avg_task_count = chunk_stats["avg_task_count"]
-            sample_count = chunk_stats["sample_count"]
-            print(
-                f"  Chunk {chunk_id}: {avg_duration:.2f} ms (avg) / {avg_task_count:.1f} tasks (avg) / {sample_count} samples"
-            )
-
-        print("-" * 50)
-
-
-def perform_statistical_analysis(widest_chunks, model_predictions):
+def perform_statistical_analysis(avg_times, model_predictions, window_str=""):
     """Perform detailed statistical analysis on measured vs predicted times."""
-    if not model_predictions or not widest_chunks:
+    if not model_predictions or not avg_times:
         return
 
     # Extract data for matched UIDs
-    matching_uids = sorted(set(widest_chunks.keys()) & set(model_predictions.keys()))
+    matching_uids = sorted(set(avg_times.keys()) & set(model_predictions.keys()))
 
     if not matching_uids:
         print("No matching UIDs found between measurements and predictions")
@@ -496,7 +462,7 @@ def perform_statistical_analysis(widest_chunks, model_predictions):
     rel_differences_pct = []
 
     for uid in matching_uids:
-        measured = widest_chunks[uid]["duration_ms"]
+        measured = avg_times[uid]["avg_time_ms"]
         predicted = model_predictions[uid]
 
         measured_times.append(measured)
@@ -547,7 +513,7 @@ def perform_statistical_analysis(widest_chunks, model_predictions):
     within_20_pct = sum(abs(diff) <= 20 for diff in rel_differences_pct)
 
     # Print the analysis
-    print("\n===== STATISTICAL ANALYSIS =====")
+    print(f"\n===== STATISTICAL ANALYSIS {window_str} =====")
     print(f"Total comparisons: {len(matching_uids)}")
 
     print("\nCorrelation Statistics:")
@@ -607,14 +573,14 @@ def load_model_predictions(json_file_path):
     if not os.path.exists(json_file_path):
         print(f"Error: Model file {json_file_path} not found")
         return {}
-
+    
     try:
         with open(json_file_path, "r") as f:
             model_data = json.load(f)
     except Exception as e:
         print(f"Error loading model file {json_file_path}: {e}")
         return {}
-
+    
     # Create a dictionary mapping schedule UIDs to their predicted times
     predictions = {}
     for schedule in model_data:
@@ -626,86 +592,110 @@ def load_model_predictions(json_file_path):
             uid = schedule["uid"]
             predicted_time = schedule["metrics"]["max_time"]
             predictions[uid] = predicted_time
-
+    
     print(f"Loaded {len(predictions)} model predictions from {json_file_path}")
     return predictions
 
 
-def print_comparison_results(widest_chunks, model_predictions):
-    """Print comparison between measured widest chunks and model predictions."""
-    if not model_predictions:
-        return
+def calculate_average_execution_times(all_schedules, start_time_pct=0.0, end_time_pct=1.0):
+    """Calculate average end-to-end execution times within a specified time window."""
+    # Group schedules by their UID
+    grouped_schedules = defaultdict(list)
+    for schedule in all_schedules:
+        grouped_schedules[schedule["schedule_uid"]].append(schedule)
 
-    print("\n===== MEASURED VS PREDICTED TIMES =====")
-    print(
-        "Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  "
-    )
-    print("-" * 80)
+    # Calculate aggregated execution times for each schedule UID
+    avg_execution_times = {}
 
-    # Count matches and total comparisons
-    total_comparisons = 0
-    within_5_percent = 0
-    within_10_percent = 0
-    within_20_percent = 0
+    for schedule_uid, schedules in grouped_schedules.items():
+        execution_times_ms = []
+        total_num_tasks = 0
 
-    # Calculate statistics
-    rmse = 0
-    mae = 0
+        for schedule in schedules:
+            # Skip if no execution time data
+            if "min_start_time" not in schedule or "max_end_time" not in schedule:
+                continue
 
-    for schedule_uid, chunk_info in sorted(widest_chunks.items()):
-        measured_time = chunk_info["duration_ms"]
+            min_start = schedule["min_start_time"]
+            max_end = schedule["max_end_time"]
 
-        if schedule_uid in model_predictions:
-            predicted_time = model_predictions[schedule_uid]
-            difference = measured_time - predicted_time
-            diff_percent = (
-                (difference / predicted_time) * 100
-                if predicted_time != 0
-                else float("inf")
-            )
+            if min_start == float('inf') or max_end == 0:
+                continue
 
-            print(
-                f"{schedule_uid:30} : {measured_time:12.2f}  {predicted_time:14.2f}  {diff_percent:+14.2f}%"
-            )
+            # Calculate the time window
+            total_time_span = max_end - min_start
+            window_start = min_start + (start_time_pct * total_time_span)
+            window_end = min_start + (end_time_pct * total_time_span)
 
-            # Update statistics
-            total_comparisons += 1
-            if abs(diff_percent) <= 5:
-                within_5_percent += 1
-            if abs(diff_percent) <= 10:
-                within_10_percent += 1
-            if abs(diff_percent) <= 20:
-                within_20_percent += 1
+            # Count tasks in the time window
+            tasks_in_window = 0
+            total_time_in_window = 0
 
-            # Update error metrics
-            rmse += (measured_time - predicted_time) ** 2
-            mae += abs(measured_time - predicted_time)
-        else:
-            print(f"{schedule_uid:30} : {measured_time:12.2f}  {'N/A':14}  {'N/A':14}")
+            for task_id, task_data in schedule["tasks"].items():
+                for chunk_id, chunk_data in task_data["chunks"].items():
+                    # Convert to cycles for comparison
+                    chunk_start = chunk_data["start_ms"] / (1e3 / schedule["frequency_hz"])
+                    chunk_end = chunk_data["end_ms"] / (1e3 / schedule["frequency_hz"])
 
-    # Print statistics summary
-    if total_comparisons > 0:
-        rmse = (rmse / total_comparisons) ** 0.5
-        mae = mae / total_comparisons
+                    # Check if this chunk is within the time window
+                    if chunk_end >= window_start and chunk_start <= window_end:
+                        tasks_in_window += 1
 
-        print("\nComparison Statistics:")
-        print(f"Total comparisons: {total_comparisons}")
+                        # Calculate the overlapping time
+                        overlap_start = max(chunk_start, window_start)
+                        overlap_end = min(chunk_end, window_end)
+                        overlap_duration = overlap_end - overlap_start
+
+                        # Convert back to ms
+                        overlap_duration_ms = overlap_duration * (1e3 / schedule["frequency_hz"])
+                        total_time_in_window += overlap_duration_ms
+
+            if tasks_in_window > 0:
+                avg_time = total_time_in_window / tasks_in_window
+                execution_times_ms.append(avg_time)
+                total_num_tasks += tasks_in_window
+
+        # Calculate average across all log files
+        if execution_times_ms:
+            avg_execution_times[schedule_uid] = {
+                "avg_time_ms": sum(execution_times_ms) / len(execution_times_ms),
+                "execution_times_ms": execution_times_ms,
+                "num_samples": len(execution_times_ms),
+                "total_tasks": total_num_tasks
+            }
+
+    return avg_execution_times
+
+
+def print_average_execution_times(avg_times, window_str=""):
+    """Print the average execution times for each schedule."""
+    print(f"\n===== AVERAGE EXECUTION TIMES {window_str} =====")
+    print("Schedule UID                    : Avg Time (ms)  Samples  Total Tasks")
+    print("-" * 70)
+
+    for schedule_uid, data in sorted(avg_times.items()):
         print(
-            f"Within 5% margin: {within_5_percent} ({within_5_percent/total_comparisons*100:.2f}%)"
+            f"{schedule_uid:30} : {data['avg_time_ms']:12.2f}  {data['num_samples']:7}  {data['total_tasks']:10}"
         )
-        print(
-            f"Within 10% margin: {within_10_percent} ({within_10_percent/total_comparisons*100:.2f}%)"
-        )
-        print(
-            f"Within 20% margin: {within_20_percent} ({within_20_percent/total_comparisons*100:.2f}%)"
-        )
-        print(f"Root Mean Square Error (RMSE): {rmse:.4f} ms")
-        print(f"Mean Absolute Error (MAE): {mae:.4f} ms")
 
 
 def main():
     """Main function to process all log files."""
     args = parse_arguments()
+
+    # Validate percentage inputs
+    if args.start_time < 0.0 or args.start_time > 1.0:
+        print("Error: start-time must be between 0.0 and 1.0")
+        return 1
+    if args.end_time < 0.0 or args.end_time > 1.0:
+        print("Error: end-time must be between 0.0 and 1.0")
+        return 1
+    if args.end_time <= args.start_time:
+        print("Error: end-time must be greater than start-time")
+        return 1
+
+    # Create window string for output
+    window_str = f"Window {args.start_time:.2f}-{args.end_time:.2f}"
 
     # Load model predictions if specified
     model_predictions = {}
@@ -733,51 +723,49 @@ def main():
     if args.verbose:
         print_individual_statistics(all_schedules)
 
-    # Calculate and print aggregated statistics
-    aggregated_stats, raw_data_by_uid = calculate_aggregated_statistics(all_schedules)
-    print_aggregated_statistics(aggregated_stats)
+    # Calculate and print average execution times
+    avg_times = calculate_average_execution_times(
+        all_schedules, args.start_time, args.end_time
+    )
+    print_average_execution_times(avg_times, window_str)
 
-    # Extract widest chunks for comparison with model
-    widest_chunks = {}
-    for schedule_uid, stats in aggregated_stats.items():
-        # Find the widest chunk for this schedule
-        widest_chunk_id = None
-        widest_chunk_duration = 0
-
-        for chunk_id, chunk_stats in stats["chunks"].items():
-            avg_duration = chunk_stats["avg_duration_ms"]
-            if avg_duration > widest_chunk_duration:
-                widest_chunk_duration = avg_duration
-                widest_chunk_id = chunk_id
-
-        # Store widest chunk info
-        if widest_chunk_id is not None:
-            widest_chunks[schedule_uid] = {
-                "chunk_id": widest_chunk_id,
-                "duration_ms": widest_chunk_duration,
-            }
-
-    # Print widest chunk summary
-    print("\n===== WIDEST CHUNK SUMMARY =====")
-    print("Schedule UID                    : Chunk ID  Duration (ms)")
-    print("-" * 60)
-
-    for schedule_uid, chunk_info in sorted(widest_chunks.items()):
-        print(
-            f"{schedule_uid:30} : Chunk {chunk_info['chunk_id']:2}   {chunk_info['duration_ms']:.2f} ms"
-        )
+    # Group schedules for error bar calculation
+    raw_data_by_uid = defaultdict(list)
+    for schedule in all_schedules:
+        raw_data_by_uid[schedule["schedule_uid"]].append(schedule)
 
     # Compare with model predictions if available
     if model_predictions:
-        # Print comparison table
-        print_comparison_results(widest_chunks, model_predictions)
+        print("\n===== MEASURED VS PREDICTED TIMES =====")
+        print(
+            "Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  "
+        )
+        print("-" * 80)
+
+        for schedule_uid, data in sorted(avg_times.items()):
+            measured_time = data["avg_time_ms"]
+
+            if schedule_uid in model_predictions:
+                predicted_time = model_predictions[schedule_uid]
+                difference = measured_time - predicted_time
+                diff_percent = (
+                    (difference / predicted_time) * 100
+                    if predicted_time != 0
+                    else float("inf")
+                )
+
+                print(
+                    f"{schedule_uid:30} : {measured_time:12.2f}  {predicted_time:14.2f}  {diff_percent:+14.2f}%"
+                )
+            else:
+                print(f"{schedule_uid:30} : {measured_time:12.2f}  {'N/A':14}  {'N/A':14}")
 
         # Perform statistical analysis
-        perform_statistical_analysis(widest_chunks, model_predictions)
+        perform_statistical_analysis(avg_times, model_predictions, window_str)
 
         # Create visualization
         create_comparison_visualization(
-            widest_chunks, model_predictions, args.output, raw_data_by_uid
+            avg_times, model_predictions, args.output, raw_data_by_uid, window_str
         )
 
     print(
