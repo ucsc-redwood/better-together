@@ -87,6 +87,10 @@ serve:
 
 
 # Run 3 times to get 3 .log files
+# [Input]
+#   schedules.json
+# [Output]
+#   .log files
 run-schedule:
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
