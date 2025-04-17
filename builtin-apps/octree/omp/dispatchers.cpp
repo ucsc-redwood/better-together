@@ -17,7 +17,7 @@ void run_stage_1(AppData &app) {
                                   app.n,
                                   glm::vec3(kMinCoord, kMinCoord, kMinCoord),
                                   glm::vec3(kMaxCoord, kMaxCoord, kMaxCoord),
-                                  app.u_morton_codes.data());
+                                  app.u_morton_codes_alt.data());
 
 #pragma omp barrier
 }
@@ -32,6 +32,8 @@ void run_stage_2(AppData &app) {
   const auto num_threads = omp_get_num_threads();
   const int tid = omp_get_thread_num();
   ::tree::omp::parallel_sort(app.u_morton_codes, app.u_morton_codes, tid, num_threads);
+
+#pragma omp barrier
 }
 
 // ----------------------------------------------------------------------------

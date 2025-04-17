@@ -28,6 +28,7 @@ struct AppData {
         m(std::numeric_limits<size_t>::max()),
         total_children(std::numeric_limits<size_t>::max()),
         u_positions(n_input, mr),
+        u_morton_codes_alt(n_input, mr),
         u_morton_codes(n_input, mr),
         u_parents(reserved_n, mr),
         u_left_child(reserved_n, mr),
@@ -46,6 +47,7 @@ struct AppData {
     // compute the memory usage
     size_t total_memory = 0;
     total_memory += u_positions.size() * sizeof(glm::vec4);
+    total_memory += u_morton_codes_alt.size() * sizeof(MortonT);
     total_memory += u_morton_codes.size() * sizeof(MortonT);
     total_memory += u_parents.size() * sizeof(int);
     total_memory += u_left_child.size() * sizeof(int);
@@ -70,6 +72,10 @@ struct AppData {
   size_t total_children;
 
   UsmVec<glm::vec4> u_positions;
+
+  // I let xyz -> morton stored in "alt" first, then copy it to "morton_codes"
+  // This is because I want to use the original morton codes for sorting
+  UsmVec<MortonT> u_morton_codes_alt;
   UsmVec<MortonT> u_morton_codes;
 
   // Radix Tree
