@@ -82,6 +82,100 @@ struct BuildOctreeNodesPushConstants {
 
 VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
+
+  auto morton_algo = engine.make_algo("octree_morton")
+                         ->work_group_size(256, 1, 1)
+                         ->num_sets(1)
+                         ->num_buffers(2)
+                         ->push_constant<MortonPushConstants>()
+                         ->build();
+
+  cached_algorithms.try_emplace("octree_morton", std::move(morton_algo));
+
+  auto build_edge_count_algo = engine.make_algo("octree_edge_count")
+                                   ->work_group_size(256, 1, 1)
+                                   ->num_sets(1)
+                                   ->num_buffers(5)
+                                   ->push_constant<BuildEdgeCountPushConstants>()
+                                   ->build();
+
+  cached_algorithms.try_emplace("octree_edge_count", std::move(build_edge_count_algo));
+
+  auto build_radix_tree_algo = engine.make_algo("octree_build_radix_tree")
+                                   ->work_group_size(256, 1, 1)
+                                   ->num_sets(1)
+                                   ->num_buffers(6)
+                                   ->push_constant<BuildRadixTreePushConstants>()
+                                   ->build();
+
+  cached_algorithms.try_emplace("octree_build_radix_tree", std::move(build_radix_tree_algo));
+
+  auto build_octree_nodes_algo = engine.make_algo("octree_build_octree_nodes")
+                                     ->work_group_size(256, 1, 1)
+                                     ->num_sets(1)
+                                     ->num_buffers(6)
+                                     ->push_constant<BuildOctreeNodesPushConstants>()
+                                     ->build();
+
+  cached_algorithms.try_emplace("octree_build_octree_nodes", std::move(build_octree_nodes_algo));
+}
+
+// ----------------------------------------------------------------------------
+// Stage 1
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_1(AppData& appdata) {
+  auto algo = cached_algorithms.at("octree_morton").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+}
+
+// ----------------------------------------------------------------------------
+// Stage 2
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_2(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
+}
+
+// ----------------------------------------------------------------------------
+// Stage 3
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_3(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+}
+
+// ----------------------------------------------------------------------------
+// Stage 4
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_4(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
+}
+
+// ----------------------------------------------------------------------------
+// Stage 5
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_5(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
+}
+
+// ----------------------------------------------------------------------------
+// Stage 6
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_6(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
+}
+
+// ----------------------------------------------------------------------------
+// Stage 7
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_7(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
 }
 
 }  // namespace octree::vulkan
