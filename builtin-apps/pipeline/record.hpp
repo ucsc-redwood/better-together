@@ -37,25 +37,15 @@ struct Logger {
   // records_[processing_id][chunk_id]
   std::array<std::array<Record, 4>, NumToProcess> records_;
 
-  // explicit Logger() {
-  //   constexpr std::array<Record, 4> default_record_array = {{
-  //       {0, 0},
-  //       {0, 0},
-  //       {0, 0},
-  //       {0, 0},
-  //   }};
-  //   records_.fill(default_record_array);
-
-  //   // records_.fill({{ProcessorType::kUndefined, 0, 0}});
-
-  //   // for (size_t i = 0; i < NumToProcess; ++i) {
-  //   //   for (size_t j = 0; j < schedule.chunks.size(); ++j) {
-  //   //     records_[i][j].processed_by = schedule.chunks[j].exec_model;
-  //   //   }
-  //   // }
-  // }
-
-  Logger() = default;
+  explicit Logger() {
+    constexpr std::array<Record, 4> default_record_array = {{
+        {0, 0},
+        {0, 0},
+        {0, 0},
+        {0, 0},
+    }};
+    records_.fill(default_record_array);
+  }
 
   void start_tick(const uint32_t processing_id, const int chunk_id) {
     records_[processing_id][chunk_id].start = now_cycles();
