@@ -26,7 +26,7 @@ static inline uint32_t get_counter_frequency() {
 }
 
 struct Record {
-  ProcessorType processed_by;
+  // ProcessorType processed_by;
   uint64_t start;  // Cycle counter when starting
   uint64_t end;    // Cycle counter when finishing
 };
@@ -37,31 +37,25 @@ struct Logger {
   // records_[processing_id][chunk_id]
   std::array<std::array<Record, 4>, NumToProcess> records_;
 
-  // struct Chunk {
-  //   ProcessorType core;
-  //   std::vector<int> indices;  // e.g., {0} or {1, 2, 3, 4, 5}
-  // };
+  // explicit Logger() {
+  //   constexpr std::array<Record, 4> default_record_array = {{
+  //       {0, 0},
+  //       {0, 0},
+  //       {0, 0},
+  //       {0, 0},
+  //   }};
+  //   records_.fill(default_record_array);
 
-  // struct Schedule {
-  //   std::vector<Chunk> chunks;
+  //   // records_.fill({{ProcessorType::kUndefined, 0, 0}});
 
-  explicit Logger(const Schedule& schedule) {
-    constexpr std::array<Record, 4> default_record_array = {{
-        {ProcessorType::kUndefined, 0, 0},
-        {ProcessorType::kUndefined, 0, 0},
-        {ProcessorType::kUndefined, 0, 0},
-        {ProcessorType::kUndefined, 0, 0},
-    }};
-    records_.fill(default_record_array);
+  //   // for (size_t i = 0; i < NumToProcess; ++i) {
+  //   //   for (size_t j = 0; j < schedule.chunks.size(); ++j) {
+  //   //     records_[i][j].processed_by = schedule.chunks[j].exec_model;
+  //   //   }
+  //   // }
+  // }
 
-    // records_.fill({{ProcessorType::kUndefined, 0, 0}});
-
-    for (size_t i = 0; i < NumToProcess; ++i) {
-      for (size_t j = 0; j < schedule.chunks.size(); ++j) {
-        records_[i][j].processed_by = schedule.chunks[j].core;
-      }
-    }
-  }
+  Logger() = default;
 
   void start_tick(const uint32_t processing_id, const int chunk_id) {
     records_[processing_id][chunk_id].start = now_cycles();
@@ -77,8 +71,7 @@ struct Logger {
       for (size_t j = 0; j < 4; ++j) {
         auto& rec = records_[i][j];
 
-        std::cout << "  Chunk " << j << " (" << processor_type_to_string(rec.processed_by)
-                  << "):\n";
+        std::cout << "  Chunk " << j << ":\n";
         std::cout << "    Start: " << rec.start << " cycles\n";
         std::cout << "    End: " << rec.end << " cycles\n";
         std::cout << "    Duration: " << rec.end - rec.start << " cycles\n";
@@ -217,18 +210,18 @@ struct Logger {
     return static_cast<double>(cycles) * 1e3 / frequency;
   }
 
-  static inline std::string processor_type_to_string(const ProcessorType processor_type) {
-    switch (processor_type) {
-      case ProcessorType::kLittleCore:
-        return "Lut";
-      case ProcessorType::kMediumCore:
-        return "Med";
-      case ProcessorType::kBigCore:
-        return "Big";
-      case ProcessorType::kVulkan:
-        return "Vlk";
-      default:
-        return "Unknown";
-    }
-  }
+  // static inline std::string processor_type_to_string(const ProcessorType processor_type) {
+  //   switch (processor_type) {
+  //     case ProcessorType::kLittleCore:
+  //       return "Lut";
+  //     case ProcessorType::kMediumCore:
+  //       return "Med";
+  //     case ProcessorType::kBigCore:
+  //       return "Big";
+  //     case ProcessorType::kVulkan:
+  //       return "Vlk";
+  //     default:
+  //       return "Unknown";
+  //   }
+  // }
 };

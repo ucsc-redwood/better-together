@@ -19,10 +19,10 @@ constexpr const char* kScheduleBaseUrl = "http://192.168.1.95/";
 constexpr const char* kDefaultScheduleBaseDir = "schedule_files_v2";
 
 [[nodiscard]]
-static std::string make_full_url(const std::string& base_dir,
-                                 const std::string& device_id,
-                                 const std::string& app_name,
-                                 int schedule_id) {
+static inline std::string make_full_url(const std::string& base_dir,
+                                        const std::string& device_id,
+                                        const std::string& app_name,
+                                        int schedule_id) {
   std::stringstream ss;
   ss << std::setw(3) << std::setfill('0') << schedule_id;
   return kScheduleBaseUrl + base_dir + "/" + device_id + "/" + app_name + "/schedule_" + ss.str() +
@@ -44,7 +44,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 // fetch_json_from_url: downloads the JSON text from the given URL, parses it, and returns the JSON
 // object.
 [[nodiscard]]
-static nlohmann::json fetch_json_from_url(const std::string& url) {
+static inline nlohmann::json fetch_json_from_url(const std::string& url) {
   spdlog::info("Fetching JSON from URL: {}", url);
 
   // Initialize variables for libcurl.

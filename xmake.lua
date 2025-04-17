@@ -56,6 +56,7 @@ on_load(function(target)
 	target:add("packages", "glm")
 	target:add("packages", "nlohmann_json")
 	target:add("packages", "libmorton")
+	target:add("packages", "libcurl")
 	
 	-- -- for adding debugging
 	-- target:add("cxxflags", "-pg")
