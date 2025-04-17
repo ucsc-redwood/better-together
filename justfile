@@ -146,59 +146,59 @@ cat-android-tmp:
 # 		-o task_execution_timeline_wide_cifar_sparse_vk_schedule_10 \
 # 		--task-start 25 --task-end 50
 
-# -----------------------------------------------------------------------------
-# "all" target to run every step in sequence.
-# -----------------------------------------------------------------------------
-all: 
-    just run-benchmarks 
-    just process-results 
-    just make-fig
+# # -----------------------------------------------------------------------------
+# # "all" target to run every step in sequence.
+# # -----------------------------------------------------------------------------
+# all: 
+#     just run-benchmarks 
+#     just process-results 
+#     just make-fig
 
 
-compare-full-and-non-full stage:
-    # Run non-full benchmark
-    xmake r bm-real-cifar-sparse-vk --stage {{stage}} -l off | tee non_full_stage_{{stage}}.txt
+# compare-full-and-non-full stage:
+#     # Run non-full benchmark
+#     xmake r bm-real-cifar-sparse-vk --stage {{stage}} -l off | tee non_full_stage_{{stage}}.txt
 
-    # Run full benchmark
-    xmake r bm-real-cifar-sparse-vk --stage {{stage}} -l off --full | tee full_stage_{{stage}}.txt
+#     # Run full benchmark
+#     xmake r bm-real-cifar-sparse-vk --stage {{stage}} -l off --full | tee full_stage_{{stage}}.txt
 
-    # Extract and compare AVG metrics
-    @echo "\n====== COMPARISON OF AVG METRICS ======"
-    @echo "Processor | Non-Full (ms) | Full (ms)"
-    @echo "--------------------------------------"
-    @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' non_full_stage_{{stage}}.txt | sort
-    @echo "--------------------------------------"
-    @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' full_stage_{{stage}}.txt | sort
+#     # Extract and compare AVG metrics
+#     @echo "\n====== COMPARISON OF AVG METRICS ======"
+#     @echo "Processor | Non-Full (ms) | Full (ms)"
+#     @echo "--------------------------------------"
+#     @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' non_full_stage_{{stage}}.txt | sort
+#     @echo "--------------------------------------"
+#     @awk -F'|' '/PROCESSOR=/{split($1,p,"="); split($4,a,"="); printf "%s: %s ms\n", p[2], a[2]}' full_stage_{{stage}}.txt | sort
 
-compare-all:
-    just compare-full-and-non-full 1
-    just compare-full-and-non-full 2
-    just compare-full-and-non-full 3
-    just compare-full-and-non-full 4
-    just compare-full-and-non-full 5
-    just compare-full-and-non-full 6
-    just compare-full-and-non-full 7
-    just compare-full-and-non-full 8
-    just compare-full-and-non-full 9
+# compare-all:
+#     just compare-full-and-non-full 1
+#     just compare-full-and-non-full 2
+#     just compare-full-and-non-full 3
+#     just compare-full-and-non-full 4
+#     just compare-full-and-non-full 5
+#     just compare-full-and-non-full 6
+#     just compare-full-and-non-full 7
+#     just compare-full-and-non-full 8
+#     just compare-full-and-non-full 9
 
 
 
 # ----------------------------------------------------------------------------
 # Measure Cifar-Sparse Real Time
-# ----------------------------------------------------------------------------
+# # ----------------------------------------------------------------------------
 
-try:
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_0/ | tee BM_pipe_cifar_sparse_vk_schedule_0.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee BM_pipe_cifar_sparse_vk_schedule_1.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee BM_pipe_cifar_sparse_vk_schedule_2.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee BM_pipe_cifar_sparse_vk_schedule_3.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee BM_pipe_cifar_sparse_vk_schedule_4.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee BM_pipe_cifar_sparse_vk_schedule_5.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee BM_pipe_cifar_sparse_vk_schedule_6.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee BM_pipe_cifar_sparse_vk_schedule_7.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_pipe_cifar_sparse_vk_schedule_8.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_pipe_cifar_sparse_vk_schedule_9.txt
-    xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_pipe_cifar_sparse_vk_schedule_10.txt
+# try:
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_0/ | tee BM_pipe_cifar_sparse_vk_schedule_0.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_1/ | tee BM_pipe_cifar_sparse_vk_schedule_1.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_2/ | tee BM_pipe_cifar_sparse_vk_schedule_2.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_3/ | tee BM_pipe_cifar_sparse_vk_schedule_3.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_4/ | tee BM_pipe_cifar_sparse_vk_schedule_4.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_5/ | tee BM_pipe_cifar_sparse_vk_schedule_5.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_6/ | tee BM_pipe_cifar_sparse_vk_schedule_6.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_7/ | tee BM_pipe_cifar_sparse_vk_schedule_7.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_8/ | tee BM_pipe_cifar_sparse_vk_schedule_8.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_9/ | tee BM_pipe_cifar_sparse_vk_schedule_9.txt
+#     xmake r bm-schedule-cifar-sparse-vk -l off --benchmark_filter=BM_pipe_cifar_sparse_vk_schedule_10/ | tee BM_pipe_cifar_sparse_vk_schedule_10.txt
 
 
 # ----------------------------------------------------------------------------
@@ -356,53 +356,60 @@ try:
 
 
 
-# This is ued to generate Execution Log
-gen-log:
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 3 | tee BM_pipe_cifar_sparse_vk_schedule_3.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 4 | tee BM_pipe_cifar_sparse_vk_schedule_4.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 5 | tee BM_pipe_cifar_sparse_vk_schedule_5.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 6 | tee BM_pipe_cifar_sparse_vk_schedule_6.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 7 | tee BM_pipe_cifar_sparse_vk_schedule_7.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.txt.tmp
-    xmake r bm-gen-logs-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.txt.tmp
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_1.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_1.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_2.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_2.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_3.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_3.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_4.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_4.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_5.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_5.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_6.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_6.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_7.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_7.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_8.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_8.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_9.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_9.txt
-    sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_10.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_10.txt
+# # This is ued to generate Execution Log
+# gen-log:
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 1 | tee BM_pipe_cifar_sparse_vk_schedule_1.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 2 | tee BM_pipe_cifar_sparse_vk_schedule_2.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 3 | tee BM_pipe_cifar_sparse_vk_schedule_3.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 4 | tee BM_pipe_cifar_sparse_vk_schedule_4.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 5 | tee BM_pipe_cifar_sparse_vk_schedule_5.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 6 | tee BM_pipe_cifar_sparse_vk_schedule_6.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 7 | tee BM_pipe_cifar_sparse_vk_schedule_7.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 8 | tee BM_pipe_cifar_sparse_vk_schedule_8.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 9 | tee BM_pipe_cifar_sparse_vk_schedule_9.txt.tmp
+#     xmake r bm-gen-logs-cifar-sparse-vk --schedule 10 | tee BM_pipe_cifar_sparse_vk_schedule_10.txt.tmp
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_1.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_1.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_2.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_2.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_3.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_3.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_4.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_4.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_5.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_5.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_6.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_6.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_7.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_7.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_8.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_8.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_9.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_9.txt
+#     sed -n '11,1710p' BM_pipe_cifar_sparse_vk_schedule_10.txt.tmp > BM_pipe_cifar_sparse_vk_schedule_10.txt
 
-    rm BM_pipe_cifar_sparse_vk_schedule_*.txt.tmp
+#     rm BM_pipe_cifar_sparse_vk_schedule_*.txt.tmp
 
-gen-log-make-fig:
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_1.txt --output BM_pipe_cifar_sparse_vk_schedule_1.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_2.txt --output BM_pipe_cifar_sparse_vk_schedule_2.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_3.txt --output BM_pipe_cifar_sparse_vk_schedule_3.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_4.txt --output BM_pipe_cifar_sparse_vk_schedule_4.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_5.txt --output BM_pipe_cifar_sparse_vk_schedule_5.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_6.txt --output BM_pipe_cifar_sparse_vk_schedule_6.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_7.txt --output BM_pipe_cifar_sparse_vk_schedule_7.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_8.txt --output BM_pipe_cifar_sparse_vk_schedule_8.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_9.txt --output BM_pipe_cifar_sparse_vk_schedule_9.png --start-time 0 --end-time 1
-    python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_10.txt --output BM_pipe_cifar_sparse_vk_schedule_10.png --start-time 0 --end-time 1
+# gen-log-make-fig:
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_1.txt --output BM_pipe_cifar_sparse_vk_schedule_1.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_2.txt --output BM_pipe_cifar_sparse_vk_schedule_2.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_3.txt --output BM_pipe_cifar_sparse_vk_schedule_3.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_4.txt --output BM_pipe_cifar_sparse_vk_schedule_4.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_5.txt --output BM_pipe_cifar_sparse_vk_schedule_5.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_6.txt --output BM_pipe_cifar_sparse_vk_schedule_6.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_7.txt --output BM_pipe_cifar_sparse_vk_schedule_7.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_8.txt --output BM_pipe_cifar_sparse_vk_schedule_8.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_9.txt --output BM_pipe_cifar_sparse_vk_schedule_9.png --start-time 0 --end-time 1
+#     python3 scripts-v2/analysis/gen_chunk_figure.py BM_pipe_cifar_sparse_vk_schedule_10.txt --output BM_pipe_cifar_sparse_vk_schedule_10.png --start-time 0 --end-time 1
 
 
 
+# ----------------------------------------------------------------------------
 # Used to compare non-full and full, uisng heatmap
-make-table:
-    python3 scripts-v2/collect/bm.py --log_folder data/2025-4-15/cifar-sparse/ --repeat 3 --target bm-fully-cifar-sparse-vk
-    python3 scripts-v2/plot/heat.py --folder data/2025-4-15/cifar-sparse/ --exclude_stages 2,4,8,9
+# ----------------------------------------------------------------------------
 
-    python3 scripts-v2/collect/bm.py --log_folder data/2025-4-15/cifar-dense/ --repeat 3 --target bm-fully-cifar-dense-vk
-    python3 scripts-v2/plot/heat.py --folder data/2025-4-15/cifar-dense/ --exclude_stages 2,4,8,9
+collect-bm-data app:
+    python3 scripts/collect/bm.py --log_folder data/2025-4-16/{{app}}/ \
+        --repeat 3 --target bm-fully-{{app}}-vk
 
+collect-bm-data:
+    just collect-bm-data cifar-sparse
+    just collect-bm-data cifar-dense
+
+make-bm-heatmap:
+    python3 scripts/plot/heat.py --folder data/2025-4-16/cifar-sparse/ --exclude_stages 2,4,8,9
+    python3 scripts/plot/heat.py --folder data/2025-4-16/cifar-dense/ --exclude_stages 2,4,8,9
 
 
 # Will need to use the latest schedule
@@ -413,7 +420,7 @@ run-schedules-gen-real-time-part-1:
     xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
 
 run-schedules-gen-real-time-part-2:
-    python3 scripts-v2/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
+    python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
     echo "--------------------------------" >> accumulated_time.txt
     cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
     cat accumulated_time.txt
@@ -432,4 +439,4 @@ run-schedules-gen-real-time-n-times:
     python3 parse_times.py --input accumulated_time.txt
 
 cat-math:
-    python3 scripts-v2/gen_schedule/schedule.py
+    python3 scripts/gen_schedule/schedule.py
