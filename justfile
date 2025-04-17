@@ -71,13 +71,26 @@ run-schedules-gen-real-time-part-1:
     xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
 
 # Generating the schedules (z3)
-
+# 1) Load the accumulated fully vs. normal BM time
+# 2) Make an averaged BM table
+# 3) Generate the schedules
+# 4) Write the schedules to .json file
 gen-schedules-z3:
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/3A021JEHN02756_fully.csv \
+        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar_sparse_vk_schedules.json
+
     python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv \
-        -n 20 --output_file tmp.json
+        -n 20 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar_dense_vk_schedules.json
+
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/9b034f1b_fully.csv \
+        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar_sparse_vk_schedules.json
+
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/9b034f1b_fully.csv \
+        -n 20 --output_file data/2025-4-16/schdules/9b034f1b_cifar_dense_vk_schedules.json
+
 
 # Running the schedules
-
+# 1) Serve the schedules directory
 serve-schedules:
     python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-16/schdules/ 8080
 
