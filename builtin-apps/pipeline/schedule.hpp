@@ -31,6 +31,7 @@ static inline ProcessorType get_processor_type_from_chunk_config(const ChunkConf
 }
 
 struct Schedule {
+  std::string uid;
   std::vector<ChunkConfig> chunks;
 
   [[nodiscard]] size_t n_chunks() const { return chunks.size(); }

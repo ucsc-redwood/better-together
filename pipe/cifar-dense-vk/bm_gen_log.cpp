@@ -89,6 +89,7 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const size_t id, const Schedule
   }
 
   std::cout << "### Python Begin ###" << std::endl;
+  
 
   logger.dump_records_for_python();
 
