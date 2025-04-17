@@ -2,6 +2,7 @@
 
 #include <glm/vec4.hpp>
 #include <memory_resource>
+#include <random>
 #include <vector>
 
 namespace octree {
@@ -28,7 +29,13 @@ struct AppData {
         u_prefix_length(n_input, mr),
         u_edge_count(n_input, mr),
         u_offsets(n_input, mr),
-        u_children(8 * n_input, mr) {}
+        u_children(8 * n_input, mr) {
+    // generate random positions
+    static std::mt19937 gen(114514);
+    static std::uniform_real_distribution dis(0.0, 9999999999.0);
+    std::ranges::generate(u_positions,
+                          [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
+  }
 
   const size_t n_input;
   size_t n_unique_codes;

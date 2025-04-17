@@ -89,14 +89,14 @@ void HostTreeManager::initialize() {
     const int end = appdata.get_n_unique();
 #pragma omp parallel for
     for (int i = start; i < end; ++i) {
-      tree::omp::process_radix_tree_i(i,
-                                      appdata.get_n_brt_nodes(),
-                                      appdata.u_morton_keys_unique_s3.data(),
-                                      appdata.u_brt_prefix_n_s4.data(),
-                                      appdata.u_brt_has_leaf_left_s4.data(),
-                                      appdata.u_brt_has_leaf_right_s4.data(),
-                                      appdata.u_brt_left_child_s4.data(),
-                                      appdata.u_brt_parents_s4.data());
+      tree::omp::v1::process_radix_tree_i(i,
+                                          appdata.get_n_brt_nodes(),
+                                          appdata.u_morton_keys_unique_s3.data(),
+                                          appdata.u_brt_prefix_n_s4.data(),
+                                          appdata.u_brt_has_leaf_left_s4.data(),
+                                          appdata.u_brt_has_leaf_right_s4.data(),
+                                          appdata.u_brt_left_child_s4.data(),
+                                          appdata.u_brt_parents_s4.data());
     }
   }
 
@@ -113,10 +113,10 @@ void HostTreeManager::initialize() {
 
 #pragma omp parallel for
     for (int i = start; i < end; ++i) {
-      tree::omp::process_edge_count_i(i,
-                                      appdata.u_brt_prefix_n_s4.data(),
-                                      appdata.u_brt_parents_s4.data(),
-                                      appdata.u_edge_count_s5.data());
+      tree::omp::v1::process_edge_count_i(i,
+                                          appdata.u_brt_prefix_n_s4.data(),
+                                          appdata.u_brt_parents_s4.data(),
+                                          appdata.u_edge_count_s5.data());
     }
   }
 
