@@ -46,38 +46,34 @@ struct Schedule {
       const auto& chunk = chunks[i];
 
       // Get processor type string
-      std::string proc_type;
+      std::string cpu_proc_type;
       if (chunk.exec_model == ExecutionModel::kOMP) {
         switch (chunk.cpu_proc_type.value()) {
           case ProcessorType::kLittleCore:
-            proc_type = "Little";
+            cpu_proc_type = "Little";
             break;
           case ProcessorType::kMediumCore:
-            proc_type = "Medium";
+            cpu_proc_type = "Medium";
             break;
           case ProcessorType::kBigCore:
-            proc_type = "Big   ";
+            cpu_proc_type = "Big   ";
             break;
           default:
-            proc_type = "?";
+            cpu_proc_type = "?";
         }
-      } else if (chunk.exec_model == ExecutionModel::kVulkan) {
-        proc_type = "Vulkan";
-      } else if (chunk.exec_model == ExecutionModel::kCuda) {
-        proc_type = "Cuda  ";
       }
 
       // Print chunk header with execution model and processor type
       std::cout << "Chunk " << i << " [";
       switch (chunk.exec_model) {
         case ExecutionModel::kOMP:
-          std::cout << "OMP/" << proc_type;
+          std::cout << "OMP/" << cpu_proc_type;
           break;
         case ExecutionModel::kVulkan:
-          std::cout << "Vulkan";
+          std::cout << "Vulkan    ";
           break;
         case ExecutionModel::kCuda:
-          std::cout << "CUDA";
+          std::cout << "CUDA      ";
           break;
       }
       std::cout << "]: ";

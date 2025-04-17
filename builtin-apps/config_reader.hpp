@@ -84,6 +84,10 @@ inline std::vector<Schedule> readSchedulesFromJson(const nlohmann::json& j) {
       chunk.start_stage = stages[0].get<int>();
       chunk.end_stage = stages[stages.size() - 1].get<int>();
 
+      // add 1 to stages
+      chunk.start_stage += 1;
+      chunk.end_stage += 1;
+
       // Add the chunk to the schedule
       schedule.chunks.push_back(chunk);
     }
