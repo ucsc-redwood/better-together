@@ -54,17 +54,15 @@ cat-android-tmp:
 # 2) Running the normal BM
 # 3) Ran multiple times, store the results to a file
 collect-bm-data app:
-    python3 scripts/collect/bm.py --log_folder data/2025-4-16/{{app}}/ \
+    python3 scripts/collect/bm.py --log_folder data/2025-4-17/{{app}}/ \
         --repeat 3 --target bm-fully-{{app}}-vk
 
 collect-bm-data-all:
     just collect-bm-data cifar-sparse
-    just collect-bm-data cifar-dense
 
 # 1) From the stored file, make the heatmap
 make-bm-heatmap:
-    python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-sparse/ --exclude_stages 2,4,8,9
-    python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-dense/ --exclude_stages 2,4,8,9
+    python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-17/cifar-sparse/ --exclude_stages 2,4,8,9
 
 
 
@@ -74,28 +72,38 @@ make-bm-heatmap:
 # 3) Generate the schedules
 # 4) Write the schedules to .json file
 gen-schedules-z3:
-    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/3A021JEHN02756_fully.csv \
-        -n 30 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-17/cifar-sparse/3A021JEHN02756_fully.csv \
+        -n 30 --output_file data/2025-4-17/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
 
-    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv \
-        -n 30 --output_file data/2025-4-16/schdules/3A021JEHN02756_cifar-dense_vk_schedules.json
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-17/cifar-dense/3A021JEHN02756_fully.csv \
+        -n 30 --output_file data/2025-4-17/schdules/3A021JEHN02756_cifar-dense_vk_schedules.json
 
-    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-sparse/9b034f1b_fully.csv \
-        -n 30 --output_file data/2025-4-16/schdules/9b034f1b_cifar-sparse_vk_schedules.json
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-17/cifar-sparse/9b034f1b_fully.csv \
+        -n 30 --output_file data/2025-4-17/schdules/9b034f1b_cifar-sparse_vk_schedules.json
 
-    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/9b034f1b_fully.csv \
-        -n 30 --output_file data/2025-4-16/schdules/9b034f1b_cifar-dense_vk_schedules.json
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-17/cifar-dense/9b034f1b_fully.csv \
+        -n 30 --output_file data/2025-4-17/schdules/9b034f1b_cifar-dense_vk_schedules.json
 
 
 # Running the schedules
 # 1) Serve the schedules directory
 # So that the android phones can access the schedules via HTTP
 serve:
-    python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-16/schdules/ 8080
+    python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-17/schdules/ 8080
 
 
 run-schedule:
     python3 runner.py --device 3A021JEHN02756 --app cifar-dense run 
+
+tmp:
+    rm -f accumuated_time.txt
+    echo "--------------------------------" >> accumuated_time.txt
+    python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_000.log >> accumuated_time.txt
+    echo "--------------------------------" >> accumuated_time.txt
+    python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_001.log >> accumuated_time.txt
+    echo "--------------------------------" >> accumuated_time.txt
+    python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_002.log >> accumuated_time.txt
+    cat accumuated_time.txt
 
 # run-schedule:
 #     rm -f 3A021JEHN02756_cifar-dense_schedules.log
