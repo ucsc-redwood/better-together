@@ -103,7 +103,7 @@ static void BM_run_normal(const ProcessorType pt,
     cores_to_use = g_medium_cores;
   }
 
-  if (cores_to_use.empty()) {
+  if (pt != ProcessorType::kVulkan && cores_to_use.empty()) {
     SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
     return;
   }
