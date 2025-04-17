@@ -1,9 +1,8 @@
 #include <omp.h>
 
 #include "builtin-apps/app.hpp"
-#include "builtin-apps/config_reader.hpp"
-#include "builtin-apps/curl_json.hpp"
 #include "common.hpp"
+#include "schedules.hpp"
 
 // ----------------------------------------------------------------------------
 // Schedule Auto
@@ -30,10 +29,10 @@ static void BM_pipe_warmup(const Schedule schedule) {
       QueueT& q_in = queues[i];
       QueueT& q_out = queues[(i + 1) % n_chunks];
 
-      const int start = schedule.start_stage(i) + 1;
-      const int end = schedule.end_stage(i);
+      const int start = schedule.chunks[i].indices.front() + 1;
+      const int end = schedule.chunks[i].indices.back() + 1;
 
-      const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
+      const ProcessorType pt = schedule.chunks[i].core;
 
       if (pt == ProcessorType::kVulkan) {
         threads.emplace_back(create_thread(q_in, q_out, disp, start, end));
@@ -48,7 +47,7 @@ static void BM_pipe_warmup(const Schedule schedule) {
   }
 }
 
-static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedule schedule) {
+static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
   auto n_chunks = schedule.n_chunks();
 
   // Initialize the dispatcher and queues
@@ -60,7 +59,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedul
     queues[0].enqueue(preallocated_tasks.back().get());
   }
 
-  Logger<kNumToProcess> logger;
+  Logger<kNumToProcess> logger(schedule);
 
   // Run the schedule
   {
@@ -70,10 +69,10 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedul
       QueueT& q_in = queues[i];
       QueueT& q_out = queues[(i + 1) % n_chunks];
 
-      const int start = schedule.start_stage(i) + 1;
-      const int end = schedule.end_stage(i);
+      const int start = schedule.chunks[i].indices.front() + 1;
+      const int end = schedule.chunks[i].indices.back() + 1;
 
-      const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
+      const ProcessorType pt = schedule.chunks[i].core;
 
       if (pt == ProcessorType::kVulkan) {
         threads.emplace_back(create_thread_record(i, logger, q_in, q_out, disp, start, end));
@@ -92,9 +91,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedul
 
   logger.dump_records_for_python();
 
-  // Print the schedule ID and UID for tracking purposes
-  schedule.print(id);
-  std::cout << "Schedule_UID: " << schedule.uid << std::endl;
+  schedule.print();
 
   std::cout << "### Python End ###" << std::endl;
 }
@@ -109,13 +106,6 @@ int main(int argc, char** argv) {
   std::string device_to_measure;
   app.add_option("--device-to-measure", device_to_measure, "Device to measure")->required();
 
-  std::string schedule_url;
-  app.add_option("--schedule-url", schedule_url, "Schedule URL")->required();
-
-  size_t n_schedules_to_run;
-  app.add_option("--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run")
-      ->default_val(10);
-
   PARSE_ARGS_END;
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
@@ -124,33 +114,22 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  const auto json = fetch_json_from_url(schedule_url);
+  if (g_device_id == "3A021JEHN02756") {
+    // Warmup
+    BM_pipe_warmup(device_3A021JEHN02756::gapness::schedules[0]);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  const auto schedules = readSchedulesFromJson(json);
+    const auto n_to_run = 30;
+    for (size_t i = 0; i < n_to_run && i < device_3A021JEHN02756::gapness::schedules.size(); ++i) {
+      BM_pipe_cifar_sparse_vk_schedule_auto(device_3A021JEHN02756::gapness::schedules[i]);
 
-  auto n_schedules = schedules.size();
-
-  spdlog::info("Loaded {} schedules", n_schedules);
-
-  for (size_t i = 0; i < n_schedules; ++i) {
-    std::cout << "--------------------------------" << std::endl;
-    schedules[i].print(i);
-  }
-
-  BM_pipe_warmup(schedules[2]);
-
-  spdlog::info("Running {}/{} schedules", n_schedules_to_run, n_schedules);
-
-  for (size_t i = 0; i < n_schedules_to_run; ++i) {
-    // ignore 0, 1, 3
-    if (i == 0 || i == 1 || i == 3) {
-      continue;
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-
-    std::cout << "\n--------------------------------" << std::endl;
-    std::cout << "Running schedule " << i << " [UID: " << schedules[i].uid << "]" << std::endl;
-    BM_pipe_cifar_sparse_vk_schedule_auto(i, schedules[i]);
   }
+
+  // if (g_device_id == "9b034f1b") {
+  //   BM_pipe_cifar_sparse_vk_schedule_auto(device_9b034f1b::gapness::schedules[0]);
+  // }
 
   return 0;
 }
