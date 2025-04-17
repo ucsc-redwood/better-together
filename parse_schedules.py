@@ -457,9 +457,6 @@ def print_aggregated_statistics(aggregated_stats):
     """Print the aggregated statistics across all log files."""
     print("\n===== AGGREGATED STATISTICS BY SCHEDULE =====")
 
-    # Store widest chunk data for each schedule for the summary at the end
-    widest_chunks = {}
-
     for i, (schedule_uid, stats) in enumerate(sorted(aggregated_stats.items())):
         print(f"\nSchedule {i+1}: {schedule_uid}")
         print(
@@ -469,43 +466,140 @@ def print_aggregated_statistics(aggregated_stats):
         print(f"Applications: {', '.join(stats['applications'])}")
 
         print("\nAverage time by chunks (across all log files):")
-
-        # Find the widest chunk for this schedule
-        widest_chunk_id = None
-        widest_chunk_duration = 0
-
         for chunk_id, chunk_stats in sorted(stats["chunks"].items()):
             avg_duration = chunk_stats["avg_duration_ms"]
             avg_task_count = chunk_stats["avg_task_count"]
             sample_count = chunk_stats["sample_count"]
-
             print(
                 f"  Chunk {chunk_id}: {avg_duration:.2f} ms (avg) / {avg_task_count:.1f} tasks (avg) / {sample_count} samples"
             )
 
-            # Track widest chunk
-            if avg_duration > widest_chunk_duration:
-                widest_chunk_duration = avg_duration
-                widest_chunk_id = chunk_id
-
-        # Store widest chunk info for summary
-        if widest_chunk_id is not None:
-            widest_chunks[schedule_uid] = {
-                "chunk_id": widest_chunk_id,
-                "duration_ms": widest_chunk_duration,
-            }
-
         print("-" * 50)
 
-    # Print summary of widest chunks
-    print("\n===== WIDEST CHUNK SUMMARY =====")
-    print("Schedule UID                    : Chunk ID  Duration (ms)")
-    print("-" * 60)
 
-    for schedule_uid, chunk_info in sorted(widest_chunks.items()):
+def perform_statistical_analysis(widest_chunks, model_predictions):
+    """Perform detailed statistical analysis on measured vs predicted times."""
+    if not model_predictions or not widest_chunks:
+        return
+
+    # Extract data for matched UIDs
+    matching_uids = sorted(set(widest_chunks.keys()) & set(model_predictions.keys()))
+
+    if not matching_uids:
+        print("No matching UIDs found between measurements and predictions")
+        return
+
+    # Collect data
+    measured_times = []
+    predicted_times = []
+    abs_differences = []
+    rel_differences_pct = []
+
+    for uid in matching_uids:
+        measured = widest_chunks[uid]["duration_ms"]
+        predicted = model_predictions[uid]
+
+        measured_times.append(measured)
+        predicted_times.append(predicted)
+
+        # Calculate differences
+        abs_diff = measured - predicted
+        abs_differences.append(abs_diff)
+
+        # Calculate relative difference as percentage
+        if predicted != 0:
+            rel_diff_pct = (abs_diff / predicted) * 100
+        else:
+            rel_diff_pct = float("inf")
+        rel_differences_pct.append(rel_diff_pct)
+
+    # Convert to numpy arrays
+    measured_times = np.array(measured_times)
+    predicted_times = np.array(predicted_times)
+    abs_differences = np.array(abs_differences)
+    rel_differences_pct = np.array([d for d in rel_differences_pct if not np.isinf(d)])
+
+    # Calculate basic statistics
+    correlation = np.corrcoef(measured_times, predicted_times)[0, 1]
+    r_squared = correlation**2
+
+    mse = np.mean(abs_differences**2)
+    rmse = np.sqrt(mse)
+    mae = np.mean(np.abs(abs_differences))
+
+    # Check for under/over prediction bias
+    under_predictions = sum(
+        measured > predicted
+        for measured, predicted in zip(measured_times, predicted_times)
+    )
+    over_predictions = sum(
+        measured < predicted
+        for measured, predicted in zip(measured_times, predicted_times)
+    )
+    exact_matches = sum(
+        measured == predicted
+        for measured, predicted in zip(measured_times, predicted_times)
+    )
+
+    # Count predictions within error margins
+    within_5_pct = sum(abs(diff) <= 5 for diff in rel_differences_pct)
+    within_10_pct = sum(abs(diff) <= 10 for diff in rel_differences_pct)
+    within_20_pct = sum(abs(diff) <= 20 for diff in rel_differences_pct)
+
+    # Print the analysis
+    print("\n===== STATISTICAL ANALYSIS =====")
+    print(f"Total comparisons: {len(matching_uids)}")
+
+    print("\nCorrelation Statistics:")
+    print(f"Pearson correlation coefficient: {correlation:.4f}")
+    print(f"Coefficient of determination (R²): {r_squared:.4f}")
+
+    print("\nError Metrics:")
+    print(f"Mean Squared Error (MSE): {mse:.4f} ms²")
+    print(f"Root Mean Squared Error (RMSE): {rmse:.4f} ms")
+    print(f"Mean Absolute Error (MAE): {mae:.4f} ms")
+
+    print("\nError Distribution:")
+    if len(rel_differences_pct) > 0:
+        print(f"Mean percentage error: {np.mean(rel_differences_pct):.2f}%")
+        print(f"Median percentage error: {np.median(rel_differences_pct):.2f}%")
         print(
-            f"{schedule_uid:30} : Chunk {chunk_info['chunk_id']:2}   {chunk_info['duration_ms']:.2f} ms"
+            f"Standard deviation of percentage error: {np.std(rel_differences_pct):.2f}%"
         )
+        print(f"Min percentage error: {np.min(rel_differences_pct):.2f}%")
+        print(f"Max percentage error: {np.max(rel_differences_pct):.2f}%")
+
+    print("\nPrediction Accuracy:")
+    print(
+        f"Within 5% margin: {within_5_pct} ({within_5_pct/len(rel_differences_pct)*100:.2f}% of valid comparisons)"
+    )
+    print(
+        f"Within 10% margin: {within_10_pct} ({within_10_pct/len(rel_differences_pct)*100:.2f}% of valid comparisons)"
+    )
+    print(
+        f"Within 20% margin: {within_20_pct} ({within_20_pct/len(rel_differences_pct)*100:.2f}% of valid comparisons)"
+    )
+
+    print("\nPrediction Bias:")
+    print(
+        f"Under-predictions (measured > predicted): {under_predictions} ({under_predictions/len(matching_uids)*100:.2f}%)"
+    )
+    print(
+        f"Over-predictions (measured < predicted): {over_predictions} ({over_predictions/len(matching_uids)*100:.2f}%)"
+    )
+    print(
+        f"Exact matches: {exact_matches} ({exact_matches/len(matching_uids)*100:.2f}%)"
+    )
+
+    # Return the metrics for potential further use
+    return {
+        "correlation": correlation,
+        "r_squared": r_squared,
+        "rmse": rmse,
+        "mae": mae,
+        "under_predictions": under_predictions,
+        "over_predictions": over_predictions,
+    }
 
 
 def load_model_predictions(json_file_path):
@@ -675,7 +769,11 @@ def main():
 
     # Compare with model predictions if available
     if model_predictions:
+        # Print comparison table
         print_comparison_results(widest_chunks, model_predictions)
+
+        # Perform statistical analysis
+        perform_statistical_analysis(widest_chunks, model_predictions)
 
         # Create visualization
         create_comparison_visualization(
