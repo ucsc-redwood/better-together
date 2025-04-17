@@ -41,7 +41,10 @@ struct Schedule {
 
   [[nodiscard]] size_t end_stage(const size_t chunk_id) const { return chunks[chunk_id].end_stage; }
 
-  void print() const {
+  void print(const size_t id) const {
+    std::cout << "Schedule " << id << ":\n";
+    const std::string indent = "  ";
+
     for (size_t i = 0; i < chunks.size(); ++i) {
       const auto& chunk = chunks[i];
 
@@ -64,7 +67,7 @@ struct Schedule {
       }
 
       // Print chunk header with execution model and processor type
-      std::cout << "Chunk " << i << " [";
+      std::cout << indent << "Chunk " << i << " [";
       switch (chunk.exec_model) {
         case ExecutionModel::kOMP:
           std::cout << "OMP/" << cpu_proc_type;
@@ -89,43 +92,3 @@ struct Schedule {
     }
   }
 };
-
-// #include <iostream>
-
-// #include "../app.hpp"
-
-// struct Chunk {
-//   ProcessorType core;
-//   std::vector<int> indices;  // e.g., {0} or {1, 2, 3, 4, 5}
-// };
-
-// struct Schedule {
-//   std::vector<Chunk> chunks;
-
-//   [[nodiscard]] size_t n_chunks() const { return chunks.size(); }
-
-//   void print() const {
-//     constexpr const char* kProcessorTypeNames[] = {"L", "M", "B", "V"};
-
-//     for (const auto& chunk : chunks) {
-//       std::cout << "[" << kProcessorTypeNames[static_cast<int>(chunk.core)] << "] ";
-//       for (const auto& index : chunk.indices) {
-//         std::cout << index << " ";
-//       }
-//       std::cout << std::endl;
-//     }
-//   }
-// };
-
-// inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
-//   switch (core_type) {
-//     case ProcessorType::kLittleCore:
-//       return g_little_cores;
-//     case ProcessorType::kMediumCore:
-//       return g_medium_cores;
-//     case ProcessorType::kBigCore:
-//       return g_big_cores;
-//     default:
-//       throw std::invalid_argument("Invalid core type");
-//   }
-// }
