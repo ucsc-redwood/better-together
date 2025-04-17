@@ -18,9 +18,12 @@ class ScheduleRunner:
             print("Error: Both device and app must be specified")
             return False
 
-        # Setup files and directories
-        log_file = f"{device}_{app}_schedules.log"
-        self._cleanup_files(log_file)
+        # Generate log file name with incremental suffix if needed
+        base_log_file = f"{device}_{app}_schedules.log"
+        log_file = self._get_incremental_filename(base_log_file)
+        
+        # Create tmp directory if it doesn't exist
+        os.makedirs(self.tmp_dir, exist_ok=True)
 
         # Run the benchmark command
         schedule_url = f"http://192.168.1.204:8080/{device}_{app}_vk_schedules.json"
@@ -28,6 +31,7 @@ class ScheduleRunner:
 
         try:
             print(f"Running command: {' '.join(cmd)}")
+            print(f"Logging to: {log_file}")
 
             # Use Popen to get real-time output
             with open(log_file, "w") as log_file_handle:
@@ -55,13 +59,23 @@ class ScheduleRunner:
             print(f"Error running schedule: {e}")
             return False
 
-    def _cleanup_files(self, log_file):
-        """Clean up log files and temporary directories."""
-        if os.path.exists(log_file):
-            os.remove(log_file)
-        if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
-        os.makedirs(self.tmp_dir, exist_ok=True)
+    def _get_incremental_filename(self, base_filename):
+        """Generate an incremental filename if the base name already exists."""
+        if not os.path.exists(base_filename):
+            return base_filename
+            
+        # Extract name and extension
+        name_parts = base_filename.rsplit('.', 1)
+        base_name = name_parts[0]
+        extension = f".{name_parts[1]}" if len(name_parts) > 1 else ""
+        
+        # Find the next available number
+        counter = 0
+        while True:
+            new_filename = f"{base_name}_{counter:03d}{extension}"
+            if not os.path.exists(new_filename):
+                return new_filename
+            counter += 1
 
     def _build_benchmark_command(self, device, app, schedule_url, n_to_run):
         """Build the benchmark command with appropriate parameters."""
