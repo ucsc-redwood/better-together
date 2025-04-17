@@ -91,9 +91,9 @@ serve-schedules:
 
 
 run-schedule:
-    xmake r bm-gen-logs-cifar-dense-vk --device-to-measure 3A021JEHN02756 \
+    xmake r bm-gen-logs-cifar-dense-vk -l off --device-to-measure 3A021JEHN02756 \
         --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar_dense_vk_schedules.json \
-        --n-schedules-to-run 10
+        --n-schedules-to-run 10 | tee 3A021JEHN02756_cifar-dense_schedules.log
 
 
 
