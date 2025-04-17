@@ -26,12 +26,29 @@ class ScheduleRunner:
         cmd = self._build_benchmark_command(device, app, schedule_url)
 
         try:
+            print(f"Running command: {' '.join(cmd)}")
+
+            # Use Popen to get real-time output
             with open(log_file, "w") as log_file_handle:
-                result = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
                 )
-                log_file_handle.write(result.stdout)
-                print(result.stdout)
+
+                # Process and display output in real-time
+                for line in iter(process.stdout.readline, ""):
+                    print(line, end="")  # Print to console in real-time
+                    log_file_handle.write(line)  # Write to log file
+
+                # Wait for process to complete
+                return_code = process.wait()
+                if return_code != 0:
+                    print(f"Command failed with return code {return_code}")
+                    return False
+
             return True
         except subprocess.SubprocessError as e:
             print(f"Error running schedule: {e}")
@@ -60,8 +77,28 @@ class ScheduleRunner:
         ]
 
         try:
+            print(f"Running command: {' '.join(cmd)}")
+
+            # Use Popen for real-time output
             with open(tmp2_file, "w") as out:
-                subprocess.run(cmd, stdout=out, text=True, check=True)
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1,
+                )
+
+                # Process output in real-time
+                for line in iter(process.stdout.readline, ""):
+                    print(line, end="")  # Print to console
+                    out.write(line)  # Write to output file
+
+                # Wait for process to complete
+                return_code = process.wait()
+                if return_code != 0:
+                    print(f"Command failed with return code {return_code}")
+                    return False
 
             # Extract and accumulate execution time information
             self._extract_execution_time(tmp2_file)

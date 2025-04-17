@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
 
   size_t n_schedules_to_run;
   app.add_option("--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run")
-      ->default_val(std::numeric_limits<size_t>::max());
+      ->default_val(10);
 
   PARSE_ARGS_END;
 
@@ -135,12 +135,16 @@ int main(int argc, char** argv) {
     schedules[i].print(i);
   }
 
-  BM_pipe_warmup(schedules[4]);
+  BM_pipe_warmup(schedules[2]);
 
   spdlog::info("Running {}/{} schedules", n_schedules_to_run, n_schedules);
 
-  constexpr auto ignore_first_n_schedules = 4;
-  for (size_t i = ignore_first_n_schedules; i < n_schedules_to_run; ++i) {
+  for (size_t i = 0; i < n_schedules_to_run; ++i) {
+    // ignore 0, 1, 3
+    if (i == 0 || i == 1 || i == 3) {
+      continue;
+    }
+
     BM_pipe_cifar_dense_vk_schedule_auto(i, schedules[i]);
   }
 
