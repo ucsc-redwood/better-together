@@ -19,6 +19,8 @@ using FakeBool = uint8_t;
 #error "CLZ not supported on this platform"
 #endif
 
+namespace v1 {
+
 inline unsigned int ceil_div_u32(const unsigned int a, const unsigned int b) {
   assert(b != 0);
   return (a + b - 1) / b;
@@ -133,6 +135,130 @@ inline void process_radix_tree_i(const int i,
     parent[gamma + 1] = i;
   }
 }
+
+}  // namespace v1
+
+// ----------------------------------------------------------------------------
+// New version
+// ----------------------------------------------------------------------------
+
+namespace v2 {
+
+// count leading zeros in a 32‑bit word (undefined if x == 0)
+static inline int clz32(uint32_t x) {
+  assert(x != 0);
+  return __builtin_clz(x);
+}
+
+// number of common leading bits between x and y
+static inline int common_prefix_bits(uint32_t x, uint32_t y) {
+  if (x == y) return 32;
+  return clz32(x ^ y);
+}
+
+// build a binary radix tree over sorted, unique 32‑bit Morton codes
+//
+// codes         : input array of length n (must be sorted, no duplicates)
+// n             : number of codes
+// parents       : output array length n; parents[i] = parent index of node i (root stays -1)
+// left_child    : output array length n; left_child[i] = index of left subtree root for node i
+// has_leaf_left : output array length n; nonzero if left child of i is a leaf
+// has_leaf_right: output array length n; nonzero if right child of i is a leaf
+// prefix_length : output array length n; shared‑prefix length between the two children of node i
+//
+static inline void build_radix_tree(const uint32_t* codes,
+                                    int n,
+                                    int* parents,
+                                    int* left_child,
+                                    uint8_t* has_leaf_left,
+                                    uint8_t* has_leaf_right,
+                                    int* prefix_length) {
+  assert(n > 0);
+
+  // initialize outputs
+#pragma omp for
+  for (int i = 0; i < n; ++i) {
+    parents[i] = -1;
+    left_child[i] = -1;
+    has_leaf_left[i] = 0;
+    has_leaf_right[i] = 0;
+    prefix_length[i] = 0;
+  }
+
+#pragma omp for
+  for (int i = 0; i < n; ++i) {
+    // 1) choose direction d = +1 or -1 based on which neighbor shares more bits
+    int d;
+    if (i == 0) {
+      d = +1;
+    } else if (i == n - 1) {
+      d = -1;
+    } else {
+      int lcp_left = common_prefix_bits(codes[i], codes[i - 1]);
+      int lcp_right = common_prefix_bits(codes[i], codes[i + 1]);
+      d = (lcp_right > lcp_left) ? +1 : -1;
+    }
+
+    // 2) find neighbor LCP to bound our search
+    int neighbor_idx = i - d;
+    int neighbor_lcp = common_prefix_bits(codes[i], codes[neighbor_idx]);
+
+    // exponential search to find a range where LCP ≤ neighbor_lcp
+    int step = 1;
+    while (true) {
+      int j = i + d * step;
+      if (j < 0 || j >= n) break;
+      int cur_lcp = common_prefix_bits(codes[i], codes[j]);
+      if (cur_lcp <= neighbor_lcp) break;
+      step <<= 1;
+    }
+
+    // binary search in [0, step) for the farthest index j with LCP > neighbor_lcp
+    int lo = 0, hi = step;
+    while (hi - lo > 1) {
+      int mid = (lo + hi) >> 1;
+      int j = i + d * mid;
+      int cur_lcp = (j >= 0 && j < n) ? common_prefix_bits(codes[i], codes[j]) : 0;
+      if (cur_lcp > neighbor_lcp) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    int j = i + d * lo;
+
+    // 3) this node’s prefix length is the LCP between codes[i] and codes[j]
+    int node_lcp = common_prefix_bits(codes[i], codes[j]);
+    prefix_length[i] = node_lcp;
+
+    // 4) split the range [min(i,j), max(i,j)] by LCP > node_lcp
+    int first = (i < j) ? i : j;
+    int last = (i < j) ? j : i;
+    int lo_idx = first, hi_idx = last;
+    while (lo_idx + 1 < hi_idx) {
+      int mid = (lo_idx + hi_idx) >> 1;
+      int mid_lcp = common_prefix_bits(codes[first], codes[mid]);
+      if (mid_lcp > node_lcp) {
+        lo_idx = mid;
+      } else {
+        hi_idx = mid;
+      }
+    }
+    int split = lo_idx;
+
+    // 5) record children and leaf flags
+    left_child[i] = split;
+    bool leaf_left = (split == first);
+    bool leaf_right = (split + 1 == last);
+    has_leaf_left[i] = leaf_left;
+    has_leaf_right[i] = leaf_right;
+
+    if (!leaf_left) parents[split] = i;
+    if (!leaf_right) parents[split + 1] = i;
+  }
+}
+
+}  // namespace v2
 
 }  // namespace omp
 

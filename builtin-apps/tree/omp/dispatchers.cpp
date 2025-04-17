@@ -1,7 +1,6 @@
 #include "dispatchers.hpp"
 
 #include <numeric>
-#include <thread>
 
 #include "../../debug_logger.hpp"
 #include "func_brt.hpp"
@@ -9,7 +8,6 @@
 #include "func_morton.hpp"
 #include "func_octree.hpp"
 #include "func_sort.hpp"
-#include "temp_storage.hpp"
 
 namespace tree::omp {
 
