@@ -3,16 +3,13 @@
 Parse schedule log files and generate averaged statistics per schedule.
 
 Usage:
-    python parse_schedules.py /path/to/log/files [--model /path/to/model.json]
+    python parse_schedules.py /path/to/log/files
 """
 
 import os
 import re
 import sys
-import json
 import argparse
-import numpy as np
-import matplotlib.pyplot as plt
 from collections import defaultdict
 
 
@@ -27,17 +24,6 @@ def parse_arguments():
         "-v",
         action="store_true",
         help="Print detailed statistics for each log file",
-    )
-    parser.add_argument(
-        "--model",
-        "-m",
-        help="Path to JSON file containing model predictions",
-    )
-    parser.add_argument(
-        "--output",
-        "-o",
-        help="Output directory for visualization files",
-        default="./results",
     )
     return parser.parse_args()
 
@@ -250,157 +236,6 @@ def print_individual_statistics(schedules_data):
         print("-" * 50)
 
 
-def create_comparison_visualization(
-    widest_chunks, model_predictions, output_dir, raw_data
-):
-    """Create visualization comparing measured results with model predictions."""
-    if not model_predictions or not widest_chunks:
-        return
-
-    # Create output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Collect data for visualization
-    schedule_uids = []
-    measured_times = []
-    predicted_times = []
-    error_bars = []
-
-    # Matching UIDs that have both measurements and predictions
-    matching_uids = sorted(set(widest_chunks.keys()) & set(model_predictions.keys()))
-
-    if not matching_uids:
-        print("No matching UIDs found between measurements and predictions")
-        return
-
-    # Collect data
-    for uid in matching_uids:
-        schedule_uids.append(uid)
-        measured_times.append(widest_chunks[uid]["duration_ms"])
-        predicted_times.append(model_predictions[uid])
-
-        # Calculate standard deviation for error bars from raw data
-        std_dev = 0
-        if uid in raw_data:
-            # If we have raw data for this schedule, calculate std dev across log files
-            durations = []
-            for schedule in raw_data[uid]:
-                chunk_id = widest_chunks[uid]["chunk_id"]
-                if chunk_id in schedule["chunks"]:
-                    durations.append(schedule["chunks"][chunk_id]["avg_duration"])
-
-            if len(durations) > 1:
-                std_dev = np.std(durations)
-
-        error_bars.append(std_dev)
-
-    # Convert to numpy arrays for easier manipulation
-    measured_times = np.array(measured_times)
-    predicted_times = np.array(predicted_times)
-    error_bars = np.array(error_bars)
-
-    # Create figure
-    plt.figure(figsize=(14, 8))
-
-    # Calculate positions for bars
-    x = np.arange(len(schedule_uids))
-    width = 0.35
-
-    # Plot bars
-    measured_bars = plt.bar(
-        x - width / 2, measured_times, width, label="Measured", alpha=0.7
-    )
-    predicted_bars = plt.bar(
-        x + width / 2, predicted_times, width, label="Predicted", alpha=0.7
-    )
-
-    # Add error bars to measured data
-    plt.errorbar(
-        x - width / 2,
-        measured_times,
-        yerr=error_bars,
-        fmt="none",
-        ecolor="black",
-        capsize=5,
-    )
-
-    # Add labels and title
-    plt.xlabel("Schedule UID")
-    plt.ylabel("Time (ms)")
-    plt.title("Comparison of Measured vs Predicted Execution Times")
-    plt.xticks(x, [uid.split("-")[1] for uid in schedule_uids], rotation=45, ha="right")
-    plt.legend()
-
-    # Add value labels on the bars
-    def add_labels(bars):
-        for bar in bars:
-            height = bar.get_height()
-            plt.text(
-                bar.get_x() + bar.get_width() / 2.0,
-                height + 0.1,
-                f"{height:.2f}",
-                ha="center",
-                va="bottom",
-                fontsize=8,
-            )
-
-    add_labels(measured_bars)
-    add_labels(predicted_bars)
-
-    # Add grid and adjust layout
-    plt.grid(axis="y", linestyle="--", alpha=0.7)
-    plt.tight_layout()
-
-    # Save figure
-    plt.savefig(os.path.join(output_dir, "comparison_chart.png"), dpi=300)
-    print(f"Visualization saved to {os.path.join(output_dir, 'comparison_chart.png')}")
-
-    # Create scatter plot for correlation
-    plt.figure(figsize=(10, 8))
-    plt.scatter(predicted_times, measured_times, alpha=0.7)
-
-    # Add diagonal line (perfect prediction)
-    max_val = max(np.max(predicted_times), np.max(measured_times)) * 1.1
-    plt.plot([0, max_val], [0, max_val], "r--", label="Perfect Prediction")
-
-    # Add labels
-    plt.xlabel("Predicted Time (ms)")
-    plt.ylabel("Measured Time (ms)")
-    plt.title("Correlation between Predicted and Measured Times")
-
-    # Add schedule labels to points
-    for i, uid in enumerate(schedule_uids):
-        plt.annotate(
-            uid.split("-")[1],
-            (predicted_times[i], measured_times[i]),
-            textcoords="offset points",
-            xytext=(0, 5),
-            ha="center",
-            fontsize=8,
-        )
-
-    # Calculate correlation coefficient
-    correlation = np.corrcoef(predicted_times, measured_times)[0, 1]
-    plt.text(
-        0.05,
-        0.95,
-        f"Correlation: {correlation:.4f}",
-        transform=plt.gca().transAxes,
-        fontsize=12,
-        verticalalignment="top",
-    )
-
-    plt.grid(True, linestyle="--", alpha=0.7)
-    plt.legend()
-    plt.tight_layout()
-
-    # Save scatter plot
-    plt.savefig(os.path.join(output_dir, "correlation_plot.png"), dpi=300)
-    print(
-        f"Correlation plot saved to {os.path.join(output_dir, 'correlation_plot.png')}"
-    )
-
-
 def calculate_aggregated_statistics(all_schedules):
     """Aggregate statistics across all log files, grouped by schedule UID."""
     # Group schedules by their UID
@@ -450,7 +285,7 @@ def calculate_aggregated_statistics(all_schedules):
             "chunks": avg_by_chunk,
         }
 
-    return aggregated_stats, grouped_schedules
+    return aggregated_stats
 
 
 def print_aggregated_statistics(aggregated_stats):
@@ -508,115 +343,9 @@ def print_aggregated_statistics(aggregated_stats):
         )
 
 
-def load_model_predictions(json_file_path):
-    """Load model predictions from a JSON file."""
-    if not os.path.exists(json_file_path):
-        print(f"Error: Model file {json_file_path} not found")
-        return {}
-
-    try:
-        with open(json_file_path, "r") as f:
-            model_data = json.load(f)
-    except Exception as e:
-        print(f"Error loading model file {json_file_path}: {e}")
-        return {}
-
-    # Create a dictionary mapping schedule UIDs to their predicted times
-    predictions = {}
-    for schedule in model_data:
-        if (
-            "uid" in schedule
-            and "metrics" in schedule
-            and "max_time" in schedule["metrics"]
-        ):
-            uid = schedule["uid"]
-            predicted_time = schedule["metrics"]["max_time"]
-            predictions[uid] = predicted_time
-
-    print(f"Loaded {len(predictions)} model predictions from {json_file_path}")
-    return predictions
-
-
-def print_comparison_results(widest_chunks, model_predictions):
-    """Print comparison between measured widest chunks and model predictions."""
-    if not model_predictions:
-        return
-
-    print("\n===== MEASURED VS PREDICTED TIMES =====")
-    print(
-        "Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  "
-    )
-    print("-" * 80)
-
-    # Count matches and total comparisons
-    total_comparisons = 0
-    within_5_percent = 0
-    within_10_percent = 0
-    within_20_percent = 0
-
-    # Calculate statistics
-    rmse = 0
-    mae = 0
-
-    for schedule_uid, chunk_info in sorted(widest_chunks.items()):
-        measured_time = chunk_info["duration_ms"]
-
-        if schedule_uid in model_predictions:
-            predicted_time = model_predictions[schedule_uid]
-            difference = measured_time - predicted_time
-            diff_percent = (
-                (difference / predicted_time) * 100
-                if predicted_time != 0
-                else float("inf")
-            )
-
-            print(
-                f"{schedule_uid:30} : {measured_time:12.2f}  {predicted_time:14.2f}  {diff_percent:+14.2f}%"
-            )
-
-            # Update statistics
-            total_comparisons += 1
-            if abs(diff_percent) <= 5:
-                within_5_percent += 1
-            if abs(diff_percent) <= 10:
-                within_10_percent += 1
-            if abs(diff_percent) <= 20:
-                within_20_percent += 1
-
-            # Update error metrics
-            rmse += (measured_time - predicted_time) ** 2
-            mae += abs(measured_time - predicted_time)
-        else:
-            print(f"{schedule_uid:30} : {measured_time:12.2f}  {'N/A':14}  {'N/A':14}")
-
-    # Print statistics summary
-    if total_comparisons > 0:
-        rmse = (rmse / total_comparisons) ** 0.5
-        mae = mae / total_comparisons
-
-        print("\nComparison Statistics:")
-        print(f"Total comparisons: {total_comparisons}")
-        print(
-            f"Within 5% margin: {within_5_percent} ({within_5_percent/total_comparisons*100:.2f}%)"
-        )
-        print(
-            f"Within 10% margin: {within_10_percent} ({within_10_percent/total_comparisons*100:.2f}%)"
-        )
-        print(
-            f"Within 20% margin: {within_20_percent} ({within_20_percent/total_comparisons*100:.2f}%)"
-        )
-        print(f"Root Mean Square Error (RMSE): {rmse:.4f} ms")
-        print(f"Mean Absolute Error (MAE): {mae:.4f} ms")
-
-
 def main():
     """Main function to process all log files."""
     args = parse_arguments()
-
-    # Load model predictions if specified
-    model_predictions = {}
-    if args.model:
-        model_predictions = load_model_predictions(args.model)
 
     # Find all log files in the specified folder or use the specified file
     log_files = find_log_files(args.input)
@@ -640,47 +369,8 @@ def main():
         print_individual_statistics(all_schedules)
 
     # Calculate and print aggregated statistics
-    aggregated_stats, raw_data_by_uid = calculate_aggregated_statistics(all_schedules)
+    aggregated_stats = calculate_aggregated_statistics(all_schedules)
     print_aggregated_statistics(aggregated_stats)
-
-    # Extract widest chunks for comparison with model
-    widest_chunks = {}
-    for schedule_uid, stats in aggregated_stats.items():
-        # Find the widest chunk for this schedule
-        widest_chunk_id = None
-        widest_chunk_duration = 0
-
-        for chunk_id, chunk_stats in stats["chunks"].items():
-            avg_duration = chunk_stats["avg_duration_ms"]
-            if avg_duration > widest_chunk_duration:
-                widest_chunk_duration = avg_duration
-                widest_chunk_id = chunk_id
-
-        # Store widest chunk info
-        if widest_chunk_id is not None:
-            widest_chunks[schedule_uid] = {
-                "chunk_id": widest_chunk_id,
-                "duration_ms": widest_chunk_duration,
-            }
-
-    # Print widest chunk summary
-    print("\n===== WIDEST CHUNK SUMMARY =====")
-    print("Schedule UID                    : Chunk ID  Duration (ms)")
-    print("-" * 60)
-
-    for schedule_uid, chunk_info in sorted(widest_chunks.items()):
-        print(
-            f"{schedule_uid:30} : Chunk {chunk_info['chunk_id']:2}   {chunk_info['duration_ms']:.2f} ms"
-        )
-
-    # Compare with model predictions if available
-    if model_predictions:
-        print_comparison_results(widest_chunks, model_predictions)
-
-        # Create visualization
-        create_comparison_visualization(
-            widest_chunks, model_predictions, args.output, raw_data_by_uid
-        )
 
     print(
         f"\nProcessed {len(log_files)} log files with a total of {len(all_schedules)} schedule instances"
