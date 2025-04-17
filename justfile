@@ -70,7 +70,14 @@ run-schedules-gen-real-time-part-1:
     mkdir -p tmp_folder
     xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
 
+# Generating the schedules (z3)
 
+gen-schedules-z3:
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv
+
+
+# Running the schedules
 
 run-schedules-gen-real-time-part-2:
     python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
