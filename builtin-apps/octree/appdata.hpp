@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/vec4.hpp>
+#include <iostream>
 #include <memory_resource>
 #include <random>
 #include <vector>
@@ -37,6 +38,10 @@ struct AppData {
                           [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
   }
 
+  // ----------------------------------------------------------------------------
+  // Data
+  // ----------------------------------------------------------------------------
+
   const size_t n_input;
   size_t n_unique_codes;
   size_t n_brt_nodes;
@@ -56,6 +61,31 @@ struct AppData {
   UsmVec<int> u_offsets;
 
   UsmVec<int> u_children;  // length = 8 * n_input
+
+  // ----------------------------------------------------------------------------
+  // Helper functions
+  // ----------------------------------------------------------------------------
+
+  // Print the flat radix tree in AppData.
+  // Assumes `n_brt_nodes` is set to the active node count.
+  void print_radix_tree(const AppData& app, const size_t n_display) {
+    auto num_display = std::min(n_display, app.n_brt_nodes);
+
+    std::cout << "=== Radix Tree (" << num_display << " nodes) ===\n";
+    for (size_t i = 0; i < num_display; ++i) {
+      int parent = app.u_parents[i];
+      int lc = app.u_left_child[i];
+      int rc = lc >= 0 ? lc + 1 : -1;
+      bool leafL = app.u_has_leaf_left[i];
+      bool leafR = app.u_has_leaf_right[i];
+      int pfx = app.u_prefix_length[i];
+
+      std::cout << "Node[" << i << "] " << "(parent=" << parent << ") " << "prefix_len=" << pfx
+                << "  " << "L=" << lc << (leafL ? "[leaf]" : "[int]") << "  " << "R=" << rc
+                << (leafR ? "[leaf]" : "[int]") << "\n";
+    }
+    std::cout << "=====================================\n";
+  }
 };
 
 }  // namespace octree
