@@ -150,7 +150,7 @@ void VulkanDispatcher::run_stage_1(AppData& app) {
   algo->update_descriptor_set(0,
                               {
                                   engine.get_buffer_info(app.u_positions),
-                                  engine.get_buffer_info(app.u_morton_codes),
+                                  engine.get_buffer_info(app.u_morton_codes_alt),
                               });
 
   algo->update_push_constant(MortonPushConstants{
@@ -166,10 +166,18 @@ void VulkanDispatcher::run_stage_1(AppData& app) {
                         {static_cast<uint32_t>(kiss_vk::div_ceil(app.n, 256)), 1, 1});
   seq->cmd_end();
 
-  seq->reset_fence();
   seq->submit();
 
   seq->wait_for_fence();
+  seq->reset_fence();
+
+  // verify that all morton are non-zero
+  for (size_t i = 0; i < app.n; ++i) {
+    if (app.u_morton_codes_alt[i] == 0) {
+      spdlog::error("Morton code is zero at index {}", i);
+      exit(1);
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -179,27 +187,37 @@ void VulkanDispatcher::run_stage_1(AppData& app) {
 void VulkanDispatcher::run_stage_2(AppData& app) {
   LOG_KERNEL(LogKernelType::kVK, 2, &app);
 
-  // auto algo = cached_algorithms.at("radixsort").get();
+  auto algo = cached_algorithms.at("radixsort").get();
 
-  // algo->update_descriptor_set(0,
-  //                             {
-  //                                 engine.get_buffer_info(app.u_morton_codes),
-  //                                 engine.get_buffer_info(app.u_morton_codes_sorted),
-  //                             });
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(app.u_morton_codes_alt),
+                                  engine.get_buffer_info(app.u_morton_codes),
+                              });
 
-  // algo->update_push_constant(InputSizePushConstantsUnsigned{
-  //     .n = static_cast<uint32_t>(app.n),
-  // });
+  algo->update_push_constant(InputSizePushConstantsUnsigned{
+      .n = static_cast<uint32_t>(app.n),
+  });
 
-  // seq->cmd_begin();
-  // algo->record_bind_core(seq->get_handle(), 0);
-  // algo->record_bind_push(seq->get_handle());
-  // algo->record_dispatch(seq->get_handle(), {1, 1, 1});  // Special case: single workgroup
-  // seq->cmd_end();
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(), {1, 1, 1});  // Special case: single workgroup
+  seq->cmd_end();
 
-  // seq->reset_fence();
-  // seq->submit();
-  // seq->wait_for_fence();
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+
+  // Verify that the morton codes are sorted
+  for (size_t i = 1; i < app.n; ++i) {
+    if (app.u_morton_codes[i - 1] > app.u_morton_codes[i]) {
+      spdlog::error("Morton codes are not sorted at index {}", i);
+      exit(1);
+    }
+  }
+
+  exit(0);
 }
 
 // ----------------------------------------------------------------------------
