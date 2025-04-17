@@ -13,7 +13,11 @@ namespace octree::omp {
 void run_stage_1(AppData &app) {
   LOG_KERNEL(LogKernelType::kOMP, 1, &app);
 
-  compute_morton_codes(app.u_positions.data(), app.n, app.u_morton_codes.data());
+  compute_morton_codes_with_range(app.u_positions.data(),
+                                  app.n,
+                                  glm::vec3(kMinCoord, kMinCoord, kMinCoord),
+                                  glm::vec3(kMaxCoord, kMaxCoord, kMaxCoord),
+                                  app.u_morton_codes.data());
 
 #pragma omp barrier
 }

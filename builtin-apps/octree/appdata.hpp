@@ -16,6 +16,8 @@ using UsmVec = std::pmr::vector<T>;
 using MortonT = uint32_t;
 
 constexpr auto kDefaultInputSize = 1366 * 768;
+constexpr auto kMinCoord = 0.0;
+constexpr auto kMaxCoord = 1024.0;
 
 struct AppData {
   explicit AppData(std::pmr::memory_resource* mr, const size_t n_input = kDefaultInputSize)
@@ -34,7 +36,7 @@ struct AppData {
         u_children(8 * n_input, mr) {
     // generate random positions
     static std::mt19937 gen(114514);
-    static std::uniform_real_distribution dis(0.0, 9999999999.0);
+    static std::uniform_real_distribution dis(kMinCoord, kMaxCoord);
     std::ranges::generate(u_positions,
                           [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
 
