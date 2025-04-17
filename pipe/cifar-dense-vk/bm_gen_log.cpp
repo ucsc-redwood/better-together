@@ -93,7 +93,9 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const size_t id, const Schedule
 
   logger.dump_records_for_python();
 
+  // Print the schedule ID and UID for tracking purposes
   schedule.print(id);
+  std::cout << "Schedule_UID: " << schedule.uid << std::endl;
 
   std::cout << "### Python End ###" << std::endl;
 }
@@ -146,6 +148,8 @@ int main(int argc, char** argv) {
       continue;
     }
 
+    std::cout << "\n--------------------------------" << std::endl;
+    std::cout << "Running schedule " << i << " [UID: " << schedules[i].uid << "]" << std::endl;
     BM_pipe_cifar_dense_vk_schedule_auto(i, schedules[i]);
   }
 

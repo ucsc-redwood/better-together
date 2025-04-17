@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import argparse
 import sys
+import re
 
 
 class ScheduleRunner:
@@ -100,8 +101,8 @@ class ScheduleRunner:
                     print(f"Command failed with return code {return_code}")
                     return False
 
-            # Extract and accumulate execution time information
-            self._extract_execution_time(tmp2_file)
+            # Extract and accumulate execution time information with UIDs
+            self._extract_execution_time_with_uid(tmp2_file, log_file)
 
             # Display accumulated results
             self._display_accumulated_results()
@@ -134,11 +135,38 @@ class ScheduleRunner:
             "10",
         ]
 
-    def _extract_execution_time(self, tmp2_file):
-        """Extract execution time from temporary file and add to accumulated results."""
-        with open(tmp2_file, "r") as f, open(self.accumulated_file, "a") as acc:
+    def _extract_execution_time_with_uid(self, tmp2_file, log_file):
+        """Extract execution time and schedule UID from log files and add to accumulated results."""
+        # First extract UIDs from the main log file
+        uids = {}
+        with open(log_file, "r") as f:
+            schedule_id = None
             for line in f:
+                # Match schedule ID line
+                id_match = re.search(r"Running schedule (\d+)", line)
+                if id_match:
+                    schedule_id = id_match.group(1)
+                
+                # Match UID line and associate with the current schedule_id
+                uid_match = re.search(r"Schedule_UID: ([^\s]+)", line)
+                if uid_match and schedule_id is not None:
+                    uids[schedule_id] = uid_match.group(1)
+        
+        # Extract execution times and add UIDs
+        with open(tmp2_file, "r") as f, open(self.accumulated_file, "a") as acc:
+            schedule_id = None
+            for line in f:
+                # Try to extract schedule ID if present
+                id_match = re.search(r"Schedule (\d+)", line)
+                if id_match:
+                    schedule_id = id_match.group(1)
+                
+                # Extract execution time and add UID if available
                 if "Total execution time:" in line:
+                    if schedule_id and schedule_id in uids:
+                        uid = uids[schedule_id]
+                        # Append UID to the execution time line
+                        line = line.rstrip() + f" [UID: {uid}]\n"
                     acc.write(line)
 
     def _display_accumulated_results(self):
@@ -153,7 +181,7 @@ class ScheduleRunner:
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description="Run heterogeneous schedule tasks.")
-    parser.add_argument("task", choices=["serve", "run", "part2"], help="Task to run")
+    parser.add_argument("task", choices=["run", "part2"], help="Task to run")
     parser.add_argument(
         "--device",
         choices=["3A021JEHN02756", "9b034f1b", "jetson", "jetsonlowpower"],
