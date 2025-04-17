@@ -3,6 +3,7 @@
 #include <libmorton/morton.h>
 
 #include <cfloat>
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
 namespace octree::omp {
@@ -10,14 +11,46 @@ namespace octree::omp {
 // ----------------------------------------------------------------------------
 // Stage 1 (xyz -> morton)
 // ----------------------------------------------------------------------------
+inline float xmin = FLT_MAX, ymin = FLT_MAX, zmin = FLT_MAX;
+inline float xmax = -FLT_MAX, ymax = -FLT_MAX, zmax = -FLT_MAX;
+
+// positions   : length‑n array of glm::vec4
+// bounds_min  : glm::vec3 of the minimum corner
+// bounds_max  : glm::vec3 of the maximum corner
+// codes_out   : pre‑allocated length‑n array of uint32_t
+static inline void compute_morton_codes_with_range(const glm::vec4* positions,
+                                                   int n,
+                                                   const glm::vec3& bounds_min,
+                                                   const glm::vec3& bounds_max,
+                                                   uint32_t* codes_out) {
+  float dx = bounds_max.x - bounds_min.x;
+  float dy = bounds_max.y - bounds_min.y;
+  float dz = bounds_max.z - bounds_min.z;
+
+#pragma omp for schedule(static)
+  for (int i = 0; i < n; ++i) {
+    const auto& p = positions[i];
+
+    // normalize into [0,1]
+    float nx = (dx > 0.0f) ? ((p.x - bounds_min.x) / dx) : 0.0f;
+    float ny = (dy > 0.0f) ? ((p.y - bounds_min.y) / dy) : 0.0f;
+    float nz = (dz > 0.0f) ? ((p.z - bounds_min.z) / dz) : 0.0f;
+
+    // quantize to 10 bits
+    uint16_t xi = uint16_t(nx * 1023.0f);
+    uint16_t yi = uint16_t(ny * 1023.0f);
+    uint16_t zi = uint16_t(nz * 1023.0f);
+
+    codes_out[i] = libmorton::morton3D_32_encode(xi, yi, zi);
+  }
+}
 
 inline void compute_morton_codes(const glm::vec4* positions, const size_t n, uint32_t* codes_out) {
   // 1a) find bounding box via a parallel reduction
-  float xmin = FLT_MAX, ymin = FLT_MAX, zmin = FLT_MAX;
-  float xmax = -FLT_MAX, ymax = -FLT_MAX, zmax = -FLT_MAX;
+  //   float xmin = FLT_MAX, ymin = FLT_MAX, zmin = FLT_MAX;
+  //   float xmax = -FLT_MAX, ymax = -FLT_MAX, zmax = -FLT_MAX;
 
-  // #pragma omp for reduction(min : xmin, ymin, zmin) reduction(max : xmax, ymax, zmax)
-  // schedule(static)
+#pragma omp for reduction(min : xmin, ymin, zmin) reduction(max : xmax, ymax, zmax)
   for (size_t i = 0; i < n; ++i) {
     const glm::vec4& p = positions[i];
     xmin = fminf(xmin, p.x);
@@ -209,7 +242,7 @@ static inline void build_octree_nodes_kernel(const uint32_t* codes,
                                              int n,
                                              const int* left_child,
                                              const int* prefix_length,
-                                             const int* edge_count,
+                                             [[maybe_unused]] const int* edge_count,
                                              const int* offsets,
                                              int* children_out) {
   constexpr int MORTON_BITS = 30;

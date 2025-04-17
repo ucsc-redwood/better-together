@@ -16,9 +16,9 @@ int main(int argc, char** argv) {
 
   octree::omp::dispatch_multi_stage(BIG_CORES, app, 1, 7);
 
-  // std::cout << "Input points:      " << app.n << "\n";
-  // std::cout << "Unique Morton codes: " << app.m << "\n";
-  // std::cout << "Total children refs: " << app.total_children << "\n";
+  std::cout << "Input points:      " << app.n << "\n";
+  std::cout << "Unique Morton codes: " << app.m << "\n";
+  std::cout << "Total children refs: " << app.total_children << "\n";
 
   // // peek first 10 ... last 10 morton codes
   // for (int i = 0; i < 10; i++) {
