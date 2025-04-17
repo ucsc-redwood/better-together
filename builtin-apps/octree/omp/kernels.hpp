@@ -27,7 +27,7 @@ static inline void compute_morton_codes_with_range(const glm::vec4* positions,
   float dy = bounds_max.y - bounds_min.y;
   float dz = bounds_max.z - bounds_min.z;
 
-#pragma omp for schedule(static)
+#pragma omp for
   for (int i = 0; i < n; ++i) {
     const auto& p = positions[i];
 
@@ -113,7 +113,7 @@ static inline void build_radix_tree(const uint32_t* codes,
   assert(n > 0);
 
 // 1) initialize arrays in parallel
-#pragma omp for schedule(static)
+#pragma omp for
   for (int i = 0; i < n; ++i) {
     parents[i] = -1;
     left_child[i] = -1;
@@ -123,7 +123,7 @@ static inline void build_radix_tree(const uint32_t* codes,
   }
 
 // 2) build each node in parallel
-#pragma omp for schedule(static)
+#pragma omp for
   for (int i = 0; i < n; ++i) {
     // pick direction based on neighbor LCP
     int d;
@@ -206,7 +206,7 @@ static inline void compute_edge_count_kernel(const uint32_t* codes,
                                              const int* prefix_length,
                                              int* edge_count_out) {
   constexpr int MORTON_BITS = 30;
-#pragma omp for schedule(static)
+#pragma omp for
   for (int i = 0; i < n; ++i) {
     int j = left_child[i];
     int first = (i < j ? i : j);
@@ -246,7 +246,7 @@ static inline void build_octree_nodes_kernel(const uint32_t* codes,
                                              const int* offsets,
                                              int* children_out) {
   constexpr int MORTON_BITS = 30;
-#pragma omp for schedule(static)
+#pragma omp for
   for (int i = 0; i < n; ++i) {
     int j = left_child[i];
     int first = (i < j ? i : j);
