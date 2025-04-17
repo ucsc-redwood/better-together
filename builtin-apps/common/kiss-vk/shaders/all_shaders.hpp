@@ -47,6 +47,10 @@ namespace shaders {
 #include "h/new_cifar_sparse_conv2d_spv.h"
 #include "h/new_cifar_sparse_linear_spv.h"
 #include "h/new_cifar_sparse_maxpool_spv.h"
+#include "h/octree_build_radix_tree_spv.h"
+#include "h/octree_build_octree_nodes_spv.h"
+#include "h/octree_edge_count_spv.h"
+#include "h/octree_morton_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
 #define SHADER_ENTRY(name)                                         \
@@ -101,6 +105,10 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(new_cifar_sparse_conv2d),
         SHADER_ENTRY(new_cifar_sparse_linear),
         SHADER_ENTRY(new_cifar_sparse_maxpool),
+        SHADER_ENTRY(octree_build_radix_tree),
+        SHADER_ENTRY(octree_build_octree_nodes),
+        SHADER_ENTRY(octree_edge_count),
+        SHADER_ENTRY(octree_morton),
 };
 
 #undef SHADER_ENTRY
