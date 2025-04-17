@@ -42,6 +42,9 @@ do
 		"tree/omp/func_sort.hpp",
 		"tree/omp/temp_storage.hpp",
 
+		-- octree headers
+		"octree/appdata.hpp",
+
 		-- pipeline headers
 		"pipeline/record.hpp",
 		"pipeline/spsc_queue.hpp",
@@ -68,6 +71,7 @@ do
 	includes("cifar-dense/omp/xmake.lua")
 	includes("cifar-sparse/omp/xmake.lua")
 	includes("tree/omp/xmake.lua")
+	includes("octree/xmake.lua")
 end
 
 -- ----------------------------------------------------------------------------
