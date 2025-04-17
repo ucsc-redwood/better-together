@@ -28,10 +28,6 @@ set-default:
 compile-shader:
     make
 
-compile_commands:
-    xmake project -k compile_commands
-    sed -i 's/"-rdc=true",//g' compile_commands.json
-
 #  ----------------------------------------------------------------------------
 #  Benchmark Related
 #  ----------------------------------------------------------------------------
