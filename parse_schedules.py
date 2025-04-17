@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 """
-Parse schedule log files from a specified folder and extract timing data.
+Parse schedule log files and generate averaged statistics per schedule.
 
 Usage:
-    python parse_schedules.py /path/to/log/folder
+    python parse_schedules.py /path/to/log/files
 """
 
 import os
 import re
 import sys
-import json
 import argparse
 from collections import defaultdict
-import csv
 
 
 def parse_arguments():
@@ -22,23 +20,10 @@ def parse_arguments():
         "input", help="Path to log file or directory containing log files"
     )
     parser.add_argument(
-        "--output",
-        "-o",
-        help="Output folder for JSON and CSV files",
-        default="./results",
-    )
-    parser.add_argument(
-        "--format",
-        "-f",
-        choices=["json", "csv", "both"],
-        default="both",
-        help="Output format (default: both)",
-    )
-    parser.add_argument(
-        "--stats",
-        "-s",
+        "--verbose",
+        "-v",
         action="store_true",
-        help="Print schedule statistics to console",
+        help="Print detailed statistics for each log file",
     )
     return parser.parse_args()
 
@@ -99,7 +84,7 @@ def extract_frequency(section):
     freq_match = re.search(r"Frequency=(\d+) Hz", section)
     if freq_match:
         return int(freq_match.group(1))
-    return 24576000  # Default frequency in Hz (as seen in the original script)
+    return 24576000  # Default frequency in Hz
 
 
 def parse_task_data(section):
@@ -211,6 +196,7 @@ def process_log_file(log_file):
             "chunks": dict(chunk_metrics),  # Convert defaultdict to dict
             "num_tasks": len(task_metrics),
             "num_chunks": len(chunk_metrics),
+            "log_file": log_file,
         }
 
         schedules_data.append(schedule_data)
@@ -218,21 +204,22 @@ def process_log_file(log_file):
     return schedules_data
 
 
-def print_schedule_statistics(schedules_data):
-    """Print statistics for each schedule."""
-    print("\n===== SCHEDULE STATISTICS =====")
+def print_individual_statistics(schedules_data):
+    """Print statistics for each schedule in each log file."""
+    print("\n===== INDIVIDUAL SCHEDULE STATISTICS =====")
 
     for i, schedule in enumerate(schedules_data):
         device = schedule["device"]
         application = schedule["application"]
         schedule_uid = schedule["schedule_uid"]
+        log_file = os.path.basename(schedule["log_file"])
 
         # Calculate total time across all tasks and chunks
         total_time_ms = 0
         for task_id, task_data in schedule["tasks"].items():
             total_time_ms += task_data["total_duration_ms"]
 
-        print(f"\nSchedule {i+1}: {schedule_uid}")
+        print(f"\nSchedule {i+1}: {schedule_uid} (from {log_file})")
         print(f"Device: {device}, Application: {application}")
         print(f"Total time: {total_time_ms:.2f} ms")
 
@@ -240,10 +227,120 @@ def print_schedule_statistics(schedules_data):
         print("Average time by chunks:")
         for chunk_id, chunk_data in sorted(schedule["chunks"].items()):
             avg_duration = chunk_data["avg_duration"]
-            # task_count = chunk_data["task_count"]
-            # total_duration = chunk_data["total_duration"]
-            print(f"  Chunk {chunk_id}: {avg_duration:.2f} ms (avg)")
+            task_count = chunk_data["task_count"]
+            total_duration = chunk_data["total_duration"]
+            print(
+                f"  Chunk {chunk_id}: {avg_duration:.2f} ms (avg) / {total_duration:.2f} ms (total) / {task_count} tasks"
+            )
+
         print("-" * 50)
+
+
+def calculate_aggregated_statistics(all_schedules):
+    """Aggregate statistics across all log files, grouped by schedule UID."""
+    # Group schedules by their UID
+    grouped_schedules = defaultdict(list)
+    for schedule in all_schedules:
+        grouped_schedules[schedule["schedule_uid"]].append(schedule)
+
+    # Calculate aggregated statistics for each schedule UID
+    aggregated_stats = {}
+
+    for schedule_uid, schedules in grouped_schedules.items():
+        # Initialize aggregation data structure
+        chunk_data = defaultdict(lambda: {"durations": [], "task_counts": []})
+        log_files = set()
+        devices = set()
+        applications = set()
+
+        # Collect data from all instances of this schedule
+        for schedule in schedules:
+            log_files.add(os.path.basename(schedule["log_file"]))
+            devices.add(schedule["device"])
+            applications.add(schedule["application"])
+
+            # Collect chunk data
+            for chunk_id, chunk_metrics in schedule["chunks"].items():
+                chunk_data[chunk_id]["durations"].append(chunk_metrics["avg_duration"])
+                chunk_data[chunk_id]["task_counts"].append(chunk_metrics["task_count"])
+
+        # Calculate averages
+        avg_by_chunk = {}
+        for chunk_id, data in chunk_data.items():
+            if data["durations"]:
+                avg_duration = sum(data["durations"]) / len(data["durations"])
+                avg_task_count = sum(data["task_counts"]) / len(data["task_counts"])
+                avg_by_chunk[chunk_id] = {
+                    "avg_duration_ms": avg_duration,
+                    "avg_task_count": avg_task_count,
+                    "sample_count": len(data["durations"]),
+                }
+
+        # Store aggregated stats
+        aggregated_stats[schedule_uid] = {
+            "devices": list(devices),
+            "applications": list(applications),
+            "log_files": list(log_files),
+            "num_samples": len(schedules),
+            "chunks": avg_by_chunk,
+        }
+
+    return aggregated_stats
+
+
+def print_aggregated_statistics(aggregated_stats):
+    """Print the aggregated statistics across all log files."""
+    print("\n===== AGGREGATED STATISTICS BY SCHEDULE =====")
+
+    # Store widest chunk data for each schedule for the summary at the end
+    widest_chunks = {}
+
+    for i, (schedule_uid, stats) in enumerate(sorted(aggregated_stats.items())):
+        print(f"\nSchedule {i+1}: {schedule_uid}")
+        print(
+            f"Samples: {stats['num_samples']} (from {len(stats['log_files'])} log files)"
+        )
+        print(f"Devices: {', '.join(stats['devices'])}")
+        print(f"Applications: {', '.join(stats['applications'])}")
+
+        print("\nAverage time by chunks (across all log files):")
+
+        # Find the widest chunk for this schedule
+        widest_chunk_id = None
+        widest_chunk_duration = 0
+
+        for chunk_id, chunk_stats in sorted(stats["chunks"].items()):
+            avg_duration = chunk_stats["avg_duration_ms"]
+            avg_task_count = chunk_stats["avg_task_count"]
+            sample_count = chunk_stats["sample_count"]
+
+            print(
+                f"  Chunk {chunk_id}: {avg_duration:.2f} ms (avg) / {avg_task_count:.1f} tasks (avg) / {sample_count} samples"
+            )
+
+            # Track widest chunk
+            if avg_duration > widest_chunk_duration:
+                widest_chunk_duration = avg_duration
+                widest_chunk_id = chunk_id
+
+        # Store widest chunk info for summary
+        if widest_chunk_id is not None:
+            widest_chunks[schedule_uid] = {
+                "chunk_id": widest_chunk_id,
+                "duration_ms": widest_chunk_duration,
+            }
+
+        print("-" * 50)
+
+    # Print summary of widest chunks
+    print("\n===== WIDEST CHUNK SUMMARY =====")
+    print("Schedule UID                    : Chunk ID  Duration (ms)")
+    print("-" * 60)
+
+    for schedule_uid, chunk_info in sorted(widest_chunks.items()):
+        print(
+            f"{schedule_uid:30} : Chunk {chunk_info['chunk_id']:2}   {chunk_info['duration_ms']:.2f} ms"
+        )
 
 
 def main():
@@ -256,9 +353,6 @@ def main():
         print(f"No log files found at {args.input}")
         return 1
 
-    # Create output folder if it doesn't exist
-    os.makedirs(args.output, exist_ok=True)
-
     # Process each log file
     all_schedules = []
 
@@ -266,17 +360,20 @@ def main():
         schedules_data = process_log_file(log_file)
         all_schedules.extend(schedules_data)
 
-    # Print statistics if requested
-    if args.stats:
-        print_schedule_statistics(all_schedules)
-    else:
-        # Always print basic summary
-        print(
-            f"\nProcessed {len(all_schedules)} schedules. Use --stats for detailed statistics."
-        )
+    if not all_schedules:
+        print("No schedule data was found in any of the log files.")
+        return 1
+
+    # Print individual statistics if verbose mode is enabled
+    if args.verbose:
+        print_individual_statistics(all_schedules)
+
+    # Calculate and print aggregated statistics
+    aggregated_stats = calculate_aggregated_statistics(all_schedules)
+    print_aggregated_statistics(aggregated_stats)
 
     print(
-        f"Processed {len(log_files)} log files with a total of {len(all_schedules)} schedules"
+        f"\nProcessed {len(log_files)} log files with a total of {len(all_schedules)} schedule instances"
     )
     return 0
 
