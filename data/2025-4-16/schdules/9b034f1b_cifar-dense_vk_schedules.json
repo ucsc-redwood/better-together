@@ -1,5 +1,6 @@
 [
   {
+    "uid": "SCH-M9-G000-b936",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -68,6 +69,7 @@
     "solution_id": 1
   },
   {
+    "uid": "SCH-L9-G000-ade5",
     "stage_assignments": {
       "0": {
         "core_type": "Little",
@@ -136,6 +138,7 @@
     "solution_id": 2
   },
   {
+    "uid": "SCH-B9-G000-0bff",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -204,6 +207,7 @@
     "solution_id": 3
   },
   {
+    "uid": "SCH-G9-G000-75a5",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -272,6 +276,7 @@
     "solution_id": 4
   },
   {
+    "uid": "SCH-G7L2-G053-2617",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -347,6 +352,7 @@
     "solution_id": 5
   },
   {
+    "uid": "SCH-G7M2-G305-3b37",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -422,6 +428,7 @@
     "solution_id": 6
   },
   {
+    "uid": "SCH-G7B2-G366-dd06",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -497,6 +504,7 @@
     "solution_id": 7
   },
   {
+    "uid": "SCH-G7M1L1-G379-461d",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -579,6 +587,7 @@
     "solution_id": 8
   },
   {
+    "uid": "SCH-G8L1-G383-f131",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -654,6 +663,7 @@
     "solution_id": 9
   },
   {
+    "uid": "SCH-G7L1M1-G402-12d3",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -736,6 +746,7 @@
     "solution_id": 10
   },
   {
+    "uid": "SCH-G7B1M1-G412-473a",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -818,6 +829,7 @@
     "solution_id": 11
   },
   {
+    "uid": "SCH-G7B1L1-G412-9731",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -900,6 +912,7 @@
     "solution_id": 12
   },
   {
+    "uid": "SCH-G7L1B1-G429-d9d4",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -982,6 +995,7 @@
     "solution_id": 13
   },
   {
+    "uid": "SCH-G7M1B1-G429-37f8",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -1064,6 +1078,7 @@
     "solution_id": 14
   },
   {
+    "uid": "SCH-G8M1-G430-c40a",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -1139,6 +1154,7 @@
     "solution_id": 15
   },
   {
+    "uid": "SCH-G8B1-G457-2d87",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -1214,6 +1230,7 @@
     "solution_id": 16
   },
   {
+    "uid": "SCH-M5B4-G3570-0864",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -1289,6 +1306,7 @@
     "solution_id": 17
   },
   {
+    "uid": "SCH-B1G8-G4120-91d1",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1364,6 +1382,7 @@
     "solution_id": 18
   },
   {
+    "uid": "SCH-B1L1G7-G4159-b419",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1446,6 +1465,7 @@
     "solution_id": 19
   },
   {
+    "uid": "SCH-L4B5-G4255-0779",
     "stage_assignments": {
       "0": {
         "core_type": "Little",

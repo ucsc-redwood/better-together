@@ -43,7 +43,7 @@ struct Schedule {
   [[nodiscard]] size_t end_stage(const size_t chunk_id) const { return chunks[chunk_id].end_stage; }
 
   void print(const size_t id) const {
-    std::cout << "Schedule " << id << ":\n";
+    std::cout << "Schedule " << id << " [UID: " << uid << "]:\n";
     const std::string indent = "  ";
 
     for (size_t i = 0; i < chunks.size(); ++i) {

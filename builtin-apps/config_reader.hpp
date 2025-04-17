@@ -28,6 +28,15 @@ inline std::vector<Schedule> readSchedulesFromJson(const nlohmann::json& j) {
   for (const auto& solution : j) {
     Schedule schedule;
 
+    // Extract UID if available
+    if (solution.contains("uid")) {
+      schedule.uid = solution["uid"].get<std::string>();
+      spdlog::debug("Found schedule with UID: {}", schedule.uid);
+    } else {
+      schedule.uid = "unknown";
+      spdlog::warn("Schedule missing 'uid' field, using default 'unknown'");
+    }
+
     // Skip if no chunks field
     if (!solution.contains("chunks")) {
       spdlog::warn("Solution missing 'chunks' field, skipping");

@@ -3,6 +3,8 @@ import pandas as pd
 import argparse
 import numpy as np
 import json
+import uuid
+import hashlib
 
 
 def load_csv_and_compute_averages(csv_path):
@@ -366,8 +368,28 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
         }
     else:
         metrics = {}
+        
+    # Generate a readable UID for the solution
+    # Format: SCH-{cores_summary}-G{gapness:.2f}
+    cores_summary = ""
+    for chunk in chunks:
+        if chunk["core_type"] == "Little":
+            cores_summary += "L"
+        elif chunk["core_type"] == "Medium":
+            cores_summary += "M"
+        elif chunk["core_type"] == "Big":
+            cores_summary += "B"
+        elif chunk["core_type"] == "GPU":
+            cores_summary += "G"
+        cores_summary += str(len(chunk["stages"]))
+    
+    # Add gapness and unique hash to ensure uniqueness
+    gapness_str = f"{metrics.get('gapness', 0):.2f}".replace('.', '')
+    unique_hash = hashlib.md5(str(chunks).encode()).hexdigest()[:4]
+    uid = f"SCH-{cores_summary}-G{gapness_str}-{unique_hash}"
 
     return {
+        "uid": uid,
         "stage_assignments": stage_assignments,
         "chunks": chunks,
         "metrics": metrics,
@@ -435,6 +457,10 @@ def solve_optimization_problem(stage_timings, num_solutions=30):
         detailed_solution["metrics"]["max_time"] = max_time
         detailed_solution["metrics"]["min_time"] = min_time
         detailed_solution["metrics"]["gapness"] = gapness_value
+        
+        # Print UID for reference
+        print(f"Solution UID: {detailed_solution['uid']}")
+        
         detailed_solutions.append(detailed_solution)
 
         # Store solution
@@ -452,8 +478,9 @@ def solve_optimization_problem(stage_timings, num_solutions=30):
         # Print a summary of all solutions
         print("\n=== Summary of All Solutions ===")
         for i, (gapness, max_time, _) in enumerate(top_solutions):
+            solution_uid = detailed_solutions[i]["uid"]
             print(
-                f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms"
+                f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms, UID: {solution_uid}"
             )
 
     return detailed_solutions
