@@ -39,8 +39,8 @@ struct AppData {
         u_offsets(reserved_n, mr),
         u_children(8 * reserved_n, mr) {
     // generate random positions
-    std::mt19937 gen(114514);
-    std::uniform_real_distribution dis(kMinCoord, kMaxCoord);
+    static std::mt19937 gen(114514);
+    static std::uniform_real_distribution dis(kMinCoord, kMaxCoord);
     std::ranges::generate(u_positions,
                           [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
 
