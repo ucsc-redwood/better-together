@@ -41,12 +41,25 @@ void run_stage_3(AppData &appdata) {
   {
     auto it = std::unique(appdata.u_morton_codes.begin(), appdata.u_morton_codes.end());
     appdata.u_morton_codes.erase(it, appdata.u_morton_codes.end());
+
+    appdata.n_unique_codes = appdata.u_morton_codes.size();
+    appdata.n_brt_nodes = appdata.n_unique_codes - 1;
   }
 
 #pragma omp barrier
 }
 
-void run_stage_4(AppData &appdata) { LOG_KERNEL(LogKernelType::kOMP, 4, &appdata); }
+void run_stage_4(AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kOMP, 4, &appdata);
+
+  build_radix_tree(appdata.u_morton_codes.data(),
+                   appdata.u_morton_codes.size(),
+                   appdata.u_parents.data(),
+                   appdata.u_left_child.data(),
+                   appdata.u_has_leaf_left.data(),
+                   appdata.u_has_leaf_right.data(),
+                   appdata.u_prefix_length.data());
+}
 
 void run_stage_5(AppData &appdata) { LOG_KERNEL(LogKernelType::kOMP, 5, &appdata); }
 

@@ -29,8 +29,7 @@ int main(int argc, char** argv) {
   spdlog::info(
       "number of unique morton codes = {} / {}", appdata.u_morton_codes.size(), appdata.n_input);
 
-  
-
+  appdata.print_radix_tree(appdata, 10);
 
   return 0;
 }
