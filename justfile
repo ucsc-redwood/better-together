@@ -73,9 +73,8 @@ run-schedules-gen-real-time-part-1:
 # Generating the schedules (z3)
 
 gen-schedules-z3:
-    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv
-    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/9b034f1b_fully.csv
-
+    python3 scripts/gen/schedule.py --csv_path data/2025-4-16/cifar-dense/3A021JEHN02756_fully.csv \
+        -n 20 --output_file tmp.json
 
 # Running the schedules
 
