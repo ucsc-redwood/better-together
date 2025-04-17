@@ -78,6 +78,10 @@ gen-schedules-z3:
 
 # Running the schedules
 
+serve-schedules:
+    python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-16/schdules/ 8080
+
+
 run-schedules-gen-real-time-part-2:
     python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
     echo "--------------------------------" >> accumulated_time.txt
