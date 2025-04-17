@@ -32,7 +32,7 @@ TEST_F(OctreeDispatcherTest, Stage1_ComputeMortonCodes) {
   // Morton codes should be computed for all input points
   bool all_non_zero = true;
   for (size_t i = 0; i < app_data->n; ++i) {
-    if (app_data->u_morton_codes[i] == 0) {
+    if (app_data->u_morton_codes_alt[i] == 0) {
       all_non_zero = false;
       break;
     }
