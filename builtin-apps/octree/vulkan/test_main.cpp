@@ -9,9 +9,26 @@
 
 TEST(VulkanOctreeTest, Test1) {
   octree::vulkan::VulkanDispatcher disp;
-  auto appdata = std::make_unique<octree::AppData>(disp.get_mr());
+  octree::AppData appdata(disp.get_mr());
 
-  EXPECT_NO_THROW(disp.run_stage_1(*appdata));
+  EXPECT_NO_THROW(disp.run_stage_1(appdata));
+}
+
+TEST(VulkanOctreeTest, Test2) {
+//   octree::vulkan::VulkanDispatcher disp;
+//   octree::AppData appdata(disp.get_mr());
+
+//   disp.run_stage_1(appdata);
+//   EXPECT_NO_THROW(disp.run_stage_2(appdata));
+
+//   bool is_sorted = true;
+//   for (size_t i = 1; i < appdata.n; ++i) {
+//     if (appdata.u_morton_codes_sorted[i] < appdata.u_morton_codes_sorted[i - 1]) {
+//       is_sorted = false;
+//       break;
+//     }
+//   }
+//   EXPECT_TRUE(is_sorted);
 }
 
 int main(int argc, char** argv) {

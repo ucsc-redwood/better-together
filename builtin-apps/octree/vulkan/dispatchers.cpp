@@ -24,6 +24,11 @@ struct MortonPushConstants {
 };
 static_assert(sizeof(MortonPushConstants) == 12);
 
+struct InputSizePushConstantsUnsigned {
+  uint32_t n;
+};
+static_assert(sizeof(InputSizePushConstantsUnsigned) == 4);
+
 // layout(local_size_x = 256) in;
 
 // layout(std430, set = 0, binding = 0) readonly buffer Codes { uint codes[]; };
@@ -76,6 +81,8 @@ static_assert(sizeof(BuildOctreeNodesPushConstants) == 4);
 VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
+  // *** Stage 1 ***
+
   auto morton_algo = engine.make_algo("tree_morton")
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
@@ -84,6 +91,31 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                          ->build();
 
   cached_algorithms.try_emplace("tree_morton", std::move(morton_algo));
+
+  // *** Stage 2 ***
+
+  auto radixsort_algo =
+      engine.make_algo("tmp_single_radixsort_warp" + std::to_string(get_vulkan_warp_size()))
+          ->work_group_size(256, 1, 1)
+          ->num_sets(1)
+          ->num_buffers(2)
+          ->push_constant<InputSizePushConstantsUnsigned>()
+          ->build();
+
+  cached_algorithms.try_emplace("radixsort", std::move(radixsort_algo));
+
+  // *** Stage 4 ***
+
+  auto build_radix_tree_algo = engine.make_algo("octree_build_radix_tree")
+                                   ->work_group_size(256, 1, 1)
+                                   ->num_sets(1)
+                                   ->num_buffers(6)
+                                   ->push_constant<BuildRadixTreePushConstants>()
+                                   ->build();
+
+  cached_algorithms.try_emplace("octree_build_radix_tree", std::move(build_radix_tree_algo));
+
+  // *** Stage 5 ***
 
   auto build_edge_count_algo = engine.make_algo("octree_edge_count")
                                    ->work_group_size(256, 1, 1)
@@ -94,14 +126,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("octree_edge_count", std::move(build_edge_count_algo));
 
-  auto build_radix_tree_algo = engine.make_algo("octree_build_radix_tree")
-                                   ->work_group_size(256, 1, 1)
-                                   ->num_sets(1)
-                                   ->num_buffers(6)
-                                   ->push_constant<BuildRadixTreePushConstants>()
-                                   ->build();
-
-  cached_algorithms.try_emplace("octree_build_radix_tree", std::move(build_radix_tree_algo));
+  // *** Stage 7 ***
 
   auto build_octree_nodes_algo = engine.make_algo("octree_build_octree_nodes")
                                      ->work_group_size(256, 1, 1)
@@ -117,19 +142,19 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 // Stage 1
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_1(AppData& appdata) {
+void VulkanDispatcher::run_stage_1(AppData& app) {
   auto algo = cached_algorithms.at("tree_morton").get();
 
-  LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+  LOG_KERNEL(LogKernelType::kVK, 1, &app);
 
   algo->update_descriptor_set(0,
                               {
-                                  engine.get_buffer_info(appdata.u_positions),
-                                  engine.get_buffer_info(appdata.u_morton_codes),
+                                  engine.get_buffer_info(app.u_positions),
+                                  engine.get_buffer_info(app.u_morton_codes),
                               });
 
   algo->update_push_constant(MortonPushConstants{
-      .n = static_cast<uint32_t>(appdata.n),
+      .n = static_cast<uint32_t>(app.n),
       .min_coord = kMinCoord,
       .range = kMaxCoord - kMinCoord,
   });
@@ -138,7 +163,7 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.n, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(app.n, 256)), 1, 1});
   seq->cmd_end();
 
   seq->reset_fence();
@@ -151,48 +176,67 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
 // Stage 2
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_2(AppData& appdata) {
-  LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
+void VulkanDispatcher::run_stage_2(AppData& app) {
+  LOG_KERNEL(LogKernelType::kVK, 2, &app);
+
+  // auto algo = cached_algorithms.at("radixsort").get();
+
+  // algo->update_descriptor_set(0,
+  //                             {
+  //                                 engine.get_buffer_info(app.u_morton_codes),
+  //                                 engine.get_buffer_info(app.u_morton_codes_sorted),
+  //                             });
+
+  // algo->update_push_constant(InputSizePushConstantsUnsigned{
+  //     .n = static_cast<uint32_t>(app.n),
+  // });
+
+  // seq->cmd_begin();
+  // algo->record_bind_core(seq->get_handle(), 0);
+  // algo->record_bind_push(seq->get_handle());
+  // algo->record_dispatch(seq->get_handle(), {1, 1, 1});  // Special case: single workgroup
+  // seq->cmd_end();
+
+  // seq->reset_fence();
+  // seq->submit();
+  // seq->wait_for_fence();
 }
 
 // ----------------------------------------------------------------------------
 // Stage 3
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_3(AppData& appdata) {
-  LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+void VulkanDispatcher::run_stage_3(AppData& app) {
+  LOG_KERNEL(LogKernelType::kVK, 3, &app);
+
+  auto end_it = std::unique(app.u_morton_codes.begin(), app.u_morton_codes.begin() + app.n);
+  app.m = std::distance(app.u_morton_codes.begin(), end_it);
+
+  assert(size_t(app.m) <= app.reserved_n);
 }
 
 // ----------------------------------------------------------------------------
 // Stage 4
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_4(AppData& appdata) {
-  LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
-}
+void VulkanDispatcher::run_stage_4(AppData& app) { LOG_KERNEL(LogKernelType::kVK, 4, &app); }
 
 // ----------------------------------------------------------------------------
 // Stage 5
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_5(AppData& appdata) {
-  LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
-}
+void VulkanDispatcher::run_stage_5(AppData& app) { LOG_KERNEL(LogKernelType::kVK, 5, &app); }
 
 // ----------------------------------------------------------------------------
 // Stage 6
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_6(AppData& appdata) {
-  LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
-}
+void VulkanDispatcher::run_stage_6(AppData& app) { LOG_KERNEL(LogKernelType::kVK, 6, &app); }
 
 // ----------------------------------------------------------------------------
 // Stage 7
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_7(AppData& appdata) {
-  LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
-}
+void VulkanDispatcher::run_stage_7(AppData& app) { LOG_KERNEL(LogKernelType::kVK, 7, &app); }
 
 }  // namespace octree::vulkan

@@ -16,13 +16,13 @@ class VulkanDispatcher final {
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() const { return engine.get_mr(); }
 
-  void run_stage_1(AppData& appdata);
-  void run_stage_2(AppData& appdata);
-  void run_stage_3(AppData& appdata);
-  void run_stage_4(AppData& appdata);
-  void run_stage_5(AppData& appdata);
-  void run_stage_6(AppData& appdata);
-  void run_stage_7(AppData& appdata);
+  void run_stage_1(AppData& app);
+  void run_stage_2(AppData& app);
+  void run_stage_3(AppData& app);
+  void run_stage_4(AppData& app);
+  void run_stage_5(AppData& app);
+  void run_stage_6(AppData& app);
+  void run_stage_7(AppData& app);
 
   using StageFn = void (VulkanDispatcher::*)(AppData&);
 
