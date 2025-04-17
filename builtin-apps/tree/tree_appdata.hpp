@@ -22,7 +22,8 @@ constexpr auto kMemoryRatio = 0.5f;
 // FHD / 1080p	1920×1080	16:9 ~= 2M points
 
 // Default problem size, other sizes are
-constexpr auto kDefaultInputSize = 1366 * 768;
+constexpr auto kDefaultInputSize = 1024 * 768;
+// constexpr auto kDefaultInputSize = 1366 * 768;
 constexpr auto kMinCoord = 0.0f;
 constexpr auto kRange = 1024.0f;
 
