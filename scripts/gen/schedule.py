@@ -501,7 +501,7 @@ def dump_solutions_as_json(solutions, output_format="pretty", output_file=None):
     else:
         json_str = json.dumps(solutions)
 
-    print(json_str)
+    # print(json_str)
     print("=== MACHINE PARSABLE OUTPUT END ===")
 
     # Write to file if path is specified
