@@ -101,11 +101,20 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
 // ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
-  parse_args(argc, argv);
+  PARSE_ARGS_BEGIN;
+
+  std::string device_to_measure;
+  app.add_option("--device-to-measure", device_to_measure, "Device to measure")->required();
+
+  PARSE_ARGS_END;
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
-  if (g_device_id != "3A021JEHN02756") {
+  if (g_device_id != device_to_measure) {
+    return 0;
+  }
+
+  if (g_device_id == "3A021JEHN02756") {
     // Warmup
     BM_pipe_warmup(device_3A021JEHN02756::gapness::schedules[0]);
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -117,6 +126,10 @@ int main(int argc, char** argv) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
+
+  // if (g_device_id == "9b034f1b") {
+  //   BM_pipe_cifar_sparse_vk_schedule_auto(device_9b034f1b::gapness::schedules[0]);
+  // }
 
   return 0;
 }

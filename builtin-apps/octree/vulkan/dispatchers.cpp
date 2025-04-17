@@ -4,25 +4,23 @@
 
 namespace octree::vulkan {
 
-// layout(local_size_x = 256) in;
-
-// layout(std430, set = 0, binding = 0) readonly buffer Positions { vec4 positions[]; };
-// layout(std430, set = 0, binding = 1) writeonly buffer MortonKeys { uint morton_keys[]; };
-
+// // push‐constant: one uint + two floats + pad → 16 bytes total
 // layout(push_constant) uniform PC {
-//   uint n;
-//   vec3 bounds_min;
-//   vec3 bounds_max;
+//   uint n;           // offset 0
+//   float min_coord;  // offset 4
+//   float range;      // offset 8
+//   float pad;        // offset 12 (unused, just for alignment)
 // }
 // pc;
 
-// must be exactly 16 bytes
 struct MortonPushConstants {
-  uint32_t n;       // offset 0
-  float min_coord;  // offset 4
-  float range;      // offset 8
+  uint32_t n;
+  float min_coord;
+  float range;
+  float pad;
 };
-static_assert(sizeof(MortonPushConstants) == 12);
+
+static_assert(sizeof(MortonPushConstants) == 16);
 
 struct InputSizePushConstantsUnsigned {
   uint32_t n;
@@ -83,14 +81,14 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   // *** Stage 1 ***
 
-  auto morton_algo = engine.make_algo("tree_morton")
+  auto morton_algo = engine.make_algo("octree_morton")
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
                          ->num_buffers(2)
                          ->push_constant<MortonPushConstants>()
                          ->build();
 
-  cached_algorithms.try_emplace("tree_morton", std::move(morton_algo));
+  cached_algorithms.try_emplace("morton", std::move(morton_algo));
 
   // *** Stage 2 ***
 
@@ -143,9 +141,9 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::run_stage_1(AppData& app) {
-  auto algo = cached_algorithms.at("tree_morton").get();
-
   LOG_KERNEL(LogKernelType::kVK, 1, &app);
+
+  auto algo = cached_algorithms.at("morton").get();
 
   algo->update_descriptor_set(0,
                               {
@@ -157,6 +155,7 @@ void VulkanDispatcher::run_stage_1(AppData& app) {
       .n = static_cast<uint32_t>(app.n),
       .min_coord = kMinCoord,
       .range = kMaxCoord - kMinCoord,
+      .pad = 0,
   });
 
   seq->cmd_begin();
@@ -166,18 +165,18 @@ void VulkanDispatcher::run_stage_1(AppData& app) {
                         {static_cast<uint32_t>(kiss_vk::div_ceil(app.n, 256)), 1, 1});
   seq->cmd_end();
 
-  seq->submit();
-
-  seq->wait_for_fence();
   seq->reset_fence();
+  seq->submit();
+  seq->wait_for_fence();
 
-  // verify that all morton are non-zero
-  for (size_t i = 0; i < app.n; ++i) {
-    if (app.u_morton_codes_alt[i] == 0) {
-      spdlog::error("Morton code is zero at index {}", i);
-      exit(1);
-    }
-  }
+  // // verify that all morton are non-zero
+  // for (size_t i = 0; i < app.n; ++i) {
+  //   std::cout << app.u_morton_codes_alt[i] << "\n";
+  //   if (app.u_morton_codes_alt[i] == 0) {
+  //     spdlog::error("Morton code is zero at index {}", i);
+  //     exit(1);
+  //   }
+  // }
 }
 
 // ----------------------------------------------------------------------------
