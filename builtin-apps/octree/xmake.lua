@@ -9,7 +9,7 @@ do
 	set_group("test")
 	set_kind("binary")
 	add_files({
-		"./test_main.cpp",
+		"./omp/test_main.cpp",
 	})
 
 	add_deps("builtin-apps")
