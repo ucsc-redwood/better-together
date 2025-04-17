@@ -1,3 +1,4 @@
+// build_octree_nodes.comp
 #version 460
 layout(local_size_x = 256) in;
 
@@ -18,26 +19,29 @@ void main() {
   if (ui >= pc7.n) return;
   int i = int(ui);
 
+  // range + shift
   int j = left_child[i];
   int first = min(i, j), last = max(i, j);
   int depth = prefix_length[i];
   int shift = MORTON_BITS - depth - 3;
 
-  bool seen[8] = bool[8](false);
-  int first_index[8];
+  // collect first‐indices per octant
+  uint mask = 0u;
+  int first_idx[8];
   for (int k = first; k <= last; ++k) {
-    int oct = int((codes[k] >> shift) & 0x7u);
-    if (!seen[oct]) {
-      seen[oct] = true;
-      first_index[oct] = k;
+    uint oct = (codes[k] >> shift) & 0x7u;
+    if ((mask & (1u << oct)) == 0u) {
+      mask |= (1u << oct);
+      first_idx[oct] = k;
     }
   }
 
+  // pack contiguously by counting lower bits
   uint base = offsets[i];
-  uint cursor = 0u;
-  for (int oct = 0; oct < 8; ++oct) {
-    if (seen[oct]) {
-      children[base + cursor++] = uint(first_index[oct]);
+  for (uint oct = 0u; oct < 8u; ++oct) {
+    if ((mask & (1u << oct)) != 0u) {
+      uint slot = bitCount(mask & ((1u << oct) - 1u));
+      children[base + slot] = uint(first_idx[oct]);
     }
   }
 }

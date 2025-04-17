@@ -21,13 +21,13 @@ void main() {
   int depth = prefix_length[i];
   int shift = MORTON_BITS - depth - 3;
 
-  bool seen[8] = bool[8](false);
+  // build a mask of the octants we see
+  uint mask = 0u;
   for (int k = first; k <= last; ++k) {
-    int oct = int((codes[k] >> shift) & 0x7u);
-    seen[oct] = true;
+    uint oct = (codes[k] >> shift) & 0x7u;
+    mask |= (1u << oct);
   }
-  uint cnt = 0u;
-  for (int o = 0; o < 8; ++o)
-    if (seen[o]) ++cnt;
-  edge_count[i] = cnt;
+
+  // bitCount(mask) == number of distinct octants
+  edge_count[i] = bitCount(mask);
 }
