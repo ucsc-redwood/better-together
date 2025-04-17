@@ -75,8 +75,21 @@ struct Logger {
     std::cout << "1 cycle = " << "1e3 / " << get_counter_frequency() << " ms\n";
   }
 
-  void dump_records_for_python() const {
+  void dump_records_metadata() const {
     const auto freq = get_counter_frequency();  // in Hz
+    std::cout << "# Frequency=" << freq << " Hz\n";
+    std::cout << "# 1 cycle = " << (1e6 / freq) << " us\n";
+    std::cout << "# 1 cycle = " << (1e3 / freq) << " ms\n";
+  }
+
+  void dump_records_for_python(const Schedule& schedule) const {
+    std::cout << "### Python Begin ###" << std::endl;
+
+    const auto freq = get_counter_frequency();  // in Hz
+    // print Schedule UID
+    std::cout << "Schedule_UID=" << schedule.uid << std::endl;
+    std::cout << "Frequency=" << freq << " Hz\n";
+
     for (size_t i = 0; i < records_.size(); ++i) {
       for (size_t j = 0; j < 4; ++j) {
         const auto& rec = records_[i][j];
@@ -90,9 +103,7 @@ struct Logger {
       }
     }
 
-    std::cout << "# Frequency=" << freq << " Hz\n";
-    std::cout << "# 1 cycle = " << (1e6 / freq) << " us\n";
-    std::cout << "# 1 cycle = " << (1e3 / freq) << " ms\n";
+    std::cout << "### Python End ###" << std::endl;
   }
 
   // Print statistics for a specific chunk ID

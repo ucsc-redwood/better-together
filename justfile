@@ -86,11 +86,14 @@ serve:
     python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-17/schdules/ 8080
 
 
+# Run 3 times to get 3 .log files
 run-schedule:
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
+    python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
+    python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
 
-log-to-timeline:
-    python3 
+# # log-to-timeline:
+#     python3 scripts/plot/timeline.py  3A021JEHN02756_cifar-sparse_schedules_000.log 
 
 tmp:
     rm -f accumuated_time.txt

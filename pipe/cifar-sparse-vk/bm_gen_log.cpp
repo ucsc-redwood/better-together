@@ -88,19 +88,7 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedul
     }
   }
 
-  for (size_t i = 0; i < n_chunks; ++i) {
-    logger.print_chunk_stats(i);
-  }
-
-  std::cout << "### Python Begin ###" << std::endl;
-
-  logger.dump_records_for_python();
-
-  // Print the schedule ID and UID for tracking purposes
-  schedule.print(id);
-  std::cout << "Schedule_UID: " << schedule.uid << std::endl;
-
-  std::cout << "### Python End ###" << std::endl;
+  logger.dump_records_for_python(schedule);
 }
 
 // ----------------------------------------------------------------------------
