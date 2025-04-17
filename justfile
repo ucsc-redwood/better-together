@@ -91,17 +91,20 @@ serve:
 
 
 run-schedule:
-    rm -f 3A021JEHN02756_cifar-dense_schedules.log
-    rm -rf tmp_folder
-    mkdir -p tmp_folder
-    xmake r bm-gen-logs-cifar-dense-vk -l off --device-to-measure 3A021JEHN02756 \
-        --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar_dense_vk_schedules.json \
-        --n-schedules-to-run 10 | tee 3A021JEHN02756_cifar-dense_schedules.log
+    python3 runner.py --device 3A021JEHN02756 --app cifar-dense run 
 
-run-schedule-part-2:
-    python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ 3A021JEHN02756_cifar-dense_schedules.log > tmp2.txt
-    cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
-    cat accumulated_time.txt
+# run-schedule:
+#     rm -f 3A021JEHN02756_cifar-dense_schedules.log
+#     rm -rf tmp_folder
+#     mkdir -p tmp_folder
+#     xmake r bm-gen-logs-cifar-dense-vk -l off --device-to-measure 3A021JEHN02756 \
+#         --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar_dense_vk_schedules.json \
+#         --n-schedules-to-run 10 | tee 3A021JEHN02756_cifar-dense_schedules.log
+
+# run-schedule-part-2:
+#     python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ 3A021JEHN02756_cifar-dense_schedules.log > tmp2.txt
+#     cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
+#     cat accumulated_time.txt
 
 
 
