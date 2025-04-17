@@ -146,12 +146,12 @@ class ScheduleRunner:
                 id_match = re.search(r"Running schedule (\d+)", line)
                 if id_match:
                     schedule_id = id_match.group(1)
-                
+
                 # Match UID line and associate with the current schedule_id
                 uid_match = re.search(r"Schedule_UID: ([^\s]+)", line)
                 if uid_match and schedule_id is not None:
                     uids[schedule_id] = uid_match.group(1)
-        
+
         # Extract execution times and add UIDs
         with open(tmp2_file, "r") as f, open(self.accumulated_file, "a") as acc:
             schedule_id = None
@@ -160,7 +160,7 @@ class ScheduleRunner:
                 id_match = re.search(r"Schedule (\d+)", line)
                 if id_match:
                     schedule_id = id_match.group(1)
-                
+
                 # Extract execution time and add UID if available
                 if "Total execution time:" in line:
                     if schedule_id and schedule_id in uids:

@@ -81,17 +81,17 @@ def extract_schedule_annotations(section):
         chunk_id_match = re.search(r"Chunk (\d+)", line)
         if not chunk_id_match:
             continue
-            
+
         chunk_id = int(chunk_id_match.group(1))
-        
+
         # Extract assigned tasks - Example: "]: 1, 2, 3, 4, 5, 6, 7"
         tasks_match = re.search(r"]: ([\d, ]+)", line)
         if not tasks_match:
             continue
-            
+
         tasks_str = tasks_match.group(1)
         tasks = [int(task.strip()) for task in tasks_str.split(",") if task.strip()]
-        
+
         # Store with chunk ID as the key
         schedule_annotations[chunk_id] = tasks
 
@@ -101,9 +101,7 @@ def extract_schedule_annotations(section):
 def parse_task_data(section):
     """Parse task data from a Python section."""
     tasks = {}
-    pattern = (
-        r"Task=(\d+) Chunk=(\d+) Start=(\d+) End=(\d+) Duration=(\d+)"
-    )
+    pattern = r"Task=(\d+) Chunk=(\d+) Start=(\d+) End=(\d+) Duration=(\d+)"
     task_matches = re.findall(pattern, section)
 
     for match in task_matches:
@@ -344,7 +342,7 @@ def create_chunk_labels(max_chunk_id, chunk_types, schedule_annotations):
     for i in range(max_chunk_id + 1):
         # Get the tasks assigned to this chunk
         tasks = schedule_annotations.get(i, [])
-        
+
         # Format the task list as a comma-separated string
         tasks_str = ", ".join(map(str, tasks))
         if tasks_str:
@@ -528,7 +526,7 @@ def print_analysis(
         # Get task list for this chunk
         tasks = schedule_annotations.get(chunk_id, [])
         tasks_str = ", ".join(map(str, tasks))
-        
+
         if tasks_str:
             print(f"Chunk {chunk_id} [{tasks_str}]:")
         else:
@@ -568,7 +566,7 @@ def print_analysis(
             print(f"Widest chunk: Chunk {widest_chunk_id} [{widest_tasks_str}]")
         else:
             print(f"Widest chunk: Chunk {widest_chunk_id}")
-            
+
         print(
             f"Total execution time: {widest_chunk_duration_cycles:.2f} cycles ({widest_chunk_duration_ms:.6f} ms)"
         )
@@ -586,7 +584,7 @@ def print_analysis(
             # Get task list for this chunk
             chunk_tasks = schedule_annotations.get(chunk_id, [])
             chunk_tasks_str = ", ".join(map(str, chunk_tasks))
-            
+
             total_duration_cycles = duration
             total_duration_ms = duration * CYCLES_TO_MS
             chunk_percentage = (duration / total_execution_cycles) * 100
