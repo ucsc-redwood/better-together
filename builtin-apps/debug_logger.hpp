@@ -81,7 +81,7 @@ void log_kernel_console_impl(const int stage, const void *appdata_addr) {
   }
 }
 
-constexpr bool kEnableLogging = false;
+constexpr bool kEnableLogging = true;
 
 #define LOG_KERNEL(kernel_type, stage, appdata)           \
   if constexpr (kEnableLogging) {                         \

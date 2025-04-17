@@ -21,9 +21,8 @@ struct MortonPushConstants {
   uint32_t n;       // offset 0
   float min_coord;  // offset 4
   float range;      // offset 8
-  float pad;        // offset 12 → ensures total size is 16
 };
-static_assert(sizeof(MortonPushConstants) == 16, "Push‐constant block must be 16 bytes");
+static_assert(sizeof(MortonPushConstants) == 12);
 
 // layout(local_size_x = 256) in;
 
@@ -38,6 +37,7 @@ static_assert(sizeof(MortonPushConstants) == 16, "Push‐constant block must be 
 struct BuildEdgeCountPushConstants {
   uint n;
 };
+static_assert(sizeof(BuildEdgeCountPushConstants) == 4);
 
 // layout(local_size_x = 256) in;
 
@@ -54,6 +54,7 @@ struct BuildEdgeCountPushConstants {
 struct BuildRadixTreePushConstants {
   uint n;
 };
+static_assert(sizeof(BuildRadixTreePushConstants) == 4);
 
 // layout(local_size_x = 256) in;
 
@@ -70,18 +71,19 @@ struct BuildRadixTreePushConstants {
 struct BuildOctreeNodesPushConstants {
   uint n;
 };
+static_assert(sizeof(BuildOctreeNodesPushConstants) == 4);
 
 VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
-  auto morton_algo = engine.make_algo("octree_morton")
+  auto morton_algo = engine.make_algo("tree_morton")
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
                          ->num_buffers(2)
                          ->push_constant<MortonPushConstants>()
                          ->build();
 
-  cached_algorithms.try_emplace("octree_morton", std::move(morton_algo));
+  cached_algorithms.try_emplace("tree_morton", std::move(morton_algo));
 
   auto build_edge_count_algo = engine.make_algo("octree_edge_count")
                                    ->work_group_size(256, 1, 1)
@@ -116,7 +118,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::run_stage_1(AppData& appdata) {
-  auto algo = cached_algorithms.at("octree_morton").get();
+  auto algo = cached_algorithms.at("tree_morton").get();
 
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
 
@@ -130,20 +132,19 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
       .n = static_cast<uint32_t>(appdata.n),
       .min_coord = kMinCoord,
       .range = kMaxCoord - kMinCoord,
-      .pad = 0,
   });
-
-  uint32_t grid_size_x = static_cast<uint32_t>(kiss_vk::div_ceil(appdata.n, 256));
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
-  algo->record_dispatch(seq->get_handle(), {grid_size_x, 1, 1});
+  algo->record_dispatch(seq->get_handle(),
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.n, 256)), 1, 1});
   seq->cmd_end();
 
-  seq->submit();
-  seq->wait_for_fence();
   seq->reset_fence();
+  seq->submit();
+
+  seq->wait_for_fence();
 }
 
 // ----------------------------------------------------------------------------
