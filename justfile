@@ -86,7 +86,7 @@ gen-schedules-z3:
 # Running the schedules
 # 1) Serve the schedules directory
 # So that the android phones can access the schedules via HTTP
-serve-schedules:
+serve:
     python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-16/schdules/ 8080
 
 
