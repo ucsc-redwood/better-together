@@ -12,7 +12,11 @@ inline std::string g_spdlog_log_level;
 inline std::vector<int> g_little_cores;
 inline std::vector<int> g_medium_cores;
 inline std::vector<int> g_big_cores;
-inline bool g_debug_filelogger = false;
+
+// Define macros for clearer test code
+#define LITTLE_CORES g_little_cores, g_little_cores.size()
+#define MEDIUM_CORES g_medium_cores, g_medium_cores.size()
+#define BIG_CORES g_big_cores, g_big_cores.size()
 
 [[nodiscard]] size_t get_vulkan_warp_size();
 
@@ -23,7 +27,6 @@ inline bool g_debug_filelogger = false;
 #define PARSE_ARGS_END                                                                    \
   app.add_option("-d,--device", g_device_id, "Device ID")->required();                    \
   app.add_option("-l,--log-level", g_spdlog_log_level, "Log level")->default_val("info"); \
-  app.add_flag("--debug_filelogger", g_debug_filelogger, "Debug filelogger");             \
   app.allow_extras();                                                                     \
   CLI11_PARSE(app, argc, argv);                                                           \
   if (g_device_id.empty()) {                                                              \

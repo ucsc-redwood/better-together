@@ -7,11 +7,6 @@
 #include "../appdata.hpp"
 #include "dispatchers.hpp"
 
-// Define macros for clearer test code
-#define LITTLE_CORES g_little_cores, g_little_cores.size()
-#define MEDIUM_CORES g_medium_cores, g_medium_cores.size()
-#define BIG_CORES g_big_cores, g_big_cores.size()
-
 // Setup helper to initialize the app data
 std::unique_ptr<octree::AppData> setupAppData(size_t n_input = 1000) {
   auto mr = std::pmr::new_delete_resource();
