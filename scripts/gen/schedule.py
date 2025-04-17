@@ -1,13 +1,60 @@
 from z3 import Optimize, Bool, Real, Sum, If, Or, Not, RealVal, sat, Implies, And
+import pandas as pd
+import argparse
+import numpy as np
 
 
-def define_data():
+def load_csv_and_compute_averages(csv_path):
+    """
+    Load data from a CSV file and compute average timings for each stage across all runs.
+
+    Args:
+        csv_path: Path to the CSV file containing stage timing data
+
+    Returns:
+        A list of lists containing average timing data for each stage and core type
+    """
+    # Load CSV file
+    df = pd.read_csv(csv_path)
+
+    # Compute average for each stage across all runs
+    # Group by stage and calculate mean for each core type
+    avg_df = df.groupby("stage")[["little", "medium", "big", "vulkan"]].mean()
+
+    # Print the average table
+    print("\n=== Average Stage Timings ===")
+    print(avg_df)
+    print()
+
+    # Convert to list of lists format expected by the solver
+    # Each inner list is [little_time, medium_time, big_time, vulkan_time]
+    avg_timings = []
+    for stage in range(1, 10):  # Assuming 9 stages, numbered 1-9
+        if stage in avg_df.index:
+            row = avg_df.loc[stage]
+            avg_timings.append(
+                [row["little"], row["medium"], row["big"], row["vulkan"]]
+            )
+        else:
+            print(f"Warning: Stage {stage} not found in data")
+            # Use zeros as fallback
+            avg_timings.append([0.0, 0.0, 0.0, 0.0])
+
+    return avg_timings
+
+
+def define_data(stage_timings=None):
     """Define the problem data."""
     num_stages = 9
     type_value = {"Little": 0, "Medium": 1, "Big": 2, "GPU": 3}
     core_types = ["Little", "Medium", "Big", "GPU"]
 
-    fully_stage_timings = [
+    # Use provided stage timings if available, otherwise use default values
+    if stage_timings is not None:
+        return num_stages, core_types, type_value, stage_timings
+
+    # Default timings if no CSV is provided
+    default_stage_timings = [
         [23.6234, 5.8916, 6.0479, 4.7451],
         [29.3516, 13.2806, 14.9687, 2.7761],
         [15.0454, 3.1998, 3.8297, 2.4621],
@@ -19,7 +66,7 @@ def define_data():
         [0.0536, 0.0175, 0.0167, 0.2801],
     ]
 
-    return num_stages, core_types, type_value, fully_stage_timings
+    return num_stages, core_types, type_value, default_stage_timings
 
 
 def create_decision_variables(num_stages, core_types):
@@ -236,15 +283,10 @@ def get_solution_representation(m, x, num_stages, core_types):
     return solution
 
 
-def solve_optimization_problem():
+def solve_optimization_problem(stage_timings, num_solutions=30):
     """Solve the optimization problem and display the solution."""
     # Initialize data
-    num_stages, core_types, type_value, fully_stage_timings, normal_stage_timings = (
-        define_data()
-    )
-
-    # Number of solutions to find
-    num_solutions = 40
+    num_stages, core_types, type_value, fully_stage_timings = define_data(stage_timings)
 
     # Prepare a list to hold up to num_solutions solutions
     top_solutions = []
@@ -282,12 +324,12 @@ def solve_optimization_problem():
         gapness_value = float(m[Gapness].as_fraction())
 
         print(f"\n=== Solution {solution_count + 1} ===")
-        print(f"Gap between max and min: {gapness_value} ms")
-        print(f"Max chunk time: {max_time} ms")
-        print(f"Min chunk time: {min_time} ms")
+        print(f"Gap between max and min: {gapness_value:.2f} ms")
+        print(f"Max chunk time: {max_time:.2f} ms")
+        print(f"Min chunk time: {min_time:.2f} ms")
 
         # Print details
-        # print_stage_assignments(m, x, num_stages, core_types, stage_timings)
+        # print_stage_assignments(m, x, num_stages, core_types, fully_stage_timings)
         print_stage_assignments_v2(m, x, num_stages, core_types, fully_stage_timings)
         chunk_times = print_chunk_summary(
             m, x, num_stages, core_types, fully_stage_timings
@@ -308,8 +350,36 @@ def solve_optimization_problem():
         # Print a summary of all solutions
         print("\n=== Summary of All Solutions ===")
         for i, (gapness, max_time, _) in enumerate(top_solutions):
-            print(f"Solution {i + 1}: Gap = {gapness} ms, Max time = {max_time} ms")
+            print(
+                f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms"
+            )
+
+
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Solve scheduling optimization problem using data from a CSV file."
+    )
+    parser.add_argument(
+        "--csv_path",
+        type=str,
+        help="Path to the CSV file with stage timing data",
+        required=True,
+    )
+    parser.add_argument(
+        "-n",
+        "--num_solutions",
+        type=int,
+        help="Number of solutions to find",
+        default=30,
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    solve_optimization_problem()
+    args = parse_arguments()
+
+    if args.csv_path:
+        print(f"Loading data from CSV file: {args.csv_path}")
+        stage_timings = load_csv_and_compute_averages(args.csv_path)
+        solve_optimization_problem(stage_timings, args.num_solutions)
