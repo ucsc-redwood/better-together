@@ -13,6 +13,19 @@ inline std::vector<int> g_little_cores;
 inline std::vector<int> g_medium_cores;
 inline std::vector<int> g_big_cores;
 
+static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
+  switch (core_type) {
+    case ProcessorType::kLittleCore:
+      return g_little_cores;
+    case ProcessorType::kMediumCore:
+      return g_medium_cores;
+    case ProcessorType::kBigCore:
+      return g_big_cores;
+    default:
+      throw std::invalid_argument("Invalid core type");
+  }
+}
+
 // Define macros for clearer test code
 #define LITTLE_CORES g_little_cores, g_little_cores.size()
 #define MEDIUM_CORES g_medium_cores, g_medium_cores.size()
