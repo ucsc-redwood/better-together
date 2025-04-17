@@ -408,8 +408,8 @@ collect-bm-data-all:
     just collect-bm-data cifar-dense
 
 make-bm-heatmap:
-    python3 scripts/plot/heat.py --folder data/2025-4-16/cifar-sparse/ --exclude_stages 2,4,8,9
-    python3 scripts/plot/heat.py --folder data/2025-4-16/cifar-dense/ --exclude_stages 2,4,8,9
+    python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-sparse/ --exclude_stages 2,4,8,9
+    python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-dense/ --exclude_stages 2,4,8,9
 
 
 # Will need to use the latest schedule
