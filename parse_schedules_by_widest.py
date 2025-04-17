@@ -3,7 +3,7 @@
 Parse schedule log files and generate averaged statistics per schedule.
 
 Usage:
-    python parse_schedules.py /path/to/log/files [--model /path/to/model.json]
+    python parse_schedules.py /path/to/log/files [--model /path/to/model.json] [--time-window 0.0-1.0]
 """
 
 import os
@@ -38,6 +38,12 @@ def parse_arguments():
         "-o",
         help="Output directory for visualization files",
         default="./results",
+    )
+    parser.add_argument(
+        "--time-window",
+        "-t",
+        help="Time window for analysis (format: start-end, values between 0.0 and 1.0)",
+        default="0.0-1.0",
     )
     return parser.parse_args()
 
@@ -126,9 +132,11 @@ def parse_task_data(section):
     return tasks
 
 
-def process_log_file(log_file):
+def process_log_file(log_file, time_window=(0.0, 1.0)):
     """Process a single log file and extract all schedule data."""
-    print(f"Processing {log_file}...")
+    print(
+        f"Processing {log_file}... (time window: {time_window[0]:.2f}-{time_window[1]:.2f})"
+    )
     schedules_data = []
 
     try:
@@ -166,6 +174,32 @@ def process_log_file(log_file):
         # Calculate cycles to ms conversion factor
         cycles_to_ms = 1e3 / frequency
 
+        # Find the overall schedule time range
+        min_start_time = float("inf")
+        max_end_time = 0
+
+        for task_id, chunks in tasks.items():
+            for chunk_id, chunk_data in chunks.items():
+                start_ms = chunk_data["start"] * cycles_to_ms
+                end_ms = chunk_data["end"] * cycles_to_ms
+
+                min_start_time = min(min_start_time, start_ms)
+                max_end_time = max(max_end_time, end_ms)
+
+        if min_start_time == float("inf"):
+            # No tasks found
+            continue
+
+        schedule_duration = max_end_time - min_start_time
+
+        # Calculate the absolute time window limits based on percentage
+        window_start = min_start_time + (schedule_duration * time_window[0])
+        window_end = min_start_time + (schedule_duration * time_window[1])
+
+        print(
+            f"  Schedule {schedule_uid} duration: {schedule_duration:.2f} ms, window: {window_start:.2f}-{window_end:.2f} ms"
+        )
+
         # Calculate additional metrics per task and chunk
         task_metrics = {}
         chunk_metrics = defaultdict(lambda: {"total_duration": 0, "task_count": 0})
@@ -175,12 +209,19 @@ def process_log_file(log_file):
             task_metrics[task_id] = {"chunks": {}}
 
             for chunk_id, chunk_data in chunks.items():
+                start_ms = chunk_data["start"] * cycles_to_ms
+                end_ms = chunk_data["end"] * cycles_to_ms
                 duration_ms = chunk_data["duration_cycles"] * cycles_to_ms
+
+                # Check if this task is within our time window
+                # We include tasks that at least partially overlap with the window
+                if end_ms < window_start or start_ms > window_end:
+                    continue
 
                 # Update task metrics
                 task_metrics[task_id]["chunks"][chunk_id] = {
-                    "start_ms": chunk_data["start"] * cycles_to_ms,
-                    "end_ms": chunk_data["end"] * cycles_to_ms,
+                    "start_ms": start_ms,
+                    "end_ms": end_ms,
                     "duration_ms": duration_ms,
                 }
                 task_total_duration += duration_ms
@@ -189,7 +230,11 @@ def process_log_file(log_file):
                 chunk_metrics[chunk_id]["total_duration"] += duration_ms
                 chunk_metrics[chunk_id]["task_count"] += 1
 
-            task_metrics[task_id]["total_duration_ms"] = task_total_duration
+            if task_metrics[task_id]["chunks"]:
+                task_metrics[task_id]["total_duration_ms"] = task_total_duration
+            else:
+                # Remove tasks with no chunks within the time window
+                del task_metrics[task_id]
 
         # Calculate average duration per chunk
         for chunk_id, metrics in chunk_metrics.items():
@@ -211,6 +256,10 @@ def process_log_file(log_file):
             "num_tasks": len(task_metrics),
             "num_chunks": len(chunk_metrics),
             "log_file": log_file,
+            "time_window": time_window,
+            "schedule_start_ms": min_start_time,
+            "schedule_end_ms": max_end_time,
+            "schedule_duration_ms": schedule_duration,
         }
 
         schedules_data.append(schedule_data)
@@ -707,6 +756,28 @@ def main():
     """Main function to process all log files."""
     args = parse_arguments()
 
+    # Parse the time window argument
+    try:
+        time_window_parts = args.time_window.split("-")
+        if len(time_window_parts) != 2:
+            raise ValueError("Time window must be in format 'start-end'")
+
+        start = float(time_window_parts[0])
+        end = float(time_window_parts[1])
+
+        if start < 0 or start > 1 or end < 0 or end > 1 or start >= end:
+            raise ValueError(
+                "Time window values must be between 0 and 1, and start must be less than end"
+            )
+
+        time_window = (start, end)
+    except ValueError as e:
+        print(f"Error parsing time window: {e}")
+        print("Using default time window (0.0-1.0)")
+        time_window = (0.0, 1.0)
+
+    print(f"Using time window: {time_window[0]:.2f}-{time_window[1]:.2f}")
+
     # Load model predictions if specified
     model_predictions = {}
     if args.model:
@@ -722,7 +793,7 @@ def main():
     all_schedules = []
 
     for log_file in log_files:
-        schedules_data = process_log_file(log_file)
+        schedules_data = process_log_file(log_file, time_window)
         all_schedules.extend(schedules_data)
 
     if not all_schedules:
@@ -759,6 +830,7 @@ def main():
 
     # Print widest chunk summary
     print("\n===== WIDEST CHUNK SUMMARY =====")
+    print(f"Time window: {time_window[0]:.2f}-{time_window[1]:.2f}")
     print("Schedule UID                    : Chunk ID  Duration (ms)")
     print("-" * 60)
 
@@ -783,6 +855,7 @@ def main():
     print(
         f"\nProcessed {len(log_files)} log files with a total of {len(all_schedules)} schedule instances"
     )
+    print(f"Time window used for analysis: {time_window[0]:.2f}-{time_window[1]:.2f}")
     return 0
 
 
