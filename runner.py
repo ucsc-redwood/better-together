@@ -138,6 +138,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-n",
         "--n-schedules-to-run",
         type=int,
         default=10,
