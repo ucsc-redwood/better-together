@@ -87,7 +87,10 @@ serve:
 
 
 run-schedule:
-    python3 runner.py --device 3A021JEHN02756 --app cifar-dense run 
+    python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
+
+log-to-timeline:
+    python3 
 
 tmp:
     rm -f accumuated_time.txt
