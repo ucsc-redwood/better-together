@@ -122,9 +122,6 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // Load JSON from local file server
-  // curl http://192.168.1.204:8080/tmp.json
-
   const auto json = fetch_json_from_url(schedule_url);
 
   const auto schedules = readSchedulesFromJson(json);

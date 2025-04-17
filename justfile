@@ -63,12 +63,6 @@ make-bm-heatmap:
     python3 scripts/plot/normal_vs_fully_heat.py --folder data/2025-4-16/cifar-dense/ --exclude_stages 2,4,8,9
 
 
-# Will need to use the latest schedule
-run-schedules-gen-real-time-part-1:
-    rm -f tmp.txt tmp2.txt
-    rm -rf tmp_folder
-    mkdir -p tmp_folder
-    xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
 
 # Generating the schedules (z3)
 # 1) Load the accumulated fully vs. normal BM time
@@ -91,15 +85,29 @@ gen-schedules-z3:
 
 # Running the schedules
 # 1) Serve the schedules directory
+# So that the android phones can access the schedules via HTTP
 serve-schedules:
     python3 -m http.server --bind 0.0.0.0 --directory data/2025-4-16/schdules/ 8080
 
 
-run-schedules-gen-real-time-part-2:
-    python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
-    echo "--------------------------------" >> accumulated_time.txt
-    cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
-    cat accumulated_time.txt
+run-schedule:
+    xmake r bm-gen-logs-cifar-dense-vk --device-to-measure 3A021JEHN02756 \
+        --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar_dense_vk_schedules.json \
+        --n-schedules-to-run 10
+
+
+
+# run-schedules-gen-real-time-part-1:
+#     rm -f tmp.txt tmp2.txt
+#     rm -rf tmp_folder
+#     mkdir -p tmp_folder
+#     xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
+
+# run-schedules-gen-real-time-part-2:
+#     python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
+#     echo "--------------------------------" >> accumulated_time.txt
+#     cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
+#     cat accumulated_time.txt
 
 run-schedules-gen-real-time-n-times:
     echo "1/3..."
@@ -116,3 +124,33 @@ run-schedules-gen-real-time-n-times:
 
 cat-math:
     python3 scripts/gen_schedule/schedule.py
+
+
+# # Will need to use the latest schedule
+# run-schedules-gen-real-time-part-1:
+#     rm -f tmp.txt tmp2.txt
+#     rm -rf tmp_folder
+#     mkdir -p tmp_folder
+#     xmake r bm-gen-logs-cifar-sparse-vk > tmp.txt
+
+# run-schedules-gen-real-time-part-2:
+#     python3 scripts/plot/schedule_exe.py --output-dir tmp_folder/ tmp.txt > tmp2.txt
+#     echo "--------------------------------" >> accumulated_time.txt
+#     cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
+#     cat accumulated_time.txt
+
+# run-schedules-gen-real-time-n-times:
+#     echo "1/3..."
+#     just run-schedules-gen-real-time-part-1
+#     just run-schedules-gen-real-time-part-2
+#     echo "2/3..."
+#     just run-schedules-gen-real-time-part-1
+#     just run-schedules-gen-real-time-part-2
+#     echo "3/3..."
+#     just run-schedules-gen-real-time-part-1
+#     just run-schedules-gen-real-time-part-2
+
+#     python3 parse_times.py --input accumulated_time.txt
+
+# cat-math:
+#     python3 scripts/gen_schedule/schedule.py
