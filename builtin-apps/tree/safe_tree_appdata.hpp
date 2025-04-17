@@ -23,22 +23,22 @@ struct SafeAppData {
   // --------------------------------------------------------------------------
   // Stage 1: xyz -> morton
   // --------------------------------------------------------------------------
-  std::pmr::vector<glm::vec4> u_input_points_s0;
-  std::pmr::vector<uint32_t> u_morton_keys_s1;
+  const std::pmr::vector<glm::vec4> u_input_points_s0;
+  const std::pmr::vector<uint32_t> u_morton_keys_s1;
 
   std::pmr::vector<uint32_t> u_morton_keys_s1_out;
 
   // --------------------------------------------------------------------------
   // Stage 2: morton -> sorted morton
   // --------------------------------------------------------------------------
-  std::pmr::vector<uint32_t> u_morton_keys_sorted_s2;
+  const std::pmr::vector<uint32_t> u_morton_keys_sorted_s2;
 
   std::pmr::vector<uint32_t> u_morton_keys_sorted_s2_out;
 
   // --------------------------------------------------------------------------
   // Stage 3: sorted morton -> unique morton
   // --------------------------------------------------------------------------
-  std::pmr::vector<uint32_t> u_morton_keys_unique_s3;
+  const std::pmr::vector<uint32_t> u_morton_keys_unique_s3;
 
   std::pmr::vector<uint32_t> u_morton_keys_unique_s3_out;
 
@@ -48,11 +48,11 @@ struct SafeAppData {
   // --------------------------------------------------------------------------
   // Stage 4: unique morton -> Binary Radix Tree (BRT)
   // --------------------------------------------------------------------------
-  std::pmr::vector<uint8_t> u_brt_prefix_n_s4;
-  std::pmr::vector<uint8_t> u_brt_has_leaf_left_s4;
-  std::pmr::vector<uint8_t> u_brt_has_leaf_right_s4;
-  std::pmr::vector<int32_t> u_brt_left_child_s4;
-  std::pmr::vector<int32_t> u_brt_parents_s4;
+  const std::pmr::vector<uint8_t> u_brt_prefix_n_s4;
+  const std::pmr::vector<uint8_t> u_brt_has_leaf_left_s4;
+  const std::pmr::vector<uint8_t> u_brt_has_leaf_right_s4;
+  const std::pmr::vector<int32_t> u_brt_left_child_s4;
+  const std::pmr::vector<int32_t> u_brt_parents_s4;
 
   std::pmr::vector<uint8_t> u_brt_prefix_n_s4_out;
   std::pmr::vector<uint8_t> u_brt_has_leaf_left_s4_out;
@@ -63,25 +63,25 @@ struct SafeAppData {
   // --------------------------------------------------------------------------
   // Stage 5: BRT -> edge count
   // --------------------------------------------------------------------------
-  std::pmr::vector<int32_t> u_edge_count_s5;
+  const std::pmr::vector<int32_t> u_edge_count_s5;
 
   std::pmr::vector<int32_t> u_edge_count_s5_out;
 
   // --------------------------------------------------------------------------
   // Stage 6: edge count -> edge offset
   // --------------------------------------------------------------------------
-  std::pmr::vector<int32_t> u_edge_offset_s6;
+  const std::pmr::vector<int32_t> u_edge_offset_s6;
 
   std::pmr::vector<int32_t> u_edge_offset_s6_out;
 
   // --------------------------------------------------------------------------
   // Stage 7: Build Octree
   // --------------------------------------------------------------------------
-  std::pmr::vector<int32_t> u_oct_children_s7;  // 8 * sizeof
-  std::pmr::vector<glm::vec4> u_oct_corner_s7;
-  std::pmr::vector<float> u_oct_cell_size_s7;
-  std::pmr::vector<int32_t> u_oct_child_node_mask_s7;
-  std::pmr::vector<int32_t> u_oct_child_leaf_mask_s7;
+  const std::pmr::vector<int32_t> u_oct_children_s7;  // 8 * sizeof(int32_t) * n_octree_nodes
+  const std::pmr::vector<glm::vec4> u_oct_corner_s7;
+  const std::pmr::vector<float> u_oct_cell_size_s7;
+  const std::pmr::vector<int32_t> u_oct_child_node_mask_s7;
+  const std::pmr::vector<int32_t> u_oct_child_leaf_mask_s7;
 
   std::pmr::vector<int32_t> u_oct_children_s7_out;
   std::pmr::vector<glm::vec4> u_oct_corner_s7_out;
@@ -90,31 +90,17 @@ struct SafeAppData {
   std::pmr::vector<int32_t> u_oct_child_leaf_mask_s7_out;
 
   // --------------------------------------------------------------------------
-  // Temp storage
-  // --------------------------------------------------------------------------
-
-  // omp::TmpStorage omp_temp_storage;
-
-  // --------------------------------------------------------------------------
   // Getters / Setters
   // --------------------------------------------------------------------------
 
   [[nodiscard]] uint32_t get_n_input() const { return n_input; }
-
   [[nodiscard]] uint32_t get_n_unique() const { return n_unique; }
-
   [[nodiscard]] uint32_t get_n_brt_nodes() const { return n_brt_nodes; }
-
   [[nodiscard]] uint32_t get_n_octree_nodes() const { return n_octree_nodes; }
 
-  void set_n_unique([[maybe_unused]] const uint32_t n_unique) {  // No-op
-  }
-
-  void set_n_brt_nodes([[maybe_unused]] const uint32_t n_brt_nodes) {  // No-op
-  }
-
-  void set_n_octree_nodes([[maybe_unused]] const uint32_t n_octree_nodes) {  // No-op
-  }
+  void set_n_unique([[maybe_unused]] const uint32_t n_unique) {}
+  void set_n_brt_nodes([[maybe_unused]] const uint32_t n_brt_nodes) {}
+  void set_n_octree_nodes([[maybe_unused]] const uint32_t n_octree_nodes) {}
 };
 
 class HostTreeManager {

@@ -403,7 +403,7 @@ collect-bm-data app:
     python3 scripts/collect/bm.py --log_folder data/2025-4-16/{{app}}/ \
         --repeat 3 --target bm-fully-{{app}}-vk
 
-collect-bm-data:
+collect-bm-data-all:
     just collect-bm-data cifar-sparse
     just collect-bm-data cifar-dense
 
