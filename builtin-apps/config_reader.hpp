@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "conf.hpp"
-
+#include "pipeline/schedule.hpp"
 
 // ---------------------------------------------------------------------
 // Helper function: Reads chunks from a JSON configuration file.
