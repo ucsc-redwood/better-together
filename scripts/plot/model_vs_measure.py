@@ -1,9 +1,11 @@
 import re
+import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.metrics import mean_squared_error
+import argparse
 
 # Schedules to ignore in analysis (by execution number, 1-indexed)
 IGNORED_SCHEDULES = [
@@ -13,54 +15,69 @@ IGNORED_SCHEDULES = [
     3,
     4,
 ]
+# # Math model predictions (in seconds)
+# PREDICTED_TIMES = [
+#     121.1783,  # Solution 1
+#     45.0962,  # Solution 2
+#     38.908,  # Solution 3
+#     18.0777,  # Solution 4
+#     11.9866,  # Solution 5
+#     9.9833,  # Solution 6
+#     21.0166,  # Solution 7
+#     9.9833,  # Solution 8
+#     11.6786,  # Solution 9
+#     22.372,  # Solution 10
+#     9.9833,  # Solution 11
+#     19.1722,  # Solution 12
+#     10.1,  # Solution 13
+#     11.6786,  # Solution 14
+#     8.6717,  # Solution 15
+#     10.1,  # Solution 16
+#     10.6456,  # Solution 17
+#     17.9516,  # Solution 18
+#     9.9833,  # Solution 19
+#     9.07,  # Solution 20
+#     9.9833,  # Solution 21
+#     9.9833,  # Solution 22
+#     36.2851,  # Solution 23
+#     9.1116,  # Solution 24
+#     9.2635,  # Solution 25
+#     9.2635,  # Solution 26
+#     12.5407,  # Solution 27
+#     9.1116,  # Solution 28
+#     10.6373,  # Solution 29
+#     9.6358,  # Solution 30
+#     9.6043,  # Solution 31
+#     9.6043,  # Solution 32
+#     13.4168,  # Solution 33
+#     11.6786,  # Solution 34
+#     31.0949,  # Solution 35
+#     9.1116,  # Solution 36
+#     9.9833,  # Solution 37
+#     11.6786,  # Solution 38
+#     11.9227,  # Solution 39
+#     10.3447,  # Solution 40
+# ]
 
-# Math model predictions (in seconds)
-PREDICTED_TIMES = [
-    121.1783,  # Solution 1
-    45.0962,  # Solution 2
-    38.908,  # Solution 3
-    18.0777,  # Solution 4
-    11.9866,  # Solution 5
-    9.9833,  # Solution 6
-    21.0166,  # Solution 7
-    9.9833,  # Solution 8
-    11.6786,  # Solution 9
-    22.372,  # Solution 10
-    9.9833,  # Solution 11
-    19.1722,  # Solution 12
-    10.1,  # Solution 13
-    11.6786,  # Solution 14
-    8.6717,  # Solution 15
-    10.1,  # Solution 16
-    10.6456,  # Solution 17
-    17.9516,  # Solution 18
-    9.9833,  # Solution 19
-    9.07,  # Solution 20
-    9.9833,  # Solution 21
-    9.9833,  # Solution 22
-    36.2851,  # Solution 23
-    9.1116,  # Solution 24
-    9.2635,  # Solution 25
-    9.2635,  # Solution 26
-    12.5407,  # Solution 27
-    9.1116,  # Solution 28
-    10.6373,  # Solution 29
-    9.6358,  # Solution 30
-    9.6043,  # Solution 31
-    9.6043,  # Solution 32
-    13.4168,  # Solution 33
-    11.6786,  # Solution 34
-    31.0949,  # Solution 35
-    9.1116,  # Solution 36
-    9.9833,  # Solution 37
-    11.6786,  # Solution 38
-    11.9227,  # Solution 39
-    10.3447,  # Solution 40
-]
+
+def load_predicted_times_from_json(json_file_path):
+    with open(json_file_path, "r") as f:
+        schedules = json.load(f)
+
+    predicted_times = []
+    uids = []
+    for schedule in schedules:
+        if "metrics" in schedule and "max_time" in schedule["metrics"]:
+            estimate = schedule["metrics"]["max_time"]
+
+            predicted_times.append(estimate)
+            uids.append(schedule["uid"])
+
+    return predicted_times, uids
 
 
-def parse_accumulated_times(file_path):
-    with open(file_path, "r") as file:
+def parse_accumulated_times(log_file_path):
+    with open(log_file_path, "r") as file:
         content = file.read()
 
     # Split content into runs using the separator lines
@@ -123,16 +140,20 @@ def create_visualization(
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser(
-        description="Parse execution times from accumulated_time.txt"
+        description="Parse execution times from accumulated_time.txt and compare with predicted times"
     )
     parser.add_argument(
         "--input",
         type=str,
         default="accumulated_time.txt",
         help="Path to input file containing execution times",
+    )
+    parser.add_argument(
+        "--json",
+        type=str,
+        required=True,
+        help="Path to JSON file containing schedules with predicted times",
     )
     parser.add_argument(
         "--ignore",
@@ -146,6 +167,16 @@ def main():
     global IGNORED_SCHEDULES
     if args.ignore:
         IGNORED_SCHEDULES.extend(args.ignore)
+
+    # Load predicted times from JSON file
+    predicted_times, uids = load_predicted_times_from_json(args.json)
+    print(f"Loaded {len(predicted_times)} predicted times from {args.json}")
+
+    # print(predicted_times)
+    for i, t in enumerate(predicted_times):
+        print(f"Estimate {i+1}: {t:.4f} ms ({uids[i]})")
+
+    exit()
 
     file_path = args.input
     runs_data = parse_accumulated_times(file_path)
@@ -179,7 +210,7 @@ def main():
 
     # Use predicted times for included executions only
     predicted_times_filtered = [
-        PREDICTED_TIMES[i] for i in included_columns if i < len(PREDICTED_TIMES)
+        predicted_times[i] for i in included_columns if i < len(predicted_times)
     ]
 
     # Ensure we're only considering executions with both measured and predicted values
