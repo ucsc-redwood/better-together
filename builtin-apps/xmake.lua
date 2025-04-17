@@ -74,7 +74,7 @@ do
 	includes("cifar-dense/omp/xmake.lua")
 	includes("cifar-sparse/omp/xmake.lua")
 	includes("tree/omp/xmake.lua")
-	includes("octree/xmake.lua")
+	includes("octree/omp/xmake.lua")
 end
 
 -- ----------------------------------------------------------------------------
@@ -96,6 +96,7 @@ if has_config("use_vulkan") then
 			"cifar-dense/vulkan/dispatchers.hpp",
 			"tree/vulkan/dispatchers.hpp",
 			"tree/vulkan/vk_appdata.hpp",
+			"octree/vulkan/dispatchers.hpp",
 		})
 
 		add_files({
@@ -103,6 +104,7 @@ if has_config("use_vulkan") then
 			"cifar-sparse/vulkan/dispatchers.cpp",
 			"cifar-dense/vulkan/dispatchers.cpp",
 			"tree/vulkan/dispatchers.cpp",
+			"octree/vulkan/dispatchers.cpp",
 		})
 	end
 
@@ -110,6 +112,7 @@ if has_config("use_vulkan") then
 	includes("cifar-dense/vulkan/xmake.lua")
 	includes("cifar-sparse/vulkan/xmake.lua")
 	includes("tree/vulkan/xmake.lua")
+	includes("octree/vulkan/xmake.lua")
 end
 
 

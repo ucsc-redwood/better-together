@@ -1,7 +1,5 @@
 #include "dispatchers.hpp"
 
-#include <glm/vec3.hpp>
-
 #include "../../debug_logger.hpp"
 
 namespace octree::vulkan {
@@ -18,21 +16,14 @@ namespace octree::vulkan {
 // }
 // pc;
 
+// must be exactly 16 bytes
 struct MortonPushConstants {
-  uint n;             // offset 0
-  uint32_t _pad0[3];  // offsets 4,8,12
-
-  // now at offset 16:
-  glm::vec3 bounds_min;  // 12 bytes of real data
-  float _pad1;           // pad to 16 bytes (offset 28)
-
-  // at offset 32:
-  glm::vec3 bounds_max;  // 12 bytes of real data
-  float _pad2;           // pad to 16 bytes (offset 44)
+  uint32_t n;       // offset 0
+  float min_coord;  // offset 4
+  float range;      // offset 8
+  float pad;        // offset 12 → ensures total size is 16
 };
-
-static_assert(sizeof(MortonPushConstants) == 48,
-              "Must be exactly 48 bytes to match GLSL std140 layout");
+static_assert(sizeof(MortonPushConstants) == 16, "Push‐constant block must be 16 bytes");
 
 // layout(local_size_x = 256) in;
 
@@ -128,6 +119,31 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
   auto algo = cached_algorithms.at("octree_morton").get();
 
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_positions),
+                                  engine.get_buffer_info(appdata.u_morton_codes),
+                              });
+
+  algo->update_push_constant(MortonPushConstants{
+      .n = static_cast<uint32_t>(appdata.n),
+      .min_coord = kMinCoord,
+      .range = kMaxCoord - kMinCoord,
+      .pad = 0,
+  });
+
+  uint32_t grid_size_x = static_cast<uint32_t>(kiss_vk::div_ceil(appdata.n, 256));
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind_push(seq->get_handle());
+  algo->record_dispatch(seq->get_handle(), {grid_size_x, 1, 1});
+  seq->cmd_end();
+
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
 }
 
 // ----------------------------------------------------------------------------
