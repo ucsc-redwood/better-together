@@ -180,10 +180,9 @@ struct Logger {
     std::cout << "  Percentile 99: " << percentile_99 << " ms\n";
 
     // Machine-parsable format after
-    std::cout << "CHUNK=" << chunk_id 
-              << "|COUNT=" << durations_ms.size() << "|TOTAL=" << total_time << "|AVG=" << avg_time
-              << "|GEOMEAN=" << geomean << "|MEDIAN=" << median_time << "|MIN=" << min_time
-              << "|MAX=" << max_time << "|STDDEV=" << std_dev << "|CV=" << cv
+    std::cout << "CHUNK=" << chunk_id << "|COUNT=" << durations_ms.size() << "|TOTAL=" << total_time
+              << "|AVG=" << avg_time << "|GEOMEAN=" << geomean << "|MEDIAN=" << median_time
+              << "|MIN=" << min_time << "|MAX=" << max_time << "|STDDEV=" << std_dev << "|CV=" << cv
               << "|P90=" << percentile_90 << "|P95=" << percentile_95 << "|P99=" << percentile_99
               << std::endl;
   }
@@ -191,7 +190,7 @@ struct Logger {
   // Print statistics for a chunk given its configuration
   void print_chunk_stats(const ChunkConfig& chunk_config, const int chunk_id) const {
     print_chunk_stats(chunk_id);
-    
+
     // Additional information about the chunk configuration
     std::cout << "Chunk Configuration:\n";
     std::cout << "  Execution Model: ";
@@ -224,8 +223,9 @@ struct Logger {
         break;
     }
     std::cout << "\n";
-    
-    std::cout << "  Stages: " << chunk_config.start_stage << " to " << chunk_config.end_stage << "\n";
+
+    std::cout << "  Stages: " << chunk_config.start_stage << " to " << chunk_config.end_stage
+              << "\n";
   }
 
   // Print statistics for all chunks in a schedule
@@ -233,12 +233,12 @@ struct Logger {
     std::cout << "===============================================================\n";
     std::cout << "Schedule Statistics (UID: " << schedule.uid << ")\n";
     std::cout << "===============================================================\n";
-    
+
     for (size_t i = 0; i < schedule.n_chunks(); ++i) {
       print_chunk_stats(schedule.chunks[i], static_cast<int>(i));
       std::cout << "\n";
     }
-    
+
     std::cout << "===============================================================\n";
   }
 
