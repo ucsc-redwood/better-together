@@ -73,27 +73,15 @@ def extract_schedule_annotations(section):
     schedule_lines = []
 
     for line in section.strip().split("\n"):
-        if line.startswith("  Chunk "):
+        if line.startswith("["):
             schedule_lines.append(line)
 
     for line in schedule_lines:
-        # Extract chunk ID - Example: "  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7"
-        chunk_id_match = re.search(r"Chunk (\d+)", line)
-        if not chunk_id_match:
-            continue
-            
-        chunk_id = int(chunk_id_match.group(1))
-        
-        # Extract assigned tasks - Example: "]: 1, 2, 3, 4, 5, 6, 7"
-        tasks_match = re.search(r"]: ([\d, ]+)", line)
-        if not tasks_match:
-            continue
-            
-        tasks_str = tasks_match.group(1)
-        tasks = [int(task.strip()) for task in tasks_str.split(",") if task.strip()]
-        
-        # Store with chunk ID as the key
-        schedule_annotations[chunk_id] = tasks
+        parts = line.split()
+        if len(parts) >= 2:
+            core_type = parts[0].strip("[]")
+            chunk_ids = [int(chunk_id) for chunk_id in parts[1:]]
+            schedule_annotations[core_type] = chunk_ids
 
     return schedule_annotations
 
@@ -102,21 +90,23 @@ def parse_task_data(section):
     """Parse task data from a Python section."""
     tasks = {}
     pattern = (
-        r"Task=(\d+) Chunk=(\d+) Start=(\d+) End=(\d+) Duration=(\d+)"
+        r"Task=(\d+) Chunk=(\d+) Processor=(\w+) Start=(\d+) End=(\d+) Duration=(\d+)"
     )
     task_matches = re.findall(pattern, section)
 
     for match in task_matches:
         task_id = int(match[0])
         chunk_id = int(match[1])
-        start = int(match[2])
-        end = int(match[3])
-        duration = int(match[4])
+        processor = match[2]
+        start = int(match[3])
+        end = int(match[4])
+        duration = int(match[5])
 
         if task_id not in tasks:
             tasks[task_id] = {}
 
         tasks[task_id][chunk_id] = {
+            "type": processor,
             "start": start,
             "end": end,
             "duration_cycles": duration,
@@ -127,8 +117,12 @@ def parse_task_data(section):
 
 def get_chunk_types(tasks):
     """Collect all chunk types from the tasks."""
-    # This function is no longer needed but kept as a stub for compatibility
-    return {}
+    chunk_types = {}
+    for task_id in tasks:
+        for chunk_id in tasks[task_id]:
+            if chunk_id not in chunk_types and "type" in tasks[task_id][chunk_id]:
+                chunk_types[chunk_id] = tasks[task_id][chunk_id]["type"]
+    return chunk_types
 
 
 def calculate_time_range(tasks, args, schedule_index):
@@ -315,6 +309,7 @@ def collect_chunk_data(tasks, time_range, CYCLES_TO_MS, max_chunk_id):
                         * CYCLES_TO_MS,
                         "duration_ms": tasks[task_id][chunk_id]["duration_cycles"]
                         * CYCLES_TO_MS,
+                        "type": tasks[task_id][chunk_id].get("type", ""),
                     }
                 )
 
@@ -339,18 +334,18 @@ def calculate_average_durations(task_durations_by_chunk, CYCLES_TO_MS):
 
 
 def create_chunk_labels(max_chunk_id, chunk_types, schedule_annotations):
-    """Create labels for chunks based only on their IDs and schedule annotations."""
+    """Create labels for chunks based on their types and schedule annotations."""
     chunk_names = []
     for i in range(max_chunk_id + 1):
-        # Get the tasks assigned to this chunk
-        tasks = schedule_annotations.get(i, [])
-        
-        # Format the task list as a comma-separated string
-        tasks_str = ", ".join(map(str, tasks))
-        if tasks_str:
-            chunk_names.append(f"Chunk {i} [{tasks_str}]")
-        else:
-            chunk_names.append(f"Chunk {i}")
+        # Find which core type this chunk belongs to based on schedule annotations
+        core_type = "Unknown"
+        for core, chunks in schedule_annotations.items():
+            if i in chunks:
+                core_type = core
+                break
+
+        processor_type = chunk_types.get(i, "Unknown")
+        chunk_names.append(f"Chunk {i} ({processor_type}/{core_type})")
 
     return chunk_names
 
@@ -525,14 +520,15 @@ def print_analysis(
         if chunk_id not in task_durations_by_chunk:
             continue
 
-        # Get task list for this chunk
-        tasks = schedule_annotations.get(chunk_id, [])
-        tasks_str = ", ".join(map(str, tasks))
-        
-        if tasks_str:
-            print(f"Chunk {chunk_id} [{tasks_str}]:")
-        else:
-            print(f"Chunk {chunk_id}:")
+        # Find which core type this chunk belongs to based on schedule annotations
+        core_type = "Unknown"
+        for core, chunks in schedule_annotations.items():
+            if chunk_id in chunks:
+                core_type = core
+                break
+
+        processor_type = chunk_types.get(chunk_id, "Unknown")
+        print(f"Chunk {chunk_id} ({processor_type}/{core_type}):")
 
         # Print average across all tasks for this chunk
         all_durations = [
@@ -560,15 +556,16 @@ def print_analysis(
         widest_chunk_duration_cycles = chunk_total_durations[widest_chunk_id]
         widest_chunk_duration_ms = widest_chunk_duration_cycles * CYCLES_TO_MS
 
-        # Get task list for the widest chunk
-        widest_tasks = schedule_annotations.get(widest_chunk_id, [])
-        widest_tasks_str = ", ".join(map(str, widest_tasks))
+        # Find which core type this chunk belongs to based on schedule annotations
+        core_type = "Unknown"
+        for core, chunks in schedule_annotations.items():
+            if widest_chunk_id in chunks:
+                core_type = core
+                break
 
-        if widest_tasks_str:
-            print(f"Widest chunk: Chunk {widest_chunk_id} [{widest_tasks_str}]")
-        else:
-            print(f"Widest chunk: Chunk {widest_chunk_id}")
-            
+        processor_type = chunk_types.get(widest_chunk_id, "Unknown")
+
+        print(f"Widest chunk: Chunk {widest_chunk_id} ({processor_type}/{core_type})")
         print(
             f"Total execution time: {widest_chunk_duration_cycles:.2f} cycles ({widest_chunk_duration_ms:.6f} ms)"
         )
@@ -583,10 +580,14 @@ def print_analysis(
         for chunk_id, duration in sorted(
             chunk_total_durations.items(), key=lambda x: x[1], reverse=True
         ):
-            # Get task list for this chunk
-            chunk_tasks = schedule_annotations.get(chunk_id, [])
-            chunk_tasks_str = ", ".join(map(str, chunk_tasks))
-            
+            # Find which core type this chunk belongs to based on schedule annotations
+            c_type = "Unknown"
+            for core, chunks in schedule_annotations.items():
+                if chunk_id in chunks:
+                    c_type = core
+                    break
+
+            p_type = chunk_types.get(chunk_id, "Unknown")
             total_duration_cycles = duration
             total_duration_ms = duration * CYCLES_TO_MS
             chunk_percentage = (duration / total_execution_cycles) * 100
@@ -597,14 +598,9 @@ def print_analysis(
                 avg_duration_ms = chunk_avg_durations_ms[chunk_id]
                 avg_info = f" | Avg task: {avg_duration_ms:.6f} ms"
 
-            if chunk_tasks_str:
-                print(
-                    f"  Chunk {chunk_id} [{chunk_tasks_str}]: Total: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms){avg_info}, {chunk_percentage:.2f}%"
-                )
-            else:
-                print(
-                    f"  Chunk {chunk_id}: Total: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms){avg_info}, {chunk_percentage:.2f}%"
-                )
+            print(
+                f"  Chunk {chunk_id} ({p_type}/{c_type}): Total: {total_duration_cycles:.2f} cycles ({total_duration_ms:.6f} ms){avg_info}, {chunk_percentage:.2f}%"
+            )
     else:
         print(
             f"No chunk execution data found in the selected region for Schedule {schedule_index+1}."
@@ -634,8 +630,8 @@ def process_schedule(section, schedule_index, args):
     )
     print(f"Detected {max_chunk_id + 1} chunks in Schedule {schedule_index+1}")
 
-    # Empty chunk_types for compatibility
-    chunk_types = {}
+    # Collect all chunk types for the legend
+    chunk_types = get_chunk_types(tasks)
 
     # Calculate time range
     time_range = calculate_time_range(tasks, args, schedule_index)
