@@ -21,7 +21,7 @@ class ScheduleRunner:
         # Generate log file name with incremental suffix if needed
         base_log_file = f"{device}_{app}_schedules.log"
         log_file = self._get_incremental_filename(base_log_file)
-        
+
         # Create tmp directory if it doesn't exist
         os.makedirs(self.tmp_dir, exist_ok=True)
 
@@ -61,15 +61,12 @@ class ScheduleRunner:
 
     def _get_incremental_filename(self, base_filename):
         """Generate an incremental filename if the base name already exists."""
-        if not os.path.exists(base_filename):
-            return base_filename
-            
         # Extract name and extension
-        name_parts = base_filename.rsplit('.', 1)
+        name_parts = base_filename.rsplit(".", 1)
         base_name = name_parts[0]
         extension = f".{name_parts[1]}" if len(name_parts) > 1 else ""
-        
-        # Find the next available number
+
+        # Always start with _000 suffix
         counter = 0
         while True:
             new_filename = f"{base_name}_{counter:03d}{extension}"
