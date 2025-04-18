@@ -123,13 +123,13 @@ static void BM_run_normal(const ProcessorType pt,
 
   if (pt == ProcessorType::kVulkan) {
     // launch gpu thread
-    t1 = std::thread(similuation_thread, &q, [&](MyTask* task) {
-      disp.dispatch_multi_stage(task->appdata, stage, stage);
+    t1 = std::thread(similuation_thread, &q, [disp = &disp, &total_processed, stage](MyTask* task) {
+      disp->dispatch_multi_stage(task->appdata, stage, stage);
       total_processed++;
     });
   } else {
     // launch cpu thread
-    t1 = std::thread(similuation_thread, &q, [&](MyTask* task) {
+    t1 = std::thread(similuation_thread, &q, [cores_to_use, &total_processed, stage](MyTask* task) {
       cifar_sparse::omp::dispatch_multi_stage(
           cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
       total_processed++;
@@ -200,28 +200,25 @@ static void BM_run_fully(const int stage,
   std::atomic<int> big_processed(0);
   std::atomic<int> vuk_processed(0);
 
-  auto gpu_func = [&disp, &vuk_processed, stage](MyTask* task) {
-    disp.dispatch_multi_stage(task->appdata, stage, stage);
+  auto gpu_func = [disp = &disp, &vuk_processed, stage](MyTask* task) {
+    disp->dispatch_multi_stage(task->appdata, stage, stage);
     vuk_processed++;
   };
 
   auto lit_func = [&lit_processed, stage](MyTask* task) {
-    cifar_sparse::omp::dispatch_multi_stage(
-        g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
+    cifar_sparse::omp::dispatch_multi_stage(LITTLE_CORES, task->appdata, stage, stage);
 
     lit_processed++;
   };
 
   auto med_func = [&med_processed, stage](MyTask* task) {
-    cifar_sparse::omp::dispatch_multi_stage(
-        g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
+    cifar_sparse::omp::dispatch_multi_stage(MEDIUM_CORES, task->appdata, stage, stage);
 
     med_processed++;
   };
 
   auto big_func = [&big_processed, stage](MyTask* task) {
-    cifar_sparse::omp::dispatch_multi_stage(
-        g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
+    cifar_sparse::omp::dispatch_multi_stage(BIG_CORES, task->appdata, stage, stage);
 
     big_processed++;
   };

@@ -6,14 +6,14 @@
 #include "record.hpp"
 #include "spsc_queue.hpp"
 
-constexpr size_t kPoolSize = 32;
+// constexpr size_t kPoolSize = 32;
 constexpr size_t kNumToProcess = 100;
 
 // ----------------------------------------------------------------------------
 // Normal worker thread
 // ----------------------------------------------------------------------------
 
-template <typename TaskT>
+template <typename TaskT, size_t kPoolSize>
 void worker_thread(SPSCQueue<TaskT*, kPoolSize>& in_queue,
                    SPSCQueue<TaskT*, kPoolSize>& out_queue,
                    std::function<void(TaskT&)> process_function) {
@@ -37,7 +37,7 @@ void worker_thread(SPSCQueue<TaskT*, kPoolSize>& in_queue,
 // Worker thread with timing
 // ----------------------------------------------------------------------------
 
-template <typename TaskT>
+template <typename TaskT, size_t kPoolSize>
 void worker_thread_record(const int chunk_id,
                           Logger<kNumToProcess>& logger,
                           SPSCQueue<TaskT*, kPoolSize>& in_queue,
