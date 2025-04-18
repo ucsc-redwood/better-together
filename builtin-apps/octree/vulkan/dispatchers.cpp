@@ -1,5 +1,6 @@
 #include "dispatchers.hpp"
 
+#include "../../app.hpp"
 #include "../../debug_logger.hpp"
 
 namespace octree::vulkan {

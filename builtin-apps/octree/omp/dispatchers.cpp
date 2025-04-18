@@ -1,5 +1,6 @@
 #include "dispatchers.hpp"
 
+#include "../../app.hpp"
 #include "../../debug_logger.hpp"
 #include "../../tree/omp/func_sort.hpp"
 #include "kernels.hpp"

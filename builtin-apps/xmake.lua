@@ -23,7 +23,7 @@ do
 		"ndarray.hpp",
 
 		-- cifar-sparse headers
-		"cifar-sparse/sparse_appdata.hpp",
+		"cifar-sparse/appdata.hpp",
 		"cifar-sparse/omp/dispatchers.hpp",
 		"cifar-sparse/omp/all_kernels.hpp",
 

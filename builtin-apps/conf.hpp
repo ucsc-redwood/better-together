@@ -12,7 +12,6 @@ enum class ProcessorType {
   kBigCore = 2,
   kVulkan = 3,
   kCuda = 4,
-  kUndefined = 5,
 };
 
 inline std::string CoreTypeName(const ProcessorType core_type) {
