@@ -185,6 +185,102 @@ TEST_F(OctreeDispatcherTest, DifferentCoreConfigurations) {
   // Already tested with big cores in other tests
 }
 
+// ----------------------------------------------------------------------------
+// test appdata initialization
+// ----------------------------------------------------------------------------
+
+TEST(AppdataTest, Initialization) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Basic check that initialization doesn't crash
+  EXPECT_NO_THROW(octree::AppData(mr));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 1
+// ----------------------------------------------------------------------------
+
+TEST(Stage1Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 1
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 2
+// ----------------------------------------------------------------------------
+
+TEST(Stage2Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 2
+  EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 3
+// ----------------------------------------------------------------------------
+
+TEST(Stage3Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 3
+  EXPECT_NO_THROW(octree::omp::run_stage_3(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 4
+// ----------------------------------------------------------------------------
+
+TEST(Stage4Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 4
+  EXPECT_NO_THROW(octree::omp::run_stage_4(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 5
+// ----------------------------------------------------------------------------
+
+TEST(Stage5Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 5
+  EXPECT_NO_THROW(octree::omp::run_stage_5(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 6
+// ----------------------------------------------------------------------------
+
+TEST(Stage6Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 6
+  EXPECT_NO_THROW(octree::omp::run_stage_6(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 7
+// ----------------------------------------------------------------------------
+
+TEST(Stage7Test, Basic) {
+  auto mr = std::pmr::new_delete_resource();
+  octree::AppData appdata(mr);
+
+  // Run stage 7
+  EXPECT_NO_THROW(octree::omp::run_stage_7(appdata));
+}
+
 int main(int argc, char** argv) {
   // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
