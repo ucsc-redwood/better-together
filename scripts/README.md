@@ -34,7 +34,7 @@ The `runner.py` script provides a unified interface for all benchmarking and sch
 
 The script supports the following tasks:
 
-1. **benchmark** - Run benchmarks and collect data
+1. **benchmark** - Run benchmarks and collect data (runs on all connected devices by default)
 2. **heatmap** - Generate heatmaps from benchmark data
 3. **schedule** - Generate optimized schedules using Z3
 4. **run** - Execute schedules on target devices
@@ -47,8 +47,8 @@ The script supports the following tasks:
 #### Running Individual Steps
 
 ```bash
-# Collect benchmark data for cifar-sparse on device 3A021JEHN02756
-python3 scripts/runner.py benchmark --device 3A021JEHN02756 --app cifar-sparse --repeat 3
+# Collect benchmark data for cifar-sparse on all connected devices
+python3 scripts/runner.py benchmark --app cifar-sparse --repeat 3
 
 # Generate heatmaps for cifar-sparse, excluding specific stages
 python3 scripts/runner.py heatmap --app cifar-sparse --exclude-stages 2,4,8,9
@@ -69,7 +69,7 @@ python3 scripts/runner.py parse --device 3A021JEHN02756 --app cifar-sparse
 #### Running the Complete Pipeline
 
 ```bash
-# Run all steps in sequence
+# Run all steps in sequence for a specific device
 python3 scripts/runner.py pipeline --device 3A021JEHN02756 --app cifar-sparse
 
 # Run only specific steps in the pipeline
@@ -84,26 +84,24 @@ You can customize various parameters:
 - `--num-schedules` - Number of schedules to generate/run (default: 30)
 - `--exclude-stages` - Stages to exclude from heatmaps (e.g. "2,4,8,9")
 
-## Working With Multiple Devices and Applications
+## Working With Multiple Applications
 
-To run the same workload across multiple devices or applications, you can create a simple shell script:
+To run the same workload across multiple applications, you can use the helper shell scripts:
 
 ```bash
-#!/bin/bash
-DEVICES=("3A021JEHN02756" "9b034f1b" "jetson" "jetsonlowpower")
-APPS=("cifar-sparse" "cifar-dense" "tree")
+# Run benchmarks for all applications
+./scripts/run_all_benchmarks.sh
 
-# Example: Run benchmarks for all device-app pairs
-for device in "${DEVICES[@]}"; do
-  for app in "${APPS[@]}"; do
-    echo "Processing $device - $app"
-    python3 scripts/runner.py benchmark --device $device --app $app
-  done
-done
+# Generate schedules for all device-app pairs
+./scripts/generate_all_schedules.sh
+
+# Parse results for all device-app pairs
+./scripts/parse_all_results.sh
 ```
 
 ## Notes
 
+- The benchmark tool (`bm.py`) automatically detects and runs on all connected devices
 - The script automatically creates necessary directories
 - All data is organized by date, making it easy to track changes over time
 - The server runs on port 8080 by default
