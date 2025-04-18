@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-[[nodiscard]] size_t get_vulkan_warp_size() {
+size_t get_vulkan_warp_size() {
   assert(g_device_id.empty() == false);
 
   if (g_device_id == "3A021JEHN02756") {
@@ -22,7 +22,7 @@
                            ":" + std::to_string(__LINE__));
 }
 
-[[nodiscard]] inline bool check_device_arg(const int argc, char** argv) {
+bool check_device_arg(const int argc, char** argv) {
   for (int i = 0; i < argc; ++i) {
     std::string arg(argv[i]);
     if (arg.find("--device=") != std::string::npos) {

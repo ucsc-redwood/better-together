@@ -20,7 +20,7 @@ end
 target("bm-mini-tree-omp")
 do
 	add_rules("common_flags", "run_on_android")
-	set_group("test")
+	set_group("micro-benchmark")
 	set_kind("binary")
 	add_files({
 		"./bm_mini.cpp",

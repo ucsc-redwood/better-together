@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <numeric>
-// #include <random>
 
 #include "../../app.hpp"
 #include "../../debug_logger.hpp"
@@ -16,8 +15,6 @@ struct LocalPushConstants {
 struct GlobalPushConstants {
   uint32_t n_blocks;
 };
-
-// uint32_t warp_size;
 
 // --------------------------------------------------------------------------
 // Stage 1 - Morton code computation
