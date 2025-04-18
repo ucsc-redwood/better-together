@@ -1,4 +1,3 @@
-
 -- ----------------------------------------------------------------------------
 -- Test, just test if the dispatchers are working
 -- ----------------------------------------------------------------------------
@@ -17,13 +16,13 @@ do
 	add_packages("gtest")
 end
 
-target("bm-mini-tree-omp")
+target("bm-tree-omp")
 do
 	add_rules("common_flags", "run_on_android")
 	set_group("micro-benchmark")
 	set_kind("binary")
 	add_files({
-		"./bm_mini.cpp",
+		"./bm_main.cpp",
 	})
 
 	add_deps("builtin-apps")
