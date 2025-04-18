@@ -105,6 +105,19 @@ on_load(function(target)
 	target:add("packages", "vulkan-headers")
 	target:add("packages", "vulkan-hpp")
 	target:add("packages", "vulkan-memory-allocator")
+
+	-- add_links("vulkan")
+	-- add_linkdirs("/opt/homebrew/lib")
+	-- add_includedirs("/opt/homebrew/include")
+	-- add_rpathdirs("/opt/homebrew/lib")
+
+	if is_plat("macosx") then
+		target:add("links", "vulkan")
+		target:add("linkdirs", "/opt/homebrew/lib")
+		target:add("includedirs", "/opt/homebrew/include")
+		target:add("rpathdirs", "/opt/homebrew/lib")
+	end
+
 end)
 rule_end()
 

@@ -1,5 +1,39 @@
 -- Copyright (c) 2025 Yanwen Xu (yxu83@ucsc.edu). MIT License.
 
+
+-- ----------------------------------------------------------------
+-- Utility Target: Check Core Types
+-- ----------------------------------------------------------------
+
+target("bm-check-core-types")
+do
+	add_rules("common_flags", "run_on_android")
+	add_files({
+		"bm_core_type.cpp",
+	})
+
+	add_packages("benchmark")
+end
+
+if has_config("use_vulkan") then
+	target("check-vulkan")
+	do
+		add_rules("utility_config", "vulkan_config", "run_on_android")
+		add_files({
+			"check_vulkan.cpp",
+		})
+
+		add_packages("volk")
+
+		add_links("vulkan")
+		add_linkdirs("/opt/homebrew/lib")
+		add_includedirs("/opt/homebrew/include")
+		add_rpathdirs("/opt/homebrew/lib")
+
+
+	end
+end
+
 -- ----------------------------------------------------------------
 -- Utility (Vulkan)
 -- ----------------------------------------------------------------
