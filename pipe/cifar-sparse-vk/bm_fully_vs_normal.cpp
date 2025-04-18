@@ -7,13 +7,13 @@
 #include "builtin-apps/cifar-sparse/vulkan/dispatchers.hpp"
 #include "builtin-apps/conf.hpp"
 #include "builtin-apps/pipeline/task.hpp"
-#include "common.hpp"
+// #include "common.hpp"
 
 // ----------------------------------------------------------------------------
 // Realistic Benchmark:  Stage
 // ----------------------------------------------------------------------------
 
-using MyTask = Task<cifar_sparse::v2::AppData>;
+using MyTask = Task<cifar_sparse::AppData>;
 
 // Little: 0, Big: 2, Medium: 1, Vulkan: 3
 constexpr int kLitIdx = 0;
@@ -53,7 +53,7 @@ void reset_done_flag() { done.store(false); }
 
 using MyQueue = std::queue<MyTask*>;
 
-void init_q(MyQueue* q, cifar_sparse::vulkan::v2::VulkanDispatcher& disp) {
+void init_q(MyQueue* q, cifar_sparse::vulkan::VulkanDispatcher& disp) {
   constexpr int kPhysicalTasks = 10;
 
   for (int i = 0; i < kPhysicalTasks; i++) {
@@ -91,7 +91,7 @@ static void BM_run_normal(const ProcessorType pt,
                           const int seconds_to_run,
                           const bool print_progress = false) {
   // prepare the vulkan dispatcher
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  cifar_sparse::vulkan::VulkanDispatcher disp;
 
   // prepare the cpu cores to use
   std::vector<int> cores_to_use;
@@ -130,7 +130,7 @@ static void BM_run_normal(const ProcessorType pt,
   } else {
     // launch cpu thread
     t1 = std::thread(similuation_thread, &q, [&](MyTask* task) {
-      cifar_sparse::omp::v2::dispatch_multi_stage(
+      cifar_sparse::omp::dispatch_multi_stage(
           cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
       total_processed++;
     });
@@ -180,7 +180,7 @@ static void BM_run_normal(const ProcessorType pt,
 static void BM_run_fully(const int stage,
                          const int seconds_to_run,
                          const bool print_progress = false) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
+  cifar_sparse::vulkan::VulkanDispatcher disp;
 
   reset_done_flag();
 
@@ -206,21 +206,21 @@ static void BM_run_fully(const int stage,
   };
 
   auto lit_func = [&lit_processed, stage](MyTask* task) {
-    cifar_sparse::omp::v2::dispatch_multi_stage(
+    cifar_sparse::omp::dispatch_multi_stage(
         g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
 
     lit_processed++;
   };
 
   auto med_func = [&med_processed, stage](MyTask* task) {
-    cifar_sparse::omp::v2::dispatch_multi_stage(
+    cifar_sparse::omp::dispatch_multi_stage(
         g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
 
     med_processed++;
   };
 
   auto big_func = [&big_processed, stage](MyTask* task) {
-    cifar_sparse::omp::v2::dispatch_multi_stage(
+    cifar_sparse::omp::dispatch_multi_stage(
         g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
 
     big_processed++;
