@@ -197,8 +197,8 @@ TEST(Stage9Test, Basic) {
   cifar_dense::omp::v2::run_stage_9(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_linear_out.cols(), 10);
-  EXPECT_EQ(appdata.u_linear_out.rows(), 128);
+  EXPECT_EQ(appdata.u_linear_out.d0(), 128);
+  EXPECT_EQ(appdata.u_linear_out.d1(), 10);
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::v2::run_stage_9(appdata));

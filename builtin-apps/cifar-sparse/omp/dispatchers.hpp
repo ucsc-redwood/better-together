@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "../sparse_appdata.hpp"
+#include "../appdata.hpp"
 #include "builtin-apps/affinity.hpp"
 
 namespace cifar_sparse::omp {

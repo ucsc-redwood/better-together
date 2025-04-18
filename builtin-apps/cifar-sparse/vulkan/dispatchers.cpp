@@ -232,7 +232,7 @@ void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
       .stride = kStride,
       .padding = kPadding,
       .relu = kRelu,
-      .bias_size = appdata.u_conv1_b.size(),
+      .bias_size = appdata.u_conv1_b.d0(),
   });
 
   seq->cmd_begin();
@@ -339,7 +339,7 @@ void VulkanDispatcher::run_stage_3(cifar_sparse::v2::AppData& appdata) {
       .stride = kStride,
       .padding = kPadding,
       .relu = kRelu,
-      .bias_size = appdata.u_conv2_b.size(),
+      .bias_size = appdata.u_conv2_b.d0(),
   });
 
   seq->cmd_begin();
@@ -446,7 +446,7 @@ void VulkanDispatcher::run_stage_5(cifar_sparse::v2::AppData& appdata) {
       .stride = kStride,
       .padding = kPadding,
       .relu = kRelu,
-      .bias_size = appdata.u_conv3_b.size(),
+      .bias_size = appdata.u_conv3_b.d0(),
   });
 
   seq->cmd_begin();
@@ -504,7 +504,7 @@ void VulkanDispatcher::run_stage_6(cifar_sparse::v2::AppData& appdata) {
       .stride = kStride,
       .padding = kPadding,
       .relu = kRelu,
-      .bias_size = appdata.u_conv4_b.size(),
+      .bias_size = appdata.u_conv4_b.d0(),
   });
 
   seq->cmd_begin();
@@ -562,7 +562,7 @@ void VulkanDispatcher::run_stage_7(cifar_sparse::v2::AppData& appdata) {
       .stride = kStride,
       .padding = kPadding,
       .relu = kRelu,
-      .bias_size = appdata.u_conv5_b.size(),
+      .bias_size = appdata.u_conv5_b.d0(),
   });
 
   seq->cmd_begin();

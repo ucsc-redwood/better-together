@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../sparse_appdata.hpp"
+#include "../appdata.hpp"
 #include "dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
@@ -195,8 +195,8 @@ TEST(Stage9Test, Basic) {
   cifar_sparse::omp::v2::run_stage_9(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_linear_out.cols(), 10);
-  EXPECT_EQ(appdata.u_linear_out.rows(), 512);
+  EXPECT_EQ(appdata.u_linear_out.d1(), 10);
+  EXPECT_EQ(appdata.u_linear_out.d0(), 512);
 
   // Check no throw
   EXPECT_NO_THROW(cifar_sparse::omp::v2::run_stage_9(appdata));
