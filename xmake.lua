@@ -113,8 +113,6 @@ rule("vulkan_config")
 			target:add("rpathdirs", "/opt/homebrew/lib")
 		end
 	end)
-end
-
 rule_end()
 
 -- ----------------------------------------------------------------
