@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 
+#include "../../app.hpp"
 #include "../appdata.hpp"
 #include "dispatchers.hpp"
 
@@ -204,7 +206,16 @@ TEST(Stage9Test, Basic) {
   EXPECT_NO_THROW(cifar_dense::omp::run_stage_9(appdata));
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
+  // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
+
+  // Parse command-line arguments
+  parse_args(argc, argv);
+
+  // Set logging level to off
+  spdlog::set_level(spdlog::level::off);
+
+  // Run the tests
   return RUN_ALL_TESTS();
 }
