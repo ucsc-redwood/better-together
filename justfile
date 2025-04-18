@@ -96,8 +96,11 @@ run-schedule:
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
     python3 runner.py --device 3A021JEHN02756 --app cifar-sparse run -n 30
 
+    
+
 
 #  py parse_schedules_by_widest.py . --model data/2025-4-17/schdules/3A021JEHN02756_cifar-sparse_vk_schedules.json
+
 
 
 
@@ -133,21 +136,21 @@ run-schedule:
 #     cat tmp2.txt | grep "Total execution time:" >> accumulated_time.txt
 #     cat accumulated_time.txt
 
-run-schedules-gen-real-time-n-times:
-    echo "1/3..."
-    just run-schedules-gen-real-time-part-1
-    just run-schedules-gen-real-time-part-2
-    echo "2/3..."
-    just run-schedules-gen-real-time-part-1
-    just run-schedules-gen-real-time-part-2
-    echo "3/3..."
-    just run-schedules-gen-real-time-part-1
-    just run-schedules-gen-real-time-part-2
+# run-schedules-gen-real-time-n-times:
+#     echo "1/3..."
+#     just run-schedules-gen-real-time-part-1
+#     just run-schedules-gen-real-time-part-2
+#     echo "2/3..."
+#     just run-schedules-gen-real-time-part-1
+#     just run-schedules-gen-real-time-part-2
+#     echo "3/3..."
+#     just run-schedules-gen-real-time-part-1
+#     just run-schedules-gen-real-time-part-2
 
-    python3 parse_times.py --input accumulated_time.txt
+#     python3 parse_times.py --input accumulated_time.txt
 
-cat-math:
-    python3 scripts/gen_schedule/schedule.py
+# cat-math:
+#     python3 scripts/gen_schedule/schedule.py
 
 
 # # Will need to use the latest schedule
