@@ -1,12 +1,10 @@
 #include <omp.h>
 
 #include "builtin-apps/app.hpp"
-#include "builtin-apps/config_reader.hpp"
-#include "builtin-apps/curl_json.hpp"
-// #include "common.hpp"
-
 #include "builtin-apps/cifar-sparse/omp/dispatchers.hpp"
 #include "builtin-apps/cifar-sparse/vulkan/dispatchers.hpp"
+#include "builtin-apps/config_reader.hpp"
+#include "builtin-apps/curl_json.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 #include "builtin-apps/pipeline/task.hpp"
 #include "builtin-apps/pipeline/worker.hpp"
@@ -17,7 +15,7 @@ using MyTask = Task<cifar_sparse::AppData>;
 // Schedule Auto
 // ----------------------------------------------------------------------------
 
-// constexpr size_t kPoolSize = 32;
+constexpr size_t kPoolSize = 32;
 
 using QueueT = SPSCQueue<MyTask*, kPoolSize>;
 
@@ -47,19 +45,21 @@ static void BM_pipe_warmup(const Schedule schedule) {
       const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
 
       if (pt == ProcessorType::kVulkan) {
-        threads.emplace_back(worker_thread<MyTask>,
+        threads.emplace_back(worker_thread<MyTask, kPoolSize>,
                              std::ref(q_in),
                              std::ref(q_out),
-                             [&disp, start, end](MyTask& task) {
-                               disp.dispatch_multi_stage(task.appdata, start, end);
+                             [disp = &disp, start, end](MyTask& task) {
+                               disp->dispatch_multi_stage(task.appdata, start, end);
                              });
       } else {
-        threads.emplace_back(
-            worker_thread<MyTask>, std::ref(q_in), std::ref(q_out), [pt, start, end](MyTask& task) {
-              const auto cores = get_cores_by_type(pt);
-              cifar_sparse::omp::dispatch_multi_stage(
-                  cores, cores.size(), task.appdata, start, end);
-            });
+        threads.emplace_back(worker_thread<MyTask, kPoolSize>,
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [pt, start, end](MyTask& task) {
+                               const auto cores = get_cores_by_type(pt);
+                               cifar_sparse::omp::dispatch_multi_stage(
+                                   cores, cores.size(), task.appdata, start, end);
+                             });
       }
     }
 
@@ -69,7 +69,7 @@ static void BM_pipe_warmup(const Schedule schedule) {
   }
 }
 
-static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedule schedule) {
+static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
   auto n_chunks = schedule.n_chunks();
 
   // Initialize the dispatcher and queues
@@ -97,21 +97,25 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const size_t id, const Schedul
       const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
 
       if (pt == ProcessorType::kVulkan) {
-        threads.emplace_back(worker_thread_record<MyTask>,
+        threads.emplace_back(worker_thread_record<MyTask, kPoolSize>,
                              i,
-                             logger,
-                             q_in,
-                             q_out,
-                             [&disp, start, end](MyTask& task) {
-                               disp.dispatch_multi_stage(task.appdata, start, end);
+                             std::ref(logger),
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [disp = &disp, start, end](MyTask& task) {
+                               disp->dispatch_multi_stage(task.appdata, start, end);
                              });
       } else {
-        threads.emplace_back(
-            worker_thread_record<MyTask>, i, logger, q_in, q_out, [pt, start, end](MyTask& task) {
-              const auto cores = get_cores_by_type(pt);
-              cifar_sparse::omp::dispatch_multi_stage(
-                  cores, cores.size(), task.appdata, start, end);
-            });
+        threads.emplace_back(worker_thread_record<MyTask, kPoolSize>,
+                             i,
+                             std::ref(logger),
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [pt, start, end](MyTask& task) {
+                               const auto cores = get_cores_by_type(pt);
+                               cifar_sparse::omp::dispatch_multi_stage(
+                                   cores, cores.size(), task.appdata, start, end);
+                             });
       }
     }
 
@@ -166,14 +170,8 @@ int main(int argc, char** argv) {
   spdlog::info("Running {}/{} schedules", n_schedules_to_run, n_schedules);
 
   for (size_t i = 0; i < n_schedules_to_run; ++i) {
-    // ignore 0, 1, 3
-    if (i == 0 || i == 1 || i == 3) {
-      continue;
-    }
-
     std::cout << "\n--------------------------------" << std::endl;
-    std::cout << "Running schedule " << i << " [UID: " << schedules[i].uid << "]" << std::endl;
-    BM_pipe_cifar_sparse_vk_schedule_auto(i, schedules[i]);
+    BM_pipe_cifar_sparse_vk_schedule_auto(schedules[i]);
   }
 
   return 0;
