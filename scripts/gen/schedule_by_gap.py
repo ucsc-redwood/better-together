@@ -136,9 +136,6 @@ def add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings):
     # Optimize only for minimal gap
     opt.minimize(Gapness)
 
-    # Optimize only for T_max
-    # opt.minimize(T_max)
-
     return T_max, T_min, Gapness
 
 
