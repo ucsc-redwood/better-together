@@ -1,0 +1,2387 @@
+[
+  {
+    "uid": "SCH-M9-G000-8b0a",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Medium",
+        "time": 69.23726666666666
+      },
+      "1": {
+        "core_type": "Medium",
+        "time": 3.902066666666667
+      },
+      "2": {
+        "core_type": "Medium",
+        "time": 185.0
+      },
+      "3": {
+        "core_type": "Medium",
+        "time": 1.9448
+      },
+      "4": {
+        "core_type": "Medium",
+        "time": 176.59843333333333
+      },
+      "5": {
+        "core_type": "Medium",
+        "time": 358.1389
+      },
+      "6": {
+        "core_type": "Medium",
+        "time": 351.19443333333334
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Medium",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 1147.7174333333332
+      }
+    ],
+    "metrics": {
+      "max_time": 1147.7174333333332,
+      "min_time": 1147.7174333333332,
+      "gapness": 0.0,
+      "avg_time": 1147.7174333333332,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0
+    },
+    "solution_id": 1
+  },
+  {
+    "uid": "SCH-L9-G000-6818",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Little",
+        "time": 149.49826666666667
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 13.100266666666665
+      },
+      "2": {
+        "core_type": "Little",
+        "time": 386.8182
+      },
+      "3": {
+        "core_type": "Little",
+        "time": 6.6769
+      },
+      "4": {
+        "core_type": "Little",
+        "time": 405.0
+      },
+      "5": {
+        "core_type": "Little",
+        "time": 680.1825333333333
+      },
+      "6": {
+        "core_type": "Little",
+        "time": 702.3888999999999
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 3.7968333333333333
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Little",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 2348.662
+      }
+    ],
+    "metrics": {
+      "max_time": 2348.662,
+      "min_time": 2348.662,
+      "gapness": 0.0,
+      "avg_time": 2348.662,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0
+    },
+    "solution_id": 2
+  },
+  {
+    "uid": "SCH-G9-G000-f503",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "GPU",
+        "time": 1.4135666666666669
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 6.188766666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 6.188766666666667,
+      "min_time": 6.188766666666667,
+      "gapness": 0.0,
+      "avg_time": 6.188766666666667,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0
+    },
+    "solution_id": 3
+  },
+  {
+    "uid": "SCH-B9-G000-db0f",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Big",
+        "time": 2.4735666666666667
+      },
+      "2": {
+        "core_type": "Big",
+        "time": 115.0
+      },
+      "3": {
+        "core_type": "Big",
+        "time": 1.2355333333333334
+      },
+      "4": {
+        "core_type": "Big",
+        "time": 108.07196666666665
+      },
+      "5": {
+        "core_type": "Big",
+        "time": 214.88333333333333
+      },
+      "6": {
+        "core_type": "Big",
+        "time": 210.71666666666667
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 698.6950333333334
+      }
+    ],
+    "metrics": {
+      "max_time": 698.6950333333333,
+      "min_time": 698.6950333333333,
+      "gapness": 0.0,
+      "avg_time": 698.6950333333334,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0
+    },
+    "solution_id": 4
+  },
+  {
+    "uid": "SCH-G7L2-G050-f20f",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 3.7968333333333333
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Little",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 4.996933333333333
+      }
+    ],
+    "metrics": {
+      "max_time": 4.996933333333334,
+      "min_time": 4.497633333333333,
+      "gapness": 0.4993000000000001,
+      "avg_time": 4.747283333333333,
+      "load_balance_ratio": 0.9000787149451663,
+      "load_imbalance_pct": 9.992128505483366,
+      "time_variance": 0.06232512249999996
+    },
+    "solution_id": 5
+  },
+  {
+    "uid": "SCH-G7M2-G280-5546",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 1.7015333333333333
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 1.7015333333333333,
+      "gapness": 2.7961,
+      "avg_time": 3.0995833333333334,
+      "load_balance_ratio": 0.3783174854923701,
+      "load_imbalance_pct": 62.16825145076299,
+      "time_variance": 1.9545438024999995
+    },
+    "solution_id": 6
+  },
+  {
+    "uid": "SCH-G7B2-G341-395d",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 1.0910666666666666
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 1.0910666666666666,
+      "gapness": 3.4065666666666665,
+      "avg_time": 2.7943499999999997,
+      "load_balance_ratio": 0.24258684196873914,
+      "load_imbalance_pct": 75.74131580312608,
+      "time_variance": 2.9011741136111104
+    },
+    "solution_id": 7
+  },
+  {
+    "uid": "SCH-G7M1L1-G353-16e6",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          7
+        ],
+        "time": 0.9690666666666666
+      },
+      {
+        "id": 2,
+        "core_type": "Little",
+        "stages": [
+          8
+        ],
+        "time": 1.2001
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 0.9690666666666666,
+      "gapness": 3.528566666666667,
+      "avg_time": 2.2222666666666666,
+      "load_balance_ratio": 0.21546146491858684,
+      "load_imbalance_pct": 78.45385350814131,
+      "time_variance": 2.59754280074074
+    },
+    "solution_id": 8
+  },
+  {
+    "uid": "SCH-G8L1-G358-5bb0",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "time": 4.7752
+      },
+      {
+        "id": 1,
+        "core_type": "Little",
+        "stages": [
+          8
+        ],
+        "time": 1.2001
+      }
+    ],
+    "metrics": {
+      "max_time": 4.7752,
+      "min_time": 1.2001,
+      "gapness": 3.5751,
+      "avg_time": 2.98765,
+      "load_balance_ratio": 0.25131931646842015,
+      "load_imbalance_pct": 74.86806835315798,
+      "time_variance": 3.1953350025
+    },
+    "solution_id": 9
+  },
+  {
+    "uid": "SCH-G7L1M1-G377-1e24",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 3.7968333333333333
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Little",
+        "stages": [
+          7
+        ],
+        "time": 3.7968333333333333
+      },
+      {
+        "id": 2,
+        "core_type": "Medium",
+        "stages": [
+          8
+        ],
+        "time": 0.7324666666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 0.7324666666666667,
+      "gapness": 3.7651666666666666,
+      "avg_time": 3.008977777777778,
+      "load_balance_ratio": 0.16285602057378326,
+      "load_imbalance_pct": 83.71439794262167,
+      "time_variance": 2.673104859506173
+    },
+    "solution_id": 10
+  },
+  {
+    "uid": "SCH-G7B1L1-G387-f465",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          7
+        ],
+        "time": 0.6256666666666667
+      },
+      {
+        "id": 2,
+        "core_type": "Little",
+        "stages": [
+          8
+        ],
+        "time": 1.2001
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 0.6256666666666667,
+      "gapness": 3.8719666666666663,
+      "avg_time": 2.1077999999999997,
+      "load_balance_ratio": 0.13911019869709257,
+      "load_imbalance_pct": 86.08898013029074,
+      "time_variance": 2.910647289629629
+    },
+    "solution_id": 11
+  },
+  {
+    "uid": "SCH-G7B1M1-G387-294a",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          7
+        ],
+        "time": 0.6256666666666667
+      },
+      {
+        "id": 2,
+        "core_type": "Medium",
+        "stages": [
+          8
+        ],
+        "time": 0.7324666666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 0.6256666666666667,
+      "gapness": 3.8719666666666663,
+      "avg_time": 1.951922222222222,
+      "load_balance_ratio": 0.13911019869709257,
+      "load_imbalance_pct": 86.08898013029074,
+      "time_variance": 3.2422235706172837
+    },
+    "solution_id": 12
+  },
+  {
+    "uid": "SCH-G7L1B1-G403-6feb",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 3.7968333333333333
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Little",
+        "stages": [
+          7
+        ],
+        "time": 3.7968333333333333
+      },
+      {
+        "id": 2,
+        "core_type": "Big",
+        "stages": [
+          8
+        ],
+        "time": 0.4654
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 0.4654,
+      "gapness": 4.032233333333333,
+      "avg_time": 2.9199555555555556,
+      "load_balance_ratio": 0.10347664327164657,
+      "load_imbalance_pct": 89.65233567283535,
+      "time_variance": 3.0942749276543204
+    },
+    "solution_id": 13
+  },
+  {
+    "uid": "SCH-G7M1B1-G403-19d2",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 4.497633333333333
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          7
+        ],
+        "time": 0.9690666666666666
+      },
+      {
+        "id": 2,
+        "core_type": "Big",
+        "stages": [
+          8
+        ],
+        "time": 0.4654
+      }
+    ],
+    "metrics": {
+      "max_time": 4.497633333333333,
+      "min_time": 0.4654,
+      "gapness": 4.032233333333333,
+      "avg_time": 1.9773666666666665,
+      "load_balance_ratio": 0.10347664327164657,
+      "load_imbalance_pct": 89.65233567283535,
+      "time_variance": 3.218152054074073
+    },
+    "solution_id": 14
+  },
+  {
+    "uid": "SCH-G8M1-G404-fc27",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "time": 4.7752
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          8
+        ],
+        "time": 0.7324666666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 4.7752,
+      "min_time": 0.7324666666666667,
+      "gapness": 4.0427333333333335,
+      "avg_time": 2.753833333333333,
+      "load_balance_ratio": 0.15338973585748591,
+      "load_imbalance_pct": 84.66102641425141,
+      "time_variance": 4.08592320111111
+    },
+    "solution_id": 15
+  },
+  {
+    "uid": "SCH-G8B1-G431-e1d6",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8343666666666666
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "time": 4.7752
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          8
+        ],
+        "time": 0.4654
+      }
+    ],
+    "metrics": {
+      "max_time": 4.7752,
+      "min_time": 0.4654,
+      "gapness": 4.3098,
+      "avg_time": 2.6203,
+      "load_balance_ratio": 0.09746188641313452,
+      "load_imbalance_pct": 90.25381135868655,
+      "time_variance": 4.64359401
+    },
+    "solution_id": 16
+  },
+  {
+    "uid": "SCH-M5B4-G999-c443",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Medium",
+        "time": 69.23726666666666
+      },
+      "1": {
+        "core_type": "Medium",
+        "time": 3.902066666666667
+      },
+      "2": {
+        "core_type": "Medium",
+        "time": 185.0
+      },
+      "3": {
+        "core_type": "Medium",
+        "time": 1.9448
+      },
+      "4": {
+        "core_type": "Medium",
+        "time": 176.59843333333333
+      },
+      "5": {
+        "core_type": "Big",
+        "time": 214.88333333333333
+      },
+      "6": {
+        "core_type": "Big",
+        "time": 210.71666666666667
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Medium",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "time": 436.6825666666666
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 426.6910666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 436.6825666666667,
+      "min_time": 426.69106666666664,
+      "gapness": 9.99149999999999,
+      "avg_time": 431.6868166666667,
+      "load_balance_ratio": 0.9771195354184433,
+      "load_imbalance_pct": 2.288046458155668,
+      "time_variance": 24.957518062499584
+    },
+    "solution_id": 17
+  },
+  {
+    "uid": "SCH-L3B6-G1342-9822",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Little",
+        "time": 149.49826666666667
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 13.100266666666665
+      },
+      "2": {
+        "core_type": "Little",
+        "time": 386.8182
+      },
+      "3": {
+        "core_type": "Big",
+        "time": 1.2355333333333334
+      },
+      "4": {
+        "core_type": "Big",
+        "time": 108.07196666666665
+      },
+      "5": {
+        "core_type": "Big",
+        "time": 214.88333333333333
+      },
+      "6": {
+        "core_type": "Big",
+        "time": 210.71666666666667
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Little",
+        "stages": [
+          0,
+          1,
+          2
+        ],
+        "time": 549.4167333333334
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 535.9985666666668
+      }
+    ],
+    "metrics": {
+      "max_time": 549.4167333333334,
+      "min_time": 535.9985666666666,
+      "gapness": 13.418166666666686,
+      "avg_time": 542.7076500000001,
+      "load_balance_ratio": 0.9755774335716751,
+      "load_imbalance_pct": 2.4422566428324854,
+      "time_variance": 45.01179917361062
+    },
+    "solution_id": 18
+  },
+  {
+    "uid": "SCH-L4B5-G2133-af8f",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Little",
+        "time": 149.49826666666667
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 13.100266666666665
+      },
+      "2": {
+        "core_type": "Little",
+        "time": 386.8182
+      },
+      "3": {
+        "core_type": "Little",
+        "time": 6.6769
+      },
+      "4": {
+        "core_type": "Big",
+        "time": 108.07196666666665
+      },
+      "5": {
+        "core_type": "Big",
+        "time": 214.88333333333333
+      },
+      "6": {
+        "core_type": "Big",
+        "time": 210.71666666666667
+      },
+      "7": {
+        "core_type": "Big",
+        "time": 0.6256666666666667
+      },
+      "8": {
+        "core_type": "Big",
+        "time": 0.4654
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Little",
+        "stages": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "time": 556.0936333333334
+      },
+      {
+        "id": 1,
+        "core_type": "Big",
+        "stages": [
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 534.7630333333334
+      }
+    ],
+    "metrics": {
+      "max_time": 556.0936333333333,
+      "min_time": 534.7630333333333,
+      "gapness": 21.330600000000018,
+      "avg_time": 545.4283333333334,
+      "load_balance_ratio": 0.9616420711883712,
+      "load_imbalance_pct": 3.8357928811628805,
+      "time_variance": 113.74862409000005
+    },
+    "solution_id": 19
+  },
+  {
+    "uid": "SCH-B1G8-G3987-cc16",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "GPU",
+        "time": 1.4135666666666669
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "stages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 5.3544
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 5.3544,
+      "gapness": 39.8685,
+      "avg_time": 25.28865,
+      "load_balance_ratio": 0.11840019105364759,
+      "load_imbalance_pct": 88.15998089463524,
+      "time_variance": 397.3743230625
+    },
+    "solution_id": 20
+  },
+  {
+    "uid": "SCH-B1L1G7-G4026-4853",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 13.100266666666665
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "GPU",
+        "time": 1.4135666666666669
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "Little",
+        "stages": [
+          1
+        ],
+        "time": 13.100266666666665
+      },
+      {
+        "id": 2,
+        "core_type": "GPU",
+        "stages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 4.960966666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 4.960966666666667,
+      "gapness": 40.26193333333333,
+      "avg_time": 21.09471111111111,
+      "load_balance_ratio": 0.10970032144481372,
+      "load_imbalance_pct": 89.02996785551863,
+      "time_variance": 302.12611694395065
+    },
+    "solution_id": 21
+  },
+  {
+    "uid": "SCH-B1M1G7-G4132-05ae",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Medium",
+        "time": 3.902066666666667
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "GPU",
+        "time": 1.4135666666666669
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          1
+        ],
+        "time": 3.902066666666667
+      },
+      {
+        "id": 2,
+        "core_type": "GPU",
+        "stages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 4.960966666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 3.902066666666667,
+      "gapness": 41.32083333333333,
+      "avg_time": 18.028644444444446,
+      "load_balance_ratio": 0.08628519326860211,
+      "load_imbalance_pct": 91.3714806731398,
+      "time_variance": 369.9506458120988
+    },
+    "solution_id": 22
+  },
+  {
+    "uid": "SCH-B1G6L2-G4156-d23b",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 3.7968333333333333
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "stages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 3.6632666666666664
+      },
+      {
+        "id": 2,
+        "core_type": "Little",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 4.996933333333333
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 3.6632666666666664,
+      "gapness": 41.55963333333333,
+      "avg_time": 17.961033333333333,
+      "load_balance_ratio": 0.08100468273079936,
+      "load_imbalance_pct": 91.89953172692007,
+      "time_variance": 371.90113153851854
+    },
+    "solution_id": 23
+  },
+  {
+    "uid": "SCH-B1M1G5L2-G4195-575a",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Medium",
+        "time": 3.902066666666667
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 3.7968333333333333
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          1
+        ],
+        "time": 3.902066666666667
+      },
+      {
+        "id": 2,
+        "core_type": "GPU",
+        "stages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 3.269833333333333
+      },
+      {
+        "id": 3,
+        "core_type": "Little",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 4.996933333333333
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 3.269833333333333,
+      "gapness": 41.953066666666665,
+      "avg_time": 14.347933333333334,
+      "load_balance_ratio": 0.07230481312196549,
+      "load_imbalance_pct": 92.76951868780345,
+      "time_variance": 318.136299423889
+    },
+    "solution_id": 24
+  },
+  {
+    "uid": "SCH-B2G7-G4274-3662",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Big",
+        "time": 2.4735666666666667
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "GPU",
+        "time": 1.4135666666666669
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0,
+          1
+        ],
+        "time": 47.696466666666666
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "stages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 4.960966666666667
+      }
+    ],
+    "metrics": {
+      "max_time": 47.696466666666666,
+      "min_time": 4.960966666666667,
+      "gapness": 42.7355,
+      "avg_time": 26.328716666666665,
+      "load_balance_ratio": 0.10401119859332697,
+      "load_imbalance_pct": 89.5988801406673,
+      "time_variance": 456.58074006249996
+    },
+    "solution_id": 25
+  },
+  {
+    "uid": "SCH-B1L1G5M2-G4352-69f0",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 13.100266666666665
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "Little",
+        "stages": [
+          1
+        ],
+        "time": 13.100266666666665
+      },
+      {
+        "id": 2,
+        "core_type": "GPU",
+        "stages": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 3.269833333333333
+      },
+      {
+        "id": 3,
+        "core_type": "Medium",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 1.7015333333333333
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 1.7015333333333333,
+      "gapness": 43.521366666666665,
+      "avg_time": 15.823633333333332,
+      "load_balance_ratio": 0.03762548030606912,
+      "load_imbalance_pct": 96.23745196939308,
+      "time_variance": 307.19130234722223
+    },
+    "solution_id": 26
+  },
+  {
+    "uid": "SCH-B1G6M2-G4352-3f62",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Medium",
+        "time": 0.7324666666666667
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "stages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 3.6632666666666664
+      },
+      {
+        "id": 2,
+        "core_type": "Medium",
+        "stages": [
+          7,
+          8
+        ],
+        "time": 1.7015333333333333
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 1.7015333333333333,
+      "gapness": 43.521366666666665,
+      "avg_time": 16.862566666666666,
+      "load_balance_ratio": 0.03762548030606912,
+      "load_imbalance_pct": 96.23745196939308,
+      "time_variance": 402.79565300074074
+    },
+    "solution_id": 27
+  },
+  {
+    "uid": "SCH-B1G7L1-G4402-ab95",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "stages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "time": 3.940833333333333
+      },
+      {
+        "id": 2,
+        "core_type": "Little",
+        "stages": [
+          8
+        ],
+        "time": 1.2001
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 1.2001,
+      "gapness": 44.0228,
+      "avg_time": 16.787944444444445,
+      "load_balance_ratio": 0.02653744010224908,
+      "load_imbalance_pct": 97.34625598977509,
+      "time_variance": 405.525285257284
+    },
+    "solution_id": 28
+  },
+  {
+    "uid": "SCH-B1M1G6L1-G4402-1f1a",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "Medium",
+        "time": 3.902066666666667
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "GPU",
+        "time": 0.2775666666666667
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "Medium",
+        "stages": [
+          1
+        ],
+        "time": 3.902066666666667
+      },
+      {
+        "id": 2,
+        "core_type": "GPU",
+        "stages": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "time": 3.5473999999999997
+      },
+      {
+        "id": 3,
+        "core_type": "Little",
+        "stages": [
+          8
+        ],
+        "time": 1.2001
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 1.2001,
+      "gapness": 44.0228,
+      "avg_time": 13.468116666666669,
+      "load_balance_ratio": 0.02653744010224908,
+      "load_imbalance_pct": 97.34625598977509,
+      "time_variance": 337.2001073158334
+    },
+    "solution_id": 29
+  },
+  {
+    "uid": "SCH-B1G6M1L1-G4425-e6dd",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 45.2229
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 0.3934333333333333
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.5909
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 0.30870000000000003
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5999
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.8960333333333333
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 0.8743
+      },
+      "7": {
+        "core_type": "Medium",
+        "time": 0.9690666666666666
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 1.2001
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0
+        ],
+        "time": 45.2229
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "stages": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 3.6632666666666664
+      },
+      {
+        "id": 2,
+        "core_type": "Medium",
+        "stages": [
+          7
+        ],
+        "time": 0.9690666666666666
+      },
+      {
+        "id": 3,
+        "core_type": "Little",
+        "stages": [
+          8
+        ],
+        "time": 1.2001
+      }
+    ],
+    "metrics": {
+      "max_time": 45.2229,
+      "min_time": 0.9690666666666666,
+      "gapness": 44.25383333333333,
+      "avg_time": 12.763833333333334,
+      "load_balance_ratio": 0.021428671462172186,
+      "load_imbalance_pct": 97.85713285378279,
+      "time_variance": 352.31194296277783
+    },
+    "solution_id": 30
+  }
+]
