@@ -8,7 +8,7 @@ import argparse
 
 # =======================================================================================
 #  Given a log file (contains multiple schedules), plot the execution timeline for each
-#  example: 
+#  example:
 #  python3 scripts/plot/timeline.py 3A021JEHN02756_cifar-sparse_schedules.log --output-dir tmp_folder
 # =======================================================================================
 
@@ -485,15 +485,15 @@ def create_gantt_chart(
     ax.set_yticks(y_ticks)
     ax.set_yticklabels(y_labels)
     ax.set_xlabel("Time (ms, converted from cycles)", fontsize=12)
-    
+
     # Add schedule_uid to the title if available
     title = f"Schedule {schedule_index+1}"
     if schedule_uid:
         title += f" [UID: {schedule_uid}]"
-    
+
     title += f" - Chunk Execution Timeline ({args.start_time*100:.0f}%-{args.end_time*100:.0f}% of execution)\n"
     title += f"Time range: {display_start_ms:.2f}ms - {display_end_ms:.2f}ms, {len(active_chunks)} active chunks"
-    
+
     ax.set_title(title, fontsize=14)
     ax.grid(True, axis="x", linestyle="--", alpha=0.7)
 
@@ -636,7 +636,7 @@ def process_schedule(section, schedule_index, args):
     # Parse the task data
     frequency = extract_frequency(section)
     print(f"Detected frequency: {frequency} Hz")
-    
+
     # Extract Schedule_UID
     schedule_uid = extract_schedule_uid(section)
     if schedule_uid:
