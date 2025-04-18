@@ -17,7 +17,7 @@ class SPSCQueue {
   ~SPSCQueue() = default;
 
   // Add a move version of enqueue
-  [[nodiscard]] bool enqueue(T&& item) {
+  bool enqueue(T&& item) {
     const size_t head = head_.load(std::memory_order_relaxed);
     const size_t next_head = (head + 1) & mask_;
 
@@ -30,7 +30,7 @@ class SPSCQueue {
     return true;
   }
 
-  [[nodiscard]] bool dequeue(T& item) {
+  bool dequeue(T& item) {
     const size_t tail = tail_.load(std::memory_order_relaxed);
 
     if (tail == head_.load(std::memory_order_acquire)) {
