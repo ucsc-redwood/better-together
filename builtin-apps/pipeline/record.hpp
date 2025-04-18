@@ -11,19 +11,39 @@
 #include "../conf.hpp"
 #include "schedule.hpp"
 
-// Read the ARM virtual count register (CNTVCT_EL0)
+#if defined(__aarch64__)
+
+// ========== ARM64 ==========
 static inline uint64_t now_cycles() {
   uint64_t cycles;
   asm volatile("mrs %0, cntvct_el0" : "=r"(cycles));
   return cycles;
 }
 
-// Read the counter frequency from CNTFRQ_EL0 for conversion if needed
 static inline uint32_t get_counter_frequency() {
   uint32_t freq;
   asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
   return freq;
 }
+
+#elif defined(__x86_64__) || defined(_M_X64)
+
+// ========== x86_64 ==========
+#include <x86intrin.h>
+
+static inline uint64_t now_cycles() {
+  return __rdtsc();  // Read time-stamp counter
+}
+
+static inline uint64_t get_counter_frequency() {
+  // TSC frequency is not standard — you need to measure it or read from sysfs
+  // Returning 0 here as a placeholder
+  return 0;
+}
+
+#else
+#error "Unsupported architecture"
+#endif
 
 struct Record {
   // ProcessorType processed_by;
