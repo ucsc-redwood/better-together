@@ -4,29 +4,191 @@ import subprocess
 import argparse
 import sys
 import re
+import time
+import datetime
 
 
 class ScheduleRunner:
     def __init__(self):
-        self.log_dir = "logs"
+        # Base directories
+        self.base_dir = "new_data"
+        self.date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+        self.data_dir = os.path.join(self.base_dir, self.date_str)
+        self.schedules_dir = os.path.join(self.data_dir, "schedules")
+        self.results_dir = os.path.join(self.data_dir, "results")
         self.tmp_dir = "tmp_folder"
-        self.accumulated_file = "accumulated_time.txt"
 
-    def run_schedule(self, device, app, n_to_run):
+        # Ensure base directories exist
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(self.schedules_dir, exist_ok=True)
+        os.makedirs(self.results_dir, exist_ok=True)
+
+        # HTTP server parameters
+        self.server_port = 8080
+        self.server_process = None
+
+    def get_app_dir(self, app):
+        """Get directory for a specific application."""
+        app_dir = os.path.join(self.data_dir, app)
+        os.makedirs(app_dir, exist_ok=True)
+        return app_dir
+
+    def get_device_results_dir(self, device, app):
+        """Get results directory for a specific device and application."""
+        device_dir = os.path.join(self.results_dir, f"{device}_{app}")
+        os.makedirs(device_dir, exist_ok=True)
+        return device_dir
+
+    def run_benchmark(self, device, app, repeat=3):
+        """Run benchmarks and collect data for the given device and app."""
+        app_dir = self.get_app_dir(app)
+        print(f"\n=== Running benchmark for {app} on {device} ===")
+
+        # Build the benchmark command
+        cmd = [
+            "python3",
+            "scripts/collect/bm.py",
+            "--log_folder",
+            app_dir,
+            "--repeat",
+            str(repeat),
+            "--target",
+            f"bm-fully-{app}-vk",
+        ]
+
+        try:
+            print(f"Running command: {' '.join(cmd)}")
+            subprocess.run(cmd, check=True)
+            print(f"Benchmark data collected for {app} on {device} in {app_dir}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Error running benchmark: {e}")
+            return False
+
+    def create_heatmaps(self, app, exclude_stages=""):
+        """Generate heatmaps from benchmark data."""
+        app_dir = self.get_app_dir(app)
+        print(f"\n=== Creating heatmaps for {app} ===")
+
+        cmd = ["python3", "scripts/plot/normal_vs_fully_heat.py", "--folder", app_dir]
+
+        if exclude_stages:
+            cmd.extend(["--exclude_stages", exclude_stages])
+
+        try:
+            print(f"Running command: {' '.join(cmd)}")
+            subprocess.run(cmd, check=True)
+            print(f"Heatmaps created for {app} in {app_dir}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Error creating heatmaps: {e}")
+            return False
+
+    def generate_schedules(self, device, app, num_schedules=30):
+        """Generate schedules using the Z3 optimizer."""
+        app_dir = self.get_app_dir(app)
+        schedule_file = os.path.join(
+            self.schedules_dir, f"{device}_{app}_vk_schedules.json"
+        )
+        print(f"\n=== Generating schedules for {app} on {device} ===")
+
+        csv_path = os.path.join(app_dir, f"{device}_fully.csv")
+        if not os.path.exists(csv_path):
+            print(f"Error: CSV file {csv_path} not found. Run benchmarks first.")
+            return False
+
+        cmd = [
+            "python3",
+            "scripts/gen/schedule.py",
+            "--csv_path",
+            csv_path,
+            "-n",
+            str(num_schedules),
+            "--output_file",
+            schedule_file,
+        ]
+
+        try:
+            print(f"Running command: {' '.join(cmd)}")
+            subprocess.run(cmd, check=True)
+            print(f"Schedules generated and saved to {schedule_file}")
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Error generating schedules: {e}")
+            return False
+
+    def start_server(self):
+        """Start HTTP server to serve schedule files."""
+        if self.server_process and self.server_process.poll() is None:
+            print(f"Server already running on port {self.server_port}")
+            return True
+
+        print(f"\n=== Starting HTTP server on port {self.server_port} ===")
+        try:
+            self.server_process = subprocess.Popen(
+                [
+                    "python3",
+                    "-m",
+                    "http.server",
+                    "--bind",
+                    "0.0.0.0",
+                    "--directory",
+                    self.schedules_dir,
+                    str(self.server_port),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            time.sleep(1)  # Give server time to start
+            if self.server_process.poll() is None:
+                print(f"Server started successfully on port {self.server_port}")
+                return True
+            else:
+                print(
+                    f"Failed to start server: {self.server_process.stderr.read().decode()}"
+                )
+                return False
+        except Exception as e:
+            print(f"Error starting server: {e}")
+            return False
+
+    def stop_server(self):
+        """Stop the HTTP server."""
+        if self.server_process and self.server_process.poll() is None:
+            print("\n=== Stopping HTTP server ===")
+            self.server_process.terminate()
+            self.server_process.wait(timeout=5)
+            self.server_process = None
+            print("Server stopped")
+            return True
+        return False
+
+    def run_schedule(self, device, app, n_to_run=30):
         """Run benchmarking schedules for the given device and app."""
+        device_results_dir = self.get_device_results_dir(device, app)
+
         if not device or not app:
             print("Error: Both device and app must be specified")
             return False
 
+        # Ensure server is running
+        if not self.start_server():
+            print("Error: Failed to start HTTP server. Cannot run schedules.")
+            return False
+
         # Generate log file name with incremental suffix if needed
-        base_log_file = f"{device}_{app}_schedules.log"
+        base_log_file = os.path.join(
+            device_results_dir, f"{device}_{app}_schedules.log"
+        )
         log_file = self._get_incremental_filename(base_log_file)
 
         # Create tmp directory if it doesn't exist
         os.makedirs(self.tmp_dir, exist_ok=True)
 
         # Run the benchmark command
-        schedule_url = f"http://192.168.1.204:8080/{device}_{app}_vk_schedules.json"
+        schedule_url = (
+            f"http://192.168.1.204:{self.server_port}/{device}_{app}_vk_schedules.json"
+        )
         cmd = self._build_benchmark_command(device, app, schedule_url, n_to_run)
 
         try:
@@ -54,9 +216,44 @@ class ScheduleRunner:
                     print(f"Command failed with return code {return_code}")
                     return False
 
+            print(f"Schedule log saved to {log_file}")
             return True
         except subprocess.SubprocessError as e:
             print(f"Error running schedule: {e}")
+            return False
+
+    def parse_results(self, device, app):
+        """Parse and analyze schedule execution results."""
+        device_results_dir = self.get_device_results_dir(device, app)
+        schedule_file = os.path.join(
+            self.schedules_dir, f"{device}_{app}_vk_schedules.json"
+        )
+
+        if not os.path.exists(schedule_file):
+            print(f"Error: Schedule file {schedule_file} not found.")
+            return False
+
+        print(f"\n=== Parsing results for {app} on {device} ===")
+
+        cmd = [
+            "python3",
+            "scripts/parse_schedules_by_widest.py",
+            device_results_dir,
+            "--model",
+            schedule_file,
+            "--output",
+            os.path.join(device_results_dir, "analysis"),
+        ]
+
+        try:
+            print(f"Running command: {' '.join(cmd)}")
+            subprocess.run(cmd, check=True)
+            print(
+                f"Results parsed and saved to {os.path.join(device_results_dir, 'analysis')}"
+            )
+            return True
+        except subprocess.CalledProcessError as e:
+            print(f"Error parsing results: {e}")
             return False
 
     def _get_incremental_filename(self, base_filename):
@@ -90,58 +287,66 @@ class ScheduleRunner:
             str(n_to_run),
         ]
 
-    def _extract_execution_time_with_uid(self, tmp2_file, log_file):
-        """Extract execution time and schedule UID from log files and add to accumulated results."""
-        # First extract UIDs from the main log file
-        uids = {}
-        with open(log_file, "r") as f:
-            schedule_id = None
-            for line in f:
-                # Match schedule ID line
-                id_match = re.search(r"Running schedule (\d+)", line)
-                if id_match:
-                    schedule_id = id_match.group(1)
+    def execute_pipeline(
+        self, device, app, steps=None, repeat=3, num_schedules=30, exclude_stages=""
+    ):
+        """Execute the entire pipeline or specific steps for a device/app pair."""
+        if steps is None:
+            steps = ["benchmark", "heatmap", "schedule", "run", "parse"]
 
-                # Match UID line and associate with the current schedule_id
-                uid_match = re.search(r"Schedule_UID: ([^\s]+)", line)
-                if uid_match and schedule_id is not None:
-                    uids[schedule_id] = uid_match.group(1)
+        success = True
 
-        # Extract execution times and add UIDs
-        with open(tmp2_file, "r") as f, open(self.accumulated_file, "a") as acc:
-            schedule_id = None
-            for line in f:
-                # Try to extract schedule ID if present
-                id_match = re.search(r"Schedule (\d+)", line)
-                if id_match:
-                    schedule_id = id_match.group(1)
+        if "benchmark" in steps:
+            success = success and self.run_benchmark(device, app, repeat)
 
-                # Extract execution time and add UID if available
-                if "Total execution time:" in line:
-                    if schedule_id and schedule_id in uids:
-                        uid = uids[schedule_id]
-                        # Append UID to the execution time line
-                        line = line.rstrip() + f" [UID: {uid}]\n"
-                    acc.write(line)
+        if "heatmap" in steps and success:
+            success = success and self.create_heatmaps(app, exclude_stages)
 
-    def _display_accumulated_results(self):
-        """Display the accumulated benchmark results."""
-        try:
-            with open(self.accumulated_file, "r") as acc:
-                print(acc.read())
-        except FileNotFoundError:
-            print(f"No accumulated results found in {self.accumulated_file}")
+        if "schedule" in steps and success:
+            success = success and self.generate_schedules(device, app, num_schedules)
+
+        if "run" in steps and success:
+            success = success and self.run_schedule(device, app, num_schedules)
+
+        if "parse" in steps and success:
+            success = success and self.parse_results(device, app)
+
+        if "server" in steps:
+            if steps == ["server"]:
+                # Just start the server if that's the only step
+                success = success and self.start_server()
+            else:
+                # Stop the server if it was part of other steps
+                self.stop_server()
+
+        return success
 
 
 def parse_arguments():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Run heterogeneous schedule tasks.")
-    parser.add_argument("task", choices=["run", "part2"], help="Task to run")
+    parser = argparse.ArgumentParser(
+        description="Run benchmarking and scheduling tasks for heterogeneous systems."
+    )
+    parser.add_argument(
+        "task",
+        choices=[
+            "benchmark",
+            "heatmap",
+            "schedule",
+            "run",
+            "parse",
+            "server",
+            "pipeline",
+        ],
+        help="Task to run",
+    )
+
     parser.add_argument(
         "--device",
         choices=["3A021JEHN02756", "9b034f1b", "jetson", "jetsonlowpower"],
         help="Target device",
     )
+
     parser.add_argument(
         "--app",
         choices=["cifar-dense", "cifar-sparse", "tree"],
@@ -149,11 +354,28 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "--repeat", type=int, default=3, help="Number of times to repeat benchmarks"
+    )
+
+    parser.add_argument(
         "-n",
-        "--n-schedules-to-run",
+        "--num-schedules",
         type=int,
-        default=10,
-        help="Number of schedules to run",
+        default=30,
+        help="Number of schedules to generate or run",
+    )
+
+    parser.add_argument(
+        "--exclude-stages",
+        default="",
+        help="Comma-separated list of stages to exclude from heatmaps",
+    )
+
+    parser.add_argument(
+        "--steps",
+        nargs="+",
+        choices=["benchmark", "heatmap", "schedule", "run", "parse", "server"],
+        help="Steps to execute in the pipeline (default: all)",
     )
 
     return parser.parse_args()
@@ -164,13 +386,52 @@ def main():
     args = parse_arguments()
     runner = ScheduleRunner()
 
-    if args.task == "run":
-        if not args.device or not args.app:
-            print("Error: Both --device and --app are required for 'run'")
-            sys.exit(1)
-        success = runner.run_schedule(args.device, args.app, args.n_schedules_to_run)
-        if not success:
-            sys.exit(1)
+    # For most tasks, device and app are required
+    tasks_requiring_device_app = ["benchmark", "schedule", "run", "parse", "pipeline"]
+    if args.task in tasks_requiring_device_app and (not args.device or not args.app):
+        print(f"Error: Both --device and --app are required for '{args.task}'")
+        sys.exit(1)
+
+    # Execute the requested task
+    success = False
+
+    if args.task == "benchmark":
+        success = runner.run_benchmark(args.device, args.app, args.repeat)
+
+    elif args.task == "heatmap":
+        success = runner.create_heatmaps(args.app, args.exclude_stages)
+
+    elif args.task == "schedule":
+        success = runner.generate_schedules(args.device, args.app, args.num_schedules)
+
+    elif args.task == "run":
+        success = runner.run_schedule(args.device, args.app, args.num_schedules)
+
+    elif args.task == "parse":
+        success = runner.parse_results(args.device, args.app)
+
+    elif args.task == "server":
+        success = runner.start_server()
+
+        print("Server is running. Press Ctrl+C to stop.")
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            runner.stop_server()
+
+    elif args.task == "pipeline":
+        success = runner.execute_pipeline(
+            args.device,
+            args.app,
+            args.steps,
+            args.repeat,
+            args.num_schedules,
+            args.exclude_stages,
+        )
+
+    if not success:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
