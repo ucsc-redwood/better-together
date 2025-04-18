@@ -16,8 +16,12 @@ TEST(VulkanEngineTest, SequenceCreation) {
 }
 
 int main(int argc, char** argv) {
-  spdlog::set_level(spdlog::level::trace);
-
+  // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
+
+  // Set logging level to off
+  spdlog::set_level(spdlog::level::off);
+
+  // Run the tests
   return RUN_ALL_TESTS();
 }

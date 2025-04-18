@@ -1,5 +1,9 @@
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 
+#include <memory>
+
+#include "../../app.hpp"
 #include "../safe_tree_appdata.hpp"
 #include "builtin-apps/tree/tree_appdata.hpp"
 #include "dispatchers.hpp"
@@ -155,7 +159,14 @@ TEST(Stage7Test, Basic) {
   EXPECT_NO_THROW(tree::omp::run_stage_7(appdata));
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
+
+  // Parse command-line arguments
+  parse_args(argc, argv);
+
+  // Set logging level to off
+  spdlog::set_level(spdlog::level::off);
+
   return RUN_ALL_TESTS();
 }

@@ -288,8 +288,8 @@ int main(int argc, char** argv) {
   // Parse command-line arguments
   parse_args(argc, argv);
 
-  // Set logging level
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
+  // Set logging level to off
+  spdlog::set_level(spdlog::level::off);
 
   // Run the tests
   return RUN_ALL_TESTS();
