@@ -531,7 +531,7 @@ void VulkanDispatcher::run_stage_9(cifar_dense::v2::AppData& appdata) {
   const int input_features = channels * height * width;  // 64 * 4 * 4 = 1024
 
   // Number of output features from the linear layer
-  const int out_features = appdata.u_linear_w.rows();  // Expected: 10
+  const int out_features = appdata.u_linear_w.d1();  // Expected: 10
 
   const int total_output = batch_size * out_features;
 

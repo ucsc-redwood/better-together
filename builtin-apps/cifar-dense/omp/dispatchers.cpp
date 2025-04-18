@@ -266,7 +266,7 @@ void run_stage_9(cifar_dense::v2::AppData &appdata) {
 
   // Total features per image = channels * height * width
   const int input_features = channels * pool_height * pool_width;  // 64 * 4 * 4 = 1024
-  const int out_features = appdata.u_linear_w.rows();              // Expected: 10
+  const int out_features = appdata.u_linear_w.d1();              // Expected: 10
 
   // We need to create a temporary buffer for the flattened input
   // The pool3 output is (batch_size, channels, pool_height, pool_width)

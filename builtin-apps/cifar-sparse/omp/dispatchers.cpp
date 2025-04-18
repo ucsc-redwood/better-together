@@ -45,7 +45,7 @@ void run_stage_1(cifar_sparse::v2::AppData &appdata) {
                          appdata.conv1_sparse.col_idx_data(),
                          out_channels,  // 16
                          appdata.u_conv1_b.data(),
-                         appdata.u_conv1_b.size(),
+                         appdata.u_conv1_b.d0(),
                          kKernelSize,
                          kStride,
                          kPadding,
@@ -94,7 +94,7 @@ void run_stage_3(cifar_sparse::v2::AppData &appdata) {
                          appdata.conv2_sparse.col_idx_data(),
                          out_channels,  // 32
                          appdata.u_conv2_b.data(),
-                         appdata.u_conv2_b.size(),
+                         appdata.u_conv2_b.d0(),
                          kKernelSize,
                          kStride,
                          kPadding,
@@ -143,7 +143,7 @@ void run_stage_5(cifar_sparse::v2::AppData &appdata) {
                          appdata.conv3_sparse.col_idx_data(),
                          out_channels,  // 64
                          appdata.u_conv3_b.data(),
-                         appdata.u_conv3_b.size(),
+                         appdata.u_conv3_b.d0(),
                          kKernelSize,
                          kStride,
                          kPadding,
@@ -172,7 +172,7 @@ void run_stage_6(cifar_sparse::v2::AppData &appdata) {
                          appdata.conv4_sparse.col_idx_data(),
                          out_channels,  // 64
                          appdata.u_conv4_b.data(),
-                         appdata.u_conv4_b.size(),
+                         appdata.u_conv4_b.d0(),
                          kKernelSize,
                          kStride,
                          kPadding,
@@ -201,7 +201,7 @@ void run_stage_7(cifar_sparse::v2::AppData &appdata) {
                          appdata.conv5_sparse.col_idx_data(),
                          out_channels,  // 64
                          appdata.u_conv5_b.data(),
-                         appdata.u_conv5_b.size(),
+                         appdata.u_conv5_b.d0(),
                          kKernelSize,
                          kStride,
                          kPadding,

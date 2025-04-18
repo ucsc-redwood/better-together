@@ -13,7 +13,7 @@ TEST(AppdataTest, Initialization) {
   cifar_dense::v2::AppData appdata(disp.get_mr());
 
   EXPECT_EQ(appdata.u_conv1_w.d0(), 16);
-  EXPECT_EQ(appdata.u_linear_w.rows(), 10);
+  EXPECT_EQ(appdata.u_linear_w.d1(), 10);
 }
 
 // ----------------------------------------------------------------------------
@@ -196,8 +196,8 @@ TEST(Stage9Test, Basic) {
   disp.run_stage_9(appdata);
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_linear_out.rows(), 128);
-  EXPECT_EQ(appdata.u_linear_out.cols(), 10);
+  EXPECT_EQ(appdata.u_linear_out.d0(), 128);
+  EXPECT_EQ(appdata.u_linear_out.d1(), 10);
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_9(appdata));

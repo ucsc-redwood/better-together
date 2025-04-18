@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../common/kiss-vk/engine.hpp"
-#include "../sparse_appdata.hpp"
+#include "../appdata.hpp"
 
 namespace cifar_sparse::vulkan {
 

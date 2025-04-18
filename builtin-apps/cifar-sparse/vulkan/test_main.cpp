@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../sparse_appdata.hpp"
+#include "../appdata.hpp"
 #include "builtin-apps/app.hpp"
 #include "dispatchers.hpp"
 
