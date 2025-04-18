@@ -9,8 +9,8 @@
 // ----------------------------------------------------------------------------
 
 TEST(AppdataTest, Initialization) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   EXPECT_EQ(appdata.conv1_sparse.rows, 16);
   EXPECT_EQ(appdata.conv1_sparse.cols, 27);
@@ -21,8 +21,8 @@ TEST(AppdataTest, Initialization) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage1Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Run stage 1
   disp.run_stage_1(appdata);
@@ -42,8 +42,8 @@ TEST(Stage1Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage2Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Run stage 2
   disp.run_stage_2(appdata);
@@ -63,8 +63,8 @@ TEST(Stage2Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage3Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Run stage 3
   disp.run_stage_3(appdata);
@@ -84,8 +84,8 @@ TEST(Stage3Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage4Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Run stage 4
   disp.run_stage_4(appdata);
@@ -105,8 +105,8 @@ TEST(Stage4Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage5Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Run stage 5
   disp.run_stage_5(appdata);
@@ -126,8 +126,8 @@ TEST(Stage5Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage6Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Run stage 6
   disp.run_stage_6(appdata);
@@ -147,8 +147,8 @@ TEST(Stage6Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage7Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_7(appdata));
@@ -159,8 +159,8 @@ TEST(Stage7Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage8Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_8(appdata));
@@ -171,8 +171,8 @@ TEST(Stage8Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage9Test, Basic) {
-  cifar_sparse::vulkan::v2::VulkanDispatcher disp;
-  cifar_sparse::v2::AppData appdata(disp.get_mr());
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  cifar_sparse::AppData appdata(disp.get_mr());
 
   // Check no throw
   EXPECT_NO_THROW(disp.run_stage_9(appdata));

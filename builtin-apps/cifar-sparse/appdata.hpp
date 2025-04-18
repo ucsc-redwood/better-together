@@ -7,8 +7,6 @@
 
 namespace cifar_sparse {
 
-namespace v2 {
-
 struct CSRMatrix {
   const int rows;
   const int cols;
@@ -18,9 +16,9 @@ struct CSRMatrix {
   std::pmr::vector<int> col_idx;
 
   // Basic constructor
-  CSRMatrix(const int r,
-            const int c,
-            std::pmr::memory_resource* mr = std::pmr::get_default_resource())
+  explicit CSRMatrix(const int r,
+                     const int c,
+                     std::pmr::memory_resource* mr = std::pmr::get_default_resource())
       : rows(r),
         cols(c),
         nnz(0),
@@ -75,24 +73,7 @@ struct AppData {
         conv5_sparse(64, 576, mr),
         linear_sparse(10, 1024, mr) {}
 
-  void reset() {
-    // u_input.pmr_vec().clear();
-    // u_conv1_out.pmr_vec().clear();
-    // u_pool1_out.pmr_vec().clear();
-    // u_conv2_out.pmr_vec().clear();
-    // u_pool2_out.pmr_vec().clear();
-    // u_conv3_out.pmr_vec().clear();
-    // u_conv4_out.pmr_vec().clear();
-    // u_conv5_out.pmr_vec().clear();
-    // u_pool3_out.pmr_vec().clear();
-    // u_linear_out.pmr_vec().clear();
-    // u_conv1_b.pmr_vec().clear();
-    // u_conv2_b.pmr_vec().clear();
-    // u_conv3_b.pmr_vec().clear();
-    // u_conv4_b.pmr_vec().clear();
-    // u_conv5_b.pmr_vec().clear();
-    // u_linear_b.pmr_vec().clear();
-  }
+  void reset() {}
 
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
@@ -124,7 +105,5 @@ struct AppData {
   CSRMatrix conv5_sparse;   // (64, 576)
   CSRMatrix linear_sparse;  // (10, 1024)
 };
-
-}  // namespace v2
 
 }  // namespace cifar_sparse

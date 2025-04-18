@@ -17,12 +17,6 @@ constexpr int kPoolStride = 2;
 
 constexpr bool kRelu = true;
 
-// ----------------------------------------------------------------------------
-// V2
-// ----------------------------------------------------------------------------
-
-namespace v2 {
-
 // Push constants for the conv2d shader
 struct Conv2dPushConstants_v2 {
   int32_t N;           // Batch size
@@ -98,7 +92,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 // Stage 1 (v2) - Conv1
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_1(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_1(AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
@@ -151,7 +145,7 @@ void VulkanDispatcher::run_stage_1(cifar_dense::v2::AppData& appdata) {
 // Stage 2 (v2) - MaxPool1
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_2(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_2(AppData& appdata) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
@@ -200,7 +194,7 @@ void VulkanDispatcher::run_stage_2(cifar_dense::v2::AppData& appdata) {
 // Stage 3 (v2) - Conv2
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_3(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_3(AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
@@ -253,7 +247,7 @@ void VulkanDispatcher::run_stage_3(cifar_dense::v2::AppData& appdata) {
 // Stage 4 (v2) - MaxPool2
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_4(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_4(AppData& appdata) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
@@ -302,7 +296,7 @@ void VulkanDispatcher::run_stage_4(cifar_dense::v2::AppData& appdata) {
 // Stage 5 (v2) - Conv3
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_5(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_5(AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
@@ -355,7 +349,7 @@ void VulkanDispatcher::run_stage_5(cifar_dense::v2::AppData& appdata) {
 // Stage 6 (v2) - Conv4
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_6(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_6(AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
@@ -408,7 +402,7 @@ void VulkanDispatcher::run_stage_6(cifar_dense::v2::AppData& appdata) {
 // Stage 7 (v2) - Conv5
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_7(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_7(AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
@@ -461,7 +455,7 @@ void VulkanDispatcher::run_stage_7(cifar_dense::v2::AppData& appdata) {
 // Stage 8 (v2) - MaxPool3
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_8(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_8(AppData& appdata) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
@@ -510,7 +504,7 @@ void VulkanDispatcher::run_stage_8(cifar_dense::v2::AppData& appdata) {
 // Stage 9 (v2) - Linear
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_9(cifar_dense::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_9(AppData& appdata) {
   auto algo = cached_algorithms.at("linear").get();
 
   LOG_KERNEL(LogKernelType::kVK, 9, &appdata);
@@ -552,7 +546,5 @@ void VulkanDispatcher::run_stage_9(cifar_dense::v2::AppData& appdata) {
   seq->wait_for_fence();
   seq->reset_fence();
 }
-
-}  // namespace v2
 
 }  // namespace cifar_dense::vulkan

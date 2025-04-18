@@ -17,12 +17,6 @@ constexpr int kPoolStride = 2;
 
 constexpr bool kRelu = true;
 
-// ----------------------------------------------------------------------------
-// V2
-// ----------------------------------------------------------------------------
-
-namespace v2 {
-
 // // Push constants holding all kernel parameters.
 // layout(push_constant) uniform Params {
 //   int batch_size;    // Number of batches.
@@ -40,7 +34,7 @@ namespace v2 {
 // }
 // params;
 
-struct Conv2dPushConstants_v2 {
+struct Conv2dPushConstants {
   int32_t batch_size;
   int32_t in_channels;
   int32_t in_height;
@@ -68,7 +62,7 @@ struct Conv2dPushConstants_v2 {
 // }
 // params;
 
-struct MaxpoolPushConstants_v2 {
+struct MaxpoolPushConstants {
   int32_t batch_size;
   int32_t channels;
   int32_t in_height;
@@ -87,7 +81,7 @@ struct MaxpoolPushConstants_v2 {
 // }
 // params;
 
-struct LinearPushConstants_v2 {
+struct LinearPushConstants {
   int32_t batch_size;
   int32_t input_features;
   int32_t out_neurons;
@@ -132,7 +126,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
                          ->num_buffers(6)
-                         ->push_constant<Conv2dPushConstants_v2>()
+                         ->push_constant<Conv2dPushConstants>()
                          ->build();
 
   cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
@@ -150,7 +144,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                           ->work_group_size(256, 1, 1)
                           ->num_sets(1)
                           ->num_buffers(2)
-                          ->push_constant<MaxpoolPushConstants_v2>()
+                          ->push_constant<MaxpoolPushConstants>()
                           ->build();
 
   cached_algorithms.try_emplace("maxpool", std::move(maxpool_algo));
@@ -183,7 +177,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                          ->work_group_size(256, 1, 1)
                          ->num_sets(1)
                          ->num_buffers(6)
-                         ->push_constant<LinearPushConstants_v2>()
+                         ->push_constant<LinearPushConstants>()
                          ->build();
 
   cached_algorithms.try_emplace("linear", std::move(linear_algo));
@@ -193,7 +187,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 // Stage 1 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_1(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
@@ -220,7 +214,7 @@ void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * out_channels * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  algo->update_push_constant(Conv2dPushConstants{
       .batch_size = batch_size,
       .in_channels = in_channels,
       .in_height = in_height,
@@ -251,7 +245,7 @@ void VulkanDispatcher::run_stage_1(cifar_sparse::v2::AppData& appdata) {
 // Stage 2 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_2(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
@@ -273,7 +267,7 @@ void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * channels * out_height * out_width;
 
-  algo->update_push_constant(MaxpoolPushConstants_v2{
+  algo->update_push_constant(MaxpoolPushConstants{
       .batch_size = batch_size,
       .channels = channels,
       .in_height = in_height,
@@ -300,7 +294,7 @@ void VulkanDispatcher::run_stage_2(cifar_sparse::v2::AppData& appdata) {
 // Stage 3 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_3(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_3(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
@@ -327,7 +321,7 @@ void VulkanDispatcher::run_stage_3(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * out_channels * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  algo->update_push_constant(Conv2dPushConstants{
       .batch_size = batch_size,
       .in_channels = in_channels,
       .in_height = in_height,
@@ -358,7 +352,7 @@ void VulkanDispatcher::run_stage_3(cifar_sparse::v2::AppData& appdata) {
 // Stage 4 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_4(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_4(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
@@ -380,7 +374,7 @@ void VulkanDispatcher::run_stage_4(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * channels * out_height * out_width;
 
-  algo->update_push_constant(MaxpoolPushConstants_v2{
+  algo->update_push_constant(MaxpoolPushConstants{
       .batch_size = batch_size,
       .channels = channels,
       .in_height = in_height,
@@ -407,7 +401,7 @@ void VulkanDispatcher::run_stage_4(cifar_sparse::v2::AppData& appdata) {
 // Stage 5 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_5(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_5(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
@@ -434,7 +428,7 @@ void VulkanDispatcher::run_stage_5(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * out_channels * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  algo->update_push_constant(Conv2dPushConstants{
       .batch_size = batch_size,
       .in_channels = in_channels,
       .in_height = in_height,
@@ -465,7 +459,7 @@ void VulkanDispatcher::run_stage_5(cifar_sparse::v2::AppData& appdata) {
 // Stage 6 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_6(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_6(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
@@ -492,7 +486,7 @@ void VulkanDispatcher::run_stage_6(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * out_channels * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  algo->update_push_constant(Conv2dPushConstants{
       .batch_size = batch_size,
       .in_channels = in_channels,
       .in_height = in_height,
@@ -523,7 +517,7 @@ void VulkanDispatcher::run_stage_6(cifar_sparse::v2::AppData& appdata) {
 // Stage 7 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_7(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_7(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("conv2d").get();
 
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
@@ -550,7 +544,7 @@ void VulkanDispatcher::run_stage_7(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * out_channels * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  algo->update_push_constant(Conv2dPushConstants{
       .batch_size = batch_size,
       .in_channels = in_channels,
       .in_height = in_height,
@@ -581,7 +575,7 @@ void VulkanDispatcher::run_stage_7(cifar_sparse::v2::AppData& appdata) {
 // Stage 8 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_8(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_8(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
@@ -603,7 +597,7 @@ void VulkanDispatcher::run_stage_8(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * channels * out_height * out_width;
 
-  algo->update_push_constant(MaxpoolPushConstants_v2{
+  algo->update_push_constant(MaxpoolPushConstants{
       .batch_size = batch_size,
       .channels = channels,
       .in_height = in_height,
@@ -630,7 +624,7 @@ void VulkanDispatcher::run_stage_8(cifar_sparse::v2::AppData& appdata) {
 // Stage 9 (v2)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_9(cifar_sparse::v2::AppData& appdata) {
+void VulkanDispatcher::run_stage_9(cifar_sparse::AppData& appdata) {
   auto algo = cached_algorithms.at("linear").get();
 
   LOG_KERNEL(LogKernelType::kVK, 9, &appdata);
@@ -657,7 +651,7 @@ void VulkanDispatcher::run_stage_9(cifar_sparse::v2::AppData& appdata) {
 
   const int total_output = batch_size * out_neurons;
 
-  algo->update_push_constant(LinearPushConstants_v2{
+  algo->update_push_constant(LinearPushConstants{
       .batch_size = batch_size,
       .input_features = input_features,
       .out_neurons = out_neurons,
@@ -674,7 +668,5 @@ void VulkanDispatcher::run_stage_9(cifar_sparse::v2::AppData& appdata) {
   seq->wait_for_fence();
   seq->reset_fence();
 }
-
-}  // namespace v2
 
 }  // namespace cifar_sparse::vulkan

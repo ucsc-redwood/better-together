@@ -6,8 +6,6 @@
 
 namespace cifar_dense {
 
-namespace v2 {
-
 struct AppData {
   static constexpr size_t BATCH_SIZE = 128;
 
@@ -42,8 +40,6 @@ struct AppData {
         u_linear_w(10, 1024, mr),
         u_linear_b(10, mr) {}
 
-  void reset() {}
-
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
   Ndarray4D u_conv1_out;  // (128, 16, 32, 32)
@@ -72,7 +68,5 @@ struct AppData {
   Ndarray2D u_linear_w;  // (10, 1024)
   Ndarray1D u_linear_b;  // (10)
 };
-
-}  // namespace v2
 
 }  // namespace cifar_dense

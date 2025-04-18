@@ -7,19 +7,17 @@
 
 namespace cifar_dense::omp {
 
-namespace v2 {
+void run_stage_1(AppData& appdata);  // Conv 1
+void run_stage_2(AppData& appdata);  // MaxPool 1
+void run_stage_3(AppData& appdata);  // Conv 2
+void run_stage_4(AppData& appdata);  // MaxPool 2
+void run_stage_5(AppData& appdata);  // Conv 3
+void run_stage_6(AppData& appdata);  // Conv 4
+void run_stage_7(AppData& appdata);  // Conv 5
+void run_stage_8(AppData& appdata);  // MaxPool 3
+void run_stage_9(AppData& appdata);  // Linear
 
-void run_stage_1(cifar_dense::v2::AppData& appdata);  // Conv 1
-void run_stage_2(cifar_dense::v2::AppData& appdata);  // MaxPool 1
-void run_stage_3(cifar_dense::v2::AppData& appdata);  // Conv 2
-void run_stage_4(cifar_dense::v2::AppData& appdata);  // MaxPool 2
-void run_stage_5(cifar_dense::v2::AppData& appdata);  // Conv 3
-void run_stage_6(cifar_dense::v2::AppData& appdata);  // Conv 4
-void run_stage_7(cifar_dense::v2::AppData& appdata);  // Conv 5
-void run_stage_8(cifar_dense::v2::AppData& appdata);  // MaxPool 3
-void run_stage_9(cifar_dense::v2::AppData& appdata);  // Linear
-
-using DispatchFnBatch = void (*)(cifar_dense::v2::AppData&);
+using DispatchFnBatch = void (*)(AppData&);
 
 const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_1,
@@ -35,7 +33,7 @@ const DispatchFnBatch dispatch_fns_batch[] = {
 
 inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                  const int num_threads,
-                                 cifar_dense::v2::AppData& appdata,
+                                 AppData& appdata,
                                  const int start_stage,
                                  const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 9);
@@ -49,7 +47,5 @@ inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
     }
   }
 }
-
-}  // namespace v2
 
 }  // namespace cifar_dense::omp

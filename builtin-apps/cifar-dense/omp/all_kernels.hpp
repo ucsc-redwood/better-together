@@ -7,8 +7,6 @@
 
 namespace cifar_dense::omp {
 
-namespace v2 {
-
 // ----------------------------------------------------------------------------
 // Convolution 2D (Dense, Batched)
 // ----------------------------------------------------------------------------
@@ -130,7 +128,5 @@ inline void linear_batch_u(const float* u_input,
     }
   }
 }
-
-}  // namespace v2
 
 }  // namespace cifar_dense::omp

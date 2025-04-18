@@ -7,7 +7,6 @@
 
 namespace cifar_sparse::omp {
 
-namespace v2 {
 
 // ----------------------------------------------------------------------------
 // Convolution 2D (Sparse, Batched)
@@ -190,6 +189,5 @@ inline void linear_omp_batched(
   }
 }
 
-}  // namespace v2
 
 }  // namespace cifar_sparse::omp
