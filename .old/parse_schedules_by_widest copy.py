@@ -414,14 +414,14 @@ def create_comparison_visualization(
     print(f"Visualization saved to {os.path.join(output_dir, 'comparison_chart.png')}")
 
     # Create scatter plot for correlation
-    create_correlation_plots(
-        schedule_uids, predicted_times, measured_times, output_dir
-    )
+    create_correlation_plots(schedule_uids, predicted_times, measured_times, output_dir)
 
 
-def create_correlation_plots(schedule_uids, predicted_times, measured_times, output_dir):
+def create_correlation_plots(
+    schedule_uids, predicted_times, measured_times, output_dir
+):
     """Create various correlation plots to better visualize the data."""
-    
+
     # Main correlation plot (standard)
     plt.figure(figsize=(10, 8))
     plt.scatter(predicted_times, measured_times, alpha=0.7)
@@ -463,31 +463,35 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
 
     # Save standard scatter plot
     plt.savefig(os.path.join(output_dir, "correlation_plot.png"), dpi=300)
-    print(f"Correlation plot saved to {os.path.join(output_dir, 'correlation_plot.png')}")
+    print(
+        f"Correlation plot saved to {os.path.join(output_dir, 'correlation_plot.png')}"
+    )
 
     # 1. Create log-scale plot for better distribution visualization
     plt.figure(figsize=(10, 8))
-    
+
     # Skip zeros and negative values for log scale
     valid_indices = (predicted_times > 0) & (measured_times > 0)
     valid_pred = predicted_times[valid_indices]
     valid_meas = measured_times[valid_indices]
     valid_uids = [schedule_uids[i] for i, valid in enumerate(valid_indices) if valid]
-    
+
     if len(valid_pred) > 0:
         plt.scatter(valid_pred, valid_meas, alpha=0.7)
-        
+
         # Add perfect prediction line on log scale
         min_val = min(np.min(valid_pred), np.min(valid_meas)) * 0.9
         max_val = max(np.max(valid_pred), np.max(valid_meas)) * 1.1
-        plt.plot([min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction")
-        
-        plt.xscale('log')
-        plt.yscale('log')
+        plt.plot(
+            [min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction"
+        )
+
+        plt.xscale("log")
+        plt.yscale("log")
         plt.xlabel("Predicted Time (ms) - Log Scale")
         plt.ylabel("Measured Time (ms) - Log Scale")
         plt.title("Log-Scale Correlation between Predicted and Measured Times")
-        
+
         # Add schedule labels to points
         for i, uid in enumerate(valid_uids):
             plt.annotate(
@@ -498,7 +502,7 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
                 ha="center",
                 fontsize=8,
             )
-        
+
         # Calculate correlation coefficient for valid points
         log_correlation = np.corrcoef(np.log(valid_pred), np.log(valid_meas))[0, 1]
         plt.text(
@@ -509,76 +513,82 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
             fontsize=12,
             verticalalignment="top",
         )
-        
+
         plt.grid(True, linestyle="--", alpha=0.7)
         plt.legend()
         plt.tight_layout()
-        
+
         # Save log-scale plot
         plt.savefig(os.path.join(output_dir, "correlation_plot_log_scale.png"), dpi=300)
-        print(f"Log-scale correlation plot saved to {os.path.join(output_dir, 'correlation_plot_log_scale.png')}")
-    
+        print(
+            f"Log-scale correlation plot saved to {os.path.join(output_dir, 'correlation_plot_log_scale.png')}"
+        )
+
     # 2. Create a plot that excludes outliers
     plt.figure(figsize=(10, 8))
-    
+
     # Identify outliers using IQR method
     q1_pred = np.percentile(predicted_times, 25)
     q3_pred = np.percentile(predicted_times, 75)
     iqr_pred = q3_pred - q1_pred
-    
+
     q1_meas = np.percentile(measured_times, 25)
     q3_meas = np.percentile(measured_times, 75)
     iqr_meas = q3_meas - q1_meas
-    
+
     # Define outlier boundaries
     lower_bound_pred = q1_pred - 1.5 * iqr_pred
     upper_bound_pred = q3_pred + 1.5 * iqr_pred
-    
+
     lower_bound_meas = q1_meas - 1.5 * iqr_meas
     upper_bound_meas = q3_meas + 1.5 * iqr_meas
-    
+
     # Identify non-outlier indices
     non_outlier_indices = (
-        (predicted_times >= lower_bound_pred) & 
-        (predicted_times <= upper_bound_pred) &
-        (measured_times >= lower_bound_meas) & 
-        (measured_times <= upper_bound_meas)
+        (predicted_times >= lower_bound_pred)
+        & (predicted_times <= upper_bound_pred)
+        & (measured_times >= lower_bound_meas)
+        & (measured_times <= upper_bound_meas)
     )
-    
+
     # Consider a point an outlier if it's beyond 3 standard deviations from the mean
     mean_pred = np.mean(predicted_times)
     std_pred = np.std(predicted_times)
-    
+
     mean_meas = np.mean(measured_times)
     std_meas = np.std(measured_times)
-    
+
     non_outlier_indices_std = (
-        (predicted_times >= mean_pred - 3*std_pred) & 
-        (predicted_times <= mean_pred + 3*std_pred) &
-        (measured_times >= mean_meas - 3*std_meas) & 
-        (measured_times <= mean_meas + 3*std_meas)
+        (predicted_times >= mean_pred - 3 * std_pred)
+        & (predicted_times <= mean_pred + 3 * std_pred)
+        & (measured_times >= mean_meas - 3 * std_meas)
+        & (measured_times <= mean_meas + 3 * std_meas)
     )
-    
+
     # Combine methods - a point is a non-outlier if it passes either test
     non_outlier_indices = non_outlier_indices | non_outlier_indices_std
-    
+
     # Filter data
     non_outlier_pred = predicted_times[non_outlier_indices]
     non_outlier_meas = measured_times[non_outlier_indices]
-    non_outlier_uids = [schedule_uids[i] for i, is_valid in enumerate(non_outlier_indices) if is_valid]
-    
+    non_outlier_uids = [
+        schedule_uids[i] for i, is_valid in enumerate(non_outlier_indices) if is_valid
+    ]
+
     if len(non_outlier_indices) > 0:
         plt.scatter(non_outlier_pred, non_outlier_meas, alpha=0.7)
-        
+
         # Add perfect prediction line
         min_val = min(np.min(non_outlier_pred), np.min(non_outlier_meas)) * 0.9
         max_val = max(np.max(non_outlier_pred), np.max(non_outlier_meas)) * 1.1
-        plt.plot([min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction")
-        
+        plt.plot(
+            [min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction"
+        )
+
         plt.xlabel("Predicted Time (ms)")
         plt.ylabel("Measured Time (ms)")
         plt.title("Correlation (Excluding Outliers)")
-        
+
         # Add schedule labels
         for i, uid in enumerate(non_outlier_uids):
             plt.annotate(
@@ -589,10 +599,12 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
                 ha="center",
                 fontsize=8,
             )
-        
+
         # Calculate correlation coefficient for non-outliers
         if len(non_outlier_pred) > 1:  # Need at least 2 points for correlation
-            non_outlier_correlation = np.corrcoef(non_outlier_pred, non_outlier_meas)[0, 1]
+            non_outlier_correlation = np.corrcoef(non_outlier_pred, non_outlier_meas)[
+                0, 1
+            ]
             plt.text(
                 0.05,
                 0.95,
@@ -601,65 +613,76 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
                 fontsize=12,
                 verticalalignment="top",
             )
-        
+
         plt.grid(True, linestyle="--", alpha=0.7)
         plt.legend()
         plt.tight_layout()
-        
+
         # Save non-outlier plot
-        plt.savefig(os.path.join(output_dir, "correlation_plot_no_outliers.png"), dpi=300)
-        print(f"Correlation plot (excl. outliers) saved to {os.path.join(output_dir, 'correlation_plot_no_outliers.png')}")
+        plt.savefig(
+            os.path.join(output_dir, "correlation_plot_no_outliers.png"), dpi=300
+        )
+        print(
+            f"Correlation plot (excl. outliers) saved to {os.path.join(output_dir, 'correlation_plot_no_outliers.png')}"
+        )
 
     # 3. Create zoomed-in plot of the cluster
     # Find the median values to center the zoom
     median_pred = np.median(predicted_times)
     median_meas = np.median(measured_times)
-    
+
     # Define zoom window (2x the IQR)
     zoom_width_pred = 2 * iqr_pred
     zoom_width_meas = 2 * iqr_meas
-    
+
     # Define zoom boundaries
     zoom_min_pred = max(0, median_pred - zoom_width_pred)
     zoom_max_pred = median_pred + zoom_width_pred
-    
+
     zoom_min_meas = max(0, median_meas - zoom_width_meas)
     zoom_max_meas = median_meas + zoom_width_meas
-    
+
     # Create zoomed plot
     plt.figure(figsize=(10, 8))
-    
+
     # Plot all points but focus on the zoom area
-    plt.scatter(predicted_times, measured_times, alpha=0.5, color='lightgray')
-    
+    plt.scatter(predicted_times, measured_times, alpha=0.5, color="lightgray")
+
     # Highlight points in the zoom window
     zoom_indices = (
-        (predicted_times >= zoom_min_pred) & 
-        (predicted_times <= zoom_max_pred) &
-        (measured_times >= zoom_min_meas) & 
-        (measured_times <= zoom_max_meas)
+        (predicted_times >= zoom_min_pred)
+        & (predicted_times <= zoom_max_pred)
+        & (measured_times >= zoom_min_meas)
+        & (measured_times <= zoom_max_meas)
     )
-    
+
     zoom_pred = predicted_times[zoom_indices]
     zoom_meas = measured_times[zoom_indices]
-    zoom_uids = [schedule_uids[i] for i, is_zoomed in enumerate(zoom_indices) if is_zoomed]
-    
+    zoom_uids = [
+        schedule_uids[i] for i, is_zoomed in enumerate(zoom_indices) if is_zoomed
+    ]
+
     if len(zoom_indices) > 0:
         plt.scatter(zoom_pred, zoom_meas, alpha=0.9)
-        
+
         # Add perfect prediction line just for the zoom window
         zoom_min = min(zoom_min_pred, zoom_min_meas)
         zoom_max = max(zoom_max_pred, zoom_max_meas)
-        plt.plot([zoom_min, zoom_max], [zoom_min, zoom_max], "r--", label="Perfect Prediction")
-        
+        plt.plot(
+            [zoom_min, zoom_max],
+            [zoom_min, zoom_max],
+            "r--",
+            label="Perfect Prediction",
+        )
+
         # Set limits to zoom window
         plt.xlim(zoom_min_pred, zoom_max_pred)
         plt.ylim(zoom_min_meas, zoom_max_meas)
-        
+
         plt.xlabel("Predicted Time (ms)")
         plt.ylabel("Measured Time (ms)")
         plt.title("Zoomed Correlation View (Focused on Cluster)")
-        
+
         # Add labels for points in the zoom window
         for i, uid in enumerate(zoom_uids):
             plt.annotate(
@@ -670,7 +693,7 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
                 ha="center",
                 fontsize=8,
             )
-        
+
         # Calculate correlation coefficient for zoomed region
         if len(zoom_pred) > 1:  # Need at least 2 points for correlation
             zoom_correlation = np.corrcoef(zoom_pred, zoom_meas)[0, 1]
@@ -682,17 +705,19 @@ def create_correlation_plots(schedule_uids, predicted_times, measured_times, out
                 fontsize=12,
                 verticalalignment="top",
             )
-        
+
         plt.grid(True, linestyle="--", alpha=0.7)
         plt.legend()
         plt.tight_layout()
-        
+
         # Save zoomed plot
         plt.savefig(os.path.join(output_dir, "correlation_plot_zoomed.png"), dpi=300)
-        print(f"Zoomed correlation plot saved to {os.path.join(output_dir, 'correlation_plot_zoomed.png')}")
-    
+        print(
+            f"Zoomed correlation plot saved to {os.path.join(output_dir, 'correlation_plot_zoomed.png')}"
+        )
+
     # Close all figures to free memory
-    plt.close('all')
+    plt.close("all")
 
 
 def calculate_aggregated_statistics(all_schedules):
