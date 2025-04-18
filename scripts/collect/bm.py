@@ -164,7 +164,7 @@ def main():
     os.makedirs(args.log_folder, exist_ok=True)
 
     # The benchmark command to run.
-    command = f"xmake r {args.target} -l off -t 2 -p"
+    command = f"xmake r {args.target} -l off -t 4 -p"
 
     for run_num in range(1, args.repeat + 1):
         print(f"\n=== Run {run_num} of {args.repeat} ===")
