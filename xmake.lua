@@ -106,12 +106,12 @@ rule("vulkan_config")
 		target:add("packages", "vulkan-hpp")
 		target:add("packages", "vulkan-memory-allocator")
 	
-		if target:is_plat("macosx") then
-			target:add("links", "vulkan")
-			target:add("linkdirs", "/opt/homebrew/lib")
-			target:add("includedirs", "/opt/homebrew/include")
-			target:add("rpathdirs", "/opt/homebrew/lib")
-		end
+		-- if target:is_plat("macosx") then
+		-- 	target:add("links", "vulkan")
+		-- 	target:add("linkdirs", "/opt/homebrew/lib")
+		-- 	target:add("includedirs", "/opt/homebrew/include")
+		-- 	target:add("rpathdirs", "/opt/homebrew/lib")
+		-- end
 	end)
 rule_end()
 
