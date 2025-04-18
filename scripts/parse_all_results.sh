@@ -7,6 +7,16 @@ APPS=("cifar-sparse" "cifar-dense" "tree")
 
 echo "=== Starting results parsing for all device-app pairs ==="
 
+# Get the most recent date directory
+date_dir=$(ls -t "$PWD/data" | head -n 1)
+
+if [ -z "$date_dir" ]; then
+  echo "Error: No data directory found"
+  exit 1
+fi
+
+echo "Using data directory: data/$date_dir"
+
 # Parse results for each device-app pair
 for device in "${DEVICES[@]}"; do
   for app in "${APPS[@]}"; do
@@ -16,7 +26,6 @@ for device in "${DEVICES[@]}"; do
     echo "====================================================="
     
     # Check if we have logs for this device-app pair
-    date_dir=$(ls -t "$PWD/data" | head -n 1)
     results_dir="$PWD/data/$date_dir/results/${device}_${app}"
     
     if [ -d "$results_dir" ] && [ "$(ls -A "$results_dir")" ]; then
@@ -30,4 +39,4 @@ done
 
 echo ""
 echo "=== Results parsing completed ==="
-echo "Analysis results are stored in the data/YYYY-MM-DD/results/device_app/analysis directories" 
+echo "Analysis results are stored in the data/$date_dir/results/device_app/analysis directories" 

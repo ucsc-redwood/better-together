@@ -39,10 +39,12 @@ class ScheduleRunner:
         os.makedirs(device_dir, exist_ok=True)
         return device_dir
 
-    def run_benchmark(self, device, app, repeat=3):
-        """Run benchmarks and collect data for the given device and app."""
+    def run_benchmark(self, app, repeat=3, device=None):
+        """Run benchmarks and collect data for the given app.
+        The device parameter is optional since bm.py detects all connected devices."""
         app_dir = self.get_app_dir(app)
-        print(f"\n=== Running benchmark for {app} on {device} ===")
+        device_str = f" on {device}" if device else " on all connected devices"
+        print(f"\n=== Running benchmark for {app}{device_str} ===")
 
         # Build the benchmark command
         cmd = [
@@ -59,7 +61,7 @@ class ScheduleRunner:
         try:
             print(f"Running command: {' '.join(cmd)}")
             subprocess.run(cmd, check=True)
-            print(f"Benchmark data collected for {app} on {device} in {app_dir}")
+            print(f"Benchmark data collected for {app} in {app_dir}")
             return True
         except subprocess.CalledProcessError as e:
             print(f"Error running benchmark: {e}")
@@ -297,7 +299,7 @@ class ScheduleRunner:
         success = True
 
         if "benchmark" in steps:
-            success = success and self.run_benchmark(device, app, repeat)
+            success = success and self.run_benchmark(app, repeat, device)
 
         if "heatmap" in steps and success:
             success = success and self.create_heatmaps(app, exclude_stages)
@@ -387,16 +389,21 @@ def main():
     runner = ScheduleRunner()
 
     # For most tasks, device and app are required
-    tasks_requiring_device_app = ["benchmark", "schedule", "run", "parse", "pipeline"]
+    tasks_requiring_device_app = ["schedule", "run", "parse", "pipeline"]
+    tasks_requiring_app_only = ["benchmark", "heatmap"]
+
     if args.task in tasks_requiring_device_app and (not args.device or not args.app):
         print(f"Error: Both --device and --app are required for '{args.task}'")
+        sys.exit(1)
+    elif args.task in tasks_requiring_app_only and not args.app:
+        print(f"Error: --app is required for '{args.task}'")
         sys.exit(1)
 
     # Execute the requested task
     success = False
 
     if args.task == "benchmark":
-        success = runner.run_benchmark(args.device, args.app, args.repeat)
+        success = runner.run_benchmark(args.app, args.repeat, args.device)
 
     elif args.task == "heatmap":
         success = runner.create_heatmaps(args.app, args.exclude_stages)
