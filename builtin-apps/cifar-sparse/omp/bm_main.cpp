@@ -34,7 +34,7 @@ static void BM_Stage2(benchmark::State& state) {
 
   // Run all previous stages before benchmarking
   cifar_sparse::omp::run_stage_1(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_2(appdata);
 
@@ -56,7 +56,7 @@ static void BM_Stage3(benchmark::State& state) {
   // Run all previous stages before benchmarking
   cifar_sparse::omp::run_stage_1(appdata);
   cifar_sparse::omp::run_stage_2(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_3(appdata);
 
@@ -79,7 +79,7 @@ static void BM_Stage4(benchmark::State& state) {
   cifar_sparse::omp::run_stage_1(appdata);
   cifar_sparse::omp::run_stage_2(appdata);
   cifar_sparse::omp::run_stage_3(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_4(appdata);
 
@@ -103,7 +103,7 @@ static void BM_Stage5(benchmark::State& state) {
   cifar_sparse::omp::run_stage_2(appdata);
   cifar_sparse::omp::run_stage_3(appdata);
   cifar_sparse::omp::run_stage_4(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_5(appdata);
 
@@ -128,7 +128,7 @@ static void BM_Stage6(benchmark::State& state) {
   cifar_sparse::omp::run_stage_3(appdata);
   cifar_sparse::omp::run_stage_4(appdata);
   cifar_sparse::omp::run_stage_5(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_6(appdata);
 
@@ -154,7 +154,7 @@ static void BM_Stage7(benchmark::State& state) {
   cifar_sparse::omp::run_stage_4(appdata);
   cifar_sparse::omp::run_stage_5(appdata);
   cifar_sparse::omp::run_stage_6(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_7(appdata);
 
@@ -181,7 +181,7 @@ static void BM_Stage8(benchmark::State& state) {
   cifar_sparse::omp::run_stage_5(appdata);
   cifar_sparse::omp::run_stage_6(appdata);
   cifar_sparse::omp::run_stage_7(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_8(appdata);
 
@@ -209,7 +209,7 @@ static void BM_Stage9(benchmark::State& state) {
   cifar_sparse::omp::run_stage_6(appdata);
   cifar_sparse::omp::run_stage_7(appdata);
   cifar_sparse::omp::run_stage_8(appdata);
-  
+
   // warm up
   cifar_sparse::omp::run_stage_9(appdata);
 

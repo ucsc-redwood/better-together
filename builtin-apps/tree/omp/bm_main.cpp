@@ -34,7 +34,7 @@ static void BM_Stage2(benchmark::State& state) {
 
   // Run all previous stages before benchmarking
   tree::omp::run_stage_1(appdata);
-  
+
   // warm up
   tree::omp::run_stage_2(appdata);
 
@@ -56,7 +56,7 @@ static void BM_Stage3(benchmark::State& state) {
   // Run all previous stages before benchmarking
   tree::omp::run_stage_1(appdata);
   tree::omp::run_stage_2(appdata);
-  
+
   // warm up
   tree::omp::run_stage_3(appdata);
 
@@ -79,7 +79,7 @@ static void BM_Stage4(benchmark::State& state) {
   tree::omp::run_stage_1(appdata);
   tree::omp::run_stage_2(appdata);
   tree::omp::run_stage_3(appdata);
-  
+
   // warm up
   tree::omp::run_stage_4(appdata);
 
@@ -103,7 +103,7 @@ static void BM_Stage5(benchmark::State& state) {
   tree::omp::run_stage_2(appdata);
   tree::omp::run_stage_3(appdata);
   tree::omp::run_stage_4(appdata);
-  
+
   // warm up
   tree::omp::run_stage_5(appdata);
 
@@ -128,7 +128,7 @@ static void BM_Stage6(benchmark::State& state) {
   tree::omp::run_stage_3(appdata);
   tree::omp::run_stage_4(appdata);
   tree::omp::run_stage_5(appdata);
-  
+
   // warm up
   tree::omp::run_stage_6(appdata);
 
@@ -154,7 +154,7 @@ static void BM_Stage7(benchmark::State& state) {
   tree::omp::run_stage_4(appdata);
   tree::omp::run_stage_5(appdata);
   tree::omp::run_stage_6(appdata);
-  
+
   // warm up
   tree::omp::run_stage_7(appdata);
 
