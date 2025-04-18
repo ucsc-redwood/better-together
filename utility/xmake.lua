@@ -24,13 +24,6 @@ if has_config("use_vulkan") then
 		})
 
 		add_packages("volk")
-
-		add_links("vulkan")
-		add_linkdirs("/opt/homebrew/lib")
-		add_includedirs("/opt/homebrew/include")
-		add_rpathdirs("/opt/homebrew/lib")
-
-
 	end
 end
 
