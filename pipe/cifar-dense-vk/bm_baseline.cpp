@@ -2,7 +2,8 @@
 #include <omp.h>
 
 #include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
-#include "common.hpp"
+#include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
+#include "builtin-apps/cifar-dense/vulkan/dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
 // Baseline: OMP
@@ -16,24 +17,24 @@ static void BM_baseline_omp(benchmark::State& state) {
     return;
   }
 
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
-  cifar_dense::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::VulkanDispatcher disp;
+  cifar_dense::AppData appdata(disp.get_mr());
 
   // Warm up
-  cifar_dense::omp::v2::run_stage_1(appdata);
+  cifar_dense::omp::run_stage_1(appdata);
 
   for (auto _ : state) {
 #pragma omp parallel num_threads(n_threads)
     {
-      cifar_dense::omp::v2::run_stage_1(appdata);
-      cifar_dense::omp::v2::run_stage_2(appdata);
-      cifar_dense::omp::v2::run_stage_3(appdata);
-      cifar_dense::omp::v2::run_stage_4(appdata);
-      cifar_dense::omp::v2::run_stage_5(appdata);
-      cifar_dense::omp::v2::run_stage_6(appdata);
-      cifar_dense::omp::v2::run_stage_7(appdata);
-      cifar_dense::omp::v2::run_stage_8(appdata);
-      cifar_dense::omp::v2::run_stage_9(appdata);
+      cifar_dense::omp::run_stage_1(appdata);
+      cifar_dense::omp::run_stage_2(appdata);
+      cifar_dense::omp::run_stage_3(appdata);
+      cifar_dense::omp::run_stage_4(appdata);
+      cifar_dense::omp::run_stage_5(appdata);
+      cifar_dense::omp::run_stage_6(appdata);
+      cifar_dense::omp::run_stage_7(appdata);
+      cifar_dense::omp::run_stage_8(appdata);
+      cifar_dense::omp::run_stage_9(appdata);
     }
   }
 }
@@ -45,8 +46,8 @@ BENCHMARK(BM_baseline_omp)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 static void BM_baseline_vulkan(benchmark::State& state) {
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
-  cifar_dense::v2::AppData appdata(disp.get_mr());
+  cifar_dense::vulkan::VulkanDispatcher disp;
+  cifar_dense::AppData appdata(disp.get_mr());
 
   // Warm up
   disp.dispatch_multi_stage(appdata, 1, 9);
@@ -64,12 +65,12 @@ BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-baseline-cifar-sparse-vk -l off
+// xmake r bm-baseline-cifar-dense-vk -l off
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
+  spdlog::set_level(spdlog::level::off);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();

@@ -7,13 +7,13 @@
 #include "builtin-apps/cifar-dense/vulkan/dispatchers.hpp"
 #include "builtin-apps/conf.hpp"
 #include "builtin-apps/pipeline/task.hpp"
-#include "common.hpp"
+// #include "common.hpp"
 
 // ----------------------------------------------------------------------------
 // Realistic Benchmark:  Stage
 // ----------------------------------------------------------------------------
 
-using MyTask = Task<cifar_dense::v2::AppData>;
+using MyTask = Task<cifar_dense::AppData>;
 
 // Little: 0, Big: 2, Medium: 1, Vulkan: 3
 constexpr int kLitIdx = 0;
@@ -53,7 +53,7 @@ void reset_done_flag() { done.store(false); }
 
 using MyQueue = std::queue<MyTask*>;
 
-void init_q(MyQueue* q, cifar_dense::vulkan::v2::VulkanDispatcher& disp) {
+void init_q(MyQueue* q, cifar_dense::vulkan::VulkanDispatcher& disp) {
   constexpr int kPhysicalTasks = 10;
 
   for (int i = 0; i < kPhysicalTasks; i++) {
@@ -90,29 +90,10 @@ static void BM_run_normal(const ProcessorType pt,
                           const int stage,
                           const int seconds_to_run,
                           const bool print_progress = false) {
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  // prepare the vulkan dispatcher
+  cifar_dense::vulkan::VulkanDispatcher disp;
 
-  reset_done_flag();
-
-  MyQueue q_little;
-  init_q(&q_little, disp);
-
-  MyQueue q_medium;
-  init_q(&q_medium, disp);
-
-  MyQueue q_big;
-  init_q(&q_big, disp);
-
-  MyQueue q_vulkan;
-  init_q(&q_vulkan, disp);
-
-  int total_processed = 0;  // Initialize here, now explicitly shown for clarity
-
-  auto gpu_func = [&disp, &total_processed, stage](MyTask* task) {
-    disp.dispatch_multi_stage(task->appdata, stage, stage);
-    total_processed++;
-  };
-
+  // prepare the cpu cores to use
   std::vector<int> cores_to_use;
   if (pt == ProcessorType::kLittleCore) {
     cores_to_use = g_little_cores;
@@ -122,30 +103,37 @@ static void BM_run_normal(const ProcessorType pt,
     cores_to_use = g_medium_cores;
   }
 
-  auto cpu_func = [&total_processed, stage, cores_to_use](MyTask* task) {
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
-    total_processed++;
-  };
+  if (pt != ProcessorType::kVulkan && cores_to_use.empty()) {
+    SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
+    return;
+  }
+
+  // prepare the queue
+  MyQueue q;
+  init_q(&q, disp);
+
+  reset_done_flag();
 
   auto start = std::chrono::high_resolution_clock::now();
 
   // ----------------------------------------------------------------------------
 
   std::thread t1;
+  int total_processed = 0;  // Initialize here, now explicitly shown for clarity
+
   if (pt == ProcessorType::kVulkan) {
-    if (cores_to_use.empty()) {
-      // This is fine for Vulkan
-    } else {
-      SPDLOG_WARN("Unexpected cores for Vulkan processor type");
-    }
-    t1 = std::thread(similuation_thread, &q_vulkan, gpu_func);
+    // launch gpu thread
+    t1 = std::thread(similuation_thread, &q, [disp = &disp, &total_processed, stage](MyTask* task) {
+      disp->dispatch_multi_stage(task->appdata, stage, stage);
+      total_processed++;
+    });
   } else {
-    if (cores_to_use.empty()) {
-      SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
-      return;
-    }
-    t1 = std::thread(similuation_thread, &q_little, cpu_func);
+    // launch cpu thread
+    t1 = std::thread(similuation_thread, &q, [cores_to_use, &total_processed, stage](MyTask* task) {
+      cifar_dense::omp::dispatch_multi_stage(
+          cores_to_use, cores_to_use.size(), task->appdata, stage, stage);
+      total_processed++;
+    });
   }
 
   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
@@ -175,12 +163,7 @@ static void BM_run_normal(const ProcessorType pt,
     std::fflush(stdout);
   }
 
-  clean_up_q(&q_little);
-  clean_up_q(&q_medium);
-  clean_up_q(&q_big);
-  clean_up_q(&q_vulkan);
-
-  // update the table
+  clean_up_q(&q);
 
   // map ProcessorType::kLittleCore = 0, ProcessorType::kBigCore = 1, ProcessorType::kMediumCore =
   // 2, ProcessorType::kVulkan = 3
@@ -197,7 +180,7 @@ static void BM_run_normal(const ProcessorType pt,
 static void BM_run_fully(const int stage,
                          const int seconds_to_run,
                          const bool print_progress = false) {
-  cifar_dense::vulkan::v2::VulkanDispatcher disp;
+  cifar_dense::vulkan::VulkanDispatcher disp;
 
   reset_done_flag();
 
@@ -217,28 +200,25 @@ static void BM_run_fully(const int stage,
   std::atomic<int> big_processed(0);
   std::atomic<int> vuk_processed(0);
 
-  auto gpu_func = [&disp, &vuk_processed, stage](MyTask* task) {
-    disp.dispatch_multi_stage(task->appdata, stage, stage);
+  auto gpu_func = [disp = &disp, &vuk_processed, stage](MyTask* task) {
+    disp->dispatch_multi_stage(task->appdata, stage, stage);
     vuk_processed++;
   };
 
   auto lit_func = [&lit_processed, stage](MyTask* task) {
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_little_cores, g_little_cores.size(), task->appdata, stage, stage);
+    cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, task->appdata, stage, stage);
 
     lit_processed++;
   };
 
   auto med_func = [&med_processed, stage](MyTask* task) {
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_medium_cores, g_medium_cores.size(), task->appdata, stage, stage);
+    cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, task->appdata, stage, stage);
 
     med_processed++;
   };
 
   auto big_func = [&big_processed, stage](MyTask* task) {
-    cifar_dense::omp::v2::dispatch_multi_stage(
-        g_big_cores, g_big_cores.size(), task->appdata, stage, stage);
+    cifar_dense::omp::dispatch_multi_stage(BIG_CORES, task->appdata, stage, stage);
 
     big_processed++;
   };
