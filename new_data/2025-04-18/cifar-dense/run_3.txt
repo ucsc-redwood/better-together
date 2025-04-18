@@ -1,0 +1,105 @@
+
+[1/2] Processing device: 3A021JEHN02756
+Deploying and running 'bm-fully-cifar-dense-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-fully-cifar-dense-vk: 1 file pushed, 0 skipped. 498.1 MB/s (2698704 bytes in 0.005s)
+[2025-04-18 10:19:51.158] [info] Little cores: 0 1 2 3 
+[2025-04-18 10:19:51.158] [info] Medium cores: 4 5 
+[2025-04-18 10:19:51.158] [info] Big cores: 6 7 
+Stage: 1 by Little
+	Count 	26
+	Average 	155.7692 ms
+Stage: 1 by Medium
+	Count 	71
+	Average 	56.5915 ms
+Stage: 1 by Big
+	Count 	82
+	Average 	48.9268 ms
+Stage: 1 by Vulkan
+	Count 	3364
+	Average 	1.1897 ms
+Stage: 2 by Little
+	Count 	632
+	Average 	6.3370 ms
+Stage: 2 by Medium
+	Count 	1325
+	Average 	3.0219 ms
+Stage: 2 by Big
+	Count 	1497
+	Average 	2.6733 ms
+Stage: 2 by Vulkan
+	Count 	5255
+	Average 	0.7618 ms
+Stage: 3 by Little
+	Count 	12
+	Average 	349.5833 ms
+Stage: 3 by Medium
+	Count 	31
+	Average 	130.4839 ms
+Stage: 3 by Big
+	Count 	34
+	Average 	118.8235 ms
+Stage: 3 by Vulkan
+	Count 	3776
+	Average 	1.0601 ms
+Stage: 4 by Little
+	Count 	1137
+	Average 	3.5215 ms
+Stage: 4 by Medium
+	Count 	2597
+	Average 	1.5410 ms
+Stage: 4 by Big
+	Count 	3049
+	Average 	1.3126 ms
+Stage: 4 by Vulkan
+	Count 	5897
+	Average 	0.6785 ms
+Stage: 5 by Little
+	Count 	13
+	Average 	332.2308 ms
+Stage: 5 by Medium
+	Count 	32
+	Average 	128.1250 ms
+Stage: 5 by Big
+	Count 	35
+	Average 	116.1143 ms
+Stage: 5 by Vulkan
+	Count 	2643
+	Average 	1.5142 ms
+Stage: 6 by Little
+	Count 	7
+	Average 	656.1429 ms
+Stage: 6 by Medium
+	Count 	17
+	Average 	248.0588 ms
+Stage: 6 by Big
+	Count 	18
+	Average 	228.4444 ms
+Stage: 6 by Vulkan
+	Count 	1779
+	Average 	2.2501 ms
+Stage: 7 by Little
+	Count 	7
+	Average 	655.8571 ms
+Stage: 7 by Medium
+	Count 	16
+	Average 	257.3750 ms
+Stage: 7 by Big
+	Count 	18
+	Average 	227.1667 ms
+Stage: 7 by Vulkan
+	Count 	1790
+	Average 	2.2363 ms
+Stage: 8 by Little
+	Count 	2280
+	Average 	1.7570 ms
+Stage: 8 by Medium
+	Count 	5137
+	Average 	0.7791 ms
+Stage: 8 by Big
+	Count 	5857
+	Average 	0.6833 ms
+Stage: 8 by Vulkan
+	Count 	6388
+	Average 	0.6265 ms
+Segmentation fault 
+[0m[1;38;5;1;1merror: [0mexecv(adb -s 3A021JEHN02756 shell /data/local/tmp/bm-fully-cifar-dense-vk -l off -t 4 -p --device=3A021JEHN02756) failed(139)[0m
