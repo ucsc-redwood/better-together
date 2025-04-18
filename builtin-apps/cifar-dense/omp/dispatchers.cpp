@@ -260,11 +260,7 @@ void run_stage_9(AppData &appdata) {
 
   // Total features per image = channels * height * width
   const int input_features = channels * pool_height * pool_width;  // 64 * 4 * 4 = 1024
-  const int out_features = appdata.u_linear_w.d1();                // Expected: 10
-
-  // We need to create a temporary buffer for the flattened input
-  // The pool3 output is (batch_size, channels, pool_height, pool_width)
-  // We need to flatten it to (batch_size, channels*pool_height*pool_width)
+  const int out_features = appdata.u_linear_w.d0();                // Expected: 10
 
   // Since the linear_batch_u function expects a flattened input, we need to ensure
   // that the data is correctly laid out. The pool3_out is already in the right layout,

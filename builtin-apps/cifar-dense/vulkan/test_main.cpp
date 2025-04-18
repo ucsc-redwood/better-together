@@ -12,7 +12,7 @@ TEST(AppdataTest, Initialization) {
   cifar_dense::AppData appdata(disp.get_mr());
 
   EXPECT_EQ(appdata.u_conv1_w.d0(), 16);
-  EXPECT_EQ(appdata.u_linear_w.d1(), 10);
+  EXPECT_EQ(appdata.u_linear_w.d0(), 10);
 }
 
 // ----------------------------------------------------------------------------
