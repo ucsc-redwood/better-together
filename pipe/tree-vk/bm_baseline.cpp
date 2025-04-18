@@ -9,6 +9,9 @@
 // Baseline: OMP
 // ----------------------------------------------------------------------------
 
+using DispatcherT = tree::vulkan::VulkanDispatcher;
+using AppDataT = tree::vulkan::VkAppData_Safe;
+
 static void BM_baseline_omp(benchmark::State& state) {
   int n_threads = state.range(0);
 
@@ -17,8 +20,8 @@ static void BM_baseline_omp(benchmark::State& state) {
     return;
   }
 
-  tree::vulkan::VulkanDispatcher disp;
-  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+  DispatcherT disp;
+  AppDataT appdata(disp.get_mr());
 
   // Warm up
   tree::omp::run_stage_1(appdata);
@@ -44,15 +47,15 @@ BENCHMARK(BM_baseline_omp)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 static void BM_baseline_vulkan(benchmark::State& state) {
-  tree::vulkan::VulkanDispatcher disp;
-  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+  DispatcherT disp;
+  AppDataT appdata(disp.get_mr());
 
   // Warm up
-  disp.dispatch_multi_stage(appdata, 1, 7);
+  disp.dispatch_multi_stage(appdata, 1, 9);
 
   // Benchmark
   for (auto _ : state) {
-    disp.dispatch_multi_stage(appdata, 1, 7);
+    disp.dispatch_multi_stage(appdata, 1, 9);
   }
 }
 
@@ -63,12 +66,12 @@ BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-baseline-cifar-sparse-vk -l off
+// xmake r bm-baseline-tree-vk -l off
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
+  spdlog::set_level(spdlog::level::off);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
