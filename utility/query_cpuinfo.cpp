@@ -68,6 +68,15 @@ std::string getCPUFeatures() {
   return "Unknown";
 }
 
+static inline uint64_t get_counter_frequency() {
+  std::ifstream file("/sys/devices/system/cpu/cpu0/tsc_freq_khz");
+  uint64_t khz;
+  if (file >> khz) {
+    return khz * 1000;  // convert to Hz
+  }
+  return 0;  // fallback if not available
+}
+
 int main() {
   std::cout << "Android CPU Information:\n";
   std::cout << "-------------------------\n";
@@ -81,6 +90,8 @@ int main() {
   for (size_t i = 0; i < frequencies.size(); ++i) {
     std::cout << "  Core " << i << ": " << frequencies[i] << "\n";
   }
+
+  std::cout << "[NEW] CPU Frequency: " << get_counter_frequency() << " Hz\n";
 
   return 0;
 }
