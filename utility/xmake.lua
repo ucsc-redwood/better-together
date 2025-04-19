@@ -42,8 +42,6 @@ rule_end()
 -- Utility Target: Find the current GPU's Warp Size
 -- ----------------------------------------------------------------
 if has_config("use_vulkan") then
-	add_requires("volk")
-
 	target("query-warpsize")
 	do
 		add_rules("utility_config", "vulkan_config", "run_on_android")
