@@ -201,25 +201,25 @@ TEST_F(RadixSortTest, LittleCoresSorting) {
   }
 
   const size_t size = 10000;
-  
+
   std::cout << "Testing with little cores (" << g_little_cores.size() << " cores)" << std::endl;
-  
+
   // Test with different thread counts up to the number of available little cores
   for (size_t threads = 1; threads <= g_little_cores.size(); ++threads) {
     auto input = GenerateData(size, Distribution::RANDOM);
     std::vector<uint32_t> output(size);
-    
+
     // Use only the first 'threads' little cores
     std::vector<int> cores_to_use(g_little_cores.begin(), g_little_cores.begin() + threads);
-    
+
     std::cout << "  Using " << threads << " little cores: ";
     for (auto core : cores_to_use) {
       std::cout << core << " ";
     }
     std::cout << std::endl;
-    
+
     dispatch_radix_sort(input, output, threads, cores_to_use);
-    
+
     VerifySortCorrectness(input, output, threads);
   }
 }
@@ -232,25 +232,25 @@ TEST_F(RadixSortTest, MediumCoresSorting) {
   }
 
   const size_t size = 10000;
-  
+
   std::cout << "Testing with medium cores (" << g_medium_cores.size() << " cores)" << std::endl;
-  
+
   // Test with different thread counts up to the number of available medium cores
   for (size_t threads = 1; threads <= g_medium_cores.size(); ++threads) {
     auto input = GenerateData(size, Distribution::RANDOM);
     std::vector<uint32_t> output(size);
-    
+
     // Use only the first 'threads' medium cores
     std::vector<int> cores_to_use(g_medium_cores.begin(), g_medium_cores.begin() + threads);
-    
+
     std::cout << "  Using " << threads << " medium cores: ";
     for (auto core : cores_to_use) {
       std::cout << core << " ";
     }
     std::cout << std::endl;
-    
+
     dispatch_radix_sort(input, output, threads, cores_to_use);
-    
+
     VerifySortCorrectness(input, output, threads);
   }
 }
@@ -263,35 +263,35 @@ TEST_F(RadixSortTest, BigCoresSorting) {
   }
 
   const size_t size = 10000;
-  
+
   std::cout << "Testing with big cores (" << g_big_cores.size() << " cores)" << std::endl;
-  
+
   // Test with different thread counts up to the number of available big cores
   for (size_t threads = 1; threads <= g_big_cores.size(); ++threads) {
     auto input = GenerateData(size, Distribution::RANDOM);
     std::vector<uint32_t> output(size);
-    
+
     // Use only the first 'threads' big cores
     std::vector<int> cores_to_use(g_big_cores.begin(), g_big_cores.begin() + threads);
-    
+
     std::cout << "  Using " << threads << " big cores: ";
     for (auto core : cores_to_use) {
       std::cout << core << " ";
     }
     std::cout << std::endl;
-    
+
     dispatch_radix_sort(input, output, threads, cores_to_use);
-    
+
     VerifySortCorrectness(input, output, threads);
   }
 }
 
 TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
-  // Skip in debug mode or if any core type is not available
-  #ifndef NDEBUG
-    GTEST_SKIP() << "Skipping performance test in debug mode";
-  #endif
-  
+// Skip in debug mode or if any core type is not available
+#ifndef NDEBUG
+  GTEST_SKIP() << "Skipping performance test in debug mode";
+#endif
+
   bool skip_test = false;
   if (g_little_cores.empty()) {
     std::cout << "Little cores not available - skipping some comparisons" << std::endl;
@@ -305,7 +305,7 @@ TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
     std::cout << "Big cores not available - skipping some comparisons" << std::endl;
     skip_test = true;
   }
-  
+
   if (skip_test && g_little_cores.empty() && g_medium_cores.empty() && g_big_cores.empty()) {
     GTEST_SKIP() << "No core types available for testing";
     return;
@@ -313,110 +313,297 @@ TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
 
   const size_t size = 100000;  // 100K elements for timing
   auto input = GenerateData(size, Distribution::RANDOM);
-  
+
   std::cout << "Core type performance comparison with " << size << " elements:" << std::endl;
-  
+
   // Test each core type with a single thread
   std::map<std::string, double> times;
-  
+
   if (!g_little_cores.empty()) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
     std::vector<int> cores = {g_little_cores[0]};
-    
+
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    
+
     times["Little"] = elapsed.count();
     std::cout << "  Little core (ID " << cores[0] << "): " << elapsed.count() << " ms" << std::endl;
-    
+
     VerifySortCorrectness(input, output, 1);
   }
-  
+
   if (!g_medium_cores.empty()) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
     std::vector<int> cores = {g_medium_cores[0]};
-    
+
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    
+
     times["Medium"] = elapsed.count();
     std::cout << "  Medium core (ID " << cores[0] << "): " << elapsed.count() << " ms" << std::endl;
-    
+
     VerifySortCorrectness(input, output, 1);
   }
-  
+
   if (!g_big_cores.empty()) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
     std::vector<int> cores = {g_big_cores[0]};
-    
+
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    
+
     times["Big"] = elapsed.count();
     std::cout << "  Big core (ID " << cores[0] << "): " << elapsed.count() << " ms" << std::endl;
-    
+
     VerifySortCorrectness(input, output, 1);
   }
-  
+
   // Compare performance across core types
   if (times.size() > 1) {
     std::cout << "Relative performance:" << std::endl;
-    
+
     // Find the slowest core type as baseline
-    auto slowest = std::max_element(times.begin(), times.end(),
-                                   [](const auto& a, const auto& b) { return a.second < b.second; });
-    
+    auto slowest = std::max_element(times.begin(), times.end(), [](const auto& a, const auto& b) {
+      return a.second < b.second;
+    });
+
     for (const auto& [type, time] : times) {
       if (time > 0) {
-        std::cout << "  " << type << " vs " << slowest->first << ": " 
-                  << slowest->second / time << "x faster" << std::endl;
+        std::cout << "  " << type << " vs " << slowest->first << ": " << slowest->second / time
+                  << "x faster" << std::endl;
       }
     }
   }
 }
 
+// Test scaling of speedup within each core type
+TEST_F(RadixSortTest, LittleCoresScaling) {
+// Skip in debug mode or if no little cores available
+#ifndef NDEBUG
+  GTEST_SKIP() << "Skipping performance test in debug mode";
+#endif
+
+  if (g_little_cores.empty()) {
+    GTEST_SKIP() << "No little cores available on this device";
+    return;
+  }
+
+  const size_t size = 100000;  // 100K elements for timing
+  auto input = GenerateData(size, Distribution::RANDOM);
+
+  std::vector<double> times;
+
+  std::cout << "Little cores scaling with " << size << " elements:" << std::endl;
+
+  // First test with single core as baseline
+  {
+    std::vector<uint32_t> output(size);
+    std::vector<uint32_t> input_copy = input;
+    std::vector<int> cores = {g_little_cores[0]};
+
+    auto start = std::chrono::high_resolution_clock::now();
+    dispatch_radix_sort(input_copy, output, 1, cores);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    times.push_back(elapsed.count());
+    std::cout << "  1 little core (ID " << cores[0] << "): " << elapsed.count() << " ms"
+              << std::endl;
+
+    VerifySortCorrectness(input, output, 1);
+  }
+
+  // Now test with increasing number of cores
+  for (size_t num_cores = 2; num_cores <= g_little_cores.size(); ++num_cores) {
+    std::vector<uint32_t> output(size);
+    std::vector<uint32_t> input_copy = input;
+    std::vector<int> cores(g_little_cores.begin(), g_little_cores.begin() + num_cores);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    dispatch_radix_sort(input_copy, output, num_cores, cores);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    times.push_back(elapsed.count());
+    std::cout << "  " << num_cores << " little cores: " << elapsed.count() << " ms" << std::endl;
+
+    VerifySortCorrectness(input, output, num_cores);
+  }
+
+  // Report speedup
+  if (!times.empty() && times[0] > 0) {
+    std::cout << "Speedup relative to single little core:" << std::endl;
+    for (size_t i = 0; i < times.size(); ++i) {
+      std::cout << "  " << (i + 1) << " little cores: " << times[0] / times[i] << "x" << std::endl;
+    }
+  }
+}
+
+TEST_F(RadixSortTest, MediumCoresScaling) {
+// Skip in debug mode or if no medium cores available
+#ifndef NDEBUG
+  GTEST_SKIP() << "Skipping performance test in debug mode";
+#endif
+
+  if (g_medium_cores.empty()) {
+    GTEST_SKIP() << "No medium cores available on this device";
+    return;
+  }
+
+  const size_t size = 100000;  // 100K elements for timing
+  auto input = GenerateData(size, Distribution::RANDOM);
+
+  std::vector<double> times;
+
+  std::cout << "Medium cores scaling with " << size << " elements:" << std::endl;
+
+  // First test with single core as baseline
+  {
+    std::vector<uint32_t> output(size);
+    std::vector<uint32_t> input_copy = input;
+    std::vector<int> cores = {g_medium_cores[0]};
+
+    auto start = std::chrono::high_resolution_clock::now();
+    dispatch_radix_sort(input_copy, output, 1, cores);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    times.push_back(elapsed.count());
+    std::cout << "  1 medium core (ID " << cores[0] << "): " << elapsed.count() << " ms"
+              << std::endl;
+
+    VerifySortCorrectness(input, output, 1);
+  }
+
+  // Now test with increasing number of cores
+  for (size_t num_cores = 2; num_cores <= g_medium_cores.size(); ++num_cores) {
+    std::vector<uint32_t> output(size);
+    std::vector<uint32_t> input_copy = input;
+    std::vector<int> cores(g_medium_cores.begin(), g_medium_cores.begin() + num_cores);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    dispatch_radix_sort(input_copy, output, num_cores, cores);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    times.push_back(elapsed.count());
+    std::cout << "  " << num_cores << " medium cores: " << elapsed.count() << " ms" << std::endl;
+
+    VerifySortCorrectness(input, output, num_cores);
+  }
+
+  // Report speedup
+  if (!times.empty() && times[0] > 0) {
+    std::cout << "Speedup relative to single medium core:" << std::endl;
+    for (size_t i = 0; i < times.size(); ++i) {
+      std::cout << "  " << (i + 1) << " medium cores: " << times[0] / times[i] << "x" << std::endl;
+    }
+  }
+}
+
+TEST_F(RadixSortTest, BigCoresScaling) {
+// Skip in debug mode or if no big cores available
+#ifndef NDEBUG
+  GTEST_SKIP() << "Skipping performance test in debug mode";
+#endif
+
+  if (g_big_cores.empty()) {
+    GTEST_SKIP() << "No big cores available on this device";
+    return;
+  }
+
+  const size_t size = 100000;  // 100K elements for timing
+  auto input = GenerateData(size, Distribution::RANDOM);
+
+  std::vector<double> times;
+
+  std::cout << "Big cores scaling with " << size << " elements:" << std::endl;
+
+  // First test with single core as baseline
+  {
+    std::vector<uint32_t> output(size);
+    std::vector<uint32_t> input_copy = input;
+    std::vector<int> cores = {g_big_cores[0]};
+
+    auto start = std::chrono::high_resolution_clock::now();
+    dispatch_radix_sort(input_copy, output, 1, cores);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    times.push_back(elapsed.count());
+    std::cout << "  1 big core (ID " << cores[0] << "): " << elapsed.count() << " ms" << std::endl;
+
+    VerifySortCorrectness(input, output, 1);
+  }
+
+  // Now test with increasing number of cores
+  for (size_t num_cores = 2; num_cores <= g_big_cores.size(); ++num_cores) {
+    std::vector<uint32_t> output(size);
+    std::vector<uint32_t> input_copy = input;
+    std::vector<int> cores(g_big_cores.begin(), g_big_cores.begin() + num_cores);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    dispatch_radix_sort(input_copy, output, num_cores, cores);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+
+    times.push_back(elapsed.count());
+    std::cout << "  " << num_cores << " big cores: " << elapsed.count() << " ms" << std::endl;
+
+    VerifySortCorrectness(input, output, num_cores);
+  }
+
+  // Report speedup
+  if (!times.empty() && times[0] > 0) {
+    std::cout << "Speedup relative to single big core:" << std::endl;
+    for (size_t i = 0; i < times.size(); ++i) {
+      std::cout << "  " << (i + 1) << " big cores: " << times[0] / times[i] << "x" << std::endl;
+    }
+  }
+}
+
 TEST_F(RadixSortTest, PerformanceScaling) {
-  // Skip in debug mode or CI environments
-  #ifndef NDEBUG
-    GTEST_SKIP() << "Skipping performance test in debug mode";
-  #endif
+// Skip in debug mode or CI environments
+#ifndef NDEBUG
+  GTEST_SKIP() << "Skipping performance test in debug mode";
+#endif
 
   const size_t size = 1000000;  // 1M elements
   auto input = GenerateData(size, Distribution::RANDOM);
-  
+
   std::vector<int> thread_counts = {1, 2, 4, 8, 16};
   std::vector<double> times;
-  
+
   std::cout << "Performance scaling test with " << size << " elements:" << std::endl;
-  
+
   for (int threads : thread_counts) {
     if (threads > max_threads_) continue;
-    
+
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;  // Create a copy to preserve original data
-    
+
     auto start = std::chrono::high_resolution_clock::now();
-    
+
     dispatch_radix_sort(input_copy, output, threads);
-    
+
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed = end - start;
-    
+
     std::cout << "  " << threads << " threads: " << elapsed.count() << " ms" << std::endl;
     times.push_back(elapsed.count());
-    
+
     VerifySortCorrectness(input, output, threads);
   }
-  
+
   // Report speedup
   if (!times.empty() && times[0] > 0) {
     std::cout << "Speedup relative to single thread:" << std::endl;
@@ -428,39 +615,39 @@ TEST_F(RadixSortTest, PerformanceScaling) {
 }
 
 TEST_F(RadixSortTest, CompareWithStdSort) {
-  // Skip in debug mode or CI environments
-  #ifndef NDEBUG
-    GTEST_SKIP() << "Skipping performance comparison test in debug mode";
-  #endif
+// Skip in debug mode or CI environments
+#ifndef NDEBUG
+  GTEST_SKIP() << "Skipping performance comparison test in debug mode";
+#endif
 
   const std::vector<size_t> sizes = {10000, 100000, 1000000};
-  
+
   std::cout << "Performance comparison with std::sort:" << std::endl;
-  
+
   for (size_t size : sizes) {
     auto input = GenerateData(size, Distribution::RANDOM);
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> std_sorted = input;
-    
+
     // Measure std::sort time
     auto start_std = std::chrono::high_resolution_clock::now();
     std::sort(std_sorted.begin(), std_sorted.end());
     auto end_std = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed_std = end_std - start_std;
-    
+
     // Measure parallel radix sort with max threads
     int threads = std::min(16, max_threads_);
     auto start_radix = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input, output, threads);
     auto end_radix = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> elapsed_radix = end_radix - start_radix;
-    
+
     std::cout << "Size " << size << ":" << std::endl;
     std::cout << "  std::sort: " << elapsed_std.count() << " ms" << std::endl;
     std::cout << "  radix_sort (" << threads << " threads): " << elapsed_radix.count() << " ms"
               << std::endl;
     std::cout << "  Speedup: " << elapsed_std.count() / elapsed_radix.count() << "x" << std::endl;
-    
+
     // Verify correctness
     ASSERT_EQ(std_sorted, output) << "Radix sort result differs from std::sort";
   }
@@ -478,18 +665,18 @@ TEST_F(RadixSortTest, EdgeValues) {
       0xFFFF0000,      // Upper half all ones
       0x0000FFFF       // Lower half all ones
   };
-  
+
   // Test with different thread counts
   for (int threads : {1, 2, 4}) {
     if (threads > max_threads_) continue;
-    
+
     // Create shuffled input with edge cases
     std::vector<uint32_t> input = edge_cases;
     std::shuffle(input.begin(), input.end(), rng_);
-    
+
     std::vector<uint32_t> output(input.size());
     dispatch_radix_sort(input, output, threads);
-    
+
     VerifySortCorrectness(input, output, threads);
   }
 }
@@ -501,14 +688,14 @@ TEST_F(RadixSortTest, HeterogeneousCoreCombinations) {
     GTEST_SKIP() << "No cores available for testing";
     return;
   }
-  
+
   const size_t size = 10000;
   auto input = GenerateData(size, Distribution::RANDOM);
   std::vector<uint32_t> output(size);
-  
+
   // Combine cores of different types
   std::vector<int> mixed_cores;
-  
+
   // Add cores from each available type
   if (!g_little_cores.empty()) {
     mixed_cores.push_back(g_little_cores[0]);
@@ -519,21 +706,21 @@ TEST_F(RadixSortTest, HeterogeneousCoreCombinations) {
   if (!g_big_cores.empty()) {
     mixed_cores.push_back(g_big_cores[0]);
   }
-  
+
   if (mixed_cores.size() < 2) {
     GTEST_SKIP() << "Not enough different core types for heterogeneous testing";
     return;
   }
-  
+
   std::cout << "Testing with heterogeneous core combination: ";
   for (auto core : mixed_cores) {
     std::cout << core << " ";
   }
   std::cout << std::endl;
-  
+
   // Test with the mixed core set
   dispatch_radix_sort(input, output, mixed_cores.size(), mixed_cores);
-  
+
   VerifySortCorrectness(input, output, mixed_cores.size());
 }
 
