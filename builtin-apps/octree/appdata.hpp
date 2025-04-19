@@ -19,7 +19,7 @@ constexpr auto kDefaultInputSize = 1366 * 768;
 // constexpr auto kDefaultInputSize = 640 * 480;
 constexpr auto kMinCoord = 0.0;
 constexpr auto kMaxCoord = 1024.0;
-constexpr auto kFraction = 0.5f;
+constexpr auto kFraction = 1.0f;
 
 struct AppData {
   explicit AppData(std::pmr::memory_resource* mr, const size_t n_input = kDefaultInputSize)
@@ -30,14 +30,14 @@ struct AppData {
         u_positions(n_input, mr),
         u_morton_codes_alt(n_input, mr),
         u_morton_codes(n_input, mr),
-        u_parents(reserved_n, mr),
-        u_left_child(reserved_n, mr),
-        u_has_leaf_left(reserved_n, mr),
-        u_has_leaf_right(reserved_n, mr),
-        u_prefix_length(reserved_n, mr),
-        u_edge_count(reserved_n, mr),
-        u_offsets(reserved_n, mr),
-        u_children(8 * reserved_n, mr) {
+        u_parents(n_input, mr),
+        u_left_child(n_input, mr),
+        u_has_leaf_left(n_input, mr),
+        u_has_leaf_right(n_input, mr),
+        u_prefix_length(n_input, mr),
+        u_edge_count(n_input, mr),
+        u_offsets(n_input, mr),
+        u_children(8 * n_input, mr) {
     // generate random positions
     static std::mt19937 gen(114514);
     static std::uniform_real_distribution dis(kMinCoord, kMaxCoord);
