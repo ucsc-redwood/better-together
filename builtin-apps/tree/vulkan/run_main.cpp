@@ -1,19 +1,15 @@
 #include <queue>
 
+#include "../../pipeline/task.hpp"
 #include "../omp/dispatchers.hpp"
 #include "builtin-apps/app.hpp"
 #include "dispatchers.hpp"
 #include "spdlog/spdlog.h"
 
-struct Task {
-  uint32_t uid;
-  tree::vulkan::VkAppData_Safe appdata;
+using MyTask = Task<tree::vulkan::VkAppData_Safe>;
+using MyTaskPtr = std::shared_ptr<MyTask>;
 
-  explicit Task(uint32_t uid, kiss_vk::VulkanMemoryResource::memory_resource* mr)
-      : uid(uid), appdata(mr) {}
-};
-
-void process(std::queue<std::shared_ptr<Task>>& queue, tree::vulkan::VulkanDispatcher& disp) {
+void process(std::queue<MyTaskPtr>& queue, tree::vulkan::VulkanDispatcher& disp) {
   while (!queue.empty()) {
     auto task = queue.front();
     queue.pop();
@@ -21,7 +17,7 @@ void process(std::queue<std::shared_ptr<Task>>& queue, tree::vulkan::VulkanDispa
     spdlog::info("Dispatching task {}", task->uid);
 
     // disp.dispatch_multi_stage(task->appdata, 1, 7);
-    tree::omp::dispatch_multi_stage(BIG_CORES, task->appdata, 1, 1);
+    tree::omp::dispatch_multi_stage(BIG_CORES, task->appdata, 1, 7);
   }
 }
 
@@ -34,13 +30,13 @@ int main(int argc, char** argv) {
 
   constexpr auto n_tasks = 8;
 
-  std::vector<std::shared_ptr<Task>> tasks;
+  std::vector<MyTaskPtr> tasks;
   tasks.reserve(n_tasks);
   for (size_t i = 0; i < n_tasks; i++) {
-    tasks.push_back(std::make_shared<Task>(i, disp.get_mr()));
+    tasks.push_back(std::make_shared<MyTask>(disp.get_mr()));
   }
 
-  std::queue<std::shared_ptr<Task>> queue;
+  std::queue<MyTaskPtr> queue;
   for (auto& task : tasks) {
     queue.push(task);
   }
