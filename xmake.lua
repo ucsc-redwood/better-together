@@ -115,6 +115,13 @@ rule("vulkan_config")
 	end)
 rule_end()
 
+if has_config("use_vulkan") then
+	add_requires("vulkan-headers")
+	add_requires("vulkan-hpp")
+	add_requires("vulkan-memory-allocator")
+	add_requires("volk")
+end
+
 -- ----------------------------------------------------------------
 -- Android configuration
 -- ----------------------------------------------------------------

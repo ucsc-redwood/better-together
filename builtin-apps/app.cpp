@@ -7,14 +7,15 @@ size_t get_vulkan_warp_size() {
 
   // Map of device IDs to their corresponding warp sizes
   static const std::unordered_map<std::string, size_t> device_warp_sizes = {
-      {"3A021JEHN02756", 16},
-      {"9b034f1b", 64},
+      {"3A021JEHN02756", 16},  // Mali-G710
+      {"9b034f1b", 64},        // Adreno (TM) 740
+      {"R9TR30814KJ", 64},     // Adreno (TM) 610
       {"ce0717178d7758b00b7e", 32},
-      {"minipc", 64},
+      {"minipc", 64},  // AMD Radeon 780M
       {"pc", 32},
-      {"jetson", 32},
-      {"jetsonlowpower", 32},
-      {"R9TR30814KJ", 64}};
+      {"jetson", 32},          // NVIDIA Tegra Orin (nvgpu)
+      {"jetsonlowpower", 32},  // NVIDIA Tegra Orin (nvgpu)
+  };
 
   auto it = device_warp_sizes.find(g_device_id);
   if (it != device_warp_sizes.end()) {
