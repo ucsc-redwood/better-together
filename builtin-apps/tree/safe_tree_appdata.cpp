@@ -227,6 +227,46 @@ SafeAppData::SafeAppData(std::pmr::memory_resource* mr)
     throw std::runtime_error(
         "Tree data not initialized. Call HostTreeManager::getInstance().initialize() first.");
   }
+
+  size_t total_memory = 0;
+  
+  // Calculate memory for each vector
+  total_memory += u_input_points_s0.size() * sizeof(glm::vec4);
+  total_memory += u_morton_keys_s1.size() * sizeof(uint32_t);
+  total_memory += u_morton_keys_s1_out.size() * sizeof(uint32_t);
+  total_memory += u_morton_keys_sorted_s2.size() * sizeof(uint32_t);
+  total_memory += u_morton_keys_sorted_s2_out.size() * sizeof(uint32_t);
+  total_memory += u_morton_keys_unique_s3.size() * sizeof(uint32_t);
+  total_memory += u_morton_keys_unique_s3_out.size() * sizeof(uint32_t);
+  total_memory += u_num_selected_out.size() * sizeof(uint32_t);
+  total_memory += u_brt_prefix_n_s4.size() * sizeof(uint8_t);
+  total_memory += u_brt_has_leaf_left_s4.size() * sizeof(uint8_t);
+  total_memory += u_brt_has_leaf_right_s4.size() * sizeof(uint8_t);
+  total_memory += u_brt_left_child_s4.size() * sizeof(int32_t);
+  total_memory += u_brt_parents_s4.size() * sizeof(int32_t);
+  total_memory += u_brt_prefix_n_s4_out.size() * sizeof(uint8_t);
+  total_memory += u_brt_has_leaf_left_s4_out.size() * sizeof(uint8_t);
+  total_memory += u_brt_has_leaf_right_s4_out.size() * sizeof(uint8_t);
+  total_memory += u_brt_left_child_s4_out.size() * sizeof(int32_t);
+  total_memory += u_brt_parents_s4_out.size() * sizeof(int32_t);
+  total_memory += u_edge_count_s5.size() * sizeof(int32_t);
+  total_memory += u_edge_count_s5_out.size() * sizeof(int32_t);
+  total_memory += u_edge_offset_s6.size() * sizeof(int32_t);
+  total_memory += u_edge_offset_s6_out.size() * sizeof(int32_t);
+  total_memory += u_oct_children_s7.size() * sizeof(uint32_t);
+  total_memory += u_oct_corner_s7.size() * sizeof(glm::vec4);
+  total_memory += u_oct_cell_size_s7.size() * sizeof(float);
+  total_memory += u_oct_child_node_mask_s7.size() * sizeof(uint8_t);
+  total_memory += u_oct_child_leaf_mask_s7.size() * sizeof(uint8_t);
+  total_memory += u_oct_children_s7_out.size() * sizeof(uint32_t);
+  total_memory += u_oct_corner_s7_out.size() * sizeof(glm::vec4);
+  total_memory += u_oct_cell_size_s7_out.size() * sizeof(float);
+  total_memory += u_oct_child_node_mask_s7_out.size() * sizeof(uint8_t);
+  total_memory += u_oct_child_leaf_mask_s7_out.size() * sizeof(uint8_t);
+
+  spdlog::info("Total memory used: {} bytes ({} MB)", 
+               total_memory, 
+               total_memory / (1024.0f * 1024.0f));
 }
 
 }  // namespace tree

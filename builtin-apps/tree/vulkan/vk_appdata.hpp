@@ -11,7 +11,11 @@ struct VkAppData_Safe final : public tree::SafeAppData {
         u_contributes(n_input, vk_mr),
         u_out_idx(n_input, vk_mr),
         u_sums(n_input, vk_mr),
-        u_prefix_sums(n_input, vk_mr) {}
+        u_prefix_sums(n_input, vk_mr) {
+    spdlog::trace("VkAppData_Safe constructor, address: {}", (void*)this);
+  }
+
+  ~VkAppData_Safe() { spdlog::trace("VkAppData_Safe destructor, address: {}", (void*)this); }
 
   // --------------------------------------------------------------------------
   // intergrated tmp storage
