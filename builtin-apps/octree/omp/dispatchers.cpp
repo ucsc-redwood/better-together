@@ -30,41 +30,22 @@ void run_stage_1(AppData &app) {
 void run_stage_2(AppData &app) {
   LOG_KERNEL(LogKernelType::kOMP, 2, &app);
 
-  // // –– 1) Static workspace (un‑sized on declaration) ––//
-  // static std::vector<size_t> local_hist;
-  // static std::vector<size_t> local_offset;
-  // static std::vector<size_t> global_hist;
-  // static std::vector<size_t> prefix;
-
-  // // –– 2) One‑time allocation & sizing ––//
-  // //      We only ever allocate when sizes change.
-
-  // const auto num_threads = omp_get_num_threads();
-  // static int last_threads = 0;
-  // if (last_threads != num_threads) {
-  //   last_threads = num_threads;
-  //   local_hist.assign(num_threads * RADIX, 0);
-  //   local_offset.assign(num_threads * RADIX, 0);
-  //   global_hist.assign(RADIX, 0);
-  //   prefix.assign(RADIX, 0);
-  // } else {
-  //   // –– 3) Zero out existing buffers before EACH call ––//
-  //   std::ranges::fill(local_hist, 0);
-  //   std::ranges::fill(local_offset, 0);
-  //   std::ranges::fill(global_hist, 0);
-  //   std::ranges::fill(prefix, 0);
-  // }
-
-  std::vector<size_t> local_hist;
-  std::vector<size_t> local_offset;
-  std::vector<size_t> global_hist;
-  std::vector<size_t> prefix;
+  // Get the number of threads in the current parallel region
+  const int num_threads = omp_get_num_threads();
+  
+  // Properly size the workspace vectors
+  std::vector<size_t> local_hist(num_threads * RADIX, 0);
+  std::vector<size_t> local_offset(num_threads * RADIX, 0);
+  std::vector<size_t> global_hist(RADIX, 0);
+  std::vector<size_t> prefix(RADIX, 0);
 
   std::vector<uint32_t> buffer_in(app.n);
   std::vector<uint32_t> buffer_out(app.n);
 
+  // Copy the input data
   std::ranges::copy(app.u_morton_codes_alt, buffer_in.begin());
 
+  // Perform the sort
   radix_sort_in_parallel(buffer_in.data(),
                          buffer_out.data(),
                          app.n,
@@ -72,6 +53,9 @@ void run_stage_2(AppData &app) {
                          local_offset.data(),
                          global_hist.data(),
                          prefix.data());
+  
+  // Copy sorted result back to app data
+  std::ranges::copy(buffer_out, app.u_morton_codes.begin());
 
 #pragma omp barrier
 }
