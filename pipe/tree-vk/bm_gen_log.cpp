@@ -3,33 +3,22 @@
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/config_reader.hpp"
 #include "builtin-apps/curl_json.hpp"
-#include "builtin-apps/pipeline/spsc_queue.hpp"
-#include "builtin-apps/pipeline/task.hpp"
 #include "builtin-apps/pipeline/worker.hpp"
-#include "builtin-apps/tree/omp/dispatchers.hpp"
-#include "builtin-apps/tree/vulkan/dispatchers.hpp"
-
-using DispatcherT = tree::vulkan::VulkanDispatcher;
-using AppDataT = tree::vulkan::VkAppData_Safe;
-using MyTask = Task<AppDataT>;
+#include "const.hpp"
 
 // ----------------------------------------------------------------------------
 // Schedule Auto
 // ----------------------------------------------------------------------------
-
-constexpr size_t kPoolSize = 32;
-
-using QueueT = SPSCQueue<MyTask*, kPoolSize>;
 
 static void BM_pipe_warmup(const Schedule schedule) {
   auto n_chunks = schedule.n_chunks();
 
   // Initialize the dispatcher and queues
   DispatcherT disp;
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  std::vector<std::unique_ptr<TaskT>> preallocated_tasks;
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
+    preallocated_tasks.emplace_back(std::make_unique<TaskT>(disp.get_mr()));
     queues[0].enqueue(preallocated_tasks.back().get());
   }
 
@@ -47,17 +36,17 @@ static void BM_pipe_warmup(const Schedule schedule) {
       const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
 
       if (pt == ProcessorType::kVulkan) {
-        threads.emplace_back(worker_thread<MyTask, kPoolSize>,
+        threads.emplace_back(worker_thread<TaskT, kPoolSize, kNumToProcess>,
                              std::ref(q_in),
                              std::ref(q_out),
-                             [disp = &disp, start, end](MyTask& task) {
+                             [disp = &disp, start, end](TaskT& task) {
                                disp->dispatch_multi_stage(task.appdata, start, end);
                              });
       } else {
-        threads.emplace_back(worker_thread<MyTask, kPoolSize>,
+        threads.emplace_back(worker_thread<TaskT, kPoolSize, kNumToProcess>,
                              std::ref(q_in),
                              std::ref(q_out),
-                             [pt, start, end](MyTask& task) {
+                             [pt, start, end](TaskT& task) {
                                const auto cores = get_cores_by_type(pt);
                                tree::omp::dispatch_multi_stage(
                                    cores, cores.size(), task.appdata, start, end);
@@ -76,10 +65,10 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
 
   // Initialize the dispatcher and queues
   DispatcherT disp;
-  std::vector<std::unique_ptr<MyTask>> preallocated_tasks;
+  std::vector<std::unique_ptr<TaskT>> preallocated_tasks;
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
-    preallocated_tasks.emplace_back(std::make_unique<MyTask>(disp.get_mr()));
+    preallocated_tasks.emplace_back(std::make_unique<TaskT>(disp.get_mr()));
     queues[0].enqueue(preallocated_tasks.back().get());
   }
 
@@ -99,21 +88,21 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
       const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
 
       if (pt == ProcessorType::kVulkan) {
-        threads.emplace_back(worker_thread_record<MyTask, kPoolSize>,
+        threads.emplace_back(worker_thread_record<TaskT, kPoolSize, kNumToProcess>,
                              i,
                              std::ref(logger),
                              std::ref(q_in),
                              std::ref(q_out),
-                             [disp = &disp, start, end](MyTask& task) {
+                             [disp = &disp, start, end](TaskT& task) {
                                disp->dispatch_multi_stage(task.appdata, start, end);
                              });
       } else {
-        threads.emplace_back(worker_thread_record<MyTask, kPoolSize>,
+        threads.emplace_back(worker_thread_record<TaskT, kPoolSize, kNumToProcess>,
                              i,
                              std::ref(logger),
                              std::ref(q_in),
                              std::ref(q_out),
-                             [pt, start, end](MyTask& task) {
+                             [pt, start, end](TaskT& task) {
                                const auto cores = get_cores_by_type(pt);
                                tree::omp::dispatch_multi_stage(
                                    cores, cores.size(), task.appdata, start, end);
