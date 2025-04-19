@@ -29,6 +29,7 @@ target("test-sort-omp")
 do
 	add_rules("common_flags", "run_on_android")
 	set_kind("binary")
+	set_group("test")
 	add_files({
 		"./test_sort.cpp",
 	})
@@ -42,6 +43,7 @@ end
 target("test-octree-omp")
 do
 	add_rules("common_flags", "run_on_android")
+	set_group("test")
 	set_group("test")
 	set_kind("binary")
 	add_files({
