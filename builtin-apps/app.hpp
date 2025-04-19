@@ -49,27 +49,27 @@ static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type)
   auto& registry = GlobalDeviceRegistry();                                                \
   try {                                                                                   \
     const Device& device = registry.getDevice(g_device_id);                               \
-    auto littleCores = device.getCores(ProcessorType::kLittleCore);                       \
-    auto mediumCores = device.getCores(ProcessorType::kMediumCore);                       \
-    auto bigCores = device.getCores(ProcessorType::kBigCore);                             \
+    auto littleCores = device.getPinnableCores(ProcessorType::kLittleCore);               \
+    auto mediumCores = device.getPinnableCores(ProcessorType::kMediumCore);               \
+    auto bigCores = device.getPinnableCores(ProcessorType::kBigCore);                     \
     std::string little_cores_str;                                                         \
     for (const auto& core : littleCores) {                                                \
       little_cores_str += std::to_string(core.id) + " ";                                  \
       g_little_cores.push_back(core.id);                                                  \
     }                                                                                     \
-    spdlog::info("Little cores: {}", little_cores_str);                                   \
+    spdlog::info("Pinable Lit cores: {}", little_cores_str);                              \
     std::string medium_cores_str;                                                         \
     for (const auto& core : mediumCores) {                                                \
       medium_cores_str += std::to_string(core.id) + " ";                                  \
       g_medium_cores.push_back(core.id);                                                  \
     }                                                                                     \
-    spdlog::info("Medium cores: {}", medium_cores_str);                                   \
+    spdlog::info("Pinable Med cores: {}", medium_cores_str);                              \
     std::string big_cores_str;                                                            \
     for (const auto& core : bigCores) {                                                   \
       big_cores_str += std::to_string(core.id) + " ";                                     \
       g_big_cores.push_back(core.id);                                                     \
     }                                                                                     \
-    spdlog::info("Big cores: {}", big_cores_str);                                         \
+    spdlog::info("Pinable Big cores: {}", big_cores_str);                                 \
   } catch (const std::exception& e) {                                                     \
     std::cerr << e.what() << std::endl;                                                   \
     return 1;                                                                             \
