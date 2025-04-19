@@ -51,9 +51,9 @@ static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type)
   auto& registry = GlobalDeviceRegistry();                                                \
   try {                                                                                   \
     const Device& device = registry.getDevice(g_device_id);                               \
-    auto littleCores = device.getPinnableCores(ProcessorType::kLittleCore);               \
-    auto mediumCores = device.getPinnableCores(ProcessorType::kMediumCore);               \
-    auto bigCores = device.getPinnableCores(ProcessorType::kBigCore);                     \
+    auto littleCores = device.getCores(ProcessorType::kLittleCore);                       \
+    auto mediumCores = device.getCores(ProcessorType::kMediumCore);                       \
+    auto bigCores = device.getCores(ProcessorType::kBigCore);                             \
     std::string little_cores_str;                                                         \
     for (const auto& core : littleCores) {                                                \
       little_cores_str += std::to_string(core.id) + " ";                                  \
