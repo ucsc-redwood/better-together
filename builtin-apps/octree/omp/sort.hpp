@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "../../affinity.hpp"
+
 // Constants for 32‑bit keys, 8 bits per pass
 constexpr int BITS = 8;
 constexpr int RADIX = 1 << BITS;                // 256 buckets
@@ -85,7 +87,8 @@ static inline void radix_sort_in_parallel(uint32_t* buffer_in,
 
 static inline void dispatch_radix_sort(std::vector<uint32_t>& buffer_in,
                                        std::vector<uint32_t>& buffer_out,
-                                       const size_t num_threads) {
+                                       const size_t num_threads,
+                                       const std::vector<int> core_ids = {}) {
   const size_t n = buffer_in.size();
 
   std::vector<size_t> local_hist(size_t(num_threads) * RADIX);
@@ -97,6 +100,9 @@ static inline void dispatch_radix_sort(std::vector<uint32_t>& buffer_in,
   {
     // 1) pin this thread where you like:
     // pin_this_thread_to_core( omp_get_thread_num() );
+    if (!core_ids.empty()) {
+      bind_thread_to_cores(core_ids);
+    }
 
     // 2) do the sort (all threads enter here together):
     radix_sort_in_parallel(buffer_in.data(),
