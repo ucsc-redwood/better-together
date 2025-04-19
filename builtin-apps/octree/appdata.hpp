@@ -15,11 +15,10 @@ using UsmVec = std::pmr::vector<T>;
 
 using MortonT = uint32_t;
 
-// constexpr auto kDefaultInputSize = 1366 * 768;
-constexpr auto kDefaultInputSize = 640 * 480;
+constexpr auto kDefaultInputSize = 1366 * 768;
+// constexpr auto kDefaultInputSize = 640 * 480;
 constexpr auto kMinCoord = 0.0;
 constexpr auto kMaxCoord = 1024.0;
-
 constexpr auto kFraction = 0.5f;
 
 struct AppData {
