@@ -37,11 +37,14 @@ int main(int argc, char** argv) {
     octree::omp::run_stage_2(appdata);
     octree::omp::run_stage_3(appdata);
     octree::omp::run_stage_4(appdata);
+    octree::omp::run_stage_5(appdata);
+    octree::omp::run_stage_6(appdata);
+    octree::omp::run_stage_7(appdata);
   }
 
   // Verify the sort worked correctly
   bool is_sorted =
-      std::is_sorted(appdata.u_morton_codes.begin(), appdata.u_morton_codes.begin() + appdata.n);
+      std::is_sorted(appdata.u_morton_codes.begin(), appdata.u_morton_codes.begin() + appdata.m);
   if (!is_sorted) {
     spdlog::error("Morton codes are not properly sorted!");
   } else {
@@ -69,6 +72,7 @@ int main(int argc, char** argv) {
   std::cout << std::endl;
 
   appdata.print_radix_tree(appdata, 10);
+  appdata.print_octree_nodes(appdata);
 
   return 0;
 }
