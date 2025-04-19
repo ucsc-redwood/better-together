@@ -141,7 +141,7 @@ void run_stage_4(AppData &app) {
 void run_stage_5(AppData &app) {
   LOG_KERNEL(LogKernelType::kOMP, 5, &app);
 
-  assert(app.n_brt_nodes != std::numeric_limits<size_t>::max());
+  assert(app.m != std::numeric_limits<size_t>::max());
 
   compute_edge_count_kernel(app.u_morton_codes.data(),
                             app.m,
