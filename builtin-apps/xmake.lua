@@ -75,7 +75,7 @@ do
 	includes("cifar-dense/omp/xmake.lua")
 	includes("cifar-sparse/omp/xmake.lua")
 	includes("tree/omp/xmake.lua")
-	includes("octree/omp/xmake.lua")
+	-- includes("octree/omp/xmake.lua")
 end
 
 -- ----------------------------------------------------------------------------
@@ -113,7 +113,7 @@ if has_config("use_vulkan") then
 	includes("cifar-dense/vulkan/xmake.lua")
 	includes("cifar-sparse/vulkan/xmake.lua")
 	includes("tree/vulkan/xmake.lua")
-	includes("octree/vulkan/xmake.lua")
+	-- includes("octree/vulkan/xmake.lua")
 end
 
 

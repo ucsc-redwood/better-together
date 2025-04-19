@@ -81,7 +81,9 @@ static inline void radix_sort_in_parallel(uint32_t* buffer_in,
 // after an even number of passes (4), “buffer_in” holds the sorted data
 // copy it back into buffer_out exactly once:
 #pragma omp single
-  { std::copy(buffer_in, buffer_in + n, buffer_out); }
+  {
+    std::copy(buffer_in, buffer_in + n, buffer_out);
+  }
 #pragma omp barrier
 }
 
