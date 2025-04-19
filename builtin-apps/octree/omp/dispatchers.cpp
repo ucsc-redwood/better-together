@@ -4,6 +4,8 @@
 #include "../../debug_logger.hpp"
 #include "kernels.hpp"
 
+#include "sort.hpp"
+
 namespace octree::omp {
 
 // ----------------------------------------------------------------------------
@@ -32,6 +34,9 @@ void run_stage_2(AppData &app) {
   // const auto num_threads = omp_get_num_threads();
   // const int tid = omp_get_thread_num();
   // ::tree::omp::parallel_sort(app.u_morton_codes, app.u_morton_codes, tid, num_threads);
+
+  
+
 
 #pragma omp barrier
 }
