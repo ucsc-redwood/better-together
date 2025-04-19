@@ -217,6 +217,8 @@ TEST(Stage2Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
 
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+
   // Run stage 2
   EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
 }
@@ -228,6 +230,9 @@ TEST(Stage2Test, Basic) {
 TEST(Stage3Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
+
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
 
   // Run stage 3
   EXPECT_NO_THROW(octree::omp::run_stage_3(appdata));
@@ -241,6 +246,10 @@ TEST(Stage4Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
 
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_3(appdata));
+
   // Run stage 4
   EXPECT_NO_THROW(octree::omp::run_stage_4(appdata));
 }
@@ -252,6 +261,11 @@ TEST(Stage4Test, Basic) {
 TEST(Stage5Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
+
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_3(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_4(appdata));
 
   // Run stage 5
   EXPECT_NO_THROW(octree::omp::run_stage_5(appdata));
@@ -265,6 +279,12 @@ TEST(Stage6Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
 
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_3(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_5(appdata));
+
   // Run stage 6
   EXPECT_NO_THROW(octree::omp::run_stage_6(appdata));
 }
@@ -277,20 +297,23 @@ TEST(Stage7Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
 
+  EXPECT_NO_THROW(octree::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_3(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_5(appdata));
+  EXPECT_NO_THROW(octree::omp::run_stage_6(appdata));
+
   // Run stage 7
   EXPECT_NO_THROW(octree::omp::run_stage_7(appdata));
 }
 
 int main(int argc, char** argv) {
-  // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
 
-  // Parse command-line arguments
   parse_args(argc, argv);
 
-  // Set logging level to off
   spdlog::set_level(spdlog::level::off);
 
-  // Run the tests
   return RUN_ALL_TESTS();
 }
