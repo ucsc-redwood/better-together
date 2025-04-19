@@ -3,7 +3,6 @@
 #include "../../app.hpp"
 #include "../../debug_logger.hpp"
 #include "kernels.hpp"
-
 #include "sort.hpp"
 
 namespace octree::omp {
@@ -31,12 +30,38 @@ void run_stage_1(AppData &app) {
 void run_stage_2(AppData &app) {
   LOG_KERNEL(LogKernelType::kOMP, 2, &app);
 
-  // const auto num_threads = omp_get_num_threads();
-  // const int tid = omp_get_thread_num();
-  // ::tree::omp::parallel_sort(app.u_morton_codes, app.u_morton_codes, tid, num_threads);
+  // –– 1) Static workspace (un‑sized on declaration) ––//
+  static std::vector<size_t> local_hist;
+  static std::vector<size_t> local_offset;
+  static std::vector<size_t> global_hist;
+  static std::vector<size_t> prefix;
 
-  
+  // –– 2) One‑time allocation & sizing ––//
+  //      We only ever allocate when sizes change.
 
+  const auto num_threads = omp_get_num_threads();
+  static int last_threads = 0;
+  if (last_threads != num_threads) {
+    last_threads = num_threads;
+    local_hist.assign(num_threads * RADIX, 0);
+    local_offset.assign(num_threads * RADIX, 0);
+    global_hist.assign(RADIX, 0);
+    prefix.assign(RADIX, 0);
+  } else {
+    // –– 3) Zero out existing buffers before EACH call ––//
+    std::ranges::fill(local_hist, 0);
+    std::ranges::fill(local_offset, 0);
+    std::ranges::fill(global_hist, 0);
+    std::ranges::fill(prefix, 0);
+  }
+
+  radix_sort_in_parallel(app.u_morton_codes_alt.data(),
+                         app.u_morton_codes.data(),
+                         app.n,
+                         local_hist.data(),
+                         local_offset.data(),
+                         global_hist.data(),
+                         prefix.data());
 
 #pragma omp barrier
 }
