@@ -145,7 +145,7 @@ DeviceRegistry::DeviceRegistry() {
                               {3, ProcessorType::kLittleCore, true},
                               {4, ProcessorType::kBigCore, false},
                               {5, ProcessorType::kBigCore, false},
-                              {6, ProcessorType::kBigCore, true},
+                              {6, ProcessorType::kBigCore, false},
                               {7, ProcessorType::kBigCore, true},
                           }));
 

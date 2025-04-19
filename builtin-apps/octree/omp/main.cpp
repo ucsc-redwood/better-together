@@ -17,10 +17,15 @@ int main(int argc, char** argv) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
 
-#pragma omp parallel
+  
+
+#pragma omp parallel num_threads(g_little_cores.size())
   {
-    octree::omp::run_stage_1(appdata);
-    octree::omp::run_stage_2(appdata);
+    printf("Thread %d/%d\n", omp_get_thread_num(), omp_get_num_threads());
+    bind_thread_to_cores(g_little_cores);
+
+    // octree::omp::run_stage_1(appdata);
+    // octree::omp::run_stage_2(appdata);
   }
 
   // print first 10 points
