@@ -138,7 +138,7 @@ void run_stage_7(tree::SafeAppData &appdata) {
 #pragma omp for
   for (int i = start; i < end; ++i) {
     process_oct_node(i,
-                     reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7_out.data()),
+                     reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
                      appdata.u_oct_corner_s7_out.data(),
                      appdata.u_oct_cell_size_s7_out.data(),
                      appdata.u_oct_child_node_mask_s7_out.data(),
@@ -151,7 +151,7 @@ void run_stage_7(tree::SafeAppData &appdata) {
                      tree::kRange);
 
     process_link_leaf(i,
-                      reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7_out.data()),
+                      reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
                       appdata.u_oct_child_leaf_mask_s7_out.data(),
                       appdata.u_edge_offset_s6.data(),
                       appdata.u_edge_count_s5.data(),
