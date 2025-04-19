@@ -229,7 +229,7 @@ SafeAppData::SafeAppData(std::pmr::memory_resource* mr)
   }
 
   size_t total_memory = 0;
-  
+
   // Calculate memory for each vector
   total_memory += u_input_points_s0.size() * sizeof(glm::vec4);
   total_memory += u_morton_keys_s1.size() * sizeof(uint32_t);
@@ -264,9 +264,8 @@ SafeAppData::SafeAppData(std::pmr::memory_resource* mr)
   total_memory += u_oct_child_node_mask_s7_out.size() * sizeof(uint8_t);
   total_memory += u_oct_child_leaf_mask_s7_out.size() * sizeof(uint8_t);
 
-  spdlog::info("Total memory used: {} bytes ({} MB)", 
-               total_memory, 
-               total_memory / (1024.0f * 1024.0f));
+  spdlog::info(
+      "Total memory used: {} bytes ({} MB)", total_memory, total_memory / (1024.0f * 1024.0f));
 }
 
 }  // namespace tree
