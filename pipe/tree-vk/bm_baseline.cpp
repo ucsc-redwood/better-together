@@ -2,15 +2,11 @@
 #include <omp.h>
 
 #include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
-#include "builtin-apps/tree/omp/dispatchers.hpp"
-#include "builtin-apps/tree/vulkan/dispatchers.hpp"
+#include "const.hpp"
 
 // ----------------------------------------------------------------------------
 // Baseline: OMP
 // ----------------------------------------------------------------------------
-
-using DispatcherT = tree::vulkan::VulkanDispatcher;
-using AppDataT = tree::vulkan::VkAppData_Safe;
 
 static void BM_baseline_omp(benchmark::State& state) {
   int n_threads = state.range(0);
@@ -22,9 +18,6 @@ static void BM_baseline_omp(benchmark::State& state) {
 
   DispatcherT disp;
   AppDataT appdata(disp.get_mr());
-
-  // Warm up
-  tree::omp::run_stage_1(appdata);
 
   for (auto _ : state) {
 #pragma omp parallel num_threads(n_threads)
@@ -51,11 +44,23 @@ static void BM_baseline_vulkan(benchmark::State& state) {
   AppDataT appdata(disp.get_mr());
 
   // Warm up
-  disp.dispatch_multi_stage(appdata, 1, 9);
+  disp.run_stage_1(appdata);
+  disp.run_stage_2(appdata);
+  disp.run_stage_3(appdata);
+  disp.run_stage_4(appdata);
+  disp.run_stage_5(appdata);
+  disp.run_stage_6(appdata);
+  disp.run_stage_7(appdata);
 
   // Benchmark
   for (auto _ : state) {
-    disp.dispatch_multi_stage(appdata, 1, 9);
+    disp.run_stage_1(appdata);
+    disp.run_stage_2(appdata);
+    disp.run_stage_3(appdata);
+    disp.run_stage_4(appdata);
+    disp.run_stage_5(appdata);
+    disp.run_stage_6(appdata);
+    disp.run_stage_7(appdata);
   }
 }
 
@@ -66,7 +71,7 @@ BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-baseline-tree-vk -l off
+// xmake r bm-baseline-tree-vk
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
