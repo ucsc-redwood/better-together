@@ -91,10 +91,28 @@ static inline void dispatch_radix_sort(std::vector<uint32_t>& buffer_in,
                                        const std::vector<int> core_ids = {}) {
   const size_t n = buffer_in.size();
 
-  std::vector<size_t> local_hist(size_t(num_threads) * RADIX);
-  std::vector<size_t> local_offset(size_t(num_threads) * RADIX);
-  std::vector<size_t> global_hist(RADIX);
-  std::vector<size_t> prefix(RADIX);
+  // –– 1) Static workspace (un‑sized on declaration) ––//
+  static std::vector<size_t> local_hist;
+  static std::vector<size_t> local_offset;
+  static std::vector<size_t> global_hist;
+  static std::vector<size_t> prefix;
+
+  // –– 2) One‑time allocation & sizing ––//
+  //      We only ever allocate when sizes change.
+  static size_t last_threads = 0;
+  if (last_threads != num_threads) {
+    last_threads = num_threads;
+    local_hist.assign(num_threads * RADIX, 0);
+    local_offset.assign(num_threads * RADIX, 0);
+    global_hist.assign(RADIX, 0);
+    prefix.assign(RADIX, 0);
+  } else {
+    // –– 3) Zero out existing buffers before EACH call ––//
+    std::ranges::fill(local_hist, 0);
+    std::ranges::fill(local_offset, 0);
+    std::ranges::fill(global_hist, 0);
+    std::ranges::fill(prefix, 0);
+  }
 
 #pragma omp parallel num_threads(num_threads)
   {
