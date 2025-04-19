@@ -73,9 +73,9 @@ inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
 //                           const int start_stage,
 //                           const int end_stage) {
 //   if constexpr (PT == ProcessorType::kLittleCore) {
-//     dispatch_multi_stage(g_little_cores, num_threads, appdata, start_stage, end_stage);
+//     dispatch_multi_stage(g_lit_cores, num_threads, appdata, start_stage, end_stage);
 //   } else if constexpr (PT == ProcessorType::kMediumCore) {
-//     dispatch_multi_stage(g_medium_cores, num_threads, appdata, start_stage, end_stage);
+//     dispatch_multi_stage(g_med_cores, num_threads, appdata, start_stage, end_stage);
 //   } else if constexpr (PT == ProcessorType::kBigCore) {
 //     dispatch_multi_stage(g_big_cores, num_threads, appdata, start_stage, end_stage);
 //   }
@@ -87,9 +87,9 @@ inline void dispatch_multi_stage(const int start_stage,
                                  const int num_threads,
                                  cifar_dense::AppDataBatch& appdata) {
   if (pt == ProcessorType::kLittleCore) {
-    dispatch_multi_stage(g_little_cores, num_threads, appdata, start_stage, end_stage);
+    dispatch_multi_stage(g_lit_cores, num_threads, appdata, start_stage, end_stage);
   } else if (pt == ProcessorType::kMediumCore) {
-    dispatch_multi_stage(g_medium_cores, num_threads, appdata, start_stage, end_stage);
+    dispatch_multi_stage(g_med_cores, num_threads, appdata, start_stage, end_stage);
   } else if (pt == ProcessorType::kBigCore) {
     dispatch_multi_stage(g_big_cores, num_threads, appdata, start_stage, end_stage);
   }

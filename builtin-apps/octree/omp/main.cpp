@@ -17,15 +17,13 @@ int main(int argc, char** argv) {
   auto mr = std::pmr::new_delete_resource();
   octree::AppData appdata(mr);
 
-  
-
-#pragma omp parallel num_threads(g_little_cores.size())
+#pragma omp parallel num_threads(g_lit_cores.size())
   {
     printf("Thread %d/%d\n", omp_get_thread_num(), omp_get_num_threads());
-    bind_thread_to_cores(g_little_cores);
+    bind_thread_to_cores(g_lit_cores);
 
-    // octree::omp::run_stage_1(appdata);
-    // octree::omp::run_stage_2(appdata);
+    octree::omp::run_stage_1(appdata);
+    octree::omp::run_stage_2(appdata);
   }
 
   // print first 10 points
@@ -33,6 +31,12 @@ int main(int argc, char** argv) {
     std::cout << "[pos " << i << "]\t" << appdata.u_positions[i].x << ", "
               << appdata.u_positions[i].y << ", " << appdata.u_positions[i].z << ", "
               << appdata.u_positions[i].w << std::endl;
+  }
+  std::cout << std::endl;
+
+  // print first 10 morton codes
+  for (size_t i = 0; i < 10; i++) {
+    std::cout << "[morton_alt " << i << "]\t" << appdata.u_morton_codes_alt[i] << std::endl;
   }
   std::cout << std::endl;
 

@@ -108,7 +108,7 @@ static inline void dispatch_radix_sort(std::vector<uint32_t>& buffer_in,
     prefix.assign(RADIX, 0);
   } else {
     // –– 3) Zero out existing buffers before EACH call ––//
-    std::ranges::fill(local_hist, 0);
+    std::ranges ::fill(local_hist, 0);
     std::ranges::fill(local_offset, 0);
     std::ranges::fill(global_hist, 0);
     std::ranges::fill(prefix, 0);

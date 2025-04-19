@@ -1,6 +1,6 @@
 #include <omp.h>
 
-#include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
+#include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_med_cores', 'g_lit_cores'
 #include "common.hpp"
 
 // ----------------------------------------------------------------------------
@@ -27,8 +27,8 @@ static void BM_run_stage_full(const int stage_to_measure) {
     // little core
     std::thread t0(
         worker_thread_record<MyTask>, 0, std::ref(q_0), std::ref(q_1), [&](MyTask& task) {
-          cifar_dense::omp::v2::dispatch_multi_stage(g_little_cores,
-                                                     g_little_cores.size(),
+          cifar_dense::omp::v2::dispatch_multi_stage(g_lit_cores,
+                                                     g_lit_cores.size(),
                                                      task.appdata,
                                                      stage_to_measure,
                                                      stage_to_measure);
@@ -37,8 +37,8 @@ static void BM_run_stage_full(const int stage_to_measure) {
     // medium core
     std::thread t1(
         worker_thread_record<MyTask>, 1, std::ref(q_1), std::ref(q_2), [&](MyTask& task) {
-          cifar_dense::omp::v2::dispatch_multi_stage(g_medium_cores,
-                                                     g_medium_cores.size(),
+          cifar_dense::omp::v2::dispatch_multi_stage(g_med_cores,
+                                                     g_med_cores.size(),
                                                      task.appdata,
                                                      stage_to_measure,
                                                      stage_to_measure);
@@ -80,12 +80,12 @@ static void BM_run_stage_non_full(const int stage_to_measure,
   ProcessorType counter_part_c;
 
   if (core_type_to_measure == ProcessorType::kLittleCore) {
-    cores_to_use = g_little_cores;
+    cores_to_use = g_lit_cores;
     counter_part_a = ProcessorType::kMediumCore;
     counter_part_b = ProcessorType::kBigCore;
     counter_part_c = ProcessorType::kVulkan;
   } else if (core_type_to_measure == ProcessorType::kMediumCore) {
-    cores_to_use = g_medium_cores;
+    cores_to_use = g_med_cores;
     counter_part_a = ProcessorType::kLittleCore;
     counter_part_b = ProcessorType::kBigCore;
     counter_part_c = ProcessorType::kVulkan;
@@ -161,8 +161,8 @@ static void BM_run_stage_full(const int stage_to_measure) {
     // little core
     std::thread t0(
         worker_thread_record<MyTask>, 0, std::ref(q_0), std::ref(q_1), [&](MyTask& task) {
-          cifar_dense::omp::v2::dispatch_multi_stage(g_little_cores,
-                                                     g_little_cores.size(),
+          cifar_dense::omp::v2::dispatch_multi_stage(g_lit_cores,
+                                                     g_lit_cores.size(),
                                                      task.appdata,
                                                      stage_to_measure,
                                                      stage_to_measure);
@@ -190,7 +190,7 @@ static void BM_run_stage_non_full(const int stage_to_measure,
   // find cores
   std::vector<int> cores_to_use;
   if (target == ProcessorType::kLittleCore) {
-    cores_to_use = g_little_cores;
+    cores_to_use = g_lit_cores;
   }
 
   // Main benchmark

@@ -164,9 +164,9 @@ void register_stage_benchmark() {
        {ProcessorType::kLittleCore, ProcessorType::kMediumCore, ProcessorType::kBigCore}) {
     const auto num_threads = [&]() {
       if (core_type == ProcessorType::kLittleCore) {
-        return g_little_cores.size();
+        return g_lit_cores.size();
       } else if (core_type == ProcessorType::kMediumCore) {
-        return g_medium_cores.size();
+        return g_med_cores.size();
       } else {
         return g_big_cores.size();
       }
@@ -192,9 +192,9 @@ void register_stage_benchmark_normal() {
        {ProcessorType::kLittleCore, ProcessorType::kMediumCore, ProcessorType::kBigCore}) {
     const auto num_threads = [&]() {
       if (core_type == ProcessorType::kLittleCore) {
-        return g_little_cores.size();
+        return g_lit_cores.size();
       } else if (core_type == ProcessorType::kMediumCore) {
-        return g_medium_cores.size();
+        return g_med_cores.size();
       } else {
         return g_big_cores.size();
       }

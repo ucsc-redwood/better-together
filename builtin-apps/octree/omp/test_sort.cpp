@@ -195,22 +195,22 @@ TEST_F(RadixSortTest, DifferentDistributions) {
 
 TEST_F(RadixSortTest, LittleCoresSorting) {
   // Skip if no little cores available
-  if (g_little_cores.empty()) {
+  if (g_lit_cores.empty()) {
     GTEST_SKIP() << "No little cores available on this device";
     return;
   }
 
   const size_t size = 10000;
 
-  std::cout << "Testing with little cores (" << g_little_cores.size() << " cores)" << std::endl;
+  std::cout << "Testing with little cores (" << g_lit_cores.size() << " cores)" << std::endl;
 
   // Test with different thread counts up to the number of available little cores
-  for (size_t threads = 1; threads <= g_little_cores.size(); ++threads) {
+  for (size_t threads = 1; threads <= g_lit_cores.size(); ++threads) {
     auto input = GenerateData(size, Distribution::RANDOM);
     std::vector<uint32_t> output(size);
 
     // Use only the first 'threads' little cores
-    std::vector<int> cores_to_use(g_little_cores.begin(), g_little_cores.begin() + threads);
+    std::vector<int> cores_to_use(g_lit_cores.begin(), g_lit_cores.begin() + threads);
 
     std::cout << "  Using " << threads << " little cores: ";
     for (auto core : cores_to_use) {
@@ -226,22 +226,22 @@ TEST_F(RadixSortTest, LittleCoresSorting) {
 
 TEST_F(RadixSortTest, MediumCoresSorting) {
   // Skip if no medium cores available
-  if (g_medium_cores.empty()) {
+  if (g_med_cores.empty()) {
     GTEST_SKIP() << "No medium cores available on this device";
     return;
   }
 
   const size_t size = 10000;
 
-  std::cout << "Testing with medium cores (" << g_medium_cores.size() << " cores)" << std::endl;
+  std::cout << "Testing with medium cores (" << g_med_cores.size() << " cores)" << std::endl;
 
   // Test with different thread counts up to the number of available medium cores
-  for (size_t threads = 1; threads <= g_medium_cores.size(); ++threads) {
+  for (size_t threads = 1; threads <= g_med_cores.size(); ++threads) {
     auto input = GenerateData(size, Distribution::RANDOM);
     std::vector<uint32_t> output(size);
 
     // Use only the first 'threads' medium cores
-    std::vector<int> cores_to_use(g_medium_cores.begin(), g_medium_cores.begin() + threads);
+    std::vector<int> cores_to_use(g_med_cores.begin(), g_med_cores.begin() + threads);
 
     std::cout << "  Using " << threads << " medium cores: ";
     for (auto core : cores_to_use) {
@@ -293,11 +293,11 @@ TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
 #endif
 
   bool skip_test = false;
-  if (g_little_cores.empty()) {
+  if (g_lit_cores.empty()) {
     std::cout << "Little cores not available - skipping some comparisons" << std::endl;
     skip_test = true;
   }
-  if (g_medium_cores.empty()) {
+  if (g_med_cores.empty()) {
     std::cout << "Medium cores not available - skipping some comparisons" << std::endl;
     skip_test = true;
   }
@@ -306,7 +306,7 @@ TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
     skip_test = true;
   }
 
-  if (skip_test && g_little_cores.empty() && g_medium_cores.empty() && g_big_cores.empty()) {
+  if (skip_test && g_lit_cores.empty() && g_med_cores.empty() && g_big_cores.empty()) {
     GTEST_SKIP() << "No core types available for testing";
     return;
   }
@@ -319,10 +319,10 @@ TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
   // Test each core type with a single thread
   std::map<std::string, double> times;
 
-  if (!g_little_cores.empty()) {
+  if (!g_lit_cores.empty()) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
-    std::vector<int> cores = {g_little_cores[0]};
+    std::vector<int> cores = {g_lit_cores[0]};
 
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
@@ -335,10 +335,10 @@ TEST_F(RadixSortTest, CoreTypePerformanceComparison) {
     VerifySortCorrectness(input, output, 1);
   }
 
-  if (!g_medium_cores.empty()) {
+  if (!g_med_cores.empty()) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
-    std::vector<int> cores = {g_medium_cores[0]};
+    std::vector<int> cores = {g_med_cores[0]};
 
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
@@ -392,7 +392,7 @@ TEST_F(RadixSortTest, LittleCoresScaling) {
   GTEST_SKIP() << "Skipping performance test in debug mode";
 #endif
 
-  if (g_little_cores.empty()) {
+  if (g_lit_cores.empty()) {
     GTEST_SKIP() << "No little cores available on this device";
     return;
   }
@@ -408,7 +408,7 @@ TEST_F(RadixSortTest, LittleCoresScaling) {
   {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
-    std::vector<int> cores = {g_little_cores[0]};
+    std::vector<int> cores = {g_lit_cores[0]};
 
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
@@ -423,10 +423,10 @@ TEST_F(RadixSortTest, LittleCoresScaling) {
   }
 
   // Now test with increasing number of cores
-  for (size_t num_cores = 2; num_cores <= g_little_cores.size(); ++num_cores) {
+  for (size_t num_cores = 2; num_cores <= g_lit_cores.size(); ++num_cores) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
-    std::vector<int> cores(g_little_cores.begin(), g_little_cores.begin() + num_cores);
+    std::vector<int> cores(g_lit_cores.begin(), g_lit_cores.begin() + num_cores);
 
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, num_cores, cores);
@@ -454,7 +454,7 @@ TEST_F(RadixSortTest, MediumCoresScaling) {
   GTEST_SKIP() << "Skipping performance test in debug mode";
 #endif
 
-  if (g_medium_cores.empty()) {
+  if (g_med_cores.empty()) {
     GTEST_SKIP() << "No medium cores available on this device";
     return;
   }
@@ -470,7 +470,7 @@ TEST_F(RadixSortTest, MediumCoresScaling) {
   {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
-    std::vector<int> cores = {g_medium_cores[0]};
+    std::vector<int> cores = {g_med_cores[0]};
 
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, 1, cores);
@@ -485,10 +485,10 @@ TEST_F(RadixSortTest, MediumCoresScaling) {
   }
 
   // Now test with increasing number of cores
-  for (size_t num_cores = 2; num_cores <= g_medium_cores.size(); ++num_cores) {
+  for (size_t num_cores = 2; num_cores <= g_med_cores.size(); ++num_cores) {
     std::vector<uint32_t> output(size);
     std::vector<uint32_t> input_copy = input;
-    std::vector<int> cores(g_medium_cores.begin(), g_medium_cores.begin() + num_cores);
+    std::vector<int> cores(g_med_cores.begin(), g_med_cores.begin() + num_cores);
 
     auto start = std::chrono::high_resolution_clock::now();
     dispatch_radix_sort(input_copy, output, num_cores, cores);
@@ -684,7 +684,7 @@ TEST_F(RadixSortTest, EdgeValues) {
 // Additional tests for heterogeneous core combinations
 TEST_F(RadixSortTest, HeterogeneousCoreCombinations) {
   // Skip if not enough cores of different types are available
-  if (g_little_cores.empty() && g_medium_cores.empty() && g_big_cores.empty()) {
+  if (g_lit_cores.empty() && g_med_cores.empty() && g_big_cores.empty()) {
     GTEST_SKIP() << "No cores available for testing";
     return;
   }
@@ -697,11 +697,11 @@ TEST_F(RadixSortTest, HeterogeneousCoreCombinations) {
   std::vector<int> mixed_cores;
 
   // Add cores from each available type
-  if (!g_little_cores.empty()) {
-    mixed_cores.push_back(g_little_cores[0]);
+  if (!g_lit_cores.empty()) {
+    mixed_cores.push_back(g_lit_cores[0]);
   }
-  if (!g_medium_cores.empty()) {
-    mixed_cores.push_back(g_medium_cores[0]);
+  if (!g_med_cores.empty()) {
+    mixed_cores.push_back(g_med_cores[0]);
   }
   if (!g_big_cores.empty()) {
     mixed_cores.push_back(g_big_cores[0]);

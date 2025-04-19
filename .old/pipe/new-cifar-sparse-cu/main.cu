@@ -46,9 +46,9 @@ void run_multiple_stages(const int start_stage,
   {
     // Bind to core
     if (pt == ProcessorType::kLittleCore) {
-      bind_thread_to_cores(g_little_cores);
+      bind_thread_to_cores(g_lit_cores);
     } else if (pt == ProcessorType::kMediumCore) {
-      bind_thread_to_cores(g_medium_cores);
+      bind_thread_to_cores(g_med_cores);
     } else if (pt == ProcessorType::kBigCore) {
       bind_thread_to_cores(g_big_cores);
     }

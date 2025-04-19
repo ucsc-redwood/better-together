@@ -1,7 +1,7 @@
 #include <omp.h>
 
 #include "../table.hpp"
-#include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
+#include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_med_cores', 'g_lit_cores'
 #include "const.hpp"
 
 // ----------------------------------------------------------------------------
@@ -56,11 +56,11 @@ static void BM_run_normal(BmTable<kNumStages>& table,
   // prepare the cpu cores to use
   std::vector<int> cores_to_use;
   if (pt == ProcessorType::kLittleCore) {
-    cores_to_use = g_little_cores;
+    cores_to_use = g_lit_cores;
   } else if (pt == ProcessorType::kBigCore) {
     cores_to_use = g_big_cores;
   } else if (pt == ProcessorType::kMediumCore) {
-    cores_to_use = g_medium_cores;
+    cores_to_use = g_med_cores;
   }
 
   if (pt != ProcessorType::kVulkan && cores_to_use.empty()) {
@@ -167,7 +167,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
 
   // ----------------------------------------------------------------------------
 
-  if (!g_little_cores.empty()) {
+  if (!g_lit_cores.empty()) {
     threads.emplace_back(similuation_thread, &q_0, [&lit_processed, stage](TaskT* task) {
       cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, task->appdata, stage, stage);
 
@@ -175,7 +175,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
     });
   }
 
-  if (!g_medium_cores.empty()) {
+  if (!g_med_cores.empty()) {
     threads.emplace_back(similuation_thread, &q_1, [&med_processed, stage](TaskT* task) {
       cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, task->appdata, stage, stage);
 
@@ -271,10 +271,10 @@ int main(int argc, char** argv) {
   spdlog::info("Running normal benchmark (one processor at a time)...");
 
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    if (!g_little_cores.empty()) {
+    if (!g_lit_cores.empty()) {
       BM_run_normal(table, ProcessorType::kLittleCore, stage, seconds_to_run, print_progress);
     }
-    if (!g_medium_cores.empty()) {
+    if (!g_med_cores.empty()) {
       BM_run_normal(table, ProcessorType::kMediumCore, stage, seconds_to_run, print_progress);
     }
     if (!g_big_cores.empty()) {

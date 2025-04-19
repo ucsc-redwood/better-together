@@ -120,7 +120,7 @@ BENCHMARK_DEFINE_F(VK_CifarSparse, Stage1)
 (benchmark::State& state) {
   PREPARE_DATA;
 
-  auto cores = g_little_cores;
+  auto cores = g_lit_cores;
   auto num_threads = cores.size();
 
   for (auto _ : state) {

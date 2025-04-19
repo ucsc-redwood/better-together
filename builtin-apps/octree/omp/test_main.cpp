@@ -172,13 +172,13 @@
 // // Test dispatching with different core configurations
 // TEST_F(OctreeDispatcherTest, DifferentCoreConfigurations) {
 //   // Try with little cores
-//   if (!g_little_cores.empty()) {
+//   if (!g_lit_cores.empty()) {
 //     EXPECT_NO_THROW(octree::omp::dispatch_multi_stage(LITTLE_CORES, *app_data, 1, 7))
 //         << "Failed to dispatch with little cores";
 //   }
 
 //   // Try with medium cores
-//   if (!g_medium_cores.empty()) {
+//   if (!g_med_cores.empty()) {
 //     EXPECT_NO_THROW(octree::omp::dispatch_multi_stage(MEDIUM_CORES, *app_data, 1, 7))
 //         << "Failed to dispatch with medium cores";
 //   }

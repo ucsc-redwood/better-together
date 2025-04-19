@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 #include <omp.h>
 
-#include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
+#include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_med_cores', 'g_lit_cores'
 #include "const.hpp"
 
 // ----------------------------------------------------------------------------

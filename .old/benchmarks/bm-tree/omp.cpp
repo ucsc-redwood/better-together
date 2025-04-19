@@ -69,9 +69,9 @@ void run_stage(tree::SafeAppData& appdata, const int n_threads) {
   {
     // Bind to core if needed:
     if constexpr (processor_type == ProcessorType::kLittleCore) {
-      bind_thread_to_cores(g_little_cores);
+      bind_thread_to_cores(g_lit_cores);
     } else if constexpr (processor_type == ProcessorType::kMediumCore) {
-      bind_thread_to_cores(g_medium_cores);
+      bind_thread_to_cores(g_med_cores);
     } else if constexpr (processor_type == ProcessorType::kBigCore) {
       bind_thread_to_cores(g_big_cores);
     } else {
@@ -119,9 +119,9 @@ void RegisterStageBenchmark() {
 
   size_t n_cores = 0;
   if constexpr (proc_type == ProcessorType::kLittleCore) {
-    n_cores = g_little_cores.size();
+    n_cores = g_lit_cores.size();
   } else if constexpr (proc_type == ProcessorType::kMediumCore) {
-    n_cores = g_medium_cores.size();
+    n_cores = g_med_cores.size();
   } else if constexpr (proc_type == ProcessorType::kBigCore) {
     n_cores = g_big_cores.size();
   }

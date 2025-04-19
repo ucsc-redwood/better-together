@@ -33,9 +33,9 @@ void run_multiple_stages(cifar_dense::AppData &data) {
   {
     // Bind to core
     if constexpr (PT == ProcessorType::kLittleCore) {
-      bind_thread_to_cores(g_little_cores);
+      bind_thread_to_cores(g_lit_cores);
     } else if constexpr (PT == ProcessorType::kMediumCore) {
-      bind_thread_to_cores(g_medium_cores);
+      bind_thread_to_cores(g_med_cores);
     } else if constexpr (PT == ProcessorType::kBigCore) {
       bind_thread_to_cores(g_big_cores);
     }
