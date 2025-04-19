@@ -135,6 +135,20 @@ DeviceRegistry::DeviceRegistry() {
                               {3, ProcessorType::kBigCore, true},
                           }));
 
+  // For "R9TR30814KJ": Samsung Tablet 8 cores,
+  devices_.emplace("R9TR30814KJ",
+                   Device("R9TR30814KJ",
+                          std::vector<Core>{
+                              {0, ProcessorType::kLittleCore, true},
+                              {1, ProcessorType::kLittleCore, true},
+                              {2, ProcessorType::kLittleCore, true},
+                              {3, ProcessorType::kLittleCore, true},
+                              {4, ProcessorType::kBigCore, false},
+                              {5, ProcessorType::kBigCore, false},
+                              {6, ProcessorType::kBigCore, true},
+                              {7, ProcessorType::kBigCore, true},
+                          }));
+
   // For "minipc": 16 cores all of the same type.
   devices_.emplace("minipc",
                    Device("minipc",
