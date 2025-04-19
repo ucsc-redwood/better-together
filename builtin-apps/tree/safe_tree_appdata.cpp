@@ -156,7 +156,7 @@ void HostTreeManager::initialize() {
 #pragma omp parallel for
     for (int i = start; i < end; ++i) {
       tree::omp::process_oct_node(i,
-                                  reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
+                                  reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7.data()),
                                   appdata.u_oct_corner_s7.data(),
                                   appdata.u_oct_cell_size_s7.data(),
                                   appdata.u_oct_child_node_mask_s7.data(),
