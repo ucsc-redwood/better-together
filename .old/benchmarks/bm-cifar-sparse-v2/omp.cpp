@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
   register_baseline_benchmark();
 
 #define REGISTER_STAGE(STAGE)                                  \
-  register_stage_benchmark<STAGE, LittleCore>(g_little_cores); \
-  register_stage_benchmark<STAGE, MediumCore>(g_medium_cores); \
+  register_stage_benchmark<STAGE, LittleCore>(g_lit_cores); \
+  register_stage_benchmark<STAGE, MediumCore>(g_med_cores); \
   register_stage_benchmark<STAGE, BigCore>(g_big_cores)
 
   REGISTER_STAGE(1);

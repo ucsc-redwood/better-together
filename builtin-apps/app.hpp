@@ -9,16 +9,18 @@
 
 inline std::string g_device_id;
 inline std::string g_spdlog_log_level;
-inline std::vector<int> g_little_cores;
-inline std::vector<int> g_medium_cores;
+
+// cores
+inline std::vector<int> g_lit_cores;
+inline std::vector<int> g_med_cores;
 inline std::vector<int> g_big_cores;
 
 static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
   switch (core_type) {
     case ProcessorType::kLittleCore:
-      return g_little_cores;
+      return g_lit_cores;
     case ProcessorType::kMediumCore:
-      return g_medium_cores;
+      return g_med_cores;
     case ProcessorType::kBigCore:
       return g_big_cores;
     default:
@@ -27,8 +29,8 @@ static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type)
 }
 
 // Define macros for clearer test code
-#define LITTLE_CORES g_little_cores, g_little_cores.size()
-#define MEDIUM_CORES g_medium_cores, g_medium_cores.size()
+#define LITTLE_CORES g_lit_cores, g_lit_cores.size()
+#define MEDIUM_CORES g_med_cores, g_med_cores.size()
 #define BIG_CORES g_big_cores, g_big_cores.size()
 
 [[nodiscard]] size_t get_vulkan_warp_size();
@@ -55,13 +57,13 @@ static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type)
     std::string little_cores_str;                                                         \
     for (const auto& core : littleCores) {                                                \
       little_cores_str += std::to_string(core.id) + " ";                                  \
-      g_little_cores.push_back(core.id);                                                  \
+      g_lit_cores.push_back(core.id);                                                     \
     }                                                                                     \
     spdlog::info("Pinable Lit cores: {}", little_cores_str);                              \
     std::string medium_cores_str;                                                         \
     for (const auto& core : mediumCores) {                                                \
       medium_cores_str += std::to_string(core.id) + " ";                                  \
-      g_medium_cores.push_back(core.id);                                                  \
+      g_med_cores.push_back(core.id);                                                     \
     }                                                                                     \
     spdlog::info("Pinable Med cores: {}", medium_cores_str);                              \
     std::string big_cores_str;                                                            \

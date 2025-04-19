@@ -358,10 +358,10 @@ static void BM_Stage_Concurrent(const int stage, const ProcessorType processor_t
     cores = g_big_cores;
     num_threads = cores.size();
   } else if (processor_type == ProcessorType::kMediumCore) {
-    cores = g_medium_cores;
+    cores = g_med_cores;
     num_threads = cores.size();
   } else if (processor_type == ProcessorType::kLittleCore) {
-    cores = g_little_cores;
+    cores = g_lit_cores;
     num_threads = cores.size();
   } else {
     spdlog::error("Invalid processor type: {}", processor_type_to_string(processor_type));

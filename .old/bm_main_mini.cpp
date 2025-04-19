@@ -117,10 +117,10 @@ static void BM_run_OMP_stage(benchmark::State& state) {
 
   std::vector<int> cores_to_use;
   if (core_type == ProcessorType::kLittleCore) {
-    cores_to_use = g_little_cores;
+    cores_to_use = g_lit_cores;
     state.SetLabel("Little, " + std::to_string(num_threads) + " cores");
   } else if (core_type == ProcessorType::kMediumCore) {
-    cores_to_use = g_medium_cores;
+    cores_to_use = g_med_cores;
     state.SetLabel("Medium, " + std::to_string(num_threads) + " cores");
   } else {
     cores_to_use = g_big_cores;
