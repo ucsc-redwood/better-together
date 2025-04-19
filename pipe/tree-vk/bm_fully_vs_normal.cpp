@@ -235,15 +235,11 @@ static void BM_run_fully(BmTable<kNumStages>& table,
   }
 
   // update the table
-  if (lit_count > 0) table.update_full_table(stage - 1, kLitIdx, lit_time);
-  if (med_count > 0) table.update_full_table(stage - 1, kMedIdx, med_time);
-  if (big_count > 0) table.update_full_table(stage - 1, kBigIdx, big_time);
-  if (vuk_count > 0) table.update_full_table(stage - 1, kVukIdx, vuk_time);
+  if (lit_count > 0) table.update_full_table(stage - 1, 0, lit_time);
+  if (med_count > 0) table.update_full_table(stage - 1, 1, med_time);
+  if (big_count > 0) table.update_full_table(stage - 1, 2, big_time);
+  if (vuk_count > 0) table.update_full_table(stage - 1, 3, vuk_time);
 }
-
-// ----------------------------------------------------------------------------
-// Printing
-// ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
 // Main

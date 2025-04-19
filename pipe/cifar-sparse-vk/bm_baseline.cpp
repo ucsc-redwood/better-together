@@ -2,8 +2,7 @@
 #include <omp.h>
 
 #include "builtin-apps/app.hpp"  // for 'g_big_cores', 'g_medium_cores', 'g_little_cores'
-#include "builtin-apps/cifar-sparse/omp/dispatchers.hpp"
-#include "builtin-apps/cifar-sparse/vulkan/dispatchers.hpp"
+#include "const.hpp"
 
 // ----------------------------------------------------------------------------
 // Baseline: OMP
@@ -17,11 +16,8 @@ static void BM_baseline_omp(benchmark::State& state) {
     return;
   }
 
-  cifar_sparse::vulkan::VulkanDispatcher disp;
-  cifar_sparse::AppData appdata(disp.get_mr());
-
-  // Warm up
-  cifar_sparse::omp::run_stage_1(appdata);
+  DispatcherT disp;
+  AppDataT appdata(disp.get_mr());
 
   for (auto _ : state) {
 #pragma omp parallel num_threads(n_threads)
@@ -46,15 +42,31 @@ BENCHMARK(BM_baseline_omp)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 static void BM_baseline_vulkan(benchmark::State& state) {
-  cifar_sparse::vulkan::VulkanDispatcher disp;
-  cifar_sparse::AppData appdata(disp.get_mr());
+  DispatcherT disp;
+  AppDataT appdata(disp.get_mr());
 
   // Warm up
-  disp.dispatch_multi_stage(appdata, 1, 9);
+  disp.run_stage_1(appdata);
+  disp.run_stage_2(appdata);
+  disp.run_stage_3(appdata);
+  disp.run_stage_4(appdata);
+  disp.run_stage_5(appdata);
+  disp.run_stage_6(appdata);
+  disp.run_stage_7(appdata);
+  disp.run_stage_8(appdata);
+  disp.run_stage_9(appdata);
 
   // Benchmark
   for (auto _ : state) {
-    disp.dispatch_multi_stage(appdata, 1, 9);
+    disp.run_stage_1(appdata);
+    disp.run_stage_2(appdata);
+    disp.run_stage_3(appdata);
+    disp.run_stage_4(appdata);
+    disp.run_stage_5(appdata);
+    disp.run_stage_6(appdata);
+    disp.run_stage_7(appdata);
+    disp.run_stage_8(appdata);
+    disp.run_stage_9(appdata);
   }
 }
 
@@ -65,7 +77,7 @@ BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
 // ----------------------------------------------------------------------------
 
 // e.g.,
-// xmake r bm-baseline-cifar-sparse-vk -l off
+// xmake r bm-baseline-tree-vk
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
