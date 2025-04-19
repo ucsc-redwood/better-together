@@ -1,16 +1,16 @@
 #pragma once
 
+#include "builtin-apps/cifar-sparse/omp/dispatchers.hpp"
+#include "builtin-apps/cifar-sparse/vulkan/dispatchers.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 #include "builtin-apps/pipeline/task.hpp"
-#include "builtin-apps/tree/omp/dispatchers.hpp"
-#include "builtin-apps/tree/vulkan/dispatchers.hpp"
 
 // Application-specific constants
 
-constexpr size_t kNumStages = 7;
+constexpr size_t kNumStages = 9;
 
-using DispatcherT = tree::vulkan::VulkanDispatcher;
-using AppDataT = tree::vulkan::VkAppData_Safe;
+using DispatcherT = cifar_sparse::vulkan::VulkanDispatcher;
+using AppDataT = cifar_sparse::AppData;
 using TaskT = Task<AppDataT>;
 
 // Pipeline-specific constants
