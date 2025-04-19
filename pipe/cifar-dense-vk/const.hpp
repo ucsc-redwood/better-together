@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
 #include "builtin-apps/cifar-dense/vulkan/dispatchers.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 #include "builtin-apps/pipeline/task.hpp"
 #include "builtin-apps/tree/omp/dispatchers.hpp"
