@@ -24,6 +24,7 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // for prefix sum
   std::pmr::vector<uint32_t> u_sums;
   std::pmr::vector<uint32_t> u_prefix_sums;
+
 };
 
 }  // namespace tree::vulkan
