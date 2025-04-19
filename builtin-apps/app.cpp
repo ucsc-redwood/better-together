@@ -15,6 +15,7 @@ size_t get_vulkan_warp_size() {
       {"pc", 32},                    // Intel UHD Graphics 770
       {"jetson", 32},                // NVIDIA Tegra Orin (nvgpu)
       {"jetsonlowpower", 32},        // NVIDIA Tegra Orin (nvgpu)
+      {"mba", 32},                   // Apple M4
   };
 
   auto it = device_warp_sizes.find(g_device_id);
