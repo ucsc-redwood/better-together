@@ -25,6 +25,20 @@ do
 end
 
 
+target("test-sort-omp")
+do
+	add_rules("common_flags", "run_on_android")
+	set_kind("binary")
+	add_files({
+		"./test_sort.cpp",
+	})
+
+	add_deps("builtin-apps")
+
+	add_packages("gtest")
+end
+
+
 target("test-octree-omp")
 do
 	add_rules("common_flags", "run_on_android")
