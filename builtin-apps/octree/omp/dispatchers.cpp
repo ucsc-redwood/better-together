@@ -32,20 +32,50 @@ void run_stage_2(AppData &app) {
 
   // Get the number of threads in the current parallel region
   const int num_threads = omp_get_num_threads();
-  
-  // Properly size the workspace vectors
-  std::vector<size_t> local_hist(num_threads * RADIX, 0);
-  std::vector<size_t> local_offset(num_threads * RADIX, 0);
-  std::vector<size_t> global_hist(RADIX, 0);
-  std::vector<size_t> prefix(RADIX, 0);
 
-  std::vector<uint32_t> buffer_in(app.n);
-  std::vector<uint32_t> buffer_out(app.n);
+  // Static workspace vectors to avoid repeated allocations
+  // These need to be properly synchronized when accessed by multiple threads
+  static std::vector<size_t> local_hist;
+  static std::vector<size_t> local_offset;
+  static std::vector<size_t> global_hist;
+  static std::vector<size_t> prefix;
+  static int last_num_threads = 0;
+  static std::vector<uint32_t> buffer_in;
+  static std::vector<uint32_t> buffer_out;
 
-  // Copy the input data
-  std::ranges::copy(app.u_morton_codes_alt, buffer_in.begin());
+  // Thread-safe buffer management - single thread manages shared resources
+#pragma omp single
+  {
+    // Only resize if the number of threads has changed
+    if (num_threads != last_num_threads) {
+      last_num_threads = num_threads;
+      local_hist.resize(num_threads * RADIX);
+      local_offset.resize(num_threads * RADIX);
+      global_hist.resize(RADIX);
+      prefix.resize(RADIX);
+      spdlog::debug("Resized radix sort buffers for {} threads", num_threads);
+    }
 
-  // Perform the sort
+    // Resize input/output buffers if necessary
+    if (buffer_in.size() < app.n) {
+      buffer_in.resize(app.n);
+      buffer_out.resize(app.n);
+      spdlog::debug("Resized input/output buffers to size {}", app.n);
+    }
+
+    // Zero out the workspace vectors
+    std::fill(local_hist.begin(), local_hist.end(), 0);
+    std::fill(local_offset.begin(), local_offset.end(), 0);
+    std::fill(global_hist.begin(), global_hist.end(), 0);
+    std::fill(prefix.begin(), prefix.end(), 0);
+
+    // Copy the input data (single-threaded to avoid race conditions)
+    std::ranges::copy(
+        app.u_morton_codes_alt.begin(), app.u_morton_codes_alt.begin() + app.n, buffer_in.begin());
+  }
+  // Implicit barrier at the end of the omp single region
+
+  // Perform the sort with all threads
   radix_sort_in_parallel(buffer_in.data(),
                          buffer_out.data(),
                          app.n,
@@ -53,10 +83,15 @@ void run_stage_2(AppData &app) {
                          local_offset.data(),
                          global_hist.data(),
                          prefix.data());
-  
-  // Copy sorted result back to app data
-  std::ranges::copy(buffer_out, app.u_morton_codes.begin());
 
+  // Ensure all threads have completed the sort before copying results
+#pragma omp barrier
+
+  // One thread copies the result back to app data to avoid race conditions
+#pragma omp single
+  { std::ranges::copy(buffer_out.begin(), buffer_out.begin() + app.n, app.u_morton_codes.begin()); }
+
+  // Final barrier to ensure all threads see the updated app.u_morton_codes
 #pragma omp barrier
 }
 
@@ -71,6 +106,9 @@ void run_stage_3(AppData &app) {
   {
     auto end_it = std::unique(app.u_morton_codes.begin(), app.u_morton_codes.begin() + app.n);
     app.m = std::distance(app.u_morton_codes.begin(), end_it);
+
+    // print m/n
+    spdlog::info("m/n: {}/{}", app.m, app.n);
 
     assert(size_t(app.m) <= app.reserved_n);
   }

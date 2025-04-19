@@ -122,6 +122,8 @@ static inline void build_radix_tree(const uint32_t* codes,
     prefix_length[i] = 0;
   }
 
+#pragma omp barrier
+
 // 2) build each node in parallel
 #pragma omp for
   for (int i = 0; i < n; ++i) {
