@@ -55,7 +55,6 @@ end
 -- ----------------------------------------------------------------
 
 if has_config("use_vulkan") then
-	add_requires("volk")
 
 	target("query-warpsize")
 	do
