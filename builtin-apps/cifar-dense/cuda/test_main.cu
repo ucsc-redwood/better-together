@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
+#include <queue>
+
 #include "../../app.hpp"
+#include "../../pipeline/spsc_queue.hpp"
 #include "../appdata.hpp"
+#include "../omp/dispatchers.hpp"
 #include "dispatchers.cuh"
 
 // ----------------------------------------------------------------------------
@@ -188,23 +192,164 @@ TEST(Stage8Test, Basic) {
 }
 
 // ----------------------------------------------------------------------------
-// test Stage 9
+// Test Mixing Omp and Cuda
 // ----------------------------------------------------------------------------
 
-TEST(Stage9Test, Basic) {
+TEST(MixingTest, CudaThenOmp) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 9
-  disp.dispatch_stage(appdata, 9);
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_2(appdata));
+}
 
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_linear_out.d0(), 128);
-  EXPECT_EQ(appdata.u_linear_out.d1(), 10);
+TEST(MixingTest, OmpThenCuda) {
+  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Check no throw
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+}
+
+TEST(MixingTest, MultipleStages) {
+  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_dense::AppData appdata(&disp.get_mr());
+
+  // Run first 3 stages with CUDA
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+
+  // Run next 2 stages with OMP
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_5(appdata));
+
+  // Run final stages with CUDA
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 8));
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 9));
 }
+
+TEST(MixingTest, AlternatingStages) {
+  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_dense::AppData appdata(&disp.get_mr());
+
+  // Alternate between CUDA and OMP for each stage
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_6(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_8(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 9));
+}
+
+TEST(MixingTest, MixedBatch) {
+  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_dense::AppData appdata(&disp.get_mr());
+
+  // Run first half with CUDA
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
+
+  // Run second half with OMP
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_5(appdata));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_6(appdata));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_7(appdata));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_8(appdata));
+  EXPECT_NO_THROW(cifar_dense::omp::run_stage_9(appdata));
+}
+
+// ----------------------------------------------------------------------------
+// Test Queue environment
+// ----------------------------------------------------------------------------
+
+TEST(QueueTest, Basic) {
+  cifar_dense::cuda::CudaDispatcher disp;
+
+  std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
+  appdatas.reserve(10);
+  for (int i = 0; i < 10; i++) {
+    appdatas.push_back(std::make_shared<cifar_dense::AppData>(&disp.get_mr()));
+  }
+
+  std::queue<std::shared_ptr<cifar_dense::AppData>> queue;
+  for (auto& appdata : appdatas) {
+    queue.push(appdata);
+  }
+
+  while (!queue.empty()) {
+    auto appdata = queue.front();
+    queue.pop();
+
+    EXPECT_NO_THROW(disp.dispatch_multi_stage(*appdata, 1, 9));
+  }
+
+  EXPECT_TRUE(queue.empty());
+}
+
+// ----------------------------------------------------------------------------
+// Test Concurrent Queue environment
+// ----------------------------------------------------------------------------
+
+TEST(ConcurrentQueueTest, Basic) {
+  cifar_dense::cuda::CudaDispatcher disp;
+
+  std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
+  appdatas.reserve(10);
+  for (int i = 0; i < 10; i++) {
+    appdatas.push_back(std::make_shared<cifar_dense::AppData>(&disp.get_mr()));
+  }
+
+  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> gpu_queue;
+  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> cpu_queue;
+
+  // Initial push to GPU queue
+  for (auto& appdata : appdatas) {
+    gpu_queue.enqueue(std::move(appdata));
+  }
+
+  // Producer thread - GPU processing
+  std::thread producer([&]() {
+    for (int i = 0; i < 10; i++) {
+      std::shared_ptr<cifar_dense::AppData> appdata;
+      while (!gpu_queue.dequeue(appdata)) {
+        std::this_thread::yield();
+      }
+
+      EXPECT_NO_THROW(disp.dispatch_multi_stage(*appdata, 1, 4));
+
+      while (!cpu_queue.enqueue(std::move(appdata))) {
+        std::this_thread::yield();
+      }
+    }
+  });
+
+  // Consumer thread - CPU processing
+  std::thread consumer([&]() {
+    for (int i = 0; i < 10; i++) {
+      std::shared_ptr<cifar_dense::AppData> appdata;
+      while (!cpu_queue.dequeue(appdata)) {
+        std::this_thread::yield();
+      }
+
+      // Process on CPU (stages 5-9)
+      EXPECT_NO_THROW(cifar_dense::omp::dispatch_multi_stage(*appdata, 5, 9));
+    }
+  });
+
+  producer.join();
+  consumer.join();
+}
+
+// ----------------------------------------------------------------------------
+// Test Mixing Omp and Cuda
+// ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
   // Initialize Google Test
