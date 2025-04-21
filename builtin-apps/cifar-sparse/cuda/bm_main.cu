@@ -11,8 +11,8 @@
 // ----------------------------------------------------------------
 
 static void BM_Stage1(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // warm up
   disp.dispatch_stage(appdata, 1);
@@ -22,15 +22,15 @@ static void BM_Stage1(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage1");
+BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage1");
 
 // ----------------------------------------------------------------
 // Stage 2: MaxPool1
 // ----------------------------------------------------------------
 
 static void BM_Stage2(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -43,15 +43,15 @@ static void BM_Stage2(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage2");
+BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage2");
 
 // ----------------------------------------------------------------
 // Stage 3: Conv2
 // ----------------------------------------------------------------
 
 static void BM_Stage3(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -65,15 +65,15 @@ static void BM_Stage3(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage3");
+BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage3");
 
 // ----------------------------------------------------------------
 // Stage 4: MaxPool2
 // ----------------------------------------------------------------
 
 static void BM_Stage4(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -88,15 +88,15 @@ static void BM_Stage4(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage4");
+BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage4");
 
 // ----------------------------------------------------------------
 // Stage 5: Conv3
 // ----------------------------------------------------------------
 
 static void BM_Stage5(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -112,15 +112,15 @@ static void BM_Stage5(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage5");
+BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage5");
 
 // ----------------------------------------------------------------
 // Stage 6: Conv4
 // ----------------------------------------------------------------
 
 static void BM_Stage6(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -137,15 +137,15 @@ static void BM_Stage6(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage6");
+BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage6");
 
 // ----------------------------------------------------------------
 // Stage 7: Conv5
 // ----------------------------------------------------------------
 
 static void BM_Stage7(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -163,15 +163,15 @@ static void BM_Stage7(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage7");
+BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage7");
 
 // ----------------------------------------------------------------
 // Stage 8: MaxPool3
 // ----------------------------------------------------------------
 
 static void BM_Stage8(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -190,15 +190,15 @@ static void BM_Stage8(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage8)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage8");
+BENCHMARK(BM_Stage8)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage8");
 
 // ----------------------------------------------------------------
 // Stage 9: Linear
 // ----------------------------------------------------------------
 
 static void BM_Stage9(benchmark::State& state) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run all previous stages before benchmarking
   disp.dispatch_stage(appdata, 1);
@@ -218,7 +218,7 @@ static void BM_Stage9(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage9)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Dense/Stage9");
+BENCHMARK(BM_Stage9)->Unit(benchmark::kMillisecond)->Name("CUDA/CIFAR-Sparse/Stage9");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
