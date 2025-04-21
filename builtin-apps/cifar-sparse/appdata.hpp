@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory_resource>
+#include <random>
 #include <vector>
 
 #include "../ndarray.hpp"
@@ -82,7 +83,26 @@ struct AppData {
         conv3_sparse(64, 288, mr),
         conv4_sparse(64, 576, mr),
         conv5_sparse(64, 576, mr),
-        linear_sparse(10, 1024, mr) {}
+        linear_sparse(10, 1024, mr) {
+    std::mt19937 gen(114514);
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+    std::ranges::generate(u_input.pmr_vec(), [&]() { return dis(gen); });
+
+    std::uniform_real_distribution<float> weight_dis(-0.1f, 0.1f);
+    std::ranges::generate(conv1_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+    std::ranges::generate(conv2_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+    std::ranges::generate(conv3_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+    std::ranges::generate(conv4_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+    std::ranges::generate(conv5_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+    std::ranges::generate(linear_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+
+    std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_conv2_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_conv3_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_conv4_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_conv5_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_linear_b.pmr_vec(), 0.0f);
+  }
 
   void reset() {}
 
