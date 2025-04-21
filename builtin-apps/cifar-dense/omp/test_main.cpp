@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <omp.h>
 #include <spdlog/spdlog.h>
 
 #include "../../app.hpp"

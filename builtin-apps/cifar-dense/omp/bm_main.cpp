@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <omp.h>
 
 #include <memory_resource>
 
