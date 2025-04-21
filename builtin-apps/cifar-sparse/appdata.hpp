@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory_resource>
 #include <random>
 #include <vector>
