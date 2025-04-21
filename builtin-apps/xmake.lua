@@ -137,8 +137,8 @@ if has_config("use_cuda") then
 			"common/cuda/cu_bench_helper.cuh",
 
 			-- CIFAR sparse CUDA headers
-			"cifar-sparse/cuda/all_kernels.cuh",
-			"cifar-sparse/cuda/dispatchers.cuh",
+			-- "cifar-sparse/cuda/all_kernels.cuh",
+			-- "cifar-sparse/cuda/dispatchers.cuh",
 
 			-- CIFAR dense CUDA headers
 			"cifar-dense/cuda/all_kernels.cuh",
@@ -160,8 +160,8 @@ if has_config("use_cuda") then
 			"tree/cuda/common/helper_string.hpp",
 			"tree/cuda/common/helper_timer.hpp",
 			"tree/cuda/common.cuh",
-			"tree/cuda/func_morton.cuh",
-			"tree/cuda/dispatchers.cuh",
+			-- "tree/cuda/func_morton.cuh",
+			-- "tree/cuda/dispatchers.cuh",
 		})
 
 		add_files({
@@ -173,8 +173,8 @@ if has_config("use_cuda") then
 			"cifar-dense/cuda/dispatchers.cu",
 
 			-- CIFAR sparse CUDA implementations
-			"cifar-sparse/cuda/all_kernels.cu",
-			"cifar-sparse/cuda/dispatchers.cu",
+			-- "cifar-sparse/cuda/all_kernels.cu",
+			-- "cifar-sparse/cuda/dispatchers.cu",
 
 			-- Tree CUDA implementations
 			"tree/cuda/01_morton.cu",
@@ -184,8 +184,14 @@ if has_config("use_cuda") then
 			"tree/cuda/05_edge_count.cu",
 			"tree/cuda/06_prefix_sum.cu",
 			"tree/cuda/07_octree.cu",
-			"tree/cuda/dispatchers.cu",
+			-- "tree/cuda/dispatchers.cu",
 		})
+
+
+		includes("cifar-dense/cuda/xmake.lua")
+		-- includes("cifar-sparse/cuda/xmake.lua")
+		-- includes("tree/cuda/xmake.lua")
+
 
 		-- Best CUDA library
 		add_packages("cub")
