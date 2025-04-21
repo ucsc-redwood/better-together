@@ -4,22 +4,22 @@
 
 namespace cifar_sparse::cuda {
 
-void conv2d_csr_batch_kernel(const float* __restrict__ input_data,
-                             int batch_size,
-                             int in_channels,
-                             int in_height,
-                             int in_width,
-                             const float* __restrict__ weight_vals,
-                             const int* __restrict__ weight_row_ptr,
-                             const int* __restrict__ weight_col_idx,
-                             int out_channels,
-                             const float* __restrict__ bias_data,
-                             int bias_size,
-                             int kernel_size,
-                             int stride,
-                             int padding,
-                             bool relu,
-                             float* __restrict__ output_data) {
+__global__ void conv2d_csr_batch_kernel(const float* __restrict__ input_data,
+                                        int batch_size,
+                                        int in_channels,
+                                        int in_height,
+                                        int in_width,
+                                        const float* __restrict__ weight_vals,
+                                        const int* __restrict__ weight_row_ptr,
+                                        const int* __restrict__ weight_col_idx,
+                                        int out_channels,
+                                        const float* __restrict__ bias_data,
+                                        int bias_size,
+                                        int kernel_size,
+                                        int stride,
+                                        int padding,
+                                        bool relu,
+                                        float* __restrict__ output_data) {
   // recompute output dims
   int out_height = (in_height + 2 * padding - kernel_size) / stride + 1;
   int out_width = (in_width + 2 * padding - kernel_size) / stride + 1;
@@ -68,16 +68,16 @@ void conv2d_csr_batch_kernel(const float* __restrict__ input_data,
   output_data[out_idx] = sum;
 }
 
-void maxpool2d_batch_kernel(const float* __restrict__ input_data,
-                            float* __restrict__ output_data,
-                            int batch_size,
-                            int channels,
-                            int in_height,
-                            int in_width,
-                            int out_height,
-                            int out_width,
-                            int pool_size,
-                            int stride) {
+__global__ void maxpool2d_batch_kernel(const float* __restrict__ input_data,
+                                       float* __restrict__ output_data,
+                                       int batch_size,
+                                       int channels,
+                                       int in_height,
+                                       int in_width,
+                                       int out_height,
+                                       int out_width,
+                                       int pool_size,
+                                       int stride) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int total = batch_size * channels * out_height * out_width;
   if (idx >= total) return;
@@ -107,15 +107,15 @@ void maxpool2d_batch_kernel(const float* __restrict__ input_data,
   output_data[out_idx] = maxv;
 }
 
-void linear_csr_batch_kernel(const float* __restrict__ input_data,
-                             int batch_size,
-                             int input_features,
-                             const float* __restrict__ weight_vals,
-                             const int* __restrict__ weight_row_ptr,
-                             const int* __restrict__ weight_col_idx,
-                             const float* __restrict__ bias_data,
-                             int out_neurons,
-                             float* __restrict__ output_data) {
+__global__ void linear_csr_batch_kernel(const float* __restrict__ input_data,
+                                        int batch_size,
+                                        int input_features,
+                                        const float* __restrict__ weight_vals,
+                                        const int* __restrict__ weight_row_ptr,
+                                        const int* __restrict__ weight_col_idx,
+                                        const float* __restrict__ bias_data,
+                                        int out_neurons,
+                                        float* __restrict__ output_data) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int total = batch_size * out_neurons;
   if (idx >= total) return;

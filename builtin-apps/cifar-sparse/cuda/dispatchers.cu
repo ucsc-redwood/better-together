@@ -4,6 +4,8 @@
 
 namespace cifar_sparse::cuda {
 
+constexpr bool kSync = false;
+
 // Stage 1: Sparse conv1
 void CudaDispatcher::run_stage_1_async(AppData &appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
@@ -29,8 +31,11 @@ void CudaDispatcher::run_stage_1_async(AppData &appdata) {
                         kPadding,
                         kRelu,
                         appdata.u_conv1_out.data());
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 2: Pool1
@@ -53,8 +58,11 @@ void CudaDispatcher::run_stage_2_async(AppData &appdata) {
                        outW,
                        kPoolSize,
                        kPoolStride);
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 3: Sparse conv2
@@ -82,8 +90,11 @@ void CudaDispatcher::run_stage_3_async(AppData &appdata) {
                         kPadding,
                         kRelu,
                         appdata.u_conv2_out.data());
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 4: Pool2
@@ -106,8 +117,11 @@ void CudaDispatcher::run_stage_4_async(AppData &appdata) {
                        outW,
                        kPoolSize,
                        kPoolStride);
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 5: Sparse conv3
@@ -135,8 +149,11 @@ void CudaDispatcher::run_stage_5_async(AppData &appdata) {
                         kPadding,
                         kRelu,
                         appdata.u_conv3_out.data());
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 6: Sparse conv4
@@ -164,8 +181,11 @@ void CudaDispatcher::run_stage_6_async(AppData &appdata) {
                         kPadding,
                         kRelu,
                         appdata.u_conv4_out.data());
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 7: Sparse conv5
@@ -193,8 +213,11 @@ void CudaDispatcher::run_stage_7_async(AppData &appdata) {
                         kPadding,
                         kRelu,
                         appdata.u_conv5_out.data());
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 8: Pool3
@@ -217,8 +240,11 @@ void CudaDispatcher::run_stage_8_async(AppData &appdata) {
                        outW,
                        kPoolSize,
                        kPoolStride);
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 // Stage 9: Sparse linear
@@ -240,8 +266,11 @@ void CudaDispatcher::run_stage_9_async(AppData &appdata) {
                         appdata.u_linear_b.data(),
                         outF,
                         appdata.u_linear_out.data());
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 }  // namespace cifar_sparse::cuda
