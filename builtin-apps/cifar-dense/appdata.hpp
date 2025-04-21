@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory_resource>
 
 #include "../ndarray.hpp"
@@ -49,7 +50,11 @@ struct AppData {
         u_conv5_w(64, 64, 3, 3, mr),
         u_conv5_b(64, mr),
         u_linear_w(10, 1024, mr),
-        u_linear_b(10, mr) {}
+        u_linear_b(10, mr) {
+    std::ranges::fill(u_conv1_w.pmr_vec(), 1.0f);
+    std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_input.pmr_vec(), 1.0f);
+  }
 
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
