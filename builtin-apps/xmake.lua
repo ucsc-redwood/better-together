@@ -56,6 +56,7 @@ do
 	add_files({
 		"conf.cpp",
 		"app.cpp",
+		"hex_dump.cpp",
 
 		-- cifar-dense implementations
 		"cifar-dense/omp/dispatchers.cpp",
