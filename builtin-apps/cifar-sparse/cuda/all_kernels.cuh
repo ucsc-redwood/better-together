@@ -1,84 +1,114 @@
 #pragma once
 
-#include <cuda_runtime.h>
+namespace cifar_dense::cuda {
 
-// #include "../csr.hpp"
+__global__ void conv2d_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inC,
+                                    int inH,
+                                    int inW,
+                                    int outC,
+                                    int kH,
+                                    int kW,
+                                    int outH,
+                                    int outW,
+                                    int stride,
+                                    int padding,
+                                    bool relu);
 
-namespace cifar_sparse::cuda {
+// ---------------------------------------------------------
+// 2) Host‐side launcher (Helper to make it easier to call)
+// ---------------------------------------------------------
+inline void conv2d_batch_cuda(const float* input,
+                              const float* weights,
+                              const float* bias,
+                              float* output,
+                              int N,
+                              int inC,
+                              int inH,
+                              int inW,
+                              int outC,
+                              int kH,
+                              int kW,
+                              int outH,
+                              int outW,
+                              int stride,
+                              int padding,
+                              bool relu) {
+  int total = N * outC * outH * outW;
+  const int TPB = 256;
+  int blocks = (total + TPB - 1) / TPB;
 
-// ----------------------------------------------------------------------------
-// Convolution 2D (Sparse)
-// ----------------------------------------------------------------------------
-
-// start, end = 0, weight_matrix.rows;
-__global__ void conv2d(const float* input_data,
-                       int image_input_channels,
-                       int input_height,
-                       int input_width,
-                       //    const CSRMatrix& weight_matrix,
-                       const float* weight_matrix_values,
-                       const int* weight_matrix_row_ptr,
-                       const int* weight_matrix_col_idx,
-                       int weight_matrix_rows,
-                       int weight_matrix_cols,
-                       int weight_matrix_nnz,
-
-                       const float* bias_data,
-                       int bias_size,
-                       int kernel_size,
-                       int stride,
-                       int padding,
-                       bool relu,
-                       float* output_data);
-
-// ----------------------------------------------------------------------------
-// Max Pooling 2D (Sparse)
-// ----------------------------------------------------------------------------
-
-__global__ void maxpool2d(const float* input_data,
-                          int input_channels,
-                          int input_height,
-                          int input_width,
-                          int pool_size,
-                          int stride,
-                          float* output_data);
-
-// ----------------------------------------------------------------------------
-// Linear Layer (Sparse)
-// ----------------------------------------------------------------------------
-
-__global__ void linear(const float* input_data,
-                       //    const CSRMatrix& weight_matrix,
-                       const float* weight_matrix_values,
-                       const int* weight_matrix_row_ptr,
-                       const int* weight_matrix_col_idx,
-                       int weight_matrix_rows,
-                       int weight_matrix_cols,
-                       int weight_matrix_nnz,
-
-                       const float* bias_data,
-                       float* output_data);
-
-namespace v2 {
-
-__global__ void conv2d_cuda_kernel(const float* input_data,
-                                   int batch_size,
-                                   int in_channels,
-                                   int in_height,
-                                   int in_width,
-                                   const float* weight_vals,
-                                   const int* weight_row_ptr,
-                                   const int* weight_col_idx,
-                                   int out_channels,
-                                   const float* bias_data,
-                                   int bias_size,
-                                   int kernel_size,
-                                   int stride,
-                                   int padding,
-                                   bool relu,
-                                   float* output_data,
-                                   int out_height,
-                                   int out_width);
+  conv2d_batch_kernel<<<blocks, TPB>>>(input,
+                                       weights,
+                                       bias,
+                                       output,
+                                       N,
+                                       inC,
+                                       inH,
+                                       inW,
+                                       outC,
+                                       kH,
+                                       kW,
+                                       outH,
+                                       outW,
+                                       stride,
+                                       padding,
+                                       relu);
 }
 
-}  // namespace cifar_sparse::cuda
+__global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
+                                       float* __restrict__ output,
+                                       int N,
+                                       int C,
+                                       int inH,
+                                       int inW,
+                                       int outH,
+                                       int outW,
+                                       int pool_size,
+                                       int stride);
+
+inline void maxpool2d_batch_cuda(const float* input,
+                                 float* output,
+                                 int N,
+                                 int C,
+                                 int inH,
+                                 int inW,
+                                 int outH,
+                                 int outW,
+                                 int pool_size,
+                                 int stride) {
+  int total = N * C * outH * outW;
+  const int TPB = 256;
+  int blocks = (total + TPB - 1) / TPB;
+
+  maxpool2d_batch_kernel<<<blocks, TPB>>>(
+      input, output, N, C, inH, inW, outH, outW, pool_size, stride);
+}
+
+__global__ void linear_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inF,
+                                    int outF);
+
+inline void linear_batch_cuda(const float* input,
+                              const float* weights,
+                              const float* bias,
+                              float* output,
+                              int N,
+                              int inF,
+                              int outF) {
+  int total = N * outF;
+  const int TPB = 256;
+  int blocks = (total + TPB - 1) / TPB;
+
+  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF);
+}
+
+}  // namespace cifar_dense::cuda

@@ -138,8 +138,8 @@ if has_config("use_cuda") then
 			"common/cuda/cu_bench_helper.cuh",
 
 			-- CIFAR sparse CUDA headers
-			-- "cifar-sparse/cuda/all_kernels.cuh",
-			-- "cifar-sparse/cuda/dispatchers.cuh",
+			"cifar-sparse/cuda/all_kernels.cuh",
+			"cifar-sparse/cuda/dispatchers.cuh",
 
 			-- CIFAR dense CUDA headers
 			"cifar-dense/cuda/all_kernels.cuh",
@@ -174,8 +174,8 @@ if has_config("use_cuda") then
 			"cifar-dense/cuda/dispatchers.cu",
 
 			-- CIFAR sparse CUDA implementations
-			-- "cifar-sparse/cuda/all_kernels.cu",
-			-- "cifar-sparse/cuda/dispatchers.cu",
+			"cifar-sparse/cuda/all_kernels.cu",
+			"cifar-sparse/cuda/dispatchers.cu",
 
 			-- Tree CUDA implementations
 			"tree/cuda/01_morton.cu",
@@ -190,7 +190,7 @@ if has_config("use_cuda") then
 
 
 		includes("cifar-dense/cuda/xmake.lua")
-		-- includes("cifar-sparse/cuda/xmake.lua")
+		includes("cifar-sparse/cuda/xmake.lua")
 		-- includes("tree/cuda/xmake.lua")
 
 
