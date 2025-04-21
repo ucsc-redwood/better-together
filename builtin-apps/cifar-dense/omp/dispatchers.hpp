@@ -31,6 +31,20 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_9,
 };
 
+inline void dispatch_stage(const std::vector<int>& cores_to_use,
+                           const int num_threads,
+                           AppData& appdata,
+                           const int stage) {
+  assert(stage >= 1 && stage <= 9);
+
+#pragma omp parallel num_threads(num_threads)
+  {
+    bind_thread_to_cores(cores_to_use);
+
+    dispatch_fns_batch[stage - 1](appdata);
+  }
+}
+
 inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                  const int num_threads,
                                  AppData& appdata,
