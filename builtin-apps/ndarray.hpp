@@ -17,6 +17,7 @@ class Ndarray1D {
 
   // Accessor for methods
   [[nodiscard]] int d0() const { return d0_; }
+  [[nodiscard]] int total_size() const { return d0_; }
 
   [[nodiscard]] const float* data() const { return data_.data(); }
   [[nodiscard]] float* data() { return data_.data(); }
@@ -41,6 +42,7 @@ class Ndarray2D {
   // Accessor methods
   [[nodiscard]] int d0() const { return d0_; }
   [[nodiscard]] int d1() const { return d1_; }
+  [[nodiscard]] int total_size() const { return d0_ * d1_; }
 
   [[nodiscard]] const float* data() const { return data_.data(); }
   [[nodiscard]] float* data() { return data_.data(); }
@@ -71,6 +73,7 @@ class Ndarray4D {
   [[nodiscard]] int d1() const { return d1_; }
   [[nodiscard]] int d2() const { return d2_; }
   [[nodiscard]] int d3() const { return d3_; }
+  [[nodiscard]] int total_size() const { return d0_ * d1_ * d2_ * d3_; }
 
   [[nodiscard]] const float* data() const { return data_.data(); }
   [[nodiscard]] float* data() { return data_.data(); }
