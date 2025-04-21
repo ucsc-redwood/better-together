@@ -2,129 +2,138 @@
 
 #include "all_kernels.cuh"
 
-namespace cifar_dense::cuda {
+namespace cifar_sparse::cuda {
 
-// ---------------------------------------------------------
-// 1) The CUDA kernel: one thread per output element
-// ---------------------------------------------------------
-__global__ void conv2d_batch_kernel(const float* __restrict__ input,
-                                    const float* __restrict__ weights,
-                                    const float* __restrict__ bias,
-                                    float* __restrict__ output,
-                                    int N,
-                                    int inC,
-                                    int inH,
-                                    int inW,
-                                    int outC,
-                                    int kH,
-                                    int kW,
-                                    int outH,
-                                    int outW,
-                                    int stride,
-                                    int padding,
-                                    bool relu) {
-  // flatten thread index
+void conv2d_csr_batch_kernel(const float* __restrict__ input_data,
+                             int batch_size,
+                             int in_channels,
+                             int in_height,
+                             int in_width,
+                             const float* __restrict__ weight_vals,
+                             const int* __restrict__ weight_row_ptr,
+                             const int* __restrict__ weight_col_idx,
+                             int out_channels,
+                             const float* __restrict__ bias_data,
+                             int bias_size,
+                             int kernel_size,
+                             int stride,
+                             int padding,
+                             bool relu,
+                             float* __restrict__ output_data) {
+  // recompute output dims
+  int out_height = (in_height + 2 * padding - kernel_size) / stride + 1;
+  int out_width = (in_width + 2 * padding - kernel_size) / stride + 1;
+
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int total = N * outC * outH * outW;
+  int total = batch_size * out_channels * out_height * out_width;
   if (idx >= total) return;
 
-  // decode (n, oc, oh, ow)
-  int ow = idx % outW;
-  int tmp = idx / outW;
-  int oh = tmp % outH;
-  tmp /= outH;
-  int oc = tmp % outC;
-  int n = tmp / outC;
+  // decode (b, out_c, oh, ow)
+  int ow = idx % out_width;
+  int tmp = idx / out_width;
+  int oh = tmp % out_height;
+  tmp /= out_height;
+  int out_c = tmp % out_channels;
+  int b = tmp / out_channels;
 
-  // bias
-  float sum = bias[oc];
+  float sum = 0.0f;
+  int row_start = weight_row_ptr[out_c];
+  int row_end = weight_row_ptr[out_c + 1];
+  int area = kernel_size * kernel_size;
 
-  // convolution over inC × kH × kW
-  for (int ic = 0; ic < inC; ++ic) {
-    for (int kh = 0; kh < kH; ++kh) {
-      for (int kw = 0; kw < kW; ++kw) {
-        int ih = oh * stride - padding + kh;
-        int iw = ow * stride - padding + kw;
-        if (ih >= 0 && ih < inH && iw >= 0 && iw < inW) {
-          int in_idx = ((n * inC + ic) * inH + ih) * inW + iw;
-          int w_idx = ((oc * inC + ic) * kH + kh) * kW + kw;
-          sum += input[in_idx] * weights[w_idx];
-        }
-      }
+  // loop over nonzeros in this output channel's CSR row
+  for (int nz = row_start; nz < row_end; ++nz) {
+    int flat_k = weight_col_idx[nz];
+    float w = weight_vals[nz];
+
+    int in_c = flat_k / area;
+    int rem = flat_k % area;
+    int ky = rem / kernel_size;
+    int kx = rem % kernel_size;
+
+    int in_y = oh * stride + ky - padding;
+    int in_x = ow * stride + kx - padding;
+
+    if (in_y >= 0 && in_y < in_height && in_x >= 0 && in_x < in_width) {
+      int in_idx = ((b * in_channels + in_c) * in_height + in_y) * in_width + in_x;
+      sum += input_data[in_idx] * w;
     }
   }
 
-  if (relu && sum < 0.f) sum = 0.f;
+  // bias + ReLU
+  if (bias_data && out_c < bias_size) sum += bias_data[out_c];
+  if (relu && sum < 0.0f) sum = 0.0f;
 
-  int out_idx = ((n * outC + oc) * outH + oh) * outW + ow;
-  output[out_idx] = sum;
+  int out_idx = ((b * out_channels + out_c) * out_height + oh) * out_width + ow;
+  output_data[out_idx] = sum;
 }
 
-__global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
-                                       float* __restrict__ output,
-                                       int N,
-                                       int C,
-                                       int inH,
-                                       int inW,
-                                       int outH,
-                                       int outW,
-                                       int pool_size,
-                                       int stride) {
+void maxpool2d_batch_kernel(const float* __restrict__ input_data,
+                            float* __restrict__ output_data,
+                            int batch_size,
+                            int channels,
+                            int in_height,
+                            int in_width,
+                            int out_height,
+                            int out_width,
+                            int pool_size,
+                            int stride) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int total = N * C * outH * outW;
+  int total = batch_size * channels * out_height * out_width;
   if (idx >= total) return;
 
-  // decode
-  int ow = idx % outW;
-  int tmp = idx / outW;
-  int oh = tmp % outH;
-  tmp /= outH;
-  int c = tmp % C;
-  int n = tmp / C;
+  // decode (b, c, oh, ow)
+  int ow = idx % out_width;
+  int tmp = idx / out_width;
+  int oh = tmp % out_height;
+  tmp /= out_height;
+  int c = tmp % channels;
+  int b = tmp / channels;
 
-  int h_start = oh * stride;
-  int w_start = ow * stride;
-  int h_end = min(h_start + pool_size, inH);
-  int w_end = min(w_start + pool_size, inW);
+  int h0 = oh * stride;
+  int w0 = ow * stride;
+  int h1 = h0 + pool_size < in_height ? h0 + pool_size : in_height;
+  int w1 = w0 + pool_size < in_width ? w0 + pool_size : in_width;
 
   float maxv = -FLT_MAX;
-  for (int h = h_start; h < h_end; ++h) {
-    for (int w = w_start; w < w_end; ++w) {
-      int in_idx = ((n * C + c) * inH + h) * inW + w;
-      maxv = max(maxv, input[in_idx]);
+  for (int y = h0; y < h1; ++y) {
+    for (int x = w0; x < w1; ++x) {
+      int in_idx = ((b * channels + c) * in_height + y) * in_width + x;
+      float v = input_data[in_idx];
+      if (v > maxv) maxv = v;
     }
   }
-
-  int out_idx = ((n * C + c) * outH + oh) * outW + ow;
-  output[out_idx] = maxv;
+  int out_idx = ((b * channels + c) * out_height + oh) * out_width + ow;
+  output_data[out_idx] = maxv;
 }
 
-// ---------------------------------------------------------------------------
-// 2) linear_batch
-//    One thread per (n, of)
-// ---------------------------------------------------------------------------
-__global__ void linear_batch_kernel(const float* __restrict__ input,
-                                    const float* __restrict__ weights,
-                                    const float* __restrict__ bias,
-                                    float* __restrict__ output,
-                                    int N,
-                                    int inF,
-                                    int outF) {
+void linear_csr_batch_kernel(const float* __restrict__ input_data,
+                             int batch_size,
+                             int input_features,
+                             const float* __restrict__ weight_vals,
+                             const int* __restrict__ weight_row_ptr,
+                             const int* __restrict__ weight_col_idx,
+                             const float* __restrict__ bias_data,
+                             int out_neurons,
+                             float* __restrict__ output_data) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int total = N * outF;
+  int total = batch_size * out_neurons;
   if (idx >= total) return;
 
-  int of = idx % outF;
-  int n = idx / outF;
+  int of = idx % out_neurons;
+  int b = idx / out_neurons;
 
-  float sum = bias[of];
-  const float* in_row = input + n * inF;
-  const float* w_row = weights + of * inF;
-  for (int i = 0; i < inF; ++i) {
-    sum += in_row[i] * w_row[i];
+  float sum = 0.0f;
+  int start = weight_row_ptr[of];
+  int end = weight_row_ptr[of + 1];
+
+  for (int nz = start; nz < end; ++nz) {
+    int col = weight_col_idx[nz];
+    int in_idx = b * input_features + col;
+    sum += input_data[in_idx] * weight_vals[nz];
   }
-
-  output[n * outF + of] = sum;
+  sum += bias_data[of];  // assume bias_data != nullptr
+  output_data[idx] = sum;
 }
 
-}  // namespace cifar_dense::cuda
+}  // namespace cifar_sparse::cuda

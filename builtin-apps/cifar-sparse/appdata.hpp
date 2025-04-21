@@ -7,6 +7,17 @@
 
 namespace cifar_sparse {
 
+// Convolution parameters
+constexpr int kKernelSize = 3;
+constexpr int kStride = 1;
+constexpr int kPadding = 1;
+
+// Pooling parameters
+constexpr int kPoolSize = 2;
+constexpr int kPoolStride = 2;
+
+constexpr bool kRelu = true;
+
 struct CSRMatrix {
   const int rows;
   const int cols;
