@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 
 template <typename T, size_t Size = 1024>
-  requires std::is_move_constructible_v<T>
+requires std::is_move_constructible_v<T>
 class SPSCQueue {
   static_assert((Size & (Size - 1)) == 0, "Size must be a power of 2");
 
@@ -26,6 +26,19 @@ class SPSCQueue {
     }
 
     buffer_[head] = std::move(item);
+    head_.store(next_head, std::memory_order_release);
+    return true;
+  }
+
+  bool enqueue(const T& item) {
+    const size_t head = head_.load(std::memory_order_relaxed);
+    const size_t next_head = (head + 1) & mask_;
+
+    if (next_head == tail_.load(std::memory_order_acquire)) {
+      return false;  // full
+    }
+
+    buffer_[head] = item;
     head_.store(next_head, std::memory_order_release);
     return true;
   }

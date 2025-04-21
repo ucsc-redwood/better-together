@@ -18,8 +18,6 @@ std::queue<T> make_queue_from_vector(const std::vector<T>& vec) {
   return std::queue<T>(std::deque<T>(vec.begin(), vec.end()));
 }
 
-
-
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
@@ -27,18 +25,14 @@ int main(int argc, char** argv) {
 
   DispatcherT disp;
 
-  const auto appdatas = make_dataset(disp, 10);
+  auto appdatas = make_dataset(disp, 10);
 
-//   auto q = make_queue_from_vector(appdatas);
+  SPSCQueue<AppDataPtr, 1024> q;
 
-//   while (!q.empty()) {
-//     auto app = q.front();
-//     q.pop();
-//     disp.dispatch_stage(*app, 1);
-//   }
+  for (auto & app : appdatas) {
+    q.enqueue(app);
+  }
 
-
-  SPSCQueue<AppDataPtr, kPoolSize> q;
-
+  spdlog::info("Done with vector");
   return 0;
 }

@@ -2,8 +2,8 @@
 
 #include <queue>
 
-#include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
 #include "builtin-apps/cifar-dense/cuda/dispatchers.cuh"
+#include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 // #include "builtin-apps/pipeline/task.hpp"
 
@@ -17,11 +17,10 @@ using AppDataT = cifar_dense::AppData;
 
 using AppDataPtr = std::shared_ptr<AppDataT>;
 
-
 // Pipeline-specific constants
 
 constexpr size_t kPoolSize = 16;
 constexpr size_t kNumToProcess = 100;
 
-using QueueT = SPSCQueue<AppDataPtr, kPoolSize>;
+// using QueueT = SPSCQueue<AppDataPtr, kPoolSize>;
 using LocalQueue = std::queue<AppDataPtr>;

@@ -3,6 +3,8 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
+
 #include "../../debug_logger.hpp"
 #include "all_kernels.hpp"
 
