@@ -36,6 +36,26 @@ class CudaDispatcher {
       &CudaDispatcher::run_stage_9_async,
   };
 
+  void dispatch_stage(AppData &appdata, const int stage) {
+    assert(stage >= 1 && stage <= 9);
+
+    (this->*stage_functions[stage - 1])(appdata);
+
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
+
+  void dispatch_multi_stage(AppData &appdata, const int start_stage, const int end_stage) {
+    assert(start_stage >= 1 && end_stage <= 9);
+
+    for (int stage = start_stage; stage <= end_stage; stage++) {
+      (this->*stage_functions[stage - 1])(appdata);
+    }
+
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
+
  private:
   ::cuda::CudaManager<::cuda::CudaManagedResource> mgr_;
 };
