@@ -14,11 +14,8 @@ static void BM_Stage1(benchmark::State& state) {
   auto mr = std::pmr::new_delete_resource();
   cifar_dense::AppData appdata(mr);
 
-  // warm up
-  cifar_dense::omp::run_stage_1(appdata);
-
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_1(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 1);
   }
 }
 
@@ -33,13 +30,10 @@ static void BM_Stage2(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_2(appdata);
+  cifar_dense::omp::dispatch_stage(appdata, 1);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_2(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 2);
   }
 }
 
@@ -54,14 +48,10 @@ static void BM_Stage3(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_3(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 2);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_3(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 3);
   }
 }
 
@@ -76,15 +66,10 @@ static void BM_Stage4(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-  cifar_dense::omp::run_stage_3(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_4(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 3);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_4(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 4);
   }
 }
 
@@ -99,16 +84,10 @@ static void BM_Stage5(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-  cifar_dense::omp::run_stage_3(appdata);
-  cifar_dense::omp::run_stage_4(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_5(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 4);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_5(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 5);
   }
 }
 
@@ -123,17 +102,10 @@ static void BM_Stage6(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-  cifar_dense::omp::run_stage_3(appdata);
-  cifar_dense::omp::run_stage_4(appdata);
-  cifar_dense::omp::run_stage_5(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_6(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 5);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_6(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 6);
   }
 }
 
@@ -148,18 +120,10 @@ static void BM_Stage7(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-  cifar_dense::omp::run_stage_3(appdata);
-  cifar_dense::omp::run_stage_4(appdata);
-  cifar_dense::omp::run_stage_5(appdata);
-  cifar_dense::omp::run_stage_6(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_7(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 6);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_7(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 7);
   }
 }
 
@@ -174,19 +138,10 @@ static void BM_Stage8(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-  cifar_dense::omp::run_stage_3(appdata);
-  cifar_dense::omp::run_stage_4(appdata);
-  cifar_dense::omp::run_stage_5(appdata);
-  cifar_dense::omp::run_stage_6(appdata);
-  cifar_dense::omp::run_stage_7(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_8(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 7);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_8(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 8);
   }
 }
 
@@ -201,20 +156,10 @@ static void BM_Stage9(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   // Run all previous stages before benchmarking
-  cifar_dense::omp::run_stage_1(appdata);
-  cifar_dense::omp::run_stage_2(appdata);
-  cifar_dense::omp::run_stage_3(appdata);
-  cifar_dense::omp::run_stage_4(appdata);
-  cifar_dense::omp::run_stage_5(appdata);
-  cifar_dense::omp::run_stage_6(appdata);
-  cifar_dense::omp::run_stage_7(appdata);
-  cifar_dense::omp::run_stage_8(appdata);
-
-  // warm up
-  cifar_dense::omp::run_stage_9(appdata);
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 8);
 
   for (auto _ : state) {
-    cifar_dense::omp::run_stage_9(appdata);
+    cifar_dense::omp::dispatch_stage(appdata, 9);
   }
 }
 
