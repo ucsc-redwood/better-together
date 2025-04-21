@@ -8,16 +8,16 @@
 
 namespace cifar_dense::omp {
 
-// Convolution parameters
-constexpr int kKernelSize = 3;
-constexpr int kStride = 1;
-constexpr int kPadding = 1;
+// // Convolution parameters
+// constexpr int kKernelSize = 3;
+// constexpr int kStride = 1;
+// constexpr int kPadding = 1;
 
-// Pooling parameters
-constexpr int kPoolSize = 2;
-constexpr int kPoolStride = 2;
+// // Pooling parameters
+// constexpr int kPoolSize = 2;
+// constexpr int kPoolStride = 2;
 
-constexpr bool kRelu = true;
+// constexpr bool kRelu = true;
 
 void run_stage_1(AppData &appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
