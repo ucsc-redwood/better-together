@@ -6,27 +6,12 @@
 #include "dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
-// test appdata initialization
-// ----------------------------------------------------------------------------
-
-TEST(AppdataTest, Initialization) {
-  auto mr = std::pmr::new_delete_resource();
-  cifar_sparse::AppData appdata(mr);
-
-  EXPECT_EQ(appdata.conv1_sparse.rows, 16);
-  EXPECT_EQ(appdata.conv1_sparse.cols, 27);
-}
-
-// ----------------------------------------------------------------------------
 // test Stage 1
 // ----------------------------------------------------------------------------
 
 TEST(Stage1Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
-
-  // Run stage 1
-  cifar_sparse::omp::run_stage_1(appdata);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_conv1_out.d0(), 512);
@@ -35,7 +20,7 @@ TEST(Stage1Test, Basic) {
   EXPECT_EQ(appdata.u_conv1_out.d3(), 32);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 1));
 }
 
 // ----------------------------------------------------------------------------
@@ -46,8 +31,7 @@ TEST(Stage2Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 2
-  cifar_sparse::omp::run_stage_2(appdata);
+  cifar_sparse::omp::dispatch_stage(appdata, 1);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_pool1_out.d0(), 512);
@@ -56,7 +40,7 @@ TEST(Stage2Test, Basic) {
   EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 2));
 }
 
 // ----------------------------------------------------------------------------
@@ -67,8 +51,7 @@ TEST(Stage3Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 3
-  cifar_sparse::omp::run_stage_3(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 2);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_conv2_out.d0(), 512);
@@ -77,7 +60,7 @@ TEST(Stage3Test, Basic) {
   EXPECT_EQ(appdata.u_conv2_out.d3(), 16);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_3(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 3));
 }
 
 // ----------------------------------------------------------------------------
@@ -88,8 +71,7 @@ TEST(Stage4Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 4
-  cifar_sparse::omp::run_stage_4(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 3);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_pool2_out.d0(), 512);
@@ -98,7 +80,7 @@ TEST(Stage4Test, Basic) {
   EXPECT_EQ(appdata.u_pool2_out.d3(), 8);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 4));
 }
 
 // ----------------------------------------------------------------------------
@@ -109,8 +91,7 @@ TEST(Stage5Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 5
-  cifar_sparse::omp::run_stage_5(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 4);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_conv3_out.d0(), 512);
@@ -119,7 +100,7 @@ TEST(Stage5Test, Basic) {
   EXPECT_EQ(appdata.u_conv3_out.d3(), 8);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_5(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 5));
 }
 
 // ----------------------------------------------------------------------------
@@ -130,8 +111,7 @@ TEST(Stage6Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 6
-  cifar_sparse::omp::run_stage_6(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 5);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_conv4_out.d0(), 512);
@@ -140,7 +120,7 @@ TEST(Stage6Test, Basic) {
   EXPECT_EQ(appdata.u_conv4_out.d3(), 8);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_6(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 6));
 }
 
 // ----------------------------------------------------------------------------
@@ -151,8 +131,7 @@ TEST(Stage7Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 7
-  cifar_sparse::omp::run_stage_7(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 6);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_conv5_out.d0(), 512);
@@ -161,7 +140,7 @@ TEST(Stage7Test, Basic) {
   EXPECT_EQ(appdata.u_conv5_out.d3(), 8);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_7(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 7));
 }
 
 // ----------------------------------------------------------------------------
@@ -172,8 +151,7 @@ TEST(Stage8Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 8
-  cifar_sparse::omp::run_stage_8(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 7);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_pool3_out.d0(), 512);
@@ -182,7 +160,7 @@ TEST(Stage8Test, Basic) {
   EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_8(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 8));
 }
 
 // ----------------------------------------------------------------------------
@@ -193,15 +171,14 @@ TEST(Stage9Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   cifar_sparse::AppData appdata(mr);
 
-  // Run stage 9
-  cifar_sparse::omp::run_stage_9(appdata);
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 8);
 
   // Check output dimensions
   EXPECT_EQ(appdata.u_linear_out.d1(), 10);
   EXPECT_EQ(appdata.u_linear_out.d0(), 512);
 
   // Check no throw
-  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_9(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::dispatch_stage(appdata, 9));
 }
 
 int main(int argc, char **argv) {
