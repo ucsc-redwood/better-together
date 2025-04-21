@@ -10,35 +10,12 @@
 #include "dispatchers.cuh"
 
 // ----------------------------------------------------------------------------
-// test appdata initialization
-// ----------------------------------------------------------------------------
-
-TEST(AppdataTest, Initialization) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
-
-  EXPECT_EQ(appdata.u_conv1_w.d0(), 16);
-  EXPECT_EQ(appdata.u_conv1_w.d1(), 3);
-  EXPECT_EQ(appdata.u_conv1_w.d2(), 3);
-  EXPECT_EQ(appdata.u_conv1_w.d3(), 3);
-}
-
-// ----------------------------------------------------------------------------
 // test Stage 1
 // ----------------------------------------------------------------------------
 
 TEST(Stage1Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
-
-  // Run stage 1
-  disp.dispatch_stage(appdata, 1);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_conv1_out.d0(), 128);
-  EXPECT_EQ(appdata.u_conv1_out.d1(), 16);
-  EXPECT_EQ(appdata.u_conv1_out.d2(), 32);
-  EXPECT_EQ(appdata.u_conv1_out.d3(), 32);
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
@@ -49,17 +26,10 @@ TEST(Stage1Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage2Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
-  // Run stage 2
-  disp.dispatch_stage(appdata, 2);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_pool1_out.d0(), 128);
-  EXPECT_EQ(appdata.u_pool1_out.d1(), 16);
-  EXPECT_EQ(appdata.u_pool1_out.d2(), 16);
-  EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
+  disp.dispatch_stage(appdata, 1);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
@@ -70,17 +40,11 @@ TEST(Stage2Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage3Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
-  // Run stage 3
-  disp.dispatch_stage(appdata, 3);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_conv2_out.d0(), 128);
-  EXPECT_EQ(appdata.u_conv2_out.d1(), 32);
-  EXPECT_EQ(appdata.u_conv2_out.d2(), 16);
-  EXPECT_EQ(appdata.u_conv2_out.d3(), 16);
+  disp.dispatch_stage(appdata, 1);
+  disp.dispatch_stage(appdata, 2);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
@@ -91,17 +55,12 @@ TEST(Stage3Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage4Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
-  // Run stage 4
-  disp.dispatch_stage(appdata, 4);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_pool2_out.d0(), 128);
-  EXPECT_EQ(appdata.u_pool2_out.d1(), 32);
-  EXPECT_EQ(appdata.u_pool2_out.d2(), 8);
-  EXPECT_EQ(appdata.u_pool2_out.d3(), 8);
+  disp.dispatch_stage(appdata, 1);
+  disp.dispatch_stage(appdata, 2);
+  disp.dispatch_stage(appdata, 3);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
@@ -112,17 +71,14 @@ TEST(Stage4Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage5Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run stage 5
-  disp.dispatch_stage(appdata, 5);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_conv3_out.d0(), 128);
-  EXPECT_EQ(appdata.u_conv3_out.d1(), 64);
-  EXPECT_EQ(appdata.u_conv3_out.d2(), 8);
-  EXPECT_EQ(appdata.u_conv3_out.d3(), 8);
+  disp.dispatch_stage(appdata, 1);
+  disp.dispatch_stage(appdata, 2);
+  disp.dispatch_stage(appdata, 3);
+  disp.dispatch_stage(appdata, 4);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
@@ -133,17 +89,15 @@ TEST(Stage5Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage6Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run stage 6
-  disp.dispatch_stage(appdata, 6);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_conv4_out.d0(), 128);
-  EXPECT_EQ(appdata.u_conv4_out.d1(), 64);
-  EXPECT_EQ(appdata.u_conv4_out.d2(), 8);
-  EXPECT_EQ(appdata.u_conv4_out.d3(), 8);
+  disp.dispatch_stage(appdata, 1);
+  disp.dispatch_stage(appdata, 2);
+  disp.dispatch_stage(appdata, 3);
+  disp.dispatch_stage(appdata, 4);
+  disp.dispatch_stage(appdata, 5);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
@@ -154,17 +108,16 @@ TEST(Stage6Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage7Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run stage 7
-  disp.dispatch_stage(appdata, 7);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_conv5_out.d0(), 128);
-  EXPECT_EQ(appdata.u_conv5_out.d1(), 64);
-  EXPECT_EQ(appdata.u_conv5_out.d2(), 8);
-  EXPECT_EQ(appdata.u_conv5_out.d3(), 8);
+  disp.dispatch_stage(appdata, 1);
+  disp.dispatch_stage(appdata, 2);
+  disp.dispatch_stage(appdata, 3);
+  disp.dispatch_stage(appdata, 4);
+  disp.dispatch_stage(appdata, 5);
+  disp.dispatch_stage(appdata, 6);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
@@ -175,17 +128,17 @@ TEST(Stage7Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(Stage8Test, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run stage 8
-  disp.dispatch_stage(appdata, 8);
-
-  // Check output dimensions
-  EXPECT_EQ(appdata.u_pool3_out.d0(), 128);
-  EXPECT_EQ(appdata.u_pool3_out.d1(), 64);
-  EXPECT_EQ(appdata.u_pool3_out.d2(), 4);
-  EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
+  disp.dispatch_stage(appdata, 1);
+  disp.dispatch_stage(appdata, 2);
+  disp.dispatch_stage(appdata, 3);
+  disp.dispatch_stage(appdata, 4);
+  disp.dispatch_stage(appdata, 5);
+  disp.dispatch_stage(appdata, 6);
+  disp.dispatch_stage(appdata, 7);
 
   // Check no throw
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 8));
@@ -196,24 +149,24 @@ TEST(Stage8Test, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(MixingTest, CudaThenOmp) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_2(appdata));
 }
 
 TEST(MixingTest, OmpThenCuda) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_1(appdata));
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
 }
 
 TEST(MixingTest, MultipleStages) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run first 3 stages with CUDA
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
@@ -221,8 +174,8 @@ TEST(MixingTest, MultipleStages) {
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
 
   // Run next 2 stages with OMP
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_4(appdata));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_5(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_5(appdata));
 
   // Run final stages with CUDA
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
@@ -232,24 +185,24 @@ TEST(MixingTest, MultipleStages) {
 }
 
 TEST(MixingTest, AlternatingStages) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Alternate between CUDA and OMP for each stage
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_2(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_2(appdata));
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_4(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_4(appdata));
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_6(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_6(appdata));
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_8(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_8(appdata));
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 9));
 }
 
 TEST(MixingTest, MixedBatch) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
+  cifar_sparse::cuda::CudaDispatcher disp;
+  cifar_sparse::AppData appdata(&disp.get_mr());
 
   // Run first half with CUDA
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
@@ -258,11 +211,11 @@ TEST(MixingTest, MixedBatch) {
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
 
   // Run second half with OMP
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_5(appdata));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_6(appdata));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_7(appdata));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_8(appdata));
-  EXPECT_NO_THROW(cifar_dense::omp::run_stage_9(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_5(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_6(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_7(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_8(appdata));
+  EXPECT_NO_THROW(cifar_sparse::omp::run_stage_9(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -270,15 +223,15 @@ TEST(MixingTest, MixedBatch) {
 // ----------------------------------------------------------------------------
 
 TEST(QueueTest, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_sparse::cuda::CudaDispatcher disp;
 
-  std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
+  std::vector<std::shared_ptr<cifar_sparse::AppData>> appdatas;
   appdatas.reserve(10);
   for (int i = 0; i < 10; i++) {
-    appdatas.push_back(std::make_shared<cifar_dense::AppData>(&disp.get_mr()));
+    appdatas.push_back(std::make_shared<cifar_sparse::AppData>(&disp.get_mr()));
   }
 
-  std::queue<std::shared_ptr<cifar_dense::AppData>> queue;
+  std::queue<std::shared_ptr<cifar_sparse::AppData>> queue;
   for (auto& appdata : appdatas) {
     queue.push(appdata);
   }
@@ -298,16 +251,16 @@ TEST(QueueTest, Basic) {
 // ----------------------------------------------------------------------------
 
 TEST(ConcurrentQueueTest, Basic) {
-  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_sparse::cuda::CudaDispatcher disp;
 
-  std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
+  std::vector<std::shared_ptr<cifar_sparse::AppData>> appdatas;
   appdatas.reserve(10);
   for (int i = 0; i < 10; i++) {
-    appdatas.push_back(std::make_shared<cifar_dense::AppData>(&disp.get_mr()));
+    appdatas.push_back(std::make_shared<cifar_sparse::AppData>(&disp.get_mr()));
   }
 
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> gpu_queue;
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> cpu_queue;
+  SPSCQueue<std::shared_ptr<cifar_sparse::AppData>> gpu_queue;
+  SPSCQueue<std::shared_ptr<cifar_sparse::AppData>> cpu_queue;
 
   // Initial push to GPU queue
   for (auto& appdata : appdatas) {
@@ -317,7 +270,7 @@ TEST(ConcurrentQueueTest, Basic) {
   // Producer thread - GPU processing
   std::thread producer([&]() {
     for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
+      std::shared_ptr<cifar_sparse::AppData> appdata;
       while (!gpu_queue.dequeue(appdata)) {
         std::this_thread::yield();
       }
@@ -333,13 +286,13 @@ TEST(ConcurrentQueueTest, Basic) {
   // Consumer thread - CPU processing
   std::thread consumer([&]() {
     for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
+      std::shared_ptr<cifar_sparse::AppData> appdata;
       while (!cpu_queue.dequeue(appdata)) {
         std::this_thread::yield();
       }
 
       // Process on CPU (stages 5-9)
-      EXPECT_NO_THROW(cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, *appdata, 5, 9));
+      EXPECT_NO_THROW(cifar_sparse::omp::dispatch_multi_stage(LITTLE_CORES, *appdata, 5, 9));
     }
   });
 
@@ -347,20 +300,20 @@ TEST(ConcurrentQueueTest, Basic) {
   consumer.join();
 }
 
-TEST(CifarDenseTest, InterleavedConcurrentStages) {
-  cifar_dense::cuda::CudaDispatcher disp;
+TEST(CifarSparseTest, InterleavedConcurrentStages) {
+  cifar_sparse::cuda::CudaDispatcher disp;
 
   // Create queues for inter-thread communication
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> gpu_queue1;
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> cpu_queue1;
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> gpu_queue2;
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> cpu_queue2;
+  SPSCQueue<std::shared_ptr<cifar_sparse::AppData>> gpu_queue1;
+  SPSCQueue<std::shared_ptr<cifar_sparse::AppData>> cpu_queue1;
+  SPSCQueue<std::shared_ptr<cifar_sparse::AppData>> gpu_queue2;
+  SPSCQueue<std::shared_ptr<cifar_sparse::AppData>> cpu_queue2;
 
   // Create test data
-  std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
+  std::vector<std::shared_ptr<cifar_sparse::AppData>> appdatas;
   appdatas.reserve(10);
   for (int i = 0; i < 10; i++) {
-    appdatas.push_back(std::make_shared<cifar_dense::AppData>(&disp.get_mr()));
+    appdatas.push_back(std::make_shared<cifar_sparse::AppData>(&disp.get_mr()));
   }
 
   // Initial push to first GPU queue
@@ -371,7 +324,7 @@ TEST(CifarDenseTest, InterleavedConcurrentStages) {
   // GPU thread 1 - processes stages 1-2
   std::thread gpu_thread1([&]() {
     for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
+      std::shared_ptr<cifar_sparse::AppData> appdata;
       while (!gpu_queue1.dequeue(appdata)) {
         std::this_thread::yield();
       }
@@ -385,11 +338,11 @@ TEST(CifarDenseTest, InterleavedConcurrentStages) {
   // CPU thread 1 - processes stages 3-4
   std::thread cpu_thread1([&]() {
     for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
+      std::shared_ptr<cifar_sparse::AppData> appdata;
       while (!cpu_queue1.dequeue(appdata)) {
         std::this_thread::yield();
       }
-      EXPECT_NO_THROW(cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, *appdata, 3, 4));
+      EXPECT_NO_THROW(cifar_sparse::omp::dispatch_multi_stage(LITTLE_CORES, *appdata, 3, 4));
       while (!gpu_queue2.enqueue(std::move(appdata))) {
         std::this_thread::yield();
       }
@@ -399,7 +352,7 @@ TEST(CifarDenseTest, InterleavedConcurrentStages) {
   // GPU thread 2 - processes stages 5-6
   std::thread gpu_thread2([&]() {
     for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
+      std::shared_ptr<cifar_sparse::AppData> appdata;
       while (!gpu_queue2.dequeue(appdata)) {
         std::this_thread::yield();
       }
@@ -413,11 +366,11 @@ TEST(CifarDenseTest, InterleavedConcurrentStages) {
   // CPU thread 2 - processes stages 7-9
   std::thread cpu_thread2([&]() {
     for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
+      std::shared_ptr<cifar_sparse::AppData> appdata;
       while (!cpu_queue2.dequeue(appdata)) {
         std::this_thread::yield();
       }
-      EXPECT_NO_THROW(cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, *appdata, 7, 9));
+      EXPECT_NO_THROW(cifar_sparse::omp::dispatch_multi_stage(LITTLE_CORES, *appdata, 7, 9));
       while (!gpu_queue1.enqueue(std::move(appdata))) {
         std::this_thread::yield();
       }
