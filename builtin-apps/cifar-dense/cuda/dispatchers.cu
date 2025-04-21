@@ -4,6 +4,8 @@
 
 namespace cifar_dense::cuda {
 
+constexpr bool kSync = true;
+
 void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
 
@@ -32,8 +34,10 @@ void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
                     kPadding,
                     kRelu);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_2_async(cifar_dense::AppData &appdata) {
@@ -57,8 +61,10 @@ void CudaDispatcher::run_stage_2_async(cifar_dense::AppData &appdata) {
                        kPoolSize,
                        kPoolStride);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_3_async(cifar_dense::AppData &appdata) {
@@ -89,8 +95,10 @@ void CudaDispatcher::run_stage_3_async(cifar_dense::AppData &appdata) {
                     kPadding,
                     kRelu);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_4_async(cifar_dense::AppData &appdata) {
@@ -114,8 +122,10 @@ void CudaDispatcher::run_stage_4_async(cifar_dense::AppData &appdata) {
                        kPoolSize,
                        kPoolStride);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_5_async(cifar_dense::AppData &appdata) {
@@ -146,8 +156,10 @@ void CudaDispatcher::run_stage_5_async(cifar_dense::AppData &appdata) {
                     kPadding,
                     kRelu);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_6_async(cifar_dense::AppData &appdata) {
@@ -178,8 +190,10 @@ void CudaDispatcher::run_stage_6_async(cifar_dense::AppData &appdata) {
                     kPadding,
                     kRelu);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_7_async(cifar_dense::AppData &appdata) {
@@ -210,8 +224,10 @@ void CudaDispatcher::run_stage_7_async(cifar_dense::AppData &appdata) {
                     kPadding,
                     kRelu);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_8_async(cifar_dense::AppData &appdata) {
@@ -235,8 +251,10 @@ void CudaDispatcher::run_stage_8_async(cifar_dense::AppData &appdata) {
                        kPoolSize,
                        kPoolStride);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 void CudaDispatcher::run_stage_9_async(cifar_dense::AppData &appdata) {
@@ -257,8 +275,10 @@ void CudaDispatcher::run_stage_9_async(cifar_dense::AppData &appdata) {
                     inF,
                     outF);
 
-  CheckCuda(cudaGetLastError());
-  CheckCuda(cudaDeviceSynchronize());
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
 }
 
 }  // namespace cifar_dense::cuda

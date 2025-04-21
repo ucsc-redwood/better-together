@@ -13,32 +13,32 @@ int main(int argc, char** argv) {
 
   dumpCompressed(appdata.u_conv1_out.pmr_vec());
 
-  disp.run_stage_1_async(appdata);
+  disp.dispatch_stage(appdata, 1);
 
   dumpCompressed(appdata.u_conv1_out.pmr_vec());
 
-  disp.run_stage_2_async(appdata);
+  disp.dispatch_stage(appdata, 2);
   dumpCompressed(appdata.u_pool1_out.pmr_vec());
 
-  disp.run_stage_3_async(appdata);
+  disp.dispatch_stage(appdata, 3);
   dumpCompressed(appdata.u_conv2_out.pmr_vec());
 
-  disp.run_stage_4_async(appdata);
+  disp.dispatch_stage(appdata, 4);
   dumpCompressed(appdata.u_pool2_out.pmr_vec());
 
-  disp.run_stage_5_async(appdata);
+  disp.dispatch_stage(appdata, 5);
   dumpCompressed(appdata.u_conv3_out.pmr_vec());
 
-  disp.run_stage_6_async(appdata);
+  disp.dispatch_stage(appdata, 6);
   dumpCompressed(appdata.u_conv4_out.pmr_vec());
 
-  disp.run_stage_7_async(appdata);
+  disp.dispatch_stage(appdata, 7);
   dumpCompressed(appdata.u_conv5_out.pmr_vec());
 
-  disp.run_stage_8_async(appdata);
+  disp.dispatch_stage(appdata, 8);
   dumpCompressed(appdata.u_conv5_out.pmr_vec());
 
-  disp.run_stage_9_async(appdata);
+  disp.dispatch_stage(appdata, 9);
   dumpCompressed(appdata.u_conv5_out.pmr_vec());
 
   return 0;
