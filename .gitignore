@@ -36,3 +36,4 @@ cifar-10-batches-py/
 *.sqlite
 .venv/
 venv/
+data/cifar-10-python.tar.gz
