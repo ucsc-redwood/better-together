@@ -14,7 +14,6 @@ using AppDataT = cifar_dense::AppData;
 using AppDataPtr = std::shared_ptr<AppDataT>;
 
 // Pipeline-specific constants
-
 constexpr size_t kPoolSize = 32;
 constexpr size_t kNumToProcess = 100;
 
