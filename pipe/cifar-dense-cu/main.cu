@@ -1,11 +1,15 @@
+#include <thread>
+
 #include "builtin-apps/app.hpp"
+#include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
 #include "const.hpp"
 
-[[nodiscard]] std::vector<AppDataPtr> make_dataset(DispatcherT& disp, const size_t num_items) {
+[[nodiscard]] std::vector<AppDataPtr> make_dataset(DispatcherT& disp,
+                                                   const size_t num_items = kNumToProcess) {
   std::vector<AppDataPtr> result;
   result.reserve(num_items);
 
-  for (int i = 0; i < num_items; ++i) {
+  for (size_t i = 0; i < num_items; ++i) {
     auto app = std::make_shared<cifar_dense::AppData>(&disp.get_mr());
     result.push_back(app);
   }
@@ -18,6 +22,30 @@ std::queue<T> make_queue_from_vector(const std::vector<T>& vec) {
   return std::queue<T>(std::deque<T>(vec.begin(), vec.end()));
 }
 
+// template <typename TaskT, size_t kPoolSize, size_t kNumToProcess>
+
+void worker(SPSCQueue<AppDataPtr, kPoolSize>& q_in, SPSCQueue<AppDataPtr, kPoolSize>& q_out) {
+  for (size_t i = 0; i < kNumToProcess; ++i) {
+    AppDataPtr app;
+    while (!q_in.dequeue(app)) {
+      std::this_thread::yield();
+    }
+
+    if (app == nullptr) {
+      throw std::runtime_error("App is nullptr");
+    }
+
+    // ------------------------------------------------------------------------
+    spdlog::info("Processing app {}", i);
+    // cifar_dense::omp::dispatch_stage(*app, 1);
+    // ------------------------------------------------------------------------
+
+    while (!q_out.enqueue(app)) {
+      std::this_thread::yield();
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
@@ -25,13 +53,16 @@ int main(int argc, char** argv) {
 
   DispatcherT disp;
 
-  auto appdatas = make_dataset(disp, 10);
+  const std::vector<AppDataPtr> data = make_dataset(disp, 10);
 
-  SPSCQueue<AppDataPtr, 1024> q;
+  SPSCQueue<AppDataPtr, kPoolSize> q0;
+  SPSCQueue<AppDataPtr, kPoolSize> q1;
 
-  for (auto & app : appdatas) {
-    q.enqueue(app);
+  for (const auto& item : data) {
+    q0.enqueue(item);
   }
+
+  worker(q0, q0);
 
   spdlog::info("Done with vector");
   return 0;
