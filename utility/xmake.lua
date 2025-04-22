@@ -1,6 +1,5 @@
 -- Copyright (c) 2025 Yanwen Xu (yxu83@ucsc.edu). MIT License.
 
-
 -- ----------------------------------------------------------------
 -- Utility Target: Check Core Types
 -- ----------------------------------------------------------------
@@ -29,7 +28,6 @@ if has_config("use_vulkan") then
 	end
 end
 
-
 -- ----------------------------------------------------------------
 -- Utility Target: try pinning threads to all cores and verify if it works
 -- ----------------------------------------------------------------
@@ -43,19 +41,17 @@ do
 	})
 end
 
-
 -- ----------------------------------------------------------------
 -- Utility (Vulkan)
 -- ----------------------------------------------------------------
 -- Utility Target: Find the current GPU's Warp Size
 -- Utility Target: Query the current Vulkan-Hpp version
 -- Vulkan-Hpp version: 309
--- And 
+-- And
 -- Vulkan-Hpp version: 290
 -- ----------------------------------------------------------------
 
 if has_config("use_vulkan") then
-
 	target("query-warpsize")
 	do
 		set_kind("binary")
@@ -85,5 +81,4 @@ if has_config("use_vulkan") then
 			})
 		end
 	end
-
 end

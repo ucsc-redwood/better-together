@@ -48,4 +48,3 @@ do
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
 end
-
