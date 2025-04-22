@@ -145,47 +145,9 @@ function run_on_android(target)
 	-- Run on each device
 	import("core.base.option")
 	local args = option.get("arguments") or {}
-
-	-- print args
-	print(table.concat(args, " "))
-	print("--------------------------------")
-	-- then exit
-	os.exit()
-
-	-- Check if a specific device was requested
-	local specific_device = nil
-	for i = 1, #args do
-		local arg = args[i]
-		local device_id = arg:match("^--device=(.+)$")
-		if device_id then
-			specific_device = device_id
-			break
-		elseif arg == "--device" and i < #args then
-			specific_device = args[i + 1]
-			break
-		end
-	end
-	
-	if specific_device then
-		-- Check if the specified device is connected
-		local found = false
-		for _, device_id in ipairs(devices) do
-			if device_id == specific_device then
-				print(string.format("\nRunning only on specified device: %s", device_id))
-				deploy_and_run(device_id, exec_path, remote_path, target_name, args)
-				found = true
-				break
-			end
-		end
-		if not found then
-			print(string.format("\nSpecified device '%s' not found in connected devices!", specific_device))
-		end
-	else
-		-- Run on all connected devices
-		for i, device_id in ipairs(devices) do
-			print(string.format("\n[%d/%d] Processing device: %s", i, #devices, device_id))
-			deploy_and_run(device_id, exec_path, remote_path, target_name, args)
-		end
+	for i, device_id in ipairs(devices) do
+		print(string.format("\n[%d/%d] Processing device: %s", i, #devices, device_id))
+		deploy_and_run(device_id, exec_path, remote_path, target_name, args)
 	end
 end
 
