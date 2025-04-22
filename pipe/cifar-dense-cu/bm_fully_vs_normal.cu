@@ -5,32 +5,8 @@
 #include "const.hpp"
 
 // ----------------------------------------------------------------------------
-// Queue
+// Clean Benchmark
 // ----------------------------------------------------------------------------
-
-//
-
-// void reset_done_flag() { done.store(false); }
-
-// ----------------------------------------------------------------------------
-// Normal Benchmark
-// ----------------------------------------------------------------------------
-
-// void similuation_thread(LocalQueue* q,
-//                         std::atomic<bool>& done,
-//                         std::function<void(AppDataPtr&)> func) {
-//   while (!done.load(std::memory_order_relaxed)) {
-//     AppDataPtr app;
-//     while (!q->dequeue(app)) {
-//       std::this_thread::yield();
-//     }
-
-//     func(app);
-
-//     // After done -> push back for reuse
-//     q->push(app);
-//   }
-// }
 
 static void BM_run_normal_impl(LocalQueue& q,
                                std::function<void(AppDataPtr&)> func,
@@ -64,12 +40,14 @@ static void BM_run_normal(BmTable<kNumStages>& table,
 
   const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
 
-  const auto cores_to_use = get_cpu_cores_by_type(pt);
+  const auto cores_to_use_opt = get_cpu_cores_by_type(pt);
 
-  if (cores_to_use.has_value() && cores_to_use->empty()) {
+  if (cores_to_use_opt.has_value() && cores_to_use_opt->empty()) {
     SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
     return;
   }
+
+  const auto cores_to_use = cores_to_use_opt.value();
 
   // prepare the queue
   LocalQueue q = make_queue_from_vector(dataset);
@@ -96,7 +74,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
         q,
         [&](AppDataPtr& app) {
           cifar_dense::omp::dispatch_multi_stage(
-              cores_to_use.value(), cores_to_use.value().size(), *app, stage, stage);
+              cores_to_use, cores_to_use.size(), *app, stage, stage);
           total_processed++;
         },
         seconds_to_run);
