@@ -88,28 +88,32 @@ struct BmTable {
     }
 
     // Calculate sums for normal benchmark
-    double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0,
-           cuda_norm_sum = 0;
+    double lit_norm_sum = 0;
+    double med_norm_sum = 0;
+    double big_norm_sum = 0;
+    double vul_norm_sum = 0;
+    double cud_norm_sum = 0;
+
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      little_norm_sum += bm_norm_table[stage - 1][kLitIdx];
-      medium_norm_sum += bm_norm_table[stage - 1][kMedIdx];
+      lit_norm_sum += bm_norm_table[stage - 1][kLitIdx];
+      med_norm_sum += bm_norm_table[stage - 1][kMedIdx];
       big_norm_sum += bm_norm_table[stage - 1][kBigIdx];
-      vulkan_norm_sum += bm_norm_table[stage - 1][kVukIdx];
-      cuda_norm_sum += bm_norm_table[stage - 1][kCudIdx];
+      vul_norm_sum += bm_norm_table[stage - 1][kVukIdx];
+      cud_norm_sum += bm_norm_table[stage - 1][kCudIdx];
     }
 
     // Print sum for normal benchmark
     fmt::print("\nNormal Benchmark - Sum of stages {}-{}:\n", start_stage, end_stage);
-    fmt::print("Little Core: {:.4f} ms\n", little_norm_sum);
-    fmt::print("Medium Core: {:.4f} ms\n", medium_norm_sum);
+    fmt::print("Little Core: {:.4f} ms\n", lit_norm_sum);
+    fmt::print("Medium Core: {:.4f} ms\n", med_norm_sum);
     fmt::print("Big Core: {:.4f} ms\n", big_norm_sum);
-    fmt::print("Vulkan: {:.4f} ms\n", vulkan_norm_sum);
-    fmt::print("CUDA: {:.4f} ms\n", cuda_norm_sum);
+    fmt::print("Vulkan: {:.4f} ms\n", vul_norm_sum);
+    fmt::print("CUDA: {:.4f} ms\n", cud_norm_sum);
 
     // Print the fully benchmark table with higher precision
     fmt::print("\nFully Benchmark Results Table (ms per task):\n");
     fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA\n");
-    fmt::print("------|------------|-------------|----------|--------|-------\n");
+    fmt::print("------|-------------|-------------|----------|--------|-------\n");
     for (int stage = start_stage; stage <= end_stage; stage++) {
       fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f} | {:6.4f}\n",
                  stage,
@@ -121,28 +125,32 @@ struct BmTable {
     }
 
     // Calculate sums for fully benchmark
-    double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0,
-           cuda_full_sum = 0;
+    double lit_full_sum = 0;
+    double med_full_sum = 0;
+    double big_full_sum = 0;
+    double vul_full_sum = 0;
+    double cud_full_sum = 0;
+
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      little_full_sum += bm_full_table[stage - 1][kLitIdx];
-      medium_full_sum += bm_full_table[stage - 1][kMedIdx];
+      lit_full_sum += bm_full_table[stage - 1][kLitIdx];
+      med_full_sum += bm_full_table[stage - 1][kMedIdx];
       big_full_sum += bm_full_table[stage - 1][kBigIdx];
-      vulkan_full_sum += bm_full_table[stage - 1][kVukIdx];
-      cuda_full_sum += bm_full_table[stage - 1][kCudIdx];
+      vul_full_sum += bm_full_table[stage - 1][kVukIdx];
+      cud_full_sum += bm_full_table[stage - 1][kCudIdx];
     }
 
     // Print sum for fully benchmark
     fmt::print("\nFully Benchmark - Sum of stages {}-{}:\n", start_stage, end_stage);
-    fmt::print("Little Core: {:.4f} ms\n", little_full_sum);
-    fmt::print("Medium Core: {:.4f} ms\n", medium_full_sum);
+    fmt::print("Little Core: {:.4f} ms\n", lit_full_sum);
+    fmt::print("Medium Core: {:.4f} ms\n", med_full_sum);
     fmt::print("Big Core: {:.4f} ms\n", big_full_sum);
-    fmt::print("Vulkan: {:.4f} ms\n", vulkan_full_sum);
-    fmt::print("CUDA: {:.4f} ms\n", cuda_full_sum);
+    fmt::print("Vulkan: {:.4f} ms\n", vul_full_sum);
+    fmt::print("CUDA: {:.4f} ms\n", cud_full_sum);
 
     // Compare normal vs fully
     fmt::print("\nPerformance Comparison (Fully vs Normal):\n");
     fmt::print("Processor  | Normal (ms) | Fully (ms) | Ratio\n");
-    fmt::print("-----------|-------------|-----------|-------\n");
+    fmt::print("-----------|-------------|------------|-------\n");
 
     auto print_comparison = [](const std::string& name, double normal, double fully) {
       if (normal > 0) {
@@ -155,10 +163,10 @@ struct BmTable {
       }
     };
 
-    print_comparison("Little Core", little_norm_sum, little_full_sum);
-    print_comparison("Medium Core", medium_norm_sum, medium_full_sum);
+    print_comparison("Little Core", lit_norm_sum, lit_full_sum);
+    print_comparison("Medium Core", med_norm_sum, med_full_sum);
     print_comparison("Big Core", big_norm_sum, big_full_sum);
-    print_comparison("Vulkan", vulkan_norm_sum, vulkan_full_sum);
-    print_comparison("CUDA", cuda_norm_sum, cuda_full_sum);
+    print_comparison("Vulkan", vul_norm_sum, vul_full_sum);
+    print_comparison("CUDA", cud_norm_sum, cud_full_sum);
   }
 };
