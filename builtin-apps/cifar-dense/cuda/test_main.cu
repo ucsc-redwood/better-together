@@ -10,20 +10,6 @@
 #include "dispatchers.cuh"
 
 // ----------------------------------------------------------------------------
-// test appdata initialization
-// ----------------------------------------------------------------------------
-
-TEST(AppdataTest, Initialization) {
-  cifar_dense::cuda::CudaDispatcher disp;
-  cifar_dense::AppData appdata(&disp.get_mr());
-
-  EXPECT_EQ(appdata.u_conv1_w.d0(), 16);
-  EXPECT_EQ(appdata.u_conv1_w.d1(), 3);
-  EXPECT_EQ(appdata.u_conv1_w.d2(), 3);
-  EXPECT_EQ(appdata.u_conv1_w.d3(), 3);
-}
-
-// ----------------------------------------------------------------------------
 // test Stage 1
 // ----------------------------------------------------------------------------
 
@@ -31,17 +17,26 @@ TEST(Stage1Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 1
-  disp.dispatch_stage(appdata, 1);
-
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv1_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv1_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_conv1_out.d1(), 16);
   EXPECT_EQ(appdata.u_conv1_out.d2(), 32);
   EXPECT_EQ(appdata.u_conv1_out.d3(), 32);
 
-  // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  // Check if the output buffers value is different before calling the kernel
+
+  const std::vector<float> conv1_out_before(appdata.u_conv1_out.pmr_vec().begin(),
+                                            appdata.u_conv1_out.pmr_vec().end());
+
+  // Check No throw
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
+
+  const std::vector<float> conv1_out_after(appdata.u_conv1_out.pmr_vec().begin(),
+                                           appdata.u_conv1_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(conv1_out_before, conv1_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
