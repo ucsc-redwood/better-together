@@ -97,6 +97,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
     const std::string pt_name = pt == ProcessorType::kLittleCore   ? "Little"
                                 : pt == ProcessorType::kBigCore    ? "Big"
                                 : pt == ProcessorType::kMediumCore ? "Medium"
+                                : pt == ProcessorType::kVulkan     ? "Vulkan"
                                 : pt == ProcessorType::kCuda       ? "CUDA"
                                                                    : "Unknown";
 
