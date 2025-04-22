@@ -146,11 +146,11 @@ function run_on_android(target)
 	import("core.base.option")
 	local args = option.get("arguments") or {}
 
-	-- print args
-	print(table.concat(args, " "))
-	print("--------------------------------")
-	-- then exit
-	os.exit()
+	-- -- print args
+	-- print(table.concat(args, " "))
+	-- print("--------------------------------")
+	-- -- then exit
+	-- os.exit()
 
 	-- Check if a specific device was requested
 	local specific_device = nil
