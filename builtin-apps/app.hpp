@@ -20,7 +20,7 @@ inline std::vector<int> g_big_cores;
 [[nodiscard]] static inline bool has_med_cores() { return !g_med_cores.empty(); }
 [[nodiscard]] static inline bool has_big_cores() { return !g_big_cores.empty(); }
 
-static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
+[[nodiscard]] static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
   switch (core_type) {
     case ProcessorType::kLittleCore:
       return g_lit_cores;
@@ -33,7 +33,8 @@ static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type)
   }
 }
 
-static inline std::optional<std::vector<int>> get_cpu_cores_by_type(const ProcessorType core_type) {
+[[nodiscard]] static inline std::optional<std::vector<int>> get_cpu_cores_by_type(
+    const ProcessorType core_type) {
   switch (core_type) {
     case ProcessorType::kLittleCore:
       return g_lit_cores;

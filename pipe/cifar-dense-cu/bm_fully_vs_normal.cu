@@ -42,12 +42,10 @@ static void BM_run_normal(BmTable<kNumStages>& table,
 
   const auto cores_to_use_opt = get_cpu_cores_by_type(pt);
 
-  if (cores_to_use_opt.has_value() && cores_to_use_opt->empty()) {
+  if (pt != ProcessorType::kCuda && cores_to_use_opt.has_value() && cores_to_use_opt->empty()) {
     SPDLOG_WARN("No cores to use for processor type: {}", static_cast<int>(pt));
     return;
   }
-
-  const auto cores_to_use = cores_to_use_opt.value();
 
   // prepare the queue
   LocalQueue q = make_queue_from_vector(dataset);
@@ -70,6 +68,8 @@ static void BM_run_normal(BmTable<kNumStages>& table,
         },
         seconds_to_run);
   } else {
+    const auto cores_to_use = cores_to_use_opt.value();
+
     BM_run_normal_impl(
         q,
         [&](AppDataPtr& app) {
