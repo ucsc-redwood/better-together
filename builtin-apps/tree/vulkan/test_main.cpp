@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <cstdint>
+
 #include "../../app.hpp"
 #include "dispatchers.hpp"
 
@@ -11,15 +13,15 @@ TEST(Stage1Test, Basic) {
   tree::vulkan::VulkanDispatcher disp;
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
-  const std::vector<float> morton_before(appdata.u_morton_keys_s1_out.begin(),
-                                         appdata.u_morton_keys_s1_out.end());
+  const std::vector<float> before(appdata.u_morton_keys_s1_out.begin(),
+                                  appdata.u_morton_keys_s1_out.end());
 
-  EXPECT_NO_THROW(disp.run_stage_1(appdata)) << "Stage 1 should not throw";
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
 
-  const std::vector<float> morton_after(appdata.u_morton_keys_s1_out.begin(),
-                                        appdata.u_morton_keys_s1_out.end());
+  const std::vector<float> after(appdata.u_morton_keys_s1_out.begin(),
+                                 appdata.u_morton_keys_s1_out.end());
 
-  const bool is_different = !std::ranges::equal(morton_before, morton_after);
+  const bool is_different = !std::ranges::equal(before, after);
 
   EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
@@ -35,7 +37,17 @@ TEST(Stage2Test, Basic) {
   // Run stage 1 first
   disp.dispatch_stage(appdata, 1);
 
-  EXPECT_NO_THROW(disp.run_stage_2(appdata));
+  const std::vector<uint32_t> before(appdata.u_morton_keys_sorted_s2_out.begin(),
+                                     appdata.u_morton_keys_sorted_s2_out.end());
+
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2)) << "Stage 2 should not throw";
+
+  const std::vector<uint32_t> after(appdata.u_morton_keys_sorted_s2_out.begin(),
+                                    appdata.u_morton_keys_sorted_s2_out.end());
+
+  const bool is_different = !std::ranges::equal(before, after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -47,14 +59,19 @@ TEST(Stage3Test, Basic) {
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
   // Run previous stages
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 2);
 
-  // Run stage 3
-  EXPECT_NO_THROW(disp.run_stage_3(appdata));
+  const std::vector<uint32_t> before(appdata.u_morton_keys_unique_s3_out.begin(),
+                                     appdata.u_morton_keys_unique_s3_out.end());
 
-  // Check no throw
-  EXPECT_NO_THROW(disp.run_stage_3(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3)) << "Stage 3 should not throw";
+
+  const std::vector<uint32_t> after(appdata.u_morton_keys_unique_s3_out.begin(),
+                                    appdata.u_morton_keys_unique_s3_out.end());
+
+  const bool is_different = !std::ranges::equal(before, after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -66,15 +83,19 @@ TEST(Stage4Test, Basic) {
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
   // Run previous stages
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
-  disp.run_stage_3(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 3);
 
-  // Run stage 4
-  EXPECT_NO_THROW(disp.run_stage_4(appdata));
+  const std::vector<uint8_t> before(appdata.u_brt_prefix_n_s4_out.begin(),
+                                    appdata.u_brt_prefix_n_s4_out.end());
 
-  // Check no throw
-  EXPECT_NO_THROW(disp.run_stage_4(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4)) << "Stage 4 should not throw";
+
+  const std::vector<uint8_t> after(appdata.u_brt_prefix_n_s4_out.begin(),
+                                   appdata.u_brt_prefix_n_s4_out.end());
+
+  const bool is_different = !std::ranges::equal(before, after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -86,16 +107,19 @@ TEST(Stage5Test, Basic) {
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
   // Run previous stages
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
-  disp.run_stage_3(appdata);
-  disp.run_stage_4(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 4);
 
-  // Run stage 5
-  EXPECT_NO_THROW(disp.run_stage_5(appdata));
+  const std::vector<int32_t> before(appdata.u_edge_count_s5_out.begin(),
+                                    appdata.u_edge_count_s5_out.end());
 
-  // Check no throw
-  EXPECT_NO_THROW(disp.run_stage_5(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5)) << "Stage 5 should not throw";
+
+  const std::vector<int32_t> after(appdata.u_edge_count_s5_out.begin(),
+                                   appdata.u_edge_count_s5_out.end());
+
+  const bool is_different = !std::ranges::equal(before, after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -107,19 +131,20 @@ TEST(Stage6Test, Basic) {
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
   // Run previous stages
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
-  disp.run_stage_3(appdata);
-  disp.run_stage_4(appdata);
-  disp.run_stage_5(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 5);
 
-  // Run stage 6
-  EXPECT_NO_THROW(disp.run_stage_6(appdata));
+  const std::vector<int32_t> before(appdata.u_edge_offset_s6_out.begin(),
+                                    appdata.u_edge_offset_s6_out.end());
 
-  // Check no throw
-  EXPECT_NO_THROW(disp.run_stage_6(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6)) << "Stage 6 should not throw";
+
+  const std::vector<int32_t> after(appdata.u_edge_offset_s6_out.begin(),
+                                   appdata.u_edge_offset_s6_out.end());
+
+  const bool is_different = !std::ranges::equal(before, after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
-
 // ----------------------------------------------------------------------------
 // test Stage 7
 // ----------------------------------------------------------------------------
@@ -129,18 +154,19 @@ TEST(Stage7Test, Basic) {
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
   // Run previous stages
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
-  disp.run_stage_3(appdata);
-  disp.run_stage_4(appdata);
-  disp.run_stage_5(appdata);
-  disp.run_stage_6(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 6);
 
-  // Run stage 7
-  EXPECT_NO_THROW(disp.run_stage_7(appdata));
+  const std::vector<float> before(appdata.u_oct_cell_size_s7_out.begin(),
+                                  appdata.u_oct_cell_size_s7_out.end());
 
-  // Check no throw
-  EXPECT_NO_THROW(disp.run_stage_7(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7)) << "Stage 7 should not throw";
+
+  const std::vector<float> after(appdata.u_oct_cell_size_s7_out.begin(),
+                                 appdata.u_oct_cell_size_s7_out.end());
+
+  const bool is_different = !std::ranges::equal(before, after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 int main(int argc, char **argv) {
