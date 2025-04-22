@@ -47,17 +47,28 @@ TEST(Stage2Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 2
-  disp.dispatch_stage(appdata, 2);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool1_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool1_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_pool1_out.d1(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d2(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> pool1_out_before(appdata.u_pool1_out.pmr_vec().begin(),
+                                            appdata.u_pool1_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2)) << "Stage 2 should not throw";
+
+  const std::vector<float> pool1_out_after(appdata.u_pool1_out.pmr_vec().begin(),
+                                           appdata.u_pool1_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(pool1_out_before, pool1_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -68,17 +79,28 @@ TEST(Stage3Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 3
-  disp.dispatch_stage(appdata, 3);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 2));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv2_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv2_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_conv2_out.d1(), 32);
   EXPECT_EQ(appdata.u_conv2_out.d2(), 16);
   EXPECT_EQ(appdata.u_conv2_out.d3(), 16);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> conv2_out_before(appdata.u_conv2_out.pmr_vec().begin(),
+                                            appdata.u_conv2_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3)) << "Stage 3 should not throw";
+
+  const std::vector<float> conv2_out_after(appdata.u_conv2_out.pmr_vec().begin(),
+                                           appdata.u_conv2_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(conv2_out_before, conv2_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -89,17 +111,28 @@ TEST(Stage4Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 4
-  disp.dispatch_stage(appdata, 4);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 3));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool2_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool2_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_pool2_out.d1(), 32);
   EXPECT_EQ(appdata.u_pool2_out.d2(), 8);
   EXPECT_EQ(appdata.u_pool2_out.d3(), 8);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> pool2_out_before(appdata.u_pool2_out.pmr_vec().begin(),
+                                            appdata.u_pool2_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4)) << "Stage 4 should not throw";
+
+  const std::vector<float> pool2_out_after(appdata.u_pool2_out.pmr_vec().begin(),
+                                           appdata.u_pool2_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(pool2_out_before, pool2_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -110,17 +143,28 @@ TEST(Stage5Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 5
-  disp.dispatch_stage(appdata, 5);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 4));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv3_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv3_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_conv3_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv3_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv3_out.d3(), 8);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> conv3_out_before(appdata.u_conv3_out.pmr_vec().begin(),
+                                            appdata.u_conv3_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5)) << "Stage 5 should not throw";
+
+  const std::vector<float> conv3_out_after(appdata.u_conv3_out.pmr_vec().begin(),
+                                           appdata.u_conv3_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(conv3_out_before, conv3_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -131,17 +175,28 @@ TEST(Stage6Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 6
-  disp.dispatch_stage(appdata, 6);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 5));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv4_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv4_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_conv4_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv4_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv4_out.d3(), 8);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> conv4_out_before(appdata.u_conv4_out.pmr_vec().begin(),
+                                            appdata.u_conv4_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6)) << "Stage 6 should not throw";
+
+  const std::vector<float> conv4_out_after(appdata.u_conv4_out.pmr_vec().begin(),
+                                           appdata.u_conv4_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(conv4_out_before, conv4_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -152,17 +207,28 @@ TEST(Stage7Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 7
-  disp.dispatch_stage(appdata, 7);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 6));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv5_out.d0(), 128);
+  EXPECT_EQ(appdata.u_conv5_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_conv5_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv5_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv5_out.d3(), 8);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> conv5_out_before(appdata.u_conv5_out.pmr_vec().begin(),
+                                            appdata.u_conv5_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7)) << "Stage 7 should not throw";
+
+  const std::vector<float> conv5_out_after(appdata.u_conv5_out.pmr_vec().begin(),
+                                           appdata.u_conv5_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(conv5_out_before, conv5_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -173,17 +239,58 @@ TEST(Stage8Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
-  // Run stage 8
-  disp.dispatch_stage(appdata, 8);
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 7));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool3_out.d0(), 128);
+  EXPECT_EQ(appdata.u_pool3_out.d0(), cifar_dense::AppData::BATCH_SIZE);
   EXPECT_EQ(appdata.u_pool3_out.d1(), 64);
   EXPECT_EQ(appdata.u_pool3_out.d2(), 4);
   EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
 
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> pool3_out_before(appdata.u_pool3_out.pmr_vec().begin(),
+                                            appdata.u_pool3_out.pmr_vec().end());
+
   // Check no throw
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 8));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 8)) << "Stage 8 should not throw";
+
+  const std::vector<float> pool3_out_after(appdata.u_pool3_out.pmr_vec().begin(),
+                                           appdata.u_pool3_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(pool3_out_before, pool3_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
+}
+
+// ----------------------------------------------------------------------------
+// test Stage 9
+// ----------------------------------------------------------------------------
+
+TEST(Stage9Test, Basic) {
+  cifar_dense::cuda::CudaDispatcher disp;
+  cifar_dense::AppData appdata(&disp.get_mr());
+
+  // Run previous stages
+  EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 8));
+
+  // Check output dimensions
+  EXPECT_EQ(appdata.u_linear_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_linear_out.d1(), 10);
+
+  // Check if the output buffer value is different before calling the kernel
+  const std::vector<float> linear_out_before(appdata.u_linear_out.pmr_vec().begin(),
+                                             appdata.u_linear_out.pmr_vec().end());
+
+  // Check no throw
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 9)) << "Stage 9 should not throw";
+
+  const std::vector<float> linear_out_after(appdata.u_linear_out.pmr_vec().begin(),
+                                            appdata.u_linear_out.pmr_vec().end());
+
+  const bool is_different = !std::ranges::equal(linear_out_before, linear_out_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -431,15 +538,11 @@ TEST(CifarDenseTest, InterleavedConcurrentStages) {
 // ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
-  // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
 
-  // Parse command-line arguments
   parse_args(argc, argv);
 
-  // Set logging level to off
   spdlog::set_level(spdlog::level::off);
 
-  // Run the tests
   return RUN_ALL_TESTS();
 }
