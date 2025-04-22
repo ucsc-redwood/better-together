@@ -23,6 +23,5 @@ int main(int argc, char** argv) {
   spdlog::info("u_conv1_out after");
   dumpCompressed(appdata.u_conv1_out.pmr_vec());
 
-
   return 0;
 }
