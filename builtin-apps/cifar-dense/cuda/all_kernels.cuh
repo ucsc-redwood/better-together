@@ -111,4 +111,70 @@ inline void linear_batch_cuda(const float* input,
   linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF);
 }
 
+// ---------------------------------------------------------------------------
+// Tiled
+// ---------------------------------------------------------------------------
+
+constexpr int TILE_W = 16;
+constexpr int TILE_H = 16;
+
+__global__ void conv2d_tiled_shared(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inC,
+                                    int inH,
+                                    int inW,
+                                    int outC,
+                                    int kH,
+                                    int kW,
+                                    int outH,
+                                    int outW,
+                                    int stride,
+                                    int padding,
+                                    bool relu);
+
+inline void conv2d_tiled_cuda(const float* input,
+                              const float* weights,
+                              const float* bias,
+                              float* output,
+                              int N,
+                              int inC,
+                              int inH,
+                              int inW,
+                              int outC,
+                              int kH,
+                              int kW,
+                              int outH,
+                              int outW,
+                              int stride,
+                              int padding,
+                              bool relu) {
+  dim3 block(TILE_W, TILE_H);
+  dim3 grid((outW + TILE_W - 1) / TILE_W, (outH + TILE_H - 1) / TILE_H, N * outC);
+
+  // compute shared‐mem size
+  int tile_in_w = TILE_W * stride + (kW - 1);
+  int tile_in_h = TILE_H * stride + (kH - 1);
+  size_t shmem_bytes = inC * tile_in_h * tile_in_w * sizeof(float);
+
+  conv2d_tiled_shared<<<grid, block, shmem_bytes>>>(input,
+                                                    weights,
+                                                    bias,
+                                                    output,
+                                                    N,
+                                                    inC,
+                                                    inH,
+                                                    inW,
+                                                    outC,
+                                                    kH,
+                                                    kW,
+                                                    outH,
+                                                    outW,
+                                                    stride,
+                                                    padding,
+                                                    relu);
+}
+
 }  // namespace cifar_dense::cuda
