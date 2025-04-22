@@ -16,7 +16,7 @@ struct BmTable {
   static constexpr int kMedIdx = 1;
   static constexpr int kBigIdx = 2;
   static constexpr int kVukIdx = 3;
-  static constexpr int kCudIdx = 4;
+  static constexpr int kCudaIdx = 4;
 
   std::array<std::array<double, 5>, kNumStages> bm_norm_table;
   std::array<std::array<double, 5>, kNumStages> bm_full_table;
@@ -44,28 +44,26 @@ struct BmTable {
 
     // Dump normal benchmark data in CSV format
     fmt::print("# NORMAL_BENCHMARK_DATA\n");
-    fmt::print("stage,little,medium,big,vulkan,cuda\n");
+    fmt::print("stage,little,medium,big,vulkan\n");
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f}\n",
+      fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n",
                  stage,
                  bm_norm_table[stage - 1][kLitIdx],
                  bm_norm_table[stage - 1][kMedIdx],
                  bm_norm_table[stage - 1][kBigIdx],
-                 bm_norm_table[stage - 1][kVukIdx],
-                 bm_norm_table[stage - 1][kCudIdx]);
+                 bm_norm_table[stage - 1][kVukIdx]);
     }
 
     // Dump fully benchmark data in CSV format
     fmt::print("# FULLY_BENCHMARK_DATA\n");
-    fmt::print("stage,little,medium,big,vulkan,cuda\n");
+    fmt::print("stage,little,medium,big,vulkan,\n");
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f}\n",
+      fmt::print("{},{:.4f},{:.4f},{:.4f},{:.4f}\n",
                  stage,
                  bm_full_table[stage - 1][kLitIdx],
                  bm_full_table[stage - 1][kMedIdx],
                  bm_full_table[stage - 1][kBigIdx],
-                 bm_full_table[stage - 1][kVukIdx],
-                 bm_full_table[stage - 1][kCudIdx]);
+                 bm_full_table[stage - 1][kVukIdx]);
     }
 
     fmt::print("### PYTHON_DATA_END ###\n");
@@ -75,27 +73,24 @@ struct BmTable {
   void print_normal_benchmark_table(int start_stage, int end_stage) {
     // Print the normal benchmark table with higher precision
     fmt::print("\nNormal Benchmark Results Table (ms per task):\n");
-    fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA\n");
-    fmt::print("------|------------|-------------|----------|--------|-------\n");
+    fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan \n");
+    fmt::print("------|------------|-------------|----------|--------\n");
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f} | {:6.4f}\n",
+      fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f}\n",
                  stage,
                  bm_norm_table[stage - 1][kLitIdx],
                  bm_norm_table[stage - 1][kMedIdx],
                  bm_norm_table[stage - 1][kBigIdx],
-                 bm_norm_table[stage - 1][kVukIdx],
-                 bm_norm_table[stage - 1][kCudIdx]);
+                 bm_norm_table[stage - 1][kVukIdx]);
     }
 
     // Calculate sums for normal benchmark
-    double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0,
-           cuda_norm_sum = 0;
+    double little_norm_sum = 0, medium_norm_sum = 0, big_norm_sum = 0, vulkan_norm_sum = 0;
     for (int stage = start_stage; stage <= end_stage; stage++) {
       little_norm_sum += bm_norm_table[stage - 1][kLitIdx];
       medium_norm_sum += bm_norm_table[stage - 1][kMedIdx];
       big_norm_sum += bm_norm_table[stage - 1][kBigIdx];
       vulkan_norm_sum += bm_norm_table[stage - 1][kVukIdx];
-      cuda_norm_sum += bm_norm_table[stage - 1][kCudIdx];
     }
 
     // Print sum for normal benchmark
@@ -104,31 +99,27 @@ struct BmTable {
     fmt::print("Medium Core: {:.4f} ms\n", medium_norm_sum);
     fmt::print("Big Core: {:.4f} ms\n", big_norm_sum);
     fmt::print("Vulkan: {:.4f} ms\n", vulkan_norm_sum);
-    fmt::print("CUDA: {:.4f} ms\n", cuda_norm_sum);
 
     // Print the fully benchmark table with higher precision
     fmt::print("\nFully Benchmark Results Table (ms per task):\n");
-    fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA\n");
-    fmt::print("------|------------|-------------|----------|--------|-------\n");
+    fmt::print("Stage | Little Core | Medium Core | Big Core | Vulkan \n");
+    fmt::print("------|------------|-------------|----------|--------\n");
     for (int stage = start_stage; stage <= end_stage; stage++) {
-      fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f} | {:6.4f}\n",
+      fmt::print("{:5} | {:11.4f} | {:11.4f} | {:8.4f} | {:6.4f}\n",
                  stage,
                  bm_full_table[stage - 1][kLitIdx],
                  bm_full_table[stage - 1][kMedIdx],
                  bm_full_table[stage - 1][kBigIdx],
-                 bm_full_table[stage - 1][kVukIdx],
-                 bm_full_table[stage - 1][kCudIdx]);
+                 bm_full_table[stage - 1][kVukIdx]);
     }
 
     // Calculate sums for fully benchmark
-    double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0,
-           cuda_full_sum = 0;
+    double little_full_sum = 0, medium_full_sum = 0, big_full_sum = 0, vulkan_full_sum = 0;
     for (int stage = start_stage; stage <= end_stage; stage++) {
       little_full_sum += bm_full_table[stage - 1][kLitIdx];
       medium_full_sum += bm_full_table[stage - 1][kMedIdx];
       big_full_sum += bm_full_table[stage - 1][kBigIdx];
       vulkan_full_sum += bm_full_table[stage - 1][kVukIdx];
-      cuda_full_sum += bm_full_table[stage - 1][kCudIdx];
     }
 
     // Print sum for fully benchmark
@@ -137,7 +128,6 @@ struct BmTable {
     fmt::print("Medium Core: {:.4f} ms\n", medium_full_sum);
     fmt::print("Big Core: {:.4f} ms\n", big_full_sum);
     fmt::print("Vulkan: {:.4f} ms\n", vulkan_full_sum);
-    fmt::print("CUDA: {:.4f} ms\n", cuda_full_sum);
 
     // Compare normal vs fully
     fmt::print("\nPerformance Comparison (Fully vs Normal):\n");
@@ -159,6 +149,5 @@ struct BmTable {
     print_comparison("Medium Core", medium_norm_sum, medium_full_sum);
     print_comparison("Big Core", big_norm_sum, big_full_sum);
     print_comparison("Vulkan", vulkan_norm_sum, vulkan_full_sum);
-    print_comparison("CUDA", cuda_norm_sum, cuda_full_sum);
   }
 };
