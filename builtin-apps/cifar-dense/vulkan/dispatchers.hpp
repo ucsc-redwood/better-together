@@ -41,6 +41,12 @@ class VulkanDispatcher final {
       &VulkanDispatcher::run_stage_9,
   };
 
+  void dispatch_stage(AppData& data, const int stage) {
+    if (stage < 1 || stage > 9) throw std::out_of_range("Invalid stage");
+
+    (this->*stage_functions[stage - 1])(data);
+  }
+
   void dispatch_multi_stage(AppData& data, const int start_stage, const int end_stage) {
     if (start_stage < 1 || end_stage > 9) throw std::out_of_range("Invalid stage");
 
