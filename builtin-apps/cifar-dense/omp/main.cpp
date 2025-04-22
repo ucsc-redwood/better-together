@@ -15,6 +15,12 @@ int main(int argc, char** argv) {
 
   dumpCompressed(appdata.u_input.pmr_vec());
 
+  spdlog::info("u_conv1_w");
+  dumpCompressed(appdata.u_conv1_w.pmr_vec());
+
+  spdlog::info("u_conv1_b");
+  dumpCompressed(appdata.u_conv1_b.pmr_vec());
+
   spdlog::info("u_conv1_out before");
   dumpCompressed(appdata.u_conv1_out.pmr_vec());
 
