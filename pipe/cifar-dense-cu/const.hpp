@@ -14,7 +14,6 @@ constexpr size_t kNumStages = 9;
 using DispatcherT = cifar_dense::cuda::CudaDispatcher;
 using AppDataT = cifar_dense::AppData;
 // using TaskT = Task<AppDataT>;
-
 using AppDataPtr = std::shared_ptr<AppDataT>;
 
 // Pipeline-specific constants
@@ -22,5 +21,5 @@ using AppDataPtr = std::shared_ptr<AppDataT>;
 constexpr size_t kPoolSize = 16;
 constexpr size_t kNumToProcess = 100;
 
-// using QueueT = SPSCQueue<AppDataPtr, kPoolSize>;
-using LocalQueue = std::queue<AppDataPtr>;
+// using QueueT = SPSCQueue<TaskT*, kPoolSize>;
+// using LocalQueue = std::queue<TaskT*>;
