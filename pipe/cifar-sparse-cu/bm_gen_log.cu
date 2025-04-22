@@ -165,6 +165,7 @@ int main(int argc, char** argv) {
   spdlog::set_level(spdlog::level::off);  // don't log for warmup
 
   const Schedule test_schedule{
+      .uid = "test",
       .chunks =
           {
               {
@@ -174,9 +175,10 @@ int main(int argc, char** argv) {
                   .cpu_proc_type = ProcessorType::kLittleCore,
               },
               {
-                  .exec_model = ExecutionModel::kCuda,
+                  .exec_model = ExecutionModel::kVulkan,
                   .start_stage = 4,
                   .end_stage = 6,
+                  .cpu_proc_type = std::nullopt,
               },
           },
   };
