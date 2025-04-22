@@ -141,6 +141,9 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
 // ----------------------------------------------------------------------------
 // Main
 //
+// You want to serve the schedule using
+// python -m http.server 8080
+//
 // Run with:
 // xmake r bm-gen-logs-cifar-dense-cu -l off --device jetson --device-to-measure jetson --schedule
 // <url>
