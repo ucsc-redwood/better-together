@@ -74,8 +74,6 @@ struct AppData final : public BaseAppData {
     std::ranges::fill(u_linear_b.pmr_vec(), 0.0f);
   }
 
-  void reset() { BaseAppData::reset(); }
-
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
   Ndarray4D u_conv1_out;  // (128, 16, 32, 32)

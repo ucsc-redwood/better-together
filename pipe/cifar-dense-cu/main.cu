@@ -24,7 +24,9 @@ std::queue<T> make_queue_from_vector(const std::vector<T>& vec) {
 
 // template <typename TaskT, size_t kPoolSize, size_t kNumToProcess>
 
-void worker(SPSCQueue<AppDataPtr, kPoolSize>& q_in, SPSCQueue<AppDataPtr, kPoolSize>& q_out) {
+void worker(SPSCQueue<AppDataPtr, kPoolSize>& q_in,
+            SPSCQueue<AppDataPtr, kPoolSize>& q_out,
+            const bool is_last = false) {
   for (size_t i = 0; i < kNumToProcess; ++i) {
     AppDataPtr app;
     while (!q_in.dequeue(app)) {
@@ -36,9 +38,14 @@ void worker(SPSCQueue<AppDataPtr, kPoolSize>& q_in, SPSCQueue<AppDataPtr, kPoolS
     }
 
     // ------------------------------------------------------------------------
-    spdlog::info("Processing app {}", i);
+    spdlog::info(
+        "Processing idx {}, uid {}, initial_uid {}", i, app->get_uid(), app->get_initial_uid());
     // cifar_dense::omp::dispatch_stage(*app, 1);
     // ------------------------------------------------------------------------
+
+    if (is_last) {
+      app->reset();
+    }
 
     while (!q_out.enqueue(app)) {
       std::this_thread::yield();
@@ -62,7 +69,7 @@ int main(int argc, char** argv) {
     q0.enqueue(item);
   }
 
-  worker(q0, q0);
+  worker(q0, q0, true);
 
   spdlog::info("Done with vector");
   return 0;
