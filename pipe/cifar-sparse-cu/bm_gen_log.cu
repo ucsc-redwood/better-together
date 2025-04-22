@@ -153,9 +153,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
-  std::string device_to_measure;
-  app.add_option("--device-to-measure", device_to_measure, "Device to measure")->required();
-
   std::string schedule_url;
   app.add_option("--schedule-url", schedule_url, "Schedule URL");
 
@@ -166,10 +163,6 @@ int main(int argc, char** argv) {
   PARSE_ARGS_END;
 
   spdlog::set_level(spdlog::level::off);  // don't log for warmup
-
-  if (g_device_id != device_to_measure) {
-    return 0;
-  }
 
   const Schedule test_schedule{
       .chunks =

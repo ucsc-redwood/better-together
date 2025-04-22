@@ -125,9 +125,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
-  std::string device_to_measure;
-  app.add_option("--device-to-measure", device_to_measure, "Device to measure")->required();
-
   std::string schedule_url;
   app.add_option("--schedule-url", schedule_url, "Schedule URL")->required();
 
@@ -138,10 +135,6 @@ int main(int argc, char** argv) {
   PARSE_ARGS_END;
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
-
-  if (g_device_id != device_to_measure) {
-    return 0;
-  }
 
   const auto json = fetch_json_from_url(schedule_url);
 
