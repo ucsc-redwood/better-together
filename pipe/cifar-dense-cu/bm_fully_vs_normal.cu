@@ -248,6 +248,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
 //
 // Run with
 // xmake r bm-fully-cifar-dense-cu --device jetson -p -t 10
+//
 // ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
