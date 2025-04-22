@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "../../app.hpp"
+#include "../omp/dispatchers.hpp"
 #include "dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
@@ -169,7 +170,107 @@ TEST(Stage7Test, Basic) {
   EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
-int main(int argc, char **argv) {
+// ----------------------------------------------------------------------------
+// Test Mixing Omp and Vulkan
+// ----------------------------------------------------------------------------
+
+TEST(MixingTest, VulkanThenOmp) {
+  tree::vulkan::VulkanDispatcher disp;
+  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(tree::omp::run_stage_2(appdata));
+}
+
+TEST(MixingTest, OmpThenVulkan) {
+  tree::vulkan::VulkanDispatcher disp;
+  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+
+  EXPECT_NO_THROW(tree::omp::run_stage_1(appdata));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+}
+
+TEST(MixingTest, MultipleStages) {
+  tree::vulkan::VulkanDispatcher disp;
+  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+
+  // Run first 3 stages with CUDA
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+
+  // Run next 2 stages with OMP
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
+
+  // Run final stages with CUDA
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
+}
+
+TEST(MixingTest, AlternatingStages) {
+  tree::vulkan::VulkanDispatcher disp;
+  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+
+  // Alternate between CUDA and OMP for each stage
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 4));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
+}
+
+TEST(MixingTest, MixedBatch) {
+  tree::vulkan::VulkanDispatcher disp;
+  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
+
+  // Run first half with CUDA
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
+
+  // Run second half with OMP
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
+}
+
+// ----------------------------------------------------------------------------
+// Test Queue environment
+// ----------------------------------------------------------------------------
+
+TEST(QueueTest, Basic) {
+  tree::vulkan::VulkanDispatcher disp;
+
+  std::vector<std::shared_ptr<tree::vulkan::VkAppData_Safe>> appdatas;
+  appdatas.reserve(10);
+  for (int i = 0; i < 10; i++) {
+    appdatas.push_back(std::make_shared<tree::vulkan::VkAppData_Safe>(disp.get_mr()));
+  }
+
+  std::queue<std::shared_ptr<tree::vulkan::VkAppData_Safe>> queue;
+  for (auto& appdata : appdatas) {
+    queue.push(appdata);
+  }
+
+  while (!queue.empty()) {
+    auto appdata = queue.front();
+    queue.pop();
+
+    EXPECT_NO_THROW(disp.dispatch_multi_stage(*appdata, 1, 7));
+  }
+
+  EXPECT_TRUE(queue.empty());
+}
+
+// ----------------------------------------------------------------------------
+// Main
+// ----------------------------------------------------------------------------
+
+int main(int argc, char** argv) {
   parse_args(argc, argv);
 
   spdlog::set_level(spdlog::level::off);
