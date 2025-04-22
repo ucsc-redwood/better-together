@@ -138,13 +138,12 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
   logger.dump_records_for_python(schedule);
 }
 
-// Test schedule
-
 // ----------------------------------------------------------------------------
 // Main
 //
 // Run with:
-// xmake r bm-gen-logs-cifar-dense-cu -l off --device pc --device-to-measure pc --schedule url
+// xmake r bm-gen-logs-cifar-dense-cu -l off --device jetson --device-to-measure jetson --schedule
+// <url>
 //
 // ----------------------------------------------------------------------------
 
@@ -163,7 +162,7 @@ int main(int argc, char** argv) {
 
   PARSE_ARGS_END;
 
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
+  spdlog::set_level(spdlog::level::off);  // don't log for warmup
 
   if (g_device_id != device_to_measure) {
     return 0;
@@ -187,6 +186,8 @@ int main(int argc, char** argv) {
   };
 
   BM_pipe_warmup(test_schedule);
+
+  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
   // If schedule_url is empty or we fail to fetch the URL, just run warmup and quit
   if (schedule_url.empty()) {
