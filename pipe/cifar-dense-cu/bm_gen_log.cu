@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
           {
               {
                   .exec_model = ExecutionModel::kOMP,
-                  .start_stage = 0,
+                  .start_stage = 1,
                   .end_stage = 3,
                   .cpu_proc_type = ProcessorType::kLittleCore,
               },
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
           },
   };
 
-  BM_pipe_warmup(test_schedule);
+  // BM_pipe_warmup(test_schedule);
 
   // If schedule_url is empty or we fail to fetch the URL, just run warmup and quit
   if (schedule_url.empty()) {
@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
     schedules = readSchedulesFromJson(json);
   } catch (const std::exception& e) {
     spdlog::error("Failed to fetch or parse schedules: {}", e.what());
-    spdlog::info("Running only warmup phase.");
+    spdlog::warn("Running only warmup phase.");
     return 0;
   }
 
