@@ -12,7 +12,7 @@ do
 	})
 
 	add_deps("builtin-apps")
-		
+
 	add_packages("gtest")
 end
 
@@ -30,7 +30,6 @@ do
 	})
 
 	add_deps("builtin-apps")
-		
+
 	add_packages("benchmark")
 end
-

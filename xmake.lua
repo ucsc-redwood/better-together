@@ -57,7 +57,7 @@ on_load(function(target)
 	target:add("packages", "nlohmann_json")
 	target:add("packages", "libmorton")
 	target:add("packages", "libcurl")
-	
+
 	-- -- for adding debugging
 	-- target:add("cxxflags", "-pg")
 	target:add("includedirs", "$(projectdir)")
@@ -69,24 +69,24 @@ rule_end()
 -- ----------------------------------------------------------------
 
 option("use_cuda")
-    set_description("CUDA backend")
-    set_showmenu(true)
-    set_values("yes", "no")
+set_description("CUDA backend")
+set_showmenu(true)
+set_values("yes", "no")
 option_end()
 
 rule("cuda_config")
 on_load(function(target)
-    -- Avoid JIT compilation by targeting specific GPU architecture (SM87)
-    -- This improves runtime performance and ensures deterministic behavior
-    -- JIT compilation is not supported on Tegra devices in safe context
-    target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", {force = true})
+	-- Avoid JIT compilation by targeting specific GPU architecture (SM87)
+	-- This improves runtime performance and ensures deterministic behavior
+	-- JIT compilation is not supported on Tegra devices in safe context
+	target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", { force = true })
 
 	-- Add NVTX library for Nsight Systems to visualize regions of interest
-	target:add("ldflags", "-lnvToolsExt", {force = true})
+	target:add("ldflags", "-lnvToolsExt", { force = true })
 
 	-- Add OpenMP support for parallel execution on CPU
-	target:add("cuflags", "-Xcompiler", "-fopenmp", {force = true})
-	target:add("ldflags", "-fopenmp", {force = true})
+	target:add("cuflags", "-Xcompiler", "-fopenmp", { force = true })
+	target:add("ldflags", "-fopenmp", { force = true })
 end)
 rule_end()
 
@@ -95,24 +95,24 @@ rule_end()
 -- ----------------------------------------------------------------
 
 option("use_vulkan")
-    set_description("Vulkan backend")
-    set_showmenu(true)
-    set_values("yes", "no")
+set_description("Vulkan backend")
+set_showmenu(true)
+set_values("yes", "no")
 option_end()
 
 rule("vulkan_config")
-	on_load(function(target)
-		target:add("packages", "vulkan-headers")
-		target:add("packages", "vulkan-hpp")
-		target:add("packages", "vulkan-memory-allocator")
+on_load(function(target)
+	target:add("packages", "vulkan-headers")
+	target:add("packages", "vulkan-hpp")
+	target:add("packages", "vulkan-memory-allocator")
 
-		-- if target:is_plat("macosx") then
-		-- 	target:add("links", "vulkan")
-		-- 	target:add("linkdirs", "/opt/homebrew/lib")
-		-- 	target:add("includedirs", "/opt/homebrew/include")
-		-- 	target:add("rpathdirs", "/opt/homebrew/lib")
-		-- end
-	end)
+	-- if target:is_plat("macosx") then
+	-- 	target:add("links", "vulkan")
+	-- 	target:add("linkdirs", "/opt/homebrew/lib")
+	-- 	target:add("includedirs", "/opt/homebrew/include")
+	-- 	target:add("rpathdirs", "/opt/homebrew/lib")
+	-- end
+end)
 rule_end()
 
 if has_config("use_vulkan") then
@@ -143,4 +143,3 @@ includes("builtin-apps") -- the three applications
 includes("pipe")
 includes("playground")
 includes("utility")
-

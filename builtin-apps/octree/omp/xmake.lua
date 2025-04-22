@@ -27,7 +27,6 @@ do
 	add_packages("gtest")
 end
 
-
 target("test-octree-omp")
 do
 	add_rules("common_flags", "run_on_android")
@@ -39,7 +38,7 @@ do
 	})
 
 	add_deps("builtin-apps")
-		
+
 	add_packages("gtest")
 end
 
@@ -57,6 +56,6 @@ do
 	})
 
 	add_deps("builtin-apps")
-		
+
 	add_packages("benchmark")
 end

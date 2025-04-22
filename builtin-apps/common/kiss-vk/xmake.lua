@@ -38,7 +38,7 @@ if has_config("use_vulkan") then
 	end
 
 	target("test-kiss-vk")
-	do 
+	do
 		set_kind("binary")
 		add_rules("common_flags", "vulkan_config", "run_on_android")
 
@@ -48,5 +48,4 @@ if has_config("use_vulkan") then
 
 		add_packages("gtest")
 	end
-
 end

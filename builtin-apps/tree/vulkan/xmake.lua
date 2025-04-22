@@ -2,7 +2,6 @@
 -- Test, just test if the dispatchers are working
 -- ----------------------------------------------------------------------------
 
-
 target("tmp")
 do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
@@ -15,7 +14,6 @@ do
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
 end
-
 
 target("run-tree-vk")
 do
@@ -41,10 +39,9 @@ do
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
-		
+
 	add_packages("gtest")
 end
-
 
 target("bm-tree-vk")
 do
@@ -57,7 +54,6 @@ do
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
-		
+
 	add_packages("benchmark")
 end
-

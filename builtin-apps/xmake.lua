@@ -31,7 +31,7 @@ do
 		"cifar-dense/appdata.hpp",
 		"cifar-dense/omp/dispatchers.hpp",
 		"cifar-dense/omp/all_kernels.hpp",
-		
+
 		-- tree headers
 		"tree/tree_appdata.hpp",
 		"tree/safe_tree_appdata.hpp",
@@ -110,14 +110,11 @@ if has_config("use_vulkan") then
 		})
 	end
 
-
 	includes("cifar-dense/vulkan/xmake.lua")
 	includes("cifar-sparse/vulkan/xmake.lua")
 	includes("tree/vulkan/xmake.lua")
 	-- includes("octree/vulkan/xmake.lua")
 end
-
-
 
 -- ----------------------------------------------------------------------------
 -- CUDA Static Library
@@ -188,11 +185,9 @@ if has_config("use_cuda") then
 			-- "tree/cuda/dispatchers.cu",
 		})
 
-
 		includes("cifar-dense/cuda/xmake.lua")
 		includes("cifar-sparse/cuda/xmake.lua")
 		-- includes("tree/cuda/xmake.lua")
-
 
 		-- Best CUDA library
 		add_packages("cub")

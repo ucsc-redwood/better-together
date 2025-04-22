@@ -14,7 +14,6 @@ do
 	add_deps("builtin-apps")
 end
 
-
 target("test-octree-vk")
 do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
@@ -26,7 +25,7 @@ do
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
-		
+
 	add_packages("gtest")
 end
 
@@ -45,6 +44,6 @@ do
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
-		
+
 	add_packages("benchmark")
 end
