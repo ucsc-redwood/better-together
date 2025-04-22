@@ -136,87 +136,90 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
 // ---------------------------------------------------------------------------
 
 // kernel: grid.z = N * outC, grid.x = ceil(outW / TILE_W), grid.y = ceil(outH / TILE_H)
-// dynamic shared memory size = inC * (TILE_H*stride + kH-1) * (TILE_W*stride + kW-1) * sizeof(float)
-__global__
-void conv2d_tiled_shared(const float* __restrict__ input,
-                         const float* __restrict__ weights,
-                         const float* __restrict__ bias,
-                         float* __restrict__ output,
-                         int N, int inC, int inH, int inW,
-                         int outC, int kH, int kW,
-                         int outH, int outW,
-                         int stride, int padding,
-                         bool relu)
-{
-    // decode which (n, oc) this block is doing
-    int bic = blockIdx.z;                 // [0 .. N*outC)
-    int n  = bic / outC;
-    int oc = bic % outC;
+// dynamic shared memory size = inC * (TILE_H*stride + kH-1) * (TILE_W*stride + kW-1) *
+// sizeof(float)
+__global__ void conv2d_tiled_shared(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inC,
+                                    int inH,
+                                    int inW,
+                                    int outC,
+                                    int kH,
+                                    int kW,
+                                    int outH,
+                                    int outW,
+                                    int stride,
+                                    int padding,
+                                    bool relu) {
+  // decode which (n, oc) this block is doing
+  int bic = blockIdx.z;  // [0 .. N*outC)
+  int n = bic / outC;
+  int oc = bic % outC;
 
-    // 2D thread coords within tile
-    int tx = threadIdx.x;  // [0 .. TILE_W)
-    int ty = threadIdx.y;  // [0 .. TILE_H)
+  // 2D thread coords within tile
+  int tx = threadIdx.x;  // [0 .. TILE_W)
+  int ty = threadIdx.y;  // [0 .. TILE_H)
 
-    // output pixel coords
-    int out_x0 = blockIdx.x * TILE_W + tx;
-    int out_y0 = blockIdx.y * TILE_H + ty;
+  // output pixel coords
+  int out_x0 = blockIdx.x * TILE_W + tx;
+  int out_y0 = blockIdx.y * TILE_H + ty;
 
-    // compute shared‐mem tile dims
-    int tile_in_w = TILE_W * stride + (kW - 1);
-    int tile_in_h = TILE_H * stride + (kH - 1);
+  // compute shared‐mem tile dims
+  int tile_in_w = TILE_W * stride + (kW - 1);
+  int tile_in_h = TILE_H * stride + (kH - 1);
 
-    // allocate shared memory: flattened [inC][tile_in_h][tile_in_w]
-    extern __shared__ float shmem[];
-    // pointer to channel‐0 base
-    // offset per‐channel = tile_in_h * tile_in_w
-    int patch_sz = tile_in_h * tile_in_w;
-    // total = inC * patch_sz floats
+  // allocate shared memory: flattened [inC][tile_in_h][tile_in_w]
+  extern __shared__ float shmem[];
+  // pointer to channel‐0 base
+  // offset per‐channel = tile_in_h * tile_in_w
+  int patch_sz = tile_in_h * tile_in_w;
+  // total = inC * patch_sz floats
 
-    // 1) load input patch into shared memory
+  // 1) load input patch into shared memory
+  for (int ic = 0; ic < inC; ++ic) {
+    float* patch = shmem + ic * patch_sz;
+    // each thread strides over the patch
+    for (int y = ty; y < tile_in_h; y += blockDim.y) {
+      for (int x = tx; x < tile_in_w; x += blockDim.x) {
+        // global input coords for this element
+        int in_y = blockIdx.y * TILE_H * stride - padding + y;
+        int in_x = blockIdx.x * TILE_W * stride - padding + x;
+        float v = 0.0f;
+        if (in_y >= 0 && in_y < inH && in_x >= 0 && in_x < inW) {
+          int idx = ((n * inC + ic) * inH + in_y) * inW + in_x;
+          v = input[idx];
+        }
+        patch[y * tile_in_w + x] = v;
+      }
+    }
+  }
+  __syncthreads();
+
+  // 2) if this thread’s output pixel is in‐bounds, do convolution
+  if (out_x0 < outW && out_y0 < outH) {
+    float sum = bias[oc];
+
     for (int ic = 0; ic < inC; ++ic) {
-        float* patch = shmem + ic * patch_sz;
-        // each thread strides over the patch
-        for (int y = ty; y < tile_in_h; y += blockDim.y) {
-            for (int x = tx; x < tile_in_w; x += blockDim.x) {
-                // global input coords for this element
-                int in_y = blockIdx.y * TILE_H * stride - padding + y;
-                int in_x = blockIdx.x * TILE_W * stride - padding + x;
-                float v = 0.0f;
-                if (in_y >= 0 && in_y < inH && in_x >= 0 && in_x < inW) {
-                    int idx = ((n * inC + ic) * inH + in_y) * inW + in_x;
-                    v = input[idx];
-                }
-                patch[y * tile_in_w + x] = v;
-            }
+      const float* patch = shmem + ic * patch_sz;
+      const float* wptr = weights + ((oc * inC + ic) * kH) * kW;
+      // for each kernel element
+      for (int ky = 0; ky < kH; ++ky) {
+        for (int kx = 0; kx < kW; ++kx) {
+          int sh_y = ty * stride + ky;
+          int sh_x = tx * stride + kx;
+          float iv = patch[sh_y * tile_in_w + sh_x];
+          float wv = wptr[ky * kW + kx];
+          sum += iv * wv;
         }
+      }
     }
-    __syncthreads();
-
-    // 2) if this thread’s output pixel is in‐bounds, do convolution
-    if (out_x0 < outW && out_y0 < outH) {
-        float sum = bias[oc];
-
-        for (int ic = 0; ic < inC; ++ic) {
-            const float* patch = shmem + ic * patch_sz;
-            const float* wptr  = weights + ((oc*inC + ic)*kH)*kW;
-            // for each kernel element
-            for (int ky = 0; ky < kH; ++ky) {
-                for (int kx = 0; kx < kW; ++kx) {
-                    int sh_y = ty * stride + ky;
-                    int sh_x = tx * stride + kx;
-                    float iv = patch[sh_y * tile_in_w + sh_x];
-                    float wv = wptr[ky * kW + kx];
-                    sum += iv * wv;
-                }
-            }
-        }
-        if (relu && sum < 0.f) sum = 0.f;
-        int out_idx = ((n * outC + oc) * outH + out_y0) * outW + out_x0;
-        output[out_idx] = sum;
-    }
+    if (relu && sum < 0.f) sum = 0.f;
+    int out_idx = ((n * outC + oc) * outH + out_y0) * outW + out_x0;
+    output[out_idx] = sum;
+  }
 }
-
-
-
 
 }  // namespace cifar_dense::cuda

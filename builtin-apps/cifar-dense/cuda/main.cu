@@ -1,15 +1,15 @@
+#include <omp.h>
+
 #include "../../app.hpp"
 #include "../../hex_dump.hpp"
 #include "dispatchers.cuh"
-
-#include <omp.h>
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
   // print number of omp threads
   printf("Number of OMP threads: %d\n", omp_get_max_threads());
-  #pragma omp parallel
+#pragma omp parallel
   {
     printf("Thread ID: %d\n", omp_get_thread_num());
   }

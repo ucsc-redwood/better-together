@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 
 template <typename T, size_t Size = 1024>
-requires std::is_move_constructible_v<T>
+  requires std::is_move_constructible_v<T>
 class SPSCQueue {
   static_assert((Size & (Size - 1)) == 0, "Size must be a power of 2");
 
