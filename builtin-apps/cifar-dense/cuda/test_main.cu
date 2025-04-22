@@ -13,12 +13,14 @@
 // test Stage 1
 // ----------------------------------------------------------------------------
 
+constexpr int kTestBatchSize = 128;
+
 TEST(Stage1Test, Basic) {
   cifar_dense::cuda::CudaDispatcher disp;
   cifar_dense::AppData appdata(&disp.get_mr());
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv1_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_conv1_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_conv1_out.d1(), 16);
   EXPECT_EQ(appdata.u_conv1_out.d2(), 32);
   EXPECT_EQ(appdata.u_conv1_out.d3(), 32);
@@ -51,7 +53,7 @@ TEST(Stage2Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool1_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_pool1_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_pool1_out.d1(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d2(), 16);
   EXPECT_EQ(appdata.u_pool1_out.d3(), 16);
@@ -83,7 +85,7 @@ TEST(Stage3Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 2));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv2_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_conv2_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_conv2_out.d1(), 32);
   EXPECT_EQ(appdata.u_conv2_out.d2(), 16);
   EXPECT_EQ(appdata.u_conv2_out.d3(), 16);
@@ -115,7 +117,7 @@ TEST(Stage4Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 3));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool2_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_pool2_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_pool2_out.d1(), 32);
   EXPECT_EQ(appdata.u_pool2_out.d2(), 8);
   EXPECT_EQ(appdata.u_pool2_out.d3(), 8);
@@ -147,7 +149,7 @@ TEST(Stage5Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 4));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv3_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_conv3_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_conv3_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv3_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv3_out.d3(), 8);
@@ -179,7 +181,7 @@ TEST(Stage6Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 5));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv4_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_conv4_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_conv4_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv4_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv4_out.d3(), 8);
@@ -211,7 +213,7 @@ TEST(Stage7Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 6));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_conv5_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_conv5_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_conv5_out.d1(), 64);
   EXPECT_EQ(appdata.u_conv5_out.d2(), 8);
   EXPECT_EQ(appdata.u_conv5_out.d3(), 8);
@@ -243,7 +245,7 @@ TEST(Stage8Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 7));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_pool3_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_pool3_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_pool3_out.d1(), 64);
   EXPECT_EQ(appdata.u_pool3_out.d2(), 4);
   EXPECT_EQ(appdata.u_pool3_out.d3(), 4);
@@ -275,7 +277,7 @@ TEST(Stage9Test, Basic) {
   EXPECT_NO_THROW(disp.dispatch_multi_stage(appdata, 1, 8));
 
   // Check output dimensions
-  EXPECT_EQ(appdata.u_linear_out.d0(), cifar_dense::AppData::BATCH_SIZE);
+  EXPECT_EQ(appdata.u_linear_out.d0(), kTestBatchSize);
   EXPECT_EQ(appdata.u_linear_out.d1(), 10);
 
   // Check if the output buffer value is different before calling the kernel
