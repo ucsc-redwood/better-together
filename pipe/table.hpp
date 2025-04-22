@@ -8,7 +8,7 @@
 // Tables
 // ----------------------------------------------------------------------------
 
-// create a 2D table, kNumStages stage times 4 type of cores, initialize it with 0
+// create a 2D table, kNumStages stage times 5 type of cores, initialize it with 0
 // access by bm_table[stage][core_type] = value
 template <size_t kNumStages>
 struct BmTable {
@@ -23,7 +23,7 @@ struct BmTable {
 
   explicit BmTable() {
     for (size_t stage = 0; stage < kNumStages; stage++) {
-      for (size_t processor = 0; processor < 4; processor++) {
+      for (size_t processor = 0; processor < 5; processor++) {
         bm_norm_table[stage][processor] = 0.0;
         bm_full_table[stage][processor] = 0.0;
       }
