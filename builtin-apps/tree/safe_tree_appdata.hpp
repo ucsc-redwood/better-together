@@ -5,11 +5,12 @@
 #include <memory>
 #include <memory_resource>
 
+#include "builtin-apps/base_appdata.hpp"
 #include "tree_appdata.hpp"
 
 namespace tree {
 
-struct SafeAppData {
+struct SafeAppData : public BaseAppData {
   explicit SafeAppData(std::pmr::memory_resource* mr);
 
   // --------------------------------------------------------------------------
