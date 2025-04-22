@@ -107,8 +107,6 @@ static void BM_run_normal(BmTable<kNumStages>& table,
     std::fflush(stdout);
   }
 
-  // map ProcessorType::kLittleCore = 0, ProcessorType::kBigCore = 1, ProcessorType::kMediumCore =
-  // 2, ProcessorType::kCuda = 3
   if (total_processed > 0) {
     table.update_normal_table(stage - 1, static_cast<int>(pt), total_time / total_processed);
   }
@@ -118,109 +116,132 @@ static void BM_run_normal(BmTable<kNumStages>& table,
 // Fully Occupied Benchmark
 // ----------------------------------------------------------------------------
 
-// static void BM_run_fully(BmTable<kNumStages>& table,
-//                          const int stage,
-//                          const int seconds_to_run,
-//                          const bool print_progress = false) {
-//   DispatcherT disp;
+static void BM_run_fully(BmTable<kNumStages>& table,
+                         const int stage,
+                         const int seconds_to_run,
+                         const bool print_progress = false) {
+  DispatcherT disp;
 
-//   reset_done_flag();
+  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
 
-//   LocalQueue q_0;
-//   LocalQueue q_1;
-//   LocalQueue q_2;
-//   LocalQueue q_3;
+  LocalQueue q_0 = make_queue_from_vector(dataset);
+  LocalQueue q_1 = make_queue_from_vector(dataset);
+  LocalQueue q_2 = make_queue_from_vector(dataset);
+  LocalQueue q_3 = make_queue_from_vector(dataset);
 
-//   init_q(&q_0, disp);
-//   init_q(&q_1, disp);
-//   init_q(&q_2, disp);
-//   init_q(&q_3, disp);
+  // Use atomic counters for task tracking, but we'll only report on the one we're measuring
+  std::atomic<int> lit_processed(0);
+  std::atomic<int> med_processed(0);
+  std::atomic<int> big_processed(0);
+  std::atomic<int> cud_processed(0);
 
-//   // Use atomic counters for task tracking, but we'll only report on the one we're measuring
-//   std::atomic<int> lit_processed(0);
-//   std::atomic<int> med_processed(0);
-//   std::atomic<int> big_processed(0);
-//   std::atomic<int> vuk_processed(0);
+  std::vector<std::thread> threads;
 
-//   std::vector<std::thread> threads;
+  cudaEvent_t start, stop;
+  CheckCuda(cudaEventCreate(&start));
+  CheckCuda(cudaEventCreate(&stop));
+  CheckCuda(cudaEventRecord(start, 0));
 
-//   auto start = std::chrono::high_resolution_clock::now();
+  // ----------------------------------------------------------------------------
+  std::atomic<bool> done = false;
 
-//   // ----------------------------------------------------------------------------
+  if (has_lit_cores()) {
+    threads.emplace_back([&]() {
+      while (!done.load(std::memory_order_relaxed)) {
+        AppDataPtr app = q_0.front();
+        q_0.pop();
 
-//   if (!g_lit_cores.empty()) {
-//     threads.emplace_back(similuation_thread, &q_0, [&lit_processed, stage](TaskT* task) {
-//       cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, task->appdata, stage, stage);
+        cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, *app, stage, stage);
+        lit_processed++;
 
-//       lit_processed++;
-//     });
-//   }
+        q_0.push(app);
+      }
+    });
+  }
 
-//   if (!g_med_cores.empty()) {
-//     threads.emplace_back(similuation_thread, &q_1, [&med_processed, stage](TaskT* task) {
-//       cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, task->appdata, stage, stage);
+  if (has_med_cores()) {
+    threads.emplace_back([&]() {
+      while (!done.load(std::memory_order_relaxed)) {
+        AppDataPtr app = q_1.front();
+        q_1.pop();
 
-//       med_processed++;
-//     });
-//   }
+        cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, *app, stage, stage);
+        med_processed++;
 
-//   if (!g_big_cores.empty()) {
-//     threads.emplace_back(similuation_thread, &q_2, [&big_processed, stage](TaskT* task) {
-//       cifar_dense::omp::dispatch_multi_stage(BIG_CORES, task->appdata, stage, stage);
+        q_1.push(app);
+      }
+    });
+  }
 
-//       big_processed++;
-//     });
-//   }
+  if (has_big_cores()) {
+    threads.emplace_back([&]() {
+      while (!done.load(std::memory_order_relaxed)) {
+        AppDataPtr app = q_2.front();
+        q_2.pop();
 
-//   // Always create Vulkan thread
-//   threads.emplace_back(
-//       similuation_thread, &q_3, [disp = &disp, &vuk_processed, stage](TaskT* task) {
-//         disp->dispatch_multi_stage(task->appdata, stage, stage);
-//         vuk_processed++;
-//       });
+        cifar_dense::omp::dispatch_multi_stage(BIG_CORES, *app, stage, stage);
+        big_processed++;
 
-//   std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
+        q_2.push(app);
+      }
+    });
+  }
 
-//   done.store(true);  // Signal all threads to stop
+  // Always create Vulkan thread
+  threads.emplace_back([&]() {
+    while (!done.load(std::memory_order_relaxed)) {
+      AppDataPtr app = q_3.front();
+      q_3.pop();
 
-//   for (auto& t : threads) t.join();
+      disp.dispatch_multi_stage(*app, stage, stage);
+      cud_processed++;
 
-//   // ----------------------------------------------------------------------------
+      q_3.push(app);
+    }
+  });
 
-//   auto end = std::chrono::high_resolution_clock::now();
-//   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  std::this_thread::sleep_for(std::chrono::seconds(seconds_to_run));
 
-//   clean_up_q(&q_0);
-//   clean_up_q(&q_1);
-//   clean_up_q(&q_2);
-//   clean_up_q(&q_3);
+  done.store(true);  // Signal all threads to stop
 
-//   // Print human readable time to console
-//   const auto lit_count = lit_processed.load();
-//   const auto med_count = med_processed.load();
-//   const auto big_count = big_processed.load();
-//   const auto vuk_count = vuk_processed.load();
+  for (auto& t : threads) t.join();
 
-//   const auto lit_time = static_cast<double>(duration.count()) / lit_count;
-//   const auto med_time = static_cast<double>(duration.count()) / med_count;
-//   const auto big_time = static_cast<double>(duration.count()) / big_count;
-//   const auto vuk_time = static_cast<double>(duration.count()) / vuk_count;
+  // ----------------------------------------------------------------------------
 
-//   if (print_progress) {
-//     fmt::print("Stage: {}\n", stage);
-//     fmt::print("\tLittle \t{:.4f} ms \t({})\n", lit_time, lit_count);
-//     fmt::print("\tMedium \t{:.4f} ms \t({})\n", med_time, med_count);
-//     fmt::print("\tBig    \t{:.4f} ms \t({})\n", big_time, big_count);
-//     fmt::print("\tVulkan \t{:.4f} ms \t({})\n", vuk_time, vuk_count);
-//     std::fflush(stdout);
-//   }
+  CheckCuda(cudaEventRecord(stop, 0));
+  CheckCuda(cudaEventSynchronize(stop));
 
-//   // update the table
-//   if (lit_count > 0) table.update_full_table(stage - 1, 0, lit_time);
-//   if (med_count > 0) table.update_full_table(stage - 1, 1, med_time);
-//   if (big_count > 0) table.update_full_table(stage - 1, 2, big_time);
-//   if (vuk_count > 0) table.update_full_table(stage - 1, 3, vuk_time);
-// }
+  float milliseconds = 0;
+  CheckCuda(cudaEventElapsedTime(&milliseconds, start, stop));
+
+  const auto total_time = static_cast<double>(milliseconds);
+
+  // Print human readable time to console
+  const auto lit_count = lit_processed.load();
+  const auto med_count = med_processed.load();
+  const auto big_count = big_processed.load();
+  const auto cud_count = cud_processed.load();
+
+  const auto lit_time = total_time / lit_count;
+  const auto med_time = total_time / med_count;
+  const auto big_time = total_time / big_count;
+  const auto cud_time = total_time / cud_count;
+
+  if (print_progress) {
+    fmt::print("Stage: {}\n", stage);
+    fmt::print("\tLittle \t{:.4f} ms \t({})\n", lit_time, lit_count);
+    fmt::print("\tMedium \t{:.4f} ms \t({})\n", med_time, med_count);
+    fmt::print("\tBig    \t{:.4f} ms \t({})\n", big_time, big_count);
+    fmt::print("\tCUDA   \t{:.4f} ms \t({})\n", cud_time, cud_count);
+    std::fflush(stdout);
+  }
+
+  // update the table
+  if (lit_count > 0) table.update_full_table(stage - 1, 0, lit_time);
+  if (med_count > 0) table.update_full_table(stage - 1, 1, med_time);
+  if (big_count > 0) table.update_full_table(stage - 1, 2, big_time);
+  if (cud_count > 0) table.update_full_table(stage - 1, 4, cud_time);
+}
 
 // ----------------------------------------------------------------------------
 // Main
@@ -256,34 +277,26 @@ int main(int argc, char** argv) {
       BM_run_normal(table, ProcessorType::kLittleCore, stage, seconds_to_run, print_progress);
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
     if (has_med_cores()) {
       BM_run_normal(table, ProcessorType::kMediumCore, stage, seconds_to_run, print_progress);
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     if (has_big_cores()) {
       BM_run_normal(table, ProcessorType::kBigCore, stage, seconds_to_run, print_progress);
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
     BM_run_normal(table, ProcessorType::kCuda, stage, seconds_to_run, print_progress);
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
-  // // ----------------------------------------------------------------------------
-  // // Run fully benchmark (each processor in isolation, all stages active)
-  // // ----------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------
+  // Run fully benchmark (each processor in isolation, all stages active)
+  // ----------------------------------------------------------------------------
 
-  // spdlog::info("Running fully benchmark (each processor in isolation, all stages active)...");
+  spdlog::info("Running fully benchmark (each processor in isolation, all stages active)...");
 
-  // for (int stage = start_stage; stage <= end_stage; stage++) {
-  //   BM_run_fully(table, stage, seconds_to_run, print_progress);
-  // }
+  for (int stage = start_stage; stage <= end_stage; stage++) {
+    BM_run_fully(table, stage, seconds_to_run, print_progress);
+  }
 
   // ----------------------------------------------------------------------------
   // Print and dump tables
