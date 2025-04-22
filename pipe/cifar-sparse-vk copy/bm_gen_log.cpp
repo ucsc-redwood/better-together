@@ -3,63 +3,54 @@
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/config_reader.hpp"
 #include "builtin-apps/curl_json.hpp"
+#include "builtin-apps/pipeline/worker.hpp"
 #include "const.hpp"
 
 // ----------------------------------------------------------------------------
-// Schedule Warmup
+// Schedule Auto
 // ----------------------------------------------------------------------------
 
 static void BM_pipe_warmup(const Schedule schedule) {
   auto n_chunks = schedule.n_chunks();
 
-  DispatcherT disp;
-
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
-
+  // Initialize the dispatcher and queues
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  std::vector<std::unique_ptr<TaskT>> preallocated_tasks;
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
-    queues[0].enqueue(dataset[i].get());
+    preallocated_tasks.emplace_back(std::make_unique<TaskT>(disp.get_mr()));
+    queues[0].enqueue(preallocated_tasks.back().get());
   }
 
   // Run the schedule
   {
     std::vector<std::thread> threads;
 
-    for (size_t chunk_id = 0; chunk_id < n_chunks; ++chunk_id) {
-      QueueT& q_in = queues[chunk_id];
-      QueueT& q_out = queues[(chunk_id + 1) % n_chunks];
+    for (size_t i = 0; i < n_chunks; ++i) {
+      QueueT& q_in = queues[i];
+      QueueT& q_out = queues[(i + 1) % n_chunks];
 
-      const int start = schedule.start_stage(chunk_id) + 1;
-      const int end = schedule.end_stage(chunk_id);
+      const int start = schedule.start_stage(i) + 1;
+      const int end = schedule.end_stage(i);
 
-      const ExecutionModel em = schedule.chunks[chunk_id].exec_model;
+      const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
 
-      constexpr auto num_warmup_items = 5;
-
-      if (em == ExecutionModel::kVulkan) {
-        threads.emplace_back(
-            worker,
-            std::ref(q_in),
-            std::ref(q_out),
-            [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-            num_warmup_items,
-            chunk_id == n_chunks - 1);
-      } else if (em == ExecutionModel::kOMP) {
-        const ProcessorType cpu_pt =
-            get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
-
-        threads.emplace_back(
-            worker,
-            std::ref(q_in),
-            std::ref(q_out),
-            [cpu_pt, start, end](AppDataT* app) {
-              const auto cores = get_cores_by_type(cpu_pt);
-              cifar_sparse::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
-            },
-            num_warmup_items,
-            chunk_id == n_chunks - 1);
-      } else if (em == ExecutionModel::kCuda) {
-        throw std::invalid_argument("Don't run CUDA in Vulkan mode");
+      if (pt == ProcessorType::kVulkan) {
+        threads.emplace_back(worker_thread<TaskT, kPoolSize, kNumToProcess>,
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [disp = &disp, start, end](TaskT& task) {
+                               disp->dispatch_multi_stage(task.appdata, start, end);
+                             });
+      } else {
+        threads.emplace_back(worker_thread<TaskT, kPoolSize, kNumToProcess>,
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [pt, start, end](TaskT& task) {
+                               const auto cores = get_cores_by_type(pt);
+                               cifar_sparse::omp::dispatch_multi_stage(
+                                   cores, cores.size(), task.appdata, start, end);
+                             });
       }
     }
 
@@ -69,70 +60,59 @@ static void BM_pipe_warmup(const Schedule schedule) {
   }
 }
 
-// ----------------------------------------------------------------------------
-// Schedule Auto
-// ----------------------------------------------------------------------------
-
 static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
   auto n_chunks = schedule.n_chunks();
 
-  DispatcherT disp;
-
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
-
+  // Initialize the dispatcher and queues
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  std::vector<std::unique_ptr<TaskT>> preallocated_tasks;
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
-    queues[0].enqueue(dataset[i].get());
+    preallocated_tasks.emplace_back(std::make_unique<TaskT>(disp.get_mr()));
+    queues[0].enqueue(preallocated_tasks.back().get());
   }
 
   Logger<kNumToProcess> logger;
 
   // Run the schedule
-  std::vector<std::thread> threads;
+  {
+    std::vector<std::thread> threads;
 
-  for (size_t chunk_id = 0; chunk_id < n_chunks; ++chunk_id) {
-    QueueT& q_in = queues[chunk_id];
-    QueueT& q_out = queues[(chunk_id + 1) % n_chunks];
+    for (size_t i = 0; i < n_chunks; ++i) {
+      QueueT& q_in = queues[i];
+      QueueT& q_out = queues[(i + 1) % n_chunks];
 
-    const int start = schedule.start_stage(chunk_id) + 1;
-    const int end = schedule.end_stage(chunk_id);
+      const int start = schedule.start_stage(i) + 1;
+      const int end = schedule.end_stage(i);
 
-    const ExecutionModel em = schedule.chunks[chunk_id].exec_model;
+      const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[i]);
 
-    if (em == ExecutionModel::kVulkan) {
-      threads.emplace_back(
-          worker_with_record,
-          chunk_id,
-          std::ref(logger),
-          std::ref(q_in),
-          std::ref(q_out),
-          [&disp, start, end](AppDataT* app) {
-            // Launch GPU
-            disp.dispatch_multi_stage(*app, start, end);
-          },
-          kNumToProcess,
-          chunk_id == n_chunks - 1);
-    } else if (em == ExecutionModel::kOMP) {
-      const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
-
-      threads.emplace_back(
-          worker_with_record,
-          chunk_id,
-          std::ref(logger),
-          std::ref(q_in),
-          std::ref(q_out),
-          [cpu_pt, start, end](AppDataT* app) {
-            // Launch OMP
-            const auto cores = get_cores_by_type(cpu_pt);
-            cifar_sparse::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
-          },
-          kNumToProcess,
-          chunk_id == n_chunks - 1);
+      if (pt == ProcessorType::kVulkan) {
+        threads.emplace_back(worker_thread_record<TaskT, kPoolSize, kNumToProcess>,
+                             i,
+                             std::ref(logger),
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [disp = &disp, start, end](TaskT& task) {
+                               disp->dispatch_multi_stage(task.appdata, start, end);
+                             });
+      } else {
+        threads.emplace_back(worker_thread_record<TaskT, kPoolSize, kNumToProcess>,
+                             i,
+                             std::ref(logger),
+                             std::ref(q_in),
+                             std::ref(q_out),
+                             [pt, start, end](TaskT& task) {
+                               const auto cores = get_cores_by_type(pt);
+                               cifar_sparse::omp::dispatch_multi_stage(
+                                   cores, cores.size(), task.appdata, start, end);
+                             });
+      }
     }
-  }
 
-  for (auto& thread : threads) {
-    thread.join();
+    for (auto& thread : threads) {
+      thread.join();
+    }
   }
 
   logger.dump_records_for_python(schedule);
@@ -140,14 +120,6 @@ static void BM_pipe_cifar_sparse_vk_schedule_auto(const Schedule schedule) {
 
 // ----------------------------------------------------------------------------
 // Main
-//
-// You want to serve the schedule using
-// python -m http.server 8080
-//
-// Run with:
-// xmake r bm-gen-logs-cifar-sparse-vk --device 3A021JEHN02756 --schedule-url <url>
-// <url>
-//
 // ----------------------------------------------------------------------------
 
 int main(int argc, char** argv) {
@@ -182,7 +154,7 @@ int main(int argc, char** argv) {
               },
           },
   };
-
+  
   BM_pipe_warmup(test_schedule);
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
