@@ -6,7 +6,9 @@ tmp/
 
 # Resources
 resources.tar.gz
-resources
+resources/weights_npy/
+resources/octomap/
+
 
 # resources/resources.zip
 *.zip
