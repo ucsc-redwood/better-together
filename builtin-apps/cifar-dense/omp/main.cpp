@@ -15,11 +15,14 @@ int main(int argc, char** argv) {
 
   dumpCompressed(appdata.u_input.pmr_vec());
 
+  spdlog::info("u_conv1_out before");
   dumpCompressed(appdata.u_conv1_out.pmr_vec());
 
   cifar_dense::omp::dispatch_stage(appdata, 1);
 
+  spdlog::info("u_conv1_out after");
   dumpCompressed(appdata.u_conv1_out.pmr_vec());
+
 
   return 0;
 }
