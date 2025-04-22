@@ -4,6 +4,7 @@
 
 #include "builtin-apps/cifar-dense/cuda/dispatchers.cuh"
 #include "builtin-apps/cifar-dense/omp/dispatchers.hpp"
+#include "builtin-apps/pipeline/record.hpp"
 #include "builtin-apps/pipeline/spsc_queue.hpp"
 
 // Application-specific constants
@@ -43,7 +44,6 @@ using LocalQueue = std::queue<AppDataPtr>;
 // Main Worker
 // ----------------------------------------------------------------------------
 
-template <typename QueueT>
 void worker(QueueT& q_in,
             QueueT& q_out,
             std::function<void(AppDataPtr&)> func,
@@ -61,6 +61,39 @@ void worker(QueueT& q_in,
 
     // ------------------------------------------------------------------------
     func(app);
+    // ------------------------------------------------------------------------
+
+    if (is_last) {
+      app->reset();
+    }
+
+    while (!q_out.enqueue(app)) {
+      std::this_thread::yield();
+    }
+  }
+}
+
+void worker_with_record(const int chunk_id,
+                        Logger<kNumToProcess>& logger,
+                        QueueT& q_in,
+                        QueueT& q_out,
+                        std::function<void(AppDataPtr&)> func,
+                        const size_t num_items_to_process,
+                        const bool is_last = false) {
+  for (size_t processing_id = 0; processing_id < num_items_to_process; ++processing_id) {
+    AppDataPtr app;
+    while (!q_in.dequeue(app)) {
+      std::this_thread::yield();
+    }
+
+    if (app == nullptr) {
+      throw std::runtime_error("App is nullptr");
+    }
+
+    // ------------------------------------------------------------------------
+    logger.start_tick(processing_id, chunk_id);
+    func(app);
+    logger.end_tick(processing_id, chunk_id);
     // ------------------------------------------------------------------------
 
     if (is_last) {
