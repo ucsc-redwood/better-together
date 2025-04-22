@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cnpy.h>
+#include <spdlog/spdlog.h>
 
 #include <cstring>
 #include <filesystem>
@@ -70,6 +71,7 @@ inline bool load_npy_to_ndarray(const std::string& filename, Ndarray2D& ndarray)
     std::memcpy(ndarray.data(), arr.data<float>(), ndarray.total_size() * sizeof(float));
     return true;
   } catch (const std::exception& e) {
+    spdlog::warn("Failed to load npy file: {}", e.what());
     return false;
   }
 }
