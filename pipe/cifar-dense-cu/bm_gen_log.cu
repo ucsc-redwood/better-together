@@ -149,11 +149,11 @@ int main(int argc, char** argv) {
   app.add_option("--device-to-measure", device_to_measure, "Device to measure")->required();
 
   std::string schedule_url;
-  app.add_option("--schedule-url", schedule_url, "Schedule URL")->required();
+  app.add_option("--schedule-url", schedule_url, "Schedule URL");
 
-  size_t n_schedules_to_run;
-  app.add_option("--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run")
-      ->default_val(10);
+  size_t n_schedules_to_run = 0;  // 0 means run all schedules
+  app.add_option(
+      "--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run (0 means run all)");
 
   PARSE_ARGS_END;
 
@@ -161,19 +161,6 @@ int main(int argc, char** argv) {
 
   if (g_device_id != device_to_measure) {
     return 0;
-  }
-
-  const auto json = fetch_json_from_url(schedule_url);
-
-  const auto schedules = readSchedulesFromJson(json);
-
-  auto n_schedules = schedules.size();
-
-  spdlog::info("Loaded {} schedules", n_schedules);
-
-  for (size_t i = 0; i < n_schedules; ++i) {
-    std::cout << "--------------------------------" << std::endl;
-    schedules[i].print(i);
   }
 
   const Schedule test_schedule{
@@ -186,15 +173,48 @@ int main(int argc, char** argv) {
                   .cpu_proc_type = ProcessorType::kLittleCore,
               },
               {
-                  .exec_model = ExecutionModel::kOMP,
+                  .exec_model = ExecutionModel::kCuda,
                   .start_stage = 4,
                   .end_stage = 6,
-                  .cpu_proc_type = ProcessorType::kBigCore,
               },
           },
   };
 
   BM_pipe_warmup(test_schedule);
+
+  // If schedule_url is empty or we fail to fetch the URL, just run warmup and quit
+  if (schedule_url.empty()) {
+    spdlog::info("No schedule URL provided. Running only warmup phase.");
+    return 0;
+  }
+
+  std::vector<Schedule> schedules;
+  try {
+    const auto json = fetch_json_from_url(schedule_url);
+    schedules = readSchedulesFromJson(json);
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to fetch or parse schedules: {}", e.what());
+    spdlog::info("Running only warmup phase.");
+    return 0;
+  }
+
+  auto n_schedules = schedules.size();
+  if (n_schedules == 0) {
+    spdlog::info("No schedules found.");
+    return 0;
+  }
+
+  spdlog::info("Loaded {} schedules", n_schedules);
+
+  for (size_t i = 0; i < n_schedules; ++i) {
+    std::cout << "--------------------------------" << std::endl;
+    schedules[i].print(i);
+  }
+
+  // If n_schedules_to_run is 0 or greater than available schedules, run all schedules
+  if (n_schedules_to_run == 0 || n_schedules_to_run > n_schedules) {
+    n_schedules_to_run = n_schedules;
+  }
 
   spdlog::info("Running {}/{} schedules", n_schedules_to_run, n_schedules);
 
