@@ -126,21 +126,58 @@ int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
   std::string schedule_url;
-  app.add_option("--schedule-url", schedule_url, "Schedule URL")->required();
+  app.add_option("--schedule-url", schedule_url, "Schedule URL");
 
-  size_t n_schedules_to_run;
-  app.add_option("--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run")
-      ->default_val(10);
+  size_t n_schedules_to_run = 0;  // 0 means run all schedules
+  app.add_option(
+      "--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run (0 means run all)");
 
   PARSE_ARGS_END;
 
+  spdlog::set_level(spdlog::level::off);  // don't log for warmup
+
+  const Schedule test_schedule{
+      .chunks =
+          {
+              {
+                  .exec_model = ExecutionModel::kOMP,
+                  .start_stage = 1,
+                  .end_stage = 3,
+                  .cpu_proc_type = ProcessorType::kLittleCore,
+              },
+              {
+                  .exec_model = ExecutionModel::kVulkan,
+                  .start_stage = 4,
+                  .end_stage = 6,
+              },
+          },
+  };
+
+  BM_pipe_warmup(test_schedule);
+
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
-  const auto json = fetch_json_from_url(schedule_url);
+  // If schedule_url is empty or we fail to fetch the URL, just run warmup and quit
+  if (schedule_url.empty()) {
+    spdlog::info("No schedule URL provided. Running only warmup phase.");
+    return 0;
+  }
 
-  const auto schedules = readSchedulesFromJson(json);
+  std::vector<Schedule> schedules;
+  try {
+    const auto json = fetch_json_from_url(schedule_url);
+    schedules = readSchedulesFromJson(json);
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to fetch or parse schedules: {}", e.what());
+    spdlog::warn("Running only warmup phase.");
+    return 0;
+  }
 
   auto n_schedules = schedules.size();
+  if (n_schedules == 0) {
+    spdlog::info("No schedules found.");
+    return 0;
+  }
 
   spdlog::info("Loaded {} schedules", n_schedules);
 
@@ -149,7 +186,10 @@ int main(int argc, char** argv) {
     schedules[i].print(i);
   }
 
-  BM_pipe_warmup(schedules[2]);
+  // If n_schedules_to_run is 0 or greater than available schedules, run all schedules
+  if (n_schedules_to_run == 0 || n_schedules_to_run > n_schedules) {
+    n_schedules_to_run = n_schedules;
+  }
 
   spdlog::info("Running {}/{} schedules", n_schedules_to_run, n_schedules);
 
