@@ -16,6 +16,7 @@ scikit-learn==1.6.1
 scipy==1.15.2
 seaborn==0.13.2
 six==1.17.0
+tabulate==0.9.0
 threadpoolctl==3.6.0
 tzdata==2025.2
 z3-solver==4.14.1.0

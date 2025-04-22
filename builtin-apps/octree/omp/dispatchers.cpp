@@ -89,7 +89,9 @@ void run_stage_2(AppData &app) {
 
   // One thread copies the result back to app data to avoid race conditions
 #pragma omp single
-  { std::ranges::copy(buffer_out.begin(), buffer_out.begin() + app.n, app.u_morton_codes.begin()); }
+  {
+    std::ranges::copy(buffer_out.begin(), buffer_out.begin() + app.n, app.u_morton_codes.begin());
+  }
 
   // Final barrier to ensure all threads see the updated app.u_morton_codes
 #pragma omp barrier

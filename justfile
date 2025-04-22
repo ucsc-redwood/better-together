@@ -21,6 +21,21 @@ set-default:
     xmake f -p linux -a x86_64 -c -v --use_vulkan=no --use_cuda=yes -m release
 
 #  ----------------------------------------------------------------------------
+#  Python Related
+#  ----------------------------------------------------------------------------
+
+# using 'uv' to create a virtual environment
+venv:
+    uv venv .venv
+    source .venv/bin/activate.fish
+
+# install dependencies
+install-deps:
+    uv pip install -r requirements.txt
+
+
+
+#  ----------------------------------------------------------------------------
 #  Compile Shaders
 #  ----------------------------------------------------------------------------
 
