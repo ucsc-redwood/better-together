@@ -32,11 +32,11 @@ static void BM_pipe_warmup(const Schedule schedule) {
       const int start = schedule.start_stage(chunk_id) + 1;
       const int end = schedule.end_stage(chunk_id);
 
-      const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
+      const ExecutionModel em = schedule.chunks[chunk_id].exec_model;
 
       constexpr auto num_warmup_items = 5;
 
-      if (pt == ProcessorType::kCuda) {
+      if (em == ExecutionModel::kCuda) {
         threads.emplace_back(
             worker,
             std::ref(q_in),
@@ -44,18 +44,22 @@ static void BM_pipe_warmup(const Schedule schedule) {
             [&disp, start, end](AppDataPtr& app) { disp.dispatch_multi_stage(*app, start, end); },
             num_warmup_items,
             chunk_id == n_chunks - 1);
-      } else {
+      } else if (em == ExecutionModel::kOMP) {
+        const ProcessorType cpu_pt =
+            get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
+
         threads.emplace_back(
             worker,
             std::ref(q_in),
             std::ref(q_out),
-            [pt, start, end](AppDataPtr& app) {
-              const auto cores = get_cores_by_type(pt);
-
+            [cpu_pt, start, end](AppDataPtr& app) {
+              const auto cores = get_cores_by_type(cpu_pt);
               cifar_dense::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
             },
             num_warmup_items,
             chunk_id == n_chunks - 1);
+      } else if (em == ExecutionModel::kVulkan) {
+        throw std::invalid_argument("Don't run Vulkan in CUDA mode");
       }
     }
 
@@ -93,9 +97,9 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
     const int start = schedule.start_stage(chunk_id) + 1;
     const int end = schedule.end_stage(chunk_id);
 
-    const ProcessorType pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
+    const ExecutionModel em = schedule.chunks[chunk_id].exec_model;
 
-    if (pt == ProcessorType::kCuda) {
+    if (em == ExecutionModel::kCuda) {
       threads.emplace_back(
           worker_with_record,
           chunk_id,
@@ -108,16 +112,18 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
           },
           kNumToProcess,
           chunk_id == n_chunks - 1);
-    } else {
+    } else if (em == ExecutionModel::kOMP) {
+      const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
+
       threads.emplace_back(
           worker_with_record,
           chunk_id,
           std::ref(logger),
           std::ref(q_in),
           std::ref(q_out),
-          [pt, start, end](AppDataPtr& app) {
+          [cpu_pt, start, end](AppDataPtr& app) {
             // Launch OMP
-            const auto cores = get_cores_by_type(pt);
+            const auto cores = get_cores_by_type(cpu_pt);
             cifar_dense::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
           },
           kNumToProcess,
