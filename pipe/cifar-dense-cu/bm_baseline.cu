@@ -104,10 +104,11 @@ BENCHMARK(BM_baseline_cuda)->Unit(benchmark::kMillisecond)->Name("CUDA/Baseline"
 
 // ----------------------------------------------------------------------------
 // Main
+//
+// Run with
+// xmake r bm-baseline-cifar-dense-cu --device jetson
+//
 // ----------------------------------------------------------------------------
-
-// e.g.,
-// xmake r bm-baseline-tree-vk
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
