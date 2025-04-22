@@ -25,11 +25,47 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_7,
 };
 
-inline void dispatch_multi_stage(const std::vector<int> &cores_to_use,
-                                 const int num_threads,
-                                 SafeAppData &appdata,
-                                 const int start_stage,
-                                 const int end_stage) {
+static inline void dispatch_stage(SafeAppData &appdata, const int stage) {
+  assert(stage >= 1 && stage <= 7);
+
+#pragma omp parallel
+  {
+    dispatch_fns_batch[stage - 1](appdata);
+  }
+}
+
+static inline void dispatch_multi_stage(SafeAppData &appdata,
+                                        const int start_stage,
+                                        const int end_stage) {
+  assert(start_stage >= 1 && end_stage <= 7);
+
+#pragma omp parallel
+  {
+    for (int stage = start_stage; stage <= end_stage; stage++) {
+      dispatch_fns_batch[stage - 1](appdata);
+    }
+  }
+}
+
+static inline void dispatch_stage(const std::vector<int> &cores_to_use,
+                                  const int num_threads,
+                                  SafeAppData &appdata,
+                                  const int stage) {
+  assert(stage >= 1 && stage <= 7);
+
+#pragma omp parallel num_threads(num_threads)
+  {
+    bind_thread_to_cores(cores_to_use);
+
+    dispatch_fns_batch[stage - 1](appdata);
+  }
+}
+
+static inline void dispatch_multi_stage(const std::vector<int> &cores_to_use,
+                                        const int num_threads,
+                                        SafeAppData &appdata,
+                                        const int start_stage,
+                                        const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 7);
 
 #pragma omp parallel num_threads(num_threads)

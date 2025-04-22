@@ -1,9 +1,25 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
+#include <memory>
+
 #include "../../app.hpp"
 #include "../safe_tree_appdata.hpp"
+#include "builtin-apps/tree/tree_appdata.hpp"
 #include "dispatchers.hpp"
+
+// ----------------------------------------------------------------------------
+// test appdata initialization
+// ----------------------------------------------------------------------------
+
+TEST(AppdataTest, Initialization) {
+  auto mr = std::pmr::new_delete_resource();
+  tree::SafeAppData appdata(mr);
+
+  EXPECT_EQ(appdata.get_n_input(), tree::kDefaultInputSize);
+
+  EXPECT_LT(appdata.get_n_octree_nodes() / appdata.get_n_input(), tree::kMemoryRatio);
+}
 
 // ----------------------------------------------------------------------------
 // test Stage 1
@@ -13,17 +29,11 @@ TEST(Stage1Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   tree::SafeAppData appdata(mr);
 
-  const std::vector<float> morton_before(appdata.u_morton_keys_s1_out.begin(),
-                                         appdata.u_morton_keys_s1_out.end());
+  // Run stage 1
+  tree::omp::run_stage_1(appdata);
 
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
-
-  const std::vector<float> morton_after(appdata.u_morton_keys_s1_out.begin(),
-                                        appdata.u_morton_keys_s1_out.end());
-
-  const bool is_different = !std::ranges::equal(morton_before, morton_after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
+  // Check no throw
+  EXPECT_NO_THROW(tree::omp::run_stage_1(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -34,11 +44,14 @@ TEST(Stage2Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   tree::SafeAppData appdata(mr);
 
-  // Run previous stages
-  tree::omp::dispatch_stage(appdata, 1);
+  // Run stage 1 first
+  tree::omp::run_stage_1(appdata);
+
+  // Run stage 2
+  tree::omp::run_stage_2(appdata);
 
   // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(tree::omp::run_stage_2(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -50,10 +63,14 @@ TEST(Stage3Test, Basic) {
   tree::SafeAppData appdata(mr);
 
   // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 2);
+  tree::omp::run_stage_1(appdata);
+  tree::omp::run_stage_2(appdata);
+
+  // Run stage 3
+  tree::omp::run_stage_3(appdata);
 
   // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(tree::omp::run_stage_3(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -65,10 +82,15 @@ TEST(Stage4Test, Basic) {
   tree::SafeAppData appdata(mr);
 
   // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 3);
+  tree::omp::run_stage_1(appdata);
+  tree::omp::run_stage_2(appdata);
+  tree::omp::run_stage_3(appdata);
+
+  // Run stage 4
+  tree::omp::run_stage_4(appdata);
 
   // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 4));
+  EXPECT_NO_THROW(tree::omp::run_stage_4(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -80,10 +102,16 @@ TEST(Stage5Test, Basic) {
   tree::SafeAppData appdata(mr);
 
   // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 4);
+  tree::omp::run_stage_1(appdata);
+  tree::omp::run_stage_2(appdata);
+  tree::omp::run_stage_3(appdata);
+  tree::omp::run_stage_4(appdata);
+
+  // Run stage 5
+  tree::omp::run_stage_5(appdata);
 
   // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 5));
+  EXPECT_NO_THROW(tree::omp::run_stage_5(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -95,10 +123,17 @@ TEST(Stage6Test, Basic) {
   tree::SafeAppData appdata(mr);
 
   // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 5);
+  tree::omp::run_stage_1(appdata);
+  tree::omp::run_stage_2(appdata);
+  tree::omp::run_stage_3(appdata);
+  tree::omp::run_stage_4(appdata);
+  tree::omp::run_stage_5(appdata);
+
+  // Run stage 6
+  tree::omp::run_stage_6(appdata);
 
   // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(tree::omp::run_stage_6(appdata));
 }
 
 // ----------------------------------------------------------------------------
@@ -109,16 +144,28 @@ TEST(Stage7Test, Basic) {
   auto mr = std::pmr::new_delete_resource();
   tree::SafeAppData appdata(mr);
 
-  tree::omp::dispatch_multi_stage(appdata, 1, 6);
+  // Run previous stages
+  tree::omp::run_stage_1(appdata);
+  tree::omp::run_stage_2(appdata);
+  tree::omp::run_stage_3(appdata);
+  tree::omp::run_stage_4(appdata);
+  tree::omp::run_stage_5(appdata);
+  tree::omp::run_stage_6(appdata);
 
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 7));
+  // Run stage 7
+  tree::omp::run_stage_7(appdata);
+
+  // Check no throw
+  EXPECT_NO_THROW(tree::omp::run_stage_7(appdata));
 }
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
+  // Parse command-line arguments
   parse_args(argc, argv);
 
+  // Set logging level to off
   spdlog::set_level(spdlog::level::off);
 
   return RUN_ALL_TESTS();

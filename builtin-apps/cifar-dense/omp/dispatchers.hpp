@@ -31,7 +31,7 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_9,
 };
 
-inline void dispatch_stage(AppData& appdata, const int stage) {
+static inline void dispatch_stage(AppData& appdata, const int stage) {
   assert(stage >= 1 && stage <= 9);
 
 #pragma omp parallel
@@ -40,7 +40,9 @@ inline void dispatch_stage(AppData& appdata, const int stage) {
   }
 }
 
-inline void dispatch_multi_stage(AppData& appdata, const int start_stage, const int end_stage) {
+static inline void dispatch_multi_stage(AppData& appdata,
+                                        const int start_stage,
+                                        const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 9);
 
 #pragma omp parallel
@@ -51,10 +53,10 @@ inline void dispatch_multi_stage(AppData& appdata, const int start_stage, const 
   }
 }
 
-inline void dispatch_stage(const std::vector<int>& cores_to_use,
-                           const int num_threads,
-                           AppData& appdata,
-                           const int stage) {
+static inline void dispatch_stage(const std::vector<int>& cores_to_use,
+                                  const int num_threads,
+                                  AppData& appdata,
+                                  const int stage) {
   assert(stage >= 1 && stage <= 9);
 
 #pragma omp parallel num_threads(num_threads)
@@ -65,11 +67,11 @@ inline void dispatch_stage(const std::vector<int>& cores_to_use,
   }
 }
 
-inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
-                                 const int num_threads,
-                                 AppData& appdata,
-                                 const int start_stage,
-                                 const int end_stage) {
+static inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
+                                        const int num_threads,
+                                        AppData& appdata,
+                                        const int start_stage,
+                                        const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 9);
 
 #pragma omp parallel num_threads(num_threads)
