@@ -28,13 +28,13 @@ TEST(Stage1Test, Basic) {
 
   // Check if the output buffers value is different before calling the kernel
   const std::vector<float> conv1_out_before(appdata.u_conv1_out.pmr_vec().begin(),
-                                           appdata.u_conv1_out.pmr_vec().end());
+                                            appdata.u_conv1_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
 
   const std::vector<float> conv1_out_after(appdata.u_conv1_out.pmr_vec().begin(),
-                                          appdata.u_conv1_out.pmr_vec().end());
+                                           appdata.u_conv1_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < conv1_out_before.size(); ++i) {
@@ -66,13 +66,13 @@ TEST(Stage2Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> pool1_out_before(appdata.u_pool1_out.pmr_vec().begin(),
-                                          appdata.u_pool1_out.pmr_vec().end());
+                                            appdata.u_pool1_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 2)) << "Stage 2 should not throw";
 
   const std::vector<float> pool1_out_after(appdata.u_pool1_out.pmr_vec().begin(),
-                                         appdata.u_pool1_out.pmr_vec().end());
+                                           appdata.u_pool1_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < pool1_out_before.size(); ++i) {
@@ -104,13 +104,13 @@ TEST(Stage3Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> conv2_out_before(appdata.u_conv2_out.pmr_vec().begin(),
-                                           appdata.u_conv2_out.pmr_vec().end());
+                                            appdata.u_conv2_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 3)) << "Stage 3 should not throw";
 
   const std::vector<float> conv2_out_after(appdata.u_conv2_out.pmr_vec().begin(),
-                                          appdata.u_conv2_out.pmr_vec().end());
+                                           appdata.u_conv2_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < conv2_out_before.size(); ++i) {
@@ -142,13 +142,13 @@ TEST(Stage4Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> pool2_out_before(appdata.u_pool2_out.pmr_vec().begin(),
-                                          appdata.u_pool2_out.pmr_vec().end());
+                                            appdata.u_pool2_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 4)) << "Stage 4 should not throw";
 
   const std::vector<float> pool2_out_after(appdata.u_pool2_out.pmr_vec().begin(),
-                                         appdata.u_pool2_out.pmr_vec().end());
+                                           appdata.u_pool2_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < pool2_out_before.size(); ++i) {
@@ -180,13 +180,13 @@ TEST(Stage5Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> conv3_out_before(appdata.u_conv3_out.pmr_vec().begin(),
-                                           appdata.u_conv3_out.pmr_vec().end());
+                                            appdata.u_conv3_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 5)) << "Stage 5 should not throw";
 
   const std::vector<float> conv3_out_after(appdata.u_conv3_out.pmr_vec().begin(),
-                                          appdata.u_conv3_out.pmr_vec().end());
+                                           appdata.u_conv3_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < conv3_out_before.size(); ++i) {
@@ -218,13 +218,13 @@ TEST(Stage6Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> conv4_out_before(appdata.u_conv4_out.pmr_vec().begin(),
-                                           appdata.u_conv4_out.pmr_vec().end());
+                                            appdata.u_conv4_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 6)) << "Stage 6 should not throw";
 
   const std::vector<float> conv4_out_after(appdata.u_conv4_out.pmr_vec().begin(),
-                                          appdata.u_conv4_out.pmr_vec().end());
+                                           appdata.u_conv4_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < conv4_out_before.size(); ++i) {
@@ -256,13 +256,13 @@ TEST(Stage7Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> conv5_out_before(appdata.u_conv5_out.pmr_vec().begin(),
-                                           appdata.u_conv5_out.pmr_vec().end());
+                                            appdata.u_conv5_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 7)) << "Stage 7 should not throw";
 
   const std::vector<float> conv5_out_after(appdata.u_conv5_out.pmr_vec().begin(),
-                                          appdata.u_conv5_out.pmr_vec().end());
+                                           appdata.u_conv5_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < conv5_out_before.size(); ++i) {
@@ -294,13 +294,13 @@ TEST(Stage8Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> pool3_out_before(appdata.u_pool3_out.pmr_vec().begin(),
-                                          appdata.u_pool3_out.pmr_vec().end());
+                                            appdata.u_pool3_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 8)) << "Stage 8 should not throw";
 
   const std::vector<float> pool3_out_after(appdata.u_pool3_out.pmr_vec().begin(),
-                                         appdata.u_pool3_out.pmr_vec().end());
+                                           appdata.u_pool3_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < pool3_out_before.size(); ++i) {
@@ -330,13 +330,13 @@ TEST(Stage9Test, Basic) {
 
   // Check if the output buffer value is different before calling the kernel
   const std::vector<float> linear_out_before(appdata.u_linear_out.pmr_vec().begin(),
-                                            appdata.u_linear_out.pmr_vec().end());
+                                             appdata.u_linear_out.pmr_vec().end());
 
   // Check no throw
   EXPECT_NO_THROW(cifar_dense::omp::dispatch_stage(appdata, 9)) << "Stage 9 should not throw";
 
   const std::vector<float> linear_out_after(appdata.u_linear_out.pmr_vec().begin(),
-                                           appdata.u_linear_out.pmr_vec().end());
+                                            appdata.u_linear_out.pmr_vec().end());
 
   bool is_different = false;
   for (size_t i = 0; i < linear_out_before.size(); ++i) {
@@ -348,7 +348,6 @@ TEST(Stage9Test, Basic) {
 
   EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
-
 
 // ----------------------------------------------------------------------------
 // Test Queue environment
