@@ -36,6 +36,10 @@ using LocalQueue = std::queue<AppDataPtr>;
   return result;
 }
 
+[[nodiscard]] LocalQueue make_queue_from_vector(const std::vector<AppDataPtr>& vec) {
+  return std::queue<AppDataPtr>(std::deque<AppDataPtr>(vec.begin(), vec.end()));
+}
+
 // ----------------------------------------------------------------------------
 // Main Worker
 // ----------------------------------------------------------------------------
