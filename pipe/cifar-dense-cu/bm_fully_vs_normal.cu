@@ -67,7 +67,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
           total_processed++;
         },
         seconds_to_run);
-  } else {
+  } else if (cores_to_use_opt.has_value()) {
     const auto cores_to_use = cores_to_use_opt.value();
 
     BM_run_normal_impl(
@@ -78,6 +78,8 @@ static void BM_run_normal(BmTable<kNumStages>& table,
           total_processed++;
         },
         seconds_to_run);
+  } else {
+    SPDLOG_WARN("Skipping processor type {} - no cores available", static_cast<int>(pt));
   }
 
   // ----------------------------------------------------------------------------
@@ -95,7 +97,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
     const std::string pt_name = pt == ProcessorType::kLittleCore   ? "Little"
                                 : pt == ProcessorType::kBigCore    ? "Big"
                                 : pt == ProcessorType::kMediumCore ? "Medium"
-                                : pt == ProcessorType::kVulkan     ? "Vulkan"
+                                : pt == ProcessorType::kCuda       ? "CUDA"
                                                                    : "Unknown";
 
     fmt::print("Stage: {} by {}\n", stage, pt_name);
@@ -105,7 +107,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
   }
 
   // map ProcessorType::kLittleCore = 0, ProcessorType::kBigCore = 1, ProcessorType::kMediumCore =
-  // 2, ProcessorType::kVulkan = 3
+  // 2, ProcessorType::kCuda = 3
   if (total_processed > 0) {
     table.update_normal_table(stage - 1, static_cast<int>(pt), total_time / total_processed);
   }
@@ -267,7 +269,7 @@ int main(int argc, char** argv) {
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    BM_run_normal(table, ProcessorType::kVulkan, stage, seconds_to_run, print_progress);
+    BM_run_normal(table, ProcessorType::kCuda, stage, seconds_to_run, print_progress);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
