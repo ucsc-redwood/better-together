@@ -17,7 +17,7 @@ void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
   const int outH = appdata.u_conv1_out.d2();
   const int outW = appdata.u_conv1_out.d3();
 
-  conv2d_tiled_cuda(appdata.u_input.data(),
+  conv2d_batch_cuda(appdata.u_input.data(),
                     appdata.u_conv1_w.data(),
                     appdata.u_conv1_b.data(),
                     appdata.u_conv1_out.data(),
@@ -78,7 +78,7 @@ void CudaDispatcher::run_stage_3_async(cifar_dense::AppData &appdata) {
   const int outH = appdata.u_conv2_out.d2();  // 16
   const int outW = appdata.u_conv2_out.d3();  // 16
 
-  conv2d_tiled_cuda(appdata.u_pool1_out.data(),
+  conv2d_batch_cuda(appdata.u_pool1_out.data(),
                     appdata.u_conv2_w.data(),
                     appdata.u_conv2_b.data(),
                     appdata.u_conv2_out.data(),
@@ -139,7 +139,7 @@ void CudaDispatcher::run_stage_5_async(cifar_dense::AppData &appdata) {
   const int outH = appdata.u_conv3_out.d2();  // 8
   const int outW = appdata.u_conv3_out.d3();  // 8
 
-  conv2d_tiled_cuda(appdata.u_pool2_out.data(),
+  conv2d_batch_cuda(appdata.u_pool2_out.data(),
                     appdata.u_conv3_w.data(),
                     appdata.u_conv3_b.data(),
                     appdata.u_conv3_out.data(),
@@ -173,7 +173,7 @@ void CudaDispatcher::run_stage_6_async(cifar_dense::AppData &appdata) {
   const int outH = appdata.u_conv4_out.d2();  // 8
   const int outW = appdata.u_conv4_out.d3();  // 8
 
-  conv2d_tiled_cuda(appdata.u_conv3_out.data(),
+  conv2d_batch_cuda(appdata.u_conv3_out.data(),
                     appdata.u_conv4_w.data(),
                     appdata.u_conv4_b.data(),
                     appdata.u_conv4_out.data(),
@@ -207,7 +207,7 @@ void CudaDispatcher::run_stage_7_async(cifar_dense::AppData &appdata) {
   const int outH = appdata.u_conv5_out.d2();  // 8
   const int outW = appdata.u_conv5_out.d3();  // 8
 
-  conv2d_tiled_cuda(appdata.u_conv4_out.data(),
+  conv2d_batch_cuda(appdata.u_conv4_out.data(),
                     appdata.u_conv5_w.data(),
                     appdata.u_conv5_b.data(),
                     appdata.u_conv5_out.data(),
