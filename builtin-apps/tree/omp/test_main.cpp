@@ -37,8 +37,7 @@ TEST(Stage2Test, Basic) {
   // Run previous stages
   tree::omp::dispatch_stage(appdata, 1);
 
-  // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 2));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 2)) << "Stage 2 should not throw";
 }
 
 // ----------------------------------------------------------------------------
@@ -52,8 +51,7 @@ TEST(Stage3Test, Basic) {
   // Run previous stages
   tree::omp::dispatch_multi_stage(appdata, 1, 2);
 
-  // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 3));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 3)) << "Stage 3 should not throw";
 }
 
 // ----------------------------------------------------------------------------
@@ -67,8 +65,7 @@ TEST(Stage4Test, Basic) {
   // Run previous stages
   tree::omp::dispatch_multi_stage(appdata, 1, 3);
 
-  // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 4));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 4)) << "Stage 4 should not throw";
 }
 
 // ----------------------------------------------------------------------------
@@ -82,8 +79,7 @@ TEST(Stage5Test, Basic) {
   // Run previous stages
   tree::omp::dispatch_multi_stage(appdata, 1, 4);
 
-  // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 5));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 5)) << "Stage 5 should not throw";
 }
 
 // ----------------------------------------------------------------------------
@@ -97,8 +93,7 @@ TEST(Stage6Test, Basic) {
   // Run previous stages
   tree::omp::dispatch_multi_stage(appdata, 1, 5);
 
-  // Check no throw
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 6));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 6)) << "Stage 6 should not throw";
 }
 
 // ----------------------------------------------------------------------------
@@ -111,7 +106,7 @@ TEST(Stage7Test, Basic) {
 
   tree::omp::dispatch_multi_stage(appdata, 1, 6);
 
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 7));
+  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 7)) << "Stage 7 should not throw";
 }
 
 int main(int argc, char** argv) {

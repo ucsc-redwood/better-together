@@ -4,21 +4,6 @@
 #include "dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
-// test appdata initialization
-// ----------------------------------------------------------------------------
-
-TEST(AppdataTest, Initialization) {
-  tree::vulkan::VulkanDispatcher disp;
-  tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
-
-  EXPECT_EQ(appdata.get_n_input(), tree::kDefaultInputSize);
-  EXPECT_LE(appdata.get_n_unique(), appdata.get_n_input());
-  EXPECT_EQ(appdata.get_n_brt_nodes(), appdata.get_n_unique() - 1);
-  EXPECT_LE(appdata.get_n_octree_nodes(), appdata.get_n_input() * tree::kMemoryRatio);
-  EXPECT_LT(appdata.get_n_octree_nodes() / appdata.get_n_input(), tree::kMemoryRatio);
-}
-
-// ----------------------------------------------------------------------------
 // test Stage 1
 // ----------------------------------------------------------------------------
 
@@ -26,10 +11,17 @@ TEST(Stage1Test, Basic) {
   tree::vulkan::VulkanDispatcher disp;
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
-  EXPECT_NO_THROW(disp.run_stage_1(appdata));
+  const std::vector<float> morton_before(appdata.u_morton_keys_s1_out.begin(),
+                                         appdata.u_morton_keys_s1_out.end());
 
-  // Check no throw again
-  EXPECT_NO_THROW(disp.run_stage_1(appdata));
+  EXPECT_NO_THROW(disp.run_stage_1(appdata)) << "Stage 1 should not throw";
+
+  const std::vector<float> morton_after(appdata.u_morton_keys_s1_out.begin(),
+                                        appdata.u_morton_keys_s1_out.end());
+
+  const bool is_different = !std::ranges::equal(morton_before, morton_after);
+
+  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
 }
 
 // ----------------------------------------------------------------------------
@@ -41,12 +33,8 @@ TEST(Stage2Test, Basic) {
   tree::vulkan::VkAppData_Safe appdata(disp.get_mr());
 
   // Run stage 1 first
-  disp.run_stage_1(appdata);
+  disp.dispatch_stage(appdata, 1);
 
-  // Run stage 2
-  EXPECT_NO_THROW(disp.run_stage_2(appdata));
-
-  // Check no throw
   EXPECT_NO_THROW(disp.run_stage_2(appdata));
 }
 

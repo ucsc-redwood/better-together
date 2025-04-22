@@ -9,6 +9,11 @@ class CudaDispatcher {
  public:
   CudaDispatcher() = default;
 
+  CudaDispatcher(const CudaDispatcher &) = delete;
+  CudaDispatcher &operator=(const CudaDispatcher &) = delete;
+  CudaDispatcher(CudaDispatcher &&) = delete;
+  CudaDispatcher &operator=(CudaDispatcher &&) = delete;
+
   ::cuda::CudaManagedResource &get_mr() { return mgr_.get_mr(); }
 
   void run_stage_1_async(cifar_dense::AppData &appdata);
@@ -30,7 +35,6 @@ class CudaDispatcher {
       &CudaDispatcher::run_stage_4_async,
       &CudaDispatcher::run_stage_5_async,
       &CudaDispatcher::run_stage_6_async,
-
       &CudaDispatcher::run_stage_7_async,
       &CudaDispatcher::run_stage_8_async,
       &CudaDispatcher::run_stage_9_async,
