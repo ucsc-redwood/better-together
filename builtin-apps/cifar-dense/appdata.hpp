@@ -21,59 +21,6 @@ constexpr int kPoolStride = 2;
 
 constexpr bool kRelu = true;
 
-struct Model {
-  // public, const data members:
-  Ndarray4D conv1_w;
-  Ndarray1D conv1_b;
-  Ndarray4D conv2_w;
-  Ndarray1D conv2_b;
-  Ndarray4D conv3_w;
-  Ndarray1D conv3_b;
-  Ndarray4D conv4_w;
-  Ndarray1D conv4_b;
-  Ndarray4D conv5_w;
-  Ndarray1D conv5_b;
-  Ndarray2D linear_w;
-  Ndarray1D linear_b;
-
-  // // no public ctor: use instance()
-  // static const Model& instance() {
-  //   // C++11 guarantees thread‑safe init
-  //   static Model m;
-  //   return m;
-  // }
-
- private:
-  Model(std::pmr::memory_resource* mr)
-      : conv1_w(16, 3, 3, 3, mr),
-        conv1_b(16, mr),
-        conv2_w(32, 16, 3, 3, mr),
-        conv2_b(32, mr),
-        conv3_w(64, 32, 3, 3, mr),
-        conv3_b(64, mr),
-        conv4_w(64, 64, 3, 3, mr),
-        conv4_b(64, mr),
-        conv5_w(64, 64, 3, 3, mr),
-        conv5_b(64, mr),
-        linear_w(10, 1024, mr),
-        linear_b(10, mr) {
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv1_w.npy", conv1_w));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv1_b.npy", conv1_b));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv2_w.npy", conv2_w));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv2_b.npy", conv2_b));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv3_w.npy", conv3_w));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv3_b.npy", conv3_b));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv4_w.npy", conv4_w));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv4_b.npy", conv4_b));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv5_w.npy", conv5_w));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv5_b.npy", conv5_b));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_linear_w.npy", linear_w));
-    assert(npy_loader::load_npy_to_ndarray("cifar/u_linear_b.npy", linear_b));
-  }
-
-  // std::pmr::memory_resource* mr_;
-};
-
 struct AppData final : public BaseAppData {
   static constexpr size_t BATCH_SIZE = 128;
 
