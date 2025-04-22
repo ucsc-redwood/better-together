@@ -4,6 +4,7 @@
 #include <memory_resource>
 #include <random>
 
+#include "../base_appdata.hpp"
 #include "../ndarray.hpp"
 
 namespace cifar_dense {
@@ -19,7 +20,7 @@ constexpr int kPoolStride = 2;
 
 constexpr bool kRelu = true;
 
-struct AppData {
+struct AppData final : public BaseAppData {
   static constexpr size_t BATCH_SIZE = 128;
 
   // conv1: 16 output channels, 3×3×3 kernel = 27 inputs
@@ -30,7 +31,8 @@ struct AppData {
   // linear: 10 output channels, 1024 inputs
 
   explicit AppData(std::pmr::memory_resource* mr)
-      : u_input(BATCH_SIZE, 3, 32, 32, mr),
+      : BaseAppData(),
+        u_input(BATCH_SIZE, 3, 32, 32, mr),
         u_conv1_out(BATCH_SIZE, 16, 32, 32, mr),
         u_pool1_out(BATCH_SIZE, 16, 16, 16, mr),
         u_conv2_out(BATCH_SIZE, 32, 16, 16, mr),
