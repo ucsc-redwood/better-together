@@ -4,7 +4,7 @@
 
 namespace cifar_dense::cuda {
 
-constexpr bool kSync = true;
+constexpr bool kSync = false;
 
 void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
