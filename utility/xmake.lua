@@ -1,49 +1,34 @@
 -- Copyright (c) 2025 Yanwen Xu (yxu83@ucsc.edu). MIT License.
 
+
 -- ----------------------------------------------------------------
--- Utility (Vulkan)
+-- Utility Target: Check Core Types
 -- ----------------------------------------------------------------
 
-if has_config("use_vulkan") then
-	add_requires("volk")
+target("bm-check-core-types")
+do
+	set_kind("binary")
+	add_rules("common_flags", "run_on_android")
+	add_files({
+		"bm_core_type.cpp",
+	})
+
+	add_packages("benchmark")
 end
 
-rule("utility_config")
-on_load(function(target)
-	target:set("kind", "binary")
-	target:set("group", "utility")
-end)
-rule_end()
-
--- ----------------------------------------------------------------
--- Utility Target: Find the current GPU's Warp Size
--- ----------------------------------------------------------------
 if has_config("use_vulkan") then
-	target("query-warpsize")
+	target("check-vulkan")
 	do
-		add_rules("utility_config", "vulkan_config", "run_on_android")
+		set_kind("binary")
+		add_rules("vulkan_config", "run_on_android")
 		add_files({
-			"query_warpsize.cpp",
+			"check_vulkan.cpp",
 		})
+
 		add_packages("volk")
 	end
 end
 
--- ----------------------------------------------------------------
--- Utility Target: Query the current CPU Information
--- ----------------------------------------------------------------
-
-if has_config("use_vulkan") then
-	if is_plat("linux") or is_plat("android") then
-		target("query-cpuinfo")
-		do
-			add_rules("utility_config", "run_on_android")
-			add_files({
-				"query_cpuinfo.cpp",
-			})
-		end
-	end
-end
 
 -- ----------------------------------------------------------------
 -- Utility Target: try pinning threads to all cores and verify if it works
@@ -51,24 +36,55 @@ end
 
 target("test-affinity")
 do
-	add_rules("utility_config", "run_on_android")
+	set_kind("binary")
+	add_rules("run_on_android")
 	add_files({
 		"test_affinity.cpp",
 	})
 end
 
+
 -- ----------------------------------------------------------------
+-- Utility (Vulkan)
+-- ----------------------------------------------------------------
+-- Utility Target: Find the current GPU's Warp Size
 -- Utility Target: Query the current Vulkan-Hpp version
 -- Vulkan-Hpp version: 309
 -- And 
 -- Vulkan-Hpp version: 290
 -- ----------------------------------------------------------------
 
-target("query-vulkan-hpp-version")
-do
-	add_rules("utility_config", "vulkan_config", "run_on_android")
-	add_files({
-		"query_vulkan_hpp_version.cpp",
-	})
-end
+if has_config("use_vulkan") then
+--	add_requires("volk")
 
+	target("query-warpsize")
+	do
+		set_kind("binary")
+		add_rules("vulkan_config", "run_on_android")
+		add_files({
+			"query_warpsize.cpp",
+		})
+		add_packages("volk")
+	end
+
+	target("query-vulkan-hpp-version")
+	do
+		set_kind("binary")
+		add_rules("vulkan_config", "run_on_android")
+		add_files({
+			"query_vulkan_hpp_version.cpp",
+		})
+	end
+
+	if is_plat("linux") or is_plat("android") then
+		target("query-cpuinfo")
+		do
+			set_kind("binary")
+			add_rules("run_on_android")
+			add_files({
+				"query_cpuinfo.cpp",
+			})
+		end
+	end
+
+end

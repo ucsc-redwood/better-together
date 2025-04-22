@@ -1,274 +1,264 @@
-#include <cuda_runtime.h>
-
-#include "../../common/cuda/helpers.cuh"
 #include "../../debug_logger.hpp"
 #include "all_kernels.cuh"
 #include "dispatchers.cuh"
 
 namespace cifar_dense::cuda {
 
-constexpr bool kAutoSync = false;
+void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
 
-// -----------------------------------------------------------------------------
-// Stage 1 (first conv2d)
-// -----------------------------------------------------------------------------
+  const int N = appdata.u_input.d0();
+  const int inC = appdata.u_input.d1();
+  const int inH = appdata.u_input.d2();
+  const int inW = appdata.u_input.d3();
+  const int outC = appdata.u_conv1_w.d0();
+  const int outH = appdata.u_conv1_out.d2();
+  const int outW = appdata.u_conv1_out.d3();
 
-void process_stage_1(AppData &app_data) {
-  constexpr auto total_iterations = kConv1OutChannels * kConv1OutHeight * kConv1OutWidth;
+  conv2d_batch_cuda(appdata.u_input.data(),
+                    appdata.u_conv1_w.data(),
+                    appdata.u_conv1_b.data(),
+                    appdata.u_conv1_out.data(),
+                    N,
+                    inC,
+                    inH,
+                    inW,
+                    outC,
+                    kKernelSize,
+                    kKernelSize,
+                    outH,
+                    outW,
+                    kStride,
+                    kPadding,
+                    kRelu);
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 1, &app_data);
-
-  conv2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_image.data(),
-                                              app_data.u_conv1_weights.data(),
-                                              app_data.u_conv1_bias.data(),
-                                              app_data.u_conv1_out.data(),
-                                              kInputHeight,
-                                              kInputWidth,
-                                              kConv1OutChannels,
-                                              kInputChannels,
-                                              kKernelSize,
-                                              kKernelSize,
-                                              kConv1BiasSize,
-                                              kKernelSize,
-                                              kStride,
-                                              kPadding,
-                                              kConv1OutHeight,
-                                              kConv1OutWidth,
-                                              kRelu);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 2 (maxpool)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_2_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 2, &appdata);
 
-void process_stage_2(AppData &app_data) {
-  constexpr auto total_iterations = kConv1OutChannels * kPool1OutHeight * kPool1OutWidth;
+  const int N = appdata.u_conv1_out.d0();     // 128
+  const int C = appdata.u_conv1_out.d1();     // 16
+  const int inH = appdata.u_conv1_out.d2();   // 32
+  const int inW = appdata.u_conv1_out.d3();   // 32
+  const int outH = appdata.u_pool1_out.d2();  // 16
+  const int outW = appdata.u_pool1_out.d3();  // 16
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 2, &app_data);
+  maxpool2d_batch_cuda(appdata.u_conv1_out.data(),
+                       appdata.u_pool1_out.data(),
+                       N,
+                       C,
+                       inH,
+                       inW,
+                       outH,
+                       outW,
+                       kPoolSize,
+                       kPoolStride);
 
-  maxpool2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_conv1_out.data(),
-                                                 app_data.u_pool1_out.data(),
-                                                 kConv1OutChannels,
-                                                 kConv1OutHeight,
-                                                 kConv1OutWidth,
-                                                 kPoolSize,
-                                                 kStride,
-                                                 kPool1OutHeight,
-                                                 kPool1OutWidth);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 3 (second conv2d)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_3_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 3, &appdata);
 
-void process_stage_3(AppData &app_data) {
-  constexpr auto total_iterations = kConv2OutChannels * kConv2OutHeight * kConv2OutWidth;
+  const int N = appdata.u_pool1_out.d0();     // 128
+  const int inC = appdata.u_pool1_out.d1();   // 16
+  const int inH = appdata.u_pool1_out.d2();   // 16
+  const int inW = appdata.u_pool1_out.d3();   // 16
+  const int outC = appdata.u_conv2_w.d0();    // 32
+  const int outH = appdata.u_conv2_out.d2();  // 16
+  const int outW = appdata.u_conv2_out.d3();  // 16
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 3, &app_data);
+  conv2d_batch_cuda(appdata.u_pool1_out.data(),
+                    appdata.u_conv2_w.data(),
+                    appdata.u_conv2_b.data(),
+                    appdata.u_conv2_out.data(),
+                    N,
+                    inC,
+                    inH,
+                    inW,
+                    outC,
+                    kKernelSize,
+                    kKernelSize,
+                    outH,
+                    outW,
+                    kStride,
+                    kPadding,
+                    kRelu);
 
-  conv2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_pool1_out.data(),
-                                              app_data.u_conv2_weights.data(),
-                                              app_data.u_conv2_bias.data(),
-                                              app_data.u_conv2_out.data(),
-                                              kPool1OutHeight,
-                                              kPool1OutWidth,
-                                              kConv2OutChannels,
-                                              kConv1OutChannels,
-                                              kKernelSize,
-                                              kKernelSize,
-                                              kConv2BiasSize,
-                                              kKernelSize,
-                                              kStride,
-                                              kPadding,
-                                              kConv2OutHeight,
-                                              kConv2OutWidth,
-                                              kRelu);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 4 (second maxpool2d)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_4_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 4, &appdata);
 
-void process_stage_4(AppData &app_data) {
-  constexpr auto total_iterations = kConv2OutChannels * kPool2OutHeight * kPool2OutWidth;
+  const int N = appdata.u_conv2_out.d0();     // 128
+  const int C = appdata.u_conv2_out.d1();     // 32
+  const int inH = appdata.u_conv2_out.d2();   // 16
+  const int inW = appdata.u_conv2_out.d3();   // 16
+  const int outH = appdata.u_pool2_out.d2();  // 8
+  const int outW = appdata.u_pool2_out.d3();  // 8
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 4, &app_data);
+  maxpool2d_batch_cuda(appdata.u_conv2_out.data(),
+                       appdata.u_pool2_out.data(),
+                       N,
+                       C,
+                       inH,
+                       inW,
+                       outH,
+                       outW,
+                       kPoolSize,
+                       kPoolStride);
 
-  maxpool2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_conv2_out.data(),
-                                                 app_data.u_pool2_out.data(),
-                                                 kConv2OutChannels,
-                                                 kConv2OutHeight,
-                                                 kConv2OutWidth,
-                                                 kPoolSize,
-                                                 kStride,
-                                                 kPool2OutHeight,
-                                                 kPool2OutWidth);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 5 (third conv2d)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_5_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 5, &appdata);
 
-void process_stage_5(AppData &app_data) {
-  constexpr auto total_iterations = kConv3OutChannels * kConv3OutHeight * kConv3OutWidth;
+  const int N = appdata.u_pool2_out.d0();     // 128
+  const int inC = appdata.u_pool2_out.d1();   // 32
+  const int inH = appdata.u_pool2_out.d2();   // 8
+  const int inW = appdata.u_pool2_out.d3();   // 8
+  const int outC = appdata.u_conv3_w.d0();    // 64
+  const int outH = appdata.u_conv3_out.d2();  // 8
+  const int outW = appdata.u_conv3_out.d3();  // 8
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 5, &app_data);
+  conv2d_batch_cuda(appdata.u_pool2_out.data(),
+                    appdata.u_conv3_w.data(),
+                    appdata.u_conv3_b.data(),
+                    appdata.u_conv3_out.data(),
+                    N,
+                    inC,
+                    inH,
+                    inW,
+                    outC,
+                    kKernelSize,
+                    kKernelSize,
+                    outH,
+                    outW,
+                    kStride,
+                    kPadding,
+                    kRelu);
 
-  conv2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_pool2_out.data(),
-                                              app_data.u_conv3_weights.data(),
-                                              app_data.u_conv3_bias.data(),
-                                              app_data.u_conv3_out.data(),
-                                              kPool2OutHeight,
-                                              kPool2OutWidth,
-                                              kConv3OutChannels,
-                                              kConv2OutChannels,
-                                              kKernelSize,
-                                              kKernelSize,
-                                              kConv3BiasSize,
-                                              kKernelSize,
-                                              kStride,
-                                              kPadding,
-                                              kConv3OutHeight,
-                                              kConv3OutWidth,
-                                              kRelu);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 6 (fourth conv2d)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_6_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 6, &appdata);
 
-void process_stage_6(AppData &app_data) {
-  constexpr auto total_iterations = kConv4OutChannels * kConv4OutHeight * kConv4OutWidth;
+  const int N = appdata.u_conv3_out.d0();     // 128
+  const int inC = appdata.u_conv3_out.d1();   // 64
+  const int inH = appdata.u_conv3_out.d2();   // 8
+  const int inW = appdata.u_conv3_out.d3();   // 8
+  const int outC = appdata.u_conv4_w.d0();    // 64
+  const int outH = appdata.u_conv4_out.d2();  // 8
+  const int outW = appdata.u_conv4_out.d3();  // 8
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 6, &app_data);
+  conv2d_batch_cuda(appdata.u_conv3_out.data(),
+                    appdata.u_conv4_w.data(),
+                    appdata.u_conv4_b.data(),
+                    appdata.u_conv4_out.data(),
+                    N,
+                    inC,
+                    inH,
+                    inW,
+                    outC,
+                    kKernelSize,
+                    kKernelSize,
+                    outH,
+                    outW,
+                    kStride,
+                    kPadding,
+                    kRelu);
 
-  conv2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_conv3_out.data(),
-                                              app_data.u_conv4_weights.data(),
-                                              app_data.u_conv4_bias.data(),
-                                              app_data.u_conv4_out.data(),
-                                              kConv3OutHeight,
-                                              kConv3OutWidth,
-                                              kConv4OutChannels,
-                                              kConv3OutChannels,
-                                              kKernelSize,
-                                              kKernelSize,
-                                              kConv4BiasSize,
-                                              kKernelSize,
-                                              kStride,
-                                              kPadding,
-                                              kConv4OutHeight,
-                                              kConv4OutWidth,
-                                              kRelu);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 7 (fifth conv2d)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_7_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 7, &appdata);
 
-void process_stage_7(AppData &app_data) {
-  constexpr auto total_iterations = kConv5OutChannels * kConv5OutHeight * kConv5OutWidth;
+  const int N = appdata.u_conv4_out.d0();     // 128
+  const int inC = appdata.u_conv4_out.d1();   // 64
+  const int inH = appdata.u_conv4_out.d2();   // 8
+  const int inW = appdata.u_conv4_out.d3();   // 8
+  const int outC = appdata.u_conv5_w.d0();    // 64
+  const int outH = appdata.u_conv5_out.d2();  // 8
+  const int outW = appdata.u_conv5_out.d3();  // 8
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 7, &app_data);
+  conv2d_batch_cuda(appdata.u_conv4_out.data(),
+                    appdata.u_conv5_w.data(),
+                    appdata.u_conv5_b.data(),
+                    appdata.u_conv5_out.data(),
+                    N,
+                    inC,
+                    inH,
+                    inW,
+                    outC,
+                    kKernelSize,
+                    kKernelSize,
+                    outH,
+                    outW,
+                    kStride,
+                    kPadding,
+                    kRelu);
 
-  conv2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_conv4_out.data(),
-                                              app_data.u_conv5_weights.data(),
-                                              app_data.u_conv5_bias.data(),
-                                              app_data.u_conv5_out.data(),
-                                              kConv4OutHeight,
-                                              kConv4OutWidth,
-                                              kConv5OutChannels,
-                                              kConv4OutChannels,
-                                              kKernelSize,
-                                              kKernelSize,
-                                              kConv5BiasSize,
-                                              kKernelSize,
-                                              kStride,
-                                              kPadding,
-                                              kConv5OutHeight,
-                                              kConv5OutWidth,
-                                              kRelu);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 8 (third maxpool2d)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_8_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 8, &appdata);
 
-void process_stage_8(AppData &app_data) {
-  constexpr auto total_iterations = kConv5OutChannels * kPool3OutHeight * kPool3OutWidth;
+  const int N = appdata.u_conv5_out.d0();     // 128
+  const int C = appdata.u_conv5_out.d1();     // 64
+  const int inH = appdata.u_conv5_out.d2();   // 8
+  const int inW = appdata.u_conv5_out.d3();   // 8
+  const int outH = appdata.u_pool3_out.d2();  // 4
+  const int outW = appdata.u_pool3_out.d3();  // 4
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 8, &app_data);
+  maxpool2d_batch_cuda(appdata.u_conv5_out.data(),
+                       appdata.u_pool3_out.data(),
+                       N,
+                       C,
+                       inH,
+                       inW,
+                       outH,
+                       outW,
+                       kPoolSize,
+                       kPoolStride);
 
-  maxpool2d<<<grid_dim, block_dim, shared_mem>>>(app_data.u_conv5_out.data(),
-                                                 app_data.u_pool3_out.data(),
-                                                 kConv5OutChannels,
-                                                 kConv5OutHeight,
-                                                 kConv5OutWidth,
-                                                 kPoolSize,
-                                                 kStride,
-                                                 kPool3OutHeight,
-                                                 kPool3OutWidth);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
-// -----------------------------------------------------------------------------
-// Stage 9 (linear)
-// -----------------------------------------------------------------------------
+void CudaDispatcher::run_stage_9_async(cifar_dense::AppData &appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 9, &appdata);
 
-void process_stage_9(AppData &app_data) {
-  constexpr auto total_iterations = kLinearOutFeatures;
+  const int N = appdata.u_pool3_out.d0();    // 128
+  const int C = appdata.u_pool3_out.d1();    // 64
+  const int H = appdata.u_pool3_out.d2();    // 4
+  const int W = appdata.u_pool3_out.d3();    // 4
+  const int inF = C * H * W;                 // 1024
+  const int outF = appdata.u_linear_w.d0();  // 10
 
-  SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
-  LOG_KERNEL(LogKernelType::kCUDA, 9, &app_data);
+  linear_batch_cuda(appdata.u_pool3_out.data(),
+                    appdata.u_linear_w.data(),
+                    appdata.u_linear_b.data(),
+                    appdata.u_linear_out.data(),
+                    N,
+                    inF,
+                    outF);
 
-  linear<<<grid_dim, block_dim, shared_mem>>>(app_data.u_pool3_out.data(),
-                                              app_data.u_linear_weights.data(),
-                                              app_data.u_linear_bias.data(),
-                                              app_data.u_linear_out.data(),
-                                              kLinearInFeatures,
-                                              kLinearOutFeatures);
-
-  if constexpr (kAutoSync) {
-    CheckCuda(cudaDeviceSynchronize());
-  }
+  CheckCuda(cudaGetLastError());
+  CheckCuda(cudaDeviceSynchronize());
 }
 
 }  // namespace cifar_dense::cuda

@@ -1,0 +1,33 @@
+#version 460
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer Codes { uint codes[]; };
+layout(std430, set = 0, binding = 1) readonly buffer LeftChild { int left_child[]; };
+layout(std430, set = 0, binding = 2) readonly buffer PrefixLength { int prefix_length[]; };
+layout(std430, set = 0, binding = 3) writeonly buffer EdgeCount { uint edge_count[]; };
+
+layout(push_constant) uniform PC5 { uint n; }
+pc5;
+
+const int MORTON_BITS = 30;
+
+void main() {
+  uint ui = gl_GlobalInvocationID.x;
+  if (ui >= pc5.n) return;
+  int i = int(ui);
+
+  int j = left_child[i];
+  int first = min(i, j), last = max(i, j);
+  int depth = prefix_length[i];
+  int shift = MORTON_BITS - depth - 3;
+
+  // build a mask of the octants we see
+  uint mask = 0u;
+  for (int k = first; k <= last; ++k) {
+    uint oct = (codes[k] >> shift) & 0x7u;
+    mask |= (1u << oct);
+  }
+
+  // bitCount(mask) == number of distinct octants
+  edge_count[i] = bitCount(mask);
+}

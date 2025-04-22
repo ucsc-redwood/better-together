@@ -1,42 +1,114 @@
 #pragma once
 
-#include <cuda_runtime.h>
-
 namespace cifar_dense::cuda {
 
-__global__ void conv2d(const float* __restrict__ input_data,
-                       const float* __restrict__ weight_data,
-                       const float* __restrict__ bias_data,
-                       float* __restrict__ output_data,
-                       int input_height,
-                       int input_width,
-                       int weight_output_channels,
-                       int weight_input_channels,
-                       int weight_height,
-                       int weight_width,
-                       int bias_number_of_elements,
-                       int kernel_size,
-                       int stride,
-                       int padding,
-                       int output_height,
-                       int output_width,
-                       bool relu);
+__global__ void conv2d_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inC,
+                                    int inH,
+                                    int inW,
+                                    int outC,
+                                    int kH,
+                                    int kW,
+                                    int outH,
+                                    int outW,
+                                    int stride,
+                                    int padding,
+                                    bool relu);
 
-__global__ void maxpool2d(const float* __restrict__ input_data,
-                          float* __restrict__ output_data,
-                          int input_channels,
-                          int input_height,
-                          int input_width,
-                          int pool_size,
-                          int stride,
-                          int output_height,
-                          int output_width);
+// ---------------------------------------------------------
+// 2) Host‐side launcher (Helper to make it easier to call)
+// ---------------------------------------------------------
+inline void conv2d_batch_cuda(const float* input,
+                              const float* weights,
+                              const float* bias,
+                              float* output,
+                              int N,
+                              int inC,
+                              int inH,
+                              int inW,
+                              int outC,
+                              int kH,
+                              int kW,
+                              int outH,
+                              int outW,
+                              int stride,
+                              int padding,
+                              bool relu) {
+  int total = N * outC * outH * outW;
+  const int TPB = 256;
+  int blocks = (total + TPB - 1) / TPB;
 
-__global__ void linear(const float* __restrict__ input_data,
-                       const float* __restrict__ weight_data,
-                       const float* __restrict__ bias_data,
-                       float* __restrict__ output_data,
-                       int input_size,
-                       int output_size);
+  conv2d_batch_kernel<<<blocks, TPB>>>(input,
+                                       weights,
+                                       bias,
+                                       output,
+                                       N,
+                                       inC,
+                                       inH,
+                                       inW,
+                                       outC,
+                                       kH,
+                                       kW,
+                                       outH,
+                                       outW,
+                                       stride,
+                                       padding,
+                                       relu);
+}
+
+__global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
+                                       float* __restrict__ output,
+                                       int N,
+                                       int C,
+                                       int inH,
+                                       int inW,
+                                       int outH,
+                                       int outW,
+                                       int pool_size,
+                                       int stride);
+
+inline void maxpool2d_batch_cuda(const float* input,
+                                 float* output,
+                                 int N,
+                                 int C,
+                                 int inH,
+                                 int inW,
+                                 int outH,
+                                 int outW,
+                                 int pool_size,
+                                 int stride) {
+  int total = N * C * outH * outW;
+  const int TPB = 256;
+  int blocks = (total + TPB - 1) / TPB;
+
+  maxpool2d_batch_kernel<<<blocks, TPB>>>(
+      input, output, N, C, inH, inW, outH, outW, pool_size, stride);
+}
+
+__global__ void linear_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inF,
+                                    int outF);
+
+inline void linear_batch_cuda(const float* input,
+                              const float* weights,
+                              const float* bias,
+                              float* output,
+                              int N,
+                              int inF,
+                              int outF) {
+  int total = N * outF;
+  const int TPB = 256;
+  int blocks = (total + TPB - 1) / TPB;
+
+  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF);
+}
 
 }  // namespace cifar_dense::cuda

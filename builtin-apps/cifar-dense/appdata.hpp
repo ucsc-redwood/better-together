@@ -1,0 +1,88 @@
+#pragma once
+
+#include <algorithm>
+#include <memory_resource>
+
+#include "../ndarray.hpp"
+
+namespace cifar_dense {
+
+// Convolution parameters
+constexpr int kKernelSize = 3;
+constexpr int kStride = 1;
+constexpr int kPadding = 1;
+
+// Pooling parameters
+constexpr int kPoolSize = 2;
+constexpr int kPoolStride = 2;
+
+constexpr bool kRelu = true;
+
+struct AppData {
+  static constexpr size_t BATCH_SIZE = 128;
+
+  // conv1: 16 output channels, 3×3×3 kernel = 27 inputs
+  // conv2: 32 output channels, 16×3×3 kernel = 144 inputs
+  // conv3: 64 output channels, 32×3×3 kernel = 288 inputs
+  // conv4: 64 output channels, 64×3×3 kernel = 576 inputs
+  // conv5: 64 output channels, 64×3×3 kernel = 576 inputs
+  // linear: 10 output channels, 1024 inputs
+
+  explicit AppData(std::pmr::memory_resource* mr)
+      : u_input(BATCH_SIZE, 3, 32, 32, mr),
+        u_conv1_out(BATCH_SIZE, 16, 32, 32, mr),
+        u_pool1_out(BATCH_SIZE, 16, 16, 16, mr),
+        u_conv2_out(BATCH_SIZE, 32, 16, 16, mr),
+        u_pool2_out(BATCH_SIZE, 32, 8, 8, mr),
+        u_conv3_out(BATCH_SIZE, 64, 8, 8, mr),
+        u_conv4_out(BATCH_SIZE, 64, 8, 8, mr),
+        u_conv5_out(BATCH_SIZE, 64, 8, 8, mr),
+        u_pool3_out(BATCH_SIZE, 64, 4, 4, mr),
+        u_linear_out(BATCH_SIZE, 10, mr),
+        u_conv1_w(16, 3, 3, 3, mr),
+        u_conv1_b(16, mr),
+        u_conv2_w(32, 16, 3, 3, mr),
+        u_conv2_b(32, mr),
+        u_conv3_w(64, 32, 3, 3, mr),
+        u_conv3_b(64, mr),
+        u_conv4_w(64, 64, 3, 3, mr),
+        u_conv4_b(64, mr),
+        u_conv5_w(64, 64, 3, 3, mr),
+        u_conv5_b(64, mr),
+        u_linear_w(10, 1024, mr),
+        u_linear_b(10, mr) {
+    std::ranges::fill(u_conv1_w.pmr_vec(), 1.0f);
+    std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_input.pmr_vec(), 1.0f);
+  }
+
+  // Input and intermediate outputs
+  Ndarray4D u_input;      // (128, 3, 32, 32)
+  Ndarray4D u_conv1_out;  // (128, 16, 32, 32)
+  Ndarray4D u_pool1_out;  // (128, 16, 16, 16)
+  Ndarray4D u_conv2_out;  // (128, 32, 16, 16)
+  Ndarray4D u_pool2_out;  // (128, 32, 8, 8)
+  Ndarray4D u_conv3_out;  // (128, 64, 8, 8)
+  Ndarray4D u_conv4_out;  // (128, 64, 8, 8)
+  Ndarray4D u_conv5_out;  // (128, 64, 8, 8)
+  Ndarray4D u_pool3_out;  // (128, 64, 4, 4)
+
+  // Flatten would be (128, 1024), stored or created on-the-fly
+  Ndarray2D u_linear_out;  // shape = (128, 10) for final classification
+
+  // Model parameters
+  Ndarray4D u_conv1_w;
+  Ndarray1D u_conv1_b;
+  Ndarray4D u_conv2_w;
+  Ndarray1D u_conv2_b;
+  Ndarray4D u_conv3_w;
+  Ndarray1D u_conv3_b;
+  Ndarray4D u_conv4_w;
+  Ndarray1D u_conv4_b;
+  Ndarray4D u_conv5_w;
+  Ndarray1D u_conv5_b;
+  Ndarray2D u_linear_w;  // (10, 1024)
+  Ndarray1D u_linear_b;  // (10)
+};
+
+}  // namespace cifar_dense

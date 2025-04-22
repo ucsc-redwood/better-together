@@ -1,4 +1,3 @@
-
 -- ----------------------------------------------------------------------------
 -- Test, just test if the dispatchers are working
 -- ----------------------------------------------------------------------------
@@ -6,6 +5,7 @@
 target("test-cifar-sparse-vk")
 do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
+	set_group("test")
 	set_kind("binary")
 	add_files({
 		"./test_main.cpp",
@@ -18,35 +18,21 @@ do
 end
 
 -- ----------------------------------------------------------------------------
--- Default google benchmark on individual stages without interference
+-- Benchmark for individual stages
 -- ----------------------------------------------------------------------------
 
-target("bm-mini-cifar-sparse-vk")
+target("bm-cifar-sparse-vk")
 do
 	add_rules("common_flags", "vulkan_config", "run_on_android")
+	set_group("micro-benchmark")
 	set_kind("binary")
 	add_files({
-		"./bm_main_mini.cpp",
+		"./bm_main.cpp",
 	})
 
 	add_deps("builtin-apps-vulkan")
 	add_deps("builtin-apps")
-	
+		
 	add_packages("benchmark")
 end
 
--- ----------------------------------------------------------------------------
--- Run stages with interference (100 tasks)
--- ----------------------------------------------------------------------------
-
-target("bm-real-cifar-sparse-vk")
-do
-	add_rules("common_flags", "vulkan_config", "run_on_android")
-	set_kind("binary")
-	add_files({
-		"./bm_main_real.cpp",
-	})
-
-	add_deps("builtin-apps-vulkan")
-	add_deps("builtin-apps")
-end

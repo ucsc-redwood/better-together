@@ -13,10 +13,7 @@ struct Task {
 
   explicit Task(std::pmr::memory_resource* mr) : appdata(mr) { uid = uid_counter++; }
 
-  void reset() {
-    // appdata.reset();
-    uid = uid_counter++;
-  }
+  void reset() { uid = uid_counter++; }
 };
 
 template <typename AppDataT>

@@ -1,145 +1,130 @@
+#include <cfloat>
+
 #include "all_kernels.cuh"
 
 namespace cifar_dense::cuda {
 
-__global__ void conv2d(const float* __restrict__ input_data,
-                       const float* __restrict__ weight_data,
-                       const float* __restrict__ bias_data,
-                       float* __restrict__ output_data,
-                       const int input_height,
-                       const int input_width,
-                       const int weight_output_channels,
-                       const int weight_input_channels,
-                       const int weight_height,
-                       const int weight_width,
-                       const int bias_number_of_elements,
-                       const int kernel_size,
-                       const int stride,
-                       const int padding,
-                       const int output_height,
-                       const int output_width,
-                       const bool relu) {
-  // Compute global index (linear index within the output buffer)
-  int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
+// ---------------------------------------------------------
+// 1) The CUDA kernel: one thread per output element
+// ---------------------------------------------------------
+__global__ void conv2d_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inC,
+                                    int inH,
+                                    int inW,
+                                    int outC,
+                                    int kH,
+                                    int kW,
+                                    int outH,
+                                    int outW,
+                                    int stride,
+                                    int padding,
+                                    bool relu) {
+  // flatten thread index
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int total = N * outC * outH * outW;
+  if (idx >= total) return;
 
-  // Total number of output elements
-  int total_output_elements = weight_output_channels * output_height * output_width;
+  // decode (n, oc, oh, ow)
+  int ow = idx % outW;
+  int tmp = idx / outW;
+  int oh = tmp % outH;
+  tmp /= outH;
+  int oc = tmp % outC;
+  int n = tmp / outC;
 
-  // Check that the thread is within the valid range
-  if (global_idx >= total_output_elements) return;
+  // bias
+  float sum = bias[oc];
 
-  // Compute output coordinates: (out_channel, y, x)
-  int out_channel = global_idx / (output_height * output_width);
-  int hw_idx = global_idx % (output_height * output_width);
-  int y = hw_idx / output_width;
-  int x = hw_idx % output_width;
-
-  float sum = 0.0f;
-
-  // Perform the convolution
-  for (int in_channel = 0; in_channel < weight_input_channels; ++in_channel) {
-    for (int ky = 0; ky < weight_height; ++ky) {
-      int image_y_base = y * stride + ky - padding;
-      for (int kx = 0; kx < weight_width; ++kx) {
-        int image_x = x * stride + kx - padding;
-
-        // Check boundaries
-        if (image_y_base >= 0 && image_y_base < input_height && image_x >= 0 &&
-            image_x < input_width) {
-          int input_index = ((in_channel * input_height + image_y_base) * input_width + image_x);
-          int weight_index =
-              ((((out_channel * weight_input_channels) + in_channel) * weight_height + ky) *
-                   weight_width +
-               kx);
-
-          sum += input_data[input_index] * weight_data[weight_index];
+  // convolution over inC × kH × kW
+  for (int ic = 0; ic < inC; ++ic) {
+    for (int kh = 0; kh < kH; ++kh) {
+      for (int kw = 0; kw < kW; ++kw) {
+        int ih = oh * stride - padding + kh;
+        int iw = ow * stride - padding + kw;
+        if (ih >= 0 && ih < inH && iw >= 0 && iw < inW) {
+          int in_idx = ((n * inC + ic) * inH + ih) * inW + iw;
+          int w_idx = ((oc * inC + ic) * kH + kh) * kW + kw;
+          sum += input[in_idx] * weights[w_idx];
         }
       }
     }
   }
 
-  // Add bias
-  if (bias_data && out_channel < bias_number_of_elements) {
-    sum += bias_data[out_channel];
-  }
+  if (relu && sum < 0.f) sum = 0.f;
 
-  // Apply ReLU if enabled
-  if (relu && sum < 0.0f) {
-    sum = 0.0f;
-  }
-
-  // Store the result
-  int output_index = (out_channel * output_height + y) * output_width + x;
-  output_data[output_index] = sum;
+  int out_idx = ((n * outC + oc) * outH + oh) * outW + ow;
+  output[out_idx] = sum;
 }
 
-__global__ void maxpool2d(const float* __restrict__ input_data,
-                          float* __restrict__ output_data,
-                          const int input_channels,
-                          const int input_height,
-                          const int input_width,
-                          const int pool_size,
-                          const int stride,
-                          const int output_height,
-                          const int output_width) {
-  int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
+__global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
+                                       float* __restrict__ output,
+                                       int N,
+                                       int C,
+                                       int inH,
+                                       int inW,
+                                       int outH,
+                                       int outW,
+                                       int pool_size,
+                                       int stride) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int total = N * C * outH * outW;
+  if (idx >= total) return;
 
-  // Total number of output elements
-  int total_output_elements = input_channels * output_height * output_width;
-  if (global_idx >= total_output_elements) return;
+  // decode
+  int ow = idx % outW;
+  int tmp = idx / outW;
+  int oh = tmp % outH;
+  tmp /= outH;
+  int c = tmp % C;
+  int n = tmp / C;
 
-  // Compute channel, output height (h), and output width (w) from the flat
-  // index
-  int c = global_idx / (output_height * output_width);
-  int hw_idx = global_idx % (output_height * output_width);
-  int h = hw_idx / output_width;
-  int w = hw_idx % output_width;
+  int h_start = oh * stride;
+  int w_start = ow * stride;
+  int h_end = min(h_start + pool_size, inH);
+  int w_end = min(w_start + pool_size, inW);
 
-  float max_val = -3.402823466e+38f;  // -FLT_MAX
-
-  // Compute the region of the input image that this output element covers
-  for (int ph = 0; ph < pool_size; ++ph) {
-    for (int pw = 0; pw < pool_size; ++pw) {
-      int input_h = h * stride + ph;
-      int input_w = w * stride + pw;
-
-      // Check boundaries
-      if (input_h < input_height && input_w < input_width) {
-        int input_index = c * (input_height * input_width) + input_h * input_width + input_w;
-        float val = input_data[input_index];
-        max_val = (val > max_val) ? val : max_val;
-      }
+  float maxv = -FLT_MAX;
+  for (int h = h_start; h < h_end; ++h) {
+    for (int w = w_start; w < w_end; ++w) {
+      int in_idx = ((n * C + c) * inH + h) * inW + w;
+      maxv = max(maxv, input[in_idx]);
     }
   }
 
-  // Write result to output
-  int output_index = c * (output_height * output_width) + h * output_width + w;
-  output_data[output_index] = max_val;
+  int out_idx = ((n * C + c) * outH + oh) * outW + ow;
+  output[out_idx] = maxv;
 }
 
-__global__ void linear(const float* __restrict__ input_data,
-                       const float* __restrict__ weight_data,
-                       const float* __restrict__ bias_data,
-                       float* __restrict__ output_data,
-                       const int input_size,
-                       const int output_size) {
-  int global_idx = blockIdx.x * blockDim.x + threadIdx.x;
+// ---------------------------------------------------------------------------
+// 2) linear_batch
+//    One thread per (n, of)
+// ---------------------------------------------------------------------------
+__global__ void linear_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inF,
+                                    int outF) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int total = N * outF;
+  if (idx >= total) return;
 
-  // Check if this thread corresponds to a valid output element
-  if (global_idx >= output_size) return;
+  int of = idx % outF;
+  int n = idx / outF;
 
-  // Compute the output element: sum over the input dimension
-  float sum = 0.0f;
-  int weight_start = global_idx * input_size;  // Starting index of weights for this output neuron
-  for (int j = 0; j < input_size; ++j) {
-    sum += input_data[j] * weight_data[weight_start + j];
+  float sum = bias[of];
+  const float* in_row = input + n * inF;
+  const float* w_row = weights + of * inF;
+  for (int i = 0; i < inF; ++i) {
+    sum += in_row[i] * w_row[i];
   }
 
-  // Add bias
-  sum += bias_data[global_idx];
-
-  // Store the result
-  output_data[global_idx] = sum;
+  output[n * outF + of] = sum;
 }
 
 }  // namespace cifar_dense::cuda

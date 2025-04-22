@@ -2,196 +2,111 @@
 
 #include <spdlog/spdlog.h>
 
-#include <filesystem>
-#include <fstream>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "conf.hpp"
-
-namespace fs = std::filesystem;
-
-// ---------------------------------------------------------------------
-// Execution model
-// ---------------------------------------------------------------------
-
-enum class ExecutionModel { kOMP, kGPU, kVulkan };
-
-// Define the configuration and execution model.
-struct ChunkConfig {
-  ExecutionModel exec_model;  // e.g., kOMP, kGPU, kVulkan
-  int start_stage;
-  int end_stage;
-  std::optional<ProcessorType> proc_type;  // e.g., kLittleCore, kMediumCore, kBigCore
-  std::optional<int> num_threads;
-};
+#include "pipeline/schedule.hpp"
 
 // ---------------------------------------------------------------------
 // Helper function: Reads chunks from a JSON configuration file.
 // It ignores any static/global fields and only extracts the "chunks" array
 // from the "schedule" object.
 // ---------------------------------------------------------------------
-inline std::vector<ChunkConfig> readChunksFromJson(const nlohmann::json &j) {
-  std::vector<ChunkConfig> chunks;
+inline std::vector<Schedule> readSchedulesFromJson(const nlohmann::json& j) {
+  std::vector<Schedule> schedules;
 
-  // The JSON is expected to have a "schedule" object with a "chunks" array.
-  const auto &jChunks = j.at("schedule").at("chunks");
-  for (const auto &jchunk : jChunks) {
-    ChunkConfig config;
-    std::string hardware = jchunk.at("hardware").get<std::string>();
+  // Check if the JSON is an array (multiple solutions)
+  if (!j.is_array()) {
+    spdlog::error("JSON data is not an array of solutions");
+    return schedules;
+  }
 
-    // Determine the execution model and CPU details if applicable.
-    if (hardware == "gpu_cuda") {
-      config.exec_model = ExecutionModel::kGPU;
-    } else if (hardware == "vulkan") {
-      config.exec_model = ExecutionModel::kVulkan;
-    } else if (hardware == "little") {
-      config.exec_model = ExecutionModel::kOMP;
-      config.proc_type = ProcessorType::kLittleCore;
-      config.num_threads = jchunk.at("threads").get<int>();
-    } else if (hardware == "medium") {
-      config.exec_model = ExecutionModel::kOMP;
-      config.proc_type = ProcessorType::kMediumCore;
-      config.num_threads = jchunk.at("threads").get<int>();
-    } else if (hardware == "big") {
-      config.exec_model = ExecutionModel::kOMP;
-      config.proc_type = ProcessorType::kBigCore;
-      config.num_threads = jchunk.at("threads").get<int>();
+  // Process each solution in the array
+  for (const auto& solution : j) {
+    Schedule schedule;
+
+    // Extract UID if available
+    if (solution.contains("uid")) {
+      schedule.uid = solution["uid"].get<std::string>();
+      spdlog::debug("Found schedule with UID: {}", schedule.uid);
     } else {
-      throw std::runtime_error("Unknown hardware type: " + hardware);
+      schedule.uid = "unknown";
+      spdlog::warn("Schedule missing 'uid' field, using default 'unknown'");
     }
 
-    // Extract the stage range from the "stages" array.
-    const auto &jStages = jchunk.at("stages");
-    if (jStages.empty()) throw std::runtime_error("Empty stages array in chunk");
-    config.start_stage = jStages.front().get<int>();
-    config.end_stage = jStages.back().get<int>();
-
-    chunks.push_back(config);
-
-    // print out for debugging
-    spdlog::info("Chunk config: {}", jchunk.at("name").get<std::string>());
-    spdlog::info("\tStart stage: {}", config.start_stage);
-    spdlog::info("\tEnd stage: {}", config.end_stage);
-
-    // Convert enum to string
-    std::string exec_model_str;
-    if (config.exec_model == ExecutionModel::kOMP) {
-      exec_model_str = "OMP";
-    } else if (config.exec_model == ExecutionModel::kGPU) {
-      exec_model_str = "GPU";
-    } else if (config.exec_model == ExecutionModel::kVulkan) {
-      exec_model_str = "Vulkan";
+    // Skip if no chunks field
+    if (!solution.contains("chunks")) {
+      spdlog::warn("Solution missing 'chunks' field, skipping");
+      continue;
     }
-    spdlog::info("\tExecution model: {}", exec_model_str);
 
-    // Only log processor type if it's available
-    if (config.proc_type.has_value()) {
-      std::string proc_type_str;
-      if (config.proc_type.value() == ProcessorType::kLittleCore) {
-        proc_type_str = "Little Core";
-      } else if (config.proc_type.value() == ProcessorType::kMediumCore) {
-        proc_type_str = "Medium Core";
-      } else if (config.proc_type.value() == ProcessorType::kBigCore) {
-        proc_type_str = "Big Core";
+    const auto& chunks_json = solution["chunks"];
+    if (!chunks_json.is_array()) {
+      spdlog::warn("Chunks field is not an array, skipping solution");
+      continue;
+    }
+
+    // Process each chunk in the solution
+    for (const auto& chunk_json : chunks_json) {
+      ChunkConfig chunk;
+
+      // Skip if required fields are missing
+      if (!chunk_json.contains("core_type") || !chunk_json.contains("stages")) {
+        spdlog::warn("Chunk missing required fields, skipping");
+        continue;
       }
-      spdlog::info("\tProcessor type: {}", proc_type_str);
+
+      // Get the core type string and convert to ExecutionModel and ProcessorType
+      std::string core_type = chunk_json["core_type"].get<std::string>();
+
+      // Set execution model based on core type
+      if (core_type == "GPU") {
+        chunk.exec_model = ExecutionModel::kVulkan;
+        chunk.cpu_proc_type = std::nullopt;
+      } else {
+        chunk.exec_model = ExecutionModel::kOMP;
+
+        // Map the core type string to ProcessorType
+        if (core_type == "Little") {
+          chunk.cpu_proc_type = ProcessorType::kLittleCore;
+        } else if (core_type == "Medium") {
+          chunk.cpu_proc_type = ProcessorType::kMediumCore;
+        } else if (core_type == "Big") {
+          chunk.cpu_proc_type = ProcessorType::kBigCore;
+        } else {
+          spdlog::warn("Unknown core type: {}, defaulting to LittleCore", core_type);
+          chunk.cpu_proc_type = ProcessorType::kLittleCore;
+        }
+      }
+
+      // Get the stages array and set start and end stages
+      const auto& stages = chunk_json["stages"];
+      if (!stages.is_array() || stages.empty()) {
+        spdlog::warn("Stages is not an array or is empty, skipping chunk");
+        continue;
+      }
+
+      // Get first and last elements of the stages array for start and end
+      chunk.start_stage = stages[0].get<int>();
+      chunk.end_stage = stages[stages.size() - 1].get<int>();
+
+      // add 1 to stages
+      chunk.start_stage += 1;
+      chunk.end_stage += 1;
+
+      // Add the chunk to the schedule
+      schedule.chunks.push_back(chunk);
     }
 
-    // Only log thread count if it's available
-    if (config.num_threads.has_value()) {
-      spdlog::info("\tNumber of threads: {}", config.num_threads.value());
+    // Only add schedules that have at least one valid chunk
+    if (!schedule.chunks.empty()) {
+      schedules.push_back(schedule);
     }
   }
 
-  return chunks;
+  spdlog::info("Loaded {} valid schedules from JSON", schedules.size());
+  return schedules;
 }
-
-// // ---------------------------------------------------------------------
-// // Helper function: Reads chunks from a JSON configuration file.
-// // It ignores any static/global fields and only extracts the "chunks" array
-// // from the "schedule" object.
-// // ---------------------------------------------------------------------
-// inline std::vector<ChunkConfig> readChunksFromJson(const fs::path &filepath) {
-//   std::ifstream file(filepath);
-//   if (!file) throw std::runtime_error("Could not open file: " + filepath.string());
-
-//   nlohmann::json j;
-//   file >> j;
-
-//   std::vector<ChunkConfig> chunks;
-
-//   // The JSON is expected to have a "schedule" object with a "chunks" array.
-//   const auto &jChunks = j.at("schedule").at("chunks");
-//   for (const auto &jchunk : jChunks) {
-//     ChunkConfig config;
-//     std::string hardware = jchunk.at("hardware").get<std::string>();
-
-//     // Determine the execution model and CPU details if applicable.
-//     if (hardware == "gpu_cuda") {
-//       config.exec_model = ExecutionModel::kGPU;
-//     } else if (hardware == "vulkan") {
-//       config.exec_model = ExecutionModel::kVulkan;
-//     } else if (hardware == "little") {
-//       config.exec_model = ExecutionModel::kOMP;
-//       config.proc_type = ProcessorType::kLittleCore;
-//       config.num_threads = jchunk.at("threads").get<int>();
-//     } else if (hardware == "medium") {
-//       config.exec_model = ExecutionModel::kOMP;
-//       config.proc_type = ProcessorType::kMediumCore;
-//       config.num_threads = jchunk.at("threads").get<int>();
-//     } else if (hardware == "big") {
-//       config.exec_model = ExecutionModel::kOMP;
-//       config.proc_type = ProcessorType::kBigCore;
-//       config.num_threads = jchunk.at("threads").get<int>();
-//     } else {
-//       throw std::runtime_error("Unknown hardware type: " + hardware);
-//     }
-
-//     // Extract the stage range from the "stages" array.
-//     const auto &jStages = jchunk.at("stages");
-//     if (jStages.empty()) throw std::runtime_error("Empty stages array in chunk");
-//     config.start_stage = jStages.front().get<int>();
-//     config.end_stage = jStages.back().get<int>();
-
-//     chunks.push_back(config);
-
-//     // print out for debugging
-//     spdlog::info("Chunk config: {}", jchunk.at("name").get<std::string>());
-//     spdlog::info("\tStart stage: {}", config.start_stage);
-//     spdlog::info("\tEnd stage: {}", config.end_stage);
-
-//     // Convert enum to string
-//     std::string exec_model_str;
-//     if (config.exec_model == ExecutionModel::kOMP) {
-//       exec_model_str = "OMP";
-//     } else if (config.exec_model == ExecutionModel::kGPU) {
-//       exec_model_str = "GPU";
-//     } else if (config.exec_model == ExecutionModel::kVulkan) {
-//       exec_model_str = "Vulkan";
-//     }
-//     spdlog::info("\tExecution model: {}", exec_model_str);
-
-//     // Only log processor type if it's available
-//     if (config.proc_type.has_value()) {
-//       std::string proc_type_str;
-//       if (config.proc_type.value() == ProcessorType::kLittleCore) {
-//         proc_type_str = "Little Core";
-//       } else if (config.proc_type.value() == ProcessorType::kMediumCore) {
-//         proc_type_str = "Medium Core";
-//       } else if (config.proc_type.value() == ProcessorType::kBigCore) {
-//         proc_type_str = "Big Core";
-//       }
-//       spdlog::info("\tProcessor type: {}", proc_type_str);
-//     }
-
-//     // Only log thread count if it's available
-//     if (config.num_threads.has_value()) {
-//       spdlog::info("\tNumber of threads: {}", config.num_threads.value());
-//     }
-//   }
-
-//   return chunks;
-// }

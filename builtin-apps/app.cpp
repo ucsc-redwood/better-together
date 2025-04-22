@@ -1,24 +1,33 @@
 #include "app.hpp"
 
-[[nodiscard]] size_t get_vulkan_warp_size() {
-  if (g_device_id == "3A021JEHN02756") {
-    return 16;
-  } else if (g_device_id == "9b034f1b") {
-    return 64;
-  } else if (g_device_id == "ce0717178d7758b00b7e") {
-    return 32;
-  } else if (g_device_id == "minipc") {
-    return 64;
-  } else if (g_device_id == "pc" || g_device_id == "jetson") {
-    return 32;
-  } else if (g_device_id == "jetsonlowpower") {
-    return 32;
+#include <unordered_map>
+
+size_t get_vulkan_warp_size() {
+  assert(g_device_id.empty() == false);
+
+  // Map of device IDs to their corresponding warp sizes
+  static const std::unordered_map<std::string, size_t> device_warp_sizes = {
+      {"3A021JEHN02756", 16},        // Mali-G710
+      {"9b034f1b", 64},              // Adreno (TM) 740
+      {"R9TR30814KJ", 64},           // Adreno (TM) 610
+      {"ce0717178d7758b00b7e", 32},  // Adreno (TM) 540
+      {"minipc", 64},                // AMD Radeon 780M
+      {"pc", 32},                    // Intel UHD Graphics 770
+      {"jetson", 32},                // NVIDIA Tegra Orin (nvgpu)
+      {"jetsonlowpower", 32},        // NVIDIA Tegra Orin (nvgpu)
+      {"mba", 32},                   // Apple M4
+  };
+
+  auto it = device_warp_sizes.find(g_device_id);
+  if (it != device_warp_sizes.end()) {
+    return it->second;
   }
-  throw std::runtime_error("Invalid device ID. " + std::string(__FILE__) + ":" +
-                           std::to_string(__LINE__));
+
+  throw std::runtime_error("Invalid device ID. [" + g_device_id + "] " + std::string(__FILE__) +
+                           ":" + std::to_string(__LINE__));
 }
 
-[[nodiscard]] inline bool check_device_arg(const int argc, char** argv) {
+bool check_device_arg(const int argc, char** argv) {
   for (int i = 0; i < argc; ++i) {
     std::string arg(argv[i]);
     if (arg.find("--device=") != std::string::npos) {

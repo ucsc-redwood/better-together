@@ -3,7 +3,9 @@
 #include <atomic>
 #include <cstddef>
 
+// ----------------------------------------------------------------------------
 // SPSCQueue is a single-producer single-consumer queue.
+// ----------------------------------------------------------------------------
 
 template <typename T, size_t Size = 1024>
   requires std::is_move_constructible_v<T>
@@ -40,11 +42,11 @@ class SPSCQueue {
     return true;
   }
 
-  bool empty() const {
+  [[nodiscard]] bool empty() const {
     return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire);
   }
 
-  bool full() const {
+  [[nodiscard]] bool full() const {
     const size_t next_head = (head_.load(std::memory_order_relaxed) + 1) & mask_;
     return next_head == tail_.load(std::memory_order_acquire);
   }

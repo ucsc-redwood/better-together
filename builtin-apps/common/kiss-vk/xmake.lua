@@ -36,4 +36,17 @@ if has_config("use_vulkan") then
 			"vma_pmr.cpp",
 		})
 	end
+
+	target("test-kiss-vk")
+	do 
+		set_kind("binary")
+		add_rules("common_flags", "vulkan_config", "run_on_android")
+
+		add_files("test_main.cpp")
+
+		add_deps("kiss-vk")
+
+		add_packages("gtest")
+	end
+
 end

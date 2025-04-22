@@ -1,0 +1,47 @@
+#version 460
+layout(local_size_x = 256) in;
+
+// input positions
+layout(std430, set = 0, binding = 0) readonly buffer Positions { vec4 positions[]; };
+layout(std430, set = 0, binding = 1) writeonly buffer MortonKeys { uint morton_keys[]; };
+
+// push‐constant: one uint + two floats + pad → 16 bytes total
+layout(push_constant) uniform PC {
+  uint n;           // offset 0
+  float min_coord;  // offset 4
+  float range;      // offset 8
+  float pad;        // offset 12 (unused, just for alignment)
+}
+pc;
+
+// expand 10 bits → spaced by two zeros
+uint expandBits(uint v) {
+  v = (v * 0x00010001u) & 0xFF0000FFu;
+  v = (v * 0x00000101u) & 0x0F00F00Fu;
+  v = (v * 0x00000011u) & 0xC30C30C3u;
+  v = (v * 0x00000005u) & 0x49249249u;
+  return v;
+}
+
+// pack three 10‑bit coords into a 30‑bit Morton code
+uint morton3D_32_encode(uint x, uint y, uint z) {
+  return (expandBits(x) << 2) | (expandBits(y) << 1) | expandBits(z);
+}
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= pc.n) return;
+
+  // grab xyz, normalize with a single min/range
+  vec3 p = positions[i].xyz;
+  vec3 norm = (p - pc.min_coord) / pc.range;
+  norm = clamp(norm, 0.0, 1.0);
+
+  // quantize to 10 bits
+  uint xi = uint(norm.x * 1023.0);
+  uint yi = uint(norm.y * 1023.0);
+  uint zi = uint(norm.z * 1023.0);
+
+  // write the key
+  morton_keys[i] = morton3D_32_encode(xi, yi, zi);
+}
