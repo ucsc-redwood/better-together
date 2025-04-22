@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <queue>
 
 #include "../../app.hpp"
 #include "../omp/dispatchers.hpp"
