@@ -89,16 +89,16 @@ struct AppData final : public BaseAppData {
   Ndarray2D u_linear_out;  // shape = (128, 10) for final classification
 
   // Model parameters
-  Ndarray4D u_conv1_w;
-  Ndarray1D u_conv1_b;
-  Ndarray4D u_conv2_w;
-  Ndarray1D u_conv2_b;
-  Ndarray4D u_conv3_w;
-  Ndarray1D u_conv3_b;
-  Ndarray4D u_conv4_w;
-  Ndarray1D u_conv4_b;
-  Ndarray4D u_conv5_w;
-  Ndarray1D u_conv5_b;
+  Ndarray4D u_conv1_w;   // (16, 3, 3, 3)
+  Ndarray1D u_conv1_b;   // (16)
+  Ndarray4D u_conv2_w;   // (32, 16, 3, 3)
+  Ndarray1D u_conv2_b;   // (32)
+  Ndarray4D u_conv3_w;   // (64, 32, 3, 3)
+  Ndarray1D u_conv3_b;   // (64)
+  Ndarray4D u_conv4_w;   // (64, 64, 3, 3)
+  Ndarray1D u_conv4_b;   // (64)
+  Ndarray4D u_conv5_w;   // (64, 64, 3, 3)
+  Ndarray1D u_conv5_b;   // (64)
   Ndarray2D u_linear_w;  // (10, 1024)
   Ndarray1D u_linear_b;  // (10)
 };
