@@ -36,6 +36,10 @@ using LocalQueue = std::queue<AppDataPtr>;
   return result;
 }
 
+// ----------------------------------------------------------------------------
+// Main Worker
+// ----------------------------------------------------------------------------
+
 template <typename QueueT>
 void worker(QueueT& q_in,
             QueueT& q_out,
