@@ -8,6 +8,7 @@ namespace tree::vulkan {
 struct VkAppData_Safe final : public tree::SafeAppData {
   explicit VkAppData_Safe(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr)
       : SafeAppData(vk_mr),
+        histogram_s2(n_input, vk_mr),
         u_contributes(n_input, vk_mr),
         u_out_idx(n_input, vk_mr),
         u_sums(n_input, vk_mr),
@@ -20,6 +21,9 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // --------------------------------------------------------------------------
   // intergrated tmp storage
   // --------------------------------------------------------------------------
+
+  // histogram
+  std::pmr::vector<uint32_t> histogram_s2;
 
   // for remove duplicates
   std::pmr::vector<uint32_t> u_contributes;

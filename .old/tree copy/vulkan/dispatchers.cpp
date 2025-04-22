@@ -37,6 +37,13 @@ struct InputSizePushConstantsUnsigned {
   uint32_t n;
 };
 
+struct MultiRadixSortPushConstant {
+  uint32_t g_num_elements;
+  uint32_t g_shift;
+  uint32_t g_num_workgroups;
+  uint32_t g_num_blocks_per_workgroup;
+}
+
 struct InputSizePushConstantsSigned {
   int32_t n;
 };
@@ -699,8 +706,14 @@ void Singleton::process_stage_2(VkAppData_Safe &appdata) {
                                   engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
                               });
 
-  algo->update_push_constant(InputSizePushConstantsUnsigned{
-      .n = appdata.get_n_input(),
+  // algo->update_push_constant(InputSizePushConstantsUnsigned{
+  //     .n = appdata.get_n_input(),
+  // });
+  algo->update_push_constant(MultiRadixSortPushConstant{
+      .g_num_elements = static_cast<uint32_t>(appdata.get_n_input()),
+      .g_shift = 0,  // Assuming no shift for the first pass
+      .g_num_workgroups = 256,  // Single workgroup for this stage
+      .g_num_blocks_per_workgroup = 32,  // Single block per workgroup
   });
 
   seq->cmd_begin();

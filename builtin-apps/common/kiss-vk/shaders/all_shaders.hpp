@@ -51,6 +51,8 @@ namespace shaders {
 #include "h/octree_build_octree_nodes_spv.h"
 #include "h/octree_edge_count_spv.h"
 #include "h/octree_morton_spv.h"
+#include "h/multi_radixsort_histogram_spv.h"
+#include "h/multi_radixsort_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
 #define SHADER_ENTRY(name)                                         \
@@ -109,6 +111,8 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(octree_build_octree_nodes),
         SHADER_ENTRY(octree_edge_count),
         SHADER_ENTRY(octree_morton),
+        SHADER_ENTRY(multi_radixsort_histogram),
+        SHADER_ENTRY(multi_radixsort),
 };
 
 #undef SHADER_ENTRY

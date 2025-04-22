@@ -38,6 +38,13 @@ struct FindDupsPushConstants {
   int32_t n;
 };
 
+struct MultiRadixSortPushConstant {
+  uint32_t g_num_elements;
+  uint32_t g_shift;
+  uint32_t g_num_workgroups;
+  uint32_t g_num_blocks_per_workgroup;
+};
+
 // // layout(push_constant) uniform PushConstants {
 // //   uint n_logical_blocks;  // Number of logical blocks requested
 // //   uint n;                 // Total number of elements in the array
@@ -111,12 +118,22 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("morton", std::move(morton_algo));
 
-  auto radixsort_algo =
-      engine.make_algo("tmp_single_radixsort_warp" + std::to_string(get_vulkan_warp_size()))
+  auto radixsort_histogram_algo =
+      engine.make_algo("multi_radixsort_histogram" /*+ std::to_string(get_vulkan_warp_size())*/)
           ->work_group_size(256, 1, 1)
           ->num_sets(1)
           ->num_buffers(2)
-          ->push_constant<InputSizePushConstantsUnsigned>()
+          ->push_constant<MultiRadixSortPushConstant>()
+          ->build();
+
+  cached_algorithms.try_emplace("histogram", std::move(radixsort_histogram_algo));
+
+  auto radixsort_algo =
+      engine.make_algo("multi_radixsort" /*+ std::to_string(get_vulkan_warp_size())*/)
+          ->work_group_size(256, 1, 1)
+          ->num_sets(1)
+          ->num_buffers(3)
+          ->push_constant<MultiRadixSortPushConstant>()
           ->build();
 
   cached_algorithms.try_emplace("radixsort", std::move(radixsort_algo));
@@ -231,28 +248,59 @@ void VulkanDispatcher::run_stage_2(VkAppData_Safe &appdata) {
   //     .width = 1,
   //     .num_pairs = 1,
   // });
-
+  auto algo_histogram = cached_algorithms.at("histogram").get();
   auto algo = cached_algorithms.at("radixsort").get();
+
+  algo_histogram->update_descriptor_set(0,
+                                        {
+                                            engine.get_buffer_info(appdata.u_morton_keys_s1),
+                                            engine.get_buffer_info(appdata.histogram_s2),
+                                        });
 
   algo->update_descriptor_set(0,
                               {
                                   engine.get_buffer_info(appdata.u_morton_keys_s1),
+                                  engine.get_buffer_info(appdata.histogram_s2),
                                   engine.get_buffer_info(appdata.u_morton_keys_sorted_s2_out),
                               });
 
-  algo->update_push_constant(InputSizePushConstantsUnsigned{
-      .n = appdata.get_n_input(),
+  // algo->update_push_constant(InputSizePushConstantsUnsigned{
+  //     .n = appdata.get_n_input(),
+  // });
+  algo_histogram->update_push_constant(MultiRadixSortPushConstant{
+      .g_num_elements = static_cast<uint32_t>(appdata.get_n_input()),
+      .g_shift = 0,                      // Assuming no shift for the first pass
+      .g_num_workgroups = 256,           // 256 workgroup for this stage
+      .g_num_blocks_per_workgroup = 32,  // 32 block per workgroup
+  });
+  algo->update_push_constant(MultiRadixSortPushConstant{
+      .g_num_elements = static_cast<uint32_t>(appdata.get_n_input()),
+      .g_shift = 0,                      // Assuming no shift for the first pass
+      .g_num_workgroups = 256,           // 256 workgroup for this stage
+      .g_num_blocks_per_workgroup = 32,  // 32 block per workgroup
   });
 
-  seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
-  algo->record_bind_push(seq->get_handle());
-  algo->record_dispatch(seq->get_handle(), {1, 1, 1});  // Special case: single workgroup
-  seq->cmd_end();
+  for (int i = 0; i < 4; ++i) {
+    seq->cmd_begin();
+    algo_histogram->record_bind_core(seq->get_handle(), 0);
+    algo_histogram->record_bind_push(seq->get_handle());
+    algo_histogram->record_dispatch(seq->get_handle(), {256, 1, 1});  // Special case: single workgroup
+    // seq->cmd_end();
 
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+    // seq->reset_fence();
+    // seq->submit();
+    // seq->wait_for_fence();
+
+    // seq->cmd_begin();
+    algo->record_bind_core(seq->get_handle(), 0);
+    algo->record_bind_push(seq->get_handle());
+    algo->record_dispatch(seq->get_handle(), {256, 1, 1});  // Special case: single workgroup
+    seq->cmd_end();
+
+    seq->reset_fence();
+    seq->submit();
+    seq->wait_for_fence();
+  }
 }
 
 // ----------------------------------------------------------------------------

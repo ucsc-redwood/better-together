@@ -32,7 +32,6 @@ struct SafeAppData {
   // Stage 2: morton -> sorted morton
   // --------------------------------------------------------------------------
   const std::pmr::vector<uint32_t> u_morton_keys_sorted_s2;
-
   std::pmr::vector<uint32_t> u_morton_keys_sorted_s2_out;
 
   // --------------------------------------------------------------------------

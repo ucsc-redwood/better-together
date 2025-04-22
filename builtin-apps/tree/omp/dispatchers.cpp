@@ -1,5 +1,7 @@
 #include "dispatchers.hpp"
 
+#include <algorithm>
+#include <iostream>
 #include <numeric>
 
 #include "../../debug_logger.hpp"
@@ -33,16 +35,34 @@ void run_stage_1(tree::SafeAppData &appdata) {
 // ----------------------------------------------------------------------------
 
 void run_stage_2(tree::SafeAppData &appdata) {
-  LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
+  std::copy(appdata.u_morton_keys_s1.begin(),
+            appdata.u_morton_keys_s1.end(),
+            appdata.u_morton_keys_s1_out.begin());
+            
+  std::sort(appdata.u_morton_keys_s1_out.begin(),
+            appdata.u_morton_keys_s1_out.end());
+  bool is_sorted = std::is_sorted(appdata.u_morton_keys_s1_out.begin(),
+                              appdata.u_morton_keys_s1_out.end());
+  // print frist 10 elements
+  // for (int i = 0; i < 10 && i < appdata.get_n_input(); ++i) {
+  //   std::cout << appdata.u_morton_keys_s1_out[i] << std::endl;
+  // }
+  if (!is_sorted) {
+    spdlog::error("Morton keys are not sorted after stage 2!");
+    throw std::runtime_error("Morton keys are not sorted after stage 2!");
+  } else {
+    spdlog::info("Morton keys are sorted after stage 2.");
+  }
+  // LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
 
   // ----------------------------------------------------------------------------
   // Parallel sort version
   // ----------------------------------------------------------------------------
 
-  const auto num_threads = omp_get_num_threads();
-  const int tid = omp_get_thread_num();
-  omp::parallel_sort(
-      appdata.u_morton_keys_s1_out, appdata.u_morton_keys_sorted_s2_out, tid, num_threads);
+  // const auto num_threads = omp_get_num_threads();
+  // const int tid = omp_get_thread_num();
+  // omp::parallel_sort(
+  //     appdata.u_morton_keys_s1_out, appdata.u_morton_keys_sorted_s2_out, tid, num_threads);
 }
 
 // ----------------------------------------------------------------------------
