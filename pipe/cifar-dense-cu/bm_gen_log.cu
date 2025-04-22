@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
           },
   };
 
-  // BM_pipe_warmup(test_schedule);
+  BM_pipe_warmup(test_schedule);
 
   // If schedule_url is empty or we fail to fetch the URL, just run warmup and quit
   if (schedule_url.empty()) {

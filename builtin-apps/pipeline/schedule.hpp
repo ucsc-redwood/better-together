@@ -23,11 +23,22 @@ struct ChunkConfig {
 
 // TODO: add CUDA
 static inline ProcessorType get_processor_type_from_chunk_config(const ChunkConfig& chunk_config) {
+  // if is CPU
   if (chunk_config.exec_model == ExecutionModel::kOMP) {
     return chunk_config.cpu_proc_type.value();
   }
 
-  return ProcessorType::kVulkan;
+  // if is CUDA
+  if (chunk_config.exec_model == ExecutionModel::kCuda) {
+    return ProcessorType::kCuda;
+  }
+
+  // if is Vulkan
+  if (chunk_config.exec_model == ExecutionModel::kVulkan) {
+    return ProcessorType::kVulkan;
+  }
+
+  throw std::invalid_argument("Invalid execution model");
 }
 
 struct Schedule {
