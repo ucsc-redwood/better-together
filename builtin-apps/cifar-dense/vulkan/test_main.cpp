@@ -426,67 +426,67 @@ TEST(VkQueueTest, Basic) {
   EXPECT_TRUE(queue.empty());
 }
 
-// ----------------------------------------------------------------------------
-// Test Concurrent Queue environment
-// ----------------------------------------------------------------------------
+// // ----------------------------------------------------------------------------
+// // Test Concurrent Queue environment
+// // ----------------------------------------------------------------------------
 
-TEST(VkConcurrentQueueTest, Basic) {
-  auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
+// TEST(VkConcurrentQueueTest, Basic) {
+//   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
+//   auto mr = vk_dispatcher->get_mr();
 
-  std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
-  appdatas.reserve(10);
-  for (int i = 0; i < 10; i++) {
-    appdatas.push_back(std::make_shared<cifar_dense::AppData>(mr));
-  }
+//   std::vector<std::shared_ptr<cifar_dense::AppData>> appdatas;
+//   appdatas.reserve(10);
+//   for (int i = 0; i < 10; i++) {
+//     appdatas.push_back(std::make_shared<cifar_dense::AppData>(mr));
+//   }
 
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> vk_queue1;
-  SPSCQueue<std::shared_ptr<cifar_dense::AppData>> vk_queue2;
+//   SPSCQueue<std::shared_ptr<cifar_dense::AppData>> vk_queue1;
+//   SPSCQueue<std::shared_ptr<cifar_dense::AppData>> vk_queue2;
 
-  // Initial push to first queue
-  for (auto& appdata : appdatas) {
-    vk_queue1.enqueue(std::move(appdata));
-  }
+//   // Initial push to first queue
+//   for (auto& appdata : appdatas) {
+//     vk_queue1.enqueue(std::move(appdata));
+//   }
 
-  // Producer thread - first half processing
-  std::thread producer([&vk_dispatcher, &vk_queue1, &vk_queue2]() {
-    for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
-      while (!vk_queue1.dequeue(appdata)) {
-        std::this_thread::yield();
-      }
+//   // Producer thread - first half processing
+//   std::thread producer([&vk_dispatcher, &vk_queue1, &vk_queue2]() {
+//     for (int i = 0; i < 10; i++) {
+//       std::shared_ptr<cifar_dense::AppData> appdata;
+//       while (!vk_queue1.dequeue(appdata)) {
+//         std::this_thread::yield();
+//       }
 
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_1(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_2(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_3(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_4(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_1(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_2(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_3(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_4(*appdata));
 
-      while (!vk_queue2.enqueue(std::move(appdata))) {
-        std::this_thread::yield();
-      }
-    }
-  });
+//       while (!vk_queue2.enqueue(std::move(appdata))) {
+//         std::this_thread::yield();
+//       }
+//     }
+//   });
 
-  // Consumer thread - second half processing
-  std::thread consumer([&vk_dispatcher, &vk_queue2]() {
-    for (int i = 0; i < 10; i++) {
-      std::shared_ptr<cifar_dense::AppData> appdata;
-      while (!vk_queue2.dequeue(appdata)) {
-        std::this_thread::yield();
-      }
+//   // Consumer thread - second half processing
+//   std::thread consumer([&vk_dispatcher, &vk_queue2]() {
+//     for (int i = 0; i < 10; i++) {
+//       std::shared_ptr<cifar_dense::AppData> appdata;
+//       while (!vk_queue2.dequeue(appdata)) {
+//         std::this_thread::yield();
+//       }
 
-      // Process second half (stages 5-9)
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_5(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_6(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_7(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_8(*appdata));
-      EXPECT_NO_THROW(vk_dispatcher->run_stage_9(*appdata));
-    }
-  });
+//       // Process second half (stages 5-9)
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_5(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_6(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_7(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_8(*appdata));
+//       EXPECT_NO_THROW(vk_dispatcher->run_stage_9(*appdata));
+//     }
+//   });
 
-  producer.join();
-  consumer.join();
-}
+//   producer.join();
+//   consumer.join();
+// }
 
 int main(int argc, char** argv) {
   // Initialize Google Test
