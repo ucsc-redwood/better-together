@@ -12,14 +12,14 @@ constexpr size_t kNumStages = 9;
 
 using DispatcherT = cifar_dense::cuda::CudaDispatcher;
 using AppDataT = cifar_dense::AppData;
-using AppDataPtr = std::shared_ptr<AppDataT>;
+using AppDataPtr = std::unique_ptr<AppDataT>;
 
 // Pipeline-specific constants
 constexpr size_t kPoolSize = 32;
 constexpr size_t kNumToProcess = 100;
 
-using QueueT = SPSCQueue<AppDataPtr, kPoolSize>;
-using LocalQueue = std::queue<AppDataPtr>;
+using QueueT = SPSCQueue<AppDataT*, kPoolSize>;
+using LocalQueue = std::queue<AppDataT*>;
 
 // Helper that creates a dataset of AppDataPtrs
 
@@ -29,15 +29,19 @@ using LocalQueue = std::queue<AppDataPtr>;
   result.reserve(num_items);
 
   for (size_t i = 0; i < num_items; ++i) {
-    auto app = std::make_shared<cifar_dense::AppData>(&disp.get_mr());
-    result.push_back(app);
+    auto app = std::make_unique<cifar_dense::AppData>(&disp.get_mr());
+    result.push_back(std::move(app));
   }
 
   return result;
 }
 
 [[nodiscard]] LocalQueue make_queue_from_vector(const std::vector<AppDataPtr>& vec) {
-  return std::queue<AppDataPtr>(std::deque<AppDataPtr>(vec.begin(), vec.end()));
+  LocalQueue q;
+  for (const auto& item : vec) {
+    q.push(item.get());
+  }
+  return q;
 }
 
 // ----------------------------------------------------------------------------
@@ -46,11 +50,11 @@ using LocalQueue = std::queue<AppDataPtr>;
 
 void worker(QueueT& q_in,
             QueueT& q_out,
-            std::function<void(AppDataPtr&)> func,
+            std::function<void(AppDataT*)> func,
             const size_t num_items_to_process,
             const bool is_last = false) {
   for (size_t i = 0; i < num_items_to_process; ++i) {
-    AppDataPtr app;
+    AppDataT* app = nullptr;
     while (!q_in.dequeue(app)) {
       std::this_thread::yield();
     }
@@ -77,11 +81,11 @@ void worker_with_record(const int chunk_id,
                         Logger<kNumToProcess>& logger,
                         QueueT& q_in,
                         QueueT& q_out,
-                        std::function<void(AppDataPtr&)> func,
+                        std::function<void(AppDataT*)> func,
                         const size_t num_items_to_process,
                         const bool is_last = false) {
   for (size_t processing_id = 0; processing_id < num_items_to_process; ++processing_id) {
-    AppDataPtr app;
+    AppDataT* app = nullptr;
     while (!q_in.dequeue(app)) {
       std::this_thread::yield();
     }

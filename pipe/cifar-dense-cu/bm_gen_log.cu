@@ -18,7 +18,7 @@ static void BM_pipe_warmup(const Schedule schedule) {
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
-    queues[0].enqueue(dataset[i]);
+    queues[0].enqueue(dataset[i].get());
   }
 
   // Run the schedule
@@ -41,7 +41,7 @@ static void BM_pipe_warmup(const Schedule schedule) {
             worker,
             std::ref(q_in),
             std::ref(q_out),
-            [&disp, start, end](AppDataPtr& app) { disp.dispatch_multi_stage(*app, start, end); },
+            [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
             num_warmup_items,
             chunk_id == n_chunks - 1);
       } else if (em == ExecutionModel::kOMP) {
@@ -52,7 +52,7 @@ static void BM_pipe_warmup(const Schedule schedule) {
             worker,
             std::ref(q_in),
             std::ref(q_out),
-            [cpu_pt, start, end](AppDataPtr& app) {
+            [cpu_pt, start, end](AppDataT* app) {
               const auto cores = get_cores_by_type(cpu_pt);
               cifar_dense::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
             },
@@ -82,7 +82,7 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) {
-    queues[0].enqueue(dataset[i]);
+    queues[0].enqueue(dataset[i].get());
   }
 
   Logger<kNumToProcess> logger;
@@ -106,7 +106,7 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
           std::ref(logger),
           std::ref(q_in),
           std::ref(q_out),
-          [&disp, start, end](AppDataPtr& app) {
+          [&disp, start, end](AppDataT* app) {
             // Launch GPU
             disp.dispatch_multi_stage(*app, start, end);
           },
@@ -121,7 +121,7 @@ static void BM_pipe_cifar_dense_vk_schedule_auto(const Schedule schedule) {
           std::ref(logger),
           std::ref(q_in),
           std::ref(q_out),
-          [cpu_pt, start, end](AppDataPtr& app) {
+          [cpu_pt, start, end](AppDataT* app) {
             // Launch OMP
             const auto cores = get_cores_by_type(cpu_pt);
             cifar_dense::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);

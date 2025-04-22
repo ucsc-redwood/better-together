@@ -8,14 +8,14 @@ void run(const std::vector<AppDataPtr>& data, DispatcherT& disp) {
   QueueT q1;
 
   for (const auto& item : data) {
-    q0.enqueue(item);
+    q0.enqueue(item.get());
   }
 
   std::thread t0(
       worker<QueueT>,
       std::ref(q0),
       std::ref(q1),
-      [](AppDataPtr& app) { cifar_dense::omp::dispatch_stage(*app, 1); },
+      [](AppDataT* app) { cifar_dense::omp::dispatch_stage(*app, 1); },
       kNumToProcess,
       false);
 
@@ -23,7 +23,7 @@ void run(const std::vector<AppDataPtr>& data, DispatcherT& disp) {
       worker<QueueT>,
       std::ref(q1),
       std::ref(q0),
-      [&disp](AppDataPtr& app) { disp.dispatch_stage(*app, 2); },
+      [&disp](AppDataT* app) { disp.dispatch_stage(*app, 2); },
       kNumToProcess,
       true);
 

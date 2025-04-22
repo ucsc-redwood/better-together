@@ -9,13 +9,13 @@
 // ----------------------------------------------------------------------------
 
 static void BM_run_normal_impl(LocalQueue& q,
-                               std::function<void(AppDataPtr&)> func,
+                               std::function<void(AppDataT*)> func,
                                const int seconds_to_run) {
   std::atomic<bool> done = false;
 
   std::thread t1([&]() {
     while (!done.load(std::memory_order_relaxed)) {
-      AppDataPtr app = q.front();
+      AppDataT* app = q.front();
       q.pop();
 
       func(app);
@@ -62,7 +62,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
   if (pt == ProcessorType::kCuda) {
     BM_run_normal_impl(
         q,
-        [&](AppDataPtr& app) {
+        [&](AppDataT* app) {
           disp.dispatch_multi_stage(*app, stage, stage);
           total_processed++;
         },
@@ -72,7 +72,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
 
     BM_run_normal_impl(
         q,
-        [&](AppDataPtr& app) {
+        [&](AppDataT* app) {
           cifar_dense::omp::dispatch_multi_stage(
               cores_to_use, cores_to_use.size(), *app, stage, stage);
           total_processed++;
@@ -148,7 +148,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
   if (has_lit_cores()) {
     threads.emplace_back([&]() {
       while (!done.load(std::memory_order_relaxed)) {
-        AppDataPtr app = q_0.front();
+        AppDataT* app = q_0.front();
         q_0.pop();
 
         cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, *app, stage, stage);
@@ -162,7 +162,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
   if (has_med_cores()) {
     threads.emplace_back([&]() {
       while (!done.load(std::memory_order_relaxed)) {
-        AppDataPtr app = q_1.front();
+        AppDataT* app = q_1.front();
         q_1.pop();
 
         cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, *app, stage, stage);
@@ -176,7 +176,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
   if (has_big_cores()) {
     threads.emplace_back([&]() {
       while (!done.load(std::memory_order_relaxed)) {
-        AppDataPtr app = q_2.front();
+        AppDataT* app = q_2.front();
         q_2.pop();
 
         cifar_dense::omp::dispatch_multi_stage(BIG_CORES, *app, stage, stage);
@@ -190,7 +190,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
   // Always create Vulkan thread
   threads.emplace_back([&]() {
     while (!done.load(std::memory_order_relaxed)) {
-      AppDataPtr app = q_3.front();
+      AppDataT* app = q_3.front();
       q_3.pop();
 
       disp.dispatch_multi_stage(*app, stage, stage);
