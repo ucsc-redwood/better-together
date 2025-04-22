@@ -5,6 +5,7 @@
 #include <random>
 
 #include "../base_appdata.hpp"
+#include "../load_npy.hpp"
 #include "../ndarray.hpp"
 
 namespace cifar_dense {
@@ -58,20 +59,33 @@ struct AppData final : public BaseAppData {
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
     std::ranges::generate(u_input.pmr_vec(), [&]() { return dis(gen); });
 
-    std::uniform_real_distribution<float> weight_dis(-0.1f, 0.1f);
-    std::ranges::generate(u_conv1_w.pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(u_conv2_w.pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(u_conv3_w.pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(u_conv4_w.pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(u_conv5_w.pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(u_linear_w.pmr_vec(), [&]() { return weight_dis(gen); });
+    // std::uniform_real_distribution<float> weight_dis(-0.1f, 0.1f);
+    // std::ranges::generate(u_conv1_w.pmr_vec(), [&]() { return weight_dis(gen); });
+    // std::ranges::generate(u_conv2_w.pmr_vec(), [&]() { return weight_dis(gen); });
+    // std::ranges::generate(u_conv3_w.pmr_vec(), [&]() { return weight_dis(gen); });
+    // std::ranges::generate(u_conv4_w.pmr_vec(), [&]() { return weight_dis(gen); });
+    // std::ranges::generate(u_conv5_w.pmr_vec(), [&]() { return weight_dis(gen); });
+    // std::ranges::generate(u_linear_w.pmr_vec(), [&]() { return weight_dis(gen); });
 
-    std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
-    std::ranges::fill(u_conv2_b.pmr_vec(), 0.0f);
-    std::ranges::fill(u_conv3_b.pmr_vec(), 0.0f);
-    std::ranges::fill(u_conv4_b.pmr_vec(), 0.0f);
-    std::ranges::fill(u_conv5_b.pmr_vec(), 0.0f);
-    std::ranges::fill(u_linear_b.pmr_vec(), 0.0f);
+    // std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
+    // std::ranges::fill(u_conv2_b.pmr_vec(), 0.0f);
+    // std::ranges::fill(u_conv3_b.pmr_vec(), 0.0f);
+    // std::ranges::fill(u_conv4_b.pmr_vec(), 0.0f);
+    // std::ranges::fill(u_conv5_b.pmr_vec(), 0.0f);
+    // std::ranges::fill(u_linear_b.pmr_vec(), 0.0f);
+
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv1_w.npy", u_conv1_w));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv1_b.npy", u_conv1_b));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv2_w.npy", u_conv2_w));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv2_b.npy", u_conv2_b));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv3_w.npy", u_conv3_w));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv3_b.npy", u_conv3_b));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv4_w.npy", u_conv4_w));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv4_b.npy", u_conv4_b));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv5_w.npy", u_conv5_w));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_conv5_b.npy", u_conv5_b));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_linear_w.npy", u_linear_w));
+    assert(npy_loader::load_npy_to_ndarray("cifar/u_linear_b.npy", u_linear_b));
   }
 
   // Input and intermediate outputs
