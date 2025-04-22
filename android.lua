@@ -151,18 +151,28 @@ function run_on_android(target)
 	-- print("--------------------------------")
 	-- -- then exit
 	-- os.exit()
-
 	-- Check if a specific device was requested
 	local specific_device = nil
+	local device_index = nil
 	for i = 1, #args do
 		local arg = args[i]
 		local device_id = arg:match("^--device=(.+)$")
 		if device_id then
 			specific_device = device_id
+			device_index = i
 			break
 		elseif arg == "--device" and i < #args then
 			specific_device = args[i + 1]
+			device_index = i
 			break
+		end
+	end
+	
+	-- Remove device argument if found
+	if device_index then
+		table.remove(args, device_index)
+		if args[device_index] and args[device_index]:match("^--device=") then
+			table.remove(args, device_index)
 		end
 	end
 	

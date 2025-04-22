@@ -232,7 +232,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
 // Main
 //
 // Run with (on Android)
-// xmake r bm-fully-tree-vk --device 3A021JEHN02756 -p -t 10
+// xmake r bm-fully-tree-vk --device 3A021JEHN02756 -l off -p -t 10
 //
 // ----------------------------------------------------------------------------
 
