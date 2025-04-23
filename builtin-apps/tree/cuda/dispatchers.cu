@@ -25,7 +25,7 @@ constexpr bool kSync = false;
 // Stage 1 (input -> morton code)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_1_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_1_async(tree::SafeAppData &app_data) {
   // constexpr auto block_size = 256;
   // const auto grid_size = cub::DivideAndRoundUp(app_data.get_n_input(), block_size);
   // constexpr auto s_mem = 0;
@@ -52,7 +52,7 @@ void CudaDispatcher::run_stage_1_async(SafeAppData &app_data) {
 // Stage 2 (sort) (morton code -> sorted morton code)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_2_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_2_async(tree::SafeAppData &app_data) {
   uint32_t *d_keys_in = app_data.u_morton_keys_s1.data();
   uint32_t *d_keys_out = app_data.u_morton_keys_sorted_s2_out.data();
   uint32_t num_items = app_data.get_n_input();
@@ -88,7 +88,7 @@ void CudaDispatcher::run_stage_2_async(SafeAppData &app_data) {
 // Stage 3 (unique) (sorted morton code -> unique sorted morton code)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_3_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_3_async(tree::SafeAppData &app_data) {
   uint32_t *d_in = app_data.u_morton_keys_sorted_s2.data();
   uint32_t *d_out = app_data.u_morton_keys_unique_s3_out.data();
   uint32_t num_items = app_data.get_n_input();
@@ -138,7 +138,7 @@ void CudaDispatcher::run_stage_3_async(SafeAppData &app_data) {
 // Stage 4 (build tree) (unique sorted morton code -> tree nodes)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_4_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_4_async(tree::SafeAppData &app_data) {
   const auto total_iterations = app_data.get_n_unique();
   SETUP_DEFAULT_LAUNCH_PARAMS(total_iterations, 768);
 
@@ -163,7 +163,7 @@ void CudaDispatcher::run_stage_4_async(SafeAppData &app_data) {
 // Stage 5 (edge count) (tree nodes -> edge count)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_5_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_5_async(tree::SafeAppData &app_data) {
   // constexpr auto gridDim = 16;
   // constexpr auto blockDim = 512;
   // constexpr auto sharedMem = 0;
@@ -189,7 +189,7 @@ void CudaDispatcher::run_stage_5_async(SafeAppData &app_data) {
 // Stage 6 (edge offset) (edge count -> edge offset)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_6_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_6_async(tree::SafeAppData &app_data) {
   LOG_KERNEL(LogKernelType::kCUDA, 6, &app_data);
 
   void *d_temp_storage = nullptr;
@@ -228,7 +228,7 @@ void CudaDispatcher::run_stage_6_async(SafeAppData &app_data) {
 // Stage 7 (octree) (everything above -> octree)
 // ----------------------------------------------------------------------------
 
-void CudaDispatcher::run_stage_7_async(SafeAppData &app_data) {
+void CudaDispatcher::run_stage_7_async(tree::SafeAppData &app_data) {
   // constexpr auto gridDim = 16;
   // constexpr auto blockDim = 512;
   // constexpr auto sharedMem = 0;

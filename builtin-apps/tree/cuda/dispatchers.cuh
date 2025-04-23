@@ -36,7 +36,7 @@ class CudaDispatcher {
       &CudaDispatcher::run_stage_7_async,
   };
 
-  void dispatch_stage(SafeAppData &appdata, const int stage) {
+  void dispatch_stage(tree::SafeAppData &appdata, const int stage) {
     assert(stage >= 1 && stage <= 7);
 
     (this->*stage_functions[stage - 1])(appdata);
@@ -45,7 +45,7 @@ class CudaDispatcher {
     CheckCuda(cudaDeviceSynchronize());
   }
 
-  void dispatch_multi_stage(SafeAppData &appdata, const int start_stage, const int end_stage) {
+  void dispatch_multi_stage(tree::SafeAppData &appdata, const int start_stage, const int end_stage) {
     assert(start_stage >= 1 && end_stage <= 7);
 
     for (int stage = start_stage; stage <= end_stage; stage++) {

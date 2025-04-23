@@ -158,8 +158,8 @@ if has_config("use_cuda") then
 			"tree/cuda/common/helper_string.hpp",
 			"tree/cuda/common/helper_timer.hpp",
 			"tree/cuda/common.cuh",
-			-- "tree/cuda/func_morton.cuh",
-			-- "tree/cuda/dispatchers.cuh",
+			"tree/cuda/func_morton.cuh",
+			"tree/cuda/dispatchers.cuh",
 		})
 
 		add_files({
@@ -182,7 +182,7 @@ if has_config("use_cuda") then
 			"tree/cuda/05_edge_count.cu",
 			"tree/cuda/06_prefix_sum.cu",
 			"tree/cuda/07_octree.cu",
-			-- "tree/cuda/dispatchers.cu",
+			"tree/cuda/dispatchers.cu",
 		})
 
 		includes("cifar-dense/cuda/xmake.lua")
