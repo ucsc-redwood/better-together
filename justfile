@@ -211,7 +211,7 @@ collect-all-android:
     # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend vk --device 9b034f1b
     # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device 9b034f1b
 
-    # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend vk --device R9TR30814KJ
+    # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device R9TR30814KJ
     # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend vk --device R9TR30814KJ
     # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device R9TR30814KJ
 
@@ -233,6 +233,11 @@ only-aggregate:
 gen-schedules:
     python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules/
     python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules/
+    python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 20 --output_folder data/schedules/
+
+    python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules/
+    python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules/
+    python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 20 --output_folder data/schedules/
 
 
 make-heatmap:
