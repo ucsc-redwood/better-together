@@ -7,6 +7,7 @@ import io
 import time
 import pandas as pd
 
+
 def get_next_log_filename(folder, device, app, backend):
     """
     Determine the next log file name based on existing logs in the folder
@@ -15,7 +16,9 @@ def get_next_log_filename(folder, device, app, backend):
     """
     files = os.listdir(folder)
     indices = []
-    pattern = re.compile(rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log")
+    pattern = re.compile(
+        rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log"
+    )
     for f in files:
         match = pattern.match(f)
         if match:
@@ -65,8 +68,8 @@ def parse_benchmark_data(output):
     fully_idx = data_text.find(fully_marker)
     if normal_idx == -1 or fully_idx == -1:
         return None
-    normal_block = data_text[normal_idx + len(normal_marker):fully_idx].strip()
-    fully_block = data_text[fully_idx + len(fully_marker):].strip()
+    normal_block = data_text[normal_idx + len(normal_marker) : fully_idx].strip()
+    fully_block = data_text[fully_idx + len(fully_marker) :].strip()
     if not normal_block or not fully_block:
         return None
     try:
@@ -130,7 +133,7 @@ def main():
     target = f"bm-fully-{app}-{backend}"
 
     os.makedirs(args.log_folder, exist_ok=True)
-    command_template = f"xmake r {target} --device {device} -l off -p -t 1"
+    command_template = f"xmake r {target} --device {device} -l off -p -t 5"
 
     for run_num in range(1, args.repeat + 1):
         print(f"\n=== Run {run_num} of {args.repeat} ===")
@@ -161,6 +164,7 @@ def main():
         print(f"Appended benchmark data for device {device} in run {run_num}")
 
         time.sleep(1)
+
 
 if __name__ == "__main__":
     main()

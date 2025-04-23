@@ -1,0 +1,233 @@
+
+Running only on specified device: 9b034f1b
+Deploying and running 'bm-fully-cifar-dense-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-fully-cifar-dense-vk: 1 file pushed, 0 skipped. 508.9 MB/s (2716112 bytes in 0.005s)
+[2025-04-22 22:47:40.410] [info] Pinable Lit cores: 0 1 2 
+[2025-04-22 22:47:40.411] [info] Pinable Med cores: 3 4 
+[2025-04-22 22:47:40.411] [info] Pinable Big cores: 5 6 7 
+Stage: 1 by Little
+	Count 	29
+	Average 	177.2414 ms
+Stage: 1 by Medium
+	Count 	69
+	Average 	73.3188 ms
+Stage: 1 by Big
+	Count 	66
+	Average 	76.1667 ms
+Stage: 1 by Vulkan
+	Count 	3245
+	Average 	1.5418 ms
+Stage: 2 by Little
+	Count 	468
+	Average 	10.7051 ms
+Stage: 2 by Medium
+	Count 	1191
+	Average 	4.1998 ms
+Stage: 2 by Big
+	Count 	997
+	Average 	5.0160 ms
+Stage: 2 by Vulkan
+	Count 	4877
+	Average 	1.0256 ms
+Stage: 3 by Little
+	Count 	13
+	Average 	415.2308 ms
+Stage: 3 by Medium
+	Count 	27
+	Average 	191.0370 ms
+Stage: 3 by Big
+	Count 	23
+	Average 	217.8696 ms
+Stage: 3 by Vulkan
+	Count 	4072
+	Average 	1.2284 ms
+Stage: 4 by Little
+	Count 	930
+	Average 	5.3806 ms
+Stage: 4 by Medium
+	Count 	2357
+	Average 	2.1218 ms
+Stage: 4 by Big
+	Count 	3640
+	Average 	1.3742 ms
+Stage: 4 by Vulkan
+	Count 	5182
+	Average 	0.9655 ms
+Stage: 5 by Little
+	Count 	13
+	Average 	390.4615 ms
+Stage: 5 by Medium
+	Count 	27
+	Average 	190.2222 ms
+Stage: 5 by Big
+	Count 	38
+	Average 	133.5000 ms
+Stage: 5 by Vulkan
+	Count 	4016
+	Average 	1.2458 ms
+Stage: 6 by Little
+	Count 	7
+	Average 	771.8571 ms
+Stage: 6 by Medium
+	Count 	14
+	Average 	375.7857 ms
+Stage: 6 by Big
+	Count 	13
+	Average 	393.6154 ms
+Stage: 6 by Vulkan
+	Count 	3275
+	Average 	1.5273 ms
+Stage: 7 by Little
+	Count 	7
+	Average 	776.8571 ms
+Stage: 7 by Medium
+	Count 	14
+	Average 	377.3571 ms
+Stage: 7 by Big
+	Count 	19
+	Average 	270.7368 ms
+Stage: 7 by Vulkan
+	Count 	3274
+	Average 	1.5281 ms
+Stage: 8 by Little
+	Count 	2219
+	Average 	2.2542 ms
+Stage: 8 by Medium
+	Count 	4744
+	Average 	1.0542 ms
+Stage: 8 by Big
+	Count 	4035
+	Average 	1.2392 ms
+Stage: 8 by Vulkan
+	Count 	5667
+	Average 	0.8828 ms
+Stage: 9 by Little
+	Count 	4823
+	Average 	1.0373 ms
+Stage: 9 by Medium
+	Count 	6389
+	Average 	0.7828 ms
+Stage: 9 by Big
+	Count 	5320
+	Average 	0.9400 ms
+Stage: 9 by Vulkan
+	Count 	2210
+	Average 	2.2638 ms
+Stage: 1
+	Little 	168.4667 ms 	(30)
+	Medium 	67.3867 ms 	(75)
+	Big    	45.1250 ms 	(112)
+	Vulkan 	0.8243 ms 	(6131)
+Stage: 2
+	Little 	11.2197 ms 	(446)
+	Medium 	3.9683 ms 	(1261)
+	Big    	2.4675 ms 	(2028)
+	Vulkan 	0.3698 ms 	(13531)
+Stage: 3
+	Little 	467.0000 ms 	(11)
+	Medium 	177.1379 ms 	(29)
+	Big    	109.2979 ms 	(47)
+	Vulkan 	0.6004 ms 	(8556)
+Stage: 4
+	Little 	6.0084 ms 	(833)
+	Medium 	1.9543 ms 	(2561)
+	Big    	1.2550 ms 	(3988)
+	Vulkan 	0.2976 ms 	(16820)
+Stage: 5
+	Little 	405.4615 ms 	(13)
+	Medium 	181.7586 ms 	(29)
+	Big    	109.8125 ms 	(48)
+	Vulkan 	0.5719 ms 	(9217)
+Stage: 6
+	Little 	761.7143 ms 	(7)
+	Medium 	355.4667 ms 	(15)
+	Big    	213.2800 ms 	(25)
+	Vulkan 	0.9289 ms 	(5740)
+Stage: 7
+	Little 	745.2857 ms 	(7)
+	Medium 	347.8000 ms 	(15)
+	Big    	208.6800 ms 	(25)
+	Vulkan 	0.8669 ms 	(6018)
+Stage: 8
+	Little 	3.3564 ms 	(1490)
+	Medium 	0.9766 ms 	(5121)
+	Big    	0.6258 ms 	(7991)
+	Vulkan 	0.2642 ms 	(18932)
+Stage: 9
+	Little 	1.1789 ms 	(4243)
+	Medium 	0.7297 ms 	(6855)
+	Big    	0.4621 ms 	(10825)
+	Vulkan 	1.4110 ms 	(3545)
+
+Normal Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA
+------|------------|-------------|----------|--------|-------
+    1 |    177.2414 |     73.3188 |  76.1667 | 1.5418 | 0.0000
+    2 |     10.7051 |      4.1998 |   5.0160 | 1.0256 | 0.0000
+    3 |    415.2308 |    191.0370 | 217.8696 | 1.2284 | 0.0000
+    4 |      5.3806 |      2.1218 |   1.3742 | 0.9655 | 0.0000
+    5 |    390.4615 |    190.2222 | 133.5000 | 1.2458 | 0.0000
+    6 |    771.8571 |    375.7857 | 393.6154 | 1.5273 | 0.0000
+    7 |    776.8571 |    377.3571 | 270.7368 | 1.5281 | 0.0000
+    8 |      2.2542 |      1.0542 |   1.2392 | 0.8828 | 0.0000
+    9 |      1.0373 |      0.7828 |   0.9400 | 2.2638 | 0.0000
+
+Normal Benchmark - Sum of stages 1-9:
+Little Core: 2551.0252 ms
+Medium Core: 1215.8795 ms
+Big Core: 1100.4579 ms
+Vulkan: 12.2091 ms
+CUDA: 0.0000 ms
+
+Fully Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA
+------|-------------|-------------|----------|--------|-------
+    1 |    168.4667 |     67.3867 |  45.1250 | 0.8243 | 0.0000
+    2 |     11.2197 |      3.9683 |   2.4675 | 0.3698 | 0.0000
+    3 |    467.0000 |    177.1379 | 109.2979 | 0.6004 | 0.0000
+    4 |      6.0084 |      1.9543 |   1.2550 | 0.2976 | 0.0000
+    5 |    405.4615 |    181.7586 | 109.8125 | 0.5719 | 0.0000
+    6 |    761.7143 |    355.4667 | 213.2800 | 0.9289 | 0.0000
+    7 |    745.2857 |    347.8000 | 208.6800 | 0.8669 | 0.0000
+    8 |      3.3564 |      0.9766 |   0.6258 | 0.2642 | 0.0000
+    9 |      1.1789 |      0.7297 |   0.4621 | 1.4110 | 0.0000
+
+Fully Benchmark - Sum of stages 1-9:
+Little Core: 2569.6916 ms
+Medium Core: 1137.1787 ms
+Big Core: 691.0058 ms
+Vulkan: 6.1350 ms
+CUDA: 0.0000 ms
+
+Performance Comparison (Fully vs Normal):
+Processor  | Normal (ms) | Fully (ms) | Ratio
+-----------|-------------|------------|-------
+Little Core|     2551.03 |    2569.69 |  1.01x
+Medium Core|     1215.88 |    1137.18 |  0.94x
+Big Core   |     1100.46 |     691.01 |  0.63x
+Vulkan     |       12.21 |       6.13 |  0.50x
+
+### PYTHON_DATA_START ###
+# NORMAL_BENCHMARK_DATA
+stage,little,medium,big,vulkan,cuda
+1,177.2414,73.3188,76.1667,1.5418,0.0000
+2,10.7051,4.1998,5.0160,1.0256,0.0000
+3,415.2308,191.0370,217.8696,1.2284,0.0000
+4,5.3806,2.1218,1.3742,0.9655,0.0000
+5,390.4615,190.2222,133.5000,1.2458,0.0000
+6,771.8571,375.7857,393.6154,1.5273,0.0000
+7,776.8571,377.3571,270.7368,1.5281,0.0000
+8,2.2542,1.0542,1.2392,0.8828,0.0000
+9,1.0373,0.7828,0.9400,2.2638,0.0000
+# FULLY_BENCHMARK_DATA
+stage,little,medium,big,vulkan,cuda
+1,168.4667,67.3867,45.1250,0.8243,0.0000
+2,11.2197,3.9683,2.4675,0.3698,0.0000
+3,467.0000,177.1379,109.2979,0.6004,0.0000
+4,6.0084,1.9543,1.2550,0.2976,0.0000
+5,405.4615,181.7586,109.8125,0.5719,0.0000
+6,761.7143,355.4667,213.2800,0.9289,0.0000
+7,745.2857,347.8000,208.6800,0.8669,0.0000
+8,3.3564,0.9766,0.6258,0.2642,0.0000
+9,1.1789,0.7297,0.4621,1.4110,0.0000
+### PYTHON_DATA_END ###

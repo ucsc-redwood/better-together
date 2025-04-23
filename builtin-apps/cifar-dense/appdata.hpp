@@ -5,7 +5,7 @@
 #include <random>
 
 #include "../base_appdata.hpp"
-#include "../load_npy.hpp"
+// #include "../load_npy.hpp"
 #include "../ndarray.hpp"
 
 namespace cifar_dense {
