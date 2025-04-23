@@ -6,6 +6,7 @@ import sys
 import re
 import time
 import datetime
+import pandas as pd
 
 
 class ScheduleRunner:
@@ -86,13 +87,43 @@ class ScheduleRunner:
             print(f"Error creating heatmaps: {e}")
             return False
 
-    def generate_schedules(self, device, app, num_schedules=30):
-        """Generate schedules using the Z3 optimizer."""
+    def generate_schedules(self, device, app, num_schedules=30, backend=None):
+        """Generate schedules using the Z3 optimizer.
+        
+        Args:
+            device: Device ID
+            app: Application name
+            num_schedules: Number of schedules to generate
+            backend: Backend to use ('vk' for Vulkan, 'cu' for CUDA, None for auto-detect)
+        """
         app_dir = self.get_app_dir(app)
+        
+        # If backend not specified, auto-detect from CSV
+        if backend is None:
+            csv_path = os.path.join(app_dir, f"{device}_fully.csv")
+            if not os.path.exists(csv_path):
+                print(f"Error: CSV file {csv_path} not found. Run benchmarks first.")
+                return False
+                
+            # Read CSV to detect if CUDA values are present
+            try:
+                df = pd.read_csv(csv_path)
+                # Check if CUDA column has non-zero values
+                if 'cuda' in df.columns and df['cuda'].sum() > 0:
+                    backend = 'cu'
+                    print(f"Auto-detected CUDA data in CSV. Using CUDA backend.")
+                else:
+                    backend = 'vk'
+                    print(f"Using Vulkan backend (no CUDA data detected).")
+            except Exception as e:
+                print(f"Error reading CSV file: {e}")
+                print(f"Defaulting to Vulkan backend.")
+                backend = 'vk'
+        
         schedule_file = os.path.join(
-            self.schedules_dir, f"{device}_{app}_vk_schedules.json"
+            self.schedules_dir, f"{device}_{app}_{backend}_schedules.json"
         )
-        print(f"\n=== Generating schedules for {app} on {device} ===")
+        print(f"\n=== Generating schedules for {app} on {device} using {backend} backend ===")
 
         csv_path = os.path.join(app_dir, f"{device}_fully.csv")
         if not os.path.exists(csv_path):
@@ -102,12 +133,18 @@ class ScheduleRunner:
         cmd = [
             "python3",
             "scripts/gen/schedule.py",
-            "--csv_path",
-            csv_path,
+            "--csv_folder",
+            app_dir,
+            "--device",
+            device,
+            "--app",
+            app,
+            "--backend",
+            backend,
             "-n",
             str(num_schedules),
-            "--output_file",
-            schedule_file,
+            "--output_folder",
+            self.schedules_dir,
         ]
 
         try:
@@ -165,13 +202,33 @@ class ScheduleRunner:
             return True
         return False
 
-    def run_schedule(self, device, app, n_to_run=30):
+    def run_schedule(self, device, app, n_to_run=30, backend=None):
         """Run benchmarking schedules for the given device and app."""
         device_results_dir = self.get_device_results_dir(device, app)
 
         if not device or not app:
             print("Error: Both device and app must be specified")
             return False
+        
+        # If backend not specified, auto-detect
+        if backend is None:
+            schedule_vk = os.path.join(
+                self.schedules_dir, f"{device}_{app}_vk_schedules.json"
+            )
+            schedule_cu = os.path.join(
+                self.schedules_dir, f"{device}_{app}_cu_schedules.json"
+            )
+            
+            if os.path.exists(schedule_cu):
+                backend = 'cu'
+                print(f"Auto-detected CUDA schedule file. Using CUDA backend.")
+            elif os.path.exists(schedule_vk):
+                backend = 'vk'
+                print(f"Using Vulkan backend (no CUDA schedule detected).")
+            else:
+                print(f"No schedule files found for device {device} and app {app}.")
+                print(f"Defaulting to Vulkan backend.")
+                backend = 'vk'
 
         # Ensure server is running
         if not self.start_server():
@@ -180,7 +237,7 @@ class ScheduleRunner:
 
         # Generate log file name with incremental suffix if needed
         base_log_file = os.path.join(
-            device_results_dir, f"{device}_{app}_schedules.log"
+            device_results_dir, f"{device}_{app}_{backend}_schedules.log"
         )
         log_file = self._get_incremental_filename(base_log_file)
 
@@ -189,9 +246,9 @@ class ScheduleRunner:
 
         # Run the benchmark command
         schedule_url = (
-            f"http://192.168.1.204:{self.server_port}/{device}_{app}_vk_schedules.json"
+            f"http://192.168.1.204:{self.server_port}/{device}_{app}_{backend}_schedules.json"
         )
-        cmd = self._build_benchmark_command(device, app, schedule_url, n_to_run)
+        cmd = self._build_benchmark_command(device, app, schedule_url, n_to_run, backend)
 
         try:
             print(f"Running command: {' '.join(cmd)}")
@@ -273,12 +330,12 @@ class ScheduleRunner:
                 return new_filename
             counter += 1
 
-    def _build_benchmark_command(self, device, app, schedule_url, n_to_run):
+    def _build_benchmark_command(self, device, app, schedule_url, n_to_run, backend='vk'):
         """Build the benchmark command with appropriate parameters."""
         return [
             "xmake",
             "r",
-            f"bm-gen-logs-{app}-vk",
+            f"bm-gen-logs-{app}-{backend}",
             "-l",
             "off",
             "--device-to-measure",
@@ -290,7 +347,7 @@ class ScheduleRunner:
         ]
 
     def execute_pipeline(
-        self, device, app, steps=None, repeat=3, num_schedules=30, exclude_stages=""
+        self, device, app, steps=None, repeat=3, num_schedules=30, exclude_stages="", backend=None
     ):
         """Execute the entire pipeline or specific steps for a device/app pair."""
         if steps is None:
@@ -305,10 +362,10 @@ class ScheduleRunner:
             success = success and self.create_heatmaps(app, exclude_stages)
 
         if "schedule" in steps and success:
-            success = success and self.generate_schedules(device, app, num_schedules)
+            success = success and self.generate_schedules(device, app, num_schedules, backend)
 
         if "run" in steps and success:
-            success = success and self.run_schedule(device, app, num_schedules)
+            success = success and self.run_schedule(device, app, num_schedules, backend)
 
         if "parse" in steps and success:
             success = success and self.parse_results(device, app)
@@ -380,6 +437,13 @@ def parse_arguments():
         help="Steps to execute in the pipeline (default: all)",
     )
 
+    parser.add_argument(
+        "--backend",
+        choices=["vk", "cu", "auto"],
+        default="auto",
+        help="Backend to use (vk=Vulkan, cu=CUDA, auto=auto-detect)",
+    )
+
     return parser.parse_args()
 
 
@@ -399,6 +463,9 @@ def main():
         print(f"Error: --app is required for '{args.task}'")
         sys.exit(1)
 
+    # Convert 'auto' backend to None for auto-detection
+    backend = None if args.backend == 'auto' else args.backend
+
     # Execute the requested task
     success = False
 
@@ -409,10 +476,10 @@ def main():
         success = runner.create_heatmaps(args.app, args.exclude_stages)
 
     elif args.task == "schedule":
-        success = runner.generate_schedules(args.device, args.app, args.num_schedules)
+        success = runner.generate_schedules(args.device, args.app, args.num_schedules, backend)
 
     elif args.task == "run":
-        success = runner.run_schedule(args.device, args.app, args.num_schedules)
+        success = runner.run_schedule(args.device, args.app, args.num_schedules, backend)
 
     elif args.task == "parse":
         success = runner.parse_results(args.device, args.app)
@@ -435,6 +502,7 @@ def main():
             args.repeat,
             args.num_schedules,
             args.exclude_stages,
+            backend,
         )
 
     if not success:

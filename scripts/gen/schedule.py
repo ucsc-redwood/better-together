@@ -30,21 +30,31 @@ def load_csv_and_compute_averages(csv_path):
     print(avg_df)
     print()
 
+    # Determine which GPU backend to use (CUDA or Vulkan)
+    # If CUDA values are all zeros, use Vulkan
+    # Otherwise, use CUDA as the GPU backend
+    use_cuda = avg_df["cuda"].sum() > 0
+    
+    print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")
+
     # Convert to list of lists format expected by the solver
-    # Each inner list is [little_time, medium_time, big_time, vulkan_time]
+    # Each inner list is [little_time, medium_time, big_time, gpu_time]
+    # where gpu_time is either vulkan_time or cuda_time
     avg_timings = []
     for stage in range(1, 10):  # Assuming 9 stages, numbered 1-9
         if stage in avg_df.index:
             row = avg_df.loc[stage]
+            # Use cuda if available, otherwise use vulkan
+            gpu_time = row["cuda"] if use_cuda else row["vulkan"]
             avg_timings.append(
-                [row["little"], row["medium"], row["big"], row["vulkan"]]
+                [row["little"], row["medium"], row["big"], gpu_time]
             )
         else:
             print(f"Warning: Stage {stage} not found in data")
             # Use zeros as fallback
             avg_timings.append([0.0, 0.0, 0.0, 0.0])
 
-    return avg_timings
+    return avg_timings, use_cuda
 
 
 def define_data(stage_timings=None):
@@ -554,8 +564,19 @@ if __name__ == "__main__":
         out_path = os.path.join(args.output_folder, f"{device}_{app}_{backend}_fully_schedules.json")
 
         print(f"Loading data from CSV file: {csv_path}")
-        stage_timings = load_csv_and_compute_averages(csv_path)
+        stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)
+        
+        # Store which GPU backend was used in a global variable
+        global GPU_BACKEND
+        GPU_BACKEND = "gpu_cuda" if use_cuda else "gpu_vulkan"
+        
         solutions = solve_optimization_problem(stage_timings, args.num_solutions)
+
+        # Update the solutions to reflect the correct GPU backend
+        for solution in solutions:
+            for chunk in solution["chunks"]:
+                if chunk["core_type"] == "GPU":
+                    chunk["hardware"] = GPU_BACKEND
 
         # Dump solutions in a machine-parsable format
         dump_solutions_as_json(solutions, "pretty", out_path)
