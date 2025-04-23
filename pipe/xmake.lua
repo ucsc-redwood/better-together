@@ -7,4 +7,5 @@ end
 if has_config("use_cuda") then
 	includes("cifar-dense-cu")
 	includes("cifar-sparse-cu")
+	-- includes("tree-cu")
 end
