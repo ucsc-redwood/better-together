@@ -247,7 +247,7 @@ static void BM_run_fully(BmTable<kNumStages>& table,
 // Main
 //
 // Run with
-// xmake r bm-fully-tree-cu --device jetson -p -t 10
+// xmake r bm-fully-tree-cu --device jetson -l off -p -t 5
 //
 // ----------------------------------------------------------------------------
 
