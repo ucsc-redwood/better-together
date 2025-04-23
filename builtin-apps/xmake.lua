@@ -32,19 +32,19 @@ do
 		"cifar-dense/omp/dispatchers.hpp",
 		"cifar-dense/omp/all_kernels.hpp",
 
-		-- tree headers
-		"tree/tree_appdata.hpp",
-		"tree/safe_tree_appdata.hpp",
-		"tree/omp/dispatchers.hpp",
-		"tree/omp/func_brt.hpp",
-		"tree/omp/func_edge.hpp",
-		"tree/omp/func_morton.hpp",
-		"tree/omp/func_octree.hpp",
-		"tree/omp/func_sort.hpp",
-		"tree/omp/temp_storage.hpp",
+		-- -- tree headers
+		-- "tree/tree_appdata.hpp",
+		-- "tree/safe_tree_appdata.hpp",
+		-- "tree/omp/dispatchers.hpp",
+		-- "tree/omp/func_brt.hpp",
+		-- "tree/omp/func_edge.hpp",
+		-- "tree/omp/func_morton.hpp",
+		-- "tree/omp/func_octree.hpp",
+		-- "tree/omp/func_sort.hpp",
+		-- "tree/omp/temp_storage.hpp",
 
 		-- octree headers
-		"octree/appdata.hpp",
+		-- "octree/appdata.hpp",
 
 		-- pipeline headers
 		"pipeline/record.hpp",
@@ -70,7 +70,7 @@ do
 		"tree/omp/dispatchers.cpp",
 
 		-- octree implementations
-		"octree/omp/dispatchers.cpp",
+		-- "octree/omp/dispatchers.cpp",
 	})
 
 	includes("cifar-dense/omp/xmake.lua")
@@ -98,7 +98,7 @@ if has_config("use_vulkan") then
 			"cifar-dense/vulkan/dispatchers.hpp",
 			"tree/vulkan/dispatchers.hpp",
 			"tree/vulkan/vk_appdata.hpp",
-			"octree/vulkan/dispatchers.hpp",
+			-- "octree/vulkan/dispatchers.hpp",
 		})
 
 		add_files({
@@ -106,7 +106,7 @@ if has_config("use_vulkan") then
 			"cifar-sparse/vulkan/dispatchers.cpp",
 			"cifar-dense/vulkan/dispatchers.cpp",
 			"tree/vulkan/dispatchers.cpp",
-			"octree/vulkan/dispatchers.cpp",
+			-- "octree/vulkan/dispatchers.cpp",
 		})
 	end
 
@@ -142,24 +142,24 @@ if has_config("use_cuda") then
 			"cifar-dense/cuda/all_kernels.cuh",
 			"cifar-dense/cuda/dispatchers.cuh",
 
-			-- Tree CUDA headers
-			"tree/cuda/01_morton.cuh",
-			"tree/cuda/02_sort.cuh",
-			"tree/cuda/03_unique.cuh",
-			"tree/cuda/04_radix_tree.cuh",
-			"tree/cuda/05_edge_count.cuh",
-			"tree/cuda/06_prefix_sum.cuh",
-			"tree/cuda/07_octree.cuh",
-			"tree/cuda/agents/prefix_sum_agent.cuh",
-			"tree/cuda/agents/unique_agent.cuh",
-			"tree/cuda/common/helper_cuda.hpp",
-			"tree/cuda/common/helper_functions.hpp",
-			"tree/cuda/common/helper_math.hpp",
-			"tree/cuda/common/helper_string.hpp",
-			"tree/cuda/common/helper_timer.hpp",
-			"tree/cuda/common.cuh",
-			"tree/cuda/func_morton.cuh",
-			"tree/cuda/dispatchers.cuh",
+			-- -- Tree CUDA headers
+			-- "tree/cuda/01_morton.cuh",
+			-- "tree/cuda/02_sort.cuh",
+			-- "tree/cuda/03_unique.cuh",
+			-- "tree/cuda/04_radix_tree.cuh",
+			-- "tree/cuda/05_edge_count.cuh",
+			-- "tree/cuda/06_prefix_sum.cuh",
+			-- "tree/cuda/07_octree.cuh",
+			-- "tree/cuda/agents/prefix_sum_agent.cuh",
+			-- "tree/cuda/agents/unique_agent.cuh",
+			-- "tree/cuda/common/helper_cuda.hpp",
+			-- "tree/cuda/common/helper_functions.hpp",
+			-- "tree/cuda/common/helper_math.hpp",
+			-- "tree/cuda/common/helper_string.hpp",
+			-- "tree/cuda/common/helper_timer.hpp",
+			-- "tree/cuda/common.cuh",
+			-- "tree/cuda/func_morton.cuh",
+			-- "tree/cuda/dispatchers.cuh",
 		})
 
 		add_files({
@@ -187,7 +187,7 @@ if has_config("use_cuda") then
 
 		includes("cifar-dense/cuda/xmake.lua")
 		includes("cifar-sparse/cuda/xmake.lua")
-		-- includes("tree/cuda/xmake.lua")
+		includes("tree/cuda/xmake.lua")
 
 		-- Best CUDA library
 		add_packages("cub")
