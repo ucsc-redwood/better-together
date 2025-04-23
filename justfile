@@ -196,3 +196,32 @@ run-schedule:
 
 # cat-math:
 #     python3 scripts/gen_schedule/schedule.py
+
+
+# ----------------------------------------------------------------------------
+# Final Version
+# ----------------------------------------------------------------------------
+
+collect-all-android:
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device 3A021JEHN02756
+
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend vk --device 9b034f1b
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend vk --device 9b034f1b
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device 9b034f1b
+
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend vk --device R9TR30814KJ
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend vk --device R9TR30814KJ
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device R9TR30814KJ
+
+collect-all-jetson:
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend cu --device jetson
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend cu --device jetson
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend cu --device jetson
+
+collect-all-jetsonlowpower:
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend cu --device jetsonlowpower
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend cu --device jetsonlowpower
+    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend cu --device jetsonlowpower
+
