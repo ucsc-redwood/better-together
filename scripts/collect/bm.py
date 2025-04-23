@@ -8,6 +8,7 @@ import time
 import glob
 import pandas as pd
 
+
 def get_next_log_filename(folder, device, app, backend):
     """
     Determine the next log file name based on existing logs in the folder
@@ -26,6 +27,7 @@ def get_next_log_filename(folder, device, app, backend):
     next_index = max(indices) + 1 if indices else 1
     filename = f"bm_{device}_{app}_{backend}_{next_index}.log"
     return os.path.join(folder, filename)
+
 
 def run_command(command):
     """Execute the given shell command and return its full output."""
@@ -47,6 +49,7 @@ def run_command(command):
     if retcode != 0:
         raise RuntimeError(f"Command failed with exit code {retcode}")
     return "".join(output_lines)
+
 
 def parse_benchmark_data(output):
     """
@@ -78,12 +81,14 @@ def parse_benchmark_data(output):
         return None
     return df_normal, df_fully
 
+
 def append_or_create_csv(df, file_path):
     """Append DataFrame to CSV or create file if not exists."""
     if os.path.exists(file_path):
         df.to_csv(file_path, mode="a", header=False, index=False)
     else:
         df.to_csv(file_path, mode="w", header=True, index=False)
+
 
 def aggregate_existing_logs(folder, device, app, backend):
     """
@@ -96,7 +101,10 @@ def aggregate_existing_logs(folder, device, app, backend):
     fully_csv = os.path.join(folder, f"{device}_{app}_{backend}_fully.csv")
     for log_file in log_files:
         # extract run number from filename
-        match = re.search(rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log$", log_file)
+        match = re.search(
+            rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log$",
+            log_file,
+        )
         run_num = int(match.group(1)) if match else None
         with open(log_file) as f:
             output = f.read()
@@ -117,9 +125,7 @@ def aggregate_existing_logs(folder, device, app, backend):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Run or aggregate benchmarks."
-    )
+    parser = argparse.ArgumentParser(description="Run or aggregate benchmarks.")
     parser.add_argument(
         "--log_folder",
         type=str,
@@ -191,12 +197,8 @@ def main():
         df_normal["run"] = run_num
         df_fully["device"] = device
         df_fully["run"] = run_num
-        normal_csv = os.path.join(
-            folder, f"{device}_{app}_{backend}_normal.csv"
-        )
-        fully_csv = os.path.join(
-            folder, f"{device}_{app}_{backend}_fully.csv"
-        )
+        normal_csv = os.path.join(folder, f"{device}_{app}_{backend}_normal.csv")
+        fully_csv = os.path.join(folder, f"{device}_{app}_{backend}_fully.csv")
         append_or_create_csv(df_normal, normal_csv)
         append_or_create_csv(df_fully, fully_csv)
         print(
@@ -204,6 +206,7 @@ def main():
             f" backend {backend}, run {run_num}"
         )
         time.sleep(1)
+
 
 if __name__ == "__main__":
     main()

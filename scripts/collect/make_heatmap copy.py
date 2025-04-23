@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def aggregate_data(df, value_cols=["little", "medium", "big", "vulkan"]):
     """
     Group the DataFrame by 'stage' and compute mean and std for the value columns.
@@ -15,6 +16,7 @@ def aggregate_data(df, value_cols=["little", "medium", "big", "vulkan"]):
     std_df = group[value_cols].std()
     cv_df = std_df.divide(mean_df).fillna(0)
     return mean_df, std_df, cv_df
+
 
 def plot_bar_chart(mean_normal, std_normal, mean_fully, std_fully, device, out_folder):
     pu_list = ["little", "medium", "big", "vulkan"]
@@ -47,6 +49,7 @@ def plot_bar_chart(mean_normal, std_normal, mean_fully, std_fully, device, out_f
     plt.close()
     print(f"Saved bar chart for device {device} to: {output_path}")
 
+
 def plot_heatmap(diff_df, device, out_folder):
     fig, ax = plt.subplots(figsize=(8, 6))
     cax = ax.imshow(diff_df.values, cmap="coolwarm", aspect="auto")
@@ -60,7 +63,9 @@ def plot_heatmap(diff_df, device, out_folder):
 
     for i in range(diff_df.shape[0]):
         for j in range(diff_df.shape[1]):
-            ax.text(j, i, f"{diff_df.iloc[i, j]:.2f}", ha="center", va="center", fontsize=8)
+            ax.text(
+                j, i, f"{diff_df.iloc[i, j]:.2f}", ha="center", va="center", fontsize=8
+            )
 
     fig.colorbar(cax, ax=ax)
     plt.tight_layout()
@@ -68,6 +73,7 @@ def plot_heatmap(diff_df, device, out_folder):
     plt.savefig(output_path)
     plt.close()
     print(f"Saved heatmap for device {device} to: {output_path}")
+
 
 def plot_normalized_ratio_heatmap(ratio_df, device, out_folder):
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -82,7 +88,9 @@ def plot_normalized_ratio_heatmap(ratio_df, device, out_folder):
 
     for i in range(ratio_df.shape[0]):
         for j in range(ratio_df.shape[1]):
-            ax.text(j, i, f"{ratio_df.iloc[i, j]:.2f}", ha="center", va="center", fontsize=8)
+            ax.text(
+                j, i, f"{ratio_df.iloc[i, j]:.2f}", ha="center", va="center", fontsize=8
+            )
 
     fig.colorbar(cax, ax=ax)
     plt.tight_layout()
@@ -90,6 +98,7 @@ def plot_normalized_ratio_heatmap(ratio_df, device, out_folder):
     plt.savefig(output_path)
     plt.close()
     print(f"Saved normalized ratio heatmap for device {device} to: {output_path}")
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -143,7 +152,7 @@ def main():
     exclude = []
     if args.exclude_stages:
         try:
-            exclude = [int(x) for x in args.exclude_stages.split(',') if x.strip()]
+            exclude = [int(x) for x in args.exclude_stages.split(",") if x.strip()]
             print(f"Excluding stages: {exclude}")
         except ValueError:
             print(f"Invalid --exclude_stages: {args.exclude_stages}")
@@ -169,7 +178,7 @@ def main():
     print(cv_f.round(3))
 
     avg_table = pd.concat(
-        [mean_n.add_prefix('normal_'), mean_f.add_prefix('fully_')], axis=1
+        [mean_n.add_prefix("normal_"), mean_f.add_prefix("fully_")], axis=1
     )
     print("\nCombined Average Table (ms per task):")
     print(avg_table.round(3))
@@ -180,6 +189,7 @@ def main():
     plot_heatmap(diff, device, folder)
     ratio = mean_f.divide(mean_n)
     plot_normalized_ratio_heatmap(ratio, device, folder)
+
 
 if __name__ == "__main__":
     main()
