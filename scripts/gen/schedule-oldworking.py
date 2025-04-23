@@ -518,6 +518,9 @@ def parse_arguments():
         help="Path to the CSV file with stage timing data",
         required=True,
     )
+    parser.add_argument('--device', required=True)
+    parser.add_argument('--app', required=True)
+    parser.add_argument('--backend', required=True, choices=['vk','cu'])
     parser.add_argument(
         "-n",
         "--num_solutions",
@@ -531,11 +534,11 @@ def parse_arguments():
         help="Path to write the JSON output file (optional)",
         default=None,
     )
-    parser.add_argument(
-        "--compact",
-        action="store_true",
-        help="Write JSON in compact format instead of pretty format",
-    )
+    # parser.add_argument(
+    #     "--compact",
+    #     action="store_true",
+    #     help="Write JSON in compact format instead of pretty format",
+    # )
     return parser.parse_args()
 
 
@@ -543,10 +546,10 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     if args.csv_path:
+        
         print(f"Loading data from CSV file: {args.csv_path}")
         stage_timings = load_csv_and_compute_averages(args.csv_path)
         solutions = solve_optimization_problem(stage_timings, args.num_solutions)
 
         # Dump solutions in a machine-parsable format
-        output_format = "compact" if args.compact else "pretty"
-        dump_solutions_as_json(solutions, output_format, args.output_file)
+        dump_solutions_as_json(solutions, "pretty", args.output_file)

@@ -1,0 +1,71 @@
+[
+  {
+    "uid": "SCH-L9-G000-bbe0",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Little",
+        "time": 36.5933
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 5.3479
+      },
+      "2": {
+        "core_type": "Little",
+        "time": 87.31016666666666
+      },
+      "3": {
+        "core_type": "Little",
+        "time": 2.9762999999999997
+      },
+      "4": {
+        "core_type": "Little",
+        "time": 85.36783333333334
+      },
+      "5": {
+        "core_type": "Little",
+        "time": 167.64466666666667
+      },
+      "6": {
+        "core_type": "Little",
+        "time": 165.05456666666666
+      },
+      "7": {
+        "core_type": "Little",
+        "time": 1.4784333333333333
+      },
+      "8": {
+        "core_type": "Little",
+        "time": 0.6582333333333333
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Little",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "time": 552.4314
+      }
+    ],
+    "metrics": {
+      "max_time": 552.4313999999999,
+      "min_time": 552.4313999999999,
+      "gapness": 0.0,
+      "avg_time": 552.4314,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0
+    },
+    "solution_id": 1
+  }
+]
