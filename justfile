@@ -259,3 +259,12 @@ gen-schedules:
 
 serve:
     python3 -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
+
+
+run-schedule:
+    xmake r bm-gen-logs-cifar-sparse-vk --device 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json --n-schedules-to-run 10
+    xmake r bm-gen-logs-cifar-sparse-vk --device 9b034f1b --schedule-url http://192.168.1.204:8080/9b034f1b_cifar-sparse_vk_fully_schedules.json --n-schedules-to-run 10
+
+    # xmake r bm-gen-logs-cifar-dense-vk --device 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar-dense_vk_fully_schedules.json --n-schedules-to-run 10  
+    # xmake r bm-gen-logs-cifar-dense-vk --device 9b034f1b --schedule-url http://192.168.1.204:8080/9b034f1b_cifar-dense_vk_fully_schedules.json --n-schedules-to-run 10
+
