@@ -33,8 +33,6 @@ venv:
 install-deps:
     uv pip install -r requirements.txt
 
-
-
 #  ----------------------------------------------------------------------------
 #  Compile Shaders
 #  ----------------------------------------------------------------------------
@@ -203,7 +201,7 @@ cat-android-tmp:
 # ----------------------------------------------------------------------------
 
 collect-all-android:
-    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+    # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
     # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend vk --device 3A021JEHN02756
     # python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device 3A021JEHN02756
 
@@ -230,6 +228,26 @@ only-aggregate:
     python3 scripts/collect/bm.py --log_folder data/bm_logs --app cifar-sparse --backend vk --device 9b034f1b --only-aggregate
     python3 scripts/collect/bm.py --log_folder data/bm_logs --app cifar-dense --backend vk --device 9b034f1b --only-aggregate
 
+make-heatmap:
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 9b034f1b
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device R9TR30814KJ
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend cu --device jetson
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend cu --device jetsonlowpower
+
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device 9b034f1b
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device R9TR30814KJ
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend cu --device jetson
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend cu --device jetsonlowpower
+
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device 9b034f1b
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device R9TR30814KJ
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend cu --device jetson
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend cu --device jetsonlowpower
+
+
 gen-schedules:
     python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules/
     python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules/
@@ -239,23 +257,5 @@ gen-schedules:
     python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules/
     python3 scripts/gen/schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 20 --output_folder data/schedules/
 
-
-make-heatmap:
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 3A021JEHN02756
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 9b034f1b
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device R9TR30814KJ
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device jetson
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device jetsonlowpower
-
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device 3A021JEHN02756
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device 9b034f1b
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device R9TR30814KJ
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device jetson
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device jetsonlowpower
-
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device 3A021JEHN02756
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device 9b034f1b
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device R9TR30814KJ
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device jetson
-    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device jetsonlowpower
-
+serve:
+    python3 -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
