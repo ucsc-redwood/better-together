@@ -174,14 +174,14 @@ if has_config("use_cuda") then
 			"cifar-sparse/cuda/all_kernels.cu",
 			"cifar-sparse/cuda/dispatchers.cu",
 
-			-- -- Tree CUDA implementations
-			-- "tree/cuda/01_morton.cu",
-			-- "tree/cuda/02_sort.cu",
-			-- "tree/cuda/03_unique.cu",
-			-- "tree/cuda/04_radix_tree.cu",
-			-- "tree/cuda/05_edge_count.cu",
-			-- "tree/cuda/06_prefix_sum.cu",
-			-- "tree/cuda/07_octree.cu",
+			-- Tree CUDA implementations
+			"tree/cuda/01_morton.cu",
+			"tree/cuda/02_sort.cu",
+			"tree/cuda/03_unique.cu",
+			"tree/cuda/04_radix_tree.cu",
+			"tree/cuda/05_edge_count.cu",
+			"tree/cuda/06_prefix_sum.cu",
+			"tree/cuda/07_octree.cu",
 			"tree/cuda/dispatchers.cu",
 		})
 
