@@ -11,7 +11,7 @@
 constexpr size_t kNumStages = 7;
 
 using DispatcherT = tree::cuda::CudaDispatcher;
-using AppDataT = tree::AppData;
+using AppDataT = tree::SafeAppData;
 using AppDataPtr = std::unique_ptr<AppDataT>;
 
 // Pipeline-specific constants
@@ -29,7 +29,7 @@ using LocalQueue = std::queue<AppDataT*>;
   result.reserve(num_items);
 
   for (size_t i = 0; i < num_items; ++i) {
-    auto app = std::make_unique<tree::AppData>(&disp.get_mr());
+    auto app = std::make_unique<AppDataT>(&disp.get_mr());
     result.push_back(std::move(app));
   }
 
