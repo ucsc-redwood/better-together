@@ -216,12 +216,12 @@ collect-all-android:
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend vk --device R9TR30814KJ
 
 collect-all-jetson:
-    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend cu --device jetson
+#    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend cu --device jetson
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend cu --device jetson
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend cu --device jetson
 
 collect-all-jetsonlowpower:
-    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend cu --device jetsonlowpower
+#    python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app tree --backend cu --device jetsonlowpower
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend cu --device jetsonlowpower
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend cu --device jetsonlowpower
 
