@@ -5,8 +5,8 @@ import os
 import re
 import io
 import time
-import glob
 import pandas as pd
+
 
 def get_next_log_filename(folder, device, app, backend):
     """
@@ -26,6 +26,7 @@ def get_next_log_filename(folder, device, app, backend):
     next_index = max(indices) + 1 if indices else 1
     filename = f"bm_{device}_{app}_{backend}_{next_index}.log"
     return os.path.join(folder, filename)
+
 
 def run_command(command):
     """Execute the given shell command and return its full output."""
@@ -47,6 +48,7 @@ def run_command(command):
     if retcode != 0:
         raise RuntimeError(f"Command failed with exit code {retcode}")
     return "".join(output_lines)
+
 
 def parse_benchmark_data(output):
     """
@@ -78,6 +80,7 @@ def parse_benchmark_data(output):
         return None
     return df_normal, df_fully
 
+
 def append_or_create_csv(df, file_path):
     """Append DataFrame to CSV or create file if not exists."""
     if os.path.exists(file_path):
@@ -85,50 +88,21 @@ def append_or_create_csv(df, file_path):
     else:
         df.to_csv(file_path, mode="w", header=True, index=False)
 
-def aggregate_existing_logs(folder, device, app, backend):
-    """
-    Parse all existing logs for the given device/app/backend
-    and append their data to the appropriate CSV files.
-    """
-    pattern = os.path.join(folder, f"bm_{device}_{app}_{backend}_*.log")
-    log_files = sorted(glob.glob(pattern))
-    normal_csv = os.path.join(folder, f"{device}_{app}_{backend}_normal.csv")
-    fully_csv = os.path.join(folder, f"{device}_{app}_{backend}_fully.csv")
-    for log_file in log_files:
-        # extract run number from filename
-        match = re.search(rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log$", log_file)
-        run_num = int(match.group(1)) if match else None
-        with open(log_file) as f:
-            output = f.read()
-        parsed = parse_benchmark_data(output)
-        if not parsed:
-            print(f"No benchmark data in {log_file}")
-            continue
-        df_normal, df_fully = parsed
-        df_normal["device"] = device
-        df_fully["device"] = device
-        if run_num is not None:
-            df_normal["run"] = run_num
-            df_fully["run"] = run_num
-        append_or_create_csv(df_normal, normal_csv)
-        append_or_create_csv(df_fully, fully_csv)
-        print(f"Aggregated data from {os.path.basename(log_file)}")
-    print(f"Finished aggregating logs into {normal_csv} and {fully_csv}")
-
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run or aggregate benchmarks."
+        description="Run benchmark, parse output, and store results."
     )
     parser.add_argument(
         "--log_folder",
         type=str,
         required=True,
-        help="Folder path for logs and CSV outputs",
+        help="Folder path to store the output logs and accumulated CSV files",
     )
     parser.add_argument(
         "--repeat",
         type=int,
+        required=True,
         help="Number of times to run the benchmark command",
     )
     parser.add_argument(
@@ -148,40 +122,30 @@ def main():
         "--device",
         type=str,
         required=True,
-        help="Device identifier to deploy/run or aggregate",
-    )
-    parser.add_argument(
-        "--only-aggregate",
-        action="store_true",
-        help="Only aggregate existing logs; do not run benchmarks",
+        help="Device identifier to deploy and run the benchmark on",
     )
     args = parser.parse_args()
 
-    folder = args.log_folder
-    device = args.device
+    # Construct target and naming
     app = args.app
     backend = args.backend
+    device = args.device
     target = f"bm-fully-{app}-{backend}"
 
-    if not os.path.isdir(folder):
-        os.makedirs(folder, exist_ok=True)
-
-    if args.only_aggregate:
-        aggregate_existing_logs(folder, device, app, backend)
-        return
-
-    # Otherwise, run benchmarks as usual
-    if args.repeat is None:
-        parser.error("--repeat is required when not using --only-aggregate")
+    os.makedirs(args.log_folder, exist_ok=True)
     command_template = f"xmake r {target} --device {device} -l off -p -t 5"
 
     for run_num in range(1, args.repeat + 1):
         print(f"\n=== Run {run_num} of {args.repeat} ===")
         output = run_command(command_template)
-        log_file = get_next_log_filename(folder, device, app, backend)
+
+        # Save log with device/app/backend naming
+        log_file = get_next_log_filename(args.log_folder, device, app, backend)
         with open(log_file, "w") as f:
             f.write(output)
         print(f"Saved log output to: {log_file}")
+
+        # Parse embedded Python benchmark data
         parsed = parse_benchmark_data(output)
         if not parsed:
             print("No benchmark data found in the output.")
@@ -191,19 +155,16 @@ def main():
         df_normal["run"] = run_num
         df_fully["device"] = device
         df_fully["run"] = run_num
-        normal_csv = os.path.join(
-            folder, f"{device}_{app}_{backend}_normal.csv"
-        )
-        fully_csv = os.path.join(
-            folder, f"{device}_{app}_{backend}_fully.csv"
-        )
+
+        # Append to per-device CSVs
+        normal_csv = os.path.join(args.log_folder, f"{device}_normal.csv")
+        fully_csv = os.path.join(args.log_folder, f"{device}_fully.csv")
         append_or_create_csv(df_normal, normal_csv)
         append_or_create_csv(df_fully, fully_csv)
-        print(
-            f"Appended benchmark data for device {device}, app {app},"
-            f" backend {backend}, run {run_num}"
-        )
+        print(f"Appended benchmark data for device {device} in run {run_num}")
+
         time.sleep(1)
+
 
 if __name__ == "__main__":
     main()
