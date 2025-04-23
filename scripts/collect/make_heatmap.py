@@ -12,6 +12,16 @@ BACKEND_COL_MAP = {
 }
 
 
+def get_available_cores(df, backend_col):
+    """Get list of available cores from the DataFrame by checking for non-zero values."""
+    all_cores = ["little", "medium", "big", backend_col]
+    available_cores = []
+    for core in all_cores:
+        if core in df.columns and not df[core].eq(0).all():
+            available_cores.append(core)
+    return available_cores
+
+
 def aggregate_data(df, value_cols):
     """
     Group the DataFrame by 'stage' and compute mean and std for the specified columns.
@@ -27,7 +37,7 @@ def aggregate_data(df, value_cols):
 def plot_bar_chart(
     mean_normal, std_normal, mean_fully, std_fully, device, out_folder, app, backend_col
 ):
-    pu_list = ["little", "medium", "big", backend_col]
+    available_cores = mean_normal.columns.tolist()
     stages = mean_normal.index.astype(int).tolist()
     x = np.arange(len(stages))
     width = 0.2
@@ -37,7 +47,7 @@ def plot_bar_chart(
     data_pairs = [(mean_normal, std_normal), (mean_fully, std_fully)]
 
     for ax, (mean_df, std_df), title in zip(axs, data_pairs, titles):
-        for i, pu in enumerate(pu_list):
+        for i, pu in enumerate(available_cores):
             pos = x - (1.5 * width) + i * width
             ax.bar(pos, mean_df[pu], width, yerr=std_df[pu], capsize=5, label=pu)
         ax.set_xticks(x)
@@ -56,11 +66,11 @@ def plot_bar_chart(
 
 
 def plot_heatmap(diff_df, device, out_folder, app, backend_col):
-    pu_list = diff_df.columns.tolist()
+    available_cores = diff_df.columns.tolist()
     fig, ax = plt.subplots(figsize=(8, 6))
     cax = ax.imshow(diff_df.values, cmap="coolwarm", aspect="auto")
-    ax.set_xticks(np.arange(len(pu_list)))
-    ax.set_xticklabels(pu_list)
+    ax.set_xticks(np.arange(len(available_cores)))
+    ax.set_xticklabels(available_cores)
     ax.set_yticks(np.arange(len(diff_df.index)))
     ax.set_yticklabels(diff_df.index.astype(str))
     ax.set_xlabel("Processing Unit")
@@ -81,11 +91,11 @@ def plot_heatmap(diff_df, device, out_folder, app, backend_col):
 
 
 def plot_ratio_heatmap(ratio_df, device, out_folder, app, backend_col):
-    pu_list = ratio_df.columns.tolist()
+    available_cores = ratio_df.columns.tolist()
     fig, ax = plt.subplots(figsize=(8, 6))
     cax = ax.imshow(ratio_df.values, cmap="coolwarm", aspect="auto", vmin=0, vmax=2)
-    ax.set_xticks(np.arange(len(pu_list)))
-    ax.set_xticklabels(pu_list)
+    ax.set_xticks(np.arange(len(available_cores)))
+    ax.set_xticklabels(available_cores)
     ax.set_yticks(np.arange(len(ratio_df.index)))
     ax.set_yticklabels(ratio_df.index.astype(str))
     ax.set_xlabel("Processing Unit")
@@ -144,6 +154,10 @@ def main():
     df_normal = pd.read_csv(normal_csv)
     df_fully = pd.read_csv(fully_csv)
 
+    # Get available cores from the data
+    available_cores = get_available_cores(df_normal, backend_col)
+    print(f"Available cores for {device}: {available_cores}")
+
     exclude = []
     if args.exclude_stages:
         try:
@@ -153,9 +167,8 @@ def main():
             print(f"Invalid --exclude_stages: {args.exclude_stages}")
             return
 
-    cols = ["little", "medium", "big", backend_col]
-    mean_n, std_n, cv_n = aggregate_data(df_normal, cols)
-    mean_f, std_f, cv_f = aggregate_data(df_fully, cols)
+    mean_n, std_n, cv_n = aggregate_data(df_normal, available_cores)
+    mean_f, std_f, cv_f = aggregate_data(df_fully, available_cores)
 
     if exclude:
         idx = mean_n.index.astype(int)
