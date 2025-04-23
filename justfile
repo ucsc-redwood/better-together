@@ -223,3 +223,24 @@ collect-all-jetsonlowpower:
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-sparse --backend cu --device jetsonlowpower
     python3 scripts/collect/bm.py --log_folder data/bm_logs --repeat 3 --app cifar-dense --backend cu --device jetsonlowpower
 
+
+
+make-heatmap:
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 9b034f1b
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device R9TR30814KJ
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device jetson
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device jetsonlowpower
+
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device 9b034f1b
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device R9TR30814KJ
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device jetson
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app cifar-dense --backend vk --device jetsonlowpower
+
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device 9b034f1b
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device R9TR30814KJ
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device jetson
+    python3 scripts/collect/make_heatmap.py --log_folder data/bm_logs/  --app tree --backend vk --device jetsonlowpower
+
