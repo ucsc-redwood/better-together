@@ -8,69 +8,41 @@
 // Baseline: OMP
 // ----------------------------------------------------------------------------
 
-static void BM_baseline_omp(benchmark::State& state) {
-  int n_threads = state.range(0);
-
-  if ((size_t)n_threads > std::thread::hardware_concurrency()) {
-    state.SkipWithMessage("n_threads is greater than the number of hardware threads");
-    return;
-  }
-
-  DispatcherT disp;
+#define INIT_DATA_SINGLE \
+  DispatcherT disp;      \
   AppDataT appdata(disp.get_mr());
 
+static void BM_baseline_omp(benchmark::State& state) {
+  INIT_DATA_SINGLE;
+
+  // Warm up
+  cifar_dense::omp::dispatch_multi_stage(appdata, 1, 9);
+
+  // Benchmark
   for (auto _ : state) {
-#pragma omp parallel num_threads(n_threads)
-    {
-      cifar_dense::omp::run_stage_1(appdata);
-      cifar_dense::omp::run_stage_2(appdata);
-      cifar_dense::omp::run_stage_3(appdata);
-      cifar_dense::omp::run_stage_4(appdata);
-      cifar_dense::omp::run_stage_5(appdata);
-      cifar_dense::omp::run_stage_6(appdata);
-      cifar_dense::omp::run_stage_7(appdata);
-      cifar_dense::omp::run_stage_8(appdata);
-      cifar_dense::omp::run_stage_9(appdata);
-    }
+    cifar_dense::omp::dispatch_multi_stage(appdata, 1, 9);
   }
 }
 
-BENCHMARK(BM_baseline_omp)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_baseline_omp)->Unit(benchmark::kMillisecond)->Name("OMP/Baseline");
 
 // ----------------------------------------------------------------------------
 // Baseline: Vulkan
 // ----------------------------------------------------------------------------
 
-static void BM_baseline_vulkan(benchmark::State& state) {
-  DispatcherT disp;
-  AppDataT appdata(disp.get_mr());
+static void BM_baseline_vk(benchmark::State& state) {
+  INIT_DATA_SINGLE;
 
   // Warm up
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
-  disp.run_stage_3(appdata);
-  disp.run_stage_4(appdata);
-  disp.run_stage_5(appdata);
-  disp.run_stage_6(appdata);
-  disp.run_stage_7(appdata);
-  disp.run_stage_8(appdata);
-  disp.run_stage_9(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 9);
 
   // Benchmark
   for (auto _ : state) {
-    disp.run_stage_1(appdata);
-    disp.run_stage_2(appdata);
-    disp.run_stage_3(appdata);
-    disp.run_stage_4(appdata);
-    disp.run_stage_5(appdata);
-    disp.run_stage_6(appdata);
-    disp.run_stage_7(appdata);
-    disp.run_stage_8(appdata);
-    disp.run_stage_9(appdata);
+    disp.dispatch_multi_stage(appdata, 1, 9);
   }
 }
 
-BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_baseline_vk)->Unit(benchmark::kMillisecond)->Name("VK/Baseline");
 
 // ----------------------------------------------------------------------------
 // Main

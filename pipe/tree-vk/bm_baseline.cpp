@@ -8,70 +8,49 @@
 // Baseline: OMP
 // ----------------------------------------------------------------------------
 
-static void BM_baseline_omp(benchmark::State& state) {
-  int n_threads = state.range(0);
-
-  if ((size_t)n_threads > std::thread::hardware_concurrency()) {
-    state.SkipWithMessage("n_threads is greater than the number of hardware threads");
-    return;
-  }
-
-  DispatcherT disp;
+#define INIT_DATA_SINGLE \
+  DispatcherT disp;      \
   AppDataT appdata(disp.get_mr());
 
+static void BM_baseline_omp(benchmark::State& state) {
+  INIT_DATA_SINGLE;
+
+  // Warm up
+  tree::omp::dispatch_multi_stage(appdata, 1, 7);
+
+  // Benchmark
   for (auto _ : state) {
-#pragma omp parallel num_threads(n_threads)
-    {
-      tree::omp::run_stage_1(appdata);
-      tree::omp::run_stage_2(appdata);
-      tree::omp::run_stage_3(appdata);
-      tree::omp::run_stage_4(appdata);
-      tree::omp::run_stage_5(appdata);
-      tree::omp::run_stage_6(appdata);
-      tree::omp::run_stage_7(appdata);
-    }
+    tree::omp::dispatch_multi_stage(appdata, 1, 7);
   }
 }
 
-BENCHMARK(BM_baseline_omp)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_baseline_omp)->Unit(benchmark::kMillisecond)->Name("OMP/Tree/Baseline");
 
 // ----------------------------------------------------------------------------
 // Baseline: Vulkan
 // ----------------------------------------------------------------------------
 
-static void BM_baseline_vulkan(benchmark::State& state) {
-  DispatcherT disp;
-  AppDataT appdata(disp.get_mr());
+static void BM_baseline_vk(benchmark::State& state) {
+  INIT_DATA_SINGLE;
 
   // Warm up
-  disp.run_stage_1(appdata);
-  disp.run_stage_2(appdata);
-  disp.run_stage_3(appdata);
-  disp.run_stage_4(appdata);
-  disp.run_stage_5(appdata);
-  disp.run_stage_6(appdata);
-  disp.run_stage_7(appdata);
+  disp.dispatch_multi_stage(appdata, 1, 7);
 
   // Benchmark
   for (auto _ : state) {
-    disp.run_stage_1(appdata);
-    disp.run_stage_2(appdata);
-    disp.run_stage_3(appdata);
-    disp.run_stage_4(appdata);
-    disp.run_stage_5(appdata);
-    disp.run_stage_6(appdata);
-    disp.run_stage_7(appdata);
+    disp.dispatch_multi_stage(appdata, 1, 7);
   }
 }
 
-BENCHMARK(BM_baseline_vulkan)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_baseline_vk)->Unit(benchmark::kMillisecond)->Name("VK/Tree/Baseline");
 
 // ----------------------------------------------------------------------------
 // Main
+//
+// Run with
+// xmake r bm-baseline-tree-vk --device jetson
+//
 // ----------------------------------------------------------------------------
-
-// e.g.,
-// xmake r bm-baseline-tree-vk
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
