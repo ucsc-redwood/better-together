@@ -150,8 +150,8 @@ serve:
 
 
 run-schedule device app backend:
-    python3 scripts/collect/run_schedule.py \
-        --result_folder data/exe_logs/{{device}}/{{app}}/{{backend}} \
+    python3 scripts/collect/03_run_schedule.py \
+        --log_folder data/exe_logs \
         --repeat 10 \
         --app {{app}} \
         --backend {{backend}} \
@@ -159,8 +159,9 @@ run-schedule device app backend:
         --n-schedules-to-run 20
 
 compare-schedules device app backend:
-    python3 scripts/collect/parse_schedules_by_widest.py -v  data/exe_logs/{{device}}/{{app}}/{{backend}} \
-        --model data/schedules/{{device}}_{{app}}_{{backend}}_fully_schedules.json 
+    python3 scripts/collect/04_parse_schedules_by_widest.py -v \
+        data/exe_logs/{{device}}/{{app}}/{{backend}} \
+        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
 
 # make-example-timeline:
 #     python3 scripts/collect/timeline.py data/exe_logs/3A021JEHN02756/cifar-sparse/vk/3A021JEHN02756_cifar-sparse_vk_schedules_1.log \

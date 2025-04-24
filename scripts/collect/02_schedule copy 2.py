@@ -71,25 +71,6 @@ baselines = {
 }
 
 
-def get_baseline_for_config(device, app, backend):
-    """Get baseline times for the given device-app-backend configuration."""
-    app_backend_key = f"{app}-{backend}"
-    try:
-        baseline_data = baselines[device][app_backend_key]
-        # Find the fastest baseline (minimum of omp and backend-specific time)
-        omp_time = baseline_data["omp"]
-        gpu_time = baseline_data[backend]
-        fastest_time = min(omp_time, gpu_time)
-        return {
-            "omp": omp_time,
-            backend: gpu_time,
-            "fastest": fastest_time
-        }
-    except KeyError:
-        print(f"Warning: No baseline found for {device}/{app}/{backend}")
-        return None
-
-
 def load_csv_and_compute_averages(csv_path):
     """
     Load data from a CSV file and compute average timings for each stage across all runs.
@@ -251,12 +232,6 @@ def add_no_gpu_constraint(opt, x, num_stages, core_types):
     for i in range(num_stages):
         opt.add(Not(x[(i, "GPU")]))
     print("Adding constraint: No GPU allowed")
-
-
-def add_baseline_constraint(opt, T_max, baseline_time):
-    """Add constraint that the maximum chunk time must be less than the baseline time."""
-    opt.add(T_max < RealVal(baseline_time))
-    print(f"Adding constraint: Schedule must be faster than baseline ({baseline_time} ms)")
 
 
 def block_solution(opt, x, num_stages, core_types, model):
@@ -486,7 +461,7 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
     }
 
 
-def solve_optimization_problem(stage_timings, baseline_data, num_solutions=30):
+def solve_optimization_problem(stage_timings, num_solutions=30):
     """Solve the optimization problem and display the solution."""
     # Initialize data
     num_stages, core_types, fully_stage_timings = define_data(stage_timings)
@@ -507,11 +482,6 @@ def solve_optimization_problem(stage_timings, baseline_data, num_solutions=30):
         opt, x, core_types, num_stages, fully_stage_timings
     )
     add_contiguity_constraints(opt, x, core_types, num_stages)
-
-    # Add baseline constraint if available
-    if baseline_data and "fastest" in baseline_data:
-        fastest_baseline = baseline_data["fastest"]
-        add_baseline_constraint(opt, T_max, fastest_baseline)
 
     # Enable/disable optional constraints here
     # Uncomment the constraints you want to apply
@@ -581,27 +551,20 @@ def solve_optimization_problem(stage_timings, baseline_data, num_solutions=30):
     return detailed_solutions
 
 
-def dump_solutions_as_json(solutions, baseline_data, output_format="pretty", output_file=None):
+def dump_solutions_as_json(solutions, output_format="pretty", output_file=None):
     """
     Dump solutions in a format that can be easily parsed by Python.
 
     Args:
         solutions: List of solution dictionaries
-        baseline_data: Dictionary containing baseline timing data
         output_format: 'pretty' for formatted JSON or 'compact' for compact JSON
         output_file: Path to a file to write the JSON output to. If None, output to console only.
     """
-    # Create a container that includes baseline data and solutions
-    output_data = {
-        "baselines": baseline_data,
-        "solutions": solutions,
-    }
-    
     print("\n\n=== MACHINE PARSABLE OUTPUT START ===")
     if output_format == "pretty":
-        json_str = json.dumps(output_data, indent=2)
+        json_str = json.dumps(solutions, indent=2)
     else:
-        json_str = json.dumps(output_data)
+        json_str = json.dumps(solutions)
 
     # print(json_str)
     print("=== MACHINE PARSABLE OUTPUT END ===")
@@ -655,27 +618,17 @@ if __name__ == "__main__":
         backend = args.backend
         device = args.device
         app = args.app
-        
-        # Get baseline data for this configuration
-        baseline_data = get_baseline_for_config(device, app, backend)
-        if baseline_data:
-            print(f"Baseline data for {device}/{app}/{backend}:")
-            print(f"  CPU (OpenMP): {baseline_data['omp']} ms")
-            print(f"  GPU ({backend}): {baseline_data[backend]} ms")
-            print(f"  Fastest: {baseline_data['fastest']} ms")
-        else:
-            print(f"No baseline data available for {device}/{app}/{backend}")
-        
+
         # Input CSV path with new folder structure
         csv_path = os.path.join(args.csv_folder, device, app, backend, "fully.csv")
-        
+
         # Check if the CSV file exists
         if not os.path.exists(csv_path):
             print(
                 f"Warning: CSV file {csv_path} does not exist. Skipping this combination."
             )
             sys.exit(0)
-        
+
         # Output path for schedule JSON
         if args.output_folder:
             # Create output directory structure if needed
@@ -689,7 +642,7 @@ if __name__ == "__main__":
             )
 
         print(f"Loading data from CSV file: {csv_path}")
-        
+
         try:
             stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)
 
@@ -697,7 +650,7 @@ if __name__ == "__main__":
             global GPU_BACKEND
             GPU_BACKEND = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
-            solutions = solve_optimization_problem(stage_timings, baseline_data, args.num_solutions)
+            solutions = solve_optimization_problem(stage_timings, args.num_solutions)
 
             # Update the solutions to reflect the correct GPU backend
             for solution in solutions:
@@ -706,7 +659,7 @@ if __name__ == "__main__":
                         chunk["hardware"] = GPU_BACKEND
 
             # Dump solutions in a machine-parsable format
-            dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
+            dump_solutions_as_json(solutions, "pretty", out_path)
         except Exception as e:
             print(f"Error processing {csv_path}: {str(e)}")
             sys.exit(1)
