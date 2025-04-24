@@ -73,8 +73,7 @@ static void BM_run_normal(BmTable<kNumStages>& table,
     BM_run_normal_impl(
         q,
         [&](AppDataT* app) {
-          tree::omp::dispatch_multi_stage(
-              cores_to_use, cores_to_use.size(), *app, stage, stage);
+          tree::omp::dispatch_multi_stage(cores_to_use, cores_to_use.size(), *app, stage, stage);
           total_processed++;
         },
         seconds_to_run);

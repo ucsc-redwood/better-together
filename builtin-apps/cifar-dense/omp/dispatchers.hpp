@@ -35,7 +35,9 @@ static inline void dispatch_stage(AppData& appdata, const int stage) {
   assert(stage >= 1 && stage <= 9);
 
 #pragma omp parallel
-  { dispatch_fns_batch[stage - 1](appdata); }
+  {
+    dispatch_fns_batch[stage - 1](appdata);
+  }
 }
 
 static inline void dispatch_multi_stage(AppData& appdata,

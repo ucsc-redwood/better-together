@@ -80,7 +80,12 @@ on_load(function(target)
 	-- Avoid JIT compilation by targeting specific GPU architecture (SM87)
 	-- This improves runtime performance and ensures deterministic behavior
 	-- JIT compilation is not supported on Tegra devices in safe context
+	-- target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", { force = true })
 	target:add("cuflags", "--generate-code arch=compute_87,code=sm_87", { force = true })
+	target:add("cuflags", "--generate-code arch=compute_89,code=sm_89", { force = true })
+
+	-- Suppress warning 20012: this is for using glm in CUDA is very annoying
+	target:add("cuflags", "--diag-suppress=20012", { force = true })
 
 	-- Add NVTX library for Nsight Systems to visualize regions of interest
 	target:add("ldflags", "-lnvToolsExt", { force = true })
@@ -120,7 +125,7 @@ if has_config("use_vulkan") then
 	add_requires("vulkan-headers")
 	add_requires("vulkan-hpp")
 	add_requires("vulkan-memory-allocator")
-	add_requires("volk")
+	add_requires("volk", { system = false })
 end
 
 -- ----------------------------------------------------------------
