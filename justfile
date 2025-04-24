@@ -62,6 +62,9 @@ cat-android-tmp:
 # Final Version
 # ----------------------------------------------------------------------------
 
+run-baselines:
+    echo "Running baselines..."
+
 collect-all-android:
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
@@ -70,7 +73,6 @@ collect-all-android:
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
-
 
 collect-all-jetson:
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
