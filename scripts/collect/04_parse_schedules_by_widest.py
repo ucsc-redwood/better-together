@@ -64,7 +64,7 @@ def find_log_files(input_path):
     if os.path.isfile(input_path):
         # Check if the file matches our pattern
         filename = os.path.basename(input_path)
-        if re.match(r"^[^_]+_[^_]+_[^_]+_schedules_\d+\.log$", filename):
+        if re.match(r"schedule_run_\d+\.log$", filename):
             log_files.append(input_path)
             print(f"Using log file: {input_path}")
         else:
@@ -74,7 +74,7 @@ def find_log_files(input_path):
             log_files.append(input_path)  # Include it anyway
     elif os.path.isdir(input_path):
         # It's a directory, search for matching files
-        pattern = re.compile(r"^[^_]+_[^_]+_[^_]+_schedules_\d+\.log$")
+        pattern = re.compile(r"schedule_run_\d+\.log$")
         try:
             for filename in os.listdir(input_path):
                 if pattern.match(filename):
