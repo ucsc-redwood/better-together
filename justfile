@@ -264,12 +264,12 @@ serve:
 
 run-schedule:
     python3 scripts/collect/run_schedule.py \
-        --result_folder data/exe_logs \
-        --repeat 5 \
+        --result_folder data/exe_logs/3A021JEHN02756/cifar-sparse/vk \
+        --repeat 10 \
         --app cifar-sparse \
         --backend vk \
-        --device 3A021JEHN02756
-
+        --device 3A021JEHN02756 \
+        --n-schedules-to-run 20
 
     # xmake r bm-gen-logs-cifar-sparse-vk --device 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json --n-schedules-to-run 10
     # xmake r bm-gen-logs-cifar-sparse-vk --device 9b034f1b --schedule-url http://192.168.1.204:8080/9b034f1b_cifar-sparse_vk_fully_schedules.json --n-schedules-to-run 10
@@ -279,6 +279,9 @@ run-schedule:
 
 
 compare-schedules:
-    python3 scripts/collect/parse_schedules_by_widest.py -v  data/exe_logs/ \
-        --model data/schedules/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json \
-        -o tmp_dir
+    python3 scripts/collect/parse_schedules_by_widest.py -v  data/exe_logs/3A021JEHN02756/cifar-sparse/vk \
+        --model data/schedules/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json 
+
+make-example-timeline:
+    python3 scripts/collect/timeline.py data/exe_logs/3A021JEHN02756/cifar-sparse/vk/3A021JEHN02756_cifar-sparse_vk_schedules_1.log \
+        --output-dir data/exe_logs/3A021JEHN02756/cifar-sparse/vk/timeline

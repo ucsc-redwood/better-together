@@ -1,0 +1,165 @@
+
+Running only on specified device: 3A021JEHN02756
+Deploying and running 'bm-gen-logs-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-gen-logs-cifar-sparse-vk: 1 file pushed, 0 skipped. 501.6 MB/s (6927312 bytes in 0.013s)
+[2025-04-24 12:17:33.208] [info] Pinable Lit cores: 0 1 2 3 
+[2025-04-24 12:17:33.211] [info] Pinable Med cores: 4 5 
+[2025-04-24 12:17:33.211] [info] Pinable Big cores: 6 7 
+[2025-04-24 12:17:34.046] [info] Fetching JSON from URL: http://192.168.1.204:8080/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json
+[2025-04-24 12:17:34.158] [info] Loaded 20 valid schedules from JSON
+[2025-04-24 12:17:34.158] [info] Loaded 20 schedules
+--------------------------------
+Schedule 0 [UID: SCH-L9-G000-7615]:
+  Chunk 0 [OMP/Little]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 1 [UID: SCH-M9-G000-4e61]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 2 [UID: SCH-B9-G000-a2a6]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 3 [UID: SCH-G9-G000-5259]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 4 [UID: SCH-G5B4-G044-632d]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5
+  Chunk 1 [OMP/Big   ]: 6, 7, 8, 9
+--------------------------------
+Schedule 5 [UID: SCH-G4M5-G047-b911]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Medium]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 6 [UID: SCH-M2B4L3-G170-c810]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [OMP/Big   ]: 3, 4, 5, 6
+  Chunk 2 [OMP/Little]: 7, 8, 9
+--------------------------------
+Schedule 7 [UID: SCH-G3M2L1B3-G179-ab57]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4, 5
+  Chunk 2 [OMP/Little]: 6
+  Chunk 3 [OMP/Big   ]: 7, 8, 9
+--------------------------------
+Schedule 8 [UID: SCH-G3B1L1M4-G201-e259]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Big   ]: 4
+  Chunk 2 [OMP/Little]: 5
+  Chunk 3 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 9 [UID: SCH-G3M3B3-G236-9bb0]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4, 5, 6
+  Chunk 2 [OMP/Big   ]: 7, 8, 9
+--------------------------------
+Schedule 10 [UID: SCH-B1G4L1M3-G245-3f29]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5
+  Chunk 2 [OMP/Little]: 6
+  Chunk 3 [OMP/Medium]: 7, 8, 9
+--------------------------------
+Schedule 11 [UID: SCH-G3B1M5-G253-c28d]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Big   ]: 4
+  Chunk 2 [OMP/Medium]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 12 [UID: SCH-G4B3L2-G270-463c]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Big   ]: 5, 6, 7
+  Chunk 2 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 13 [UID: SCH-B2M7-G273-f4e2]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [OMP/Medium]: 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 14 [UID: SCH-B1G3L1M4-G308-49eb]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4
+  Chunk 2 [OMP/Little]: 5
+  Chunk 3 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 15 [UID: SCH-B1G4M4-G308-5c62]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5
+  Chunk 2 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 16 [UID: SCH-G4L1M4-G321-bf99]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Little]: 5
+  Chunk 2 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 17 [UID: SCH-G3M1B3L2-G336-3f2b]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4
+  Chunk 2 [OMP/Big   ]: 5, 6, 7
+  Chunk 3 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 18 [UID: SCH-M3B6-G342-d44e]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3
+  Chunk 1 [OMP/Big   ]: 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 19 [UID: SCH-G3M2B4-G356-58bd]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4, 5
+  Chunk 2 [OMP/Big   ]: 6, 7, 8, 9
+[2025-04-24 12:17:34.161] [info] Running 20/20 schedules
+
+--------------------------------
+[2025-04-24 12:17:34.162] [info] Available Vulkan Layers:
+[2025-04-24 12:17:34.162] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-24 12:17:34.165] [info] Using integrated GPU: Mali-G710
+### Python Begin ###
+Schedule_UID=SCH-L9-G000-7615
+Frequency=24576000 Hz
+Task=0 Chunk=0 Start=15802600279207 End=15802602145769 Duration=1866562
+Task=1 Chunk=0 Start=15802602145828 End=15802603920450 Duration=1774622
+Task=2 Chunk=0 Start=15802603920518 End=15802605590544 Duration=1670026
+Task=3 Chunk=0 Start=15802605590611 End=15802607252706 Duration=1662095
+Task=4 Chunk=0 Start=15802607252780 End=15802608930984 Duration=1678204
+Task=5 Chunk=0 Start=15802608931071 End=15802610599559 Duration=1668488
+Task=6 Chunk=0 Start=15802610599648 End=15802612274921 Duration=1675273
+Task=7 Chunk=0 Start=15802612274995 End=15802613954905 Duration=1679910
+Task=8 Chunk=0 Start=15802613954989 End=15802615620373 Duration=1665384
+Task=9 Chunk=0 Start=15802615620444 End=15802617284662 Duration=1664218
+Task=10 Chunk=0 Start=15802617284745 End=15802619105712 Duration=1820967
+Task=11 Chunk=0 Start=15802619105792 End=15802620835711 Duration=1729919
+Task=12 Chunk=0 Start=15802620835810 End=15802622539269 Duration=1703459
+Task=13 Chunk=0 Start=15802622539411 End=15802624231126 Duration=1691715
+Task=14 Chunk=0 Start=15802624231208 End=15802625902116 Duration=1670908
+Task=15 Chunk=0 Start=15802625902197 End=15802627568558 Duration=1666361
+Task=16 Chunk=0 Start=15802627568636 End=15802629246898 Duration=1678262
+Task=17 Chunk=0 Start=15802629246979 End=15802630929877 Duration=1682898
+Task=18 Chunk=0 Start=15802630929961 End=15802632591418 Duration=1661457
+Task=19 Chunk=0 Start=15802632591489 End=15802634286967 Duration=1695478
+Task=20 Chunk=0 Start=15802634287036 End=15802635951319 Duration=1664283
+Task=21 Chunk=0 Start=15802635951398 End=15802637616921 Duration=1665523
+Task=22 Chunk=0 Start=15802637617003 End=15802639286364 Duration=1669361
+Task=23 Chunk=0 Start=15802639286448 End=15802640953826 Duration=1667378
+Task=24 Chunk=0 Start=15802640953900 End=15802642650706 Duration=1696806
+Task=25 Chunk=0 Start=15802642650804 End=15802644331020 Duration=1680216
+Task=26 Chunk=0 Start=15802644331095 End=15802646029687 Duration=1698592
+Task=27 Chunk=0 Start=15802646029767 End=15802647723356 Duration=1693589
+Task=28 Chunk=0 Start=15802647723409 End=15802649392647 Duration=1669238
+Task=29 Chunk=0 Start=15802649392730 End=15802651059695 Duration=1666965
+Task=30 Chunk=0 Start=15802651059766 End=15802652741033 Duration=1681267
+Task=31 Chunk=0 Start=15802652741120 End=15802654412919 Duration=1671799
+Task=32 Chunk=0 Start=15802654412998 End=15802656077948 Duration=1664950
+Task=33 Chunk=0 Start=15802656078015 End=15802657745611 Duration=1667596
+Task=34 Chunk=0 Start=15802657745679 End=15802659442531 Duration=1696852
+Task=35 Chunk=0 Start=15802659442618 End=15802661119340 Duration=1676722
+Task=36 Chunk=0 Start=15802661119419 End=15802662799613 Duration=1680194
+Task=37 Chunk=0 Start=15802662799688 End=15802664467895 Duration=1668207
+Task=38 Chunk=0 Start=15802664467970 End=15802666141353 Duration=1673383
+Task=39 Chunk=0 Start=15802666141425 End=15802667816299 Duration=1674874
+Task=40 Chunk=0 Start=15802667816382 End=15802669482467 Duration=1666085
+Task=41 Chunk=0 Start=15802669482547 End=15802671164362 Duration=1681815
+Task=42 Chunk=0 Start=15802671164432 End=15802672838612 Duration=1674180
+Task=43 Chunk=0 Start=15802672838676 End=15802674511163 Duration=1672487
+Task=44 Chunk=0 Start=15802674511235 End=15802676174924 Duration=1663689
+Task=45 Chunk=0 Start=15802676175001 End=15802677846388 Duration=1671387
+Task=46 Chunk=0 Start=15802677846450 End=15802679528983 Duration=1682533
+Task=47 Chunk=0 Start=15802679529071 End=15802681204512 Duration=1675441
+Task=48 Chunk=0 Start=15802681204611 End=15802682886086 Duration=1681475
+Task=49 Chunk=0 Start=15802682886190 End=15802684583007 Duration=1696817
+Task=50 Chunk=0 Start=15802684583079 End=15802686247480 Duration=1664401
+Task=51 Chunk=0 Start=15802686247572 End=15802687935594 Duration=1688022
+Task=52 Chunk=0 Start=15802687935677 End=15802689618664 Duration=1682987

@@ -41,6 +41,12 @@ def main():
         required=True,
         help="Device identifier to deploy/run or aggregate",
     )
+    parser.add_argument(
+        "--n-schedules-to-run",
+        type=int,
+        default=10,
+        help="Number of schedules to run",
+    )
     args = parser.parse_args()
 
     # Prepare output folder
@@ -62,16 +68,16 @@ def main():
         "--schedule-url",
         schedule_url,
         "--n-schedules-to-run",
-        "10",
+        str(args.n_schedules_to_run),
     ]
 
     for i in range(args.repeat):
         # Create individual log filename for each run
         log_filename = f"{args.device}_{args.app}_{args.backend}_schedules_{i+1}.log"
         log_path = os.path.join(args.result_folder, log_filename)
-        
+
         print(f"Starting run {i+1}/{args.repeat}...")
-        
+
         with open(log_path, "w") as log_file:
             # Launch the subprocess
             proc = subprocess.Popen(
@@ -88,17 +94,23 @@ def main():
                 log_file.write(line)  # to file
 
             proc.wait()
-            
+
             if proc.returncode != 0:
                 print(
                     f"Warning: run {i+1} exited with code {proc.returncode}",
                     file=sys.stderr,
                 )
             else:
-                print(f"Run {i+1}/{args.repeat} completed successfully. Log saved to: {log_path}")
+                print(
+                    f"Run {i+1}/{args.repeat} completed successfully. Log saved to: {log_path}"
+                )
 
-    print(f"\nAll {args.repeat} runs complete. Log files saved in: {args.result_folder}")
-    print(f"You can now run parse_schedules_by_widest.py on the folder: {args.result_folder}")
+    print(
+        f"\nAll {args.repeat} runs complete. Log files saved in: {args.result_folder}"
+    )
+    print(
+        f"You can now run parse_schedules_by_widest.py on the folder: {args.result_folder}"
+    )
 
 
 # python3 scripts/collect/run_schedule.py \
