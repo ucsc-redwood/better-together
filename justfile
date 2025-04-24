@@ -124,14 +124,23 @@ serve:
     python3 -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
 
 
-run-schedule:
+run-schedule app device:
     python3 scripts/collect/run_schedule.py \
-        --result_folder data/exe_logs/3A021JEHN02756/cifar-sparse/vk \
+        --result_folder data/exe_logs/{{device}}/{{app}}/vk \
         --repeat 10 \
-        --app cifar-sparse \
+        --app {{app}} \
         --backend vk \
-        --device 3A021JEHN02756 \
+        --device {{device}} \
         --n-schedules-to-run 20
+
+# run-schedule:
+#     python3 scripts/collect/run_schedule.py \
+#         --result_folder data/exe_logs/3A021JEHN02756/cifar-sparse/vk \
+#         --repeat 10 \
+#         --app cifar-sparse \
+#         --backend vk \
+#         --device 3A021JEHN02756 \
+#         --n-schedules-to-run 20
 
 
 compare-schedules:
