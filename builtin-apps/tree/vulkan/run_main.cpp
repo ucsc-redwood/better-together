@@ -1,7 +1,7 @@
 #include <queue>
 
 #include "../../pipeline/task.hpp"
-#include "../omp/dispatchers.hpp"
+// #include "../omp/dispatchers.hpp"
 #include "builtin-apps/app.hpp"
 #include "dispatchers.hpp"
 #include "spdlog/spdlog.h"
@@ -16,8 +16,8 @@ void process(std::queue<MyTaskPtr>& queue, tree::vulkan::VulkanDispatcher& disp)
 
     spdlog::info("Dispatching task {}", task->uid);
 
-    // disp.dispatch_multi_stage(task->appdata, 1, 7);
-    tree::omp::dispatch_multi_stage(BIG_CORES, task->appdata, 1, 7);
+    disp.dispatch_multi_stage(task->appdata, 1, 7);
+    // tree::omp::dispatch_multi_stage(BIG_CORES, task->appdata, 1, 7);
   }
 }
 
