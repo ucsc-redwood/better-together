@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 # Map backend flag to CSV column name
 BACKEND_COL_MAP = {
@@ -145,64 +146,71 @@ def main():
     device_folder = os.path.join(folder_root, device, app, backend)
     if not os.path.isdir(device_folder):
         print(f"Error: Folder {device_folder} does not exist.")
-        return
+        sys.exit(0)
 
     normal_csv = os.path.join(device_folder, "normal.csv")
     fully_csv = os.path.join(device_folder, "fully.csv")
-    if not os.path.exists(normal_csv) or not os.path.exists(fully_csv):
-        print(f"Error: CSV files {normal_csv} or {fully_csv} not found.")
-        return
+    if not os.path.exists(normal_csv):
+        print(f"Error: CSV file {normal_csv} not found.")
+        sys.exit(0)
+    if not os.path.exists(fully_csv):
+        print(f"Error: CSV file {fully_csv} not found.")
+        sys.exit(0)
 
-    df_normal = pd.read_csv(normal_csv)
-    df_fully = pd.read_csv(fully_csv)
+    try:
+        df_normal = pd.read_csv(normal_csv)
+        df_fully = pd.read_csv(fully_csv)
 
-    # Get available cores from the data
-    available_cores = get_available_cores(df_normal, backend_col)
-    print(f"Available cores for {device}: {available_cores}")
+        # Get available cores from the data
+        available_cores = get_available_cores(df_normal, backend_col)
+        print(f"Available cores for {device}: {available_cores}")
 
-    exclude = []
-    if args.exclude_stages:
-        try:
-            exclude = [int(x) for x in args.exclude_stages.split(",") if x.strip()]
-            print(f"Excluding stages: {exclude}")
-        except ValueError:
-            print(f"Invalid --exclude_stages: {args.exclude_stages}")
-            return
+        exclude = []
+        if args.exclude_stages:
+            try:
+                exclude = [int(x) for x in args.exclude_stages.split(",") if x.strip()]
+                print(f"Excluding stages: {exclude}")
+            except ValueError:
+                print(f"Invalid --exclude_stages: {args.exclude_stages}")
+                sys.exit(1)
 
-    mean_n, std_n, cv_n = aggregate_data(df_normal, available_cores)
-    mean_f, std_f, cv_f = aggregate_data(df_fully, available_cores)
+        mean_n, std_n, cv_n = aggregate_data(df_normal, available_cores)
+        mean_f, std_f, cv_f = aggregate_data(df_fully, available_cores)
 
-    if exclude:
-        idx = mean_n.index.astype(int)
-        mask = ~idx.isin(exclude)
-        mean_n, std_n, mean_f, std_f = (
-            mean_n[mask],
-            std_n[mask],
-            mean_f[mask],
-            std_f[mask],
+        if exclude:
+            idx = mean_n.index.astype(int)
+            mask = ~idx.isin(exclude)
+            mean_n, std_n, mean_f, std_f = (
+                mean_n[mask],
+                std_n[mask],
+                mean_f[mask],
+                std_f[mask],
+            )
+            cv_n = cv_n[mask]
+            cv_f = cv_f[mask]
+
+        print("\nNormal CV:")
+        print(cv_n.round(3))
+        print("\nFully CV:")
+        print(cv_f.round(3))
+
+        avg_table = pd.concat(
+            [mean_n.add_prefix("normal_"), mean_f.add_prefix("fully_")], axis=1
         )
-        cv_n = cv_n[mask]
-        cv_f = cv_f[mask]
+        print("\nAverage Table (ms):")
+        print(avg_table.round(3))
 
-    print("\nNormal CV:")
-    print(cv_n.round(3))
-    print("\nFully CV:")
-    print(cv_f.round(3))
-
-    avg_table = pd.concat(
-        [mean_n.add_prefix("normal_"), mean_f.add_prefix("fully_")], axis=1
-    )
-    print("\nAverage Table (ms):")
-    print(avg_table.round(3))
-
-    # Save plots to the device folder
-    plot_bar_chart(
-        mean_n, std_n, mean_f, std_f, device, device_folder, app, backend_col
-    )
-    diff = mean_f - mean_n
-    plot_heatmap(diff, device, device_folder, app, backend_col)
-    ratio = mean_f.divide(mean_n)
-    plot_ratio_heatmap(ratio, device, device_folder, app, backend_col)
+        # Save plots to the device folder
+        plot_bar_chart(
+            mean_n, std_n, mean_f, std_f, device, device_folder, app, backend_col
+        )
+        diff = mean_f - mean_n
+        plot_heatmap(diff, device, device_folder, app, backend_col)
+        ratio = mean_f.divide(mean_n)
+        plot_ratio_heatmap(ratio, device, device_folder, app, backend_col)
+    except Exception as e:
+        print(f"Error processing data: {str(e)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

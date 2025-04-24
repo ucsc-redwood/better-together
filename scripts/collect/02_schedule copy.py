@@ -6,7 +6,6 @@ import json
 import uuid
 import hashlib
 import os
-import sys
 
 
 def load_csv_and_compute_averages(csv_path):
@@ -556,15 +555,10 @@ if __name__ == "__main__":
         backend = args.backend
         device = args.device
         app = args.app
-        
+
         # Input CSV path with new folder structure
         csv_path = os.path.join(args.csv_folder, device, app, backend, "fully.csv")
-        
-        # Check if the CSV file exists
-        if not os.path.exists(csv_path):
-            print(f"Warning: CSV file {csv_path} does not exist. Skipping this combination.")
-            sys.exit(0)
-        
+
         # Output path for schedule JSON
         if args.output_folder:
             # Create output directory structure if needed
@@ -578,24 +572,19 @@ if __name__ == "__main__":
             )
 
         print(f"Loading data from CSV file: {csv_path}")
-        
-        try:
-            stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)
+        stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)
 
-            # Store which GPU backend was used in a global variable
-            global GPU_BACKEND
-            GPU_BACKEND = "gpu_cuda" if use_cuda else "gpu_vulkan"
+        # Store which GPU backend was used in a global variable
+        global GPU_BACKEND
+        GPU_BACKEND = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
-            solutions = solve_optimization_problem(stage_timings, args.num_solutions)
+        solutions = solve_optimization_problem(stage_timings, args.num_solutions)
 
-            # Update the solutions to reflect the correct GPU backend
-            for solution in solutions:
-                for chunk in solution["chunks"]:
-                    if chunk["core_type"] == "GPU":
-                        chunk["hardware"] = GPU_BACKEND
+        # Update the solutions to reflect the correct GPU backend
+        for solution in solutions:
+            for chunk in solution["chunks"]:
+                if chunk["core_type"] == "GPU":
+                    chunk["hardware"] = GPU_BACKEND
 
-            # Dump solutions in a machine-parsable format
-            dump_solutions_as_json(solutions, "pretty", out_path)
-        except Exception as e:
-            print(f"Error processing {csv_path}: {str(e)}")
-            sys.exit(1)
+        # Dump solutions in a machine-parsable format
+        dump_solutions_as_json(solutions, "pretty", out_path)
