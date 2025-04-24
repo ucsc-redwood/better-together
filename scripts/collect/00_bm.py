@@ -177,7 +177,7 @@ def main():
     # Otherwise, run benchmarks as usual
     if args.repeat is None:
         parser.error("--repeat is required when not using --only-aggregate")
-    command_template = f"xmake r {target} --device {device} -l off -p -t 5"
+    command_template = f"xmake r {target} --device {device} -l off -p -t 1"
 
     for run_num in range(1, args.repeat + 1):
         print(f"\n=== Run {run_num} of {args.repeat} ===")
