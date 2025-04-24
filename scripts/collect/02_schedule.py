@@ -508,10 +508,20 @@ def solve_optimization_problem(stage_timings, baseline_data, num_solutions=30):
     )
     add_contiguity_constraints(opt, x, core_types, num_stages)
 
-    # Add baseline constraint if available
-    if baseline_data and "fastest" in baseline_data:
-        fastest_baseline = baseline_data["fastest"]
-        add_baseline_constraint(opt, T_max, fastest_baseline)
+    # Add constrain where we want to have at least 2 chunks
+    # Add constraint to ensure at least 2 chunks
+    # We do this by ensuring that at least one stage is assigned to a different core type than the first stage
+    # first_stage_core = None
+    # for core_type in core_types:
+    #     if first_stage_core is None:
+    #         first_stage_core = x[0][core_type]
+    #     else:
+    #         opt.add(Or([x[0][core_type] != first_stage_core] + [x[i][core_type] != first_stage_core for i in range(1, num_stages)]))
+
+    # # Add baseline constraint if available
+    # if baseline_data and "fastest" in baseline_data:
+    #     fastest_baseline = baseline_data["fastest"]
+    #     add_baseline_constraint(opt, T_max, fastest_baseline)
 
     # Enable/disable optional constraints here
     # Uncomment the constraints you want to apply
@@ -591,17 +601,28 @@ def dump_solutions_as_json(solutions, baseline_data, output_format="pretty", out
         output_format: 'pretty' for formatted JSON or 'compact' for compact JSON
         output_file: Path to a file to write the JSON output to. If None, output to console only.
     """
-    # Create a container that includes baseline data and solutions
-    output_data = {
-        "baselines": baseline_data,
-        "solutions": solutions,
-    }
+    # Add baseline data to each solution's metrics
+    for solution in solutions:
+        if baseline_data and "metrics" in solution:
+            # Add baseline values to metrics
+            for key, value in baseline_data.items():
+                solution["metrics"][key] = value
+            
+            # Calculate speedups
+            if "avg_time" in solution["metrics"]:
+                avg_time = solution["metrics"]["avg_time"]
+                if "omp" in baseline_data:
+                    solution["metrics"]["speedup_over_cpu"] = baseline_data["omp"] / avg_time
+                
+                gpu_key = next((k for k in baseline_data.keys() if k not in ["omp", "fastest"]), None)
+                if gpu_key:
+                    solution["metrics"]["speedup_over_gpu"] = baseline_data[gpu_key] / avg_time
     
     print("\n\n=== MACHINE PARSABLE OUTPUT START ===")
     if output_format == "pretty":
-        json_str = json.dumps(output_data, indent=2)
+        json_str = json.dumps(solutions, indent=2)
     else:
-        json_str = json.dumps(output_data)
+        json_str = json.dumps(solutions)
 
     # print(json_str)
     print("=== MACHINE PARSABLE OUTPUT END ===")
