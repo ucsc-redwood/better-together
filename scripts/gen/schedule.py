@@ -34,7 +34,7 @@ def load_csv_and_compute_averages(csv_path):
     # If CUDA values are all zeros, use Vulkan
     # Otherwise, use CUDA as the GPU backend
     use_cuda = avg_df["cuda"].sum() > 0
-    
+
     print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")
 
     # Convert to list of lists format expected by the solver
@@ -46,9 +46,7 @@ def load_csv_and_compute_averages(csv_path):
             row = avg_df.loc[stage]
             # Use cuda if available, otherwise use vulkan
             gpu_time = row["cuda"] if use_cuda else row["vulkan"]
-            avg_timings.append(
-                [row["little"], row["medium"], row["big"], gpu_time]
-            )
+            avg_timings.append([row["little"], row["medium"], row["big"], gpu_time])
         else:
             print(f"Warning: Stage {stage} not found in data")
             # Use zeros as fallback
@@ -561,15 +559,17 @@ if __name__ == "__main__":
         device = args.device
         app = args.app
         csv_path = os.path.join(args.csv_folder, f"{device}_{app}_{backend}_fully.csv")
-        out_path = os.path.join(args.output_folder, f"{device}_{app}_{backend}_fully_schedules.json")
+        out_path = os.path.join(
+            args.output_folder, f"{device}_{app}_{backend}_fully_schedules.json"
+        )
 
         print(f"Loading data from CSV file: {csv_path}")
         stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)
-        
+
         # Store which GPU backend was used in a global variable
         global GPU_BACKEND
         GPU_BACKEND = "gpu_cuda" if use_cuda else "gpu_vulkan"
-        
+
         solutions = solve_optimization_problem(stage_timings, args.num_solutions)
 
         # Update the solutions to reflect the correct GPU backend

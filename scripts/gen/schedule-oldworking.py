@@ -518,9 +518,9 @@ def parse_arguments():
         help="Path to the CSV file with stage timing data",
         required=True,
     )
-    parser.add_argument('--device', required=True)
-    parser.add_argument('--app', required=True)
-    parser.add_argument('--backend', required=True, choices=['vk','cu'])
+    parser.add_argument("--device", required=True)
+    parser.add_argument("--app", required=True)
+    parser.add_argument("--backend", required=True, choices=["vk", "cu"])
     parser.add_argument(
         "-n",
         "--num_solutions",
@@ -546,7 +546,7 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     if args.csv_path:
-        
+
         print(f"Loading data from CSV file: {args.csv_path}")
         stage_timings = load_csv_and_compute_averages(args.csv_path)
         solutions = solve_optimization_problem(stage_timings, args.num_solutions)
