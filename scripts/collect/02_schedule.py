@@ -508,6 +508,8 @@ def dump_solutions_as_json(solutions, output_format="pretty", output_file=None):
 
     # Write to file if path is specified
     if output_file:
+        # Create the directory if it doesn't exist
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
         try:
             with open(output_file, "w") as f:
                 f.write(json_str)
@@ -524,7 +526,7 @@ def parse_arguments():
     parser.add_argument(
         "--csv_folder",
         type=str,
-        help="Path to the CSV folder with stage timing data",
+        help="Root folder path containing CSV data in device/app/backend structure",
         required=True,
     )
     parser.add_argument("--device", required=True)
@@ -540,14 +542,9 @@ def parse_arguments():
     parser.add_argument(
         "--output_folder",
         type=str,
-        help="Path to write the JSON output file (optional)",
+        help="Root path to write the JSON output file (optional)",
         default=None,
     )
-    # parser.add_argument(
-    #     "--compact",
-    #     action="store_true",
-    #     help="Write JSON in compact format instead of pretty format",
-    # )
     return parser.parse_args()
 
 
@@ -558,10 +555,21 @@ if __name__ == "__main__":
         backend = args.backend
         device = args.device
         app = args.app
-        csv_path = os.path.join(args.csv_folder, f"{device}_{app}_{backend}_fully.csv")
-        out_path = os.path.join(
-            args.output_folder, f"{device}_{app}_{backend}_fully_schedules.json"
-        )
+
+        # Input CSV path with new folder structure
+        csv_path = os.path.join(args.csv_folder, device, app, backend, "fully.csv")
+
+        # Output path for schedule JSON
+        if args.output_folder:
+            # Create output directory structure if needed
+            output_dir = os.path.join(args.output_folder, device, app, backend)
+            os.makedirs(output_dir, exist_ok=True)
+            out_path = os.path.join(output_dir, "schedules.json")
+        else:
+            # Save in the same folder as the CSV if no output folder specified
+            out_path = os.path.join(
+                args.csv_folder, device, app, backend, "schedules.json"
+            )
 
         print(f"Loading data from CSV file: {csv_path}")
         stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)

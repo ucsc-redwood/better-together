@@ -10,10 +10,10 @@ def main():
         description="Run xmake benchmarks repeatedly and capture logs."
     )
     parser.add_argument(
-        "--result_folder",
+        "--log_folder",
         type=str,
         required=True,
-        help="Folder path for logs and CSV outputs",
+        help="Root folder path for logs and CSV outputs",
     )
     parser.add_argument(
         "--repeat",
@@ -47,15 +47,22 @@ def main():
         default=10,
         help="Number of schedules to run",
     )
+    parser.add_argument(
+        "--schedules-server",
+        type=str,
+        default="http://192.168.1.204:8080",
+        help="URL of the server hosting schedule JSON files",
+    )
     args = parser.parse_args()
 
-    # Prepare output folder
-    os.makedirs(args.result_folder, exist_ok=True)
+    # Create the directory path with new structure
+    log_path = os.path.join(args.log_folder, args.device, args.app, args.backend)
+    os.makedirs(log_path, exist_ok=True)
 
-    # Base schedule URL prefix
+    # Base schedule URL
     schedule_url = (
-        f"http://192.168.1.204:8080/"
-        f"{args.device}_{args.app}_{args.backend}_fully_schedules.json"
+        f"{args.schedules_server}/"
+        f"{args.device}/{args.app}/{args.backend}/schedules.json"
     )
 
     # Command base
@@ -73,12 +80,12 @@ def main():
 
     for i in range(args.repeat):
         # Create individual log filename for each run
-        log_filename = f"{args.device}_{args.app}_{args.backend}_schedules_{i+1}.log"
-        log_path = os.path.join(args.result_folder, log_filename)
+        log_filename = f"schedule_run_{i+1}.log"
+        log_path_file = os.path.join(log_path, log_filename)
 
         print(f"Starting run {i+1}/{args.repeat}...")
 
-        with open(log_path, "w") as log_file:
+        with open(log_path_file, "w") as log_file:
             # Launch the subprocess
             proc = subprocess.Popen(
                 cmd_base,
@@ -102,19 +109,16 @@ def main():
                 )
             else:
                 print(
-                    f"Run {i+1}/{args.repeat} completed successfully. Log saved to: {log_path}"
+                    f"Run {i+1}/{args.repeat} completed successfully. Log saved to: {log_path_file}"
                 )
 
-    print(
-        f"\nAll {args.repeat} runs complete. Log files saved in: {args.result_folder}"
-    )
-    print(
-        f"You can now run parse_schedules_by_widest.py on the folder: {args.result_folder}"
-    )
+    print(f"\nAll {args.repeat} runs complete. Log files saved in: {log_path}")
+    print(f"You can now run parse_schedules_by_widest.py on the folder: {log_path}")
 
 
-# python3 scripts/collect/run_schedule.py \
-#   --result_folder ./logs \
+# Example usage:
+# python3 scripts/collect/03_run_schedule.py \
+#   --log_folder ./data/exe_logs \
 #   --repeat 5 \
 #   --app cifar-sparse \
 #   --backend vk \

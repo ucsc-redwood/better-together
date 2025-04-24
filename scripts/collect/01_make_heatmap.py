@@ -119,7 +119,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Analyze benchmark CSVs and generate figures."
     )
-    parser.add_argument("--log_folder", required=True, help="Folder with CSVs")
+    parser.add_argument("--log_folder", required=True, help="Root folder with CSVs")
     parser.add_argument(
         "--app", required=True, help="Application name (e.g., cifar-sparse)"
     )
@@ -135,18 +135,20 @@ def main():
     )
     args = parser.parse_args()
 
-    folder = args.log_folder
+    folder_root = args.log_folder
     app = args.app
     backend = args.backend
     device = args.device
     backend_col = BACKEND_COL_MAP[backend]
 
-    if not os.path.isdir(folder):
-        print(f"Error: Folder {folder} does not exist.")
+    # Define path to device/app/backend folder
+    device_folder = os.path.join(folder_root, device, app, backend)
+    if not os.path.isdir(device_folder):
+        print(f"Error: Folder {device_folder} does not exist.")
         return
 
-    normal_csv = os.path.join(folder, f"{device}_{app}_{backend}_normal.csv")
-    fully_csv = os.path.join(folder, f"{device}_{app}_{backend}_fully.csv")
+    normal_csv = os.path.join(device_folder, "normal.csv")
+    fully_csv = os.path.join(device_folder, "fully.csv")
     if not os.path.exists(normal_csv) or not os.path.exists(fully_csv):
         print(f"Error: CSV files {normal_csv} or {fully_csv} not found.")
         return
@@ -193,11 +195,14 @@ def main():
     print("\nAverage Table (ms):")
     print(avg_table.round(3))
 
-    plot_bar_chart(mean_n, std_n, mean_f, std_f, device, folder, app, backend_col)
+    # Save plots to the device folder
+    plot_bar_chart(
+        mean_n, std_n, mean_f, std_f, device, device_folder, app, backend_col
+    )
     diff = mean_f - mean_n
-    plot_heatmap(diff, device, folder, app, backend_col)
+    plot_heatmap(diff, device, device_folder, app, backend_col)
     ratio = mean_f.divide(mean_n)
-    plot_ratio_heatmap(ratio, device, folder, app, backend_col)
+    plot_ratio_heatmap(ratio, device, device_folder, app, backend_col)
 
 
 if __name__ == "__main__":

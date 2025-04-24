@@ -9,24 +9,21 @@ import glob
 import pandas as pd
 
 
-def get_next_log_filename(folder, device, app, backend):
+def get_next_log_filename(log_path):
     """
-    Determine the next log file name based on existing logs in the folder
-    for a given device, app, backend. Uses naming convention:
-    'bm_<device>_<app>_<backend>_<number>.log'
+    Determine the next log file name based on existing logs in the folder.
+    Uses naming convention: '<run_id>.log'
     """
-    files = os.listdir(folder)
+    files = os.listdir(log_path)
     indices = []
-    pattern = re.compile(
-        rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log"
-    )
+    pattern = re.compile(r"(\d+)\.log")
     for f in files:
         match = pattern.match(f)
         if match:
             indices.append(int(match.group(1)))
     next_index = max(indices) + 1 if indices else 1
-    filename = f"bm_{device}_{app}_{backend}_{next_index}.log"
-    return os.path.join(folder, filename)
+    filename = f"{next_index}.log"
+    return os.path.join(log_path, filename)
 
 
 def run_command(command):
@@ -90,22 +87,22 @@ def append_or_create_csv(df, file_path):
         df.to_csv(file_path, mode="w", header=True, index=False)
 
 
-def aggregate_existing_logs(folder, device, app, backend):
+def aggregate_existing_logs(folder_root, device, app, backend):
     """
     Parse all existing logs for the given device/app/backend
     and append their data to the appropriate CSV files.
     """
-    pattern = os.path.join(folder, f"bm_{device}_{app}_{backend}_*.log")
+    log_path = os.path.join(folder_root, device, app, backend)
+    pattern = os.path.join(log_path, "*.log")
     log_files = sorted(glob.glob(pattern))
-    normal_csv = os.path.join(folder, f"{device}_{app}_{backend}_normal.csv")
-    fully_csv = os.path.join(folder, f"{device}_{app}_{backend}_fully.csv")
+    normal_csv = os.path.join(log_path, "normal.csv")
+    fully_csv = os.path.join(log_path, "fully.csv")
+
     for log_file in log_files:
         # extract run number from filename
-        match = re.search(
-            rf"bm_{re.escape(device)}_{re.escape(app)}_{re.escape(backend)}_(\d+)\.log$",
-            log_file,
-        )
+        match = re.search(r"(\d+)\.log$", log_file)
         run_num = int(match.group(1)) if match else None
+
         with open(log_file) as f:
             output = f.read()
         parsed = parse_benchmark_data(output)
@@ -130,7 +127,7 @@ def main():
         "--log_folder",
         type=str,
         required=True,
-        help="Folder path for logs and CSV outputs",
+        help="Root folder path for logs and CSV outputs",
     )
     parser.add_argument(
         "--repeat",
@@ -163,17 +160,18 @@ def main():
     )
     args = parser.parse_args()
 
-    folder = args.log_folder
+    folder_root = args.log_folder
     device = args.device
     app = args.app
     backend = args.backend
     target = f"bm-fully-{app}-{backend}"
 
-    if not os.path.isdir(folder):
-        os.makedirs(folder, exist_ok=True)
+    # Create directory structure
+    log_path = os.path.join(folder_root, device, app, backend)
+    os.makedirs(log_path, exist_ok=True)
 
     if args.only_aggregate:
-        aggregate_existing_logs(folder, device, app, backend)
+        aggregate_existing_logs(folder_root, device, app, backend)
         return
 
     # Otherwise, run benchmarks as usual
@@ -184,7 +182,7 @@ def main():
     for run_num in range(1, args.repeat + 1):
         print(f"\n=== Run {run_num} of {args.repeat} ===")
         output = run_command(command_template)
-        log_file = get_next_log_filename(folder, device, app, backend)
+        log_file = get_next_log_filename(log_path)
         with open(log_file, "w") as f:
             f.write(output)
         print(f"Saved log output to: {log_file}")
@@ -197,8 +195,8 @@ def main():
         df_normal["run"] = run_num
         df_fully["device"] = device
         df_fully["run"] = run_num
-        normal_csv = os.path.join(folder, f"{device}_{app}_{backend}_normal.csv")
-        fully_csv = os.path.join(folder, f"{device}_{app}_{backend}_fully.csv")
+        normal_csv = os.path.join(log_path, "normal.csv")
+        fully_csv = os.path.join(log_path, "fully.csv")
         append_or_create_csv(df_normal, normal_csv)
         append_or_create_csv(df_fully, fully_csv)
         print(
