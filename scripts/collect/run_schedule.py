@@ -46,10 +46,6 @@ def main():
     # Prepare output folder
     os.makedirs(args.result_folder, exist_ok=True)
 
-    # Log file for all runs
-    log_filename = f"{args.device}_{args.app}_{args.backend}_pipeline_results.log"
-    log_path = os.path.join(args.result_folder, log_filename)
-
     # Base schedule URL prefix
     schedule_url = (
         f"http://192.168.1.204:8080/"
@@ -69,12 +65,14 @@ def main():
         "10",
     ]
 
-    with open(log_path, "w") as log_file:
-        for i in range(args.repeat):
-            header = f"\n=== Run {i+1}/{args.repeat} ===\n"
-            print(header, end="")
-            log_file.write(header)
-
+    for i in range(args.repeat):
+        # Create individual log filename for each run
+        log_filename = f"{args.device}_{args.app}_{args.backend}_schedules_{i+1}.log"
+        log_path = os.path.join(args.result_folder, log_filename)
+        
+        print(f"Starting run {i+1}/{args.repeat}...")
+        
+        with open(log_path, "w") as log_file:
             # Launch the subprocess
             proc = subprocess.Popen(
                 cmd_base,
@@ -90,17 +88,17 @@ def main():
                 log_file.write(line)  # to file
 
             proc.wait()
-            footer = f"--- Exit code: {proc.returncode} ---\n"
-            print(footer, end="")
-            log_file.write(footer)
-
+            
             if proc.returncode != 0:
                 print(
-                    f"Warning: iteration {i+1} exited with code {proc.returncode}",
+                    f"Warning: run {i+1} exited with code {proc.returncode}",
                     file=sys.stderr,
                 )
+            else:
+                print(f"Run {i+1}/{args.repeat} completed successfully. Log saved to: {log_path}")
 
-    print(f"\nAll runs complete. Combined log at: {log_path}")
+    print(f"\nAll {args.repeat} runs complete. Log files saved in: {args.result_folder}")
+    print(f"You can now run parse_schedules_by_widest.py on the folder: {args.result_folder}")
 
 
 # python3 scripts/collect/run_schedule.py \
