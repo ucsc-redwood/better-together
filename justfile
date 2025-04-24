@@ -271,13 +271,6 @@ run-schedule:
         --device 3A021JEHN02756 \
         --n-schedules-to-run 20
 
-    # xmake r bm-gen-logs-cifar-sparse-vk --device 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json --n-schedules-to-run 10
-    # xmake r bm-gen-logs-cifar-sparse-vk --device 9b034f1b --schedule-url http://192.168.1.204:8080/9b034f1b_cifar-sparse_vk_fully_schedules.json --n-schedules-to-run 10
-
-    # xmake r bm-gen-logs-cifar-dense-vk --device 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756_cifar-dense_vk_fully_schedules.json --n-schedules-to-run 10  
-    # xmake r bm-gen-logs-cifar-dense-vk --device 9b034f1b --schedule-url http://192.168.1.204:8080/9b034f1b_cifar-dense_vk_fully_schedules.json --n-schedules-to-run 10
-
-
 compare-schedules:
     python3 scripts/collect/parse_schedules_by_widest.py -v  data/exe_logs/3A021JEHN02756/cifar-sparse/vk \
         --model data/schedules/3A021JEHN02756_cifar-sparse_vk_fully_schedules.json 
