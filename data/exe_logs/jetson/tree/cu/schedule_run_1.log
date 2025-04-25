@@ -1,0 +1,6 @@
+[2025-04-25 01:03:28.252] [info] Pinable Lit cores: 0 1 2 3 4 5 
+[2025-04-25 01:03:28.252] [info] Pinable Med cores: 
+[2025-04-25 01:03:28.252] [info] Pinable Big cores: 
+[2025-04-25 01:03:30.882] [info] Fetching JSON from URL: http://192.168.1.204:8080/jetson/tree/cu/schedules.json
+[2025-04-25 01:03:30.887] [error] Failed to fetch or parse schedules: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: '<'
+[2025-04-25 01:03:30.887] [warning] Running only warmup phase.
