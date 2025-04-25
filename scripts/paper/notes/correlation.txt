@@ -85,6 +85,34 @@ Pearson correlation coefficient: 0.8283
 Coefficient of determination (R²): 0.6861
 
 
+|==============
+| CifarDense
+| jetsonlowpower
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9548
+Coefficient of determination (R²): 0.9117
+
+|==============
+| CifarSparse
+| jetsonlowpower
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.8926
+Coefficient of determination (R²): 0.7968
+
+|==============
+| Tree
+| jetsonlowpower
+|==============
+
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.8886
+Coefficient of determination (R²): 0.7896
+
 
 
 ===== MEASURED VS PREDICTED TIMES =====

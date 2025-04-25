@@ -224,6 +224,13 @@ compare-schedules device app backend:
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
 
+compare-schedules-adv device app backend:
+    python3 scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+        data/exe_logs/{{device}}/{{app}}/{{backend}} \
+        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
+        -o plots/{{device}}/{{app}}/{{backend}}
+
+
 compare-schedules-android:
     just compare-schedules 3A021JEHN02756 cifar-sparse vk
     just compare-schedules 3A021JEHN02756 cifar-dense vk
@@ -232,6 +239,15 @@ compare-schedules-android:
     # just compare-schedules 9b034f1b cifar-sparse vk
     # just compare-schedules 9b034f1b cifar-dense vk
     # just compare-schedules 9b034f1b tree vk
+
+compare-schedules-android-adv:
+    just compare-schedules-adv 3A021JEHN02756 cifar-sparse vk
+    just compare-schedules-adv 3A021JEHN02756 cifar-dense vk
+    just compare-schedules-adv 3A021JEHN02756 tree vk
+
+    just compare-schedules-adv 9b034f1b cifar-sparse vk
+    just compare-schedules-adv 9b034f1b cifar-dense vk
+    just compare-schedules-adv 9b034f1b tree vk
 
 
 make-example-timeline device app backend id:
