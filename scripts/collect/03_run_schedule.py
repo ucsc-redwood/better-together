@@ -78,6 +78,8 @@ def main():
         str(args.n_schedules_to_run),
     ]
 
+    print(f"====== Running {args.repeat} times with command: {cmd_base} ======")
+
     for i in range(args.repeat):
         # Create individual log filename for each run
         log_filename = f"schedule_run_{i+1}.log"
