@@ -100,10 +100,29 @@ collect-all-android:
 collect-all-jetson:
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
+
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
+
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
+
 
 collect-all-jetsonlowpower: 
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
 
 only-aggregate:
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-sparse --backend vk --device 3A021JEHN02756 --only-aggregate
