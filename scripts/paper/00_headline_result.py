@@ -10,11 +10,15 @@ sparse_cpu_baseline = 29.0
 sparse_gpu_baseline = 13.2
 
 tree_cpu_baseline = 15.9
-tree_gpu_baseline = 57.0
+tree_gpu_baseline = 46.3
 
-best_measured_dense = 5.02
+best_measured_dense = 6.33
 best_measured_sparse = 4.05
-best_measured_tree = 3.06
+best_measured_tree = 2.45
+
+# best_measured_dense = 6.72
+# best_measured_sparse = 7.04
+# best_measured_tree = 2.48
 
 # Google Pixel Dense
 

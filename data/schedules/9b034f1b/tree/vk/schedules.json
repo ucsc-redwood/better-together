@@ -1,6 +1,6 @@
 [
   {
-    "uid": "SCH-B9-G000-248f",
+    "uid": "SCH-B7-G000-0d0f",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -29,14 +29,6 @@
       "6": {
         "core_type": "Big",
         "time": 1.3787500000000001
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -50,9 +42,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 9.076450000000001
       }
@@ -74,7 +64,7 @@
     "solution_id": 1
   },
   {
-    "uid": "SCH-M9-G000-f97f",
+    "uid": "SCH-M7-G000-4235",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -103,14 +93,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -124,9 +106,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 11.916300000000001
       }
@@ -148,81 +128,7 @@
     "solution_id": 2
   },
   {
-    "uid": "SCH-L9-G000-6d21",
-    "stage_assignments": {
-      "0": {
-        "core_type": "Little",
-        "time": 3.8099
-      },
-      "1": {
-        "core_type": "Little",
-        "time": 2.7590500000000002
-      },
-      "2": {
-        "core_type": "Little",
-        "time": 0.68415
-      },
-      "3": {
-        "core_type": "Little",
-        "time": 8.764199999999999
-      },
-      "4": {
-        "core_type": "Little",
-        "time": 1.3533
-      },
-      "5": {
-        "core_type": "Little",
-        "time": 0.3698
-      },
-      "6": {
-        "core_type": "Little",
-        "time": 6.24935
-      },
-      "7": {
-        "core_type": "Little",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Little",
-        "time": 0.0
-      }
-    },
-    "chunks": [
-      {
-        "id": 0,
-        "core_type": "Little",
-        "stages": [
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8
-        ],
-        "time": 23.98975
-      }
-    ],
-    "metrics": {
-      "max_time": 23.98975,
-      "min_time": 23.98975,
-      "gapness": 0.0,
-      "avg_time": 23.98975,
-      "load_balance_ratio": 1.0,
-      "load_imbalance_pct": 0.0,
-      "time_variance": 0.0,
-      "omp": 12.7,
-      "vk": 47.2,
-      "fastest": 12.7,
-      "speedup_over_cpu": 0.5293927614918871,
-      "speedup_over_gpu": 1.9675069560958327
-    },
-    "solution_id": 3
-  },
-  {
-    "uid": "SCH-G9-G000-28c2",
+    "uid": "SCH-G7-G000-33e7",
     "stage_assignments": {
       "0": {
         "core_type": "GPU",
@@ -251,14 +157,6 @@
       "6": {
         "core_type": "GPU",
         "time": 1.2779500000000001
-      },
-      "7": {
-        "core_type": "GPU",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "GPU",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -272,9 +170,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 35.924800000000005,
         "hardware": "gpu_vulkan"
@@ -294,10 +190,74 @@
       "speedup_over_cpu": 0.3535162339108359,
       "speedup_over_gpu": 1.3138556094953904
     },
+    "solution_id": 3
+  },
+  {
+    "uid": "SCH-L7-G000-eb4d",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Little",
+        "time": 3.8099
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 2.7590500000000002
+      },
+      "2": {
+        "core_type": "Little",
+        "time": 0.68415
+      },
+      "3": {
+        "core_type": "Little",
+        "time": 8.764199999999999
+      },
+      "4": {
+        "core_type": "Little",
+        "time": 1.3533
+      },
+      "5": {
+        "core_type": "Little",
+        "time": 0.3698
+      },
+      "6": {
+        "core_type": "Little",
+        "time": 6.24935
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Little",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 23.98975
+      }
+    ],
+    "metrics": {
+      "max_time": 23.98975,
+      "min_time": 23.98975,
+      "gapness": 0.0,
+      "avg_time": 23.98975,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0,
+      "omp": 12.7,
+      "vk": 47.2,
+      "fastest": 12.7,
+      "speedup_over_cpu": 0.5293927614918871,
+      "speedup_over_gpu": 1.9675069560958327
+    },
     "solution_id": 4
   },
   {
-    "uid": "SCH-L2B7-G009-4904",
+    "uid": "SCH-L2B5-G009-a8a2",
     "stage_assignments": {
       "0": {
         "core_type": "Little",
@@ -326,14 +286,6 @@
       "6": {
         "core_type": "Big",
         "time": 1.3787500000000001
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -354,9 +306,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 6.6556
       }
@@ -378,7 +328,7 @@
     "solution_id": 5
   },
   {
-    "uid": "SCH-B2G3M4-G021-7654",
+    "uid": "SCH-B2G3M2-G021-14c1",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -407,14 +357,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -443,9 +385,7 @@
         "core_type": "Medium",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.2064500000000002
       }
@@ -467,7 +407,7 @@
     "solution_id": 6
   },
   {
-    "uid": "SCH-M3G6-G051-8c9a",
+    "uid": "SCH-M3G4-G051-c23d",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -496,14 +436,6 @@
       "6": {
         "core_type": "GPU",
         "time": 1.2779500000000001
-      },
-      "7": {
-        "core_type": "GPU",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "GPU",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -524,9 +456,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 3.6361000000000003,
         "hardware": "gpu_vulkan"
@@ -549,7 +479,7 @@
     "solution_id": 7
   },
   {
-    "uid": "SCH-B2G2M5-G058-6901",
+    "uid": "SCH-B2G2M3-G058-970e",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -578,14 +508,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -614,9 +536,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.43905
       }
@@ -638,7 +558,7 @@
     "solution_id": 8
   },
   {
-    "uid": "SCH-B5L4-G064-8b59",
+    "uid": "SCH-B5L2-G064-e054",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -667,14 +587,6 @@
       "6": {
         "core_type": "Little",
         "time": 6.24935
-      },
-      "7": {
-        "core_type": "Little",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Little",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -695,9 +607,7 @@
         "core_type": "Little",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 6.619149999999999
       }
@@ -719,7 +629,7 @@
     "solution_id": 9
   },
   {
-    "uid": "SCH-B2G2L2M3-G070-deaa",
+    "uid": "SCH-B2G2L2M1-G070-d643",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -748,14 +658,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -791,9 +693,7 @@
         "id": 3,
         "core_type": "Medium",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 1.93845
       }
@@ -815,7 +715,7 @@
     "solution_id": 10
   },
   {
-    "uid": "SCH-B3G6-G071-c6a2",
+    "uid": "SCH-B3G4-G071-b55f",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -844,14 +744,6 @@
       "6": {
         "core_type": "GPU",
         "time": 1.2779500000000001
-      },
-      "7": {
-        "core_type": "GPU",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "GPU",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -872,9 +764,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 3.6361000000000003,
         "hardware": "gpu_vulkan"
@@ -897,7 +787,7 @@
     "solution_id": 11
   },
   {
-    "uid": "SCH-M2G2B5-G077-b515",
+    "uid": "SCH-M2G2B3-G077-2bb7",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -926,14 +816,6 @@
       "6": {
         "core_type": "Big",
         "time": 1.3787500000000001
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -962,9 +844,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 1.9942000000000002
       }
@@ -986,7 +866,7 @@
     "solution_id": 12
   },
   {
-    "uid": "SCH-B2G4M3-G079-3338",
+    "uid": "SCH-B2G4M1-G079-64dd",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1015,14 +895,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1051,9 +923,7 @@
         "id": 2,
         "core_type": "Medium",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 1.93845
       }
@@ -1075,7 +945,7 @@
     "solution_id": 13
   },
   {
-    "uid": "SCH-M2G3B4-G081-4d2f",
+    "uid": "SCH-M2G3B2-G081-1552",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -1104,14 +974,6 @@
       "6": {
         "core_type": "Big",
         "time": 1.3787500000000001
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1140,9 +1002,7 @@
         "core_type": "Big",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 1.8197
       }
@@ -1164,7 +1024,7 @@
     "solution_id": 14
   },
   {
-    "uid": "SCH-B4L5-G089-efdb",
+    "uid": "SCH-B4L3-G089-e662",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1193,14 +1053,6 @@
       "6": {
         "core_type": "Little",
         "time": 6.24935
-      },
-      "7": {
-        "core_type": "Little",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Little",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1221,9 +1073,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 7.97245
       }
@@ -1245,7 +1095,7 @@
     "solution_id": 15
   },
   {
-    "uid": "SCH-B3G2M4-G096-9629",
+    "uid": "SCH-B3G2M2-G096-0b7e",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1274,14 +1124,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1310,9 +1152,7 @@
         "core_type": "Medium",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.2064500000000002
       }
@@ -1334,7 +1174,7 @@
     "solution_id": 16
   },
   {
-    "uid": "SCH-B3G3M3-G099-0af6",
+    "uid": "SCH-B3G3M1-G099-e521",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1363,14 +1203,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1399,9 +1231,7 @@
         "id": 2,
         "core_type": "Medium",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 1.93845
       }
@@ -1423,7 +1253,7 @@
     "solution_id": 17
   },
   {
-    "uid": "SCH-B2G2L1M4-G107-7edb",
+    "uid": "SCH-B2G2L1M2-G107-d61f",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1452,14 +1282,6 @@
       "6": {
         "core_type": "Medium",
         "time": 1.93845
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1495,9 +1317,7 @@
         "core_type": "Medium",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.2064500000000002
       }
@@ -1519,7 +1339,7 @@
     "solution_id": 18
   },
   {
-    "uid": "SCH-L3B6-G111-8991",
+    "uid": "SCH-L3B4-G111-da29",
     "stage_assignments": {
       "0": {
         "core_type": "Little",
@@ -1548,14 +1368,6 @@
       "6": {
         "core_type": "Big",
         "time": 1.3787500000000001
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1576,9 +1388,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 6.14745
       }
@@ -1600,7 +1410,7 @@
     "solution_id": 19
   },
   {
-    "uid": "SCH-M2G2L2B3-G125-5db5",
+    "uid": "SCH-M2G2L2B1-G125-004a",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -1629,14 +1439,6 @@
       "6": {
         "core_type": "Big",
         "time": 1.3787500000000001
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1672,9 +1474,7 @@
         "id": 3,
         "core_type": "Big",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 1.3787500000000001
       }

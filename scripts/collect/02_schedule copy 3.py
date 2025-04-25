@@ -86,13 +86,12 @@ def get_baseline_for_config(device, app, backend):
         return None
 
 
-def load_csv_and_compute_averages(csv_path, app_name=None):
+def load_csv_and_compute_averages(csv_path):
     """
     Load data from a CSV file and compute average timings for each stage across all runs.
 
     Args:
         csv_path: Path to the CSV file containing stage timing data
-        app_name: Name of the application to determine number of stages
 
     Returns:
         A list of lists containing average timing data for each stage and core type
@@ -116,14 +115,11 @@ def load_csv_and_compute_averages(csv_path, app_name=None):
 
     print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")
 
-    # Get application-specific stage count
-    num_stages = get_num_stages_for_app(app_name) if app_name else 9
-
     # Convert to list of lists format expected by the solver
     # Each inner list is [little_time, medium_time, big_time, gpu_time]
     # where gpu_time is either vulkan_time or cuda_time
     avg_timings = []
-    for stage in range(1, num_stages + 1):  # Use app-specific number of stages
+    for stage in range(1, 10):  # Assuming 9 stages, numbered 1-9
         if stage in avg_df.index:
             row = avg_df.loc[stage]
             # Use cuda if available, otherwise use vulkan
@@ -137,28 +133,9 @@ def load_csv_and_compute_averages(csv_path, app_name=None):
     return avg_timings, use_cuda
 
 
-def get_num_stages_for_app(app_name):
-    """Get the number of stages for the given application."""
-    stage_counts = {
-        "tree": 7,
-        "cifar-dense": 9,
-        "cifar-sparse": 9,
-    }
-
-    # Extract the base app name without backend suffix
-    base_app = app_name.split("-")[0] if "-" in app_name else app_name
-
-    # For cifar apps, both dense and sparse variants have the same number of stages
-    if base_app == "cifar":
-        return stage_counts.get("cifar-dense", 9)
-
-    return stage_counts.get(base_app, 9)  # Default to 9 if not found
-
-
-def define_data(stage_timings=None, app_name=None):
+def define_data(stage_timings=None):
     """Define the problem data."""
-    # Get application-specific stage count if available
-    num_stages = get_num_stages_for_app(app_name) if app_name else 9
+    num_stages = 9
     core_types = ["Little", "Medium", "Big", "GPU"]
 
     # Use provided stage timings if available, otherwise use default values
@@ -507,12 +484,10 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
     }
 
 
-def solve_optimization_problem(
-    stage_timings, baseline_data, num_solutions=30, app_name=None
-):
+def solve_optimization_problem(stage_timings, baseline_data, num_solutions=30):
     """Solve the optimization problem and display the solution."""
     # Initialize data
-    num_stages, core_types, fully_stage_timings = define_data(stage_timings, app_name)
+    num_stages, core_types, fully_stage_timings = define_data(stage_timings)
 
     # Prepare a list to hold up to num_solutions solutions
     top_solutions = []
@@ -744,14 +719,14 @@ if __name__ == "__main__":
         print(f"Loading data from CSV file: {csv_path}")
 
         try:
-            stage_timings, use_cuda = load_csv_and_compute_averages(csv_path, app)
+            stage_timings, use_cuda = load_csv_and_compute_averages(csv_path)
 
             # Store which GPU backend was used in a global variable
             global GPU_BACKEND
             GPU_BACKEND = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
             solutions = solve_optimization_problem(
-                stage_timings, baseline_data, args.num_solutions, app
+                stage_timings, baseline_data, args.num_solutions
             )
 
             # Update the solutions to reflect the correct GPU backend

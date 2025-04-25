@@ -1,7 +1,263 @@
 [
-
   {
-    "uid": "SCH-M4L5-G004-ea44",
+    "uid": "SCH-M7-G000-cbc9",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Medium",
+        "time": 0.8167500000000001
+      },
+      "1": {
+        "core_type": "Medium",
+        "time": 1.63625
+      },
+      "2": {
+        "core_type": "Medium",
+        "time": 0.39185000000000003
+      },
+      "3": {
+        "core_type": "Medium",
+        "time": 5.4445
+      },
+      "4": {
+        "core_type": "Medium",
+        "time": 0.27080000000000004
+      },
+      "5": {
+        "core_type": "Medium",
+        "time": 0.47309999999999997
+      },
+      "6": {
+        "core_type": "Medium",
+        "time": 2.00325
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Medium",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 11.036499999999998
+      }
+    ],
+    "metrics": {
+      "max_time": 11.0365,
+      "min_time": 11.0365,
+      "gapness": 0.0,
+      "avg_time": 11.036499999999998,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0,
+      "omp": 14.2,
+      "vk": 58.7,
+      "fastest": 14.2,
+      "speedup_over_cpu": 1.286639786164092,
+      "speedup_over_gpu": 5.31871517238255
+    },
+    "solution_id": 1
+  },
+  {
+    "uid": "SCH-L7-G000-9cef",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Little",
+        "time": 2.6494999999999997
+      },
+      "1": {
+        "core_type": "Little",
+        "time": 3.56745
+      },
+      "2": {
+        "core_type": "Little",
+        "time": 2.466
+      },
+      "3": {
+        "core_type": "Little",
+        "time": 9.30775
+      },
+      "4": {
+        "core_type": "Little",
+        "time": 1.40755
+      },
+      "5": {
+        "core_type": "Little",
+        "time": 1.20845
+      },
+      "6": {
+        "core_type": "Little",
+        "time": 5.714499999999999
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Little",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 26.321199999999997
+      }
+    ],
+    "metrics": {
+      "max_time": 26.321199999999997,
+      "min_time": 26.321199999999997,
+      "gapness": 0.0,
+      "avg_time": 26.321199999999997,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0,
+      "omp": 14.2,
+      "vk": 58.7,
+      "fastest": 14.2,
+      "speedup_over_cpu": 0.5394890810449372,
+      "speedup_over_gpu": 2.230141482911114
+    },
+    "solution_id": 2
+  },
+  {
+    "uid": "SCH-B7-G000-ef4d",
+    "stage_assignments": {
+      "0": {
+        "core_type": "Big",
+        "time": 0.6694
+      },
+      "1": {
+        "core_type": "Big",
+        "time": 1.6021999999999998
+      },
+      "2": {
+        "core_type": "Big",
+        "time": 0.36219999999999997
+      },
+      "3": {
+        "core_type": "Big",
+        "time": 5.28705
+      },
+      "4": {
+        "core_type": "Big",
+        "time": 0.2769
+      },
+      "5": {
+        "core_type": "Big",
+        "time": 0.4153
+      },
+      "6": {
+        "core_type": "Big",
+        "time": 2.13535
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "Big",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 10.7484
+      }
+    ],
+    "metrics": {
+      "max_time": 10.7484,
+      "min_time": 10.7484,
+      "gapness": 0.0,
+      "avg_time": 10.7484,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0,
+      "omp": 14.2,
+      "vk": 58.7,
+      "fastest": 14.2,
+      "speedup_over_cpu": 1.321126865393919,
+      "speedup_over_gpu": 5.461277957649511
+    },
+    "solution_id": 3
+  },
+  {
+    "uid": "SCH-G7-G000-09e5",
+    "stage_assignments": {
+      "0": {
+        "core_type": "GPU",
+        "time": 0.8335999999999999
+      },
+      "1": {
+        "core_type": "GPU",
+        "time": 21.48935
+      },
+      "2": {
+        "core_type": "GPU",
+        "time": 0.88865
+      },
+      "3": {
+        "core_type": "GPU",
+        "time": 1.35655
+      },
+      "4": {
+        "core_type": "GPU",
+        "time": 0.5646
+      },
+      "5": {
+        "core_type": "GPU",
+        "time": 0.5607
+      },
+      "6": {
+        "core_type": "GPU",
+        "time": 1.51895
+      }
+    },
+    "chunks": [
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "stages": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "time": 27.2124,
+        "hardware": "gpu_vulkan"
+      }
+    ],
+    "metrics": {
+      "max_time": 27.2124,
+      "min_time": 27.2124,
+      "gapness": 0.0,
+      "avg_time": 27.2124,
+      "load_balance_ratio": 1.0,
+      "load_imbalance_pct": 0.0,
+      "time_variance": 0.0,
+      "omp": 14.2,
+      "vk": 58.7,
+      "fastest": 14.2,
+      "speedup_over_cpu": 0.5218209345739442,
+      "speedup_over_gpu": 2.1571048492598965
+    },
+    "solution_id": 4
+  },
+  {
+    "uid": "SCH-M4L3-G004-988f",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -30,14 +286,6 @@
       "6": {
         "core_type": "Little",
         "time": 5.714499999999999
-      },
-      "7": {
-        "core_type": "Little",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Little",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -58,9 +306,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 8.330499999999999
       }
@@ -82,7 +328,7 @@
     "solution_id": 5
   },
   {
-    "uid": "SCH-M2L1G3B3-G035-f112",
+    "uid": "SCH-M2L1G3B1-G035-0697",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -111,14 +357,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -154,9 +392,7 @@
         "id": 3,
         "core_type": "Big",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.13535
       }
@@ -178,7 +414,7 @@
     "solution_id": 6
   },
   {
-    "uid": "SCH-M2G3B4-G036-0adb",
+    "uid": "SCH-M2G3B2-G036-3e2a",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -207,14 +443,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -243,9 +471,7 @@
         "core_type": "Big",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.55065
       }
@@ -267,7 +493,7 @@
     "solution_id": 7
   },
   {
-    "uid": "SCH-B4L5-G041-adf4",
+    "uid": "SCH-B4L3-G041-f40a",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -296,14 +522,6 @@
       "6": {
         "core_type": "Little",
         "time": 5.714499999999999
-      },
-      "7": {
-        "core_type": "Little",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Little",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -324,9 +542,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 8.330499999999999
       }
@@ -348,7 +564,7 @@
     "solution_id": 8
   },
   {
-    "uid": "SCH-B2L1G3M3-G048-bed7",
+    "uid": "SCH-B2L1G3M1-G048-b67f",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -377,14 +593,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -420,9 +628,7 @@
         "id": 3,
         "core_type": "Medium",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.00325
       }
@@ -444,7 +650,7 @@
     "solution_id": 9
   },
   {
-    "uid": "SCH-M2G2L2B3-G048-71fb",
+    "uid": "SCH-M2G2L2B1-G048-eaf1",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -473,14 +679,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -516,9 +714,7 @@
         "id": 3,
         "core_type": "Big",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.13535
       }
@@ -540,7 +736,7 @@
     "solution_id": 10
   },
   {
-    "uid": "SCH-L3M6-G049-aba2",
+    "uid": "SCH-L3M4-G049-b049",
     "stage_assignments": {
       "0": {
         "core_type": "Little",
@@ -569,14 +765,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -597,9 +785,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 8.19165
       }
@@ -621,7 +807,7 @@
     "solution_id": 11
   },
   {
-    "uid": "SCH-B2G2M5-G050-3c16",
+    "uid": "SCH-B2G2M3-G050-59da",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -650,14 +836,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -686,9 +864,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.74715
       }
@@ -710,7 +886,7 @@
     "solution_id": 12
   },
   {
-    "uid": "SCH-B2G3M4-G054-c03b",
+    "uid": "SCH-B2G3M2-G054-ec5f",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -739,14 +915,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -775,9 +943,7 @@
         "core_type": "Medium",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.47635
       }
@@ -799,7 +965,7 @@
     "solution_id": 13
   },
   {
-    "uid": "SCH-B2L1G2M4-G056-aa90",
+    "uid": "SCH-B2L1G2M2-G056-cc9f",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -828,14 +994,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -871,9 +1029,7 @@
         "core_type": "Medium",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.47635
       }
@@ -895,7 +1051,7 @@
     "solution_id": 14
   },
   {
-    "uid": "SCH-L3B6-G057-12d7",
+    "uid": "SCH-L3B4-G057-e43f",
     "stage_assignments": {
       "0": {
         "core_type": "Little",
@@ -924,14 +1080,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -952,9 +1100,7 @@
           3,
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 8.1146
       }
@@ -976,7 +1122,7 @@
     "solution_id": 15
   },
   {
-    "uid": "SCH-M2G2B5-G058-5b29",
+    "uid": "SCH-M2G2B3-G058-3c81",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -1005,14 +1151,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1041,9 +1179,7 @@
         "stages": [
           4,
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.8275499999999996
       }
@@ -1065,7 +1201,7 @@
     "solution_id": 16
   },
   {
-    "uid": "SCH-B2G2L2M3-G061-ce67",
+    "uid": "SCH-B2G2L2M1-G061-63c0",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1094,14 +1230,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1137,9 +1265,7 @@
         "id": 3,
         "core_type": "Medium",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.00325
       }
@@ -1161,7 +1287,7 @@
     "solution_id": 17
   },
   {
-    "uid": "SCH-L1M2G3B3-G062-cc6e",
+    "uid": "SCH-L1M2G3B1-G062-349a",
     "stage_assignments": {
       "0": {
         "core_type": "Little",
@@ -1190,14 +1316,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1233,9 +1351,7 @@
         "id": 3,
         "core_type": "Big",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.13535
       }
@@ -1257,7 +1373,7 @@
     "solution_id": 18
   },
   {
-    "uid": "SCH-M2L1G2B4-G063-b832",
+    "uid": "SCH-M2L1G2B2-G063-870b",
     "stage_assignments": {
       "0": {
         "core_type": "Medium",
@@ -1286,14 +1402,6 @@
       "6": {
         "core_type": "Big",
         "time": 2.13535
-      },
-      "7": {
-        "core_type": "Big",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Big",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1329,9 +1437,7 @@
         "core_type": "Big",
         "stages": [
           5,
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.55065
       }
@@ -1353,7 +1459,7 @@
     "solution_id": 19
   },
   {
-    "uid": "SCH-B3G3M3-G063-1a4d",
+    "uid": "SCH-B3G3M1-G063-ecf1",
     "stage_assignments": {
       "0": {
         "core_type": "Big",
@@ -1382,14 +1488,6 @@
       "6": {
         "core_type": "Medium",
         "time": 2.00325
-      },
-      "7": {
-        "core_type": "Medium",
-        "time": 0.0
-      },
-      "8": {
-        "core_type": "Medium",
-        "time": 0.0
       }
     },
     "chunks": [
@@ -1418,9 +1516,7 @@
         "id": 2,
         "core_type": "Medium",
         "stages": [
-          6,
-          7,
-          8
+          6
         ],
         "time": 2.00325
       }

@@ -65,11 +65,11 @@
       "load_balance_ratio": 1.0,
       "load_imbalance_pct": 0.0,
       "time_variance": 0.0,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 5.128087448174706,
-      "speedup_over_gpu": 0.08499980564782732
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 0.37371815375738954,
+      "speedup_over_gpu": 0.19599128740284147
     },
     "solution_id": 1
   },
@@ -139,11 +139,11 @@
       "load_balance_ratio": 1.0,
       "load_imbalance_pct": 0.0,
       "time_variance": 0.0,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 16.503105070522512,
-      "speedup_over_gpu": 0.2735446182922225
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 1.2026920407558874,
+      "speedup_over_gpu": 0.6307351115994221
     },
     "solution_id": 2
   },
@@ -213,11 +213,11 @@
       "load_balance_ratio": 1.0,
       "load_imbalance_pct": 0.0,
       "time_variance": 0.0,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 24.881104675602653,
-      "speedup_over_gpu": 0.41241283092437275
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 1.8132531078658374,
+      "speedup_over_gpu": 0.9509353704785124
     },
     "solution_id": 3
   },
@@ -288,11 +288,11 @@
       "load_balance_ratio": 1.0,
       "load_imbalance_pct": 0.0,
       "time_variance": 0.0,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 45.904250859394644,
-      "speedup_over_gpu": 0.7608786786283221
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 3.3453508845476647,
+      "speedup_over_gpu": 1.754422738324809
     },
     "solution_id": 4
   },
@@ -370,11 +370,11 @@
       "load_balance_ratio": 0.9890460746330814,
       "load_imbalance_pct": 1.0953925366918638,
       "time_variance": 0.003348551111111093,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 69.47352392553961,
-      "speedup_over_gpu": 1.1515474513685333
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 5.06300201758727,
+      "speedup_over_gpu": 2.6552209829076094
     },
     "solution_id": 5
   },
@@ -459,11 +459,11 @@
       "load_balance_ratio": 0.9614092048302575,
       "load_imbalance_pct": 3.859079516974251,
       "time_variance": 0.01583191876543205,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 106.65463217138765,
-      "speedup_over_gpu": 1.767837053799713
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 7.7726389472846895,
+      "speedup_over_gpu": 4.076252380248925
     },
     "solution_id": 6
   },
@@ -548,11 +548,11 @@
       "load_balance_ratio": 0.9489611111903368,
       "load_imbalance_pct": 5.103888880966323,
       "time_variance": 0.038326255061728653,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 80.2420206821671,
-      "speedup_over_gpu": 1.3300389729509887
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 5.8477746579332734,
+      "speedup_over_gpu": 3.06678407812666
     },
     "solution_id": 7
   },
@@ -629,11 +629,11 @@
       "load_balance_ratio": 0.9388329738797028,
       "load_imbalance_pct": 6.116702612029723,
       "time_variance": 0.3153384025000005,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 41.012042371619664,
-      "speedup_over_gpu": 0.6797886475295862
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 2.9888228139317348,
+      "speedup_over_gpu": 1.567446550915327
     },
     "solution_id": 8
   },
@@ -710,11 +710,11 @@
       "load_balance_ratio": 0.965827790776367,
       "load_imbalance_pct": 3.4172209223632954,
       "time_variance": 0.4101548544444454,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 19.814198909223826,
-      "speedup_over_gpu": 0.3284271326049429
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 1.4439936739324761,
+      "speedup_over_gpu": 0.7572823966675954
     },
     "solution_id": 9
   },
@@ -799,11 +799,11 @@
       "load_balance_ratio": 0.7742305360063211,
       "load_imbalance_pct": 22.57694639936789,
       "time_variance": 0.7029303943209878,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 91.23466750726612,
-      "speedup_over_gpu": 1.5122458586820824
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.648882618337751,
+      "speedup_over_gpu": 3.48691400472976
     },
     "solution_id": 10
   },
@@ -888,11 +888,11 @@
       "load_balance_ratio": 0.7918722630961246,
       "load_imbalance_pct": 20.812773690387544,
       "time_variance": 0.9256815607407395,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 75.17480717147063,
-      "speedup_over_gpu": 1.2460481736641023
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 5.4784927966058055,
+      "speedup_over_gpu": 2.873119342580864
     },
     "solution_id": 11
   },
@@ -977,11 +977,11 @@
       "load_balance_ratio": 0.7375974703181771,
       "load_imbalance_pct": 26.240252968182286,
       "time_variance": 0.9962613896296308,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 91.35467723433099,
-      "speedup_over_gpu": 1.514235061007404
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.657628532693711,
+      "speedup_over_gpu": 3.4915006778600475
     },
     "solution_id": 12
   },
@@ -1066,11 +1066,11 @@
       "load_balance_ratio": 0.6914581748658594,
       "load_imbalance_pct": 30.854182513414063,
       "time_variance": 1.0452867720987664,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 107.01545778834719,
-      "speedup_over_gpu": 1.7738178619712341
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 7.7989347319727,
+      "speedup_over_gpu": 4.090042838760119
     },
     "solution_id": 13
   },
@@ -1155,11 +1155,11 @@
       "load_balance_ratio": 0.7161573657227909,
       "load_imbalance_pct": 28.384263427720914,
       "time_variance": 1.1803571543209876,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 91.50800172709165,
-      "speedup_over_gpu": 1.5167764669833
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.668802317645584,
+      "speedup_over_gpu": 3.4973606139532287
     },
     "solution_id": 14
   },
@@ -1251,11 +1251,11 @@
       "load_balance_ratio": 0.7090759497475354,
       "load_imbalance_pct": 29.09240502524646,
       "time_variance": 1.0026682716666668,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 99.47808075439815,
-      "speedup_over_gpu": 1.6488832563400242
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 7.24963547415614,
+      "speedup_over_gpu": 3.801970483626998
     },
     "solution_id": 15
   },
@@ -1340,11 +1340,11 @@
       "load_balance_ratio": 0.6897815181639441,
       "load_imbalance_pct": 31.021848183605595,
       "time_variance": 1.3340377454320989,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 94.211647829117,
-      "speedup_over_gpu": 1.5615903270305693
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.865835156861677,
+      "speedup_over_gpu": 3.600691745797759
     },
     "solution_id": 16
   },
@@ -1422,11 +1422,11 @@
       "load_balance_ratio": 0.7495117658238831,
       "load_imbalance_pct": 25.048823417611686,
       "time_variance": 2.2971444011111117,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 68.96030531466681,
-      "speedup_over_gpu": 1.1430406771335184
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 5.025600332520924,
+      "speedup_over_gpu": 2.635606189423567
     },
     "solution_id": 17
   },
@@ -1518,11 +1518,11 @@
       "load_balance_ratio": 0.6713224132102114,
       "load_imbalance_pct": 32.867758678978866,
       "time_variance": 1.4550651830555548,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 86.61929632698586,
-      "speedup_over_gpu": 1.4357445007623681
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.312529540541983,
+      "speedup_over_gpu": 3.310518311675213
     },
     "solution_id": 18
   },
@@ -1607,11 +1607,11 @@
       "load_balance_ratio": 0.6713224132102114,
       "load_imbalance_pct": 32.867758678978866,
       "time_variance": 1.990729694074074,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 83.95211279483867,
-      "speedup_over_gpu": 1.3915350202980108
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.118153973541667,
+      "speedup_over_gpu": 3.20858074928219
     },
     "solution_id": 19
   },
@@ -1689,11 +1689,11 @@
       "load_balance_ratio": 0.6646559230701278,
       "load_imbalance_pct": 33.53440769298722,
       "time_variance": 3.1383303511111125,
-      "omp": 730,
-      "vk": 12.1,
-      "fastest": 12.1,
-      "speedup_over_cpu": 83.01177326793471,
-      "speedup_over_gpu": 1.375948570605493
+      "omp": 53.2,
+      "vk": 27.9,
+      "fastest": 27.9,
+      "speedup_over_cpu": 6.049625120348119,
+      "speedup_over_gpu": 3.172641745445724
     },
     "solution_id": 20
   }

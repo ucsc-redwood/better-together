@@ -125,7 +125,12 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
             // Launch OMP
             const auto cores = get_cores_by_type(cpu_pt);
             // tree::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
-            tree::omp::dispatch_multi_stage(cores, cores.size(), *app, 1, 1);
+
+            // spdlog:: start and end
+            // spdlog::info("start: {}, end: {}", start, end);
+
+            // tree::omp::dispatch_multi_stage(cores, cores.size(), *app, 1, 7);
+            tree::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
 
             // constexpr std::array<double, 7> a = {0.938, 0.350, 0.184, 2.21, 0.247, 0.180, 2.42};
             // auto s = std::accumulate(a.begin() + start, a.begin() + start + end, 0.0);
@@ -154,7 +159,7 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
 // python -m http.server 8080
 //
 // Run with:
-// make r bm-gen-logs-tree-vk --device 3A021JEHN02756 --schedule-url
+// xmake r bm-gen-logs-tree-vk --device 3A021JEHN02756 --schedule-url
 // http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json
 //
 //

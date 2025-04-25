@@ -39,11 +39,11 @@ static void BM_baseline_omp_little_cores(benchmark::State& state) {
   }
 
   // Warm up
-  tree::omp::dispatch_multi_stage(LITTLE_CORES, appdata, 1, 9);
+  tree::omp::dispatch_multi_stage(LITTLE_CORES, appdata, 1, 7);
 
   // Benchmark
   for (auto _ : state) {
-    tree::omp::dispatch_multi_stage(LITTLE_CORES, appdata, 1, 9);
+    tree::omp::dispatch_multi_stage(LITTLE_CORES, appdata, 1, 7);
   }
 }
 
