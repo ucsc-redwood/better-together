@@ -209,6 +209,16 @@ run-schedule device app backend:
         --device {{device}} \
         --n-schedules-to-run 20
 
+run-schedule-normal device app backend:
+    python3 scripts/collect/03_run_schedule.py \
+        --log_folder data/exe_logs_normal \
+        --repeat 5 \
+        --app {{app}} \
+        --backend {{backend}} \
+        --device {{device}} \
+        --use-normal-table \
+        --n-schedules-to-run 20
+
 compare-schedules device app backend:
     python3 scripts/collect/04_parse_schedules_by_widest.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
