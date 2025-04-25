@@ -1,0 +1,84 @@
+|==============
+| CifarDense 
+| 9b034f1b
+|==============
+
+Pearson correlation coefficient: 0.9968
+Coefficient of determination (R²): 0.993
+
+|==============
+| CifarSparse
+| 9b034f1b
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9684
+Coefficient of determination (R²): 0.9378
+
+|==============
+| Tree
+| 9b034f1b
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9418
+Coefficient of determination (R²): 0.8870
+
+
+|==============
+| CifarDense
+| 3A021JEHN02756
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9990
+Coefficient of determination (R²): 0.9981
+
+|==============
+| CifarSparse
+| 3A021JEHN02756
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9441
+Coefficient of determination (R²): 0.8913
+
+
+|==============
+| Tree
+| 3A021JEHN02756
+|==============
+
+Total comparisons: 20
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.8450
+Coefficient of determination (R²): 0.7140
+
+
+
+
+
+===== MEASURED VS PREDICTED TIMES =====
+Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)
+--------------------------------------------------------------------------------
+SCH-B2G3M2-G021-14c1           :         2.84            2.42          +17.36%
+SCH-B2G2L2M1-G070-d643         :         1.50            2.42          -37.98%
+SCH-B2G2L1M2-G107-d61f         :         2.09            2.42          -13.75%
+SCH-B2G2M3-G058-970e           :         2.13            2.44          -12.82%
+SCH-M2G2B3-G077-2bb7           :         2.06            2.63          -21.62%
+SCH-M2G3B2-G081-1552           :         2.81            2.63           +6.93%
+SCH-M2G2L2B1-G125-004a         :         1.56            2.63          -40.58%
+SCH-B2G4M1-G079-64dd           :         3.77            2.73          +38.05%
+SCH-B3G2M2-G096-0b7e           :         2.24            2.93          -23.56%
+SCH-B3G3M1-G099-e521           :         2.71            2.93           -7.36%
+SCH-M3G4-G051-c23d             :         3.61            3.64           -0.82%
+SCH-B3G4-G071-b55f             :         3.15            3.64          -13.45%
+SCH-L2B5-G009-a8a2             :         5.94            6.66          -10.70%
+SCH-L3B4-G111-da29             :         2.37            7.25          -67.34%
+SCH-B5L2-G064-e054             :         6.07            7.26          -16.36%
+SCH-B4L3-G089-e662             :         5.98            7.97          -24.99%
+SCH-B7-G000-0d0f               :        13.05            9.08          +43.75%
+SCH-M7-G000-4235               :        11.30           11.92           -5.21%
+SCH-L7-G000-eb4d               :        15.11           23.99          -37.02%
+SCH-G7-G000-33e7               :        46.95           35.92          +30.70%
