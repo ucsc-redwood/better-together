@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
                   .cpu_proc_type = ProcessorType::kLittleCore,
               },
               {
-                  .exec_model = ExecutionModel::kVulkan,
+                  .exec_model = ExecutionModel::kCuda,
                   .start_stage = 4,
                   .end_stage = 6,
                   .cpu_proc_type = std::nullopt,
