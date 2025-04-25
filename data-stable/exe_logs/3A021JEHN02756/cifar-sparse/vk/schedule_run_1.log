@@ -1,0 +1,105 @@
+
+Running only on specified device: 3A021JEHN02756
+Deploying and running 'bm-gen-logs-cifar-sparse-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-gen-logs-cifar-sparse-vk: 1 file pushed, 0 skipped. 516.5 MB/s (6980048 bytes in 0.013s)
+[2025-04-24 18:01:44.481] [info] Pinable Lit cores: 0 1 2 3 
+[2025-04-24 18:01:44.482] [info] Pinable Med cores: 4 5 
+[2025-04-24 18:01:44.483] [info] Pinable Big cores: 6 7 
+[2025-04-24 18:01:45.339] [info] Fetching JSON from URL: http://192.168.1.204:8080/3A021JEHN02756/cifar-sparse/vk/schedules.json
+[2025-04-24 18:01:45.428] [info] Loaded 20 valid schedules from JSON
+[2025-04-24 18:01:45.428] [info] Loaded 20 schedules
+--------------------------------
+Schedule 0 [UID: SCH-M9-G000-e1d8]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 1 [UID: SCH-L9-G000-cb7e]:
+  Chunk 0 [OMP/Little]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 2 [UID: SCH-B9-G000-6edf]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 3 [UID: SCH-G9-G000-9f59]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 4 [UID: SCH-B4L5-G030-2516]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Little]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 5 [UID: SCH-G6L3-G069-8608]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6
+  Chunk 1 [OMP/Little]: 7, 8, 9
+--------------------------------
+Schedule 6 [UID: SCH-M2B7-G085-d2b3]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [OMP/Big   ]: 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 7 [UID: SCH-M1G3L1B4-G103-15ed]:
+  Chunk 0 [OMP/Medium]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4
+  Chunk 2 [OMP/Little]: 5
+  Chunk 3 [OMP/Big   ]: 6, 7, 8, 9
+--------------------------------
+Schedule 8 [UID: SCH-B2M7-G105-6e7b]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [OMP/Medium]: 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 9 [UID: SCH-G4M5-G165-3fa2]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Medium]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 10 [UID: SCH-G4B5-G172-b512]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Big   ]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 11 [UID: SCH-M1G3B3L2-G175-b17f]:
+  Chunk 0 [OMP/Medium]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4
+  Chunk 2 [OMP/Big   ]: 5, 6, 7
+  Chunk 3 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 12 [UID: SCH-G3B2M4-G181-7f7a]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Big   ]: 4, 5
+  Chunk 2 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 13 [UID: SCH-G3M2B4-G186-16c6]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4, 5
+  Chunk 2 [OMP/Big   ]: 6, 7, 8, 9
+--------------------------------
+Schedule 14 [UID: SCH-M1G4B4-G200-1ab9]:
+  Chunk 0 [OMP/Medium]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5
+  Chunk 2 [OMP/Big   ]: 6, 7, 8, 9
+--------------------------------
+Schedule 15 [UID: SCH-M4L5-G213-5617]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3, 4
+  Chunk 1 [OMP/Little]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 16 [UID: SCH-B1G3M3L2-G214-edb1]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4
+  Chunk 2 [OMP/Medium]: 5, 6, 7
+  Chunk 3 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 17 [UID: SCH-G3B1M5-G214-003d]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Big   ]: 4
+  Chunk 2 [OMP/Medium]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 18 [UID: SCH-G3M1B5-G229-f104]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4
+  Chunk 2 [OMP/Big   ]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 19 [UID: SCH-B1G3L1M4-G232-e8ff]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4
+  Chunk 2 [OMP/Little]: 5
+  Chunk 3 [OMP/Medium]: 6, 7, 8, 9
+[2025-04-24 18:01:45.431] [info] Running 20/20 schedules
+
+--------------------------------
+[2025-04-24 18:01:45.431] [info] Available Vulkan Layers:
+[2025-04-24 18:01:45.431] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-24 18:01:45.438] [info] Using integrated GPU: Mali-G710
