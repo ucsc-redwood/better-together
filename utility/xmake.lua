@@ -28,13 +28,15 @@ if has_config("use_vulkan") then
 	end
 end
 
-target("test-omp")
-do
-	set_kind("binary")
-	add_rules("common_flags", "cuda_config", "run_on_android")
-	add_files({
-		"test_omp.cu",
-	})
+if has_config("use_cuda") then
+	target("test-omp")
+	do
+		set_kind("binary")
+		add_rules("common_flags", "cuda_config", "run_on_android")
+		add_files({
+			"test_omp.cu",
+		})
+	end
 end
 
 -- ----------------------------------------------------------------
