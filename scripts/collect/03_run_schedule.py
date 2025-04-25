@@ -53,6 +53,12 @@ def main():
         default="http://192.168.1.204:8080",
         help="URL of the server hosting schedule JSON files",
     )
+    parser.add_argument(
+        "--use-normal-table",
+        type=bool,
+        default=False,
+        help="Use normal table for schedule",
+    )
     args = parser.parse_args()
 
     # Create the directory path with new structure
@@ -60,10 +66,16 @@ def main():
     os.makedirs(log_path, exist_ok=True)
 
     # Base schedule URL
-    schedule_url = (
-        f"{args.schedules_server}/"
-        f"{args.device}/{args.app}/{args.backend}/schedules.json"
-    )
+    if args.use_normal_table:
+        schedule_url = (
+            f"{args.schedules_server}/"
+            f"{args.device}/{args.app}/{args.backend}/schedules_normal.json"
+        )
+    else:
+        schedule_url = (
+            f"{args.schedules_server}/"
+            f"{args.device}/{args.app}/{args.backend}/schedules.json"
+        )
 
     # Command base
     cmd_base = [
