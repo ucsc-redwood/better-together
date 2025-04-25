@@ -1,0 +1,10 @@
+
+Running only on specified device: 3A021JEHN02756
+Deploying and running 'bm-gen-logs-cifar-dense-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-gen-logs-cifar-dense-vk: 1 file pushed, 0 skipped. 497.1 MB/s (6980048 bytes in 0.013s)
+[2025-04-24 17:49:21.169] [info] Pinable Lit cores: 0 1 2 3 
+[2025-04-24 17:49:21.170] [info] Pinable Med cores: 4 5 
+[2025-04-24 17:49:21.170] [info] Pinable Big cores: 6 7 
+[2025-04-24 17:49:23.093] [info] Fetching JSON from URL: http://192.168.1.204:8080/3A021JEHN02756/cifar-dense/vk/schedules.json
+[2025-04-24 17:49:23.167] [error] Failed to fetch or parse schedules: curl_easy_perform() failed: Could not connect to server
+[2025-04-24 17:49:23.167] [warning] Running only warmup phase.

@@ -1,0 +1,10 @@
+
+Running only on specified device: 3A021JEHN02756
+Deploying and running 'bm-gen-logs-tree-vk' on device: 3A021JEHN02756
+build/android/arm64-v8a/release/bm-gen-logs-tree-vk: 1 file pushed, 0 skipped. 477.5 MB/s (7086032 bytes in 0.014s)
+[2025-04-24 17:52:22.915] [info] Pinable Lit cores: 0 1 2 3 
+[2025-04-24 17:52:22.916] [info] Pinable Med cores: 4 5 
+[2025-04-24 17:52:22.916] [info] Pinable Big cores: 6 7 
+[2025-04-24 17:52:23.359] [info] Fetching JSON from URL: http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json
+[2025-04-24 17:52:23.457] [error] Failed to fetch or parse schedules: curl_easy_perform() failed: Could not connect to server
+[2025-04-24 17:52:23.457] [warning] Running only warmup phase.

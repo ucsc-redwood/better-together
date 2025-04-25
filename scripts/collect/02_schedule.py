@@ -13,11 +13,11 @@ import sys
 
 baselines = {
     "3A021JEHN02756": {
-        "cifar-sparse-vk": {
+        "cifar-dense-vk": {
             "omp": 940,
             "vk": 11.4,
         },
-        "cifar-dense-vk": {
+        "cifar-sparse-vk": {
             "omp": 45.8,
             "vk": 44.9,
         },
@@ -27,11 +27,11 @@ baselines = {
         },
     },
     "9b034f1b": {
-        "cifar-sparse-vk": {
+        "cifar-dense-vk": {
             "omp": 730,
             "vk": 12.1,
         },
-        "cifar-dense-vk": {
+        "cifar-sparse-vk": {
             "omp": 53.2,
             "vk": 27.9,
         },
@@ -41,11 +41,11 @@ baselines = {
         },
     },
     "jetson": {
-        "cifar-sparse-cu": {
+        "cifar-dense-cu": {
             "omp": 23.5,
             "cu": 5.48,
         },
-        "cifar-dense-cu": {
+        "cifar-sparse-cu": {
             "omp": 486,
             "cu": 27.2,
         },
@@ -55,11 +55,11 @@ baselines = {
         },
     },
     "jetsonlowpower": {
-        "cifar-sparse-cu": {
+        "cifar-dense-cu": {
             "omp": 58.5,
             "cu": 23.6,
         },
-        "cifar-dense-cu": {
+        "cifar-sparse-cu": {
             "omp": 1042,
             "cu": 101,
         },
