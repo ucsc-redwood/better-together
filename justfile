@@ -194,6 +194,6 @@ compare-schedules device app backend:
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
 
-make-example-timeline:
-    python3 scripts/collect/05_timeline.py data/exe_logs/3A021JEHN02756/cifar-sparse/vk/schedule_run_1.log \
-        --output-dir data/exe_logs/3A021JEHN02756/cifar-sparse/vk/timeline
+make-example-timeline device app backend id:
+    python3 scripts/collect/05_timeline.py data/exe_logs/{{device}}/{{app}}/{{backend}}/schedule_run_{{id}}.log \
+        --output-dir data/exe_logs/{{device}}/{{app}}/{{backend}}/timeline
