@@ -56,6 +56,34 @@ Pearson correlation coefficient: 0.8450
 Coefficient of determination (R²): 0.7140
 
 
+|==============
+| CifarDense
+| jetson
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9491
+Coefficient of determination (R²): 0.9008
+
+|==============
+| CifarSparse
+| jetson
+|==============
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.8668
+Coefficient of determination (R²): 0.7513
+
+|==============
+| Tree
+| jetson
+|==============
+
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.8283
+Coefficient of determination (R²): 0.6861
+
 
 
 
@@ -82,3 +110,5 @@ SCH-B7-G000-0d0f               :        13.05            9.08          +43.75%
 SCH-M7-G000-4235               :        11.30           11.92           -5.21%
 SCH-L7-G000-eb4d               :        15.11           23.99          -37.02%
 SCH-G7-G000-33e7               :        46.95           35.92          +30.70%
+
+
