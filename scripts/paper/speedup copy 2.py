@@ -340,5 +340,3 @@ tree_9b034f1b_df = parse_speedup_data(tree_9b034f1b)
 jetson_cifar_dense_cu_df = parse_speedup_data(jetson_cifar_dense_cu)
 jetson_cifar_sparse_cu_df = parse_speedup_data(jetson_cifar_sparse_cu)
 jetson_tree_cu_df = parse_speedup_data(jetson_tree_cu)
-
-

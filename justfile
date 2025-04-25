@@ -177,6 +177,24 @@ gen-schedules:
     python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules/
     python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 20 --output_folder data/schedules/
 
+gen-schedules-normal:
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app cifar-sparse --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app tree --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-sparse --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+    python3 scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+
+
 
 serve:
     python3 -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
@@ -191,10 +209,30 @@ run-schedule device app backend:
         --device {{device}} \
         --n-schedules-to-run 20
 
+run-schedule-normal device app backend:
+    python3 scripts/collect/03_run_schedule.py \
+        --log_folder data/exe_logs_normal \
+        --repeat 5 \
+        --app {{app}} \
+        --backend {{backend}} \
+        --device {{device}} \
+        --use-normal-table \
+        --n-schedules-to-run 20
+
 compare-schedules device app backend:
     python3 scripts/collect/04_parse_schedules_by_widest.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
+
+compare-schedules-android:
+    just compare-schedules 3A021JEHN02756 cifar-sparse vk
+    just compare-schedules 3A021JEHN02756 cifar-dense vk
+    just compare-schedules 3A021JEHN02756 tree vk
+
+    # just compare-schedules 9b034f1b cifar-sparse vk
+    # just compare-schedules 9b034f1b cifar-dense vk
+    # just compare-schedules 9b034f1b tree vk
+
 
 make-example-timeline device app backend id:
     python3 scripts/collect/05_timeline.py data/exe_logs/{{device}}/{{app}}/{{backend}}/schedule_run_{{id}}.log \
