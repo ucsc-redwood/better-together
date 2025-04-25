@@ -216,7 +216,7 @@ run-schedule-normal device app backend:
         --app {{app}} \
         --backend {{backend}} \
         --device {{device}} \
-        --use-normal-table \
+        --use-normal-table True \
         --n-schedules-to-run 20
 
 compare-schedules device app backend:
