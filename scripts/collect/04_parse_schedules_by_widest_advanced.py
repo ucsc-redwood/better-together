@@ -412,102 +412,140 @@ def create_comparison_visualization(
     # Save figure
     plt.savefig(os.path.join(output_dir, "comparison_chart.png"), dpi=300)
     print(f"Visualization saved to {os.path.join(output_dir, 'comparison_chart.png')}")
-    
+
     # Create line chart visualization with data sorted by predicted time
-    create_line_comparison_chart(schedule_uids, measured_times, predicted_times, error_bars, output_dir, 
-                                "line_comparison_chart.png", "Comparison of Measured vs Predicted Execution Times", 
-                                "by predicted time")
+    create_line_comparison_chart(
+        schedule_uids,
+        measured_times,
+        predicted_times,
+        error_bars,
+        output_dir,
+        "line_comparison_chart.png",
+        "Comparison of Measured vs Predicted Execution Times",
+        "by predicted time",
+    )
 
     # Create a second line chart with data sorted by measured time
     # Sort by measured time (fastest to slowest)
     schedule_data_by_measured = sorted(schedule_data, key=lambda x: x[1])
-    
+
     # Extract sorted data
     schedule_uids_by_measured = [item[0] for item in schedule_data_by_measured]
     measured_times_sorted = np.array([item[1] for item in schedule_data_by_measured])
     predicted_times_sorted = np.array([item[2] for item in schedule_data_by_measured])
     error_bars_sorted = np.array([item[3] for item in schedule_data_by_measured])
-    
+
     # Create line chart with data sorted by measured time
-    create_line_comparison_chart(schedule_uids_by_measured, measured_times_sorted, predicted_times_sorted, 
-                               error_bars_sorted, output_dir, "line_comparison_by_measured.png",
-                               "Comparison of Measured vs Predicted Execution Times",
-                               "by measured time")
+    create_line_comparison_chart(
+        schedule_uids_by_measured,
+        measured_times_sorted,
+        predicted_times_sorted,
+        error_bars_sorted,
+        output_dir,
+        "line_comparison_by_measured.png",
+        "Comparison of Measured vs Predicted Execution Times",
+        "by measured time",
+    )
 
     # Create scatter plot for correlation
     create_correlation_plots(schedule_uids, predicted_times, measured_times, output_dir)
 
 
-def create_line_comparison_chart(schedule_uids, measured_times, predicted_times, error_bars, output_dir, 
-                               filename="line_comparison_chart.png", title="Comparison of Measured vs Predicted Execution Times", 
-                               sort_note=""):
+def create_line_comparison_chart(
+    schedule_uids,
+    measured_times,
+    predicted_times,
+    error_bars,
+    output_dir,
+    filename="line_comparison_chart.png",
+    title="Comparison of Measured vs Predicted Execution Times",
+    sort_note="",
+):
     """Create a line-based visualization comparing measured and predicted execution times."""
     # Create figure with white background
-    plt.figure(figsize=(14, 8), facecolor='white')
-    
+    plt.figure(figsize=(14, 8), facecolor="white")
+
     # Get x positions
     x = np.arange(len(schedule_uids))
-    
+
     # Plot lines with markers
-    plt.plot(x, predicted_times, 'r--', marker='s', markersize=8, linewidth=2, label='Predicted', alpha=0.9)
-    plt.plot(x, measured_times, 'b-', marker='^', markersize=8, linewidth=2, label='Measured (Arithmetic)', alpha=0.9)
-    
+    plt.plot(
+        x,
+        predicted_times,
+        "r--",
+        marker="s",
+        markersize=8,
+        linewidth=2,
+        label="Predicted",
+        alpha=0.9,
+    )
+    plt.plot(
+        x,
+        measured_times,
+        "b-",
+        marker="^",
+        markersize=8,
+        linewidth=2,
+        label="Measured (Arithmetic)",
+        alpha=0.9,
+    )
+
     # Add error bars to measured data
     plt.errorbar(
         x,
         measured_times,
         yerr=error_bars,
-        fmt='none',
-        ecolor='blue',
+        fmt="none",
+        ecolor="blue",
         capsize=5,
         alpha=0.7,
-        elinewidth=1.5
+        elinewidth=1.5,
     )
-    
+
     # Add labels and title
-    plt.xlabel('Execution Schedule', fontsize=14, labelpad=10)
-    plt.ylabel('Time (Execution in ms)', fontsize=14, labelpad=10)
-    
+    plt.xlabel("Execution Schedule", fontsize=14, labelpad=10)
+    plt.ylabel("Time (Execution in ms)", fontsize=14, labelpad=10)
+
     # Add sort note to title if provided
     if sort_note:
         plt.title(f"{title}\n(Sorted {sort_note})", fontsize=16, pad=20)
     else:
         plt.title(title, fontsize=16, pad=20)
-    
+
     # Add UID labels on x-axis
     shortened_uids = [uid.split("-")[1] for uid in schedule_uids]
     plt.xticks(x, shortened_uids, rotation=45, ha="right", fontsize=10)
     plt.yticks(fontsize=12)
-    
+
     # Add grid for both axes
-    plt.grid(True, linestyle='--', alpha=0.7, which='both')
-    
+    plt.grid(True, linestyle="--", alpha=0.7, which="both")
+
     # Create legend with larger font and better position
-    plt.legend(fontsize=14, loc='upper left')
-    
+    plt.legend(fontsize=14, loc="upper left")
+
     # Set y-axis to start at 0
     # Calculate a good maximum y value that leaves room for highest point plus error bar
     max_y = max(max(predicted_times), max(measured_times) + max(error_bars)) * 1.15
     plt.ylim(bottom=0, top=max_y)
-    
+
     # Make plot lines thicker
     for line in plt.gca().get_lines():
-        if line.get_linestyle() == '--':  # Predicted line
+        if line.get_linestyle() == "--":  # Predicted line
             line.set_linewidth(2.5)
-        elif line.get_marker() == '^':   # Measured line
+        elif line.get_marker() == "^":  # Measured line
             line.set_linewidth(2.5)
-    
+
     # Add minor tick lines for better readability
     plt.minorticks_on()
-    plt.grid(which='minor', linestyle=':', alpha=0.4)
-    
+    plt.grid(which="minor", linestyle=":", alpha=0.4)
+
     # Adjust layout
     plt.tight_layout()
-    
+
     # Save figure with higher resolution
     plt.savefig(os.path.join(output_dir, filename), dpi=300)
     print(f"Line visualization saved to {os.path.join(output_dir, filename)}")
-    
+
     plt.close()
 
 

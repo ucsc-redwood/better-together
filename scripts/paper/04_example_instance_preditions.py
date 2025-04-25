@@ -28,7 +28,7 @@ original_labels = [
 # Simplify labels to show only the center part
 labels = []
 for label in original_labels:
-    parts = label.split('-')
+    parts = label.split("-")
     if len(parts) >= 3:
         center_part = parts[1]
         hash_part = parts[-1]
@@ -86,20 +86,35 @@ predicted = np.array(
 )
 
 # Increase font size globally but keep axis tick labels smaller
-plt.rcParams.update({'font.size': 12})  # Base font size for most elements
+plt.rcParams.update({"font.size": 12})  # Base font size for most elements
 
 # Plot
 x = np.arange(len(labels))
 plt.figure(figsize=(14, 7))  # Slightly increase height for better label spacing
 plt.plot(x, predicted, "r--", marker="s", markersize=8, label="Predicted", linewidth=2)
-plt.errorbar(x, measured, yerr=0.5, fmt="b-", marker="^", markersize=8, label="Measured (Arithmetic)", linewidth=2)
+plt.errorbar(
+    x,
+    measured,
+    yerr=0.5,
+    fmt="b-",
+    marker="^",
+    markersize=8,
+    label="Measured (Arithmetic)",
+    linewidth=2,
+)
 
-plt.xticks(x, labels, rotation=45, ha='right', fontsize=12)  # Keep schedule UIDs at regular size
+plt.xticks(
+    x, labels, rotation=45, ha="right", fontsize=12
+)  # Keep schedule UIDs at regular size
 plt.ylabel("Time (Execution ms)", fontsize=16)
 plt.xlabel("Execution Schedule", fontsize=16)
-plt.title("Comparison of Measured vs Predicted Execution Times", fontsize=22)  # Bigger title
+plt.title(
+    "Comparison of Measured vs Predicted Execution Times", fontsize=22
+)  # Bigger title
 plt.legend(fontsize=18)  # Bigger legend font
 plt.grid(True)
 plt.tight_layout(pad=0.8)  # Reduce padding to minimize white space
 plt.subplots_adjust(bottom=0.2)  # Adjust bottom margin for x-axis labels
-plt.savefig("example_predition", dpi=300, bbox_inches='tight')  # Higher DPI and tight bounding box
+plt.savefig(
+    "example_predition", dpi=300, bbox_inches="tight"
+)  # Higher DPI and tight bounding box
