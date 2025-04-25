@@ -175,6 +175,8 @@ gen-schedules:
     python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules/
     python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules/
 
+    python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app tree --backend cu --num_solutions 20 --output_folder data/schedules/
+    python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 20 --output_folder data/schedules/
 
 # gen-schedules:
 #     python3 scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules/
