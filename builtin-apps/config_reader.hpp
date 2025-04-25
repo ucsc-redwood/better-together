@@ -64,7 +64,23 @@ inline std::vector<Schedule> readSchedulesFromJson(const nlohmann::json& j) {
 
       // Set execution model based on core type
       if (core_type == "GPU") {
-        chunk.exec_model = ExecutionModel::kVulkan;
+        // Check if hardware field is present to determine the GPU type
+        if (chunk_json.contains("hardware")) {
+          std::string hardware = chunk_json["hardware"].get<std::string>();
+          if (hardware == "gpu_cuda") {
+            chunk.exec_model = ExecutionModel::kCuda;
+            spdlog::debug("Using CUDA for GPU chunk based on hardware field");
+          } else if (hardware == "gpu_vulkan") {
+            chunk.exec_model = ExecutionModel::kVulkan;
+            spdlog::debug("Using Vulkan for GPU chunk based on hardware field");
+          } else {
+            spdlog::warn("Unknown hardware type: {}, defaulting to Vulkan", hardware);
+            chunk.exec_model = ExecutionModel::kVulkan;
+          }
+        } else {
+          spdlog::warn("No hardware field specified for GPU, defaulting to Vulkan");
+          chunk.exec_model = ExecutionModel::kVulkan;
+        }
         chunk.cpu_proc_type = std::nullopt;
       } else {
         chunk.exec_model = ExecutionModel::kOMP;
