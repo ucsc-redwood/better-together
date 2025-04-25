@@ -219,6 +219,22 @@ run-schedule-normal device app backend:
         --use-normal-table \
         --n-schedules-to-run 20
 
+tmp:
+    python3 scripts/collect/03_run_schedule.py \
+        --log_folder data/exe_logs_tmax \
+        --repeat 5 \
+        --app cifar-sparse \
+        --backend vk \
+        --device 3A021JEHN02756 \
+        --n-schedules-to-run 20
+
+tmp-part2:
+    python3 scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+        data/exe_logs_tmax/3A021JEHN02756/cifar-sparse/vk \
+        --model data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules.json \
+        -o plots/tmax/3A021JEHN02756/cifar-sparse/vk
+
+
 compare-schedules device app backend:
     python3 scripts/collect/04_parse_schedules_by_widest.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
