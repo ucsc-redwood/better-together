@@ -2,6 +2,7 @@ import pandas as pd
 from io import StringIO
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 data = """
 stage,little,medium,big,vulkan,cuda,device,run
@@ -40,18 +41,18 @@ width = 0.2  # width of the bars
 
 # Plot all processor types
 plt.bar(
-    x - width * 1.5, tasks["little"], width, label="CPU (Little)", color="#1f77b4"
-)  # Dark blue
+    x - width * 1.5, tasks["little"], width, label="CPU (Little)", color="#7ab8e6"
+)  # Light blue
 plt.bar(
     x - width / 2, tasks["medium"], width, label="CPU (Medium)", color="#4c8bb8"
 )  # Medium blue
 plt.bar(
-    x + width / 2, tasks["big"], width, label="CPU (Big)", color="#7ab8e6"
-)  # Light blue
+    x + width / 2, tasks["big"], width, label="CPU (Big)", color="#1f77b4"
+)  # Dark blue
 plt.bar(x + width * 1.5, tasks["vulkan"], width, label="GPU", color="#2ca02c")  # Green
 
 # Add labels and title
-plt.xlabel("Stage")
+# plt.xlabel("Stage")
 plt.ylabel("Execution Time (ms)")
 plt.title("PU Stage Performance")
 plt.xticks(x, ["Sort", "Build Radix Tree", "Build Octree"])
@@ -71,3 +72,5 @@ plt.ylim(0, 10)  # Adjusted to better show the other bars
 # Adjust layout and show plot
 plt.tight_layout()
 plt.savefig("processor_comparison.png", dpi=300, bbox_inches="tight")
+
+print(f"saved to {os.path.abspath('processor_comparison.png')}")
