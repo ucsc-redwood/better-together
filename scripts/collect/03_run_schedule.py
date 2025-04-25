@@ -44,7 +44,7 @@ def main():
     parser.add_argument(
         "--n-schedules-to-run",
         type=int,
-        default=10,
+        default=20,
         help="Number of schedules to run",
     )
     parser.add_argument(
