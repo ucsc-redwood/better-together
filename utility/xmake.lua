@@ -28,6 +28,15 @@ if has_config("use_vulkan") then
 	end
 end
 
+target("test-omp")
+do
+	set_kind("binary")
+	add_rules("common_flags", "cuda_config", "run_on_android")
+	add_files({
+		"test_omp.cu",
+	})
+end
+
 -- ----------------------------------------------------------------
 -- Utility Target: try pinning threads to all cores and verify if it works
 -- ----------------------------------------------------------------
