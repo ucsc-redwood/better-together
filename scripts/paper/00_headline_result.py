@@ -1,17 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Baselines
+# Baselines (Google Pixel)
 
 dense_cpu_baseline = 940
 dense_gpu_baseline = 11.4
-
-sparse_cpu_baseline = 45.8
-sparse_gpu_baseline = 44.9
-
+sparse_cpu_baseline = 29.0
+sparse_gpu_baseline = 13.2
 tree_cpu_baseline = 14.5
 tree_gpu_baseline = 57.0
 
+best_measured_dense = 5.02  
+best_measured_sparse = 7.05
+best_measured_tree = 3.06
 
 # Google Pixel Dense
 
@@ -39,52 +40,54 @@ tree_gpu_baseline = 57.0
 # SCH-L9-G000-3096               :      1863.07         2460.65          -24.29%
 
 # Best-case measured time for dense (ms)
-best_measured_dense = 5.02  # replace with your actual best-case dense measurement
 
-best_measured_sparse = 4.05
 
-best_measured_tree = 3.06
-
-# Compute dense speedups relative to CPU baseline
+# Compute dense speedups relative to slowest processor
+dense_slowest = max(dense_cpu_baseline, dense_gpu_baseline)
 dense_speedups = [
-    1.0,  # CPU-only normalized
-    dense_cpu_baseline / dense_gpu_baseline,  # GPU-only speedup
-    dense_cpu_baseline / best_measured_dense,  # BT speedup
+    dense_slowest / dense_cpu_baseline,  # CPU speedup over slowest
+    dense_slowest / dense_gpu_baseline,  # GPU speedup over slowest
+    dense_slowest / best_measured_dense,  # BT speedup over slowest
 ]
 
+sparse_slowest = max(sparse_cpu_baseline, sparse_gpu_baseline)
 sparse_speedups = [
-    1.0,  # CPU-only normalized
-    sparse_cpu_baseline / sparse_gpu_baseline,  # GPU-only speedup
-    sparse_cpu_baseline / best_measured_sparse,  # BT speedup
+    sparse_slowest / sparse_cpu_baseline,  # CPU speedup over slowest
+    sparse_slowest / sparse_gpu_baseline,  # GPU speedup over slowest
+    sparse_slowest / best_measured_sparse,  # BT speedup over slowest
 ]
 
+tree_slowest = max(tree_cpu_baseline, tree_gpu_baseline)
 tree_speedups = [
-    1.0,  # CPU-only normalized
-    tree_cpu_baseline / tree_gpu_baseline,  # GPU-only speedup
-    tree_cpu_baseline / best_measured_tree,  # BT speedup
+    tree_slowest / tree_cpu_baseline,  # CPU speedup over slowest
+    tree_slowest / tree_gpu_baseline,  # GPU speedup over slowest
+    tree_slowest / best_measured_tree,  # BT speedup over slowest
 ]
 
 # Combine into a data matrix: rows = workloads, cols = methods
 speedup_data = np.array([dense_speedups, sparse_speedups, tree_speedups])
 
 workloads = ["CIFAR-Dense", "CIFAR-Sparse", "Octree"]
-methods = ["CPU-only", "GPU-only", "This work"]
+methods = ["CPU", "GPU", "This work"]
 
 # Plot
 x = np.arange(len(workloads))
 width = 0.25
 
+# Academic color scheme
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue for CPU, Orange for GPU, Green for our work
+
 fig, ax = plt.subplots(figsize=(8, 5))
 
 for i, method in enumerate(methods):
-    ax.bar(x + i * width, speedup_data[:, i], width, label=method)
+    ax.bar(x + i * width, speedup_data[:, i], width, label=method, color=colors[i])
 
 ax.set_xticks(x + width)
 ax.set_xticklabels(workloads)
-ax.set_ylabel("Speedup over CPU Baseline")
+ax.set_ylabel("Speedup over Slowest Processor")
 ax.set_yscale("log")  # Set y-axis to logarithmic scale
-ax.set_title("Speedup Comparison Across Workloads")
-ax.legend()
+ax.set_title("Speedup Comparison Across Workloads", pad=20)
+ax.legend(framealpha=0.9)
 
 # Annotate each bar with its value
 for i in range(len(workloads)):
@@ -92,7 +95,7 @@ for i in range(len(workloads)):
         height = speedup_data[i, j]
         ax.text(x[i] + j * width, height, f"{height:.2f}", ha="center", va="bottom")
 
-ax.grid(axis="y", linestyle="--", alpha=0.7)
+ax.grid(axis="y", linestyle="--", alpha=0.3)
 plt.tight_layout()
 plt.show()
-plt.savefig("headline_result.png", dpi=300)
+plt.savefig("headline_result.png", dpi=300, bbox_inches='tight')
