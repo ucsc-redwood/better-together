@@ -727,9 +727,118 @@ measured_gpu_speedups = [
 measured_cpu_geomean = np.exp(np.mean(np.log(measured_cpu_speedups)))
 measured_gpu_geomean = np.exp(np.mean(np.log(measured_gpu_speedups)))
 
-print(
-    f"\nGeometric mean of CPU baseline speedups (measured): {measured_cpu_geomean:.2f}x"
-)
-print(
-    f"Geometric mean of GPU baseline speedups (measured): {measured_gpu_geomean:.2f}x"
-)
+# print(
+#     f"\nGeometric mean of CPU baseline speedups (measured): {measured_cpu_geomean:.2f}x"
+# )
+# print(
+#     f"Geometric mean of GPU baseline speedups (measured): {measured_gpu_geomean:.2f}x"
+# )
+# Speedups using predicted times:
+
+# 3A021JEHN02756:
+#   cifar-dense:
+#     CPU baseline: 143.73x
+#     GPU baseline: 1.74x
+#   cifar-sparse:
+#     CPU baseline: 5.83x
+#     GPU baseline: 5.71x
+#   tree:
+#     CPU baseline: 5.59x
+#     GPU baseline: 23.11x
+
+# 9b034f1b:
+#   cifar-dense:
+#     CPU baseline: 147.47x
+#     GPU baseline: 2.44x
+#   cifar-sparse:
+#     CPU baseline: 6.50x
+#     GPU baseline: 3.41x
+#   tree:
+#     CPU baseline: 4.60x
+#     GPU baseline: 17.10x
+
+# jetson:
+#   cifar-dense:
+#     CPU baseline: 16.62x
+#     GPU baseline: 0.87x
+#   cifar-sparse:
+#     CPU baseline: 2.04x
+#     GPU baseline: 0.48x
+#   tree:
+#     CPU baseline: 2.82x
+#     GPU baseline: 0.93x
+
+# jetsonlowpower:
+#   cifar-dense:
+#     CPU baseline: 9.79x
+#     GPU baseline: 0.93x
+#   cifar-sparse:
+#     CPU baseline: 2.61x
+#     GPU baseline: 1.01x
+#   tree:
+#     CPU baseline: 4.02x
+#     GPU baseline: 0.70x
+
+# Speedups using measured times of fastest predicted schedules:
+
+# 3A021JEHN02756:
+#   cifar-dense:
+#     CPU baseline: 155.63x
+#     GPU baseline: 1.89x
+#   cifar-sparse:
+#     CPU baseline: 8.51x
+#     GPU baseline: 8.35x
+#   tree:
+#     CPU baseline: 8.40x
+#     GPU baseline: 34.73x
+
+# 9b034f1b:
+#   cifar-dense:
+#     CPU baseline: 113.88x
+#     GPU baseline: 1.89x
+#   cifar-sparse:
+#     CPU baseline: 7.52x
+#     GPU baseline: 3.95x
+#   tree:
+#     CPU baseline: 5.99x
+#     GPU baseline: 22.26x
+
+# jetson:
+#   cifar-dense:
+#     CPU baseline: 19.90x
+#     GPU baseline: 1.04x
+#   cifar-sparse:
+#     CPU baseline: 4.81x
+#     GPU baseline: 1.14x
+#   tree:
+#     CPU baseline: 3.29x
+#     GPU baseline: 1.08x
+
+# jetsonlowpower:
+#   cifar-dense:
+#     CPU baseline: 11.36x
+#     GPU baseline: 1.08x
+#   cifar-sparse:
+#     CPU baseline: 4.58x
+#     GPU baseline: 1.78x
+#   tree:
+#     CPU baseline: 4.26x
+#     GPU baseline: 0.74x
+
+# Geometric mean of CPU baseline speedups (predicted): 8.76x
+# Geometric mean of GPU baseline speedups (predicted): 2.12x
+
+# Geometric mean of CPU baseline speedups (measured): 11.23x
+# Geometric mean of GPU baseline speedups (measured): 2.72x
+
+# === Maximum Speedups ===
+# Maximum CPU baseline speedup (predicted): 147.47x
+# Maximum GPU baseline speedup (predicted): 23.11x
+# Maximum CPU baseline speedup (measured): 155.63x
+# Maximum GPU baseline speedup (measured): 34.73x
+
+# === Maximum Speedup Details ===
+# Max CPU speedup (predicted): 9b034f1b, cifar-dense
+# Max GPU speedup (predicted): 3A021JEHN02756, tree
+# Max CPU speedup (measured): 3A021JEHN02756, cifar-dense
+# Max GPU speedup (measured): 3A021JEHN02756, tree
