@@ -30,7 +30,7 @@ plt.rcParams.update({'axes.labelsize': 14})
 
 # Create heatmap with transposed data
 ax = sns.heatmap(pearson_data_transposed, annot=True, cmap="YlGnBu", vmin=0.8, vmax=1.0, 
-            xticklabels=devices, yticklabels=apps, fmt=".2f", annot_kws={"size": 14})
+            xticklabels=devices, yticklabels=apps, fmt=".4f", annot_kws={"size": 14})
             
 # Add titles and labels
 ax.set_title('Pearson Correlation Coefficient', fontsize=18, pad=20)
