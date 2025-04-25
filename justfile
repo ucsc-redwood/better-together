@@ -66,7 +66,6 @@ run-baselines-android:
     xmake r bm-baseline-cifar-dense-vk --device 3A021JEHN02756
     xmake r bm-baseline-cifar-sparse-vk --device 3A021JEHN02756
     xmake r bm-baseline-tree-vk --device 3A021JEHN02756
-
     xmake r bm-baseline-cifar-dense-vk --device 9b034f1b
     xmake r bm-baseline-cifar-sparse-vk --device 9b034f1b
     xmake r bm-baseline-tree-vk --device 9b034f1b
@@ -75,24 +74,37 @@ run-baselines-jetson:
     xmake r bm-baseline-cifar-sparse-cu --device jetson
     xmake r bm-baseline-cifar-dense-cu --device jetson
     xmake r bm-baseline-tree-cu --device jetson
-    xmake r bm-baseline-cifar-sparse-vk --device jetson
-    xmake r bm-baseline-cifar-dense-vk --device jetson
-    xmake r bm-baseline-tree-vk --device jetson
+    # xmake r bm-baseline-cifar-sparse-vk --device jetson
+    # xmake r bm-baseline-cifar-dense-vk --device jetson
+    # xmake r bm-baseline-tree-vk --device jetson
 
 run-baselines-jetsonlowpower:
     xmake r bm-baseline-cifar-sparse-cu --device jetsonlowpower
     xmake r bm-baseline-cifar-dense-cu --device jetsonlowpower
     xmake r bm-baseline-tree-cu --device jetsonlowpower
-    xmake r bm-baseline-cifar-sparse-vk --device jetsonlowpower
-    xmake r bm-baseline-cifar-dense-vk --device jetsonlowpower
-    xmake r bm-baseline-tree-vk --device jetsonlowpower
+    # xmake r bm-baseline-cifar-sparse-vk --device jetsonlowpower
+    # xmake r bm-baseline-cifar-dense-vk --device jetsonlowpower
+    # xmake r bm-baseline-tree-vk --device jetsonlowpower
 
 
 collect-all-android:
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
 
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
+
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
+    python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
     python3 scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
