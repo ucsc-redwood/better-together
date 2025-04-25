@@ -27,6 +27,81 @@ static void BM_baseline_omp(benchmark::State& state) {
 BENCHMARK(BM_baseline_omp)->Unit(benchmark::kMillisecond)->Name("OMP/Baseline");
 
 // ----------------------------------------------------------------------------
+// Baseline: OMP (Little Cores)
+// ----------------------------------------------------------------------------
+
+static void BM_baseline_omp_little_cores(benchmark::State& state) {
+  INIT_DATA_SINGLE;
+
+  if (!has_lit_cores()) {
+    state.SkipWithMessage("No little cores");
+    return;
+  }
+
+  // Warm up
+  cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, appdata, 1, 9);
+
+  // Benchmark
+  for (auto _ : state) {
+    cifar_dense::omp::dispatch_multi_stage(LITTLE_CORES, appdata, 1, 9);
+  }
+}
+
+BENCHMARK(BM_baseline_omp_little_cores)
+    ->Unit(benchmark::kMillisecond)
+    ->Name("OMP/CIFAR-dense/Baseline/LittleCores");
+
+// ----------------------------------------------------------------------------
+// Baseline: OMP (Mid Cores)
+// ----------------------------------------------------------------------------
+
+static void BM_baseline_omp_mid_cores(benchmark::State& state) {
+  INIT_DATA_SINGLE;
+
+  if (!has_med_cores()) {
+    state.SkipWithMessage("No mid cores");
+    return;
+  }
+
+  // Warm up
+  cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, appdata, 1, 9);
+
+  // Benchmark
+  for (auto _ : state) {
+    cifar_dense::omp::dispatch_multi_stage(MEDIUM_CORES, appdata, 1, 9);
+  }
+}
+
+BENCHMARK(BM_baseline_omp_mid_cores)
+    ->Unit(benchmark::kMillisecond)
+    ->Name("OMP/CIFAR-dense/Baseline/MidCores");
+
+// ----------------------------------------------------------------------------
+// Baseline: OMP (Big Cores)
+// ----------------------------------------------------------------------------
+
+static void BM_baseline_omp_big_cores(benchmark::State& state) {
+  INIT_DATA_SINGLE;
+
+  if (!has_big_cores()) {
+    state.SkipWithMessage("No big cores");
+    return;
+  }
+
+  // Warm up
+  cifar_dense::omp::dispatch_multi_stage(BIG_CORES, appdata, 1, 9);
+
+  // Benchmark
+  for (auto _ : state) {
+    cifar_dense::omp::dispatch_multi_stage(BIG_CORES, appdata, 1, 9);
+  }
+}
+
+BENCHMARK(BM_baseline_omp_big_cores)
+    ->Unit(benchmark::kMillisecond)
+    ->Name("OMP/CIFAR-dense/Baseline/BigCores");
+
+// ----------------------------------------------------------------------------
 // Baseline: Vulkan
 // ----------------------------------------------------------------------------
 

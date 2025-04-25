@@ -3,15 +3,17 @@ import matplotlib.pyplot as plt
 
 # Baselines (Google Pixel)
 
-dense_cpu_baseline = 940
-dense_gpu_baseline = 11.4
+dense_cpu_baseline = 734
+dense_gpu_baseline = 6.76
+
 sparse_cpu_baseline = 29.0
 sparse_gpu_baseline = 13.2
-tree_cpu_baseline = 14.5
+
+tree_cpu_baseline = 15.9
 tree_gpu_baseline = 57.0
 
-best_measured_dense = 5.02  
-best_measured_sparse = 7.05
+best_measured_dense = 5.02
+best_measured_sparse = 4.05
 best_measured_tree = 3.06
 
 # Google Pixel Dense
@@ -75,7 +77,11 @@ x = np.arange(len(workloads))
 width = 0.25
 
 # Academic color scheme
-colors = ['#1f77b4', '#ff7f0e', '#2ca02c']  # Blue for CPU, Orange for GPU, Green for our work
+colors = [
+    "#1f77b4",
+    "#ff7f0e",
+    "#2ca02c",
+]  # Blue for CPU, Orange for GPU, Green for our work
 
 fig, ax = plt.subplots(figsize=(8, 5))
 
@@ -98,4 +104,4 @@ for i in range(len(workloads)):
 ax.grid(axis="y", linestyle="--", alpha=0.3)
 plt.tight_layout()
 plt.show()
-plt.savefig("headline_result.png", dpi=300, bbox_inches='tight')
+plt.savefig("headline_result.png", dpi=300, bbox_inches="tight")
