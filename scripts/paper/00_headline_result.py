@@ -9,8 +9,8 @@ dense_gpu_baseline = 11.4
 sparse_cpu_baseline = 45.8
 sparse_gpu_baseline = 44.9
 
-tree_cpu_baseline = 45.8
-tree_gpu_baseline = 44.9
+tree_cpu_baseline = 14.5
+tree_gpu_baseline = 57.0
 
 
 # Google Pixel Dense
@@ -41,31 +41,34 @@ tree_gpu_baseline = 44.9
 # Best-case measured time for dense (ms)
 best_measured_dense = 5.02  # replace with your actual best-case dense measurement
 
+best_measured_sparse = 4.05
+
+best_measured_tree = 3.06
+
 # Compute dense speedups relative to CPU baseline
 dense_speedups = [
-    1.0,                                # CPU-only normalized
-    dense_cpu_baseline / dense_gpu_baseline,        # GPU-only speedup
-    dense_cpu_baseline / best_measured_dense  # BT speedup
+    1.0,  # CPU-only normalized
+    dense_cpu_baseline / dense_gpu_baseline,  # GPU-only speedup
+    dense_cpu_baseline / best_measured_dense,  # BT speedup
 ]
 
 sparse_speedups = [
-    1.0,                                # CPU-only normalized
-    sparse_cpu_baseline / sparse_gpu_baseline,        # GPU-only speedup
-    sparse_cpu_baseline / best_measured_dense  # BT speedup
+    1.0,  # CPU-only normalized
+    sparse_cpu_baseline / sparse_gpu_baseline,  # GPU-only speedup
+    sparse_cpu_baseline / best_measured_sparse,  # BT speedup
 ]
 
-# Placeholder speedups for sparse and tree (replace these with real data)
-tree_speedups   = [0.0, 0.0, 0.0]  # [CPU-only, GPU-only, BT]
+tree_speedups = [
+    1.0,  # CPU-only normalized
+    tree_cpu_baseline / tree_gpu_baseline,  # GPU-only speedup
+    tree_cpu_baseline / best_measured_tree,  # BT speedup
+]
 
 # Combine into a data matrix: rows = workloads, cols = methods
-speedup_data = np.array([
-    dense_speedups,
-    sparse_speedups,
-    tree_speedups
-])
+speedup_data = np.array([dense_speedups, sparse_speedups, tree_speedups])
 
-workloads = ['Dense', 'Sparse', 'Tree']
-methods   = ['CPU Only', 'GPU Only', 'Our Work']
+workloads = ["CIFAR-Dense", "CIFAR-Sparse", "Octree"]
+methods = ["CPU-only", "GPU-only", "This work"]
 
 # Plot
 x = np.arange(len(workloads))
@@ -74,21 +77,22 @@ width = 0.25
 fig, ax = plt.subplots(figsize=(8, 5))
 
 for i, method in enumerate(methods):
-    ax.bar(x + i*width, speedup_data[:, i], width, label=method)
+    ax.bar(x + i * width, speedup_data[:, i], width, label=method)
 
 ax.set_xticks(x + width)
 ax.set_xticklabels(workloads)
-ax.set_ylabel('Speedup over CPU Baseline')
-ax.set_title('Speedup Comparison Across Workloads')
+ax.set_ylabel("Speedup over CPU Baseline")
+ax.set_yscale("log")  # Set y-axis to logarithmic scale
+ax.set_title("Speedup Comparison Across Workloads")
 ax.legend()
 
 # Annotate each bar with its value
 for i in range(len(workloads)):
     for j in range(len(methods)):
         height = speedup_data[i, j]
-        ax.text(x[i] + j*width, height, f'{height:.2f}', ha='center', va='bottom')
+        ax.text(x[i] + j * width, height, f"{height:.2f}", ha="center", va="bottom")
 
-ax.grid(axis='y', linestyle='--', alpha=0.7)
+ax.grid(axis="y", linestyle="--", alpha=0.7)
 plt.tight_layout()
 plt.show()
-plt.savefig('headline_result.png', dpi=300)
+plt.savefig("headline_result.png", dpi=300)

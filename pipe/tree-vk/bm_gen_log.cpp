@@ -125,14 +125,15 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
             // Launch OMP
             const auto cores = get_cores_by_type(cpu_pt);
             // tree::omp::dispatch_multi_stage(cores, cores.size(), *app, start, end);
+            tree::omp::dispatch_multi_stage(cores, cores.size(), *app, 1, 1);
 
-            const std::array<double, 7> a = {0.938, 0.350, 0.184, 8.21, 0.247, 0.180, 2.42};
-            auto s = std::accumulate(a.begin() + start, a.begin() + start + end, 0.0);
-            auto start = std::chrono::high_resolution_clock::now();
-            while (std::chrono::duration_cast<std::chrono::milliseconds>(
-                       std::chrono::high_resolution_clock::now() - start)
-                       .count() < s) {
-            }
+            // constexpr std::array<double, 7> a = {0.938, 0.350, 0.184, 2.21, 0.247, 0.180, 2.42};
+            // auto s = std::accumulate(a.begin() + start, a.begin() + start + end, 0.0);
+            // auto start = std::chrono::high_resolution_clock::now();
+            // while (std::chrono::duration_cast<std::chrono::milliseconds>(
+            //            std::chrono::high_resolution_clock::now() - start)
+            //            .count() < s) {
+            // }
           },
           kNumToProcess,
           chunk_id == n_chunks - 1);
