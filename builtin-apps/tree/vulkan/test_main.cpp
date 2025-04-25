@@ -267,6 +267,39 @@ TEST(QueueTest, Basic) {
   EXPECT_TRUE(queue.empty());
 }
 
+TEST(QueueTest5Seconds, Basic) {
+  tree::vulkan::VulkanDispatcher disp;
+
+  std::vector<std::shared_ptr<tree::vulkan::VkAppData_Safe>> appdatas;
+  appdatas.reserve(10);
+  for (int i = 0; i < 10; i++) {
+    appdatas.push_back(std::make_shared<tree::vulkan::VkAppData_Safe>(disp.get_mr()));
+  }
+
+  std::queue<std::shared_ptr<tree::vulkan::VkAppData_Safe>> queue;
+  for (auto& appdata : appdatas) {
+    queue.push(appdata);
+  }
+
+  std::atomic<bool> running(true);
+
+  std::thread t([&]() {
+    while (running) {
+      auto appdata = queue.front();
+      queue.pop();
+
+      EXPECT_NO_THROW(disp.dispatch_multi_stage(*appdata, 1, 7));
+
+      queue.push(appdata);
+    }
+  });
+
+  std::this_thread::sleep_for(std::chrono::seconds(5));
+  running = false;
+
+  t.join();
+}
+
 // ----------------------------------------------------------------------------
 // Main
 // ----------------------------------------------------------------------------

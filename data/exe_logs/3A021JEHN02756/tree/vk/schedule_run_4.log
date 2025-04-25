@@ -1,10 +1,118 @@
 
 Running only on specified device: 3A021JEHN02756
 Deploying and running 'bm-gen-logs-tree-vk' on device: 3A021JEHN02756
-build/android/arm64-v8a/release/bm-gen-logs-tree-vk: 1 file pushed, 0 skipped. 484.7 MB/s (7086032 bytes in 0.014s)
-[2025-04-24 17:52:23.917] [info] Pinable Lit cores: 0 1 2 3 
-[2025-04-24 17:52:23.917] [info] Pinable Med cores: 4 5 
-[2025-04-24 17:52:23.917] [info] Pinable Big cores: 6 7 
-[2025-04-24 17:52:24.532] [info] Fetching JSON from URL: http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json
-[2025-04-24 17:52:24.639] [error] Failed to fetch or parse schedules: curl_easy_perform() failed: Could not connect to server
-[2025-04-24 17:52:24.639] [warning] Running only warmup phase.
+build/android/arm64-v8a/release/bm-gen-logs-tree-vk: 1 file pushed, 0 skipped. 489.7 MB/s (7086032 bytes in 0.014s)
+[2025-04-24 18:33:34.043] [info] Pinable Lit cores: 0 1 2 3 
+[2025-04-24 18:33:34.044] [info] Pinable Med cores: 4 5 
+[2025-04-24 18:33:34.044] [info] Pinable Big cores: 6 7 
+[2025-04-24 18:33:34.683] [info] Fetching JSON from URL: http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json
+[2025-04-24 18:33:34.778] [info] Loaded 16 valid schedules from JSON
+[2025-04-24 18:33:34.779] [info] Loaded 16 schedules
+--------------------------------
+Schedule 0 [UID: SCH-M4L5-G004-ea44]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3, 4
+  Chunk 1 [OMP/Little]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 1 [UID: SCH-M2L1G3B3-G035-f112]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [OMP/Little]: 3
+  Chunk 2 [Vulkan    ]: 4, 5, 6
+  Chunk 3 [OMP/Big   ]: 7, 8, 9
+--------------------------------
+Schedule 2 [UID: SCH-M2G3B4-G036-0adb]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5
+  Chunk 2 [OMP/Big   ]: 6, 7, 8, 9
+--------------------------------
+Schedule 3 [UID: SCH-B4L5-G041-adf4]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Little]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 4 [UID: SCH-B2L1G3M3-G048-bed7]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [OMP/Little]: 3
+  Chunk 2 [Vulkan    ]: 4, 5, 6
+  Chunk 3 [OMP/Medium]: 7, 8, 9
+--------------------------------
+Schedule 5 [UID: SCH-M2G2L2B3-G048-71fb]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Little]: 5, 6
+  Chunk 3 [OMP/Big   ]: 7, 8, 9
+--------------------------------
+Schedule 6 [UID: SCH-L3M6-G049-aba2]:
+  Chunk 0 [OMP/Little]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 7 [UID: SCH-B2G2M5-G050-3c16]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Medium]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 8 [UID: SCH-B2G3M4-G054-c03b]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5
+  Chunk 2 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 9 [UID: SCH-B2L1G2M4-G056-aa90]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [OMP/Little]: 3
+  Chunk 2 [Vulkan    ]: 4, 5
+  Chunk 3 [OMP/Medium]: 6, 7, 8, 9
+--------------------------------
+Schedule 10 [UID: SCH-L3B6-G057-12d7]:
+  Chunk 0 [OMP/Little]: 1, 2, 3
+  Chunk 1 [OMP/Big   ]: 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 11 [UID: SCH-M2G2B5-G058-5b29]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Big   ]: 5, 6, 7, 8, 9
+--------------------------------
+Schedule 12 [UID: SCH-B2G2L2M3-G061-ce67]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Little]: 5, 6
+  Chunk 3 [OMP/Medium]: 7, 8, 9
+--------------------------------
+Schedule 13 [UID: SCH-L1M2G3B3-G062-cc6e]:
+  Chunk 0 [OMP/Little]: 1
+  Chunk 1 [OMP/Medium]: 2, 3
+  Chunk 2 [Vulkan    ]: 4, 5, 6
+  Chunk 3 [OMP/Big   ]: 7, 8, 9
+--------------------------------
+Schedule 14 [UID: SCH-M2L1G2B4-G063-b832]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [OMP/Little]: 3
+  Chunk 2 [Vulkan    ]: 4, 5
+  Chunk 3 [OMP/Big   ]: 6, 7, 8, 9
+--------------------------------
+Schedule 15 [UID: SCH-B3G3M3-G063-1a4d]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3
+  Chunk 1 [Vulkan    ]: 4, 5, 6
+  Chunk 2 [OMP/Medium]: 7, 8, 9
+[2025-04-24 18:33:34.781] [info] Running 16/16 schedules
+
+--------------------------------
+[2025-04-24 18:33:34.781] [info] Available Vulkan Layers:
+[2025-04-24 18:33:34.781] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-24 18:33:34.786] [info] Using integrated GPU: Mali-G710
+[2025-04-24 18:33:34.790] [info] VulkanDispatcher instance created.
+[2025-04-24 18:33:34.954] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:34.958] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:34.995] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:34.999] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.002] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.070] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.074] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.078] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.081] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.085] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.136] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.140] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.144] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.147] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.151] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-24 18:33:35.155] [info] Total memory used: 40550404 bytes (38.67188 MB)
+Segmentation fault 
+[0m[1;38;5;1;1merror: [0mexecv(adb -s 3A021JEHN02756 shell /data/local/tmp/bm-gen-logs-tree-vk 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json --n-schedules-to-run 20 --device=3A021JEHN02756) failed(139)[0m

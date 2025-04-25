@@ -145,8 +145,8 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
 // python -m http.server 8080
 //
 // Run with:
-// xmake r bm-gen-logs-tree-vk --device 3A021JEHN02756 --schedule-url <url>
-// <url>
+// make r bm-gen-logs-tree-vk --device 3A021JEHN02756 --schedule-url http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json
+// 
 //
 // ----------------------------------------------------------------------------
 

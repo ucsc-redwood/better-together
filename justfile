@@ -152,7 +152,7 @@ serve:
 run-schedule device app backend:
     python3 scripts/collect/03_run_schedule.py \
         --log_folder data/exe_logs \
-        --repeat 10 \
+        --repeat 5 \
         --app {{app}} \
         --backend {{backend}} \
         --device {{device}} \
@@ -163,6 +163,6 @@ compare-schedules device app backend:
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
 
-# make-example-timeline:
-#     python3 scripts/collect/timeline.py data/exe_logs/3A021JEHN02756/cifar-sparse/vk/3A021JEHN02756_cifar-sparse_vk_schedules_1.log \
-#         --output-dir data/exe_logs/3A021JEHN02756/cifar-sparse/vk/timeline
+make-example-timeline:
+    python3 scripts/collect/05_timeline.py data/exe_logs/3A021JEHN02756/cifar-sparse/vk/schedule_run_1.log \
+        --output-dir data/exe_logs/3A021JEHN02756/cifar-sparse/vk/timeline
