@@ -1,0 +1,161 @@
+
+Running only on specified device: 9b034f1b
+Deploying and running 'bm-gen-logs-tree-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-gen-logs-tree-vk: 1 file pushed, 0 skipped. 499.1 MB/s (7086032 bytes in 0.014s)
+[2025-04-25 00:25:29.741] [info] Pinable Lit cores: 0 1 2 
+[2025-04-25 00:25:29.742] [info] Pinable Med cores: 3 4 
+[2025-04-25 00:25:29.742] [info] Pinable Big cores: 5 6 7 
+[2025-04-25 00:25:30.217] [info] Fetching JSON from URL: http://192.168.1.204:8080/9b034f1b/tree/vk/schedules.json
+[2025-04-25 00:25:30.270] [info] Loaded 20 valid schedules from JSON
+[2025-04-25 00:25:30.270] [info] Loaded 20 schedules
+--------------------------------
+Schedule 0 [UID: SCH-M7-G000-187e]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3, 4, 5, 6, 7
+--------------------------------
+Schedule 1 [UID: SCH-L7-G000-9059]:
+  Chunk 0 [OMP/Little]: 1, 2, 3, 4, 5, 6, 7
+--------------------------------
+Schedule 2 [UID: SCH-G7-G000-99a5]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+--------------------------------
+Schedule 3 [UID: SCH-B7-G000-ce4f]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4, 5, 6, 7
+--------------------------------
+Schedule 4 [UID: SCH-L2B5-G023-807f]:
+  Chunk 0 [OMP/Little]: 1, 2
+  Chunk 1 [OMP/Big   ]: 3, 4, 5, 6, 7
+--------------------------------
+Schedule 5 [UID: SCH-M3G4-G028-4606]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3
+  Chunk 1 [Vulkan    ]: 4, 5, 6, 7
+--------------------------------
+Schedule 6 [UID: SCH-B3G4-G030-86ec]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3
+  Chunk 1 [Vulkan    ]: 4, 5, 6, 7
+--------------------------------
+Schedule 7 [UID: SCH-B4L3-G039-babf]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4
+  Chunk 1 [OMP/Little]: 5, 6, 7
+--------------------------------
+Schedule 8 [UID: SCH-B2G3M2-G059-4530]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5
+  Chunk 2 [OMP/Medium]: 6, 7
+--------------------------------
+Schedule 9 [UID: SCH-B2G2M3-G082-0a3d]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Medium]: 5, 6, 7
+--------------------------------
+Schedule 10 [UID: SCH-B2G4M1-G088-ffd0]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5, 6
+  Chunk 2 [OMP/Medium]: 7
+--------------------------------
+Schedule 11 [UID: SCH-M2G2B3-G091-9857]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Big   ]: 5, 6, 7
+--------------------------------
+Schedule 12 [UID: SCH-B5L2-G102-3278]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4, 5
+  Chunk 1 [OMP/Little]: 6, 7
+--------------------------------
+Schedule 13 [UID: SCH-L1B2G4-G109-0669]:
+  Chunk 0 [OMP/Little]: 1
+  Chunk 1 [OMP/Big   ]: 2, 3
+  Chunk 2 [Vulkan    ]: 4, 5, 6, 7
+--------------------------------
+Schedule 14 [UID: SCH-M2G3B2-G109-1546]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5
+  Chunk 2 [OMP/Big   ]: 6, 7
+--------------------------------
+Schedule 15 [UID: SCH-M2G5-G112-99b4]:
+  Chunk 0 [OMP/Medium]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5, 6, 7
+--------------------------------
+Schedule 16 [UID: SCH-B2G2L2M1-G113-cc48]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4
+  Chunk 2 [OMP/Little]: 5, 6
+  Chunk 3 [OMP/Medium]: 7
+--------------------------------
+Schedule 17 [UID: SCH-L3M4-G113-9007]:
+  Chunk 0 [OMP/Little]: 1, 2, 3
+  Chunk 1 [OMP/Medium]: 4, 5, 6, 7
+--------------------------------
+Schedule 18 [UID: SCH-B2G5-G121-df6b]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5, 6, 7
+--------------------------------
+Schedule 19 [UID: SCH-B3G2M2-G131-5ea7]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3
+  Chunk 1 [Vulkan    ]: 4, 5
+  Chunk 2 [OMP/Medium]: 6, 7
+[2025-04-25 00:25:30.274] [info] Running 20/20 schedules
+
+--------------------------------
+[2025-04-25 00:25:30.274] [info] Available Vulkan Layers:
+[2025-04-25 00:25:30.274] [warning] Validation layer requested but not available, continuing without it...
+[2025-04-25 00:25:30.279] [info] Using integrated GPU: Adreno (TM) 740
+[2025-04-25 00:25:30.288] [info] VulkanDispatcher instance created.
+[2025-04-25 00:25:30.410] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.419] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.441] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.450] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.459] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.499] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.509] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.518] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.528] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.537] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.577] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.586] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.596] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.605] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.615] [info] Total memory used: 40550404 bytes (38.67188 MB)
+[2025-04-25 00:25:30.624] [info] Total memory used: 40550404 bytes (38.67188 MB)
+### Python Begin ###
+Schedule_UID=SCH-M7-G000-187e
+Frequency=19200000 Hz
+Task=0 Chunk=0 Start=14279654702400 End=14279655172764 Duration=470364
+Task=1 Chunk=0 Start=14279655172768 End=14279655378691 Duration=205923
+Task=2 Chunk=0 Start=14279655378692 End=14279655583229 Duration=204537
+Task=3 Chunk=0 Start=14279655583230 End=14279655787920 Duration=204690
+Task=4 Chunk=0 Start=14279655787922 End=14279655995240 Duration=207318
+Task=5 Chunk=0 Start=14279655995240 End=14279656199525 Duration=204285
+Task=6 Chunk=0 Start=14279656199525 End=14279656404178 Duration=204653
+Task=7 Chunk=0 Start=14279656404179 End=14279656609228 Duration=205049
+Task=8 Chunk=0 Start=14279656609229 End=14279656813672 Duration=204443
+Task=9 Chunk=0 Start=14279656813673 End=14279657019726 Duration=206053
+Task=10 Chunk=0 Start=14279657019729 End=14279657226906 Duration=207177
+Task=11 Chunk=0 Start=14279657226907 End=14279657431400 Duration=204493
+Task=12 Chunk=0 Start=14279657431404 End=14279657636439 Duration=205035
+Task=13 Chunk=0 Start=14279657636442 End=14279657840530 Duration=204088
+Task=14 Chunk=0 Start=14279657840532 End=14279658045100 Duration=204568
+Task=15 Chunk=0 Start=14279658045101 End=14279658248705 Duration=203604
+Task=16 Chunk=0 Start=14279658248708 End=14279658452467 Duration=203759
+Task=17 Chunk=0 Start=14279658452470 End=14279658656368 Duration=203898
+Task=18 Chunk=0 Start=14279658656368 End=14279658860655 Duration=204287
+Task=19 Chunk=0 Start=14279658860659 End=14279659065556 Duration=204897
+Task=20 Chunk=0 Start=14279659065560 End=14279659269681 Duration=204121
+Task=21 Chunk=0 Start=14279659269684 End=14279659473572 Duration=203888
+Task=22 Chunk=0 Start=14279659473577 End=14279659680513 Duration=206936
+Task=23 Chunk=0 Start=14279659680516 End=14279659884817 Duration=204301
+Task=24 Chunk=0 Start=14279659884817 End=14279660088171 Duration=203354
+Task=25 Chunk=0 Start=14279660088172 End=14279660292884 Duration=204712
+Task=26 Chunk=0 Start=14279660292885 End=14279660498603 Duration=205718
+Task=27 Chunk=0 Start=14279660498603 End=14279660703430 Duration=204827
+Task=28 Chunk=0 Start=14279660703431 End=14279660909241 Duration=205810
+Task=29 Chunk=0 Start=14279660909243 End=14279661114218 Duration=204975
+Task=30 Chunk=0 Start=14279661114218 End=14279661319139 Duration=204921
+Task=31 Chunk=0 Start=14279661319141 End=14279661523888 Duration=204747
+Task=32 Chunk=0 Start=14279661523889 End=14279661726103 Duration=202214
+Task=33 Chunk=0 Start=14279661726106 End=14279661930640 Duration=204534
+Task=34 Chunk=0 Start=14279661930644 End=14279662135360 Duration=204716
+Task=35 Chunk=0 Start=14279662135364 End=14279662340441 Duration=205077
+Task=36 Chunk=0 Start=14279662340442 End=14279662544953 Duration=204511
+Task=37 Chunk=0 Start=14279662544954 End=14279662749636 Duration=204682
+Task=38 Chunk=0 Start=14279662749639 End=14279662955119 Duration=205480
+Task=39 Chunk=0 Start=14279662955120 End=14279663159914 Duration=204794
