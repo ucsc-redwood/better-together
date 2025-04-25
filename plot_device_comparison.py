@@ -24,7 +24,7 @@ for idx, (path, title) in enumerate(list(image_paths.items())[:3]):
     img = mpimg.imread(path)
     plt.imshow(img)
     plt.title(f"{title} on {device1}")
-    plt.axis('off')
+    plt.axis("off")
 
 # Plot images for second device (bottom row)
 for idx, (path, title) in enumerate(list(image_paths.items())[3:]):
@@ -32,11 +32,11 @@ for idx, (path, title) in enumerate(list(image_paths.items())[3:]):
     img = mpimg.imread(path)
     plt.imshow(img)
     plt.title(f"{title} on {device2}")
-    plt.axis('off')
+    plt.axis("off")
 
 # Adjust layout to prevent overlap
 plt.tight_layout()
 
 # Save the figure
-plt.savefig('device_comparison.png', dpi=300, bbox_inches='tight')
-plt.close() 
+plt.savefig("device_comparison.png", dpi=300, bbox_inches="tight")
+plt.close()

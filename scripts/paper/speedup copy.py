@@ -1,4 +1,3 @@
-
 baselines = {
     "3A021JEHN02756": {
         "cifar-dense-vk": {
@@ -196,7 +195,7 @@ def compute_geomean_speedup(df):
 def analyze_statistics(df):
     # Calculate speedup ratios
     speedups = df["Predicted (ms)"] / df["Measured (ms)"]
-    
+
     # Basic statistics for measured times
     measured_stats = {
         "Mean": np.mean(df["Measured (ms)"]),
@@ -207,7 +206,7 @@ def analyze_statistics(df):
         "25th Percentile": np.percentile(df["Measured (ms)"], 25),
         "75th Percentile": np.percentile(df["Measured (ms)"], 75),
     }
-    
+
     # Basic statistics for predicted times
     predicted_stats = {
         "Mean": np.mean(df["Predicted (ms)"]),
@@ -218,7 +217,7 @@ def analyze_statistics(df):
         "25th Percentile": np.percentile(df["Predicted (ms)"], 25),
         "75th Percentile": np.percentile(df["Predicted (ms)"], 75),
     }
-    
+
     # Speedup statistics
     speedup_stats = {
         "Geometric Mean": np.exp(np.mean(np.log(speedups))),
@@ -230,34 +229,36 @@ def analyze_statistics(df):
         "25th Percentile": np.percentile(speedups, 25),
         "75th Percentile": np.percentile(speedups, 75),
     }
-    
+
     # Correlation between measured and predicted times
     correlation = stats.pearsonr(df["Measured (ms)"], df["Predicted (ms)"])[0]
-    
+
     return {
         "Measured Times": measured_stats,
         "Predicted Times": predicted_stats,
         "Speedup Ratios": speedup_stats,
-        "Correlation": correlation
+        "Correlation": correlation,
     }
 
 
 def print_statistics(stats, dataset_name):
     print(f"\n=== {dataset_name} Statistics ===")
-    
+
     print("\nMeasured Times (ms):")
     for stat, value in stats["Measured Times"].items():
         print(f"{stat}: {value:.2f}")
-    
+
     print("\nPredicted Times (ms):")
     for stat, value in stats["Predicted Times"].items():
         print(f"{stat}: {value:.2f}")
-    
+
     print("\nSpeedup Ratios (Predicted/Measured):")
     for stat, value in stats["Speedup Ratios"].items():
         print(f"{stat}: {value:.2f}x")
-    
-    print(f"\nCorrelation between Measured and Predicted Times: {stats['Correlation']:.3f}")
+
+    print(
+        f"\nCorrelation between Measured and Predicted Times: {stats['Correlation']:.3f}"
+    )
 
 
 # Parse each dataset
