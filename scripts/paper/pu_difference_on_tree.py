@@ -23,7 +23,7 @@ tasks = df[df["stage"].isin([2, 4, 7])]
 plt.style.use("default")
 plt.rcParams.update(
     {
-        "font.size": 9,
+        "font.size": 10,
         "axes.grid": True,
         "grid.alpha": 0.3,
         "axes.spines.top": False,
@@ -32,35 +32,42 @@ plt.rcParams.update(
 )
 
 # Create figure and axis
-plt.figure(figsize=(6, 4))
+plt.figure(figsize=(6, 2.5))  # Reduced height from 4 to 2.5
 
 # Set up the bar positions
 x = np.arange(3)  # 2 tasks
 width = 0.2  # width of the bars
 
 # Plot all processor types
-plt.bar(x - width * 1.5, tasks["little"], width, label="CPU (Little)", color="#1f77b4")
-plt.bar(x - width / 2, tasks["medium"], width, label="CPU (Medium)", color="#2ca02c")
-plt.bar(x + width / 2, tasks["big"], width, label="CPU (Big)", color="#ff7f0e")
-plt.bar(x + width * 1.5, tasks["vulkan"], width, label="GPU", color="#d62728")
+plt.bar(
+    x - width * 1.5, tasks["little"], width, label="CPU (Little)", color="#1f77b4"
+)  # Dark blue
+plt.bar(
+    x - width / 2, tasks["medium"], width, label="CPU (Medium)", color="#4c8bb8"
+)  # Medium blue
+plt.bar(
+    x + width / 2, tasks["big"], width, label="CPU (Big)", color="#7ab8e6"
+)  # Light blue
+plt.bar(x + width * 1.5, tasks["vulkan"], width, label="GPU", color="#2ca02c")  # Green
 
 # Add labels and title
-plt.xlabel("Task")
+plt.xlabel("Stage")
 plt.ylabel("Execution Time (ms)")
-plt.title("Processor Performance Comparison")
+plt.title("PU Stage Performance")
 plt.xticks(x, ["Sort", "Build Radix Tree", "Build Octree"])
-plt.legend(loc="upper right")
+plt.legend(loc="upper right", fontsize=8)
 
 # Add value labels on top of bars
 for i, (l, m, b, g) in enumerate(
     zip(tasks["little"], tasks["medium"], tasks["big"], tasks["vulkan"])
 ):
-    plt.text(i - width * 1.5, l + 0.1, f"{l:.2f}", ha="center", fontsize=8)
-    plt.text(i - width / 2, m + 0.1, f"{m:.2f}", ha="center", fontsize=8)
-    plt.text(i + width / 2, b + 0.1, f"{b:.2f}", ha="center", fontsize=8)
-    plt.text(i + width * 1.5, g + 0.1, f"{g:.2f}", ha="center", fontsize=8)
+    # Only show GPU value for Sort stage
+    if i == 0:  # Sort stage
+        plt.text(i + width * 1.5, 9, f"{g:.2f}", ha="center", va="bottom", fontsize=9)
+
+# Set y-axis limit to make plot more compact and cut off high GPU value
+plt.ylim(0, 10)  # Adjusted to better show the other bars
 
 # Adjust layout and show plot
 plt.tight_layout()
 plt.savefig("processor_comparison.png", dpi=300, bbox_inches="tight")
-plt.show()
