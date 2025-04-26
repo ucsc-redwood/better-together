@@ -381,11 +381,11 @@ def create_comparison_visualization(
     )
 
     # Add labels and title
-    plt.xlabel("Schedule UID (sorted by predicted time)")
+    # plt.xlabel("Schedule UID (sorted by predicted time)")
     plt.ylabel("Time (ms)")
-    plt.title(
-        "Comparison of Measured vs Predicted Execution Times (Sorted by Prediction)"
-    )
+    # plt.title(
+    #     "Comparison of Measured vs Predicted Execution Times (Sorted by Prediction)"
+    # )
     plt.xticks(x, [uid.split("-")[1] for uid in schedule_uids], rotation=45, ha="right")
     plt.legend()
 
@@ -463,7 +463,7 @@ def create_line_comparison_chart(
 ):
     """Create a line-based visualization comparing measured and predicted execution times."""
     # Create figure with white background
-    plt.figure(figsize=(14, 8), facecolor="white")
+    plt.figure(figsize=(14, 6), facecolor="white")  # Reduced height from 8 to 6
 
     # Get x positions
     x = np.arange(len(schedule_uids))
@@ -474,8 +474,8 @@ def create_line_comparison_chart(
         predicted_times,
         "r--",
         marker="s",
-        markersize=8,
-        linewidth=2,
+        markersize=14,  # Increased from 14 to 20
+        linewidth=1,  # Reduced from 2 to 1
         label="Predicted",
         alpha=0.9,
     )
@@ -484,33 +484,33 @@ def create_line_comparison_chart(
         measured_times,
         "b-",
         marker="^",
-        markersize=8,
-        linewidth=2,
+        markersize=14,  # Increased from 14 to 20
+        linewidth=1,  # Reduced from 2 to 1
         label="Measured (Arithmetic)",
         alpha=0.9,
     )
 
-    # Add error bars to measured data
+    # Add error bars to measured data - made more prominent
     plt.errorbar(
         x,
         measured_times,
         yerr=error_bars,
         fmt="none",
         ecolor="blue",
-        capsize=5,
-        alpha=0.7,
-        elinewidth=1.5,
+        capsize=8,  # Increased from 5 to 8
+        alpha=0.9,  # Increased from 0.7 to 0.9
+        elinewidth=2,  # Reduced from 3 to 2
     )
 
     # Add labels and title
-    plt.xlabel("Execution Schedule", fontsize=14, labelpad=10)
+    # plt.xlabel("Execution Schedule", fontsize=14, labelpad=10)
     plt.ylabel("Time (Execution in ms)", fontsize=14, labelpad=10)
 
-    # Add sort note to title if provided
-    if sort_note:
-        plt.title(f"{title}\n(Sorted {sort_note})", fontsize=16, pad=20)
-    else:
-        plt.title(title, fontsize=16, pad=20)
+    # Title is now commented out
+    # if sort_note:
+    #     plt.title(f"{title}\n(Sorted {sort_note})", fontsize=16, pad=20)
+    # else:
+    #     plt.title(title, fontsize=16, pad=20)
 
     # Add UID labels on x-axis
     shortened_uids = [uid.split("-")[1] for uid in schedule_uids]
@@ -521,7 +521,7 @@ def create_line_comparison_chart(
     plt.grid(True, linestyle="--", alpha=0.7, which="both")
 
     # Create legend with larger font and better position
-    plt.legend(fontsize=14, loc="upper left")
+    plt.legend(fontsize=18, loc="upper left", markerscale=1.5)  # Increased font size and marker scale
 
     # Set y-axis to start at 0
     # Calculate a good maximum y value that leaves room for highest point plus error bar
@@ -531,9 +531,9 @@ def create_line_comparison_chart(
     # Make plot lines thicker
     for line in plt.gca().get_lines():
         if line.get_linestyle() == "--":  # Predicted line
-            line.set_linewidth(2.5)
+            line.set_linewidth(1.5)  # Reduced from 3 to 1.5
         elif line.get_marker() == "^":  # Measured line
-            line.set_linewidth(2.5)
+            line.set_linewidth(1.5)  # Reduced from 3 to 1.5
 
     # Add minor tick lines for better readability
     plt.minorticks_on()
