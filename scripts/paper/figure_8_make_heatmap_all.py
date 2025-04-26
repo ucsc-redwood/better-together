@@ -187,7 +187,7 @@ def plot_combined_ratio_heatmaps(ratios, titles, out_folder):
         )
         
         axs[i].set_xticks(np.arange(len(available_cores)))
-        axs[i].set_xticklabels(available_cores, rotation=45, ha="right")
+        axs[i].set_xticklabels(available_cores, rotation=0, ha="right")
         axs[i].set_yticks(np.arange(len(ratio_df.index)))
         axs[i].set_yticklabels(ratio_df.index.astype(str))
         
@@ -307,7 +307,7 @@ def plot_device_aggregated_heatmaps(device_ratios, device_names, out_folder):
     cbar.set_label("Fully/Normal Ratio", fontsize=18)
     cbar.ax.tick_params(labelsize=16)  # Larger tick labels on colorbar
     
-    plt.suptitle("Fully/Normal Execution Time Ratio by Device", fontsize=22)
+    # plt.suptitle("Fully/Normal Execution Time Ratio by Device", fontsize=22)
     plt.tight_layout(rect=[0, 0, 0.92, 0.95])
     
     outpath = os.path.join(out_folder, "device_aggregated_heatmaps.png")

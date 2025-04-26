@@ -37,16 +37,20 @@ ax = sns.heatmap(
     cmap="YlGnBu",
     vmin=0.8,
     vmax=1.0,
-    xticklabels=devices,
+    xticklabels=False,  # Remove x-axis labels
     yticklabels=apps,
     fmt=".4f",
     annot_kws={"size": 14},
 )
 
 # Add titles and labels
-ax.set_title("Pearson Correlation Coefficient", fontsize=18, pad=20)
-ax.set_xlabel("Devices", fontsize=16, labelpad=10)
+# ax.set_title("Pearson Correlation Coefficient", fontsize=18, pad=20)
+# ax.set_xlabel("Devices", fontsize=16, labelpad=10)
 ax.set_ylabel("Applications", fontsize=16, labelpad=10)
+
+# Add device labels above the heatmap
+for i, device in enumerate(devices):
+    ax.text(i + 0.5, -0.2, device, ha='center', va='center', fontsize=14)
 
 # Adjust tick labels
 plt.xticks(fontsize=14, rotation=0, ha="center")

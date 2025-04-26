@@ -121,7 +121,7 @@ for app in apps:
     multiplier += 1
 
 # Add labels and title
-ax.set_title("Speedup vs. Best Baseline by Device and Application")
+# ax.set_title("Speedup vs. Best Baseline by Device and Application")
 ax.set_xticks(x + width)
 ax.set_xticklabels([device_names.get(d, d) for d in devices])
 ax.set_ylabel("Speedup (×)")
