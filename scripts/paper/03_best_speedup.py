@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.patches as mpatches
 
 # Data as provided
+# the data here are means the speedup of our approach vs the CPU/GPU baseline, obtained from "speedup.py"
 data = {
     "3A021JEHN02756": {
         "CIFAR-dense": {"CPU baseline": 155.63, "GPU baseline": 1.89},

@@ -381,13 +381,12 @@ def create_comparison_visualization(
     )
 
     # Add labels and title
-    # plt.xlabel("Schedule UID (sorted by predicted time)")
-    plt.ylabel("Time (ms)")
-    # plt.title(
-    #     "Comparison of Measured vs Predicted Execution Times (Sorted by Prediction)"
-    # )
-    plt.xticks(x, [uid.split("-")[1] for uid in schedule_uids], rotation=45, ha="right")
-    plt.legend()
+    plt.ylabel("Time (ms)", fontsize=16)
+    
+    # Use index IDs instead of UIDs
+    plt.xticks(x, [str(i+1) for i in range(len(x))], fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.legend(fontsize=16)
 
     # Add value labels on the bars
     def add_labels(bars):
@@ -399,7 +398,7 @@ def create_comparison_visualization(
                 f"{height:.2f}",
                 ha="center",
                 va="bottom",
-                fontsize=8,
+                fontsize=10,
             )
 
     add_labels(measured_bars)
@@ -474,8 +473,8 @@ def create_line_comparison_chart(
         predicted_times,
         "r--",
         marker="s",
-        markersize=14,  # Increased from 14 to 20
-        linewidth=1,  # Reduced from 2 to 1
+        markersize=16,  # Increased from 14 to 16
+        linewidth=1.5,  # Increased from 1 to 1.5
         label="Predicted",
         alpha=0.9,
     )
@@ -484,9 +483,9 @@ def create_line_comparison_chart(
         measured_times,
         "b-",
         marker="^",
-        markersize=14,  # Increased from 14 to 20
-        linewidth=1,  # Reduced from 2 to 1
-        label="Measured (Arithmetic)",
+        markersize=16,  # Increased from 14 to 16
+        linewidth=1.5,  # Increased from 1 to 1.5
+        label="Measured",
         alpha=0.9,
     )
 
@@ -504,36 +503,30 @@ def create_line_comparison_chart(
 
     # Add labels and title
     # plt.xlabel("Execution Schedule", fontsize=14, labelpad=10)
-    plt.ylabel("Time (Execution in ms)", fontsize=14, labelpad=10)
+    plt.ylabel("Time (Execution in ms)", fontsize=16, labelpad=10)  # Increased font size from 14 to 16
 
-    # Title is now commented out
-    # if sort_note:
-    #     plt.title(f"{title}\n(Sorted {sort_note})", fontsize=16, pad=20)
-    # else:
-    #     plt.title(title, fontsize=16, pad=20)
-
-    # Add UID labels on x-axis
-    shortened_uids = [uid.split("-")[1] for uid in schedule_uids]
-    plt.xticks(x, shortened_uids, rotation=45, ha="right", fontsize=10)
-    plt.yticks(fontsize=12)
+    # Add index IDs on x-axis instead of UIDs
+    index_ids = [str(i+1) for i in range(len(x))]
+    plt.xticks(x, index_ids, fontsize=14)  # Increased font size from 10 to 14
 
     # Add grid for both axes
     plt.grid(True, linestyle="--", alpha=0.7, which="both")
 
     # Create legend with larger font and better position
-    plt.legend(fontsize=18, loc="upper left", markerscale=1.5)  # Increased font size and marker scale
+    plt.legend(fontsize=20, loc="upper left", markerscale=1.5)  # Increased font size from 18 to 20
 
     # Set y-axis to start at 0
     # Calculate a good maximum y value that leaves room for highest point plus error bar
     max_y = max(max(predicted_times), max(measured_times) + max(error_bars)) * 1.15
     plt.ylim(bottom=0, top=max_y)
+    plt.yticks(fontsize=14)  # Increased font size from 12 to 14
 
     # Make plot lines thicker
     for line in plt.gca().get_lines():
         if line.get_linestyle() == "--":  # Predicted line
-            line.set_linewidth(1.5)  # Reduced from 3 to 1.5
+            line.set_linewidth(2)  # Increased from 1.5 to 2
         elif line.get_marker() == "^":  # Measured line
-            line.set_linewidth(1.5)  # Reduced from 3 to 1.5
+            line.set_linewidth(2)  # Increased from 1.5 to 2
 
     # Add minor tick lines for better readability
     plt.minorticks_on()
@@ -556,26 +549,28 @@ def create_correlation_plots(
 
     # Main correlation plot (standard)
     plt.figure(figsize=(10, 8))
-    plt.scatter(predicted_times, measured_times, alpha=0.7)
+    plt.scatter(predicted_times, measured_times, alpha=0.7, s=80)  # Increased point size
 
     # Add diagonal line (perfect prediction)
     max_val = max(np.max(predicted_times), np.max(measured_times)) * 1.1
-    plt.plot([0, max_val], [0, max_val], "r--", label="Perfect Prediction")
+    plt.plot([0, max_val], [0, max_val], "r--", label="Perfect Prediction", linewidth=2)
 
     # Add labels
-    plt.xlabel("Predicted Time (ms)")
-    plt.ylabel("Measured Time (ms)")
-    plt.title("Correlation between Predicted and Measured Times")
+    plt.xlabel("Predicted Time (ms)", fontsize=14)
+    plt.ylabel("Measured Time (ms)", fontsize=14)
+    plt.title("Correlation between Predicted and Measured Times", fontsize=16)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
 
-    # Add schedule labels to points
-    for i, uid in enumerate(schedule_uids):
+    # Add index labels to points instead of UIDs
+    for i in range(len(schedule_uids)):
         plt.annotate(
-            uid.split("-")[1],
+            str(i+1),  # Use index instead of UID
             (predicted_times[i], measured_times[i]),
             textcoords="offset points",
             xytext=(0, 5),
             ha="center",
-            fontsize=8,
+            fontsize=10,  # Increased font size
         )
 
     # Calculate correlation coefficient
@@ -585,12 +580,12 @@ def create_correlation_plots(
         0.95,
         f"Correlation: {correlation:.4f}",
         transform=plt.gca().transAxes,
-        fontsize=12,
+        fontsize=14,  # Increased font size
         verticalalignment="top",
     )
 
     plt.grid(True, linestyle="--", alpha=0.7)
-    plt.legend()
+    plt.legend(fontsize=14)  # Increased font size
     plt.tight_layout()
 
     # Save standard scatter plot
@@ -609,30 +604,32 @@ def create_correlation_plots(
     valid_uids = [schedule_uids[i] for i, valid in enumerate(valid_indices) if valid]
 
     if len(valid_pred) > 0:
-        plt.scatter(valid_pred, valid_meas, alpha=0.7)
+        plt.scatter(valid_pred, valid_meas, alpha=0.7, s=80)  # Increased point size
 
         # Add perfect prediction line on log scale
         min_val = min(np.min(valid_pred), np.min(valid_meas)) * 0.9
         max_val = max(np.max(valid_pred), np.max(valid_meas)) * 1.1
         plt.plot(
-            [min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction"
+            [min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction", linewidth=2
         )
 
         plt.xscale("log")
         plt.yscale("log")
-        plt.xlabel("Predicted Time (ms) - Log Scale")
-        plt.ylabel("Measured Time (ms) - Log Scale")
-        plt.title("Log-Scale Correlation between Predicted and Measured Times")
+        plt.xlabel("Predicted Time (ms) - Log Scale", fontsize=14)
+        plt.ylabel("Measured Time (ms) - Log Scale", fontsize=14)
+        plt.title("Log-Scale Correlation between Predicted and Measured Times", fontsize=16)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
 
-        # Add schedule labels to points
-        for i, uid in enumerate(valid_uids):
+        # Add index labels to points instead of UIDs
+        for i, idx in enumerate(np.where(valid_indices)[0]):
             plt.annotate(
-                uid.split("-")[1],
+                str(idx+1),  # Use index instead of UID
                 (valid_pred[i], valid_meas[i]),
                 textcoords="offset points",
                 xytext=(0, 5),
                 ha="center",
-                fontsize=8,
+                fontsize=10,  # Increased font size
             )
 
         # Calculate correlation coefficient for valid points
@@ -642,12 +639,12 @@ def create_correlation_plots(
             0.95,
             f"Log Correlation: {log_correlation:.4f}",
             transform=plt.gca().transAxes,
-            fontsize=12,
+            fontsize=14,  # Increased font size
             verticalalignment="top",
         )
 
         plt.grid(True, linestyle="--", alpha=0.7)
-        plt.legend()
+        plt.legend(fontsize=14)  # Increased font size
         plt.tight_layout()
 
         # Save log-scale plot
@@ -703,33 +700,33 @@ def create_correlation_plots(
     # Filter data
     non_outlier_pred = predicted_times[non_outlier_indices]
     non_outlier_meas = measured_times[non_outlier_indices]
-    non_outlier_uids = [
-        schedule_uids[i] for i, is_valid in enumerate(non_outlier_indices) if is_valid
-    ]
+    non_outlier_idxs = np.where(non_outlier_indices)[0]
 
     if len(non_outlier_indices) > 0:
-        plt.scatter(non_outlier_pred, non_outlier_meas, alpha=0.7)
+        plt.scatter(non_outlier_pred, non_outlier_meas, alpha=0.7, s=80)  # Increased point size
 
         # Add perfect prediction line
         min_val = min(np.min(non_outlier_pred), np.min(non_outlier_meas)) * 0.9
         max_val = max(np.max(non_outlier_pred), np.max(non_outlier_meas)) * 1.1
         plt.plot(
-            [min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction"
+            [min_val, max_val], [min_val, max_val], "r--", label="Perfect Prediction", linewidth=2
         )
 
-        plt.xlabel("Predicted Time (ms)")
-        plt.ylabel("Measured Time (ms)")
-        plt.title("Correlation (Excluding Outliers)")
+        plt.xlabel("Predicted Time (ms)", fontsize=14)
+        plt.ylabel("Measured Time (ms)", fontsize=14)
+        plt.title("Correlation (Excluding Outliers)", fontsize=16)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
 
-        # Add schedule labels
-        for i, uid in enumerate(non_outlier_uids):
+        # Add index labels
+        for i, idx in enumerate(non_outlier_idxs):
             plt.annotate(
-                uid.split("-")[1],
+                str(idx+1),  # Use index instead of UID
                 (non_outlier_pred[i], non_outlier_meas[i]),
                 textcoords="offset points",
                 xytext=(0, 5),
                 ha="center",
-                fontsize=8,
+                fontsize=10,
             )
 
         # Calculate correlation coefficient for non-outliers
@@ -742,12 +739,12 @@ def create_correlation_plots(
                 0.95,
                 f"Correlation (excl. outliers): {non_outlier_correlation:.4f}",
                 transform=plt.gca().transAxes,
-                fontsize=12,
+                fontsize=14,
                 verticalalignment="top",
             )
 
         plt.grid(True, linestyle="--", alpha=0.7)
-        plt.legend()
+        plt.legend(fontsize=14)
         plt.tight_layout()
 
         # Save non-outlier plot
@@ -778,7 +775,7 @@ def create_correlation_plots(
     plt.figure(figsize=(10, 8))
 
     # Plot all points but focus on the zoom area
-    plt.scatter(predicted_times, measured_times, alpha=0.5, color="lightgray")
+    plt.scatter(predicted_times, measured_times, alpha=0.5, color="lightgray", s=60)  # Increased point size
 
     # Highlight points in the zoom window
     zoom_indices = (
@@ -790,12 +787,10 @@ def create_correlation_plots(
 
     zoom_pred = predicted_times[zoom_indices]
     zoom_meas = measured_times[zoom_indices]
-    zoom_uids = [
-        schedule_uids[i] for i, is_zoomed in enumerate(zoom_indices) if is_zoomed
-    ]
+    zoom_idxs = np.where(zoom_indices)[0]
 
     if len(zoom_indices) > 0:
-        plt.scatter(zoom_pred, zoom_meas, alpha=0.9)
+        plt.scatter(zoom_pred, zoom_meas, alpha=0.9, s=80)  # Increased point size
 
         # Add perfect prediction line just for the zoom window
         zoom_min = min(zoom_min_pred, zoom_min_meas)
@@ -805,25 +800,28 @@ def create_correlation_plots(
             [zoom_min, zoom_max],
             "r--",
             label="Perfect Prediction",
+            linewidth=2,
         )
 
         # Set limits to zoom window
         plt.xlim(zoom_min_pred, zoom_max_pred)
         plt.ylim(zoom_min_meas, zoom_max_meas)
 
-        plt.xlabel("Predicted Time (ms)")
-        plt.ylabel("Measured Time (ms)")
-        plt.title("Zoomed Correlation View (Focused on Cluster)")
+        plt.xlabel("Predicted Time (ms)", fontsize=14)
+        plt.ylabel("Measured Time (ms)", fontsize=14)
+        plt.title("Zoomed Correlation View (Focused on Cluster)", fontsize=16)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
 
         # Add labels for points in the zoom window
-        for i, uid in enumerate(zoom_uids):
+        for i, idx in enumerate(zoom_idxs):
             plt.annotate(
-                uid.split("-")[1],
+                str(idx+1),  # Use index instead of UID
                 (zoom_pred[i], zoom_meas[i]),
                 textcoords="offset points",
                 xytext=(0, 5),
                 ha="center",
-                fontsize=8,
+                fontsize=10,
             )
 
         # Calculate correlation coefficient for zoomed region
@@ -834,12 +832,12 @@ def create_correlation_plots(
                 0.95,
                 f"Zoom Correlation: {zoom_correlation:.4f}",
                 transform=plt.gca().transAxes,
-                fontsize=12,
+                fontsize=14,
                 verticalalignment="top",
             )
 
         plt.grid(True, linestyle="--", alpha=0.7)
-        plt.legend()
+        plt.legend(fontsize=14)
         plt.tight_layout()
 
         # Save zoomed plot

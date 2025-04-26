@@ -231,6 +231,13 @@ compare-schedules-adv device app backend:
         -o plots/{{device}}/{{app}}/{{backend}}
 
 
+tmp:
+    python3 scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+        data-stable/exe_logs_tmax/3A021JEHN02756/cifar-sparse/vk \
+        --model data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules.json \
+        -o tmp_dir_tmx
+
+
 compare-schedules-android:
     just compare-schedules 3A021JEHN02756 cifar-sparse vk
     just compare-schedules 3A021JEHN02756 cifar-dense vk
