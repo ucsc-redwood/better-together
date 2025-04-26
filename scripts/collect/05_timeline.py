@@ -738,6 +738,9 @@ def main():
 
     print(f"\nAll {len(python_sections)} schedules have been processed.")
 
+    # saved
+    print(f"saved to {os.path.abspath(args.output_dir)}")
+
 
 if __name__ == "__main__":
     main()

@@ -268,4 +268,6 @@ compare-schedules-android-adv:
 
 make-example-timeline device app backend id:
     python3 scripts/collect/05_timeline.py data/exe_logs/{{device}}/{{app}}/{{backend}}/schedule_run_{{id}}.log \
-        --output-dir data/exe_logs/{{device}}/{{app}}/{{backend}}/timeline
+        --output-dir data/exe_logs/{{device}}/{{app}}/{{backend}}/timeline \
+        --start-time 0.25 \
+        --end-time 0.75
