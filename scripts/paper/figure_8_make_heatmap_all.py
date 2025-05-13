@@ -385,8 +385,11 @@ def main():
         agg_ratio = aggregate_device_data(ratios, display_name)
         aggregated_device_ratios.append(agg_ratio)
     
+
+    print(aggregated_device_ratios)
+
     # Create aggregated device heatmap
-    plot_device_aggregated_heatmaps(aggregated_device_ratios, device_display_names, folder_root)
+    # plot_device_aggregated_heatmaps(aggregated_device_ratios, device_display_names, folder_root)
 
 
 if __name__ == "__main__":
