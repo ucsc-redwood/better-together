@@ -117,5 +117,5 @@ plt.subplots_adjust(bottom=0.2)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "example_predition.svg"), bbox_inches="tight"
+    os.path.join(base_dir, "figure_5_a_prediction_vs_measured.svg"), bbox_inches="tight"
 )

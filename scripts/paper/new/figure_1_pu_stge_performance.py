@@ -52,9 +52,9 @@ plt.bar(
 plt.bar(x + width * 1.5, tasks["vulkan"], width, label="GPU", color="#2ca02c")  # Green
 
 # Add labels and title
-plt.xlabel("Stage")
+# plt.xlabel("Stage")
 plt.ylabel("Execution Time (ms)")
-plt.title("PU Stage Performance (lower is better)")
+plt.title("Processing Unit (PU) Stage Performance (lower is better)")
 plt.xticks(x, ["Sort", "Build Radix Tree", "Build Octree"])
 plt.legend(loc="upper right", fontsize=8)
 
@@ -73,5 +73,5 @@ plt.ylim(0, 10)  # Adjusted to better show the other bars
 plt.tight_layout()
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "processor_comparison.svg"), bbox_inches="tight"
+    os.path.join(base_dir, "figure_1_pu_stge_performance.svg"), bbox_inches="tight"
 )
