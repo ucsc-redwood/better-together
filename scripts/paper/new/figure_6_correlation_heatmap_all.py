@@ -57,7 +57,7 @@ ax.set_ylabel("", fontsize=24, labelpad=5)
 ax.set_xlabel("", fontsize=24, labelpad=5)
 
 # Set tick label sizes
-ax.tick_params(axis='both', which='major', labelsize=20)
+ax.tick_params(axis="both", which="major", labelsize=20)
 
 # Adjust layout for compact height
 plt.tight_layout()
@@ -65,5 +65,5 @@ plt.tight_layout()
 # Save the updated figure
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "correlation_heatmap_updated.svg"), bbox_inches="tight"
+    os.path.join(base_dir, "figure_6_correlation_heatmap_all.svg"), bbox_inches="tight"
 )
