@@ -53,7 +53,7 @@ for idx, (device, values) in enumerate(data.items()):
 # plt.suptitle('Average Performance Ratio Across All Stages', y=1.1, fontsize=14)
 
 # Adjust layout
-plt.tight_layout()
+# plt.tight_layout()
 plt.subplots_adjust(right=0.9)  # Make room for colorbar
 
 # Save the plot
