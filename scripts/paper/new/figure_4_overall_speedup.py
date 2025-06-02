@@ -157,11 +157,11 @@ for app in apps:
 # Add the combined legend
 ax.legend(
     handles=legend_elements,
-    loc="upper center",
-    bbox_to_anchor=(0.5, -0.12),
-    ncol=3,
+    loc="upper right",
+    bbox_to_anchor=(1.0, 1.0),
+    ncol=1,
     frameon=True,
-    fontsize=10,
+    fontsize=12,
 )
 
 # Create a table showing which baseline was chosen for each device-app combination
