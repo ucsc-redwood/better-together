@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # Data for the correlation heatmaps
 devices = ["OnePlus", "Google", "Jetson", "Jetson (LP)"]
@@ -62,9 +63,7 @@ ax.tick_params(axis='both', which='major', labelsize=20)
 plt.tight_layout()
 
 # Save the updated figure
-# output_path = "/mnt/data/correlation_heatmap_updated.png"
-output_path = "./correlation_heatmap_updated.png"
-plt.savefig(output_path, bbox_inches="tight", dpi=300)
-
-# Display the saved file path
-output_path
+base_dir = os.path.dirname(os.path.abspath(__file__))
+plt.savefig(
+    os.path.join(base_dir, "correlation_heatmap_updated.svg"), bbox_inches="tight"
+)

@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 # Data from the correlation analysis
 data = {
@@ -70,5 +71,6 @@ plt.tight_layout()
 plt.subplots_adjust(right=0.9)  # Make room for colorbar
 
 # Save the plot
-plt.savefig('processor_heatmap.png', dpi=300, bbox_inches='tight')
+base_dir = os.path.dirname(os.path.abspath(__file__))
+plt.savefig(os.path.join(base_dir, 'processor_heatmap.svg'), bbox_inches='tight')
 plt.close()

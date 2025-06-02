@@ -73,5 +73,5 @@ plt.ylim(0, 10)  # Adjusted to better show the other bars
 plt.tight_layout()
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "processor_comparison.png"), dpi=300, bbox_inches="tight"
+    os.path.join(base_dir, "processor_comparison.svg"), bbox_inches="tight"
 )

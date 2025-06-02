@@ -117,5 +117,5 @@ plt.subplots_adjust(bottom=0.2)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "example_predition.png"), dpi=300, bbox_inches="tight"
-)  # Higher DPI and tight bounding box
+    os.path.join(base_dir, "example_predition.svg"), bbox_inches="tight"
+)
