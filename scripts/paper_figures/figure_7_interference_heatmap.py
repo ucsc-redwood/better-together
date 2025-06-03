@@ -59,6 +59,14 @@ plt.subplots_adjust(right=0.9)  # Make room for colorbar
 # Save the plot
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "figure_7_interference_heatmap.svg"), bbox_inches="tight"
+    os.path.join(base_dir, "figure_7_interference_heatmap.svg"), 
+    bbox_inches="tight",
+    format="svg"
+)
+plt.savefig(
+    os.path.join(base_dir, "figure_7_interference_heatmap.png"), 
+    bbox_inches="tight",
+    format="png",
+    dpi=300
 )
 plt.close()

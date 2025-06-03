@@ -72,6 +72,16 @@ plt.ylim(0, 10)  # Adjusted to better show the other bars
 # Adjust layout and show plot
 plt.tight_layout()
 base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Save both SVG and PNG formats
 plt.savefig(
-    os.path.join(base_dir, "figure_1_pu_stge_performance.svg"), bbox_inches="tight"
+    os.path.join(base_dir, "figure_1_pu_stge_performance.svg"), 
+    bbox_inches="tight",
+    format="svg"
+)
+plt.savefig(
+    os.path.join(base_dir, "figure_1_pu_stge_performance.png"), 
+    bbox_inches="tight",
+    format="png",
+    dpi=300
 )
