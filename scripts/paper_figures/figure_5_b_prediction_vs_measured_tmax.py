@@ -107,9 +107,17 @@ plt.grid(True)
 plt.tight_layout(pad=0.8)
 plt.subplots_adjust(bottom=0.2)
 
-
+# Save figures
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "figure_5_b_prediction_vs_measured_tmax.svg"),
+    os.path.join(base_dir, "svg", "figure_5_b_prediction_vs_measured_tmax.svg"),
     bbox_inches="tight",
+    format="svg",
 )
+plt.savefig(
+    os.path.join(base_dir, "png", "figure_5_b_prediction_vs_measured_tmax.png"),
+    bbox_inches="tight",
+    format="png",
+    dpi=300,
+)
+plt.close()

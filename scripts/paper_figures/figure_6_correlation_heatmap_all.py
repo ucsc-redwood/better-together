@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# Data for the correlation heatmaps
+# Data definition
 devices = ["OnePlus", "Google", "Jetson", "Jetson (LP)"]
 apps = ["CIFAR-D", "CIFAR-S", "Tree"]
 
@@ -17,29 +17,27 @@ pearson_data = np.array(
     ]
 )
 
-# Calculate row and column averages
+# Calculate averages
 row_averages = np.mean(pearson_data, axis=1, keepdims=True)
 column_averages = np.mean(pearson_data, axis=0, keepdims=True)
 overall_average = np.mean(pearson_data)
 
-# Append averages to the data matrix
+# Append averages to data
 pearson_data = np.hstack((pearson_data, row_averages))
 pearson_data = np.vstack((pearson_data, np.append(column_averages, overall_average)))
 
-# Update labels to include averages
+# Update labels
 devices.append("Avg.")
 apps.append("Avg.")
 
-# Transpose the data to have devices on x-axis and applications on y-axis
+# Transpose data for visualization
 pearson_data_transposed = pearson_data.T
 
-# Set up the figure - taller in height
+# Plot setup
 plt.figure(figsize=(12, 3))
-
-# Set font sizes
 plt.rcParams.update({"font.size": 24})
 
-# Create heatmap with transposed data
+# Create heatmap
 ax = sns.heatmap(
     pearson_data_transposed,
     annot=True,
@@ -52,27 +50,25 @@ ax = sns.heatmap(
     annot_kws={"size": 20},
 )
 
-# Add titles and labels
+# Customize plot
 ax.set_ylabel("", fontsize=24, labelpad=5)
 ax.set_xlabel("", fontsize=24, labelpad=5)
-
-# Set tick label sizes
 ax.tick_params(axis="both", which="major", labelsize=20)
 
-# Adjust layout for compact height
+# Adjust layout
 plt.tight_layout()
 
-# Save the updated figure
+# Save figures
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "figure_6_correlation_heatmap_all.svg"), 
+    os.path.join(base_dir, "svg", "figure_6_correlation_heatmap_all.svg"),
     bbox_inches="tight",
-    format="svg"
+    format="svg",
 )
 plt.savefig(
-    os.path.join(base_dir, "figure_6_correlation_heatmap_all.png"), 
+    os.path.join(base_dir, "png", "figure_6_correlation_heatmap_all.png"),
     bbox_inches="tight",
     format="png",
-    dpi=300
+    dpi=300,
 )
 plt.close()

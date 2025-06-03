@@ -200,6 +200,14 @@ print(f"  Maximum: {overall_max:.2f}")
 
 plt.tight_layout()
 base_dir = os.path.dirname(os.path.abspath(__file__))
-plt.savefig(os.path.join(base_dir, "figure_4_overall_speedup.svg"), bbox_inches="tight")
-plt.savefig(os.path.join(base_dir, "figure_4_overall_speedup.png"), dpi=300, bbox_inches="tight")
+plt.savefig(
+    os.path.join(base_dir, "svg", "figure_4_overall_speedup.svg"),
+    bbox_inches="tight",
+    format="svg",
+)
+plt.savefig(
+    os.path.join(base_dir, "png", "figure_4_overall_speedup.png"),
+    dpi=300,
+    bbox_inches="tight",
+)
 plt.close()

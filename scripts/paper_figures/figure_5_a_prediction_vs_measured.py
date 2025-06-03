@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-# Extracting the relevant data
+# Data definition
 original_labels = [
     "SCH-B1G3L1M4-G242",
     "SCH-M1G3L1B4-G197",
@@ -114,17 +114,17 @@ plt.grid(True)
 plt.tight_layout(pad=0.8)
 plt.subplots_adjust(bottom=0.2)
 
-
+# Save figures
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "figure_5_a_prediction_vs_measured.svg"), 
+    os.path.join(base_dir, "svg", "figure_5_a_prediction_vs_measured.svg"),
     bbox_inches="tight",
-    format="svg"
+    format="svg",
 )
 plt.savefig(
-    os.path.join(base_dir, "figure_5_a_prediction_vs_measured.png"), 
+    os.path.join(base_dir, "png", "figure_5_a_prediction_vs_measured.png"),
     bbox_inches="tight",
     format="png",
-    dpi=300
+    dpi=300,
 )
 plt.close()
