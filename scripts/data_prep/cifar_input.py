@@ -15,7 +15,7 @@ def main(output_dir: str = "cifar_batches"):
     os.makedirs(output_dir, exist_ok=True)
 
     # 2) Download/load CIFAR-10 train set
-    # By default, data is loaded as H×W×C (32×32×3) uint8 images.
+    # By default, data is loaded as HxWxC (32x32x3) uint8 images.
     cifar_train = CIFAR10(root="./data", train=True, download=True)
 
     # Extract raw numpy array of shape (50000, 32, 32, 3)

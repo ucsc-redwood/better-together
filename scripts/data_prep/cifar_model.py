@@ -3,12 +3,12 @@
 Train a small AlexNet‑style model on CIFAR‑10 and save parameters to .npy files.
 
 Architecture:
-  Conv1(3→16, 3×3, pad=1) → ReLU → MaxPool(2)
-  Conv2(16→32, 3×3, pad=1) → ReLU → MaxPool(2)
-  Conv3(32→64, 3×3, pad=1) → ReLU
-  Conv4(64→64, 3×3, pad=1) → ReLU
-  Conv5(64→64, 3×3, pad=1) → ReLU → MaxPool(2)
-  ↓ flatten (64×4×4=1024)
+  Conv1(3→16, 3x3, pad=1) → ReLU → MaxPool(2)
+  Conv2(16→32, 3x3, pad=1) → ReLU → MaxPool(2)
+  Conv3(32→64, 3x3, pad=1) → ReLU
+  Conv4(64→64, 3x3, pad=1) → ReLU
+  Conv5(64→64, 3x3, pad=1) → ReLU → MaxPool(2)
+  ↓ flatten (64x4x4=1024)
   Linear(1024→10)
 Saves:
   u_conv1_w, u_conv1_b, …, u_linear_w, u_linear_b
