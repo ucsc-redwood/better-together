@@ -167,7 +167,7 @@ function run_on_android(target)
 			break
 		end
 	end
-	
+
 	-- Remove device argument if found
 	if device_index then
 		table.remove(args, device_index)
@@ -175,7 +175,7 @@ function run_on_android(target)
 			table.remove(args, device_index)
 		end
 	end
-	
+
 	if specific_device then
 		-- Check if the specified device is connected
 		local found = false

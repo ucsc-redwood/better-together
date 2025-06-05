@@ -14,7 +14,6 @@ do
 	add_deps("builtin-apps")
 end
 
-
 target("test-cifar-dense-omp")
 do
 	add_rules("common_flags", "run_on_android")
