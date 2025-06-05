@@ -1,3 +1,9 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_5_a_prediction_vs_measured.svg
+- PNG: scripts/paper_figures/png/figure_5_a_prediction_vs_measured.png
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os

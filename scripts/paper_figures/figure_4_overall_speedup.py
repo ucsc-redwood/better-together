@@ -1,3 +1,9 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_4_overall_speedup.svg
+- PNG: scripts/paper_figures/png/figure_4_overall_speedup.png
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as mpatches

@@ -1,3 +1,9 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_6_correlation_heatmap_all.svg
+- PNG: scripts/paper_figures/png/figure_6_correlation_heatmap_all.png
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns

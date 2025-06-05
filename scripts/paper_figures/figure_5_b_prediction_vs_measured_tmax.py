@@ -1,3 +1,9 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_5_b_prediction_vs_measured_tmax.svg
+- PNG: scripts/paper_figures/png/figure_5_b_prediction_vs_measured_tmax.png
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os

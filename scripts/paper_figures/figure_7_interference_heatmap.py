@@ -1,3 +1,9 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_7_interference_heatmap.svg
+- PNG: scripts/paper_figures/png/figure_7_interference_heatmap.png
+"""
+
 #!/usr/bin/env python3
 import pandas as pd
 import seaborn as sns

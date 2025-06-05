@@ -1,3 +1,9 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_1_pu_stge_performance.svg
+- PNG: scripts/paper_figures/png/figure_1_pu_stge_performance.png
+"""
+
 import pandas as pd
 from io import StringIO
 import matplotlib.pyplot as plt
