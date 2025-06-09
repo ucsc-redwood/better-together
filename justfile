@@ -20,6 +20,10 @@ set-jetson:
 set-default:
     xmake f -p linux -a x86_64 -c -v --use_vulkan=no --use_cuda=yes -m release
 
+# Used by client
+connect:
+    ssh -N -f -L 5037:localhost:5037 doremy@android-dev.ucsc
+
 #  ----------------------------------------------------------------------------
 #  Python Related
 #  ----------------------------------------------------------------------------
