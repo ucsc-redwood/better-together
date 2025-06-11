@@ -19,20 +19,15 @@ layout(local_size_x = WORKGROUP_SIZE) in;
 
 layout(push_constant, std430) uniform PushConstants { uint g_num_elements; };
 
-layout(std430, set = 0, binding = 0) buffer elements_in {
-  uint g_elements_in[];
-};
+layout(std430, set = 0, binding = 0) buffer elements_in { uint g_elements_in[]; };
 
-layout(std430, set = 0, binding = 1) buffer elements_out {
-  uint g_elements_out[];
-};
+layout(std430, set = 0, binding = 1) buffer elements_out { uint g_elements_out[]; };
 
 shared uint[RADIX_SORT_BINS] histogram;
 shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums;  // subgroup reductions
-shared uint[RADIX_SORT_BINS] local_offsets;  // local exclusive scan (prefix
-                                             // sum) (inside subgroups)
-shared
-    uint[RADIX_SORT_BINS] global_offsets;  // global exclusive scan (prefix sum)
+shared uint[RADIX_SORT_BINS] local_offsets;         // local exclusive scan (prefix
+                                                    // sum) (inside subgroups)
+shared uint[RADIX_SORT_BINS] global_offsets;        // global exclusive scan (prefix sum)
 
 struct BinFlags {
   uint flags[WORKGROUP_SIZE / 32];
@@ -58,8 +53,7 @@ void main() {
 
     for (uint ID = lID; ID < g_num_elements; ID += WORKGROUP_SIZE) {
       // determine the bin
-      const uint bin =
-          uint(ELEMENT_IN(ID, iteration) >> shift) & uint(RADIX_SORT_BINS - 1);
+      const uint bin = uint(ELEMENT_IN(ID, iteration) >> shift) & uint(RADIX_SORT_BINS - 1);
       // increment the histogram
       atomicAdd(histogram[bin], 1U);
     }
@@ -92,8 +86,7 @@ void main() {
     const uint flags_bin = lID / 32;
     const uint flags_bit = 1 << (lID % 32);
 
-    for (uint blockID = 0; blockID < g_num_elements;
-         blockID += WORKGROUP_SIZE) {
+    for (uint blockID = 0; blockID < g_num_elements; blockID += WORKGROUP_SIZE) {
       barrier();
 
       const uint ID = blockID + lID;

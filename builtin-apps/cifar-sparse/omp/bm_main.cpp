@@ -1,164 +1,177 @@
 #include <benchmark/benchmark.h>
-#include <omp.h>
 
-#include "../sparse_appdata.hpp"
-#include "builtin-apps/app.hpp"
+#include <memory_resource>
+
+#include "../../app.hpp"
+#include "../appdata.hpp"
 #include "dispatchers.hpp"
 
-static void BM_run_OMP_baseline(benchmark::State& state) {
-  const int num_threads = state.range(0);
+// ----------------------------------------------------------------
+// Stage 1: Conv1
+// ----------------------------------------------------------------
 
+static void BM_Stage1(benchmark::State& state) {
   auto mr = std::pmr::new_delete_resource();
-  cifar_sparse::v2::AppData appdata(mr);
-
-  // Warm up the data structures to avoid first-run anomalies
-  cifar_sparse::omp::v2::dispatch_multi_stage_unrestricted(num_threads, appdata, 1, 9);
+  cifar_sparse::AppData appdata(mr);
 
   for (auto _ : state) {
-#pragma omp parallel num_threads(num_threads)
-    {
-      // print thread id
-      cifar_sparse::omp::v2::run_stage_1(appdata);
-      cifar_sparse::omp::v2::run_stage_2(appdata);
-      cifar_sparse::omp::v2::run_stage_3(appdata);
-      cifar_sparse::omp::v2::run_stage_4(appdata);
-      cifar_sparse::omp::v2::run_stage_5(appdata);
-      cifar_sparse::omp::v2::run_stage_6(appdata);
-      cifar_sparse::omp::v2::run_stage_7(appdata);
-      cifar_sparse::omp::v2::run_stage_8(appdata);
-      cifar_sparse::omp::v2::run_stage_9(appdata);
-    }
+    cifar_sparse::omp::dispatch_stage(appdata, 1);
   }
 }
 
-BENCHMARK(BM_run_OMP_baseline)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage1");
 
-static void BM_run_OMP_stage(benchmark::State& state) {
-  const int stage = state.range(0);
-  const int num_threads = state.range(1);
-  const ProcessorType core_type = static_cast<ProcessorType>(state.range(2));
+// ----------------------------------------------------------------
+// Stage 2: MaxPool1
+// ----------------------------------------------------------------
 
+static void BM_Stage2(benchmark::State& state) {
   auto mr = std::pmr::new_delete_resource();
-  cifar_sparse::v2::AppData appdata(mr);
+  cifar_sparse::AppData appdata(mr);
 
-  std::vector<int> cores_to_use;
-  if (core_type == ProcessorType::kLittleCore) {
-    cores_to_use = g_little_cores;
-  } else if (core_type == ProcessorType::kMediumCore) {
-    cores_to_use = g_medium_cores;
-  } else {
-    cores_to_use = g_big_cores;
-  }
-
-  if (num_threads > (static_cast<int>(cores_to_use.size()))) {
-    state.SkipWithMessage("");
-    return;
-  }
-
-  // Ensure stage is valid
-  if (stage < 1 || stage > 9) {
-    state.SkipWithError("Invalid stage number");
-    return;
-  }
-
-  // Warm up to prevent first-run anomalies
-  cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, 1, stage);
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_stage(appdata, 1);
 
   for (auto _ : state) {
-    cifar_sparse::omp::v2::dispatch_multi_stage(cores_to_use, num_threads, appdata, stage, stage);
+    cifar_sparse::omp::dispatch_stage(appdata, 2);
   }
 }
 
-static void CustomArgs(benchmark::internal::Benchmark* b) {
-  for (int stage = 1; stage <= 9; ++stage) {
-    for (int num_threads = 1; num_threads <= 8; ++num_threads) {
-      for (const ProcessorType core_type :
-           {ProcessorType::kLittleCore, ProcessorType::kMediumCore, ProcessorType::kBigCore}) {
-        b->Args({stage, num_threads, static_cast<int>(core_type)});
-      }
-    }
+BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage2");
+
+// ----------------------------------------------------------------
+// Stage 3: Conv2
+// ----------------------------------------------------------------
+
+static void BM_Stage3(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 2);
+
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 3);
   }
 }
 
-BENCHMARK(BM_run_OMP_stage)->Apply(CustomArgs)->Unit(benchmark::kMillisecond);
+BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage3");
 
-// // ----------------------------------------------------------------------------
-// // Task stealing
-// // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------
+// Stage 4: MaxPool2
+// ----------------------------------------------------------------
 
-// static void BM_run_OMP_baseline_task_stealing(benchmark::State& state) {
-//   const int num_threads = state.range(0);
+static void BM_Stage4(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
 
-//   auto mr = std::pmr::new_delete_resource();
-//   cifar_sparse::v2::AppData appdata(mr);
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 3);
 
-//   // Warm up the data structures to avoid first-run anomalies
-//   cifar_sparse::omp::v2::dispatch_multi_stage_unrestricted(num_threads, appdata, 1, 9);
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 4);
+  }
+}
 
-//   for (auto _ : state) {
-// #pragma omp parallel num_threads(num_threads)
-//     {
-//       // print thread id
-//       cifar_sparse::omp::v2::run_stage_1_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_2_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_3_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_4_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_5_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_6_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_7_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_8_task_stealing(appdata);
-//       cifar_sparse::omp::v2::run_stage_9_task_stealing(appdata);
-//     }
-//   }
-// }
+BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage4");
 
-// BENCHMARK(BM_run_OMP_baseline_task_stealing)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+// ----------------------------------------------------------------
+// Stage 5: Conv3
+// ----------------------------------------------------------------
 
-// static void BM_run_OMP_stage_task_stealing(benchmark::State& state) {
-//   const int stage = state.range(0);
-//   const int num_threads = state.range(1);
-//   const ProcessorType core_type = static_cast<ProcessorType>(state.range(2));
+static void BM_Stage5(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
 
-//   auto mr = std::pmr::new_delete_resource();
-//   cifar_sparse::v2::AppData appdata(mr);
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 4);
 
-//   std::vector<int> cores_to_use;
-//   if (core_type == ProcessorType::kLittleCore) {
-//     cores_to_use = g_little_cores;
-//   } else if (core_type == ProcessorType::kMediumCore) {
-//     cores_to_use = g_medium_cores;
-//   } else {
-//     cores_to_use = g_big_cores;
-//   }
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 5);
+  }
+}
 
-//   if (num_threads > (static_cast<int>(cores_to_use.size()))) {
-//     state.SkipWithMessage("");
-//     return;
-//   }
+BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage5");
 
-//   // Ensure stage is valid
-//   if (stage < 1 || stage > 9) {
-//     state.SkipWithError("Invalid stage number");
-//     return;
-//   }
+// ----------------------------------------------------------------
+// Stage 6: Conv4
+// ----------------------------------------------------------------
 
-//   // Warm up to prevent first-run anomalies
-//   cifar_sparse::omp::v2::dispatch_multi_stage_task_stealing(
-//       cores_to_use, num_threads, appdata, 1, stage);
+static void BM_Stage6(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
 
-//   for (auto _ : state) {
-//     cifar_sparse::omp::v2::dispatch_multi_stage_task_stealing(
-//         cores_to_use, num_threads, appdata, stage, stage);
-//   }
-// }
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 5);
 
-// BENCHMARK(BM_run_OMP_stage_task_stealing)->Apply(CustomArgs)->Unit(benchmark::kMillisecond);
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 6);
+  }
+}
+
+BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage6");
+
+// ----------------------------------------------------------------
+// Stage 7: Conv5
+// ----------------------------------------------------------------
+
+static void BM_Stage7(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 6);
+
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 7);
+  }
+}
+
+BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage7");
+
+// ----------------------------------------------------------------
+// Stage 8: MaxPool3
+// ----------------------------------------------------------------
+
+static void BM_Stage8(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 7);
+
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 8);
+  }
+}
+
+BENCHMARK(BM_Stage8)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage8");
+
+// ----------------------------------------------------------------
+// Stage 9: Linear
+// ----------------------------------------------------------------
+
+static void BM_Stage9(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 8);
+
+  for (auto _ : state) {
+    cifar_sparse::omp::dispatch_stage(appdata, 9);
+  }
+}
+
+BENCHMARK(BM_Stage9)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-sparse/Stage9");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
-  benchmark::Initialize(&argc, argv);
-  benchmark::RunSpecifiedBenchmarks();
-  benchmark::Shutdown();  // Ensure proper cleanup
+  spdlog::set_level(spdlog::level::off);
+
+  ::benchmark::Initialize(&argc, argv);
+  ::benchmark::RunSpecifiedBenchmarks();
+  ::benchmark::Shutdown();
   return 0;
 }

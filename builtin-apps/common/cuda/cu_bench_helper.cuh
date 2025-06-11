@@ -19,16 +19,13 @@ class CudaEventTimer {
       CheckCuda(cudaGetDevice(&current_device));
 
       int l2_cache_bytes = 0;
-      CheckCuda(cudaDeviceGetAttribute(
-          &l2_cache_bytes, cudaDevAttrL2CacheSize, current_device));
+      CheckCuda(cudaDeviceGetAttribute(&l2_cache_bytes, cudaDevAttrL2CacheSize, current_device));
 
       if (l2_cache_bytes > 0) {
         const int memset_value = 0;
         int *l2_cache_buffer = nullptr;
-        CheckCuda(cudaMalloc(reinterpret_cast<void **>(&l2_cache_buffer),
-                                   l2_cache_bytes));
-        CheckCuda(cudaMemsetAsync(
-            l2_cache_buffer, memset_value, l2_cache_bytes, stream_));
+        CheckCuda(cudaMalloc(reinterpret_cast<void **>(&l2_cache_buffer), l2_cache_bytes));
+        CheckCuda(cudaMemsetAsync(l2_cache_buffer, memset_value, l2_cache_bytes, stream_));
         CheckCuda(cudaFree(l2_cache_buffer));
       }
     }

@@ -111,12 +111,17 @@ inline void process_link_leaf(const int i /*brt node index*/,
                               const int* edge_offsets,
                               const int* edge_counts,
                               const uint32_t* morton_codes,
-                              const bool* rt_has_leaf_left,
-                              const bool* rt_has_leaf_right,
+                              // const bool* rt_has_leaf_left,
+                              // const bool* rt_has_leaf_right,
+                              const uint8_t* rt_has_leaf_left_bool,
+                              const uint8_t* rt_has_leaf_right_bool,
                               const uint8_t* rt_prefix_n,
                               const int* rt_parents,
                               const int* rt_left_child) {
-  if (rt_has_leaf_left[i]) {
+  const auto rt_has_leaf_left = rt_has_leaf_left_bool[i];
+  const auto rt_has_leaf_right = rt_has_leaf_right_bool[i];
+
+  if (rt_has_leaf_left) {
     const auto leaf_idx = rt_left_child[i];
     const auto leaf_level = rt_prefix_n[i] / 3 + 1;
     const auto leaf_prefix = morton_codes[leaf_idx] >> (morton_bits - (3 * leaf_level));
@@ -133,7 +138,7 @@ inline void process_link_leaf(const int i /*brt node index*/,
     const auto bottom_oct_idx = edge_offsets[rt_node];
     set_leaf(bottom_oct_idx, oct_children, oct_child_leaf_mask, child_idx, leaf_idx);
   }
-  if (rt_has_leaf_right[i]) {
+  if (rt_has_leaf_right) {
     const auto leaf_idx = rt_left_child[i] + 1;
     const auto leaf_level = rt_prefix_n[i] / 3 + 1;
     const auto leaf_prefix = morton_codes[leaf_idx] >> (morton_bits - (3 * leaf_level));

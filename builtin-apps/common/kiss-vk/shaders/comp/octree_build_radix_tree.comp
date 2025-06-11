@@ -1,0 +1,96 @@
+#version 460
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer Codes { uint codes[]; };
+layout(std430, set = 0, binding = 1) buffer Parents { int parents[]; };
+layout(std430, set = 0, binding = 2) buffer LeftChild { int left_child[]; };
+layout(std430, set = 0, binding = 3) buffer HasLeafLeft { uint has_leaf_left[]; };
+layout(std430, set = 0, binding = 4) buffer HasLeafRight { uint has_leaf_right[]; };
+layout(std430, set = 0, binding = 5) buffer PrefixLength { int prefix_length[]; };
+
+layout(push_constant) uniform PC3 { uint n; }
+pc3;
+
+// count leading zeros
+int clz(uint x) {
+  // findMSB returns -1 if x==0
+  return x == 0u ? 32 : (31 - findMSB(x));
+}
+
+// common leading‐prefix length
+int commonPrefix(uint a, uint b) { return (a == b) ? 32 : clz(a ^ b); }
+
+void main() {
+  uint ui = gl_GlobalInvocationID.x;
+
+  if (ui >= pc3.n) return;
+  int i = int(ui);
+
+  // initialize
+  parents[i] = -1;
+  left_child[i] = -1;
+  has_leaf_left[i] = 0u;
+  has_leaf_right[i] = 0u;
+  prefix_length[i] = 0;
+
+  // pick direction d
+  int d;
+  if (i == 0)
+    d = +1;
+  else if (i == int(pc3.n) - 1)
+    d = -1;
+  else {
+    int l = commonPrefix(codes[i], codes[i - 1]);
+    int r = commonPrefix(codes[i], codes[i + 1]);
+    d = (r > l) ? +1 : -1;
+  }
+
+  // neighbor prefix bound
+  int bound = commonPrefix(codes[i], codes[i - d]);
+
+  // exponential bracket
+  int step = 1;
+  while (true) {
+    int j = i + d * step;
+    if (j < 0 || j >= int(pc3.n) || commonPrefix(codes[i], codes[j]) <= bound) break;
+    step <<= 1;
+  }
+
+  // binary refine
+  int lo = 0, hi = step;
+  while (hi - lo > 1) {
+    int mid = (lo + hi) >> 1;
+    int j = i + d * mid;
+    int p = (j >= 0 && j < int(pc3.n)) ? commonPrefix(codes[i], codes[j]) : -1;
+    if (p > bound)
+      lo = mid;
+    else
+      hi = mid;
+  }
+  int j = i + d * lo;
+
+  // record prefix length
+  int node_lcp = commonPrefix(codes[i], codes[j]);
+  prefix_length[i] = node_lcp;
+
+  // split interval
+  int first = min(i, j), last = max(i, j);
+  int L = first, R = last;
+  while (L + 1 < R) {
+    int m = (L + R) >> 1;
+    if (commonPrefix(codes[first], codes[m]) > node_lcp)
+      L = m;
+    else
+      R = m;
+  }
+  int split = L;
+
+  // wire children & parents
+  left_child[i] = split;
+  bool leafL = (split == first);
+  bool leafR = (split + 1 == last);
+  has_leaf_left[i] = leafL ? 1u : 0u;
+  has_leaf_right[i] = leafR ? 1u : 0u;
+  if (!leafL) parents[split] = i;
+  if (!leafR) parents[split + 1] = i;
+}

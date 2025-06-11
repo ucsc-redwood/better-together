@@ -6,6 +6,9 @@ tmp/
 
 # Resources
 resources.tar.gz
+resources/weights_npy/
+resources/octomap/
+
 
 # resources/resources.zip
 *.zip
@@ -33,3 +36,4 @@ cifar-10-batches-py/
 *.sqlite
 .venv/
 venv/
+data/cifar-10-python.tar.gz

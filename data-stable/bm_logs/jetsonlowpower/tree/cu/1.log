@@ -1,0 +1,143 @@
+[2025-04-24 21:24:01.947] [info] Pinable Lit cores: 0 1 2 3 
+[2025-04-24 21:24:01.947] [info] Pinable Med cores: 
+[2025-04-24 21:24:01.947] [info] Pinable Big cores: 
+Stage: 1 by Little
+	Count 	722
+	Average 	1.3869 ms
+Stage: 1 by CUDA
+	Count 	1586
+	Average 	0.6307 ms
+Stage: 2 by Little
+	Count 	206
+	Average 	4.8676 ms
+Stage: 2 by CUDA
+	Count 	396
+	Average 	2.5256 ms
+Stage: 3 by Little
+	Count 	1533
+	Average 	0.6530 ms
+Stage: 3 by CUDA
+	Count 	612
+	Average 	1.6344 ms
+Stage: 4 by Little
+	Count 	126
+	Average 	7.9862 ms
+Stage: 4 by CUDA
+	Count 	427
+	Average 	2.3455 ms
+Stage: 5 by Little
+	Count 	2651
+	Average 	0.3775 ms
+Stage: 5 by CUDA
+	Count 	1640
+	Average 	0.6099 ms
+Stage: 6 by Little
+	Count 	1581
+	Average 	0.6333 ms
+Stage: 6 by CUDA
+	Count 	899
+	Average 	1.1122 ms
+Stage: 7 by Little
+	Count 	373
+	Average 	2.6857 ms
+Stage: 7 by CUDA
+	Count 	482
+	Average 	2.0784 ms
+Stage: 1
+	Little 	1.8395 ms 	(544)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	0.7910 ms 	(1265)
+Stage: 2
+	Little 	6.6555 ms 	(151)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	3.9880 ms 	(252)
+Stage: 3
+	Little 	1.3203 ms 	(759)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	3.2964 ms 	(304)
+Stage: 4
+	Little 	8.3043 ms 	(121)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	2.3477 ms 	(428)
+Stage: 5
+	Little 	0.5573 ms 	(1795)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	0.5867 ms 	(1705)
+Stage: 6
+	Little 	1.2213 ms 	(821)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	3.5430 ms 	(283)
+Stage: 7
+	Little 	2.8776 ms 	(348)
+	Medium 	inf ms 	(0)
+	Big    	inf ms 	(0)
+	CUDA   	2.1722 ms 	(461)
+
+Normal Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA
+------|------------|-------------|----------|--------|-------
+    1 |      1.3869 |      0.0000 |   0.0000 | 0.0000 | 0.6307
+    2 |      4.8676 |      0.0000 |   0.0000 | 0.0000 | 2.5256
+    3 |      0.6530 |      0.0000 |   0.0000 | 0.0000 | 1.6344
+    4 |      7.9862 |      0.0000 |   0.0000 | 0.0000 | 2.3455
+    5 |      0.3775 |      0.0000 |   0.0000 | 0.0000 | 0.6099
+    6 |      0.6333 |      0.0000 |   0.0000 | 0.0000 | 1.1122
+    7 |      2.6857 |      0.0000 |   0.0000 | 0.0000 | 2.0784
+
+Normal Benchmark - Sum of stages 1-7:
+Little Core: 18.5902 ms
+Medium Core: 0.0000 ms
+Big Core: 0.0000 ms
+Vulkan: 0.0000 ms
+CUDA: 10.9367 ms
+
+Fully Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA
+------|-------------|-------------|----------|--------|-------
+    1 |      1.8395 |      0.0000 |   0.0000 | 0.0000 | 0.7910
+    2 |      6.6555 |      0.0000 |   0.0000 | 0.0000 | 3.9880
+    3 |      1.3203 |      0.0000 |   0.0000 | 0.0000 | 3.2964
+    4 |      8.3043 |      0.0000 |   0.0000 | 0.0000 | 2.3477
+    5 |      0.5573 |      0.0000 |   0.0000 | 0.0000 | 0.5867
+    6 |      1.2213 |      0.0000 |   0.0000 | 0.0000 | 3.5430
+    7 |      2.8776 |      0.0000 |   0.0000 | 0.0000 | 2.1722
+
+Fully Benchmark - Sum of stages 1-7:
+Little Core: 22.7757 ms
+Medium Core: 0.0000 ms
+Big Core: 0.0000 ms
+Vulkan: 0.0000 ms
+CUDA: 16.7251 ms
+
+Performance Comparison (Fully vs Normal):
+Processor  | Normal (ms) | Fully (ms) | Ratio
+-----------|-------------|------------|-------
+Little Core|       18.59 |      22.78 |  1.23x
+CUDA       |       10.94 |      16.73 |  1.53x
+
+### PYTHON_DATA_START ###
+# NORMAL_BENCHMARK_DATA
+stage,little,medium,big,vulkan,cuda
+1,1.3869,0.0000,0.0000,0.0000,0.6307
+2,4.8676,0.0000,0.0000,0.0000,2.5256
+3,0.6530,0.0000,0.0000,0.0000,1.6344
+4,7.9862,0.0000,0.0000,0.0000,2.3455
+5,0.3775,0.0000,0.0000,0.0000,0.6099
+6,0.6333,0.0000,0.0000,0.0000,1.1122
+7,2.6857,0.0000,0.0000,0.0000,2.0784
+# FULLY_BENCHMARK_DATA
+stage,little,medium,big,vulkan,cuda
+1,1.8395,0.0000,0.0000,0.0000,0.7910
+2,6.6555,0.0000,0.0000,0.0000,3.9880
+3,1.3203,0.0000,0.0000,0.0000,3.2964
+4,8.3043,0.0000,0.0000,0.0000,2.3477
+5,0.5573,0.0000,0.0000,0.0000,0.5867
+6,1.2213,0.0000,0.0000,0.0000,3.5430
+7,2.8776,0.0000,0.0000,0.0000,2.1722
+### PYTHON_DATA_END ###
