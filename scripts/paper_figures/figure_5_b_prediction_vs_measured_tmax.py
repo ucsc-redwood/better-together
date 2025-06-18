@@ -100,7 +100,7 @@ plt.errorbar(
     fmt="b-",
     marker="^",
     markersize=8,
-    label="Measured (Arithmetic)",
+    label="Measured (Mean)",
     linewidth=2,
 )
 
