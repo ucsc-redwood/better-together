@@ -12,6 +12,7 @@ enum class ProcessorType {
   kBigCore = 2,
   kVulkan = 3,
   kCuda = 4,
+  kSuperCore = 5,
 };
 
 inline std::string CoreTypeName(const ProcessorType core_type) {
@@ -22,6 +23,8 @@ inline std::string CoreTypeName(const ProcessorType core_type) {
       return "medium";
     case ProcessorType::kBigCore:
       return "big";
+    case ProcessorType::kSuperCore:
+      return "super";
     default:
       return "unknown";
   }

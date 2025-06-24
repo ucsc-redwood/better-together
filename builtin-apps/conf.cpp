@@ -170,4 +170,51 @@ DeviceRegistry::DeviceRegistry() {
                               {14, ProcessorType::kBigCore, true},
                               {15, ProcessorType::kBigCore, true},
                           })));
+
+  // [3/3] Processing device: R5CY21Y3VEV
+  // Deploying and running 'bm-check-core-types' on device: R5CY21Y3VEV
+  // build/android/arm64-v8a/release/bm-check-core-types: 1 file pushed, 0 skipped. 332.5 MB/s
+  // (1012336 bytes in 0.003s) 2025-06-16T14:20:04-07:00 Running /data/local/tmp/bm-check-core-types
+  // Run on (10 X 1959 MHz CPU s)
+  // Load Average: 15.48, 15.41, 14.18
+  // ***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and
+  // will incur extra overhead.
+  // ---------------------------------------------------------------
+  // Benchmark                     Time             CPU   Iterations
+  // ---------------------------------------------------------------
+  // HeavyFloat/CoreID0/0       90.0 ms         88.2 ms            8
+  // HeavyFloat/CoreID1/1       89.4 ms         88.2 ms            8
+  // HeavyFloat/CoreID2/2       89.2 ms         88.1 ms            8
+  // HeavyFloat/CoreID3/3       89.2 ms         88.1 ms            8
+  // HeavyFloat/CoreID4/4       20.4 ms         20.2 ms           35
+  // HeavyFloat/CoreID5/5       20.4 ms         20.2 ms           35
+  // HeavyFloat/CoreID6/6       20.4 ms         20.2 ms           35
+  // HeavyFloat/CoreID7/7       18.2 ms         18.1 ms           39
+  // HeavyFloat/CoreID8/8       18.2 ms         18.1 ms           39
+  // HeavyFloat/CoreID9/9       11.1 ms         11.1 ms           63
+  // GraphBFS/CoreID0/0         4.34 ms         4.22 ms          165
+  // GraphBFS/CoreID1/1         4.31 ms         4.22 ms          166
+  // GraphBFS/CoreID2/2         4.19 ms         4.11 ms          170
+  // GraphBFS/CoreID3/3         4.19 ms         4.11 ms          170
+  // GraphBFS/CoreID4/4         1.19 ms         1.19 ms          608
+  // GraphBFS/CoreID5/5         1.19 ms         1.18 ms          611
+  // GraphBFS/CoreID6/6         1.21 ms         1.20 ms          598
+  // GraphBFS/CoreID7/7         1.10 ms         1.10 ms          661
+  // GraphBFS/CoreID8/8         1.09 ms         1.08 ms          664
+  // GraphBFS/CoreID9/9        0.615 ms        0.612 ms         1135
+
+  devices_.emplace("R5CY21Y3VEV",
+                   Device("R5CY21Y3VEV",
+                          std::vector<Core>{
+                              {0, ProcessorType::kLittleCore, true},
+                              {1, ProcessorType::kLittleCore, true},
+                              {2, ProcessorType::kLittleCore, true},
+                              {3, ProcessorType::kLittleCore, true},
+                              {4, ProcessorType::kMediumCore, true},
+                              {5, ProcessorType::kMediumCore, true},
+                              {6, ProcessorType::kMediumCore, true},
+                              {7, ProcessorType::kBigCore, true},
+                              {8, ProcessorType::kBigCore, true},
+                              {9, ProcessorType::kSuperCore, true},
+                          }));
 }

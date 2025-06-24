@@ -10,7 +10,7 @@
 # drwxrwxr-x 11 doremy doremy 4.0K Feb 17 00:08 28.0.13004108/
 # drwxrwxr-x 11 doremy doremy 4.0K Mar 10 12:24 29.0.13113456/
 set-android:
-    xmake f -p android -a arm64-v8a --ndk=~/Android/Sdk/ndk/29.0.13113456/ --android_sdk=~/Android/Sdk/ --ndk_sdkver=29 -c -v --use_vulkan=yes --use_cuda=no -m release
+    xmake f -p android -a arm64-v8a --ndk=~/android-ndk-r29-beta2/ --ndk_sdkver=29 -c -v --use_vulkan=yes --use_cuda=no -m release
 
 # Set configuration for NVIDIA Jetson Orin
 set-jetson:
@@ -74,6 +74,11 @@ run-baselines-android:
     xmake r bm-baseline-cifar-sparse-vk --device 9b034f1b
     xmake r bm-baseline-tree-vk --device 9b034f1b
 
+run-baselines-android-new:
+    xmake r bm-baseline-cifar-dense-vk --device R5CY21Y3VEV
+    xmake r bm-baseline-cifar-sparse-vk --device R5CY21Y3VEV
+    xmake r bm-baseline-tree-vk --device R5CY21Y3VEV
+    
 run-baselines-jetson:
     xmake r bm-baseline-cifar-sparse-cu --device jetson
     xmake r bm-baseline-cifar-dense-cu --device jetson

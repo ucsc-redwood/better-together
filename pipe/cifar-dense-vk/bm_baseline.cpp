@@ -102,6 +102,31 @@ BENCHMARK(BM_baseline_omp_big_cores)
     ->Name("OMP/CIFAR-dense/Baseline/BigCores");
 
 // ----------------------------------------------------------------------------
+// Baseline: OMP (Super Cores)
+// ----------------------------------------------------------------------------
+
+static void BM_baseline_omp_super_cores(benchmark::State& state) {
+  INIT_DATA_SINGLE;
+
+  if (!has_sup_cores()) {
+    state.SkipWithMessage("No super cores");
+    return;
+  }
+
+  // Warm up
+  cifar_dense::omp::dispatch_multi_stage(SUPER_CORES, appdata, 1, 9);
+
+  // Benchmark
+  for (auto _ : state) {
+    cifar_dense::omp::dispatch_multi_stage(SUPER_CORES, appdata, 1, 9);
+  }
+}
+
+BENCHMARK(BM_baseline_omp_super_cores)
+    ->Unit(benchmark::kMillisecond)
+    ->Name("OMP/CIFAR-dense/Baseline/SuperCores");
+
+// ----------------------------------------------------------------------------
 // Baseline: Vulkan
 // ----------------------------------------------------------------------------
 
