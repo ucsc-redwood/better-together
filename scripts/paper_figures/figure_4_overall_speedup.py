@@ -81,7 +81,7 @@ plt.rcParams.update(
     }
 )
 
-fig, ax = plt.subplots(figsize=(8, 6))
+fig, ax = plt.subplots(figsize=(8, 4))
 x = np.arange(len(devices))
 width = 0.25
 multiplier = 0
