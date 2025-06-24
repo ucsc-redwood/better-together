@@ -55,14 +55,14 @@ ax = sns.heatmap(
     fmt=".4f",
     annot_kws={"size": 20},
     linewidths=0.5,
-    linecolor='black',
+    linecolor="black",
 )
 
 # Add black lines to separate averages
 # Vertical line to the left of average column
-ax.axvline(x=4, color='black', linewidth=2.5)
+ax.axvline(x=4, color="black", linewidth=2.5)
 # Horizontal line above average row
-ax.axhline(y=3, color='black', linewidth=2.5)
+ax.axhline(y=3, color="black", linewidth=2.5)
 
 # Customize plot
 ax.set_ylabel("", fontsize=24, labelpad=5)
