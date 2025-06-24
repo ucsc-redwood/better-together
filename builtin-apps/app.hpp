@@ -15,10 +15,12 @@ inline std::string g_spdlog_log_level;
 inline std::vector<int> g_lit_cores;
 inline std::vector<int> g_med_cores;
 inline std::vector<int> g_big_cores;
+inline std::vector<int> g_sup_cores;
 
 [[nodiscard]] static inline bool has_lit_cores() { return !g_lit_cores.empty(); }
 [[nodiscard]] static inline bool has_med_cores() { return !g_med_cores.empty(); }
 [[nodiscard]] static inline bool has_big_cores() { return !g_big_cores.empty(); }
+[[nodiscard]] static inline bool has_sup_cores() { return !g_sup_cores.empty(); }
 
 [[nodiscard]] static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
   switch (core_type) {
@@ -28,6 +30,8 @@ inline std::vector<int> g_big_cores;
       return g_med_cores;
     case ProcessorType::kBigCore:
       return g_big_cores;
+    case ProcessorType::kSuperCore:
+      return g_sup_cores;
     default:
       throw std::invalid_argument("Invalid core type");
   }
@@ -42,6 +46,8 @@ inline std::vector<int> g_big_cores;
       return g_med_cores;
     case ProcessorType::kBigCore:
       return g_big_cores;
+    case ProcessorType::kSuperCore:
+      return g_sup_cores;
     default:
       return std::nullopt;
   }
@@ -51,6 +57,7 @@ inline std::vector<int> g_big_cores;
 #define LITTLE_CORES g_lit_cores, g_lit_cores.size()
 #define MEDIUM_CORES g_med_cores, g_med_cores.size()
 #define BIG_CORES g_big_cores, g_big_cores.size()
+#define SUPER_CORES g_sup_cores, g_sup_cores.size()
 
 [[nodiscard]] size_t get_vulkan_warp_size();
 
@@ -73,6 +80,7 @@ inline std::vector<int> g_big_cores;
     auto littleCores = device.getCores(ProcessorType::kLittleCore);                       \
     auto mediumCores = device.getCores(ProcessorType::kMediumCore);                       \
     auto bigCores = device.getCores(ProcessorType::kBigCore);                             \
+    auto supCores = device.getCores(ProcessorType::kSuperCore);                           \
     std::string little_cores_str;                                                         \
     for (const auto& core : littleCores) {                                                \
       little_cores_str += std::to_string(core.id) + " ";                                  \
@@ -91,6 +99,12 @@ inline std::vector<int> g_big_cores;
       g_big_cores.push_back(core.id);                                                     \
     }                                                                                     \
     spdlog::info("Pinable Big cores: {}", big_cores_str);                                 \
+    std::string sup_cores_str;                                                            \
+    for (const auto& core : supCores) {                                                   \
+      sup_cores_str += std::to_string(core.id) + " ";                                     \
+      g_sup_cores.push_back(core.id);                                                     \
+    }                                                                                     \
+    spdlog::info("Pinable Sup cores: {}", sup_cores_str);                                 \
   } catch (const std::exception& e) {                                                     \
     std::cerr << e.what() << std::endl;                                                   \
     return 1;                                                                             \
