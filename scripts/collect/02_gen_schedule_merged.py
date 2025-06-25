@@ -800,7 +800,7 @@ if __name__ == "__main__":
             # solutions.sort(key=lambda x: x["metrics"]["max_time"])
 
             # Dump solutions in a machine-parsable format
-            # dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
+            dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
         except Exception as e:
             print(f"Error processing {csv_path}: {str(e)}")
             sys.exit(1)
