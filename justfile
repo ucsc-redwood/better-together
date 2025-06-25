@@ -157,38 +157,38 @@ only-aggregate:
 
 
 gen-schedules:
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 20 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules/
 
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 20 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules/
 
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app cifar-sparse --backend cu --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app tree --backend cu --num_solutions 20 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app cifar-sparse --backend cu --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app cifar-dense --backend cu --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetson --app tree --backend cu --num_solutions 30 --output_folder data/schedules/
 
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-sparse --backend cu --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules/
-    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 20 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-sparse --backend cu --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 30 --output_folder data/schedules/
+    uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 30 --output_folder data/schedules/
 
 gen-schedules-normal:
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules-normal/
 
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 20 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-normal/
 
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app cifar-sparse --backend cu --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app tree --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app cifar-sparse --backend cu --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app cifar-dense --backend cu --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetson --app tree --backend cu --num_solutions 30 --output_folder data/schedules-normal/
 
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-sparse --backend cu --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 20 --output_folder data/schedules-normal/
-    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 20 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-sparse --backend cu --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app cifar-dense --backend cu --num_solutions 30 --output_folder data/schedules-normal/
+    uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 30 --output_folder data/schedules-normal/
 
 
 

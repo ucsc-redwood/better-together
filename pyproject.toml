@@ -8,4 +8,5 @@ dependencies = [
     "matplotlib>=3.10.3",
     "pandas>=2.2.3",
     "seaborn>=0.13.2",
+    "z3-solver>=4.15.1.0",
 ]
