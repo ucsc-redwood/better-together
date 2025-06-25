@@ -20,7 +20,24 @@
 ===============================================================================
 ```
 
+## Requirements
+
+Need 
+
+* `uv` -> to install `curl -LsSf https://astral.sh/uv/install.sh | sh`
+* `just` -> to install `cargo install just`
+
 ## Collect Data
 
+
+To collect the _profling table_
+
+```bash
+    just collect-all-android
+```
+
+then the raw log will be stored at 
+
+`data/bm_logs` folder
 
 
