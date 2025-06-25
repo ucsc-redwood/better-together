@@ -579,17 +579,17 @@ def solve_optimization_problem(
         min_time = float(m[T_min].as_fraction())
         gapness_value = float(m[Gapness].as_fraction())
 
-        print(f"\n=== Solution {solution_count + 1} ===")
-        print(f"Gap between max and min: {gapness_value:.2f} ms")
-        print(f"Max chunk time: {max_time:.2f} ms")
-        print(f"Min chunk time: {min_time:.2f} ms")
+        # print(f"\n=== Solution {solution_count + 1} ===")
+        # print(f"Gap between max and min: {gapness_value:.2f} ms")
+        # print(f"Max chunk time: {max_time:.2f} ms")
+        # print(f"Min chunk time: {min_time:.2f} ms")
 
         # Print details
         # print_stage_assignments(m, x, num_stages, core_types, stage_timings_data)
-        print_stage_assignments_v2(m, x, num_stages, core_types, stage_timings_data)
-        chunk_times = print_chunk_summary(
-            m, x, num_stages, core_types, stage_timings_data
-        )
+        # print_stage_assignments_v2(m, x, num_stages, core_types, stage_timings_data)
+        # chunk_times = print_chunk_summary(
+        # m, x, num_stages, core_types, stage_timings_data
+        # )
 
         # Get detailed solution for JSON output
         detailed_solution = get_detailed_solution(
@@ -601,7 +601,7 @@ def solve_optimization_problem(
         detailed_solution["metrics"]["gapness"] = gapness_value
 
         # Print UID for reference
-        print(f"Solution UID: {detailed_solution['uid']}")
+        # print(f"Solution UID: {detailed_solution['uid']}")
 
         detailed_solutions.append(detailed_solution)
 
@@ -620,6 +620,15 @@ def solve_optimization_problem(
         # Print a summary of all solutions
         print("\n=== Summary of All Solutions ===")
         for i, (gapness, max_time, _) in enumerate(top_solutions):
+            solution_uid = detailed_solutions[i]["uid"]
+            print(
+                f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms, UID: {solution_uid}"
+            )
+
+        # Print the solutions again but sorted by max time
+        print("\n=== Summary of All Solutions Sorted by Max Time ===")
+        sorted_solutions = sorted(top_solutions, key=lambda x: x[1], reverse=False)
+        for i, (gapness, max_time, _) in enumerate(sorted_solutions):
             solution_uid = detailed_solutions[i]["uid"]
             print(
                 f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms, UID: {solution_uid}"
@@ -787,8 +796,11 @@ if __name__ == "__main__":
                     if chunk["core_type"] == "GPU":
                         chunk["hardware"] = GPU_BACKEND
 
+            # Sort the solutions by Max time
+            # solutions.sort(key=lambda x: x["metrics"]["max_time"])
+
             # Dump solutions in a machine-parsable format
-            dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
+            # dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
         except Exception as e:
             print(f"Error processing {csv_path}: {str(e)}")
-            sys.exit(1) 
+            sys.exit(1)
