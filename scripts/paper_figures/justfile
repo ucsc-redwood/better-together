@@ -8,6 +8,7 @@ all-figures:
     uv run python ./figure_4_overall_speedup.py
     uv run python ./figure_5_a_prediction_vs_measured.py
     uv run python ./figure_5_b_prediction_vs_measured_tmax.py
-    uv run python ./figure_6_correlation_heatmap_all.py
+    uv run python ./figure_6_a_correlation_heatmap_all.py
+    uv run python ./figure_6_b_correlation_heatmap_all_isolated.py
     uv run python ./figure_7_interference_heatmap.py
 

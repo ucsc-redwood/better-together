@@ -8,40 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-# Data definition
-original_labels = [
-    "SCH-B1G3L1M4-G242",
-    "SCH-M1G3L1B4-G197",
-    "SCH-M1G3B3L2-G221",
-    "SCH-B1G3M3L2-G264",
-    "SCH-G3M2B4-G208",
-    "SCH-G3B2M4-G277",
-    "SCH-G3B1M5-G281",
-    "SCH-G3B1L1M4-G281",
-    "SCH-G3M1L1B4-G300",
-    "SCH-G3M1B5-G300",
-    "SCH-G4B5-G223",
-    "SCH-G6L3-G046",
-    "SCH-G9-G000",
-    "SCH-B2M7-G111",
-    "SCH-M2B7-G067",
-    "SCH-M4L5-G029",
-    "SCH-B4L5-G152",
-    "SCH-B9-G000",
-    "SCH-M9-G000",
-    "SCH-L9-G000",
-]
-
-# # Simplify labels to show only the center part
-# labels = []
-# for label in original_labels:
-#     parts = label.split("-")
-#     if len(parts) >= 3:
-#         center_part = parts[1]
-#         hash_part = parts[-1]
-#         labels.append(f"{center_part}")
-#     else:
-#         labels.append(label)
 
 labels = [str(i) for i in range(1, 21)]
 

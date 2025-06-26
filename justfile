@@ -232,10 +232,10 @@ run-schedule-normal device app backend:
         --n-schedules-to-run 30
 
 # Compare the execution time (in exe_logs) with the model's prediction (in schedules.json)
-compare-schedules device app backend:
-    uv run scripts/collect/04_parse_schedules_by_widest.py -v \
-        data/exe_logs/{{device}}/{{app}}/{{backend}} \
-        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
+# compare-schedules device app backend:
+#     uv run scripts/collect/04_parse_schedules_by_widest.py -v \
+#         data/exe_logs/{{device}}/{{app}}/{{backend}} \
+#         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
 
 compare-schedules-adv device app backend:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
@@ -251,14 +251,14 @@ tmp:
         -o tmp_dir_tmx
 
 
-compare-schedules-android:
-    just compare-schedules 3A021JEHN02756 cifar-sparse vk
-    just compare-schedules 3A021JEHN02756 cifar-dense vk
-    just compare-schedules 3A021JEHN02756 tree vk
+# compare-schedules-android:
+#     just compare-schedules 3A021JEHN02756 cifar-sparse vk
+#     just compare-schedules 3A021JEHN02756 cifar-dense vk
+#     just compare-schedules 3A021JEHN02756 tree vk
 
-    # just compare-schedules 9b034f1b cifar-sparse vk
-    # just compare-schedules 9b034f1b cifar-dense vk
-    # just compare-schedules 9b034f1b tree vk
+# just compare-schedules 9b034f1b cifar-sparse vk
+# just compare-schedules 9b034f1b cifar-dense vk
+# just compare-schedules 9b034f1b tree vk
 
 compare-schedules-android-adv:
     just compare-schedules-adv 3A021JEHN02756 cifar-sparse vk

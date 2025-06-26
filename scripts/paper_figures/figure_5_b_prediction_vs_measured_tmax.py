@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+# This is obtained from running the following command:
+
 
 # ===== MEASURED VS PREDICTED TIMES =====
 # Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)
