@@ -200,13 +200,13 @@ gen-schedules:
     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
 
-gen-schedules-normal:
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-normal/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-normal/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules-normal/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-normal/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-normal/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-normal/ --mode normal
+gen-schedules-isolated:
+    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
 
 serve:
     uv run -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
@@ -247,7 +247,7 @@ compare-schedules-adv device app backend:
 tmp:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
         data-stable/exe_logs_tmax/3A021JEHN02756/cifar-sparse/vk \
-        --model data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules.json \
+        --model data/schedules/3A021JEHN02756/cifar-spars   e/vk/schedules.json \
         -o tmp_dir_tmx
 
 
