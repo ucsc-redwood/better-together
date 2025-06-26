@@ -50,7 +50,7 @@ def main():
     parser.add_argument(
         "--schedules-server",
         type=str,
-        default="http://192.168.1.204:8080",
+        default="http://192.168.1.12:8080",
         help="URL of the server hosting schedule JSON files",
     )
     parser.add_argument(

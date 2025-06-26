@@ -219,7 +219,7 @@ run-schedule device app backend:
         --app {{app}} \
         --backend {{backend}} \
         --device {{device}} \
-        --n-schedules-to-run 20
+        --n-schedules-to-run 30 
 
 run-schedule-normal device app backend:
     uv run scripts/collect/03_run_schedule.py \
@@ -229,8 +229,9 @@ run-schedule-normal device app backend:
         --backend {{backend}} \
         --device {{device}} \
         --use-normal-table True \
-        --n-schedules-to-run 20
+        --n-schedules-to-run 30
 
+# Compare the execution time (in exe_logs) with the model's prediction (in schedules.json)
 compare-schedules device app backend:
     uv run scripts/collect/04_parse_schedules_by_widest.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
