@@ -221,9 +221,19 @@ run-schedule device app backend:
         --device {{device}} \
         --n-schedules-to-run 30 
 
-run-schedule-normal device app backend:
+
+run-all-schedule-isolated:
+    just run-schedule-isolated 3A021JEHN02756 cifar-sparse vk
+    just run-schedule-isolated 3A021JEHN02756 cifar-dense vk
+    just run-schedule-isolated 3A021JEHN02756 tree vk
+    just run-schedule-isolated 9b034f1b cifar-sparse vk
+    just run-schedule-isolated 9b034f1b cifar-dense vk
+    just run-schedule-isolated 9b034f1b tree vk
+
+
+run-schedule-isolated device app backend:
     uv run scripts/collect/03_run_schedule.py \
-        --log_folder data/exe_logs_normal \
+        --log_folder data/exe_logs_isolated \
         --repeat 5 \
         --app {{app}} \
         --backend {{backend}} \
@@ -243,11 +253,19 @@ compare-schedules-adv device app backend:
         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
         -o plots/{{device}}/{{app}}/{{backend}}
 
+# Example:
+# uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v data/exe_logs_isolated/3A021JEHN02756/cifar-sparse/vk --model data/schedules-isolated/3A021JEHN02756/cifar-sparse/vk/schedules_normal.json 
+
+compare-schedules-adv-isolated device app backend:
+    uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+        data/exe_logs_isolated/{{device}}/{{app}}/{{backend}} \
+        --model data/schedules-isolated/{{device}}/{{app}}/{{backend}}/schedules_normal.json \
+        -o plots-isolated/{{device}}/{{app}}/{{backend}}
 
 tmp:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
         data-stable/exe_logs_tmax/3A021JEHN02756/cifar-sparse/vk \
-        --model data/schedules/3A021JEHN02756/cifar-spars   e/vk/schedules.json \
+        --model data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules.json \
         -o tmp_dir_tmx
 
 
