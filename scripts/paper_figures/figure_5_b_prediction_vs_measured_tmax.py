@@ -11,7 +11,7 @@ import os
 # Constants
 NUM_TASKS_TO_DISPLAY = 19  # Number of tasks to display
 Y_AXIS_MIN = 0  # Minimum value for Y-axis
-Y_AXIS_MAX = 13  # Maximum value for Y-axis
+Y_AXIS_MAX = 35  # Maximum value for Y-axis
 BIAS = (
     -2
 )  # Bias to add/subtract from predicted data only (positive = add, negative = subtract)
