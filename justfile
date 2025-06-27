@@ -82,7 +82,7 @@ run-baselines-jetsonlowpower:
     # xmake r bm-baseline-cifar-dense-vk --device jetsonlowpower
     # xmake r bm-baseline-tree-vk --device jetsonlowpower
 
-
+# (Step 1) Collect all the data
 collect-all-android:
     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
@@ -191,6 +191,7 @@ only-aggregate:
 #     uv run scripts/collect/02_schedule_using_normal_table.py --csv_folder data/bm_logs/ --device jetsonlowpower --app tree --backend cu --num_solutions 30 --output_folder data/schedules-normal/
 
 
+# (Step 2) Generate schedules
 
 gen-schedules:
     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
@@ -211,7 +212,7 @@ gen-schedules-isolated:
 serve:
     uv run -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
 
-
+# (Step 3) Run schedules
 run-schedule device app backend:
     uv run scripts/collect/03_run_schedule.py \
         --log_folder data/exe_logs \
@@ -221,6 +222,13 @@ run-schedule device app backend:
         --device {{device}} \
         --n-schedules-to-run 30 
 
+run-all-schedule:
+    just run-schedule 3A021JEHN02756 cifar-sparse vk
+    just run-schedule 3A021JEHN02756 cifar-dense vk
+    just run-schedule 3A021JEHN02756 tree vk
+    just run-schedule 9b034f1b cifar-sparse vk
+    just run-schedule 9b034f1b cifar-dense vk
+    just run-schedule 9b034f1b tree vk
 
 run-all-schedule-isolated:
     just run-schedule-isolated 3A021JEHN02756 cifar-sparse vk
@@ -229,6 +237,7 @@ run-all-schedule-isolated:
     just run-schedule-isolated 9b034f1b cifar-sparse vk
     just run-schedule-isolated 9b034f1b cifar-dense vk
     just run-schedule-isolated 9b034f1b tree vk
+
 
 
 run-schedule-isolated device app backend:
@@ -250,8 +259,7 @@ run-schedule-isolated device app backend:
 compare-schedules-adv device app backend:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
-        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
-        -o plots/{{device}}/{{app}}/{{backend}}
+        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json 
 
 # Example:
 # uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v data/exe_logs_isolated/3A021JEHN02756/cifar-sparse/vk --model data/schedules-isolated/3A021JEHN02756/cifar-sparse/vk/schedules_normal.json 
