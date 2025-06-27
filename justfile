@@ -259,7 +259,8 @@ run-schedule-isolated device app backend:
 compare-schedules-adv device app backend:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
-        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json 
+        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
+        -o plots/{{device}}/{{app}}/{{backend}}
 
 # Example:
 # uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v data/exe_logs_isolated/3A021JEHN02756/cifar-sparse/vk --model data/schedules-isolated/3A021JEHN02756/cifar-sparse/vk/schedules_normal.json 
