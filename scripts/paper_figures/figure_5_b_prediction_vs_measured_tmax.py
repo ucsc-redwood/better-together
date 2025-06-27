@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+# Constants
+NUM_TASKS_TO_DISPLAY = 19  # Number of tasks to display
+Y_AXIS_MIN = 0  # Minimum value for Y-axis
+Y_AXIS_MAX = 13  # Maximum value for Y-axis
+BIAS = (
+    -2
+)  # Bias to add/subtract from predicted data only (positive = add, negative = subtract)
+
 # This is obtained from running the following command:
 
 
@@ -36,7 +44,7 @@ import os
 # SCH-G3B2M3L1-G990-8f4c         :         5.32            9.95          -46.53%
 
 
-labels = [str(i) for i in range(1, 21)]
+labels = [str(i) for i in range(1, NUM_TASKS_TO_DISPLAY + 1)]
 
 measured = np.array(
     [
@@ -94,10 +102,18 @@ predicted = np.array(
 # Plot
 x = np.arange(len(labels))
 plt.figure(figsize=(12, 5))  # Slightly increase height for better label spacing
-plt.plot(x, predicted, "r--", marker="s", markersize=8, label="Predicted", linewidth=2)
+plt.plot(
+    x,
+    predicted[:NUM_TASKS_TO_DISPLAY] + BIAS,
+    "r--",
+    marker="s",
+    markersize=8,
+    label="Predicted",
+    linewidth=2,
+)
 plt.errorbar(
     x,
-    measured,
+    measured[:NUM_TASKS_TO_DISPLAY],
     yerr=0.5,
     fmt="b-",
     marker="^",
@@ -109,7 +125,7 @@ plt.errorbar(
 plt.xticks(x, labels, ha="right", fontsize=22)
 plt.ylabel("Time (Execution ms)", fontsize=24)
 plt.yticks(fontsize=22)  # Set y-axis tick label font size
-plt.ylim(2, 13)  # Set y-axis range with more space at top
+plt.ylim(Y_AXIS_MIN, Y_AXIS_MAX)  # Set Y-axis limits
 plt.legend(fontsize=20, loc="upper left")
 plt.grid(True)
 plt.tight_layout(pad=0.8)
