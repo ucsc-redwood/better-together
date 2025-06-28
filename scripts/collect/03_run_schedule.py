@@ -88,6 +88,14 @@ def parse_arguments():
         help="Mode to minimize: 'gapness' for minimizing the gap between max and min chunk times, 'tmax' for minimizing the max chunk time",
     )
 
+    # verbose
+    parser.add_argument(
+        "--verbose",
+        type=bool,
+        default=False,
+        help="Verbose mode",
+    )
+
     return parser.parse_args()
 
 
@@ -103,6 +111,7 @@ def main():
     repeat = args.repeat
     n_schedules_to_run = args.n_schedules_to_run
     schedules_server = args.schedules_server
+    verbose = args.verbose
 
     # Create the directory path with new structure
     log_path = os.path.join(log_folder, device, app, backend)
