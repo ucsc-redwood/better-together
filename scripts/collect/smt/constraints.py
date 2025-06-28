@@ -24,7 +24,9 @@ def add_assignment_constraints(opt, x, num_stages, core_types):
                 opt.add(Or(Not(x[(i, core_types[j])]), Not(x[(i, core_types[k])])))
 
 
-def add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings):
+def add_chunk_time_constraint(
+    opt, x, core_types, num_stages, stage_timings, minimize_mode="gapness"
+):
     """Add constraints for the chunk times and optimize for minimal gap between max and min chunk times."""
     # Define the maximum and minimum chunk time variables
     T_max = Real("T_max")
@@ -41,6 +43,7 @@ def add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings):
             for j in range(i, num_stages):
                 # Build the condition: all stages k in [i, j] are assigned PU c.
                 segment_assigned = And([x[(k, c)] for k in range(i, j + 1)])
+
                 # Compute the sum over the segment.
                 seg_sum = Sum(
                     [
@@ -48,6 +51,7 @@ def add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings):
                         for k in range(i, j + 1)
                     ]
                 )
+
                 # Add the implication: if the segment is uniformly assigned c, then seg_sum <= T_max.
                 opt.add(Implies(segment_assigned, seg_sum <= T_max))
 
@@ -65,7 +69,12 @@ def add_chunk_time_constraint(opt, x, core_types, num_stages, stage_timings):
     opt.add(Gapness == T_max - T_min)
 
     # Optimize only for minimal gap
-    opt.minimize(Gapness)
+    if minimize_mode == "gapness":
+        opt.minimize(Gapness)
+    elif minimize_mode == "max_time":
+        opt.minimize(T_max)
+    else:
+        raise ValueError(f"Invalid minimize mode: {minimize_mode}")
 
     return T_max, T_min, Gapness
 

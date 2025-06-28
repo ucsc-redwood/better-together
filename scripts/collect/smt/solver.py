@@ -35,9 +35,11 @@ def solve_optimization_problem(stage_timings, num_solutions=30, app_name=None):
 
     # Add constraints
     add_assignment_constraints(opt, x, num_stages, core_types)
+
     T_max, T_min, Gapness = add_chunk_time_constraint(
         opt, x, core_types, num_stages, stage_timings_data
     )
+
     add_contiguity_constraints(opt, x, core_types, num_stages)
 
     print("\nOptimization approach: Minimizing the gap between max and min chunk times")

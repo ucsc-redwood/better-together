@@ -25,21 +25,33 @@ def parse_arguments():
         description="Solve scheduling optimization problem using data from a CSV file."
     )
     parser.add_argument(
-        "--csv_folder",
+        "--csv_root_folder",
         type=str,
         help="Root folder path containing CSV data in device/app/backend structure",
         required=True,
     )
+
+    # which device, app, backend to use
     parser.add_argument("--device", required=True)
     parser.add_argument("--app", required=True)
     parser.add_argument("--backend", required=True, choices=["vk", "cu"])
+
+    # which table and optimization mode to use
     parser.add_argument(
-        "--mode",
+        "--table_type",
         type=str,
-        choices=["normal", "fully"],
+        choices=["isolated", "btpm"],
         required=True,
-        help="Mode to select CSV file: 'normal' for normal.csv or 'fully' for fully.csv",
+        help="Mode to select CSV file: 'isolated' for normal.csv or 'btpm' for fully.csv",
     )
+    parser.add_argument(
+        "--minimize_mode",
+        type=str,
+        choices=["gapness", "max_time"],
+        required=True,
+        help="Mode to minimize: 'gapness' for minimizing the gap between max and min chunk times, 'max_time' for minimizing the max chunk time",
+    )
+
     parser.add_argument(
         "-n",
         "--num_solutions",
@@ -48,6 +60,7 @@ def parse_arguments():
         required=True,
     )
     parser.add_argument(
+        "-o",
         "--output_folder",
         type=str,
         help="Root path to write the JSON output file (optional)",
@@ -64,6 +77,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
+name_map = {
+    "isolated": "normal",
+    "btpm": "fully",
+}
+
+
 def main():
     """Main execution function."""
     args = parse_arguments()
@@ -71,7 +90,8 @@ def main():
     backend = args.backend
     device = args.device
     app = args.app
-    mode = args.mode
+    table_type = args.table_type
+    minimize_mode = args.minimize_mode
     verbose = args.verbose
 
     # Get baseline data for this configuration
@@ -86,8 +106,8 @@ def main():
         print(f"No baseline data available for {device}/{app}/{backend}")
 
     # Input CSV path with mode-based file selection
-    csv_filename = f"{mode}.csv"
-    csv_path = os.path.join(args.csv_folder, device, app, backend, csv_filename)
+    csv_filename = f"{name_map[table_type]}.csv"
+    csv_path = os.path.join(args.csv_root_folder, device, app, backend, csv_filename)
 
     # Check if the CSV file exists
     if not os.path.exists(csv_path):
@@ -97,7 +117,8 @@ def main():
         sys.exit(0)
     else:
         print(f"Loading data from CSV file: {csv_path}")
-        print(f"Mode: {mode}")
+        print(f"Using table type: {table_type}")
+        print(f"Using minimize mode: {minimize_mode}")
 
     # Output path for schedule JSON
     if args.output_folder:
@@ -105,11 +126,9 @@ def main():
         output_dir = os.path.join(args.output_folder, device, app, backend)
         os.makedirs(output_dir, exist_ok=True)
 
-        # Use mode-specific output filename
-        if mode == "normal":
-            out_path = os.path.join(output_dir, "schedules_normal.json")
-        else:  # mode == "fully"
-            out_path = os.path.join(output_dir, "schedules.json")
+        out_path = os.path.join(
+            output_dir, f"schedules_{table_type}_{minimize_mode}.json"
+        )
     else:
         print("No output folder specified, skipping")
         sys.exit(0)
