@@ -17,9 +17,8 @@ from .solution_analyzer import (
 )
 
 
-def solve_optimization_problem(
-    stage_timings, baseline_data, num_solutions=30, app_name=None
-):
+# baseline_data,
+def solve_optimization_problem(stage_timings, num_solutions=30, app_name=None):
     """Solve the optimization problem and return the solutions."""
     # Initialize data
     num_stages, core_types, stage_timings_data = define_data(stage_timings, app_name)

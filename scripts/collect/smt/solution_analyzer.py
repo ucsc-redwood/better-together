@@ -5,23 +5,6 @@ import json
 import os
 
 
-def print_stage_assignments_v2(m, x, num_stages, core_types, stage_timings):
-    """Print the assignment of stages to core types."""
-    # Group stages by core type
-    core_stages = {}
-    for i in range(num_stages):
-        for c in core_types:
-            if m.evaluate(x[(i, c)]):
-                if c not in core_stages:
-                    core_stages[c] = []
-                core_stages[c].append(i)
-
-    # Print stages grouped by core type
-    print("\nStage assignments:")
-    for core_type, stages in core_stages.items():
-        print(f"{core_type} = {stages}")
-
-
 def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
     """Print a summary of chunks with their core types and times."""
     print("\nMath model summary:")

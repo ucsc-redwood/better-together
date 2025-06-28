@@ -112,9 +112,8 @@ def main():
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
         # Solve the optimization problem
-        solutions = solve_optimization_problem(
-            stage_timings, baseline_data, args.num_solutions, app
-        )
+        # baseline_data,
+        solutions = solve_optimization_problem(stage_timings, args.num_solutions, app)
 
         # Update the solutions to reflect the correct GPU backend
         for solution in solutions:
