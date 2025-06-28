@@ -91,4 +91,4 @@ def get_num_stages_for_app(app_name):
     if base_app == "cifar":
         return stage_counts.get("cifar-dense", 9)
 
-    return stage_counts.get(base_app, 9)  # Default to 9 if not found 
+    return stage_counts.get(base_app, 9)  # Default to 9 if not found

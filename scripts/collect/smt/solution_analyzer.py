@@ -264,4 +264,4 @@ def dump_solutions_as_json(
                 f.write(json_str)
             print(f"\nSolutions written to {output_file}")
         except Exception as e:
-            print(f"\nError writing to file {output_file}: {str(e)}") 
+            print(f"\nError writing to file {output_file}: {str(e)}")

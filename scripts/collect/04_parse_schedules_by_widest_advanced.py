@@ -1245,18 +1245,26 @@ def main():
     # Apply max-schedules limit if specified
     if args.max_schedules is not None:
         # Get all unique schedule UIDs and sort them for consistency
-        unique_uids = sorted(list(set(schedule["schedule_uid"] for schedule in all_schedules)))
-        
+        unique_uids = sorted(
+            list(set(schedule["schedule_uid"] for schedule in all_schedules))
+        )
+
         print(f"Found {len(unique_uids)} unique schedule UIDs")
         print(f"Limiting analysis to first {args.max_schedules} schedules")
-        
+
         # Take only the first N UIDs
-        limited_uids = unique_uids[:args.max_schedules]
-        
+        limited_uids = unique_uids[: args.max_schedules]
+
         # Filter all_schedules to only include schedules with these UIDs
-        all_schedules = [schedule for schedule in all_schedules if schedule["schedule_uid"] in limited_uids]
-        
-        print(f"After filtering: analyzing {len(all_schedules)} schedule instances from {len(limited_uids)} unique UIDs")
+        all_schedules = [
+            schedule
+            for schedule in all_schedules
+            if schedule["schedule_uid"] in limited_uids
+        ]
+
+        print(
+            f"After filtering: analyzing {len(all_schedules)} schedule instances from {len(limited_uids)} unique UIDs"
+        )
         print(f"Selected schedule UIDs: {', '.join(limited_uids)}")
     else:
         unique_uids = list(set(schedule["schedule_uid"] for schedule in all_schedules))
@@ -1324,13 +1332,15 @@ def main():
         f"\nProcessed {len(log_files)} log files with a total of {len(all_schedules)} schedule instances"
     )
     print(f"Time window used for analysis: {time_window[0]:.2f}-{time_window[1]:.2f}")
-    
+
     # Show schedule limit info if applied
     if args.max_schedules is not None:
         total_unique = len(set(schedule["schedule_uid"] for schedule in all_schedules))
-        print(f"Schedule limit: analyzed first {args.max_schedules} of {len(unique_uids)} unique schedule UIDs")
+        print(
+            f"Schedule limit: analyzed first {args.max_schedules} of {len(unique_uids)} unique schedule UIDs"
+        )
         print(f"Unique schedule UIDs analyzed: {total_unique}")
-    
+
     return 0
 
 

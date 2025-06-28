@@ -83,4 +83,4 @@ def define_data(stage_timings=None, app_name=None):
     # Default timings if no CSV is provided
     default_stage_timings = []
 
-    return num_stages, core_types, default_stage_timings 
+    return num_stages, core_types, default_stage_timings

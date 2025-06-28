@@ -93,4 +93,4 @@ def block_solution(opt, x, num_stages, core_types, model):
 
 def create_optimizer():
     """Create and return a Z3 optimizer instance."""
-    return Optimize() 
+    return Optimize()

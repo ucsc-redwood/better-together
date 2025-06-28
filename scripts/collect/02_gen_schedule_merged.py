@@ -124,7 +124,7 @@ def main():
 
         # Output the solutions
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
-        
+
     except Exception as e:
         print(f"Error processing {csv_path}: {str(e)}")
         sys.exit(1)
