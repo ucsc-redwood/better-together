@@ -4,7 +4,7 @@ import pandas as pd
 from .baselines import get_num_stages_for_app
 
 
-def load_csv_and_compute_averages(csv_path, app_name):
+def load_csv_and_compute_averages(csv_path, app_name, verbose=False):
     """
     Load data from a CSV file and compute average timings for each stage across all runs.
     The CSV input contains multiple runs for the same stage. like this:
@@ -38,16 +38,18 @@ def load_csv_and_compute_averages(csv_path, app_name):
     avg_df = df.groupby("stage")[["little", "medium", "big", "vulkan", "cuda"]].mean()
 
     # Print the average table
-    print("\n=== Average Stage Timings ===")
-    print(avg_df)
-    print()
+    if verbose:
+        print("\n=== Average Stage Timings ===")
+        print(avg_df)
+        print()
 
     # Determine which GPU backend to use (CUDA or Vulkan)
     # If CUDA values are all zeros, use Vulkan
     # Otherwise, use CUDA as the GPU backend
     use_cuda = avg_df["cuda"].sum() > 0
 
-    print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")
+    if verbose:
+        print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")
 
     # Get application-specific stage count
     num_stages = get_num_stages_for_app(app_name) if app_name else 9

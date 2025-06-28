@@ -54,6 +54,13 @@ def parse_arguments():
         default=None,
         required=True,
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Verbose output",
+        default=False,
+    )
     return parser.parse_args()
 
 
@@ -65,14 +72,16 @@ def main():
     device = args.device
     app = args.app
     mode = args.mode
+    verbose = args.verbose
 
     # Get baseline data for this configuration
     baseline_data = get_baseline_for_config(device, app, backend)
     if baseline_data:
-        print(f"Baseline data for {device}/{app}/{backend}:")
-        print(f"  CPU (OpenMP): {baseline_data['omp']} ms")
-        print(f"  GPU ({backend}): {baseline_data[backend]} ms")
-        print(f"  Fastest: {baseline_data['fastest']} ms")
+        if verbose:
+            print(f"Baseline data for {device}/{app}/{backend}:")
+            print(f"  CPU (OpenMP): {baseline_data['omp']} ms")
+            print(f"  GPU ({backend}): {baseline_data[backend]} ms")
+            print(f"  Fastest: {baseline_data['fastest']} ms")
     else:
         print(f"No baseline data available for {device}/{app}/{backend}")
 
@@ -101,12 +110,13 @@ def main():
         print("No output folder specified, skipping")
         sys.exit(0)
 
-    print(f"Loading data from CSV file: {csv_path}")
-    print(f"Mode: {mode}")
+    if verbose:
+        print(f"Loading data from CSV file: {csv_path}")
+        print(f"Mode: {mode}")
 
     try:
         # Load and process CSV data
-        stage_timings, use_cuda = load_csv_and_compute_averages(csv_path, app)
+        stage_timings, use_cuda = load_csv_and_compute_averages(csv_path, app, verbose)
 
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
