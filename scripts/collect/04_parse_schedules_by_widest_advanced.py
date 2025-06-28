@@ -12,7 +12,7 @@ Produces:
 
 
 Usage:
-    python parse_schedules.py /path/to/log/files [--model /path/to/model.json] [--time-window 0.0-1.0]
+    python parse_schedules.py /path/to/log/files [--model /path/to/model.json] [--time-window 0.0-1.0] [--max-schedules N]
 """
 
 import os
@@ -52,6 +52,12 @@ def parse_arguments():
         "-t",
         help="Time window for analysis (format: start-end, values between 0.0 and 1.0)",
         default="0.0-1.0",
+    )
+    parser.add_argument(
+        "--max-schedules",
+        "-n",
+        type=int,
+        help="Maximum number of schedules to analyze (from 0 to N-1). If not specified, all schedules will be analyzed.",
     )
     return parser.parse_args()
 
@@ -1187,6 +1193,11 @@ def main():
     """Main function to process all log files."""
     args = parse_arguments()
 
+    # Validate max-schedules parameter
+    if args.max_schedules is not None and args.max_schedules <= 0:
+        print("Error: --max-schedules must be a positive integer")
+        return 1
+
     # Parse the time window argument
     try:
         time_window_parts = args.time_window.split("-")
@@ -1230,6 +1241,26 @@ def main():
     if not all_schedules:
         print("No schedule data was found in any of the log files.")
         return 1
+
+    # Apply max-schedules limit if specified
+    if args.max_schedules is not None:
+        # Get all unique schedule UIDs and sort them for consistency
+        unique_uids = sorted(list(set(schedule["schedule_uid"] for schedule in all_schedules)))
+        
+        print(f"Found {len(unique_uids)} unique schedule UIDs")
+        print(f"Limiting analysis to first {args.max_schedules} schedules")
+        
+        # Take only the first N UIDs
+        limited_uids = unique_uids[:args.max_schedules]
+        
+        # Filter all_schedules to only include schedules with these UIDs
+        all_schedules = [schedule for schedule in all_schedules if schedule["schedule_uid"] in limited_uids]
+        
+        print(f"After filtering: analyzing {len(all_schedules)} schedule instances from {len(limited_uids)} unique UIDs")
+        print(f"Selected schedule UIDs: {', '.join(limited_uids)}")
+    else:
+        unique_uids = list(set(schedule["schedule_uid"] for schedule in all_schedules))
+        print(f"Analyzing all {len(unique_uids)} unique schedule UIDs")
 
     # Print individual statistics if verbose mode is enabled
     if args.verbose:
@@ -1293,6 +1324,13 @@ def main():
         f"\nProcessed {len(log_files)} log files with a total of {len(all_schedules)} schedule instances"
     )
     print(f"Time window used for analysis: {time_window[0]:.2f}-{time_window[1]:.2f}")
+    
+    # Show schedule limit info if applied
+    if args.max_schedules is not None:
+        total_unique = len(set(schedule["schedule_uid"] for schedule in all_schedules))
+        print(f"Schedule limit: analyzed first {args.max_schedules} of {len(unique_uids)} unique schedule UIDs")
+        print(f"Unique schedule UIDs analyzed: {total_unique}")
+    
     return 0
 
 

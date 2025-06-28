@@ -210,7 +210,8 @@ gen-schedules-isolated:
     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
 
 serve:
-    uv run -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
+    uv run -m http.server --bind 0.0.0.0 --directory data/schedules-isolated/ 8080
+    # uv run -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
 
 # (Step 3) Run schedules
 run-schedule device app backend:
@@ -260,7 +261,16 @@ compare-schedules-adv device app backend:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
         data/exe_logs/{{device}}/{{app}}/{{backend}} \
         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
-        -o plots/{{device}}/{{app}}/{{backend}}
+        -o plots/{{device}}/{{app}}/{{backend}} \
+        --max-schedules 20
+
+
+compare-schedules-adv-old device app backend:
+    uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+        data-stable/exe_logs/{{device}}/{{app}}/{{backend}} \
+        --model data-stable/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
+        -o plots-old/{{device}}/{{app}}/{{backend}} \
+        --max-schedules 20
 
 # Example:
 # uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v data/exe_logs_isolated/3A021JEHN02756/cifar-sparse/vk --model data/schedules-isolated/3A021JEHN02756/cifar-sparse/vk/schedules_normal.json 
@@ -269,13 +279,14 @@ compare-schedules-adv-isolated device app backend:
     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
         data/exe_logs_isolated/{{device}}/{{app}}/{{backend}} \
         --model data/schedules-isolated/{{device}}/{{app}}/{{backend}}/schedules_normal.json \
-        -o plots-isolated/{{device}}/{{app}}/{{backend}}
+        -o plots-isolated/{{device}}/{{app}}/{{backend}} \
+        --max-schedules 30
 
-tmp:
-    uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
-        data-stable/exe_logs_tmax/3A021JEHN02756/cifar-sparse/vk \
-        --model data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules.json \
-        -o tmp_dir_tmx
+# tmp:
+#     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+#         data-stable/exe_logs_tmax/3A021JEHN02756/cifar-sparse/vk \
+#         --model data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules.json \
+#         -o tmp_dir_tmx
 
 
 # compare-schedules-android:

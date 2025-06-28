@@ -13,23 +13,12 @@ import os
 devices = ["OnePlus", "Google", "Jetson", "Jetson (LP)"]
 apps = ["CIFAR-D", "CIFAR-S", "Tree"]
 
-# Pearson correlation coefficients
-# Original data:
-# pearson_data = np.array(
-#     [
-#         [0.9968, 0.9684, 0.9418],  # OnePlus
-#         [0.9990, 0.9441, 0.8450],  # Google
-#         [0.9491, 0.8668, 0.8283],  # Jetson
-#         [0.9548, 0.8926, 0.8886],  # Jetson (lowpower)
-#     ]
-# )
-
 pearson_data = np.array(
     [
-        [0.9968, 0.9684, 0.9418],  # OnePlus
-        [0.9990, 0.9441, 0.8450],  # Google
-        [0.9491, 0.8668, 0.8283],  # Jetson
-        [0.9548, 0.8926, 0.8886],  # Jetson (lowpower)
+        [0.9788, 0.9780, 0.9932],  # OnePlus
+        [0.9455, 0.9678, 0.9816],  # Google
+        [0, 0, 0],  # Jetson
+        [0, 0, 0],  # Jetson (lowpower)
     ]
 )
 
