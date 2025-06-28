@@ -95,12 +95,16 @@ def main():
             f"Warning: CSV file {csv_path} does not exist. Skipping this combination."
         )
         sys.exit(0)
+    else:
+        print(f"Loading data from CSV file: {csv_path}")
+        print(f"Mode: {mode}")
 
     # Output path for schedule JSON
     if args.output_folder:
         # Create output directory structure if needed
         output_dir = os.path.join(args.output_folder, device, app, backend)
         os.makedirs(output_dir, exist_ok=True)
+
         # Use mode-specific output filename
         if mode == "normal":
             out_path = os.path.join(output_dir, "schedules_normal.json")
@@ -110,19 +114,13 @@ def main():
         print("No output folder specified, skipping")
         sys.exit(0)
 
-    if verbose:
-        print(f"Loading data from CSV file: {csv_path}")
-        print(f"Mode: {mode}")
-
     try:
-        # Load and process CSV data
         stage_timings, use_cuda = load_csv_and_compute_averages(csv_path, app, verbose)
 
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
         # Solve the optimization problem
-        # baseline_data,
         solutions = solve_optimization_problem(stage_timings, args.num_solutions, app)
 
         # Update the solutions to reflect the correct GPU backend
