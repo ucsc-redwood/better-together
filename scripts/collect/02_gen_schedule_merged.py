@@ -47,9 +47,9 @@ def parse_arguments():
     parser.add_argument(
         "--minimize_mode",
         type=str,
-        choices=["gapness", "max_time"],
+        choices=["gapness", "tmax"],
         required=True,
-        help="Mode to minimize: 'gapness' for minimizing the gap between max and min chunk times, 'max_time' for minimizing the max chunk time",
+        help="Mode to minimize: 'gapness' for minimizing the gap between max and min chunk times, 'tmax' for minimizing the max chunk time",
     )
 
     parser.add_argument(

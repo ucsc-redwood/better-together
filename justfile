@@ -83,61 +83,83 @@ run-baselines-jetsonlowpower:
     # xmake r bm-baseline-tree-vk --device jetsonlowpower
 
 # (Step 1) Collect all the data
-collect-all-android:
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
+collect: device app backend:
+    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app {{app}} --backend {{backend}} --device {{device}}
 
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
+collect-android:
+    just collect 3A021JEHN02756 tree vk
+    just collect 3A021JEHN02756 cifar-sparse vk
+    just collect 3A021JEHN02756 cifar-dense vk
+    just collect 9b034f1b tree vk
+    just collect 9b034f1b cifar-sparse vk
+    just collect 9b034f1b cifar-dense vk
 
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
+# collect-all-jetson:
+#     just collect jetson tree cu
+#     just collect jetson cifar-sparse cu
+#     just collect jetson cifar-dense cu
 
-collect-all-jetson:
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
-
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
-
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
+collect-android-all:
+    just collect-android
+    just collect-android
+    just collect-android
 
 
-collect-all-jetsonlowpower: 
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+# collect-all-android:
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
 
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
 
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 3A021JEHN02756
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 9b034f1b
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend vk --device 9b034f1b
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend vk --device 9b034f1b
 
-only-aggregate:
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-sparse --backend vk --device 3A021JEHN02756 --only-aggregate
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-dense --backend vk --device 3A021JEHN02756 --only-aggregate
+# collect-all-jetson:
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
 
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-sparse --backend vk --device 9b034f1b --only-aggregate
-    uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-dense --backend vk --device 9b034f1b --only-aggregate
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
+
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetson
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetson
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetson
+
+
+# collect-all-jetsonlowpower: 
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-sparse --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app cifar-dense --backend cu --device jetsonlowpower
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend cu --device jetsonlowpower
+
+# only-aggregate:
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-sparse --backend vk --device 3A021JEHN02756 --only-aggregate
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-dense --backend vk --device 3A021JEHN02756 --only-aggregate
+
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-sparse --backend vk --device 9b034f1b --only-aggregate
+#     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --app cifar-dense --backend vk --device 9b034f1b --only-aggregate
 
 # make-heatmap:
 #     uv run scripts/collect/01_make_heatmap.py --log_folder data/bm_logs/  --app cifar-sparse --backend vk --device 3A021JEHN02756 
@@ -193,21 +215,83 @@ only-aggregate:
 
 # (Step 2) Generate schedules
 
-gen-schedules:
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+# gen-schedule:
+#     uv run scripts/collect/02_gen_schedule_merged.py \
+#         --csv_root_folder data/bm_logs/ \
+#         --device 3A021JEHN02756 \
+#         --app cifar-sparse \
+#         --backend vk \
+#         --num_solutions 30 \
+#         --output_folder data/schedules/ \
+#         --table_type isolated \
+#         --minimize_mode tmax
 
-gen-schedules-isolated:
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
-    uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+gen-schedule device app backend table_type minimize_mode:
+    uv run scripts/collect/02_gen_schedule_merged.py \
+        --csv_root_folder data/bm_logs/ \
+        --device {{device}} \
+        --app {{app}} \
+        --backend {{backend}} \
+        --num_solutions 30 \
+        --output_folder data/schedules/ \
+        --table_type {{table_type}} \
+        --minimize_mode {{minimize_mode}}
+
+gen-schedules-isolated-tmax:
+    just gen-schedule 3A021JEHN02756 cifar-sparse vk isolated tmax
+    just gen-schedule 3A021JEHN02756 cifar-dense vk isolated tmax
+    just gen-schedule 3A021JEHN02756 tree vk isolated tmax
+    just gen-schedule 9b034f1b cifar-sparse vk isolated tmax
+    just gen-schedule 9b034f1b cifar-dense vk isolated tmax
+    just gen-schedule 9b034f1b tree vk isolated tmax
+
+gen-schedules-isolated-gapness:
+    just gen-schedule 3A021JEHN02756 cifar-sparse vk isolated gapness
+    just gen-schedule 3A021JEHN02756 cifar-dense vk isolated gapness
+    just gen-schedule 3A021JEHN02756 tree vk isolated gapness
+    just gen-schedule 9b034f1b cifar-sparse vk isolated gapness
+    just gen-schedule 9b034f1b cifar-dense vk isolated gapness
+    just gen-schedule 9b034f1b tree vk isolated gapness
+
+gen-schedules-btpm-tmax:
+    just gen-schedule 3A021JEHN02756 cifar-sparse vk btpm tmax
+    just gen-schedule 3A021JEHN02756 cifar-dense vk btpm tmax
+    just gen-schedule 3A021JEHN02756 tree vk btpm tmax
+    just gen-schedule 9b034f1b cifar-sparse vk btpm tmax
+    just gen-schedule 9b034f1b cifar-dense vk btpm tmax
+    just gen-schedule 9b034f1b tree vk btpm tmax
+
+# Good
+gen-schedules-btpm-gapness:
+    just gen-schedule 3A021JEHN02756 cifar-sparse vk btpm gapness
+    just gen-schedule 3A021JEHN02756 cifar-dense vk btpm gapness
+    just gen-schedule 3A021JEHN02756 tree vk btpm gapness
+    just gen-schedule 9b034f1b cifar-sparse vk btpm gapness
+    just gen-schedule 9b034f1b cifar-dense vk btpm gapness
+    just gen-schedule 9b034f1b tree vk btpm gapness
+
+gen-schedules-all:
+    just gen-schedules-isolated-tmax
+    just gen-schedules-isolated-gapness
+    just gen-schedules-btpm-tmax
+    just gen-schedules-btpm-gapness
+
+
+# gen-schedules:
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules/ --mode fully
+
+# gen-schedules-isolated:
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app cifar-dense --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
+#     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
 
 serve:
     uv run -m http.server --bind 0.0.0.0 --directory data/schedules-isolated/ 8080
