@@ -36,7 +36,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Parse schedule log files")
 
     parser.add_argument(
-        "input", help="Path to log file or directory containing log files"
+        "input",
+        help="Path to log file or directory containing log files",
+        type=str,
     )
     parser.add_argument(
         "--verbose",
@@ -45,9 +47,8 @@ def parse_arguments():
         help="Print detailed statistics for each log file",
     )
     parser.add_argument(
-        "--model",
-        "-m",
-        help="Path to JSON file containing model predictions",
+        "--schedule-file",
+        help="Path to the schedule JSON file containing predictions. If not specified, no model comparison will be performed.",
     )
     parser.add_argument(
         "--output",
@@ -106,8 +107,8 @@ def main():
 
     # Load model predictions if specified
     model_predictions = {}
-    if args.model:
-        model_predictions = load_model_predictions(args.model)
+    if args.schedule_file:
+        model_predictions = load_model_predictions(args.schedule_file)
 
     # Find all log files in the specified folder or use the specified file
     log_files = find_log_files(args.input)
