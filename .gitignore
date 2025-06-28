@@ -2,6 +2,9 @@
 # ppl/vulkan/shaders/compiled_shaders/*.spv
 
 tmp/
+tmp1/
+tmp2/
+
 .venv-cifar/
 
 # Resources
