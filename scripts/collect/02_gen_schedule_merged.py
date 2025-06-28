@@ -42,7 +42,7 @@ def parse_arguments():
         type=str,
         choices=["isolated", "btpm"],
         required=True,
-        help="Mode to select CSV file: 'isolated' for normal.csv or 'btpm' for fully.csv",
+        help="Mode to select CSV file: 'isolated' for isolated.csv or 'btpm' for btpm.csv",
     )
     parser.add_argument(
         "--minimize_mode",
@@ -77,12 +77,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-name_map = {
-    "isolated": "normal",
-    "btpm": "fully",
-}
-
-
 def main():
     """Main execution function."""
     args = parse_arguments()
@@ -106,7 +100,7 @@ def main():
         print(f"No baseline data available for {device}/{app}/{backend}")
 
     # Input CSV path with mode-based file selection
-    csv_filename = f"{name_map[table_type]}.csv"
+    csv_filename = f"{table_type}.csv"
     csv_path = os.path.join(args.csv_root_folder, device, app, backend, csv_filename)
 
     # Check if the CSV file exists
