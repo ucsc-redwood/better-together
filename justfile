@@ -342,30 +342,30 @@ run-all-schedule-isolated:
 #         data/exe_logs/{{device}}/{{app}}/{{backend}} \
 #         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json
 
-compare-schedules-adv device app backend:
-    uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
-        data/exe_logs/{{device}}/{{app}}/{{backend}} \
-        --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
-        -o plots/{{device}}/{{app}}/{{backend}} \
-        --max-schedules 20
+# compare-schedules-adv device app backend:
+#     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+#         data/exe_logs/{{device}}/{{app}}/{{backend}} \
+#         --model data/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
+#         -o plots/{{device}}/{{app}}/{{backend}} \
+#         --max-schedules 20
 
 
-compare-schedules-adv-old device app backend:
-    uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
-        data-stable/exe_logs/{{device}}/{{app}}/{{backend}} \
-        --model data-stable/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
-        -o plots-old/{{device}}/{{app}}/{{backend}} \
-        --max-schedules 20
+# compare-schedules-adv-old device app backend:
+#     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+#         data-stable/exe_logs/{{device}}/{{app}}/{{backend}} \
+#         --model data-stable/schedules/{{device}}/{{app}}/{{backend}}/schedules.json \
+#         -o plots-old/{{device}}/{{app}}/{{backend}} \
+#         --max-schedules 20
 
-# Example:
-# uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v data/exe_logs_isolated/3A021JEHN02756/cifar-sparse/vk --model data/schedules-isolated/3A021JEHN02756/cifar-sparse/vk/schedules_normal.json 
+# # Example:
+# # uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v data/exe_logs_isolated/3A021JEHN02756/cifar-sparse/vk --model data/schedules-isolated/3A021JEHN02756/cifar-sparse/vk/schedules_normal.json 
 
-compare-schedules-adv-isolated device app backend:
-    uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
-        data/exe_logs_isolated/{{device}}/{{app}}/{{backend}} \
-        --model data/schedules-isolated/{{device}}/{{app}}/{{backend}}/schedules_normal.json \
-        -o plots-isolated/{{device}}/{{app}}/{{backend}} \
-        --max-schedules 30
+# compare-schedules-adv-isolated device app backend:
+#     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
+#         data/exe_logs_isolated/{{device}}/{{app}}/{{backend}} \
+#         --model data/schedules-isolated/{{device}}/{{app}}/{{backend}}/schedules_normal.json \
+#         -o plots-isolated/{{device}}/{{app}}/{{backend}} \
+#         --max-schedules 30
 
 # tmp:
 #     uv run scripts/collect/04_parse_schedules_by_widest_advanced.py -v \
@@ -383,25 +383,32 @@ compare-schedules-adv-isolated device app backend:
 # just compare-schedules 9b034f1b cifar-dense vk
 # just compare-schedules 9b034f1b tree vk
 
-compare-schedules-android-adv:
-    just compare-schedules-adv 3A021JEHN02756 cifar-sparse vk
-    just compare-schedules-adv 3A021JEHN02756 cifar-dense vk
-    just compare-schedules-adv 3A021JEHN02756 tree vk
+# compare-schedules-android-adv:
+#     just compare-schedules-adv 3A021JEHN02756 cifar-sparse vk
+#     just compare-schedules-adv 3A021JEHN02756 cifar-dense vk
+#     just compare-schedules-adv 3A021JEHN02756 tree vk
 
-    just compare-schedules-adv 9b034f1b cifar-sparse vk
-    just compare-schedules-adv 9b034f1b cifar-dense vk
-    just compare-schedules-adv 9b034f1b tree vk
+#     just compare-schedules-adv 9b034f1b cifar-sparse vk
+#     just compare-schedules-adv 9b034f1b cifar-dense vk
+#     just compare-schedules-adv 9b034f1b tree vk
 
 
-compare-schedules-android-adv-isolated:
-    just compare-schedules-adv-isolated 3A021JEHN02756 cifar-sparse vk
-    just compare-schedules-adv-isolated 3A021JEHN02756 cifar-dense vk
-    just compare-schedules-adv-isolated 3A021JEHN02756 tree vk
+# compare-schedules-android-adv-isolated:
+#     just compare-schedules-adv-isolated 3A021JEHN02756 cifar-sparse vk
+#     just compare-schedules-adv-isolated 3A021JEHN02756 cifar-dense vk
+#     just compare-schedules-adv-isolated 3A021JEHN02756 tree vk
 
-    just compare-schedules-adv-isolated 9b034f1b cifar-sparse vk
-    just compare-schedules-adv-isolated 9b034f1b cifar-dense vk
-    just compare-schedules-adv-isolated 9b034f1b tree vk
+#     just compare-schedules-adv-isolated 9b034f1b cifar-sparse vk
+#     just compare-schedules-adv-isolated 9b034f1b cifar-dense vk
+#     just compare-schedules-adv-isolated 9b034f1b tree vk
 
 # make-example-timeline device app backend id:
 #     uv run scripts/collect/05_timeline.py data/exe_logs/{{device}}/{{app}}/{{backend}}/schedule_run_{{id}}.log \
 #         --output-dir data/exe_logs/{{device}}/{{app}}/{{backend}}/timeline
+
+
+tmp:
+    uv run scripts/collect/parse_schedules.py -v \
+        data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/ \
+        --schedule-file data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_btpm_gapness.json \
+        --max-schedules 30
