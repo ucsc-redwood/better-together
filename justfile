@@ -402,6 +402,6 @@ compare-schedules-android-adv-isolated:
     just compare-schedules-adv-isolated 9b034f1b cifar-dense vk
     just compare-schedules-adv-isolated 9b034f1b tree vk
 
-make-example-timeline device app backend id:
-    uv run scripts/collect/05_timeline.py data/exe_logs/{{device}}/{{app}}/{{backend}}/schedule_run_{{id}}.log \
-        --output-dir data/exe_logs/{{device}}/{{app}}/{{backend}}/timeline
+# make-example-timeline device app backend id:
+#     uv run scripts/collect/05_timeline.py data/exe_logs/{{device}}/{{app}}/{{backend}}/schedule_run_{{id}}.log \
+#         --output-dir data/exe_logs/{{device}}/{{app}}/{{backend}}/timeline
