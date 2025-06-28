@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 from pandasgui import show
 
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="View a schedule JSON file")
     parser.add_argument("json_file", type=str, help="Path to the JSON file")
@@ -40,4 +41,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

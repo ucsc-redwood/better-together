@@ -30,11 +30,11 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Parse schedule log files")
 
     # Input Folder,
-    # So basically, the user should be able to provide either 'exe_logs_btpm_gapness' 
+    # So basically, the user should be able to provide either 'exe_logs_btpm_gapness'
     # or 'exe_logs_btpm_tmax' or 'exe_logs_isolated_gapness' or 'exe_logs_isolated_tmax'
     # and they should all have structure like this:
-    # 
-    # 
+    #
+    #
 
     # yanwen@ucsc-ubuntu-lts ~/better-together (new)> tree data/exe_logs_btpm_gapness/
     # data/exe_logs_btpm_gapness/

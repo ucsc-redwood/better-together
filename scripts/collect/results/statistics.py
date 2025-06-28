@@ -43,7 +43,9 @@ def print_individual_statistics(schedules_data: List[Dict[str, Any]]) -> None:
         print("-" * 50)
 
 
-def calculate_aggregated_statistics(all_schedules: List[Dict[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, List[Dict[str, Any]]]]:
+def calculate_aggregated_statistics(
+    all_schedules: List[Dict[str, Any]],
+) -> Tuple[Dict[str, Any], Dict[str, List[Dict[str, Any]]]]:
     """Aggregate statistics across all log files, grouped by schedule UID."""
     # Group schedules by their UID
     grouped_schedules = defaultdict(list)
@@ -119,7 +121,9 @@ def print_aggregated_statistics(aggregated_stats: Dict[str, Any]) -> None:
         print("-" * 50)
 
 
-def extract_widest_chunks(aggregated_stats: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+def extract_widest_chunks(
+    aggregated_stats: Dict[str, Any],
+) -> Dict[str, Dict[str, Any]]:
     """Extract widest chunks for comparison with model predictions."""
     widest_chunks = {}
     for schedule_uid, stats in aggregated_stats.items():
@@ -143,7 +147,9 @@ def extract_widest_chunks(aggregated_stats: Dict[str, Any]) -> Dict[str, Dict[st
     return widest_chunks
 
 
-def print_widest_chunk_summary(widest_chunks: Dict[str, Dict[str, Any]], time_window: Tuple[float, float]) -> None:
+def print_widest_chunk_summary(
+    widest_chunks: Dict[str, Dict[str, Any]], time_window: Tuple[float, float]
+) -> None:
     """Print widest chunk summary."""
     print("\n===== WIDEST CHUNK SUMMARY =====")
     print(f"Time window: {time_window[0]:.2f}-{time_window[1]:.2f}")
@@ -153,4 +159,4 @@ def print_widest_chunk_summary(widest_chunks: Dict[str, Dict[str, Any]], time_wi
     for schedule_uid, chunk_info in sorted(widest_chunks.items()):
         print(
             f"{schedule_uid:30} : Chunk {chunk_info['chunk_id']:2}   {chunk_info['duration_ms']:.2f} ms"
-        ) 
+        )

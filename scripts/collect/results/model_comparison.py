@@ -41,7 +41,9 @@ def load_model_predictions(json_file_path: str) -> Dict[str, float]:
     return predictions
 
 
-def print_comparison_results(widest_chunks: Dict[str, Dict[str, Any]], model_predictions: Dict[str, float]) -> None:
+def print_comparison_results(
+    widest_chunks: Dict[str, Dict[str, Any]], model_predictions: Dict[str, float]
+) -> None:
     """Print comparison between measured widest chunks and model predictions."""
     if not model_predictions:
         return
@@ -124,7 +126,9 @@ def print_comparison_results(widest_chunks: Dict[str, Dict[str, Any]], model_pre
         print(f"Mean Absolute Error (MAE): {mae:.4f} ms")
 
 
-def perform_statistical_analysis(widest_chunks: Dict[str, Dict[str, Any]], model_predictions: Dict[str, float]) -> Dict[str, float]:
+def perform_statistical_analysis(
+    widest_chunks: Dict[str, Dict[str, Any]], model_predictions: Dict[str, float]
+) -> Dict[str, float]:
     """Perform detailed statistical analysis on measured vs predicted times."""
     if not model_predictions or not widest_chunks:
         return {}
@@ -246,4 +250,4 @@ def perform_statistical_analysis(widest_chunks: Dict[str, Dict[str, Any]], model
         "mae": mae,
         "under_predictions": under_predictions,
         "over_predictions": over_predictions,
-    } 
+    }

@@ -95,7 +95,9 @@ def parse_task_data(section: str) -> Dict[int, Dict[int, Dict[str, int]]]:
     return tasks
 
 
-def process_log_file(log_file: str, time_window: Tuple[float, float] = (0.0, 1.0)) -> List[Dict[str, Any]]:
+def process_log_file(
+    log_file: str, time_window: Tuple[float, float] = (0.0, 1.0)
+) -> List[Dict[str, Any]]:
     """Process a single log file and extract all schedule data."""
     print(
         f"Processing {log_file}... (time window: {time_window[0]:.2f}-{time_window[1]:.2f})"
@@ -229,4 +231,4 @@ def process_log_file(log_file: str, time_window: Tuple[float, float] = (0.0, 1.0
 
         schedules_data.append(schedule_data)
 
-    return schedules_data 
+    return schedules_data

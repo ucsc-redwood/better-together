@@ -13,10 +13,10 @@ from typing import Dict, Any, List, Tuple
 
 
 def create_comparison_visualization(
-    widest_chunks: Dict[str, Dict[str, Any]], 
-    model_predictions: Dict[str, float], 
-    output_dir: str, 
-    raw_data: Dict[str, List[Dict[str, Any]]]
+    widest_chunks: Dict[str, Dict[str, Any]],
+    model_predictions: Dict[str, float],
+    output_dir: str,
+    raw_data: Dict[str, List[Dict[str, Any]]],
 ) -> None:
     """Create visualization comparing measured results with model predictions."""
     if not model_predictions or not widest_chunks:
@@ -255,10 +255,10 @@ def create_line_comparison_chart(
 
 
 def create_correlation_plots(
-    schedule_uids: List[str], 
-    predicted_times: np.ndarray, 
-    measured_times: np.ndarray, 
-    output_dir: str
+    schedule_uids: List[str],
+    predicted_times: np.ndarray,
+    measured_times: np.ndarray,
+    output_dir: str,
 ) -> None:
     """Create various correlation plots to better visualize the data."""
 
@@ -578,4 +578,4 @@ def create_correlation_plots(
         )
 
     # Close all figures to free memory
-    plt.close("all") 
+    plt.close("all")
