@@ -420,18 +420,19 @@ tmp2:
         --max-schedules 30
 
 
-compare-schedules n:
+compare-schedules device app backend n:
     uv run scripts/collect/parse_schedules.py -v \
-        data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/ \
-        --schedule-file data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_btpm_gapness.json \
+        data/exe_logs_btpm_gapness/{{device}}/{{app}}/{{backend}}/ \
+        --schedule-file data/schedules/{{device}}/{{app}}/{{backend}}/schedules_btpm_gapness.json \
         --output tmp1 \
         --max-schedules {{n}}
 
     uv run scripts/collect/parse_schedules.py -v \
-        data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/ \
-        --schedule-file data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_isolated_tmax.json \
+        data/exe_logs_isolated_tmax/{{device}}/{{app}}/{{backend}}/ \
+        --schedule-file data/schedules/{{device}}/{{app}}/{{backend}}/schedules_isolated_tmax.json \
         --output tmp2 \
         --max-schedules {{n}}
+
 
 
 

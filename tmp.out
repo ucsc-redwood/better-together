@@ -1,0 +1,2736 @@
+Using time window: 0.00-1.00
+Loaded 30 model predictions from data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_btpm_gapness.json
+Found 5 log files in data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/
+Processing data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_4.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_4.log
+  Schedule SCH-B9-G000-a938 duration: 4799.74 ms, window: 317719961.05-317724760.79 ms
+  Schedule SCH-L9-G000-fa8d duration: 8984.03 ms, window: 317725754.20-317734738.23 ms
+  Schedule SCH-M9-G000-2366 duration: 3811.29 ms, window: 317735638.59-317739449.88 ms
+  Schedule SCH-G9-G000-4981 duration: 3542.06 ms, window: 317740408.27-317743950.34 ms
+  Schedule SCH-G4B5-G049-d312 duration: 1130.69 ms, window: 317744899.89-317746030.58 ms
+  Schedule SCH-B2M7-G059-2519 duration: 1896.71 ms, window: 317746977.13-317748873.84 ms
+  Schedule SCH-G3M2B4-G081-799c duration: 836.88 ms, window: 317749812.10-317750648.98 ms
+  Schedule SCH-G3B1M5-G185-7c71 duration: 984.01 ms, window: 317751567.91-317752551.92 ms
+  Schedule SCH-G3B1L1M4-G194-6e9d duration: 778.77 ms, window: 317753595.80-317754374.58 ms
+  Schedule SCH-M2B7-G198-ab7a duration: 2123.77 ms, window: 317755415.97-317757539.74 ms
+  Schedule SCH-G4M5-G200-57b5 duration: 1354.36 ms, window: 317758593.20-317759947.56 ms
+  Schedule SCH-G3B2M4-G210-c640 duration: 825.73 ms, window: 317760951.55-317761777.28 ms
+  Schedule SCH-B1G3L1M4-G214-226f duration: 794.58 ms, window: 317762713.48-317763508.05 ms
+  Schedule SCH-M1G4L1B3-G260-fe1d duration: 672.07 ms, window: 317764389.14-317765061.20 ms
+  Schedule SCH-G3M1L1B4-G260-a55b duration: 942.69 ms, window: 317766111.95-317767054.64 ms
+  Schedule SCH-G3M2L1B3-G278-d0eb duration: 680.18 ms, window: 317768003.07-317768683.25 ms
+  Schedule SCH-M1G3L1B4-G286-8d5e duration: 949.93 ms, window: 317769600.88-317770550.81 ms
+  Schedule SCH-M1G4B4-G286-a856 duration: 994.42 ms, window: 317771539.91-317772534.33 ms
+  Schedule SCH-B1G4L1M3-G298-856b duration: 583.12 ms, window: 317773542.75-317774125.86 ms
+  Schedule SCH-B1G4M4-G298-102c duration: 802.79 ms, window: 317775078.61-317775881.41 ms
+  Schedule SCH-G3M4L2-G303-1b48 duration: 801.60 ms, window: 317776863.29-317777664.89 ms
+  Schedule SCH-B4L5-G306-e401 duration: 3853.41 ms, window: 317778711.59-317782565.00 ms
+  Schedule SCH-G2M2L1B4-G310-44fc duration: 1108.67 ms, window: 317783601.35-317784710.02 ms
+  Schedule SCH-G3M1B3L2-G321-9db6 duration: 594.27 ms, window: 317785700.98-317786295.25 ms
+  Schedule SCH-M1G3B3L2-G336-98f1 duration: 655.08 ms, window: 317787224.21-317787879.29 ms
+  Schedule SCH-G6L3-G340-d912 duration: 1051.01 ms, window: 317788723.85-317789774.86 ms
+  Schedule SCH-G4L1B4-G360-1216 duration: 1035.45 ms, window: 317790632.79-317791668.24 ms
+  Schedule SCH-B1G3M5-G374-0e78 duration: 972.07 ms, window: 317792518.60-317793490.67 ms
+  Schedule SCH-G4L1M4-G379-673e duration: 753.63 ms, window: 317794397.08-317795150.71 ms
+  Schedule SCH-G3M3B3-G380-1095 duration: 643.72 ms, window: 317796018.33-317796662.05 ms
+Processing data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_5.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_5.log
+  Schedule SCH-B9-G000-a938 duration: 5280.09 ms, window: 317800090.48-317805370.57 ms
+  Schedule SCH-L9-G000-fa8d duration: 11634.20 ms, window: 317806419.50-317818053.70 ms
+  Schedule SCH-M9-G000-2366 duration: 3844.97 ms, window: 317819006.30-317822851.27 ms
+  Schedule SCH-G9-G000-4981 duration: 3814.10 ms, window: 317823796.28-317827610.38 ms
+  Schedule SCH-G4B5-G049-d312 duration: 1371.25 ms, window: 317828536.92-317829908.17 ms
+  Schedule SCH-B2M7-G059-2519 duration: 1817.35 ms, window: 317830711.58-317832528.93 ms
+  Schedule SCH-G3M2B4-G081-799c duration: 836.49 ms, window: 317833414.59-317834251.08 ms
+  Schedule SCH-G3B1M5-G185-7c71 duration: 832.20 ms, window: 317835161.03-317835993.23 ms
+  Schedule SCH-G3B1L1M4-G194-6e9d duration: 762.94 ms, window: 317836913.40-317837676.34 ms
+  Schedule SCH-M2B7-G198-ab7a duration: 2293.92 ms, window: 317838590.95-317840884.87 ms
+  Schedule SCH-G4M5-G200-57b5 duration: 1073.18 ms, window: 317841767.52-317842840.70 ms
+  Schedule SCH-G3B2M4-G210-c640 duration: 1005.92 ms, window: 317843859.87-317844865.78 ms
+  Schedule SCH-B1G3L1M4-G214-226f duration: 774.86 ms, window: 317845788.96-317846563.82 ms
+  Schedule SCH-M1G4L1B3-G260-fe1d duration: 640.53 ms, window: 317847579.27-317848219.80 ms
+  Schedule SCH-G3M1L1B4-G260-a55b duration: 861.81 ms, window: 317849196.28-317850058.09 ms
+  Schedule SCH-G3M2L1B3-G278-d0eb duration: 663.88 ms, window: 317851117.68-317851781.56 ms
+  Schedule SCH-M1G3L1B4-G286-8d5e duration: 934.40 ms, window: 317852852.19-317853786.59 ms
+  Schedule SCH-M1G4B4-G286-a856 duration: 913.92 ms, window: 317854775.84-317855689.76 ms
+  Schedule SCH-B1G4L1M3-G298-856b duration: 605.32 ms, window: 317856731.32-317857336.64 ms
+  Schedule SCH-B1G4M4-G298-102c duration: 806.07 ms, window: 317858353.55-317859159.63 ms
+  Schedule SCH-G3M4L2-G303-1b48 duration: 801.92 ms, window: 317860182.57-317860984.50 ms
+  Schedule SCH-B4L5-G306-e401 duration: 3696.17 ms, window: 317862018.85-317865715.02 ms
+  Schedule SCH-G2M2L1B4-G310-44fc duration: 1095.55 ms, window: 317866734.89-317867830.43 ms
+  Schedule SCH-G3M1B3L2-G321-9db6 duration: 650.01 ms, window: 317868827.58-317869477.59 ms
+  Schedule SCH-M1G3B3L2-G336-98f1 duration: 546.46 ms, window: 317870527.11-317871073.57 ms
+  Schedule SCH-G6L3-G340-d912 duration: 1460.98 ms, window: 317872046.71-317873507.69 ms
+  Schedule SCH-G4L1B4-G360-1216 duration: 1043.13 ms, window: 317874406.63-317875449.77 ms
+  Schedule SCH-B1G3M5-G374-0e78 duration: 975.29 ms, window: 317876286.75-317877262.04 ms
+  Schedule SCH-G4L1M4-G379-673e duration: 758.00 ms, window: 317878165.85-317878923.86 ms
+  Schedule SCH-G3M3B3-G380-1095 duration: 644.56 ms, window: 317879827.78-317880472.34 ms
+Processing data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_2.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_2.log
+  Schedule SCH-B9-G000-a938 duration: 3827.84 ms, window: 317558300.26-317562128.10 ms
+  Schedule SCH-L9-G000-fa8d duration: 9680.32 ms, window: 317563083.96-317572764.27 ms
+  Schedule SCH-M9-G000-2366 duration: 3316.56 ms, window: 317573510.43-317576826.99 ms
+  Schedule SCH-G9-G000-4981 duration: 3617.05 ms, window: 317577733.60-317581350.65 ms
+  Schedule SCH-G4B5-G049-d312 duration: 1332.91 ms, window: 317582254.67-317583587.58 ms
+  Schedule SCH-B2M7-G059-2519 duration: 1757.39 ms, window: 317584358.09-317586115.48 ms
+  Schedule SCH-G3M2B4-G081-799c duration: 846.95 ms, window: 317587017.62-317587864.57 ms
+  Schedule SCH-G3B1M5-G185-7c71 duration: 825.69 ms, window: 317588653.21-317589478.90 ms
+  Schedule SCH-G3B1L1M4-G194-6e9d duration: 672.41 ms, window: 317590280.64-317590953.05 ms
+  Schedule SCH-M2B7-G198-ab7a duration: 2300.96 ms, window: 317591765.75-317594066.71 ms
+  Schedule SCH-G4M5-G200-57b5 duration: 839.52 ms, window: 317594975.16-317595814.68 ms
+  Schedule SCH-G3B2M4-G210-c640 duration: 825.41 ms, window: 317596608.98-317597434.39 ms
+  Schedule SCH-B1G3L1M4-G214-226f duration: 703.67 ms, window: 317598290.26-317598993.93 ms
+  Schedule SCH-M1G4L1B3-G260-fe1d duration: 657.96 ms, window: 317599893.82-317600551.78 ms
+  Schedule SCH-G3M1L1B4-G260-a55b duration: 848.08 ms, window: 317601587.80-317602435.88 ms
+  Schedule SCH-G3M2L1B3-G278-d0eb duration: 603.85 ms, window: 317603348.29-317603952.14 ms
+  Schedule SCH-M1G3L1B4-G286-8d5e duration: 946.10 ms, window: 317604895.96-317605842.05 ms
+  Schedule SCH-M1G4B4-G286-a856 duration: 893.44 ms, window: 317606795.93-317607689.37 ms
+  Schedule SCH-B1G4L1M3-G298-856b duration: 583.18 ms, window: 317608705.71-317609288.88 ms
+  Schedule SCH-B1G4M4-G298-102c duration: 727.57 ms, window: 317610192.69-317610920.26 ms
+  Schedule SCH-G3M4L2-G303-1b48 duration: 796.01 ms, window: 317611892.34-317612688.35 ms
+  Schedule SCH-B4L5-G306-e401 duration: 4445.53 ms, window: 317613706.77-317618152.30 ms
+  Schedule SCH-G2M2L1B4-G310-44fc duration: 1002.12 ms, window: 317619079.21-317620081.33 ms
+  Schedule SCH-G3M1B3L2-G321-9db6 duration: 668.86 ms, window: 317620942.07-317621610.93 ms
+  Schedule SCH-M1G3B3L2-G336-98f1 duration: 563.04 ms, window: 317622507.47-317623070.51 ms
+  Schedule SCH-G6L3-G340-d912 duration: 2247.06 ms, window: 317624052.75-317626299.81 ms
+  Schedule SCH-G4L1B4-G360-1216 duration: 942.70 ms, window: 317627335.60-317628278.30 ms
+  Schedule SCH-B1G3M5-G374-0e78 duration: 1082.52 ms, window: 317629290.84-317630373.36 ms
+  Schedule SCH-G4L1M4-G379-673e duration: 826.23 ms, window: 317631384.25-317632210.48 ms
+  Schedule SCH-G3M3B3-G380-1095 duration: 822.13 ms, window: 317633142.14-317633964.27 ms
+Processing data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_3.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_3.log
+  Schedule SCH-B9-G000-a938 duration: 4978.01 ms, window: 317637350.86-317642328.88 ms
+  Schedule SCH-L9-G000-fa8d duration: 9539.62 ms, window: 317643380.89-317652920.51 ms
+  Schedule SCH-M9-G000-2366 duration: 3853.49 ms, window: 317653854.72-317657708.20 ms
+  Schedule SCH-G9-G000-4981 duration: 3891.63 ms, window: 317658709.08-317662600.71 ms
+  Schedule SCH-G4B5-G049-d312 duration: 1318.94 ms, window: 317663520.30-317664839.24 ms
+  Schedule SCH-B2M7-G059-2519 duration: 1899.08 ms, window: 317665791.41-317667690.49 ms
+  Schedule SCH-G3M2B4-G081-799c duration: 802.91 ms, window: 317668630.18-317669433.09 ms
+  Schedule SCH-G3B1M5-G185-7c71 duration: 996.95 ms, window: 317670413.02-317671409.98 ms
+  Schedule SCH-G3B1L1M4-G194-6e9d duration: 728.14 ms, window: 317672302.32-317673030.45 ms
+  Schedule SCH-M2B7-G198-ab7a duration: 2325.62 ms, window: 317673935.95-317676261.57 ms
+  Schedule SCH-G4M5-G200-57b5 duration: 1086.07 ms, window: 317677236.12-317678322.19 ms
+  Schedule SCH-G3B2M4-G210-c640 duration: 826.39 ms, window: 317679329.83-317680156.22 ms
+  Schedule SCH-B1G3L1M4-G214-226f duration: 788.62 ms, window: 317681095.57-317681884.20 ms
+  Schedule SCH-M1G4L1B3-G260-fe1d duration: 676.50 ms, window: 317682843.81-317683520.30 ms
+  Schedule SCH-G3M1L1B4-G260-a55b duration: 929.70 ms, window: 317684595.96-317685525.67 ms
+  Schedule SCH-G3M2L1B3-G278-d0eb duration: 697.94 ms, window: 317686476.62-317687174.56 ms
+  Schedule SCH-M1G3L1B4-G286-8d5e duration: 963.57 ms, window: 317688185.80-317689149.37 ms
+  Schedule SCH-M1G4B4-G286-a856 duration: 1006.99 ms, window: 317690206.90-317691213.89 ms
+  Schedule SCH-B1G4L1M3-G298-856b duration: 594.66 ms, window: 317692267.47-317692862.13 ms
+  Schedule SCH-B1G4M4-G298-102c duration: 832.03 ms, window: 317693870.84-317694702.87 ms
+  Schedule SCH-G3M4L2-G303-1b48 duration: 790.36 ms, window: 317695751.76-317696542.12 ms
+  Schedule SCH-B4L5-G306-e401 duration: 3832.06 ms, window: 317697580.70-317701412.76 ms
+  Schedule SCH-G2M2L1B4-G310-44fc duration: 1018.55 ms, window: 317702439.88-317703458.43 ms
+  Schedule SCH-G3M1B3L2-G321-9db6 duration: 652.39 ms, window: 317704342.62-317704995.02 ms
+  Schedule SCH-M1G3B3L2-G336-98f1 duration: 572.93 ms, window: 317705909.23-317706482.16 ms
+  Schedule SCH-G6L3-G340-d912 duration: 1690.56 ms, window: 317707409.76-317709100.32 ms
+  Schedule SCH-G4L1B4-G360-1216 duration: 909.71 ms, window: 317710098.76-317711008.47 ms
+  Schedule SCH-B1G3M5-G374-0e78 duration: 1067.66 ms, window: 317712018.51-317713086.17 ms
+  Schedule SCH-G4L1M4-G379-673e duration: 834.94 ms, window: 317714078.47-317714913.41 ms
+  Schedule SCH-G3M3B3-G380-1095 duration: 828.59 ms, window: 317715857.86-317716686.45 ms
+Processing data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_1.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/schedule_run_1.log
+  Schedule SCH-B9-G000-a938 duration: 2609.84 ms, window: 317496563.83-317499173.67 ms
+  Schedule SCH-L9-G000-fa8d duration: 6819.38 ms, window: 317499880.65-317506700.03 ms
+  Schedule SCH-M9-G000-2366 duration: 3059.54 ms, window: 317507399.91-317510459.45 ms
+  Schedule SCH-G9-G000-4981 duration: 3358.27 ms, window: 317511141.65-317514499.92 ms
+  Schedule SCH-G4B5-G049-d312 duration: 1061.90 ms, window: 317515200.85-317516262.75 ms
+  Schedule SCH-B2M7-G059-2519 duration: 1542.24 ms, window: 317516940.55-317518482.79 ms
+  Schedule SCH-G3M2B4-G081-799c duration: 816.33 ms, window: 317519171.48-317519987.80 ms
+  Schedule SCH-G3B1M5-G185-7c71 duration: 742.08 ms, window: 317520653.10-317521395.18 ms
+  Schedule SCH-G3B1L1M4-G194-6e9d duration: 595.51 ms, window: 317522026.23-317522621.73 ms
+  Schedule SCH-M2B7-G198-ab7a duration: 1716.25 ms, window: 317523385.62-317525101.87 ms
+  Schedule SCH-G4M5-G200-57b5 duration: 1154.18 ms, window: 317525788.97-317526943.15 ms
+  Schedule SCH-G3B2M4-G210-c640 duration: 683.56 ms, window: 317527610.07-317528293.63 ms
+  Schedule SCH-B1G3L1M4-G214-226f duration: 593.42 ms, window: 317529072.17-317529665.59 ms
+  Schedule SCH-M1G4L1B3-G260-fe1d duration: 483.88 ms, window: 317530417.81-317530901.69 ms
+  Schedule SCH-G3M1L1B4-G260-a55b duration: 612.48 ms, window: 317531604.57-317532217.06 ms
+  Schedule SCH-G3M2L1B3-G278-d0eb duration: 525.07 ms, window: 317532963.50-317533488.57 ms
+  Schedule SCH-M1G3L1B4-G286-8d5e duration: 596.75 ms, window: 317534254.65-317534851.40 ms
+  Schedule SCH-M1G4B4-G286-a856 duration: 797.33 ms, window: 317535584.92-317536382.25 ms
+  Schedule SCH-B1G4L1M3-G298-856b duration: 473.50 ms, window: 317537054.57-317537528.07 ms
+  Schedule SCH-B1G4M4-G298-102c duration: 652.30 ms, window: 317538276.10-317538928.40 ms
+  Schedule SCH-G3M4L2-G303-1b48 duration: 626.74 ms, window: 317539580.78-317540207.53 ms
+  Schedule SCH-B4L5-G306-e401 duration: 2459.31 ms, window: 317540893.87-317543353.18 ms
+  Schedule SCH-G2M2L1B4-G310-44fc duration: 817.33 ms, window: 317544059.00-317544876.33 ms
+  Schedule SCH-G3M1B3L2-G321-9db6 duration: 505.40 ms, window: 317545529.83-317546035.23 ms
+  Schedule SCH-M1G3B3L2-G336-98f1 duration: 429.42 ms, window: 317546751.05-317547180.47 ms
+  Schedule SCH-G6L3-G340-d912 duration: 1385.89 ms, window: 317548031.54-317549417.43 ms
+  Schedule SCH-G4L1B4-G360-1216 duration: 792.96 ms, window: 317550187.33-317550980.29 ms
+  Schedule SCH-B1G3M5-G374-0e78 duration: 829.50 ms, window: 317551685.52-317552515.02 ms
+  Schedule SCH-G4L1M4-G379-673e duration: 663.66 ms, window: 317553180.29-317553843.95 ms
+  Schedule SCH-G3M3B3-G380-1095 duration: 706.81 ms, window: 317554665.60-317555372.41 ms
+Found 30 unique schedule UIDs
+Limiting analysis to first 20 schedules
+After filtering: analyzing 100 schedule instances from 20 unique UIDs
+Selected schedule UIDs: SCH-B1G3L1M4-G214-226f, SCH-B1G3M5-G374-0e78, SCH-B1G4L1M3-G298-856b, SCH-B1G4M4-G298-102c, SCH-B2M7-G059-2519, SCH-B4L5-G306-e401, SCH-B9-G000-a938, SCH-G2M2L1B4-G310-44fc, SCH-G3B1L1M4-G194-6e9d, SCH-G3B1M5-G185-7c71, SCH-G3B2M4-G210-c640, SCH-G3M1B3L2-G321-9db6, SCH-G3M1L1B4-G260-a55b, SCH-G3M2B4-G081-799c, SCH-G3M2L1B3-G278-d0eb, SCH-G3M3B3-G380-1095, SCH-G3M4L2-G303-1b48, SCH-G4B5-G049-d312, SCH-G4L1B4-G360-1216, SCH-G4L1M4-G379-673e
+
+===== INDIVIDUAL SCHEDULE STATISTICS =====
+
+Schedule 1: SCH-B9-G000-a938 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 4799.72 ms
+Average time by chunks:
+  Chunk 0: 48.00 ms (avg) / 4799.72 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 2: SCH-G4B5-G049-d312 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2044.27 ms
+Average time by chunks:
+  Chunk 0: 11.22 ms (avg) / 1121.51 ms (total) / 100 tasks
+  Chunk 1: 9.23 ms (avg) / 922.76 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 3: SCH-B2M7-G059-2519 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 3662.16 ms
+Average time by chunks:
+  Chunk 0: 17.85 ms (avg) / 1785.14 ms (total) / 100 tasks
+  Chunk 1: 18.77 ms (avg) / 1877.02 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 4: SCH-G3M2B4-G081-799c (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1742.72 ms
+Average time by chunks:
+  Chunk 0: 8.28 ms (avg) / 827.75 ms (total) / 100 tasks
+  Chunk 1: 2.09 ms (avg) / 208.73 ms (total) / 100 tasks
+  Chunk 2: 7.06 ms (avg) / 706.24 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 5: SCH-G3B1M5-G185-7c71 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1934.10 ms
+Average time by chunks:
+  Chunk 0: 9.75 ms (avg) / 974.57 ms (total) / 100 tasks
+  Chunk 1: 0.02 ms (avg) / 1.98 ms (total) / 100 tasks
+  Chunk 2: 9.58 ms (avg) / 957.55 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 6: SCH-G3B1L1M4-G194-6e9d (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1383.36 ms
+Average time by chunks:
+  Chunk 0: 5.80 ms (avg) / 579.87 ms (total) / 100 tasks
+  Chunk 1: 0.26 ms (avg) / 26.25 ms (total) / 100 tasks
+  Chunk 2: 0.33 ms (avg) / 32.69 ms (total) / 100 tasks
+  Chunk 3: 7.45 ms (avg) / 744.55 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 7: SCH-G3B2M4-G210-c640 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1791.02 ms
+Average time by chunks:
+  Chunk 0: 8.16 ms (avg) / 816.05 ms (total) / 100 tasks
+  Chunk 1: 2.61 ms (avg) / 260.51 ms (total) / 100 tasks
+  Chunk 2: 7.14 ms (avg) / 714.46 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 8: SCH-B1G3L1M4-G214-226f (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1393.81 ms
+Average time by chunks:
+  Chunk 0: 0.12 ms (avg) / 11.83 ms (total) / 100 tasks
+  Chunk 1: 5.39 ms (avg) / 539.30 ms (total) / 100 tasks
+  Chunk 2: 0.76 ms (avg) / 75.73 ms (total) / 100 tasks
+  Chunk 3: 7.67 ms (avg) / 766.94 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 9: SCH-G3M1L1B4-G260-a55b (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1655.74 ms
+Average time by chunks:
+  Chunk 0: 6.69 ms (avg) / 668.59 ms (total) / 100 tasks
+  Chunk 1: 0.13 ms (avg) / 12.61 ms (total) / 100 tasks
+  Chunk 2: 0.49 ms (avg) / 49.07 ms (total) / 100 tasks
+  Chunk 3: 9.25 ms (avg) / 925.48 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 10: SCH-G3M2L1B3-G278-d0eb (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1448.58 ms
+Average time by chunks:
+  Chunk 0: 5.54 ms (avg) / 554.39 ms (total) / 100 tasks
+  Chunk 1: 2.48 ms (avg) / 247.70 ms (total) / 100 tasks
+  Chunk 2: 0.14 ms (avg) / 13.50 ms (total) / 100 tasks
+  Chunk 3: 6.33 ms (avg) / 632.98 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 11: SCH-B1G4L1M3-G298-856b (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1135.03 ms
+Average time by chunks:
+  Chunk 0: 0.04 ms (avg) / 3.71 ms (total) / 100 tasks
+  Chunk 1: 5.70 ms (avg) / 569.75 ms (total) / 100 tasks
+  Chunk 2: 0.17 ms (avg) / 17.03 ms (total) / 100 tasks
+  Chunk 3: 5.45 ms (avg) / 544.54 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 12: SCH-B1G4M4-G298-102c (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1415.81 ms
+Average time by chunks:
+  Chunk 0: 0.15 ms (avg) / 14.54 ms (total) / 100 tasks
+  Chunk 1: 6.14 ms (avg) / 613.59 ms (total) / 100 tasks
+  Chunk 2: 7.88 ms (avg) / 787.69 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 13: SCH-G3M4L2-G303-1b48 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1336.62 ms
+Average time by chunks:
+  Chunk 0: 5.42 ms (avg) / 541.97 ms (total) / 100 tasks
+  Chunk 1: 7.87 ms (avg) / 787.48 ms (total) / 100 tasks
+  Chunk 2: 0.07 ms (avg) / 7.17 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 14: SCH-B4L5-G306-e401 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 6272.20 ms
+Average time by chunks:
+  Chunk 0: 38.30 ms (avg) / 3829.81 ms (total) / 100 tasks
+  Chunk 1: 24.42 ms (avg) / 2442.38 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 15: SCH-G2M2L1B4-G310-44fc (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2542.32 ms
+Average time by chunks:
+  Chunk 0: 4.84 ms (avg) / 483.66 ms (total) / 100 tasks
+  Chunk 1: 10.88 ms (avg) / 1088.22 ms (total) / 100 tasks
+  Chunk 2: 0.05 ms (avg) / 5.04 ms (total) / 100 tasks
+  Chunk 3: 9.65 ms (avg) / 965.40 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 16: SCH-G3M1B3L2-G321-9db6 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1104.47 ms
+Average time by chunks:
+  Chunk 0: 5.70 ms (avg) / 569.97 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 3.33 ms (total) / 100 tasks
+  Chunk 2: 5.24 ms (avg) / 523.65 ms (total) / 100 tasks
+  Chunk 3: 0.08 ms (avg) / 7.52 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 17: SCH-G4L1B4-G360-1216 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1800.00 ms
+Average time by chunks:
+  Chunk 0: 7.77 ms (avg) / 776.99 ms (total) / 100 tasks
+  Chunk 1: 0.10 ms (avg) / 10.02 ms (total) / 100 tasks
+  Chunk 2: 10.13 ms (avg) / 1012.99 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 18: SCH-B1G3M5-G374-0e78 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1663.08 ms
+Average time by chunks:
+  Chunk 0: 0.01 ms (avg) / 1.48 ms (total) / 100 tasks
+  Chunk 1: 7.03 ms (avg) / 703.08 ms (total) / 100 tasks
+  Chunk 2: 9.59 ms (avg) / 958.52 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 19: SCH-G4L1M4-G379-673e (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1334.05 ms
+Average time by chunks:
+  Chunk 0: 6.19 ms (avg) / 618.76 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.42 ms (total) / 100 tasks
+  Chunk 2: 7.11 ms (avg) / 710.86 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 20: SCH-G3M3B3-G380-1095 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1707.78 ms
+Average time by chunks:
+  Chunk 0: 6.18 ms (avg) / 617.88 ms (total) / 100 tasks
+  Chunk 1: 4.70 ms (avg) / 469.97 ms (total) / 100 tasks
+  Chunk 2: 6.20 ms (avg) / 619.92 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 21: SCH-B9-G000-a938 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 5280.07 ms
+Average time by chunks:
+  Chunk 0: 52.80 ms (avg) / 5280.07 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 22: SCH-G4B5-G049-d312 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2279.48 ms
+Average time by chunks:
+  Chunk 0: 13.62 ms (avg) / 1362.01 ms (total) / 100 tasks
+  Chunk 1: 9.17 ms (avg) / 917.47 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 23: SCH-B2M7-G059-2519 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 3534.57 ms
+Average time by chunks:
+  Chunk 0: 18.00 ms (avg) / 1799.96 ms (total) / 100 tasks
+  Chunk 1: 17.35 ms (avg) / 1734.61 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 24: SCH-G3M2B4-G081-799c (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1739.97 ms
+Average time by chunks:
+  Chunk 0: 8.27 ms (avg) / 827.47 ms (total) / 100 tasks
+  Chunk 1: 1.91 ms (avg) / 190.95 ms (total) / 100 tasks
+  Chunk 2: 7.22 ms (avg) / 721.54 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 25: SCH-G3B1M5-G185-7c71 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1627.11 ms
+Average time by chunks:
+  Chunk 0: 8.13 ms (avg) / 813.10 ms (total) / 100 tasks
+  Chunk 1: 0.02 ms (avg) / 1.71 ms (total) / 100 tasks
+  Chunk 2: 8.12 ms (avg) / 812.29 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 26: SCH-G3B1L1M4-G194-6e9d (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1346.21 ms
+Average time by chunks:
+  Chunk 0: 5.62 ms (avg) / 562.21 ms (total) / 100 tasks
+  Chunk 1: 0.08 ms (avg) / 7.70 ms (total) / 100 tasks
+  Chunk 2: 0.73 ms (avg) / 72.61 ms (total) / 100 tasks
+  Chunk 3: 7.04 ms (avg) / 703.69 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 27: SCH-G3B2M4-G210-c640 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1945.74 ms
+Average time by chunks:
+  Chunk 0: 9.96 ms (avg) / 996.48 ms (total) / 100 tasks
+  Chunk 1: 2.30 ms (avg) / 230.02 ms (total) / 100 tasks
+  Chunk 2: 7.19 ms (avg) / 719.24 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 28: SCH-B1G3L1M4-G214-226f (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1329.95 ms
+Average time by chunks:
+  Chunk 0: 0.07 ms (avg) / 7.36 ms (total) / 100 tasks
+  Chunk 1: 5.26 ms (avg) / 526.21 ms (total) / 100 tasks
+  Chunk 2: 0.35 ms (avg) / 34.95 ms (total) / 100 tasks
+  Chunk 3: 7.61 ms (avg) / 761.44 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 29: SCH-G3M1L1B4-G260-a55b (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1515.68 ms
+Average time by chunks:
+  Chunk 0: 5.81 ms (avg) / 580.74 ms (total) / 100 tasks
+  Chunk 1: 0.22 ms (avg) / 22.32 ms (total) / 100 tasks
+  Chunk 2: 0.66 ms (avg) / 65.72 ms (total) / 100 tasks
+  Chunk 3: 8.47 ms (avg) / 846.90 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 30: SCH-G3M2L1B3-G278-d0eb (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1491.22 ms
+Average time by chunks:
+  Chunk 0: 5.85 ms (avg) / 585.01 ms (total) / 100 tasks
+  Chunk 1: 2.60 ms (avg) / 260.23 ms (total) / 100 tasks
+  Chunk 2: 0.04 ms (avg) / 3.53 ms (total) / 100 tasks
+  Chunk 3: 6.42 ms (avg) / 642.46 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 31: SCH-B1G4L1M3-G298-856b (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1150.48 ms
+Average time by chunks:
+  Chunk 0: 0.02 ms (avg) / 2.02 ms (total) / 100 tasks
+  Chunk 1: 5.93 ms (avg) / 593.48 ms (total) / 100 tasks
+  Chunk 2: 0.07 ms (avg) / 7.44 ms (total) / 100 tasks
+  Chunk 3: 5.48 ms (avg) / 547.54 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 32: SCH-B1G4M4-G298-102c (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1423.10 ms
+Average time by chunks:
+  Chunk 0: 0.13 ms (avg) / 12.91 ms (total) / 100 tasks
+  Chunk 1: 6.19 ms (avg) / 618.79 ms (total) / 100 tasks
+  Chunk 2: 7.91 ms (avg) / 791.41 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 33: SCH-G3M4L2-G303-1b48 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1387.83 ms
+Average time by chunks:
+  Chunk 0: 6.03 ms (avg) / 602.85 ms (total) / 100 tasks
+  Chunk 1: 7.75 ms (avg) / 775.33 ms (total) / 100 tasks
+  Chunk 2: 0.10 ms (avg) / 9.65 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 34: SCH-B4L5-G306-e401 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 6292.89 ms
+Average time by chunks:
+  Chunk 0: 36.70 ms (avg) / 3670.21 ms (total) / 100 tasks
+  Chunk 1: 26.23 ms (avg) / 2622.68 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 35: SCH-G2M2L1B4-G310-44fc (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2476.37 ms
+Average time by chunks:
+  Chunk 0: 4.92 ms (avg) / 491.76 ms (total) / 100 tasks
+  Chunk 1: 10.77 ms (avg) / 1076.56 ms (total) / 100 tasks
+  Chunk 2: 0.13 ms (avg) / 13.19 ms (total) / 100 tasks
+  Chunk 3: 8.95 ms (avg) / 894.87 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 36: SCH-G3M1B3L2-G321-9db6 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1157.91 ms
+Average time by chunks:
+  Chunk 0: 6.45 ms (avg) / 645.13 ms (total) / 100 tasks
+  Chunk 1: 0.06 ms (avg) / 5.65 ms (total) / 100 tasks
+  Chunk 2: 4.98 ms (avg) / 497.93 ms (total) / 100 tasks
+  Chunk 3: 0.09 ms (avg) / 9.20 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 37: SCH-G4L1B4-G360-1216 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1916.39 ms
+Average time by chunks:
+  Chunk 0: 9.03 ms (avg) / 903.35 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 3.61 ms (total) / 100 tasks
+  Chunk 2: 10.09 ms (avg) / 1009.43 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 38: SCH-B1G3M5-G374-0e78 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1652.83 ms
+Average time by chunks:
+  Chunk 0: 0.02 ms (avg) / 2.45 ms (total) / 100 tasks
+  Chunk 1: 6.97 ms (avg) / 697.00 ms (total) / 100 tasks
+  Chunk 2: 9.53 ms (avg) / 953.38 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 39: SCH-G4L1M4-G379-673e (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1351.61 ms
+Average time by chunks:
+  Chunk 0: 6.13 ms (avg) / 612.54 ms (total) / 100 tasks
+  Chunk 1: 0.06 ms (avg) / 5.78 ms (total) / 100 tasks
+  Chunk 2: 7.33 ms (avg) / 733.28 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 40: SCH-G3M3B3-G380-1095 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1637.34 ms
+Average time by chunks:
+  Chunk 0: 5.54 ms (avg) / 554.37 ms (total) / 100 tasks
+  Chunk 1: 4.66 ms (avg) / 465.94 ms (total) / 100 tasks
+  Chunk 2: 6.17 ms (avg) / 617.03 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 41: SCH-B9-G000-a938 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 3827.83 ms
+Average time by chunks:
+  Chunk 0: 38.28 ms (avg) / 3827.83 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 42: SCH-G4B5-G049-d312 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2152.02 ms
+Average time by chunks:
+  Chunk 0: 13.25 ms (avg) / 1324.60 ms (total) / 100 tasks
+  Chunk 1: 8.27 ms (avg) / 827.42 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 43: SCH-B2M7-G059-2519 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 3367.85 ms
+Average time by chunks:
+  Chunk 0: 16.62 ms (avg) / 1662.33 ms (total) / 100 tasks
+  Chunk 1: 17.06 ms (avg) / 1705.52 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 44: SCH-G3M2B4-G081-799c (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1694.99 ms
+Average time by chunks:
+  Chunk 0: 8.39 ms (avg) / 838.58 ms (total) / 100 tasks
+  Chunk 1: 2.05 ms (avg) / 204.69 ms (total) / 100 tasks
+  Chunk 2: 6.52 ms (avg) / 651.72 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 45: SCH-G3B1M5-G185-7c71 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1473.81 ms
+Average time by chunks:
+  Chunk 0: 6.62 ms (avg) / 662.37 ms (total) / 100 tasks
+  Chunk 1: 0.02 ms (avg) / 1.87 ms (total) / 100 tasks
+  Chunk 2: 8.10 ms (avg) / 809.57 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 46: SCH-G3B1L1M4-G194-6e9d (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1211.15 ms
+Average time by chunks:
+  Chunk 0: 5.26 ms (avg) / 525.96 ms (total) / 100 tasks
+  Chunk 1: 0.14 ms (avg) / 14.23 ms (total) / 100 tasks
+  Chunk 2: 0.37 ms (avg) / 37.14 ms (total) / 100 tasks
+  Chunk 3: 6.34 ms (avg) / 633.83 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 47: SCH-G3B2M4-G210-c640 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1669.90 ms
+Average time by chunks:
+  Chunk 0: 8.17 ms (avg) / 816.59 ms (total) / 100 tasks
+  Chunk 1: 2.29 ms (avg) / 228.67 ms (total) / 100 tasks
+  Chunk 2: 6.25 ms (avg) / 624.63 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 48: SCH-B1G3L1M4-G214-226f (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1230.46 ms
+Average time by chunks:
+  Chunk 0: 0.22 ms (avg) / 22.43 ms (total) / 100 tasks
+  Chunk 1: 4.50 ms (avg) / 450.38 ms (total) / 100 tasks
+  Chunk 2: 0.69 ms (avg) / 69.14 ms (total) / 100 tasks
+  Chunk 3: 6.89 ms (avg) / 688.52 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 49: SCH-G3M1L1B4-G260-a55b (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1457.24 ms
+Average time by chunks:
+  Chunk 0: 5.84 ms (avg) / 584.07 ms (total) / 100 tasks
+  Chunk 1: 0.08 ms (avg) / 8.06 ms (total) / 100 tasks
+  Chunk 2: 0.31 ms (avg) / 31.06 ms (total) / 100 tasks
+  Chunk 3: 8.34 ms (avg) / 834.05 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 50: SCH-G3M2L1B3-G278-d0eb (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1374.83 ms
+Average time by chunks:
+  Chunk 0: 5.72 ms (avg) / 572.09 ms (total) / 100 tasks
+  Chunk 1: 2.23 ms (avg) / 223.48 ms (total) / 100 tasks
+  Chunk 2: 0.09 ms (avg) / 8.71 ms (total) / 100 tasks
+  Chunk 3: 5.71 ms (avg) / 570.54 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 51: SCH-B1G4L1M3-G298-856b (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1091.21 ms
+Average time by chunks:
+  Chunk 0: 0.20 ms (avg) / 20.09 ms (total) / 100 tasks
+  Chunk 1: 5.73 ms (avg) / 573.39 ms (total) / 100 tasks
+  Chunk 2: 0.08 ms (avg) / 8.49 ms (total) / 100 tasks
+  Chunk 3: 4.89 ms (avg) / 489.24 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 52: SCH-B1G4M4-G298-102c (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1314.83 ms
+Average time by chunks:
+  Chunk 0: 0.07 ms (avg) / 7.00 ms (total) / 100 tasks
+  Chunk 1: 5.92 ms (avg) / 591.53 ms (total) / 100 tasks
+  Chunk 2: 7.16 ms (avg) / 716.30 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 53: SCH-G3M4L2-G303-1b48 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1361.07 ms
+Average time by chunks:
+  Chunk 0: 5.82 ms (avg) / 582.44 ms (total) / 100 tasks
+  Chunk 1: 7.69 ms (avg) / 769.18 ms (total) / 100 tasks
+  Chunk 2: 0.09 ms (avg) / 9.45 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 54: SCH-B4L5-G306-e401 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 8224.04 ms
+Average time by chunks:
+  Chunk 0: 38.27 ms (avg) / 3827.01 ms (total) / 100 tasks
+  Chunk 1: 43.97 ms (avg) / 4397.02 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 55: SCH-G2M2L1B4-G310-44fc (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2390.03 ms
+Average time by chunks:
+  Chunk 0: 4.60 ms (avg) / 459.82 ms (total) / 100 tasks
+  Chunk 1: 9.82 ms (avg) / 982.00 ms (total) / 100 tasks
+  Chunk 2: 0.16 ms (avg) / 15.81 ms (total) / 100 tasks
+  Chunk 3: 9.32 ms (avg) / 932.40 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 56: SCH-G3M1B3L2-G321-9db6 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1191.28 ms
+Average time by chunks:
+  Chunk 0: 6.52 ms (avg) / 652.03 ms (total) / 100 tasks
+  Chunk 1: 0.12 ms (avg) / 11.64 ms (total) / 100 tasks
+  Chunk 2: 5.18 ms (avg) / 518.00 ms (total) / 100 tasks
+  Chunk 3: 0.10 ms (avg) / 9.61 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 57: SCH-G4L1B4-G360-1216 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1784.22 ms
+Average time by chunks:
+  Chunk 0: 8.93 ms (avg) / 893.49 ms (total) / 100 tasks
+  Chunk 1: 0.05 ms (avg) / 4.85 ms (total) / 100 tasks
+  Chunk 2: 8.86 ms (avg) / 885.88 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 58: SCH-B1G3M5-G374-0e78 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1826.02 ms
+Average time by chunks:
+  Chunk 0: 0.02 ms (avg) / 1.94 ms (total) / 100 tasks
+  Chunk 1: 7.56 ms (avg) / 756.02 ms (total) / 100 tasks
+  Chunk 2: 10.68 ms (avg) / 1068.06 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 59: SCH-G4L1M4-G379-673e (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1394.72 ms
+Average time by chunks:
+  Chunk 0: 5.98 ms (avg) / 598.03 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 3.95 ms (total) / 100 tasks
+  Chunk 2: 7.93 ms (avg) / 792.74 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 60: SCH-G3M3B3-G380-1095 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1842.48 ms
+Average time by chunks:
+  Chunk 0: 8.12 ms (avg) / 812.05 ms (total) / 100 tasks
+  Chunk 1: 4.58 ms (avg) / 458.41 ms (total) / 100 tasks
+  Chunk 2: 5.72 ms (avg) / 572.03 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 61: SCH-B9-G000-a938 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 4978.00 ms
+Average time by chunks:
+  Chunk 0: 49.78 ms (avg) / 4978.00 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 62: SCH-G4B5-G049-d312 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2233.07 ms
+Average time by chunks:
+  Chunk 0: 13.10 ms (avg) / 1309.74 ms (total) / 100 tasks
+  Chunk 1: 9.23 ms (avg) / 923.33 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 63: SCH-B2M7-G059-2519 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 3703.73 ms
+Average time by chunks:
+  Chunk 0: 18.27 ms (avg) / 1826.79 ms (total) / 100 tasks
+  Chunk 1: 18.77 ms (avg) / 1876.94 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 64: SCH-G3M2B4-G081-799c (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1701.36 ms
+Average time by chunks:
+  Chunk 0: 7.08 ms (avg) / 708.46 ms (total) / 100 tasks
+  Chunk 1: 2.11 ms (avg) / 210.59 ms (total) / 100 tasks
+  Chunk 2: 7.82 ms (avg) / 782.31 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 65: SCH-G3B1M5-G185-7c71 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1849.84 ms
+Average time by chunks:
+  Chunk 0: 9.88 ms (avg) / 988.28 ms (total) / 100 tasks
+  Chunk 1: 0.02 ms (avg) / 1.99 ms (total) / 100 tasks
+  Chunk 2: 8.60 ms (avg) / 859.57 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 66: SCH-G3B1L1M4-G194-6e9d (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1242.48 ms
+Average time by chunks:
+  Chunk 0: 4.87 ms (avg) / 487.31 ms (total) / 100 tasks
+  Chunk 1: 0.16 ms (avg) / 16.11 ms (total) / 100 tasks
+  Chunk 2: 0.35 ms (avg) / 34.71 ms (total) / 100 tasks
+  Chunk 3: 7.04 ms (avg) / 704.35 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 67: SCH-G3B2M4-G210-c640 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1782.71 ms
+Average time by chunks:
+  Chunk 0: 8.17 ms (avg) / 816.93 ms (total) / 100 tasks
+  Chunk 1: 2.43 ms (avg) / 243.11 ms (total) / 100 tasks
+  Chunk 2: 7.23 ms (avg) / 722.66 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 68: SCH-B1G3L1M4-G214-226f (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1342.00 ms
+Average time by chunks:
+  Chunk 0: 0.09 ms (avg) / 8.70 ms (total) / 100 tasks
+  Chunk 1: 5.31 ms (avg) / 531.46 ms (total) / 100 tasks
+  Chunk 2: 0.34 ms (avg) / 34.18 ms (total) / 100 tasks
+  Chunk 3: 7.68 ms (avg) / 767.67 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 69: SCH-G3M1L1B4-G260-a55b (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1652.88 ms
+Average time by chunks:
+  Chunk 0: 6.75 ms (avg) / 674.89 ms (total) / 100 tasks
+  Chunk 1: 0.10 ms (avg) / 10.09 ms (total) / 100 tasks
+  Chunk 2: 0.56 ms (avg) / 56.03 ms (total) / 100 tasks
+  Chunk 3: 9.12 ms (avg) / 911.87 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 70: SCH-G3M2L1B3-G278-d0eb (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1509.62 ms
+Average time by chunks:
+  Chunk 0: 5.84 ms (avg) / 584.35 ms (total) / 100 tasks
+  Chunk 1: 2.32 ms (avg) / 232.19 ms (total) / 100 tasks
+  Chunk 2: 0.49 ms (avg) / 49.37 ms (total) / 100 tasks
+  Chunk 3: 6.44 ms (avg) / 643.71 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 71: SCH-B1G4L1M3-G298-856b (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1143.57 ms
+Average time by chunks:
+  Chunk 0: 0.08 ms (avg) / 8.21 ms (total) / 100 tasks
+  Chunk 1: 5.81 ms (avg) / 581.00 ms (total) / 100 tasks
+  Chunk 2: 0.05 ms (avg) / 4.59 ms (total) / 100 tasks
+  Chunk 3: 5.50 ms (avg) / 549.76 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 72: SCH-B1G4M4-G298-102c (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1480.15 ms
+Average time by chunks:
+  Chunk 0: 0.02 ms (avg) / 1.82 ms (total) / 100 tasks
+  Chunk 1: 6.61 ms (avg) / 660.74 ms (total) / 100 tasks
+  Chunk 2: 8.18 ms (avg) / 817.59 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 73: SCH-G3M4L2-G303-1b48 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1366.74 ms
+Average time by chunks:
+  Chunk 0: 5.94 ms (avg) / 594.09 ms (total) / 100 tasks
+  Chunk 1: 7.67 ms (avg) / 767.21 ms (total) / 100 tasks
+  Chunk 2: 0.05 ms (avg) / 5.43 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 74: SCH-B4L5-G306-e401 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 6053.80 ms
+Average time by chunks:
+  Chunk 0: 38.10 ms (avg) / 3809.63 ms (total) / 100 tasks
+  Chunk 1: 22.44 ms (avg) / 2244.17 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 75: SCH-G2M2L1B4-G310-44fc (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2397.62 ms
+Average time by chunks:
+  Chunk 0: 4.47 ms (avg) / 446.76 ms (total) / 100 tasks
+  Chunk 1: 9.64 ms (avg) / 964.33 ms (total) / 100 tasks
+  Chunk 2: 0.22 ms (avg) / 22.23 ms (total) / 100 tasks
+  Chunk 3: 9.64 ms (avg) / 964.31 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 76: SCH-G3M1B3L2-G321-9db6 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1187.93 ms
+Average time by chunks:
+  Chunk 0: 6.35 ms (avg) / 635.34 ms (total) / 100 tasks
+  Chunk 1: 0.11 ms (avg) / 11.35 ms (total) / 100 tasks
+  Chunk 2: 5.33 ms (avg) / 533.34 ms (total) / 100 tasks
+  Chunk 3: 0.08 ms (avg) / 7.91 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 77: SCH-G4L1B4-G360-1216 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1665.83 ms
+Average time by chunks:
+  Chunk 0: 7.90 ms (avg) / 790.30 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.17 ms (total) / 100 tasks
+  Chunk 2: 8.71 ms (avg) / 871.35 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 78: SCH-B1G3M5-G374-0e78 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1821.39 ms
+Average time by chunks:
+  Chunk 0: 0.24 ms (avg) / 24.21 ms (total) / 100 tasks
+  Chunk 1: 7.43 ms (avg) / 743.40 ms (total) / 100 tasks
+  Chunk 2: 10.54 ms (avg) / 1053.78 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 79: SCH-G4L1M4-G379-673e (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1491.76 ms
+Average time by chunks:
+  Chunk 0: 6.86 ms (avg) / 685.96 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.17 ms (total) / 100 tasks
+  Chunk 2: 8.02 ms (avg) / 801.62 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 80: SCH-G3M3B3-G380-1095 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1929.58 ms
+Average time by chunks:
+  Chunk 0: 8.18 ms (avg) / 818.41 ms (total) / 100 tasks
+  Chunk 1: 4.99 ms (avg) / 499.09 ms (total) / 100 tasks
+  Chunk 2: 6.12 ms (avg) / 612.08 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 81: SCH-B9-G000-a938 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2609.84 ms
+Average time by chunks:
+  Chunk 0: 26.10 ms (avg) / 2609.84 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 82: SCH-G4B5-G049-d312 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1649.08 ms
+Average time by chunks:
+  Chunk 0: 10.55 ms (avg) / 1055.22 ms (total) / 100 tasks
+  Chunk 1: 5.94 ms (avg) / 593.86 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 83: SCH-B2M7-G059-2519 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2771.26 ms
+Average time by chunks:
+  Chunk 0: 12.81 ms (avg) / 1280.54 ms (total) / 100 tasks
+  Chunk 1: 14.91 ms (avg) / 1490.72 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 84: SCH-G3M2B4-G081-799c (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1542.50 ms
+Average time by chunks:
+  Chunk 0: 8.08 ms (avg) / 808.48 ms (total) / 100 tasks
+  Chunk 1: 1.98 ms (avg) / 197.56 ms (total) / 100 tasks
+  Chunk 2: 5.36 ms (avg) / 536.46 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 85: SCH-G3B1M5-G185-7c71 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1419.66 ms
+Average time by chunks:
+  Chunk 0: 6.93 ms (avg) / 692.56 ms (total) / 100 tasks
+  Chunk 1: 0.19 ms (avg) / 19.35 ms (total) / 100 tasks
+  Chunk 2: 7.08 ms (avg) / 707.75 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 86: SCH-G3B1L1M4-G194-6e9d (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1059.31 ms
+Average time by chunks:
+  Chunk 0: 4.74 ms (avg) / 474.33 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 3.00 ms (total) / 100 tasks
+  Chunk 2: 0.35 ms (avg) / 35.33 ms (total) / 100 tasks
+  Chunk 3: 5.47 ms (avg) / 546.66 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 87: SCH-G3B2M4-G210-c640 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1410.50 ms
+Average time by chunks:
+  Chunk 0: 6.76 ms (avg) / 676.10 ms (total) / 100 tasks
+  Chunk 1: 1.77 ms (avg) / 177.16 ms (total) / 100 tasks
+  Chunk 2: 5.57 ms (avg) / 557.23 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 88: SCH-B1G3L1M4-G214-226f (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1075.39 ms
+Average time by chunks:
+  Chunk 0: 0.11 ms (avg) / 10.90 ms (total) / 100 tasks
+  Chunk 1: 4.29 ms (avg) / 429.39 ms (total) / 100 tasks
+  Chunk 2: 0.59 ms (avg) / 58.89 ms (total) / 100 tasks
+  Chunk 3: 5.76 ms (avg) / 576.21 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 89: SCH-G3M1L1B4-G260-a55b (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1104.69 ms
+Average time by chunks:
+  Chunk 0: 4.85 ms (avg) / 484.63 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 3.38 ms (total) / 100 tasks
+  Chunk 2: 0.18 ms (avg) / 17.83 ms (total) / 100 tasks
+  Chunk 3: 5.99 ms (avg) / 598.86 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 90: SCH-G3M2L1B3-G278-d0eb (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1115.67 ms
+Average time by chunks:
+  Chunk 0: 5.13 ms (avg) / 513.23 ms (total) / 100 tasks
+  Chunk 1: 1.98 ms (avg) / 197.70 ms (total) / 100 tasks
+  Chunk 2: 0.11 ms (avg) / 10.70 ms (total) / 100 tasks
+  Chunk 3: 3.94 ms (avg) / 394.04 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 91: SCH-B1G4L1M3-G298-856b (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 893.10 ms
+Average time by chunks:
+  Chunk 0: 0.11 ms (avg) / 10.97 ms (total) / 100 tasks
+  Chunk 1: 4.53 ms (avg) / 452.97 ms (total) / 100 tasks
+  Chunk 2: 0.23 ms (avg) / 23.39 ms (total) / 100 tasks
+  Chunk 3: 4.06 ms (avg) / 405.78 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 92: SCH-B1G4M4-G298-102c (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1163.05 ms
+Average time by chunks:
+  Chunk 0: 0.02 ms (avg) / 2.46 ms (total) / 100 tasks
+  Chunk 1: 5.19 ms (avg) / 518.68 ms (total) / 100 tasks
+  Chunk 2: 6.42 ms (avg) / 641.91 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 93: SCH-G3M4L2-G303-1b48 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1052.77 ms
+Average time by chunks:
+  Chunk 0: 4.63 ms (avg) / 463.26 ms (total) / 100 tasks
+  Chunk 1: 5.83 ms (avg) / 583.44 ms (total) / 100 tasks
+  Chunk 2: 0.06 ms (avg) / 6.08 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 94: SCH-B4L5-G306-e401 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 4669.19 ms
+Average time by chunks:
+  Chunk 0: 24.37 ms (avg) / 2437.18 ms (total) / 100 tasks
+  Chunk 1: 22.32 ms (avg) / 2232.01 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 95: SCH-G2M2L1B4-G310-44fc (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1928.00 ms
+Average time by chunks:
+  Chunk 0: 4.54 ms (avg) / 453.79 ms (total) / 100 tasks
+  Chunk 1: 8.02 ms (avg) / 802.42 ms (total) / 100 tasks
+  Chunk 2: 0.34 ms (avg) / 33.84 ms (total) / 100 tasks
+  Chunk 3: 6.38 ms (avg) / 637.96 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 96: SCH-G3M1B3L2-G321-9db6 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 924.95 ms
+Average time by chunks:
+  Chunk 0: 5.01 ms (avg) / 500.93 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 3.61 ms (total) / 100 tasks
+  Chunk 2: 4.04 ms (avg) / 404.15 ms (total) / 100 tasks
+  Chunk 3: 0.16 ms (avg) / 16.26 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 97: SCH-G4L1B4-G360-1216 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1334.19 ms
+Average time by chunks:
+  Chunk 0: 7.87 ms (avg) / 787.47 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 3.44 ms (total) / 100 tasks
+  Chunk 2: 5.43 ms (avg) / 543.28 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 98: SCH-B1G3M5-G374-0e78 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1451.22 ms
+Average time by chunks:
+  Chunk 0: 0.04 ms (avg) / 3.50 ms (total) / 100 tasks
+  Chunk 1: 6.32 ms (avg) / 631.80 ms (total) / 100 tasks
+  Chunk 2: 8.16 ms (avg) / 815.92 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 99: SCH-G4L1M4-G379-673e (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1263.27 ms
+Average time by chunks:
+  Chunk 0: 6.58 ms (avg) / 657.77 ms (total) / 100 tasks
+  Chunk 1: 0.09 ms (avg) / 9.37 ms (total) / 100 tasks
+  Chunk 2: 5.96 ms (avg) / 596.13 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 100: SCH-G3M3B3-G380-1095 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1528.54 ms
+Average time by chunks:
+  Chunk 0: 6.98 ms (avg) / 698.42 ms (total) / 100 tasks
+  Chunk 1: 3.93 ms (avg) / 393.40 ms (total) / 100 tasks
+  Chunk 2: 4.37 ms (avg) / 436.72 ms (total) / 100 tasks
+--------------------------------------------------
+
+===== AGGREGATED STATISTICS BY SCHEDULE =====
+
+Schedule 1: SCH-B1G3L1M4-G214-226f
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 0.12 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 4.95 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.55 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 7.12 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 2: SCH-B1G3M5-G374-0e78
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 0.07 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 7.06 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 9.70 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 3: SCH-B1G4L1M3-G298-856b
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 0.09 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 5.54 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.12 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 5.07 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 4: SCH-B1G4M4-G298-102c
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 0.08 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 6.01 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 7.51 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 5: SCH-B2M7-G059-2519
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 16.71 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 17.37 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 6: SCH-B4L5-G306-e401
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 35.15 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 27.88 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 7: SCH-B9-G000-a938
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 42.99 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 8: SCH-G2M2L1B4-G310-44fc
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 4.67 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 9.83 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.18 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 8.79 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 9: SCH-G3B1L1M4-G194-6e9d
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.26 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.13 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.42 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 6.67 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 10: SCH-G3B1M5-G185-7c71
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 8.26 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.05 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 8.29 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 11: SCH-G3B2M4-G210-c640
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 8.24 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 2.28 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 6.68 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 12: SCH-G3M1B3L2-G321-9db6
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 6.01 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.07 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 4.95 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 0.10 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 13: SCH-G3M1L1B4-G260-a55b
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.99 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.11 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.44 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 8.23 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 14: SCH-G3M2B4-G081-799c
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 8.02 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 2.03 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 6.80 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 15: SCH-G3M2L1B3-G278-d0eb
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.62 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 2.32 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.17 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 5.77 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 16: SCH-G3M3B3-G380-1095
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 7.00 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 4.57 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 5.72 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 17: SCH-G3M4L2-G303-1b48
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.57 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 7.37 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 0.08 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 18: SCH-G4B5-G049-d312
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 12.35 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 8.37 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 19: SCH-G4L1B4-G360-1216
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 8.30 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.05 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 8.65 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 20: SCH-G4L1M4-G379-673e
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 6.35 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.06 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 7.27 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+===== WIDEST CHUNK SUMMARY =====
+Time window: 0.00-1.00
+Schedule UID                    : Chunk ID  Duration (ms)
+------------------------------------------------------------
+SCH-B1G3L1M4-G214-226f         : Chunk  3   7.12 ms
+SCH-B1G3M5-G374-0e78           : Chunk  2   9.70 ms
+SCH-B1G4L1M3-G298-856b         : Chunk  1   5.54 ms
+SCH-B1G4M4-G298-102c           : Chunk  2   7.51 ms
+SCH-B2M7-G059-2519             : Chunk  1   17.37 ms
+SCH-B4L5-G306-e401             : Chunk  0   35.15 ms
+SCH-B9-G000-a938               : Chunk  0   42.99 ms
+SCH-G2M2L1B4-G310-44fc         : Chunk  1   9.83 ms
+SCH-G3B1L1M4-G194-6e9d         : Chunk  3   6.67 ms
+SCH-G3B1M5-G185-7c71           : Chunk  2   8.29 ms
+SCH-G3B2M4-G210-c640           : Chunk  0   8.24 ms
+SCH-G3M1B3L2-G321-9db6         : Chunk  0   6.01 ms
+SCH-G3M1L1B4-G260-a55b         : Chunk  3   8.23 ms
+SCH-G3M2B4-G081-799c           : Chunk  0   8.02 ms
+SCH-G3M2L1B3-G278-d0eb         : Chunk  3   5.77 ms
+SCH-G3M3B3-G380-1095           : Chunk  0   7.00 ms
+SCH-G3M4L2-G303-1b48           : Chunk  1   7.37 ms
+SCH-G4B5-G049-d312             : Chunk  0   12.35 ms
+SCH-G4L1B4-G360-1216           : Chunk  2   8.65 ms
+SCH-G4L1M4-G379-673e           : Chunk  2   7.27 ms
+
+===== MEASURED VS PREDICTED TIMES =====
+Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  
+--------------------------------------------------------------------------------
+SCH-B1G3L1M4-G214-226f         :         7.12            7.83           -9.07%
+SCH-B1G4L1M3-G298-856b         :         5.54            8.67          -36.07%
+SCH-B1G4M4-G298-102c           :         7.51            8.67          -13.36%
+SCH-B1G3M5-G374-0e78           :         9.70            9.43           +2.82%
+SCH-G3M2B4-G081-799c           :         8.02            9.58          -16.27%
+SCH-G3B1M5-G185-7c71           :         8.29            9.58          -13.44%
+SCH-G3B1L1M4-G194-6e9d         :         6.67            9.58          -30.42%
+SCH-G3M1L1B4-G260-a55b         :         8.23            9.58          -14.05%
+SCH-G3M2L1B3-G278-d0eb         :         5.77            9.58          -39.80%
+SCH-G3M1B3L2-G321-9db6         :         6.01            9.58          -37.30%
+SCH-G3B2M4-G210-c640           :         8.24            9.74          -15.36%
+SCH-G2M2L1B4-G310-44fc         :         9.83           10.22           -3.83%
+SCH-G3M3B3-G380-1095           :         7.00           10.60          -33.93%
+SCH-G4B5-G049-d312             :        12.35           11.43           +8.01%
+SCH-G4L1B4-G360-1216           :         8.65           11.43          -24.36%
+SCH-G4L1M4-G379-673e           :         7.27           11.43          -36.40%
+SCH-G3M4L2-G303-1b48           :         7.37           12.45          -40.86%
+SCH-B2M7-G059-2519             :        17.37           20.24          -14.18%
+SCH-B4L5-G306-e401             :        35.15           34.32           +2.40%
+SCH-B9-G000-a938               :        42.99           42.20           +1.87%
+
+Comparison Statistics:
+Total comparisons: 20
+Within 5% margin: 4 (20.00%)
+Within 10% margin: 6 (30.00%)
+Within 20% margin: 12 (60.00%)
+Root Mean Square Error (RMSE): 2.5502 ms
+Mean Absolute Error (MAE): 2.1338 ms
+
+===== STATISTICAL ANALYSIS =====
+Total comparisons: 20
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.9863
+Coefficient of determination (R²): 0.9728
+
+Error Metrics:
+Mean Squared Error (MSE): 6.5038 ms²
+Root Mean Squared Error (RMSE): 2.5502 ms
+Mean Absolute Error (MAE): 2.1338 ms
+
+Error Distribution:
+Mean percentage error: -18.18%
+Median percentage error: -14.77%
+Standard deviation of percentage error: 15.44%
+Min percentage error: -40.86%
+Max percentage error: 8.01%
+
+Prediction Accuracy:
+Within 5% margin: 4 (20.00% of valid comparisons)
+Within 10% margin: 6 (30.00% of valid comparisons)
+Within 20% margin: 12 (60.00% of valid comparisons)
+
+Prediction Bias:
+Under-predictions (measured > predicted): 4 (20.00%)
+Over-predictions (measured < predicted): 16 (80.00%)
+Exact matches: 0 (0.00%)
+Visualization saved to tmp1/comparison_chart.png
+Line visualization saved to tmp1/line_comparison_chart.png
+Line visualization saved to tmp1/line_comparison_by_measured.png
+Correlation plot saved to tmp1/correlation_plot.png
+Log-scale correlation plot saved to tmp1/correlation_plot_log_scale.png
+Correlation plot (excl. outliers) saved to tmp1/correlation_plot_no_outliers.png
+Zoomed correlation plot saved to tmp1/correlation_plot_zoomed.png
+
+Processed 5 log files with a total of 100 schedule instances
+Time window used for analysis: 0.00-1.00
+Schedule limit: analyzed first 20 of 30 unique schedule UIDs
+Unique schedule UIDs analyzed: 20
+Using time window: 0.00-1.00
+Loaded 30 model predictions from data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_isolated_tmax.json
+Found 5 log files in data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/
+Processing data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_4.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_4.log
+  Schedule SCH-B9-G000-5a46 duration: 4246.31 ms, window: 315158395.73-315162642.04 ms
+  Schedule SCH-M9-G000-6311 duration: 3488.82 ms, window: 315163662.39-315167151.21 ms
+  Schedule SCH-G9-G000-de73 duration: 3517.18 ms, window: 315168087.09-315171604.27 ms
+  Schedule SCH-L9-G000-bc78 duration: 7248.03 ms, window: 315172505.39-315179753.43 ms
+  Schedule SCH-B4L5-G031-5a7e duration: 2811.35 ms, window: 315180608.65-315183420.00 ms
+  Schedule SCH-M2G7-G047-fe76 duration: 1322.18 ms, window: 315184115.85-315185438.03 ms
+  Schedule SCH-G2M4L3-G061-1efc duration: 1044.40 ms, window: 315186146.04-315187190.44 ms
+  Schedule SCH-G2B4L3-G163-c52d duration: 1236.68 ms, window: 315188007.31-315189243.99 ms
+  Schedule SCH-G3M6-G186-2264 duration: 1033.77 ms, window: 315190069.49-315191103.26 ms
+  Schedule SCH-B3M6-G277-65ba duration: 1947.61 ms, window: 315191837.30-315193784.91 ms
+  Schedule SCH-B2G7-G278-90fb duration: 1640.05 ms, window: 315194598.57-315196238.63 ms
+  Schedule SCH-B2M7-G298-cc27 duration: 1659.69 ms, window: 315196957.49-315198617.19 ms
+  Schedule SCH-M2B7-G311-4f43 duration: 1930.20 ms, window: 315199425.29-315201355.49 ms
+  Schedule SCH-G2L1B6-G318-3e83 duration: 1251.84 ms, window: 315202136.54-315203388.38 ms
+  Schedule SCH-G2B7-G327-6aad duration: 2274.93 ms, window: 315204210.32-315206485.25 ms
+  Schedule SCH-B2M4L3-G329-313f duration: 2181.52 ms, window: 315207312.27-315209493.79 ms
+  Schedule SCH-B2G4L3-G329-1c7f duration: 2273.83 ms, window: 315210311.58-315212585.41 ms
+  Schedule SCH-G4L5-G335-ea48 duration: 2119.14 ms, window: 315213413.75-315215532.89 ms
+  Schedule SCH-G3B6-G406-970e duration: 1395.36 ms, window: 315216350.91-315217746.27 ms
+  Schedule SCH-M4L5-G441-e7c3 duration: 2533.22 ms, window: 315218582.43-315221115.65 ms
+  Schedule SCH-B3G6-G455-7c20 duration: 2418.09 ms, window: 315221934.00-315224352.08 ms
+  Schedule SCH-G2B2M5-G461-5ba4 duration: 1050.38 ms, window: 315225166.02-315226216.41 ms
+  Schedule SCH-L1G8-G478-1a6a duration: 1052.27 ms, window: 315227060.21-315228112.48 ms
+  Schedule SCH-G2L1M6-G537-ce21 duration: 1009.32 ms, window: 315228983.94-315229993.27 ms
+  Schedule SCH-G2M2B5-G546-2f5e duration: 1045.66 ms, window: 315230829.84-315231875.50 ms
+  Schedule SCH-M1G2B4L2-G552-7fdb duration: 708.09 ms, window: 315232657.10-315233365.19 ms
+  Schedule SCH-B2L1G6-G559-0f62 duration: 2000.36 ms, window: 315234150.83-315236151.19 ms
+  Schedule SCH-B2L1M6-G559-c678 duration: 2264.81 ms, window: 315236991.96-315239256.77 ms
+  Schedule SCH-G5L4-G571-8b2a duration: 1688.24 ms, window: 315240107.20-315241795.44 ms
+  Schedule SCH-G2L1B2M4-G588-399f duration: 702.50 ms, window: 315242661.00-315243363.51 ms
+Processing data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_5.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_5.log
+  Schedule SCH-B9-G000-5a46 duration: 4763.26 ms, window: 315246464.67-315251227.93 ms
+  Schedule SCH-M9-G000-6311 duration: 3517.29 ms, window: 315252248.24-315255765.53 ms
+  Schedule SCH-G9-G000-de73 duration: 3783.83 ms, window: 315256706.72-315260490.54 ms
+  Schedule SCH-L9-G000-bc78 duration: 8034.79 ms, window: 315261485.11-315269519.91 ms
+  Schedule SCH-B4L5-G031-5a7e duration: 2887.84 ms, window: 315270437.35-315273325.19 ms
+  Schedule SCH-M2G7-G047-fe76 duration: 1354.60 ms, window: 315274180.91-315275535.51 ms
+  Schedule SCH-G2M4L3-G061-1efc duration: 1081.74 ms, window: 315276342.62-315277424.36 ms
+  Schedule SCH-G2B4L3-G163-c52d duration: 1264.94 ms, window: 315278178.27-315279443.21 ms
+  Schedule SCH-G3M6-G186-2264 duration: 1023.93 ms, window: 315280309.90-315281333.83 ms
+  Schedule SCH-B3M6-G277-65ba duration: 1966.37 ms, window: 315282173.79-315284140.16 ms
+  Schedule SCH-B2G7-G278-90fb duration: 1758.87 ms, window: 315285006.90-315286765.77 ms
+  Schedule SCH-B2M7-G298-cc27 duration: 1822.94 ms, window: 315287612.84-315289435.78 ms
+  Schedule SCH-M2B7-G311-4f43 duration: 2061.08 ms, window: 315290288.63-315292349.71 ms
+  Schedule SCH-G2L1B6-G318-3e83 duration: 1251.53 ms, window: 315293241.78-315294493.30 ms
+  Schedule SCH-G2B7-G327-6aad duration: 2281.29 ms, window: 315295375.60-315297656.89 ms
+  Schedule SCH-B2M4L3-G329-313f duration: 2161.69 ms, window: 315298537.15-315300698.84 ms
+  Schedule SCH-B2G4L3-G329-1c7f duration: 2227.50 ms, window: 315301531.61-315303759.11 ms
+  Schedule SCH-G4L5-G335-ea48 duration: 2109.81 ms, window: 315304586.67-315306696.48 ms
+  Schedule SCH-G3B6-G406-970e duration: 1399.78 ms, window: 315307568.26-315308968.04 ms
+  Schedule SCH-M4L5-G441-e7c3 duration: 2814.48 ms, window: 315309870.03-315312684.50 ms
+  Schedule SCH-B3G6-G455-7c20 duration: 2398.20 ms, window: 315313562.28-315315960.48 ms
+  Schedule SCH-G2B2M5-G461-5ba4 duration: 1052.75 ms, window: 315316778.90-315317831.65 ms
+  Schedule SCH-L1G8-G478-1a6a duration: 1010.00 ms, window: 315318693.44-315319703.44 ms
+  Schedule SCH-G2L1M6-G537-ce21 duration: 1079.35 ms, window: 315320532.74-315321612.09 ms
+  Schedule SCH-G2M2B5-G546-2f5e duration: 1158.69 ms, window: 315322474.02-315323632.71 ms
+  Schedule SCH-M1G2B4L2-G552-7fdb duration: 793.45 ms, window: 315324504.75-315325298.20 ms
+  Schedule SCH-B2L1G6-G559-0f62 duration: 2225.44 ms, window: 315326154.78-315328380.22 ms
+  Schedule SCH-B2L1M6-G559-c678 duration: 2253.09 ms, window: 315329227.17-315331480.26 ms
+  Schedule SCH-G5L4-G571-8b2a duration: 1672.36 ms, window: 315332328.96-315334001.32 ms
+  Schedule SCH-G2L1B2M4-G588-399f duration: 724.26 ms, window: 315334868.67-315335592.94 ms
+Processing data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_2.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_2.log
+  Schedule SCH-B9-G000-5a46 duration: 2882.31 ms, window: 314992343.99-314995226.30 ms
+  Schedule SCH-M9-G000-6311 duration: 3184.53 ms, window: 314995923.17-314999107.70 ms
+  Schedule SCH-G9-G000-de73 duration: 3751.75 ms, window: 314999834.62-315003586.36 ms
+  Schedule SCH-L9-G000-bc78 duration: 7221.58 ms, window: 315004327.43-315011549.00 ms
+  Schedule SCH-B4L5-G031-5a7e duration: 2104.04 ms, window: 315012272.22-315014376.26 ms
+  Schedule SCH-M2G7-G047-fe76 duration: 1319.51 ms, window: 315015092.36-315016411.87 ms
+  Schedule SCH-G2M4L3-G061-1efc duration: 986.61 ms, window: 315017111.53-315018098.13 ms
+  Schedule SCH-G2B4L3-G163-c52d duration: 999.71 ms, window: 315018790.31-315019790.03 ms
+  Schedule SCH-G3M6-G186-2264 duration: 995.72 ms, window: 315020518.19-315021513.92 ms
+  Schedule SCH-B3M6-G277-65ba duration: 1602.71 ms, window: 315022226.72-315023829.43 ms
+  Schedule SCH-B2G7-G278-90fb duration: 1304.05 ms, window: 315024529.46-315025833.51 ms
+  Schedule SCH-B2M7-G298-cc27 duration: 1581.56 ms, window: 315026567.55-315028149.11 ms
+  Schedule SCH-M2B7-G311-4f43 duration: 1636.50 ms, window: 315028847.73-315030484.23 ms
+  Schedule SCH-G2L1B6-G318-3e83 duration: 878.34 ms, window: 315031187.58-315032065.92 ms
+  Schedule SCH-G2B7-G327-6aad duration: 1862.35 ms, window: 315032822.00-315034684.34 ms
+  Schedule SCH-B2M4L3-G329-313f duration: 1666.55 ms, window: 315035491.75-315037158.30 ms
+  Schedule SCH-B2G4L3-G329-1c7f duration: 1675.42 ms, window: 315038003.66-315039679.08 ms
+  Schedule SCH-G4L5-G335-ea48 duration: 2107.98 ms, window: 315040416.83-315042524.81 ms
+  Schedule SCH-G3B6-G406-970e duration: 1257.15 ms, window: 315043272.49-315044529.64 ms
+  Schedule SCH-M4L5-G441-e7c3 duration: 2431.49 ms, window: 315045333.02-315047764.52 ms
+  Schedule SCH-B3G6-G455-7c20 duration: 2126.42 ms, window: 315048521.51-315050647.94 ms
+  Schedule SCH-G2B2M5-G461-5ba4 duration: 942.91 ms, window: 315051490.58-315052433.49 ms
+  Schedule SCH-L1G8-G478-1a6a duration: 1092.19 ms, window: 315053158.64-315054250.83 ms
+  Schedule SCH-G2L1M6-G537-ce21 duration: 929.44 ms, window: 315055047.86-315055977.30 ms
+  Schedule SCH-G2M2B5-G546-2f5e duration: 954.90 ms, window: 315056768.23-315057723.13 ms
+  Schedule SCH-M1G2B4L2-G552-7fdb duration: 638.67 ms, window: 315058512.80-315059151.46 ms
+  Schedule SCH-B2L1G6-G559-0f62 duration: 1811.19 ms, window: 315059997.02-315061808.21 ms
+  Schedule SCH-B2L1M6-G559-c678 duration: 1828.31 ms, window: 315062616.95-315064445.26 ms
+  Schedule SCH-G5L4-G571-8b2a duration: 1384.09 ms, window: 315065263.11-315066647.20 ms
+  Schedule SCH-G2L1B2M4-G588-399f duration: 675.34 ms, window: 315067474.37-315068149.71 ms
+Processing data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_3.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_3.log
+  Schedule SCH-B9-G000-5a46 duration: 4286.77 ms, window: 315071256.94-315075543.72 ms
+  Schedule SCH-M9-G000-6311 duration: 3283.82 ms, window: 315076414.92-315079698.74 ms
+  Schedule SCH-G9-G000-de73 duration: 3789.55 ms, window: 315080502.79-315084292.35 ms
+  Schedule SCH-L9-G000-bc78 duration: 7002.50 ms, window: 315085301.21-315092303.71 ms
+  Schedule SCH-B4L5-G031-5a7e duration: 2796.46 ms, window: 315093168.81-315095965.27 ms
+  Schedule SCH-M2G7-G047-fe76 duration: 1296.32 ms, window: 315096693.70-315097990.02 ms
+  Schedule SCH-G2M4L3-G061-1efc duration: 1015.74 ms, window: 315098722.19-315099737.93 ms
+  Schedule SCH-G2B4L3-G163-c52d duration: 1175.46 ms, window: 315100468.50-315101643.96 ms
+  Schedule SCH-G3M6-G186-2264 duration: 1023.77 ms, window: 315102387.36-315103411.13 ms
+  Schedule SCH-B3M6-G277-65ba duration: 1875.14 ms, window: 315104252.62-315106127.76 ms
+  Schedule SCH-B2G7-G278-90fb duration: 1558.00 ms, window: 315106969.45-315108527.45 ms
+  Schedule SCH-B2M7-G298-cc27 duration: 1741.57 ms, window: 315109274.26-315111015.83 ms
+  Schedule SCH-M2B7-G311-4f43 duration: 1880.92 ms, window: 315111893.33-315113774.25 ms
+  Schedule SCH-G2L1B6-G318-3e83 duration: 1037.39 ms, window: 315114662.90-315115700.29 ms
+  Schedule SCH-G2B7-G327-6aad duration: 2037.13 ms, window: 315116563.73-315118600.86 ms
+  Schedule SCH-B2M4L3-G329-313f duration: 1816.00 ms, window: 315119452.98-315121268.98 ms
+  Schedule SCH-B2G4L3-G329-1c7f duration: 1833.58 ms, window: 315122111.83-315123945.41 ms
+  Schedule SCH-G4L5-G335-ea48 duration: 1947.30 ms, window: 315124766.59-315126713.89 ms
+  Schedule SCH-G3B6-G406-970e duration: 1394.19 ms, window: 315127587.42-315128981.61 ms
+  Schedule SCH-M4L5-G441-e7c3 duration: 2552.76 ms, window: 315129796.46-315132349.22 ms
+  Schedule SCH-B3G6-G455-7c20 duration: 2392.84 ms, window: 315133162.09-315135554.93 ms
+  Schedule SCH-G2B2M5-G461-5ba4 duration: 1045.87 ms, window: 315136376.88-315137422.75 ms
+  Schedule SCH-L1G8-G478-1a6a duration: 1457.89 ms, window: 315138250.23-315139708.12 ms
+  Schedule SCH-G2L1M6-G537-ce21 duration: 1006.43 ms, window: 315140453.79-315141460.21 ms
+  Schedule SCH-G2M2B5-G546-2f5e duration: 1040.50 ms, window: 315142281.70-315143322.20 ms
+  Schedule SCH-M1G2B4L2-G552-7fdb duration: 740.42 ms, window: 315144109.17-315144849.60 ms
+  Schedule SCH-B2L1G6-G559-0f62 duration: 2011.11 ms, window: 315145668.56-315147679.67 ms
+  Schedule SCH-B2L1M6-G559-c678 duration: 2047.81 ms, window: 315148490.40-315150538.21 ms
+  Schedule SCH-G5L4-G571-8b2a duration: 2455.38 ms, window: 315151398.68-315153854.06 ms
+  Schedule SCH-G2L1B2M4-G588-399f duration: 722.31 ms, window: 315154686.21-315155408.52 ms
+Processing data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_1.log... (time window: 0.00-1.00)
+Found 30 schedule sections in data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/schedule_run_1.log
+  Schedule SCH-B9-G000-5a46 duration: 2457.90 ms, window: 314922297.58-314924755.48 ms
+  Schedule SCH-M9-G000-6311 duration: 2988.66 ms, window: 314925444.67-314928433.34 ms
+  Schedule SCH-G9-G000-de73 duration: 3514.37 ms, window: 314929127.91-314932642.28 ms
+  Schedule SCH-L9-G000-bc78 duration: 6821.32 ms, window: 314933330.66-314940151.98 ms
+  Schedule SCH-B4L5-G031-5a7e duration: 1878.04 ms, window: 314940858.30-314942736.34 ms
+  Schedule SCH-M2G7-G047-fe76 duration: 1240.41 ms, window: 314943407.81-314944648.22 ms
+  Schedule SCH-G2M4L3-G061-1efc duration: 980.47 ms, window: 314945339.65-314946320.11 ms
+  Schedule SCH-G2B4L3-G163-c52d duration: 862.82 ms, window: 314946933.90-314947796.73 ms
+  Schedule SCH-G3M6-G186-2264 duration: 899.46 ms, window: 314948494.46-314949393.92 ms
+  Schedule SCH-B3M6-G277-65ba duration: 1397.88 ms, window: 314949983.84-314951381.72 ms
+  Schedule SCH-B2G7-G278-90fb duration: 1097.47 ms, window: 314952067.82-314953165.30 ms
+  Schedule SCH-B2M7-G298-cc27 duration: 1501.87 ms, window: 314953827.33-314955329.20 ms
+  Schedule SCH-M2B7-G311-4f43 duration: 1718.37 ms, window: 314955972.24-314957690.60 ms
+  Schedule SCH-G2L1B6-G318-3e83 duration: 867.68 ms, window: 314958333.49-314959201.17 ms
+  Schedule SCH-G2B7-G327-6aad duration: 1490.43 ms, window: 314959886.14-314961376.56 ms
+  Schedule SCH-B2M4L3-G329-313f duration: 1480.26 ms, window: 314962033.04-314963513.31 ms
+  Schedule SCH-B2G4L3-G329-1c7f duration: 1363.33 ms, window: 314964196.58-314965559.91 ms
+  Schedule SCH-G4L5-G335-ea48 duration: 1834.99 ms, window: 314966200.52-314968035.52 ms
+  Schedule SCH-G3B6-G406-970e duration: 994.37 ms, window: 314968722.11-314969716.48 ms
+  Schedule SCH-M4L5-G441-e7c3 duration: 2187.64 ms, window: 314970374.55-314972562.20 ms
+  Schedule SCH-B3G6-G455-7c20 duration: 1546.53 ms, window: 314973225.71-314974772.24 ms
+  Schedule SCH-G2B2M5-G461-5ba4 duration: 739.56 ms, window: 314975431.71-314976171.26 ms
+  Schedule SCH-L1G8-G478-1a6a duration: 1443.11 ms, window: 314976840.13-314978283.24 ms
+  Schedule SCH-G2L1M6-G537-ce21 duration: 868.99 ms, window: 314978950.67-314979819.67 ms
+  Schedule SCH-G2M2B5-G546-2f5e duration: 701.25 ms, window: 314980492.88-314981194.14 ms
+  Schedule SCH-M1G2B4L2-G552-7fdb duration: 513.57 ms, window: 314981854.39-314982367.97 ms
+  Schedule SCH-B2L1G6-G559-0f62 duration: 1313.06 ms, window: 314982995.69-314984308.74 ms
+  Schedule SCH-B2L1M6-G559-c678 duration: 1511.78 ms, window: 314984934.15-314986445.93 ms
+  Schedule SCH-G5L4-G571-8b2a duration: 1386.13 ms, window: 314987180.45-314988566.58 ms
+  Schedule SCH-G2L1B2M4-G588-399f duration: 620.83 ms, window: 314989247.76-314989868.59 ms
+Found 30 unique schedule UIDs
+Limiting analysis to first 20 schedules
+After filtering: analyzing 100 schedule instances from 20 unique UIDs
+Selected schedule UIDs: SCH-B2G4L3-G329-1c7f, SCH-B2G7-G278-90fb, SCH-B2L1G6-G559-0f62, SCH-B2L1M6-G559-c678, SCH-B2M4L3-G329-313f, SCH-B2M7-G298-cc27, SCH-B3G6-G455-7c20, SCH-B3M6-G277-65ba, SCH-B4L5-G031-5a7e, SCH-B9-G000-5a46, SCH-G2B2M5-G461-5ba4, SCH-G2B4L3-G163-c52d, SCH-G2B7-G327-6aad, SCH-G2L1B2M4-G588-399f, SCH-G2L1B6-G318-3e83, SCH-G2L1M6-G537-ce21, SCH-G2M2B5-G546-2f5e, SCH-G2M4L3-G061-1efc, SCH-G3B6-G406-970e, SCH-G3M6-G186-2264
+
+===== INDIVIDUAL SCHEDULE STATISTICS =====
+
+Schedule 1: SCH-B9-G000-5a46 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 4246.29 ms
+Average time by chunks:
+  Chunk 0: 42.46 ms (avg) / 4246.29 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 2: SCH-B4L5-G031-5a7e (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 4759.32 ms
+Average time by chunks:
+  Chunk 0: 27.92 ms (avg) / 2791.98 ms (total) / 100 tasks
+  Chunk 1: 19.67 ms (avg) / 1967.34 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 3: SCH-G2M4L3-G061-1efc (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2193.53 ms
+Average time by chunks:
+  Chunk 0: 4.63 ms (avg) / 462.81 ms (total) / 100 tasks
+  Chunk 1: 10.26 ms (avg) / 1026.02 ms (total) / 100 tasks
+  Chunk 2: 7.05 ms (avg) / 704.70 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 4: SCH-G2B4L3-G163-c52d (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2539.76 ms
+Average time by chunks:
+  Chunk 0: 5.29 ms (avg) / 528.85 ms (total) / 100 tasks
+  Chunk 1: 12.20 ms (avg) / 1219.81 ms (total) / 100 tasks
+  Chunk 2: 7.91 ms (avg) / 791.10 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 5: SCH-G3M6-G186-2264 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1948.37 ms
+Average time by chunks:
+  Chunk 0: 10.25 ms (avg) / 1024.50 ms (total) / 100 tasks
+  Chunk 1: 9.24 ms (avg) / 923.87 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 6: SCH-B3M6-G277-65ba (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2887.74 ms
+Average time by chunks:
+  Chunk 0: 19.38 ms (avg) / 1938.48 ms (total) / 100 tasks
+  Chunk 1: 9.49 ms (avg) / 949.26 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 7: SCH-B2G7-G278-90fb (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2814.76 ms
+Average time by chunks:
+  Chunk 0: 16.26 ms (avg) / 1626.39 ms (total) / 100 tasks
+  Chunk 1: 11.88 ms (avg) / 1188.36 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 8: SCH-B2M7-G298-cc27 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 3257.50 ms
+Average time by chunks:
+  Chunk 0: 16.44 ms (avg) / 1643.54 ms (total) / 100 tasks
+  Chunk 1: 16.14 ms (avg) / 1613.96 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 9: SCH-G2L1B6-G318-3e83 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1779.64 ms
+Average time by chunks:
+  Chunk 0: 5.35 ms (avg) / 534.91 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.29 ms (total) / 100 tasks
+  Chunk 2: 12.40 ms (avg) / 1240.45 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 10: SCH-G2B7-G327-6aad (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2829.84 ms
+Average time by chunks:
+  Chunk 0: 5.66 ms (avg) / 565.58 ms (total) / 100 tasks
+  Chunk 1: 22.64 ms (avg) / 2264.26 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 11: SCH-B2M4L3-G329-313f (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 3986.39 ms
+Average time by chunks:
+  Chunk 0: 21.63 ms (avg) / 2163.43 ms (total) / 100 tasks
+  Chunk 1: 11.37 ms (avg) / 1137.16 ms (total) / 100 tasks
+  Chunk 2: 6.86 ms (avg) / 685.79 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 12: SCH-B2G4L3-G329-1c7f (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 3683.61 ms
+Average time by chunks:
+  Chunk 0: 22.60 ms (avg) / 2260.01 ms (total) / 100 tasks
+  Chunk 1: 7.26 ms (avg) / 726.10 ms (total) / 100 tasks
+  Chunk 2: 6.98 ms (avg) / 697.51 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 13: SCH-G3B6-G406-970e (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2447.11 ms
+Average time by chunks:
+  Chunk 0: 10.67 ms (avg) / 1066.83 ms (total) / 100 tasks
+  Chunk 1: 13.80 ms (avg) / 1380.28 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 14: SCH-B3G6-G455-7c20 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 3336.06 ms
+Average time by chunks:
+  Chunk 0: 24.06 ms (avg) / 2406.29 ms (total) / 100 tasks
+  Chunk 1: 9.30 ms (avg) / 929.77 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 15: SCH-G2B2M5-G461-5ba4 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2430.13 ms
+Average time by chunks:
+  Chunk 0: 5.28 ms (avg) / 528.16 ms (total) / 100 tasks
+  Chunk 1: 10.29 ms (avg) / 1029.20 ms (total) / 100 tasks
+  Chunk 2: 8.73 ms (avg) / 872.76 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 16: SCH-G2L1M6-G537-ce21 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1495.93 ms
+Average time by chunks:
+  Chunk 0: 4.95 ms (avg) / 495.48 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 3.81 ms (total) / 100 tasks
+  Chunk 2: 9.97 ms (avg) / 996.64 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 17: SCH-G2M2B5-G546-2f5e (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2288.00 ms
+Average time by chunks:
+  Chunk 0: 5.11 ms (avg) / 510.70 ms (total) / 100 tasks
+  Chunk 1: 7.49 ms (avg) / 749.13 ms (total) / 100 tasks
+  Chunk 2: 10.28 ms (avg) / 1028.17 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 18: SCH-B2L1G6-G559-0f62 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 2857.72 ms
+Average time by chunks:
+  Chunk 0: 19.91 ms (avg) / 1991.44 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 2.56 ms (total) / 100 tasks
+  Chunk 2: 8.64 ms (avg) / 863.73 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 19: SCH-B2L1M6-G559-c678 (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 3348.25 ms
+Average time by chunks:
+  Chunk 0: 22.54 ms (avg) / 2253.96 ms (total) / 100 tasks
+  Chunk 1: 0.30 ms (avg) / 30.23 ms (total) / 100 tasks
+  Chunk 2: 10.64 ms (avg) / 1064.06 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 20: SCH-G2L1B2M4-G588-399f (from schedule_run_4.log)
+Device: schedule, Application: run
+Total time: 1525.92 ms
+Average time by chunks:
+  Chunk 0: 4.51 ms (avg) / 450.63 ms (total) / 100 tasks
+  Chunk 1: 1.15 ms (avg) / 115.28 ms (total) / 100 tasks
+  Chunk 2: 2.77 ms (avg) / 277.27 ms (total) / 100 tasks
+  Chunk 3: 6.83 ms (avg) / 682.75 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 21: SCH-B9-G000-5a46 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 4763.25 ms
+Average time by chunks:
+  Chunk 0: 47.63 ms (avg) / 4763.25 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 22: SCH-B4L5-G031-5a7e (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 5017.67 ms
+Average time by chunks:
+  Chunk 0: 28.66 ms (avg) / 2865.76 ms (total) / 100 tasks
+  Chunk 1: 21.52 ms (avg) / 2151.90 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 23: SCH-G2M4L3-G061-1efc (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2347.69 ms
+Average time by chunks:
+  Chunk 0: 4.92 ms (avg) / 492.44 ms (total) / 100 tasks
+  Chunk 1: 10.65 ms (avg) / 1064.57 ms (total) / 100 tasks
+  Chunk 2: 7.91 ms (avg) / 790.68 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 24: SCH-G2B4L3-G163-c52d (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2596.47 ms
+Average time by chunks:
+  Chunk 0: 5.25 ms (avg) / 524.81 ms (total) / 100 tasks
+  Chunk 1: 12.48 ms (avg) / 1247.61 ms (total) / 100 tasks
+  Chunk 2: 8.24 ms (avg) / 824.04 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 25: SCH-G3M6-G186-2264 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2021.44 ms
+Average time by chunks:
+  Chunk 0: 10.14 ms (avg) / 1014.01 ms (total) / 100 tasks
+  Chunk 1: 10.07 ms (avg) / 1007.44 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 26: SCH-B3M6-G277-65ba (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2931.87 ms
+Average time by chunks:
+  Chunk 0: 19.57 ms (avg) / 1956.67 ms (total) / 100 tasks
+  Chunk 1: 9.75 ms (avg) / 975.20 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 27: SCH-B2G7-G278-90fb (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2956.97 ms
+Average time by chunks:
+  Chunk 0: 17.45 ms (avg) / 1744.90 ms (total) / 100 tasks
+  Chunk 1: 12.12 ms (avg) / 1212.07 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 28: SCH-B2M7-G298-cc27 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 3530.98 ms
+Average time by chunks:
+  Chunk 0: 18.06 ms (avg) / 1805.74 ms (total) / 100 tasks
+  Chunk 1: 17.25 ms (avg) / 1725.25 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 29: SCH-G2L1B6-G318-3e83 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1751.85 ms
+Average time by chunks:
+  Chunk 0: 5.08 ms (avg) / 507.93 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.16 ms (total) / 100 tasks
+  Chunk 2: 12.40 ms (avg) / 1239.76 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 30: SCH-G2B7-G327-6aad (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2853.65 ms
+Average time by chunks:
+  Chunk 0: 5.84 ms (avg) / 583.53 ms (total) / 100 tasks
+  Chunk 1: 22.70 ms (avg) / 2270.12 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 31: SCH-B2M4L3-G329-313f (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 4041.62 ms
+Average time by chunks:
+  Chunk 0: 21.43 ms (avg) / 2143.40 ms (total) / 100 tasks
+  Chunk 1: 11.85 ms (avg) / 1184.56 ms (total) / 100 tasks
+  Chunk 2: 7.14 ms (avg) / 713.66 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 32: SCH-B2G4L3-G329-1c7f (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 3630.37 ms
+Average time by chunks:
+  Chunk 0: 22.13 ms (avg) / 2213.28 ms (total) / 100 tasks
+  Chunk 1: 7.25 ms (avg) / 724.70 ms (total) / 100 tasks
+  Chunk 2: 6.92 ms (avg) / 692.39 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 33: SCH-G3B6-G406-970e (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2452.79 ms
+Average time by chunks:
+  Chunk 0: 10.67 ms (avg) / 1067.22 ms (total) / 100 tasks
+  Chunk 1: 13.86 ms (avg) / 1385.58 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 34: SCH-B3G6-G455-7c20 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 3326.54 ms
+Average time by chunks:
+  Chunk 0: 23.86 ms (avg) / 2385.98 ms (total) / 100 tasks
+  Chunk 1: 9.41 ms (avg) / 940.56 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 35: SCH-G2B2M5-G461-5ba4 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2413.53 ms
+Average time by chunks:
+  Chunk 0: 5.24 ms (avg) / 523.54 ms (total) / 100 tasks
+  Chunk 1: 10.32 ms (avg) / 1032.33 ms (total) / 100 tasks
+  Chunk 2: 8.58 ms (avg) / 857.66 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 36: SCH-G2L1M6-G537-ce21 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1574.73 ms
+Average time by chunks:
+  Chunk 0: 5.02 ms (avg) / 501.72 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 3.55 ms (total) / 100 tasks
+  Chunk 2: 10.69 ms (avg) / 1069.46 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 37: SCH-G2M2B5-G546-2f5e (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 2482.92 ms
+Average time by chunks:
+  Chunk 0: 5.26 ms (avg) / 526.49 ms (total) / 100 tasks
+  Chunk 1: 8.20 ms (avg) / 819.59 ms (total) / 100 tasks
+  Chunk 2: 11.37 ms (avg) / 1136.84 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 38: SCH-B2L1G6-G559-0f62 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 3072.07 ms
+Average time by chunks:
+  Chunk 0: 22.17 ms (avg) / 2216.98 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 3.16 ms (total) / 100 tasks
+  Chunk 2: 8.52 ms (avg) / 851.92 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 39: SCH-B2L1M6-G559-c678 (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 3340.70 ms
+Average time by chunks:
+  Chunk 0: 22.42 ms (avg) / 2242.27 ms (total) / 100 tasks
+  Chunk 1: 0.29 ms (avg) / 29.13 ms (total) / 100 tasks
+  Chunk 2: 10.69 ms (avg) / 1069.30 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 40: SCH-G2L1B2M4-G588-399f (from schedule_run_5.log)
+Device: schedule, Application: run
+Total time: 1502.89 ms
+Average time by chunks:
+  Chunk 0: 4.56 ms (avg) / 456.38 ms (total) / 100 tasks
+  Chunk 1: 0.93 ms (avg) / 92.56 ms (total) / 100 tasks
+  Chunk 2: 2.45 ms (avg) / 244.87 ms (total) / 100 tasks
+  Chunk 3: 7.09 ms (avg) / 709.08 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 41: SCH-B9-G000-5a46 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2882.30 ms
+Average time by chunks:
+  Chunk 0: 28.82 ms (avg) / 2882.30 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 42: SCH-B4L5-G031-5a7e (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 3830.97 ms
+Average time by chunks:
+  Chunk 0: 20.87 ms (avg) / 2086.75 ms (total) / 100 tasks
+  Chunk 1: 17.44 ms (avg) / 1744.22 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 43: SCH-G2M4L3-G061-1efc (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2063.31 ms
+Average time by chunks:
+  Chunk 0: 4.75 ms (avg) / 474.64 ms (total) / 100 tasks
+  Chunk 1: 9.72 ms (avg) / 971.81 ms (total) / 100 tasks
+  Chunk 2: 6.17 ms (avg) / 616.86 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 44: SCH-G2B4L3-G163-c52d (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2156.72 ms
+Average time by chunks:
+  Chunk 0: 5.23 ms (avg) / 523.24 ms (total) / 100 tasks
+  Chunk 1: 9.84 ms (avg) / 984.27 ms (total) / 100 tasks
+  Chunk 2: 6.49 ms (avg) / 649.21 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 45: SCH-G3M6-G186-2264 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1827.47 ms
+Average time by chunks:
+  Chunk 0: 9.87 ms (avg) / 987.32 ms (total) / 100 tasks
+  Chunk 1: 8.40 ms (avg) / 840.14 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 46: SCH-B3M6-G277-65ba (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2469.76 ms
+Average time by chunks:
+  Chunk 0: 15.94 ms (avg) / 1594.40 ms (total) / 100 tasks
+  Chunk 1: 8.75 ms (avg) / 875.36 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 47: SCH-B2G7-G278-90fb (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2436.01 ms
+Average time by chunks:
+  Chunk 0: 12.93 ms (avg) / 1292.86 ms (total) / 100 tasks
+  Chunk 1: 11.43 ms (avg) / 1143.15 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 48: SCH-B2M7-G298-cc27 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2954.88 ms
+Average time by chunks:
+  Chunk 0: 13.96 ms (avg) / 1395.73 ms (total) / 100 tasks
+  Chunk 1: 15.59 ms (avg) / 1559.15 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 49: SCH-G2L1B6-G318-3e83 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1392.68 ms
+Average time by chunks:
+  Chunk 0: 5.19 ms (avg) / 519.09 ms (total) / 100 tasks
+  Chunk 1: 0.06 ms (avg) / 6.46 ms (total) / 100 tasks
+  Chunk 2: 8.67 ms (avg) / 867.14 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 50: SCH-G2B7-G327-6aad (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2419.50 ms
+Average time by chunks:
+  Chunk 0: 5.67 ms (avg) / 566.53 ms (total) / 100 tasks
+  Chunk 1: 18.53 ms (avg) / 1852.97 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 51: SCH-B2M4L3-G329-313f (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 3391.92 ms
+Average time by chunks:
+  Chunk 0: 16.49 ms (avg) / 1649.45 ms (total) / 100 tasks
+  Chunk 1: 10.66 ms (avg) / 1066.20 ms (total) / 100 tasks
+  Chunk 2: 6.76 ms (avg) / 676.27 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 52: SCH-B2G4L3-G329-1c7f (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 3051.78 ms
+Average time by chunks:
+  Chunk 0: 16.61 ms (avg) / 1661.27 ms (total) / 100 tasks
+  Chunk 1: 7.42 ms (avg) / 741.80 ms (total) / 100 tasks
+  Chunk 2: 6.49 ms (avg) / 648.71 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 53: SCH-G3B6-G406-970e (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2289.39 ms
+Average time by chunks:
+  Chunk 0: 10.46 ms (avg) / 1045.98 ms (total) / 100 tasks
+  Chunk 1: 12.43 ms (avg) / 1243.41 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 54: SCH-B3G6-G455-7c20 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 3067.47 ms
+Average time by chunks:
+  Chunk 0: 21.17 ms (avg) / 2116.61 ms (total) / 100 tasks
+  Chunk 1: 9.51 ms (avg) / 950.86 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 55: SCH-G2B2M5-G461-5ba4 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2178.62 ms
+Average time by chunks:
+  Chunk 0: 5.15 ms (avg) / 515.22 ms (total) / 100 tasks
+  Chunk 1: 9.25 ms (avg) / 925.42 ms (total) / 100 tasks
+  Chunk 2: 7.38 ms (avg) / 737.98 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 56: SCH-G2L1M6-G537-ce21 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1367.63 ms
+Average time by chunks:
+  Chunk 0: 4.39 ms (avg) / 438.63 ms (total) / 100 tasks
+  Chunk 1: 0.08 ms (avg) / 8.04 ms (total) / 100 tasks
+  Chunk 2: 9.21 ms (avg) / 920.96 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 57: SCH-G2M2B5-G546-2f5e (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2179.83 ms
+Average time by chunks:
+  Chunk 0: 5.24 ms (avg) / 524.01 ms (total) / 100 tasks
+  Chunk 1: 7.32 ms (avg) / 732.45 ms (total) / 100 tasks
+  Chunk 2: 9.23 ms (avg) / 923.37 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 58: SCH-B2L1G6-G559-0f62 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2680.20 ms
+Average time by chunks:
+  Chunk 0: 18.01 ms (avg) / 1800.58 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 2.60 ms (total) / 100 tasks
+  Chunk 2: 8.77 ms (avg) / 877.02 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 59: SCH-B2L1M6-G559-c678 (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 2808.67 ms
+Average time by chunks:
+  Chunk 0: 18.18 ms (avg) / 1818.49 ms (total) / 100 tasks
+  Chunk 1: 0.05 ms (avg) / 4.74 ms (total) / 100 tasks
+  Chunk 2: 9.85 ms (avg) / 985.44 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 60: SCH-G2L1B2M4-G588-399f (from schedule_run_2.log)
+Device: schedule, Application: run
+Total time: 1388.15 ms
+Average time by chunks:
+  Chunk 0: 4.25 ms (avg) / 424.72 ms (total) / 100 tasks
+  Chunk 1: 0.83 ms (avg) / 82.52 ms (total) / 100 tasks
+  Chunk 2: 2.20 ms (avg) / 220.14 ms (total) / 100 tasks
+  Chunk 3: 6.61 ms (avg) / 660.76 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 61: SCH-B9-G000-5a46 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 4286.76 ms
+Average time by chunks:
+  Chunk 0: 42.87 ms (avg) / 4286.76 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 62: SCH-B4L5-G031-5a7e (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 4673.86 ms
+Average time by chunks:
+  Chunk 0: 27.78 ms (avg) / 2778.34 ms (total) / 100 tasks
+  Chunk 1: 18.96 ms (avg) / 1895.51 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 63: SCH-G2M4L3-G061-1efc (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2097.80 ms
+Average time by chunks:
+  Chunk 0: 4.45 ms (avg) / 445.33 ms (total) / 100 tasks
+  Chunk 1: 10.01 ms (avg) / 1000.67 ms (total) / 100 tasks
+  Chunk 2: 6.52 ms (avg) / 651.79 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 64: SCH-G2B4L3-G163-c52d (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2326.10 ms
+Average time by chunks:
+  Chunk 0: 5.10 ms (avg) / 509.83 ms (total) / 100 tasks
+  Chunk 1: 11.60 ms (avg) / 1160.09 ms (total) / 100 tasks
+  Chunk 2: 6.56 ms (avg) / 656.18 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 65: SCH-G3M6-G186-2264 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1914.14 ms
+Average time by chunks:
+  Chunk 0: 10.14 ms (avg) / 1014.43 ms (total) / 100 tasks
+  Chunk 1: 9.00 ms (avg) / 899.71 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 66: SCH-B3M6-G277-65ba (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2778.32 ms
+Average time by chunks:
+  Chunk 0: 18.66 ms (avg) / 1865.95 ms (total) / 100 tasks
+  Chunk 1: 9.12 ms (avg) / 912.37 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 67: SCH-B2G7-G278-90fb (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2717.95 ms
+Average time by chunks:
+  Chunk 0: 15.47 ms (avg) / 1546.60 ms (total) / 100 tasks
+  Chunk 1: 11.71 ms (avg) / 1171.34 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 68: SCH-B2M7-G298-cc27 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 3341.30 ms
+Average time by chunks:
+  Chunk 0: 16.24 ms (avg) / 1624.01 ms (total) / 100 tasks
+  Chunk 1: 17.17 ms (avg) / 1717.28 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 69: SCH-G2L1B6-G318-3e83 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1562.29 ms
+Average time by chunks:
+  Chunk 0: 5.34 ms (avg) / 533.60 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 3.90 ms (total) / 100 tasks
+  Chunk 2: 10.25 ms (avg) / 1024.80 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 70: SCH-G2B7-G327-6aad (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2597.99 ms
+Average time by chunks:
+  Chunk 0: 5.70 ms (avg) / 569.85 ms (total) / 100 tasks
+  Chunk 1: 20.28 ms (avg) / 2028.14 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 71: SCH-B2M4L3-G329-313f (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 3582.88 ms
+Average time by chunks:
+  Chunk 0: 17.99 ms (avg) / 1798.65 ms (total) / 100 tasks
+  Chunk 1: 11.31 ms (avg) / 1131.00 ms (total) / 100 tasks
+  Chunk 2: 6.53 ms (avg) / 653.23 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 72: SCH-B2G4L3-G329-1c7f (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 3168.85 ms
+Average time by chunks:
+  Chunk 0: 18.20 ms (avg) / 1819.87 ms (total) / 100 tasks
+  Chunk 1: 7.38 ms (avg) / 737.64 ms (total) / 100 tasks
+  Chunk 2: 6.11 ms (avg) / 611.34 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 73: SCH-G3B6-G406-970e (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2440.58 ms
+Average time by chunks:
+  Chunk 0: 10.60 ms (avg) / 1059.97 ms (total) / 100 tasks
+  Chunk 1: 13.81 ms (avg) / 1380.61 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 74: SCH-B3G6-G455-7c20 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 3312.90 ms
+Average time by chunks:
+  Chunk 0: 23.83 ms (avg) / 2383.22 ms (total) / 100 tasks
+  Chunk 1: 9.30 ms (avg) / 929.69 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 75: SCH-G2B2M5-G461-5ba4 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2337.75 ms
+Average time by chunks:
+  Chunk 0: 5.16 ms (avg) / 516.30 ms (total) / 100 tasks
+  Chunk 1: 10.29 ms (avg) / 1028.79 ms (total) / 100 tasks
+  Chunk 2: 7.93 ms (avg) / 792.65 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 76: SCH-G2L1M6-G537-ce21 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1488.61 ms
+Average time by chunks:
+  Chunk 0: 4.89 ms (avg) / 489.29 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 3.49 ms (total) / 100 tasks
+  Chunk 2: 9.96 ms (avg) / 995.84 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 77: SCH-G2M2B5-G546-2f5e (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2296.55 ms
+Average time by chunks:
+  Chunk 0: 5.21 ms (avg) / 520.75 ms (total) / 100 tasks
+  Chunk 1: 7.62 ms (avg) / 761.88 ms (total) / 100 tasks
+  Chunk 2: 10.14 ms (avg) / 1013.91 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 78: SCH-B2L1G6-G559-0f62 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 2871.57 ms
+Average time by chunks:
+  Chunk 0: 20.02 ms (avg) / 2002.31 ms (total) / 100 tasks
+  Chunk 1: 0.02 ms (avg) / 2.18 ms (total) / 100 tasks
+  Chunk 2: 8.67 ms (avg) / 867.08 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 79: SCH-B2L1M6-G559-c678 (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 3032.65 ms
+Average time by chunks:
+  Chunk 0: 20.38 ms (avg) / 2037.89 ms (total) / 100 tasks
+  Chunk 1: 0.19 ms (avg) / 19.36 ms (total) / 100 tasks
+  Chunk 2: 9.75 ms (avg) / 975.40 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 80: SCH-G2L1B2M4-G588-399f (from schedule_run_3.log)
+Device: schedule, Application: run
+Total time: 1455.16 ms
+Average time by chunks:
+  Chunk 0: 4.46 ms (avg) / 446.17 ms (total) / 100 tasks
+  Chunk 1: 0.48 ms (avg) / 47.57 ms (total) / 100 tasks
+  Chunk 2: 2.55 ms (avg) / 254.81 ms (total) / 100 tasks
+  Chunk 3: 7.07 ms (avg) / 706.61 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 81: SCH-B9-G000-5a46 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2457.86 ms
+Average time by chunks:
+  Chunk 0: 24.58 ms (avg) / 2457.86 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 82: SCH-B4L5-G031-5a7e (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 3600.12 ms
+Average time by chunks:
+  Chunk 0: 18.61 ms (avg) / 1860.79 ms (total) / 100 tasks
+  Chunk 1: 17.39 ms (avg) / 1739.33 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 83: SCH-G2M4L3-G061-1efc (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2056.07 ms
+Average time by chunks:
+  Chunk 0: 4.76 ms (avg) / 476.08 ms (total) / 100 tasks
+  Chunk 1: 9.66 ms (avg) / 965.93 ms (total) / 100 tasks
+  Chunk 2: 6.14 ms (avg) / 614.06 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 84: SCH-G2B4L3-G163-c52d (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2001.32 ms
+Average time by chunks:
+  Chunk 0: 5.38 ms (avg) / 538.03 ms (total) / 100 tasks
+  Chunk 1: 8.47 ms (avg) / 847.30 ms (total) / 100 tasks
+  Chunk 2: 6.16 ms (avg) / 615.98 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 85: SCH-G3M6-G186-2264 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1737.79 ms
+Average time by chunks:
+  Chunk 0: 8.86 ms (avg) / 885.63 ms (total) / 100 tasks
+  Chunk 1: 8.52 ms (avg) / 852.16 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 86: SCH-B3M6-G277-65ba (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2268.84 ms
+Average time by chunks:
+  Chunk 0: 13.90 ms (avg) / 1389.57 ms (total) / 100 tasks
+  Chunk 1: 8.79 ms (avg) / 879.27 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 87: SCH-B2G7-G278-90fb (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2017.36 ms
+Average time by chunks:
+  Chunk 0: 10.88 ms (avg) / 1088.11 ms (total) / 100 tasks
+  Chunk 1: 9.29 ms (avg) / 929.25 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 88: SCH-B2M7-G298-cc27 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2649.37 ms
+Average time by chunks:
+  Chunk 0: 11.76 ms (avg) / 1175.89 ms (total) / 100 tasks
+  Chunk 1: 14.73 ms (avg) / 1473.48 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 89: SCH-G2L1B6-G318-3e83 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1352.49 ms
+Average time by chunks:
+  Chunk 0: 4.95 ms (avg) / 495.45 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.35 ms (total) / 100 tasks
+  Chunk 2: 8.53 ms (avg) / 852.68 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 90: SCH-G2B7-G327-6aad (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2033.73 ms
+Average time by chunks:
+  Chunk 0: 5.52 ms (avg) / 552.18 ms (total) / 100 tasks
+  Chunk 1: 14.82 ms (avg) / 1481.55 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 91: SCH-B2M4L3-G329-313f (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 3240.58 ms
+Average time by chunks:
+  Chunk 0: 14.63 ms (avg) / 1462.81 ms (total) / 100 tasks
+  Chunk 1: 10.32 ms (avg) / 1032.18 ms (total) / 100 tasks
+  Chunk 2: 7.46 ms (avg) / 745.59 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 92: SCH-B2G4L3-G329-1c7f (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2690.89 ms
+Average time by chunks:
+  Chunk 0: 13.50 ms (avg) / 1350.30 ms (total) / 100 tasks
+  Chunk 1: 7.29 ms (avg) / 729.21 ms (total) / 100 tasks
+  Chunk 2: 6.11 ms (avg) / 611.37 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 93: SCH-G3B6-G406-970e (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1792.85 ms
+Average time by chunks:
+  Chunk 0: 9.86 ms (avg) / 986.43 ms (total) / 100 tasks
+  Chunk 1: 8.06 ms (avg) / 806.42 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 94: SCH-B3G6-G455-7c20 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2442.65 ms
+Average time by chunks:
+  Chunk 0: 15.37 ms (avg) / 1537.03 ms (total) / 100 tasks
+  Chunk 1: 9.06 ms (avg) / 905.62 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 95: SCH-G2B2M5-G461-5ba4 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1893.32 ms
+Average time by chunks:
+  Chunk 0: 5.06 ms (avg) / 506.48 ms (total) / 100 tasks
+  Chunk 1: 6.94 ms (avg) / 693.66 ms (total) / 100 tasks
+  Chunk 2: 6.93 ms (avg) / 693.19 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 96: SCH-G2L1M6-G537-ce21 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1344.65 ms
+Average time by chunks:
+  Chunk 0: 4.83 ms (avg) / 482.76 ms (total) / 100 tasks
+  Chunk 1: 0.04 ms (avg) / 4.29 ms (total) / 100 tasks
+  Chunk 2: 8.58 ms (avg) / 857.59 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 97: SCH-G2M2B5-G546-2f5e (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1816.00 ms
+Average time by chunks:
+  Chunk 0: 4.98 ms (avg) / 498.36 ms (total) / 100 tasks
+  Chunk 1: 6.77 ms (avg) / 677.12 ms (total) / 100 tasks
+  Chunk 2: 6.41 ms (avg) / 640.52 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 98: SCH-B2L1G6-G559-0f62 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2168.64 ms
+Average time by chunks:
+  Chunk 0: 13.05 ms (avg) / 1304.57 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 2.59 ms (total) / 100 tasks
+  Chunk 2: 8.61 ms (avg) / 861.48 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 99: SCH-B2L1M6-G559-c678 (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 2375.41 ms
+Average time by chunks:
+  Chunk 0: 15.03 ms (avg) / 1503.08 ms (total) / 100 tasks
+  Chunk 1: 0.03 ms (avg) / 2.59 ms (total) / 100 tasks
+  Chunk 2: 8.70 ms (avg) / 869.75 ms (total) / 100 tasks
+--------------------------------------------------
+
+Schedule 100: SCH-G2L1B2M4-G588-399f (from schedule_run_1.log)
+Device: schedule, Application: run
+Total time: 1241.55 ms
+Average time by chunks:
+  Chunk 0: 3.73 ms (avg) / 372.96 ms (total) / 100 tasks
+  Chunk 1: 1.02 ms (avg) / 101.58 ms (total) / 100 tasks
+  Chunk 2: 1.63 ms (avg) / 162.89 ms (total) / 100 tasks
+  Chunk 3: 6.04 ms (avg) / 604.12 ms (total) / 100 tasks
+--------------------------------------------------
+
+===== AGGREGATED STATISTICS BY SCHEDULE =====
+
+Schedule 1: SCH-B2G4L3-G329-1c7f
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 18.61 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 7.32 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 6.52 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 2: SCH-B2G7-G278-90fb
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 14.60 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 11.29 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 3: SCH-B2L1G6-G559-0f62
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 18.63 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.03 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 8.64 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 4: SCH-B2L1M6-G559-c678
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 19.71 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.17 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 9.93 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 5: SCH-B2M4L3-G329-313f
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 18.44 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 11.10 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 6.95 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 6: SCH-B2M7-G298-cc27
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 15.29 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 16.18 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 7: SCH-B3G6-G455-7c20
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 21.66 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 9.31 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 8: SCH-B3M6-G277-65ba
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 17.49 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 9.18 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 9: SCH-B4L5-G031-5a7e
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 24.77 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 19.00 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 10: SCH-B9-G000-5a46
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 37.27 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 11: SCH-G2B2M5-G461-5ba4
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.18 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 9.42 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 7.91 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 12: SCH-G2B4L3-G163-c52d
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.25 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 10.92 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 7.07 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 13: SCH-G2B7-G327-6aad
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.68 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 19.79 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 14: SCH-G2L1B2M4-G588-399f
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 4.30 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.88 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 2.32 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 3: 6.73 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 15: SCH-G2L1B6-G318-3e83
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.18 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.05 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 10.45 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 16: SCH-G2L1M6-G537-ce21
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 4.82 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 0.05 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 9.68 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 17: SCH-G2M2B5-G546-2f5e
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 5.16 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 7.48 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 9.49 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 18: SCH-G2M4L3-G061-1efc
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 4.70 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 10.06 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 2: 6.76 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 19: SCH-G3B6-G406-970e
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 10.45 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 12.39 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+Schedule 20: SCH-G3M6-G186-2264
+Samples: 5 (from 5 log files)
+Devices: schedule
+Applications: run
+
+Average time by chunks (across all log files):
+  Chunk 0: 9.85 ms (avg) / 100.0 tasks (avg) / 5 samples
+  Chunk 1: 9.05 ms (avg) / 100.0 tasks (avg) / 5 samples
+--------------------------------------------------
+
+===== WIDEST CHUNK SUMMARY =====
+Time window: 0.00-1.00
+Schedule UID                    : Chunk ID  Duration (ms)
+------------------------------------------------------------
+SCH-B2G4L3-G329-1c7f           : Chunk  0   18.61 ms
+SCH-B2G7-G278-90fb             : Chunk  0   14.60 ms
+SCH-B2L1G6-G559-0f62           : Chunk  0   18.63 ms
+SCH-B2L1M6-G559-c678           : Chunk  0   19.71 ms
+SCH-B2M4L3-G329-313f           : Chunk  0   18.44 ms
+SCH-B2M7-G298-cc27             : Chunk  1   16.18 ms
+SCH-B3G6-G455-7c20             : Chunk  0   21.66 ms
+SCH-B3M6-G277-65ba             : Chunk  0   17.49 ms
+SCH-B4L5-G031-5a7e             : Chunk  0   24.77 ms
+SCH-B9-G000-5a46               : Chunk  0   37.27 ms
+SCH-G2B2M5-G461-5ba4           : Chunk  1   9.42 ms
+SCH-G2B4L3-G163-c52d           : Chunk  1   10.92 ms
+SCH-G2B7-G327-6aad             : Chunk  1   19.79 ms
+SCH-G2L1B2M4-G588-399f         : Chunk  3   6.73 ms
+SCH-G2L1B6-G318-3e83           : Chunk  2   10.45 ms
+SCH-G2L1M6-G537-ce21           : Chunk  2   9.68 ms
+SCH-G2M2B5-G546-2f5e           : Chunk  2   9.49 ms
+SCH-G2M4L3-G061-1efc           : Chunk  1   10.06 ms
+SCH-G3B6-G406-970e             : Chunk  1   12.39 ms
+SCH-G3M6-G186-2264             : Chunk  0   9.85 ms
+
+===== MEASURED VS PREDICTED TIMES =====
+Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  
+--------------------------------------------------------------------------------
+SCH-G2B4L3-G163-c52d           :        10.92           13.35          -18.20%
+SCH-G2B2M5-G461-5ba4           :         9.42           13.35          -29.43%
+SCH-G2M2B5-G546-2f5e           :         9.49           13.35          -28.93%
+SCH-G2L1B2M4-G588-399f         :         6.73           13.35          -49.60%
+SCH-G2M4L3-G061-1efc           :        10.06           13.80          -27.14%
+SCH-G2L1B6-G318-3e83           :        10.45           14.07          -25.74%
+SCH-G2L1M6-G537-ce21           :         9.68           16.27          -40.49%
+SCH-B2M4L3-G329-313f           :        18.44           16.49          +11.82%
+SCH-B2G4L3-G329-1c7f           :        18.61           16.49          +12.88%
+SCH-B2L1G6-G559-0f62           :        18.63           16.49          +13.01%
+SCH-B2L1M6-G559-c678           :        19.71           16.49          +19.56%
+SCH-G2B7-G327-6aad             :        19.79           16.62          +19.08%
+SCH-G3M6-G186-2264             :         9.85           18.13          -45.65%
+SCH-G3B6-G406-970e             :        12.39           18.13          -31.63%
+SCH-B3M6-G277-65ba             :        17.49           19.04           -8.13%
+SCH-B3G6-G455-7c20             :        21.66           19.04          +13.77%
+SCH-B2G7-G278-90fb             :        14.60           19.27          -24.23%
+SCH-B2M7-G298-cc27             :        16.18           19.46          -16.88%
+SCH-B4L5-G031-5a7e             :        24.77           25.53           -3.01%
+SCH-B9-G000-5a46               :        37.27           33.11          +12.58%
+
+Comparison Statistics:
+Total comparisons: 20
+Within 5% margin: 1 (5.00%)
+Within 10% margin: 2 (10.00%)
+Within 20% margin: 11 (55.00%)
+Root Mean Square Error (RMSE): 4.1540 ms
+Mean Absolute Error (MAE): 3.7236 ms
+
+===== STATISTICAL ANALYSIS =====
+Total comparisons: 20
+
+Correlation Statistics:
+Pearson correlation coefficient: 0.8671
+Coefficient of determination (R²): 0.7518
+
+Error Metrics:
+Mean Squared Error (MSE): 17.2558 ms²
+Root Mean Squared Error (RMSE): 4.1540 ms
+Mean Absolute Error (MAE): 3.7236 ms
+
+Error Distribution:
+Mean percentage error: -12.32%
+Median percentage error: -17.54%
+Standard deviation of percentage error: 22.47%
+Min percentage error: -49.60%
+Max percentage error: 19.56%
+
+Prediction Accuracy:
+Within 5% margin: 1 (5.00% of valid comparisons)
+Within 10% margin: 2 (10.00% of valid comparisons)
+Within 20% margin: 11 (55.00% of valid comparisons)
+
+Prediction Bias:
+Under-predictions (measured > predicted): 7 (35.00%)
+Over-predictions (measured < predicted): 13 (65.00%)
+Exact matches: 0 (0.00%)
+Visualization saved to tmp2/comparison_chart.png
+Line visualization saved to tmp2/line_comparison_chart.png
+Line visualization saved to tmp2/line_comparison_by_measured.png
+Correlation plot saved to tmp2/correlation_plot.png
+Log-scale correlation plot saved to tmp2/correlation_plot_log_scale.png
+Correlation plot (excl. outliers) saved to tmp2/correlation_plot_no_outliers.png
+Zoomed correlation plot saved to tmp2/correlation_plot_zoomed.png
+
+Processed 5 log files with a total of 100 schedule instances
+Time window used for analysis: 0.00-1.00
+Schedule limit: analyzed first 20 of 30 unique schedule UIDs
+Unique schedule UIDs analyzed: 20
