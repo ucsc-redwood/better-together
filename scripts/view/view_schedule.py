@@ -1,6 +1,8 @@
 import json
 import argparse
 
+import pandas as pd
+from pandasgui import show
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="View a schedule JSON file")
@@ -15,6 +17,9 @@ def main():
     # Load the JSON file
     with open(json_file, "r") as f:
         data = json.load(f)
+
+    df = pd.json_normalize(data)
+    show(df)
 
     # Print the required fields in a clean format
     for item in data:
@@ -35,3 +40,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
