@@ -5,8 +5,10 @@ set -euo pipefail
 devices=(3A021JEHN02756 9b034f1b)
 apps=(cifar-sparse cifar-dense tree)
 backends=(vk)
-table_type=btpm
-minimize_mode=gapness
+# table_type=btpm
+# minimize_mode=gapness
+table_type=isolated
+minimize_mode=tmax
 # ────────────────────────────────────────────────────────────────────────────────
 
 for device in "${devices[@]}"; do

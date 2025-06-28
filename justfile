@@ -317,11 +317,11 @@ run-all-schedule:
     just run-schedule 9b034f1b tree vk btpm gapness
 
 run-all-schedule-isolated:
-    just run-schedule 3A021JEHN02756 cifar-sparse vk isolated tmax
-    just run-schedule 3A021JEHN02756 cifar-dense vk isolated tmax
-    just run-schedule 3A021JEHN02756 tree vk isolated tmax
+    # just run-schedule 3A021JEHN02756 cifar-sparse vk isolated tmax
+    # just run-schedule 3A021JEHN02756 cifar-dense vk isolated tmax
+    # just run-schedule 3A021JEHN02756 tree vk isolated tmax
     just run-schedule 9b034f1b cifar-sparse vk isolated tmax
-    just run-schedule 9b034f1b cifar-dense vk isolated tmax
+    # just run-schedule 9b034f1b cifar-dense vk isolated tmax
     just run-schedule 9b034f1b tree vk isolated tmax
 
 
