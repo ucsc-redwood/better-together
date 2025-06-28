@@ -195,8 +195,8 @@ def main():
         df_normal["run"] = run_num
         df_fully["device"] = device
         df_fully["run"] = run_num
-        normal_csv = os.path.join(log_path, "normal.csv")
-        fully_csv = os.path.join(log_path, "fully.csv")
+        normal_csv = os.path.join(log_path, "isolated.csv")
+        fully_csv = os.path.join(log_path, "btpm.csv")
         append_or_create_csv(df_normal, normal_csv)
         append_or_create_csv(df_fully, fully_csv)
         print(
