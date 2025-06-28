@@ -299,7 +299,7 @@ serve:
 # (Step 3) Run schedules
 run-schedule device app backend table_type minimize_mode:
     uv run scripts/collect/03_run_schedule.py \
-        --log_folder data/exe_logs \
+        --log_folder data/exe_logs_{{table_type}}_{{minimize_mode}} \
         --repeat 5 \
         --app {{app}} \
         --backend {{backend}} \

@@ -111,7 +111,7 @@ def main():
     repeat = args.repeat
     n_schedules_to_run = args.n_schedules_to_run
     schedules_server = args.schedules_server
-    verbose = args.verbose
+    # verbose = args.verbose
 
     # Create the directory path with new structure
     log_path = os.path.join(log_folder, device, app, backend)
