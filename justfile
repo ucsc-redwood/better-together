@@ -83,7 +83,7 @@ run-baselines-jetsonlowpower:
     # xmake r bm-baseline-tree-vk --device jetsonlowpower
 
 # (Step 1) Collect all the data
-collect: device app backend:
+collect device app backend:
     uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app {{app}} --backend {{backend}} --device {{device}}
 
 collect-android:
