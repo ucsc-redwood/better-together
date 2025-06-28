@@ -418,3 +418,23 @@ tmp2:
         data/exe_logs_btpm_gapness/9b034f1b/cifar-sparse/vk/ \
         --schedule-file data/schedules/9b034f1b/cifar-sparse/vk/schedules_btpm_gapness.json \
         --max-schedules 30
+
+
+compare-schedules n:
+    uv run scripts/collect/parse_schedules.py -v \
+        data/exe_logs_btpm_gapness/3A021JEHN02756/cifar-sparse/vk/ \
+        --schedule-file data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_btpm_gapness.json \
+        --output tmp1 \
+        --max-schedules {{n}}
+
+    uv run scripts/collect/parse_schedules.py -v \
+        data/exe_logs_isolated_tmax/3A021JEHN02756/cifar-sparse/vk/ \
+        --schedule-file data/schedules/3A021JEHN02756/cifar-sparse/vk/schedules_isolated_tmax.json \
+        --output tmp2 \
+        --max-schedules {{n}}
+
+
+
+
+
+
