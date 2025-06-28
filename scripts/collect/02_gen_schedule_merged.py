@@ -24,6 +24,18 @@ def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Solve scheduling optimization problem using data from a CSV file."
     )
+
+    # Input folder
+    # The CSV files are in the following structure:
+    #
+    # data/bm_logs/
+    # ├── 3A021JEHN02756
+    # │   ├── cifar-dense
+    # │   │   └── vk
+    # │   │       ├── ...
+    # │   │       ├── btpm.csv
+    # │   │       └── isolated.csv
+    #
     parser.add_argument(
         "--csv_root_folder",
         type=str,
@@ -31,12 +43,14 @@ def parse_arguments():
         required=True,
     )
 
-    # which device, app, backend to use
+    # Basic target information
+    #
     parser.add_argument("--device", required=True)
     parser.add_argument("--app", required=True)
     parser.add_argument("--backend", required=True, choices=["vk", "cu"])
 
     # which table and optimization mode to use
+    #
     parser.add_argument(
         "--table_type",
         type=str,
@@ -59,6 +73,19 @@ def parse_arguments():
         help="Number of solutions to find",
         required=True,
     )
+
+    # Output folder
+    # The output JSON files are in the following structure:
+    #
+    # data/schedules/
+    # ├── 3A021JEHN02756
+    # │   ├── cifar-dense
+    # │   │   └── vk
+    # │   │       ├── schedules_btpm_gapness.json
+    # │   │       ├── schedules_btpm_tmax.json
+    # │   │       ├── schedules_isolated_gapness.json
+    # │   │       └── schedules_isolated_tmax.json
+    #
     parser.add_argument(
         "-o",
         "--output_folder",

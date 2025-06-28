@@ -5,22 +5,26 @@ import subprocess
 import sys
 
 
-def main():
+def parse_arguments():
     parser = argparse.ArgumentParser(
         description="Run xmake benchmarks repeatedly and capture logs."
     )
+    # Output folder
     parser.add_argument(
         "--log_folder",
         type=str,
         required=True,
         help="Root folder path for logs and CSV outputs",
     )
+
     parser.add_argument(
         "--repeat",
         type=int,
         default=1,
         help="Number of times to run the benchmark command",
     )
+
+    # Basic target information
     parser.add_argument(
         "--app",
         type=str,
@@ -41,63 +45,95 @@ def main():
         required=True,
         help="Device identifier to deploy/run or aggregate",
     )
+
     parser.add_argument(
         "--n-schedules-to-run",
         type=int,
         default=20,
         help="Number of schedules to run",
     )
+
+    # The url has the following structure:
+    #
+    # http://192.168.1.12:8080/
+    # ├── 3A021JEHN02756
+    # │   ├── cifar-dense
+    # │   │   └── vk
+    # │   │       ├── schedules_btpm_gapness.json
+    # │   │       ├── schedules_btpm_tmax.json
+    # │   │       ├── schedules_isolated_gapness.json
+    # │   │       └── schedules_isolated_tmax.json
+    #
     parser.add_argument(
         "--schedules-server",
         type=str,
         default="http://192.168.1.12:8080",
         help="URL of the server hosting schedule JSON files",
     )
+
+    # which table and optimization mode to use
+    #
     parser.add_argument(
-        "--use-normal-table",
-        type=bool,
-        default=False,
-        help="Use normal table for schedule",
+        "--table_type",
+        type=str,
+        choices=["isolated", "btpm"],
+        required=True,
+        help="Mode to select CSV file: 'isolated' for isolated.csv or 'btpm' for btpm.csv",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--minimize_mode",
+        type=str,
+        choices=["gapness", "tmax"],
+        required=True,
+        help="Mode to minimize: 'gapness' for minimizing the gap between max and min chunk times, 'tmax' for minimizing the max chunk time",
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_arguments()
+
+    log_folder = args.log_folder
+    backend = args.backend
+    device = args.device
+    app = args.app
+    table_type = args.table_type
+    minimize_mode = args.minimize_mode
+    repeat = args.repeat
+    n_schedules_to_run = args.n_schedules_to_run
+    schedules_server = args.schedules_server
 
     # Create the directory path with new structure
-    log_path = os.path.join(args.log_folder, args.device, args.app, args.backend)
+    log_path = os.path.join(log_folder, device, app, backend)
     os.makedirs(log_path, exist_ok=True)
 
-    # Base schedule URL
-    if args.use_normal_table:
-        schedule_url = (
-            f"{args.schedules_server}/"
-            f"{args.device}/{args.app}/{args.backend}/schedules_normal.json"
-        )
-    else:
-        schedule_url = (
-            f"{args.schedules_server}/"
-            f"{args.device}/{args.app}/{args.backend}/schedules.json"
-        )
+    schedule_url = (
+        f"{schedules_server}/"
+        f"{device}/{app}/{backend}/schedules_{table_type}_{minimize_mode}.json"
+    )
 
     # Command base
     cmd_base = [
         "xmake",
         "r",
-        f"bm-gen-logs-{args.app}-{args.backend}",
+        f"bm-gen-logs-{app}-{backend}",
         "--device",
-        args.device,
+        device,
         "--schedule-url",
         schedule_url,
         "--n-schedules-to-run",
-        str(args.n_schedules_to_run),
+        str(n_schedules_to_run),
     ]
 
-    print(f"====== Running {args.repeat} times with command: {cmd_base} ======")
+    print(f"====== Running {repeat} times with command: {cmd_base} ======")
 
-    for i in range(args.repeat):
+    for i in range(repeat):
         # Create individual log filename for each run
         log_filename = f"schedule_run_{i+1}.log"
         log_path_file = os.path.join(log_path, log_filename)
 
-        print(f"Starting run {i+1}/{args.repeat}...")
+        print(f"Starting run {i+1}/{repeat}...")
 
         with open(log_path_file, "w") as log_file:
             # Launch the subprocess
@@ -130,12 +166,5 @@ def main():
     print(f"You can now run parse_schedules_by_widest.py on the folder: {log_path}")
 
 
-# Example usage:
-# python3 scripts/collect/03_run_schedule.py \
-#   --log_folder ./data/exe_logs \
-#   --repeat 5 \
-#   --app cifar-sparse \
-#   --backend vk \
-#   --device 3A021JEHN02756
 if __name__ == "__main__":
     main()

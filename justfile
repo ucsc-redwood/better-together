@@ -294,46 +294,47 @@ gen-schedules-all:
 #     uv run scripts/collect/02_gen_schedule_merged.py --csv_folder data/bm_logs/ --device 9b034f1b --app tree --backend vk --num_solutions 30 --output_folder data/schedules-isolated/ --mode normal
 
 serve:
-    uv run -m http.server --bind 0.0.0.0 --directory data/schedules-isolated/ 8080
-    # uv run -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
+    uv run -m http.server --bind 0.0.0.0 --directory data/schedules/ 8080
 
 # (Step 3) Run schedules
-run-schedule device app backend:
+run-schedule device app backend table_type minimize_mode:
     uv run scripts/collect/03_run_schedule.py \
         --log_folder data/exe_logs \
         --repeat 5 \
         --app {{app}} \
         --backend {{backend}} \
         --device {{device}} \
+        --table_type {{table_type}} \
+        --minimize_mode {{minimize_mode}} \
         --n-schedules-to-run 30 
 
 run-all-schedule:
-    just run-schedule 3A021JEHN02756 cifar-sparse vk
-    just run-schedule 3A021JEHN02756 cifar-dense vk
-    just run-schedule 3A021JEHN02756 tree vk
-    just run-schedule 9b034f1b cifar-sparse vk
-    just run-schedule 9b034f1b cifar-dense vk
-    just run-schedule 9b034f1b tree vk
+    just run-schedule 3A021JEHN02756 cifar-sparse vk btpm gapness
+    just run-schedule 3A021JEHN02756 cifar-dense vk btpm gapness
+    just run-schedule 3A021JEHN02756 tree vk btpm gapness
+    just run-schedule 9b034f1b cifar-sparse vk btpm gapness
+    just run-schedule 9b034f1b cifar-dense vk btpm gapness
+    just run-schedule 9b034f1b tree vk btpm gapness
 
 run-all-schedule-isolated:
-    just run-schedule-isolated 3A021JEHN02756 cifar-sparse vk
-    just run-schedule-isolated 3A021JEHN02756 cifar-dense vk
-    just run-schedule-isolated 3A021JEHN02756 tree vk
-    just run-schedule-isolated 9b034f1b cifar-sparse vk
-    just run-schedule-isolated 9b034f1b cifar-dense vk
-    just run-schedule-isolated 9b034f1b tree vk
+    just run-schedule 3A021JEHN02756 cifar-sparse vk isolated tmax
+    just run-schedule 3A021JEHN02756 cifar-dense vk isolated tmax
+    just run-schedule 3A021JEHN02756 tree vk isolated tmax
+    just run-schedule 9b034f1b cifar-sparse vk isolated tmax
+    just run-schedule 9b034f1b cifar-dense vk isolated tmax
+    just run-schedule 9b034f1b tree vk isolated tmax
 
 
 
-run-schedule-isolated device app backend:
-    uv run scripts/collect/03_run_schedule.py \
-        --log_folder data/exe_logs_isolated \
-        --repeat 5 \
-        --app {{app}} \
-        --backend {{backend}} \
-        --device {{device}} \
-        --use-normal-table True \
-        --n-schedules-to-run 30
+# run-schedule-isolated device app backend:
+#     uv run scripts/collect/03_run_schedule.py \
+#         --log_folder data/exe_logs_isolated \
+#         --repeat 5 \
+#         --app {{app}} \
+#         --backend {{backend}} \
+#         --device {{device}} \
+#         --use-normal-table True \
+#         --n-schedules-to-run 30
 
 # Compare the execution time (in exe_logs) with the model's prediction (in schedules.json)
 # compare-schedules device app backend:
