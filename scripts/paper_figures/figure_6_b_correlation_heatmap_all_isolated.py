@@ -17,8 +17,8 @@ pearson_data = np.array(
     [
         [0.9497, 0.8887, 0.8220],  # OnePlus
         [0.9455, 0.9678, 0.9816],  # Google
-        [0, 0, 0],  # Jetson
-        [0, 0, 0],  # Jetson (lowpower)
+        [0.9472, 0.7325, 0.6839],  # Jetson
+        [0.9481, 0.7005, 0.6532],  # Jetson LP
     ]
 )
 
