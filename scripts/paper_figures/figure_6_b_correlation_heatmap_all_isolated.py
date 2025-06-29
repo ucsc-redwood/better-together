@@ -15,7 +15,7 @@ apps = ["CIFAR-D", "CIFAR-S", "Tree"]
 
 pearson_data = np.array(
     [
-        [0.9788, 0.9780, 0.9932],  # OnePlus
+        [0.9497, 0.8887, 0.8220],  # OnePlus
         [0.9455, 0.9678, 0.9816],  # Google
         [0, 0, 0],  # Jetson
         [0, 0, 0],  # Jetson (lowpower)
