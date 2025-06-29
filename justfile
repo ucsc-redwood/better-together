@@ -94,10 +94,10 @@ collect-android:
     just collect 9b034f1b cifar-sparse vk
     just collect 9b034f1b cifar-dense vk
 
-# collect-all-jetson:
-#     just collect jetson tree cu
-#     just collect jetson cifar-sparse cu
-#     just collect jetson cifar-dense cu
+collect-all-jetson:
+    just collect jetson tree cu
+    just collect jetson cifar-sparse cu
+    just collect jetson cifar-dense cu
 
 collect-android-all:
     just collect-android
