@@ -13,19 +13,22 @@ def main():
                         help="Device ID (e.g., 3A021JEHN02756)")
     parser.add_argument('app',
                         help="Application name (e.g., tree)")
+    parser.add_argument('backend',
+                        help="Backend name (e.g., vk, cu)")
     args = parser.parse_args()
 
     device = args.device
     app = args.app
+    backend = args.backend
     values = []
 
     for i in range(1, 6):
         log_path = (
-            f"data/exe_logs_isolated_tmax/{device}/{app}/vk/"
+            f"data/exe_logs_isolated_tmax/{device}/{app}/{backend}/"
             f"schedule_run_{i}.log"
         )
         sched_path = (
-            f"data/schedules/{device}/{app}/vk/"
+            f"data/schedules/{device}/{app}/{backend}/"
             "schedules_isolated_tmax.json"
         )
 
