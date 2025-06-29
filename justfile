@@ -14,7 +14,7 @@ set-android:
 
 # Set configuration for NVIDIA Jetson Orin
 set-jetson:
-    xmake f -p linux -a arm64 --use_cuda=yes --use_vulkan=no -c -v -m release
+    xmake f -p linux -a arm64 --use_cuda=yes --use_vulkan=yes -c -v -m release
 
 # Set default configuration for PC
 set-default:
@@ -70,9 +70,9 @@ run-baselines-jetson:
     xmake r bm-baseline-cifar-sparse-cu --device jetson
     xmake r bm-baseline-cifar-dense-cu --device jetson
     xmake r bm-baseline-tree-cu --device jetson
-    # xmake r bm-baseline-cifar-sparse-vk --device jetson
-    # xmake r bm-baseline-cifar-dense-vk --device jetson
-    # xmake r bm-baseline-tree-vk --device jetson
+    xmake r bm-baseline-cifar-sparse-vk --device jetson
+    xmake r bm-baseline-cifar-dense-vk --device jetson
+    xmake r bm-baseline-tree-vk --device jetson
 
 run-baselines-jetsonlowpower:
     xmake r bm-baseline-cifar-sparse-cu --device jetsonlowpower
@@ -327,6 +327,11 @@ run-all-schedule:
     just run-schedule 9b034f1b cifar-sparse vk btpm gapness
     just run-schedule 9b034f1b cifar-dense vk btpm gapness
     just run-schedule 9b034f1b tree vk btpm gapness
+
+run-jetson-schedule:
+    just run-schedule jetson cifar-sparse cu btpm gapness
+    just run-schedule jetson cifar-dense cu btpm gapness
+    just run-schedule jetson tree cu btpm gapness
 
 run-all-schedule-isolated:
     # just run-schedule 3A021JEHN02756 cifar-sparse vk isolated tmax
