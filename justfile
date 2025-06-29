@@ -433,6 +433,18 @@ compare-schedules device app backend n:
         --output tmp2 \
         --max-schedules {{n}}
 
+    uv run scripts/collect/parse_schedules.py -v \
+        data/exe_logs_isolated_gapness/{{device}}/{{app}}/{{backend}}/ \
+        --schedule-file data/schedules/{{device}}/{{app}}/{{backend}}/schedules_isolated_gapness.json \
+        --output tmp3 \
+        --max-schedules {{n}}
+    
+    uv run scripts/collect/parse_schedules.py -v \
+        data/exe_logs_btpm_tmax/{{device}}/{{app}}/{{backend}}/ \
+        --schedule-file data/schedules/{{device}}/{{app}}/{{backend}}/schedules_btpm_tmax.json \
+        --output tmp4 \
+        --max-schedules {{n}}
+
 
 
 

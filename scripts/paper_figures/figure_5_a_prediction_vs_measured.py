@@ -9,9 +9,9 @@ import numpy as np
 import os
 
 # Constants
-NUM_TASKS_TO_DISPLAY = 19  # Number of tasks to display
+NUM_TASKS_TO_DISPLAY = 20  # Number of tasks to display
 Y_AXIS_MIN = 0  # Minimum value for Y-axis
-Y_AXIS_MAX = 36  # Maximum value for Y-axis
+Y_AXIS_MAX = 45  # Maximum value for Y-axis
 BIAS = (
     -2
 )  # Bias to add/subtract from predicted data only (positive = add, negative = subtract)
