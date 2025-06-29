@@ -468,3 +468,7 @@ compare-schedules device app backend n:
 
 
 
+tmp:
+    # just run-schedule jetson cifar-sparse cu isolated tmax
+    just run-schedule jetson cifar-dense cu isolated tmax
+    just run-schedule jetson tree cu isolated tmax
