@@ -31,6 +31,7 @@ for device in "${devices[@]}"; do
             --max-schedules $i \
             --time-window 0.25-0.5 \
             2>&1 | rg "Pearson correlation coefficient" | sed -E 's/.*: //'
+            # 2>&1 | rg "Root Mean Square Error" | sed -E 's/.*: //'
             # 2>&1 | rg "Coefficient of determination" | sed -E 's/.*: //' 
       # done
     done
@@ -54,6 +55,7 @@ for device in "${devices[@]}"; do
             --schedule-file "data/schedules/${device}/${app}/${backend}/schedules_btpm_gapness.json" \
             --max-schedules $i \
             2>&1 | rg "Pearson correlation coefficient" | sed -E 's/.*: //'
+            # 2>&1 | rg "Root Mean Square Error" | sed -E 's/.*: //'
             # 2>&1 | rg "Coefficient of determination" | sed -E 's/.*: //' 
       # done
     done
