@@ -244,6 +244,9 @@ gen-schedules-isolated-tmax:
     just gen-schedule 9b034f1b cifar-sparse vk isolated tmax
     just gen-schedule 9b034f1b cifar-dense vk isolated tmax
     just gen-schedule 9b034f1b tree vk isolated tmax
+    just gen-schedule jetson cifar-sparse cu isolated tmax
+    just gen-schedule jetson cifar-dense cu isolated tmax
+    just gen-schedule jetson tree cu isolated tmax
 
 gen-schedules-isolated-gapness:
     just gen-schedule 3A021JEHN02756 cifar-sparse vk isolated gapness
@@ -252,6 +255,9 @@ gen-schedules-isolated-gapness:
     just gen-schedule 9b034f1b cifar-sparse vk isolated gapness
     just gen-schedule 9b034f1b cifar-dense vk isolated gapness
     just gen-schedule 9b034f1b tree vk isolated gapness
+    just gen-schedule jetson cifar-sparse cu isolated gapness
+    just gen-schedule jetson cifar-dense cu isolated gapness
+    just gen-schedule jetson tree cu isolated gapness
 
 gen-schedules-btpm-tmax:
     just gen-schedule 3A021JEHN02756 cifar-sparse vk btpm tmax
@@ -260,6 +266,9 @@ gen-schedules-btpm-tmax:
     just gen-schedule 9b034f1b cifar-sparse vk btpm tmax
     just gen-schedule 9b034f1b cifar-dense vk btpm tmax
     just gen-schedule 9b034f1b tree vk btpm tmax
+    just gen-schedule jetson cifar-sparse cu btpm tmax
+    just gen-schedule jetson cifar-dense cu btpm tmax
+    just gen-schedule jetson tree cu btpm tmax
 
 # Good
 gen-schedules-btpm-gapness:
@@ -269,6 +278,9 @@ gen-schedules-btpm-gapness:
     just gen-schedule 9b034f1b cifar-sparse vk btpm gapness
     just gen-schedule 9b034f1b cifar-dense vk btpm gapness
     just gen-schedule 9b034f1b tree vk btpm gapness
+    just gen-schedule jetson cifar-sparse cu btpm gapness
+    just gen-schedule jetson cifar-dense cu btpm gapness
+    just gen-schedule jetson tree cu btpm gapness
 
 gen-schedules-all:
     just gen-schedules-isolated-tmax
