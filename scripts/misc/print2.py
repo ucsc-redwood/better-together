@@ -24,21 +24,20 @@ def main():
 
     for i in range(1, 6):
         log_path = (
-            f"data/exe_logs_isolated_tmax/{device}/{app}/{backend}/"
+            f"data/exe_logs_btpm_gapness/{device}/{app}/{backend}/"
             f"schedule_run_{i}.log"
         )
         sched_path = (
             f"data/schedules/{device}/{app}/{backend}/"
-            "schedules_isolated_tmax.json"
+            "schedules_btpm_gapness.json"
         )
 
         print(f"=== schedule_run_{i}.log ===")
         cmd = [
             "uv", "run", "scripts/collect/04_parse_schedules.py", "-v",
             log_path,
-            "--max-schedules", "30",
             "--schedule-file", sched_path,
-            # "--time-window", "0.25-0."
+            # "--time-window", "0.25-0.75"
         ]
         try:
             proc = subprocess.run(cmd,

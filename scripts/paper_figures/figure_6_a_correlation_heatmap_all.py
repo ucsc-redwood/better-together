@@ -93,12 +93,12 @@ plt.tight_layout()
 # Save figures
 base_dir = os.path.dirname(os.path.abspath(__file__))
 plt.savefig(
-    os.path.join(base_dir, "svg", "figure_6_correlation_heatmap_all.svg"),
+    os.path.join(base_dir, "svg", "figure_6_a_correlation_heatmap_all.svg"),
     bbox_inches="tight",
     format="svg",
 )
 plt.savefig(
-    os.path.join(base_dir, "png", "figure_6_correlation_heatmap_all.png"),
+    os.path.join(base_dir, "png", "figure_6_a_correlation_heatmap_all.png"),
     bbox_inches="tight",
     format="png",
     dpi=300,
