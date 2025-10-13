@@ -19,10 +19,6 @@
 ## Table of Contents
 
 - [Overview](#overview)
-- [Architecture](#architecture)
-  - [BT-Profiler (BTPM)](#1-bt-profiler-btpm---bettertogether-performance-modeling)
-  - [BT-Optimizer (BTPO)](#2-bt-optimizer-btpo---static-pipeline-schedule-generation)
-  - [BT-Implementer (BTPI)](#3-bt-implementer-btpi---concurrent-pipeline-execution)
 - [Evaluated Applications](#evaluated-applications)
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
@@ -30,7 +26,6 @@
 - [Performance Results](#performance-results)
 - [Advanced Usage](#advanced-usage)
 - [Publications & Citation](#publications--citation)
-- [Contact](#contact)
 
 ---
 
