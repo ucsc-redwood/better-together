@@ -1,0 +1,92 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [N, C, H, W]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float weight_data[];  // [K, C, R, S]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [K]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, K, P, Q]
+};
+
+// Push constant uniform to supply all necessary parameters
+layout(push_constant) uniform Params {
+  int N;           // Batch size
+  int C;           // Number of input channels
+  int H;           // Input height
+  int W;           // Input width
+  int K;           // Number of output channels
+  int R;           // Kernel height
+  int S;           // Kernel width
+  int stride;      // Convolution stride
+  int padding;     // Convolution padding
+  int apply_relu;  // 1 to apply ReLU, 0 otherwise
+}
+params;
+
+void main() {
+  // Map Vulkan's workgroup IDs to CUDA's blockIdx
+  int n = int(gl_WorkGroupID.z);  // batch index
+  int k = int(gl_WorkGroupID.y);  // output channel
+
+  // Compute a 1D global thread index for the spatial positions (p, q)
+  int globalIndex = int(gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x);
+
+  // Compute output spatial dimensions:
+  int P = (params.H + 2 * params.padding - params.R) / params.stride + 1;
+  int Q = (params.W + 2 * params.padding - params.S) / params.stride + 1;
+
+  // If the global thread index exceeds the total number of spatial positions, exit.
+  if (globalIndex >= P * Q) return;
+
+  // Map the 1D index to 2D coordinates (p, q)
+  int p = globalIndex / Q;
+  int q = globalIndex % Q;
+
+  // Start with the bias for the current output channel
+  float sum = bias_data[k];
+
+  // Loop over each input channel and the kernel's spatial dimensions
+  for (int c = 0; c < params.C; ++c) {
+    for (int r = 0; r < params.R; ++r) {
+      for (int s = 0; s < params.S; ++s) {
+        // Compute the corresponding input spatial coordinates
+        int in_y = p * params.stride + r - params.padding;
+        int in_x = q * params.stride + s - params.padding;
+
+        // Check if the coordinates are within the bounds of the input
+        if (in_y >= 0 && in_y < params.H && in_x >= 0 && in_x < params.W) {
+          // Compute flat indices for the input and weight arrays.
+          // Input is stored in [N, C, H, W] order.
+          int inputIndex = ((n * params.C + c) * params.H + in_y) * params.W + in_x;
+          // Weights are stored in [K, C, R, S] order.
+          int weightIndex = ((k * params.C + c) * params.R + r) * params.S + s;
+
+          float in_val = input_data[inputIndex];
+          float wt = weight_data[weightIndex];
+          sum += in_val * wt;
+        }
+      }
+    }
+  }
+
+  // Optionally apply the ReLU activation function.
+  if (params.apply_relu != 0 && sum < 0.0) sum = 0.0;
+
+  // Compute the index into the output buffer.
+  // Output is stored in [N, K, P, Q] order.
+  int outputIndex = ((n * params.K + k) * P + p) * Q + q;
+  output_data[outputIndex] = sum;
+}

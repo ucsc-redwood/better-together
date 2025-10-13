@@ -1,0 +1,192 @@
+
+Running only on specified device: 9b034f1b
+Deploying and running 'bm-fully-tree-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-fully-tree-vk: 1 file pushed, 0 skipped. 460.2 MB/s (2816720 bytes in 0.006s)
+[2025-06-24 19:07:36.126] [info] Pinable Lit cores: 0 1 2 
+[2025-06-24 19:07:36.127] [info] Pinable Med cores: 3 4 
+[2025-06-24 19:07:36.127] [info] Pinable Big cores: 5 6 7 
+[2025-06-24 19:07:36.127] [info] Pinable Sup cores: 
+Stage: 1 by Little
+	Count 	376
+	Average 	2.6676 ms
+Stage: 1 by Medium
+	Count 	1054
+	Average 	0.9497 ms
+Stage: 1 by Big
+	Count 	808
+	Average 	1.2376 ms
+Stage: 1 by Vulkan
+	Count 	509
+	Average 	1.9705 ms
+Stage: 2 by Little
+	Count 	641
+	Average 	1.5632 ms
+Stage: 2 by Medium
+	Count 	1119
+	Average 	0.8945 ms
+Stage: 2 by Big
+	Count 	324
+	Average 	3.0895 ms
+Stage: 2 by Vulkan
+	Count 	23
+	Average 	43.8696 ms
+Stage: 3 by Little
+	Count 	1398
+	Average 	0.7167 ms
+Stage: 3 by Medium
+	Count 	2724
+	Average 	0.3671 ms
+Stage: 3 by Big
+	Count 	1490
+	Average 	0.6718 ms
+Stage: 3 by Vulkan
+	Count 	4515
+	Average 	0.2215 ms
+Stage: 4 by Little
+	Count 	115
+	Average 	8.7217 ms
+Stage: 4 by Medium
+	Count 	146
+	Average 	6.8904 ms
+Stage: 4 by Big
+	Count 	123
+	Average 	8.1870 ms
+Stage: 4 by Vulkan
+	Count 	366
+	Average 	2.7432 ms
+Stage: 5 by Little
+	Count 	1412
+	Average 	0.7096 ms
+Stage: 5 by Medium
+	Count 	3126
+	Average 	0.3202 ms
+Stage: 5 by Big
+	Count 	3257
+	Average 	0.3070 ms
+Stage: 5 by Vulkan
+	Count 	886
+	Average 	1.1309 ms
+Stage: 6 by Little
+	Count 	2830
+	Average 	0.3541 ms
+Stage: 6 by Medium
+	Count 	3624
+	Average 	0.2759 ms
+Stage: 6 by Big
+	Count 	1840
+	Average 	0.5440 ms
+Stage: 6 by Vulkan
+	Count 	5299
+	Average 	0.1887 ms
+Stage: 7 by Little
+	Count 	243
+	Average 	4.1276 ms
+Stage: 7 by Medium
+	Count 	455
+	Average 	2.2000 ms
+Stage: 7 by Big
+	Count 	481
+	Average 	2.0832 ms
+Stage: 7 by Vulkan
+	Count 	422
+	Average 	2.3744 ms
+Stage: 1
+	Little 	4.0080 ms 	(250)
+	Medium 	0.9347 ms 	(1072)
+	Big    	0.6378 ms 	(1571)
+	Vulkan 	0.5224 ms 	(1918)
+Stage: 2
+	Little 	2.7236 ms 	(369)
+	Medium 	1.6667 ms 	(603)
+	Big    	1.8440 ms 	(545)
+	Vulkan 	31.4062 ms 	(32)
+Stage: 3
+	Little 	0.7291 ms 	(1373)
+	Medium 	0.3386 ms 	(2956)
+	Big    	0.6164 ms 	(1624)
+	Vulkan 	0.4556 ms 	(2197)
+Stage: 4
+	Little 	8.8850 ms 	(113)
+	Medium 	6.3949 ms 	(157)
+	Big    	4.2008 ms 	(239)
+	Vulkan 	1.4657 ms 	(685)
+Stage: 5
+	Little 	1.4444 ms 	(693)
+	Medium 	0.2356 ms 	(4249)
+	Big    	0.1747 ms 	(5729)
+	Vulkan 	0.4682 ms 	(2138)
+Stage: 6
+	Little 	0.3518 ms 	(2845)
+	Medium 	0.2486 ms 	(4027)
+	Big    	0.5379 ms 	(1861)
+	Vulkan 	0.2824 ms 	(3545)
+Stage: 7
+	Little 	5.9583 ms 	(168)
+	Medium 	1.9399 ms 	(516)
+	Big    	1.3329 ms 	(751)
+	Vulkan 	1.2133 ms 	(825)
+
+Normal Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA
+------|------------|-------------|----------|--------|-------
+    1 |      2.6676 |      0.9497 |   1.2376 | 1.9705 | 0.0000
+    2 |      1.5632 |      0.8945 |   3.0895 | 43.8696 | 0.0000
+    3 |      0.7167 |      0.3671 |   0.6718 | 0.2215 | 0.0000
+    4 |      8.7217 |      6.8904 |   8.1870 | 2.7432 | 0.0000
+    5 |      0.7096 |      0.3202 |   0.3070 | 1.1309 | 0.0000
+    6 |      0.3541 |      0.2759 |   0.5440 | 0.1887 | 0.0000
+    7 |      4.1276 |      2.2000 |   2.0832 | 2.3744 | 0.0000
+
+Normal Benchmark - Sum of stages 1-7:
+Little Core: 18.8605 ms
+Medium Core: 11.8979 ms
+Big Core: 16.1201 ms
+Vulkan: 52.4988 ms
+CUDA: 0.0000 ms
+
+Fully Benchmark Results Table (ms per task):
+Stage | Little Core | Medium Core | Big Core | Vulkan | CUDA
+------|-------------|-------------|----------|--------|-------
+    1 |      4.0080 |      0.9347 |   0.6378 | 0.5224 | 0.0000
+    2 |      2.7236 |      1.6667 |   1.8440 | 31.4062 | 0.0000
+    3 |      0.7291 |      0.3386 |   0.6164 | 0.4556 | 0.0000
+    4 |      8.8850 |      6.3949 |   4.2008 | 1.4657 | 0.0000
+    5 |      1.4444 |      0.2356 |   0.1747 | 0.4682 | 0.0000
+    6 |      0.3518 |      0.2486 |   0.5379 | 0.2824 | 0.0000
+    7 |      5.9583 |      1.9399 |   1.3329 | 1.2133 | 0.0000
+
+Fully Benchmark - Sum of stages 1-7:
+Little Core: 24.1002 ms
+Medium Core: 11.7590 ms
+Big Core: 9.3446 ms
+Vulkan: 35.8139 ms
+CUDA: 0.0000 ms
+
+Performance Comparison (Fully vs Normal):
+Processor  | Normal (ms) | Fully (ms) | Ratio
+-----------|-------------|------------|-------
+Little Core|       18.86 |      24.10 |  1.28x
+Medium Core|       11.90 |      11.76 |  0.99x
+Big Core   |       16.12 |       9.34 |  0.58x
+Vulkan     |       52.50 |      35.81 |  0.68x
+
+### PYTHON_DATA_START ###
+# NORMAL_BENCHMARK_DATA
+stage,little,medium,big,vulkan,cuda
+1,2.6676,0.9497,1.2376,1.9705,0.0000
+2,1.5632,0.8945,3.0895,43.8696,0.0000
+3,0.7167,0.3671,0.6718,0.2215,0.0000
+4,8.7217,6.8904,8.1870,2.7432,0.0000
+5,0.7096,0.3202,0.3070,1.1309,0.0000
+6,0.3541,0.2759,0.5440,0.1887,0.0000
+7,4.1276,2.2000,2.0832,2.3744,0.0000
+# FULLY_BENCHMARK_DATA
+stage,little,medium,big,vulkan,cuda
+1,4.0080,0.9347,0.6378,0.5224,0.0000
+2,2.7236,1.6667,1.8440,31.4062,0.0000
+3,0.7291,0.3386,0.6164,0.4556,0.0000
+4,8.8850,6.3949,4.2008,1.4657,0.0000
+5,1.4444,0.2356,0.1747,0.4682,0.0000
+6,0.3518,0.2486,0.5379,0.2824,0.0000
+7,5.9583,1.9399,1.3329,1.2133,0.0000
+### PYTHON_DATA_END ###

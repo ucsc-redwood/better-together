@@ -1,0 +1,123 @@
+#version 460
+layout(local_size_x = 256) in;
+
+// Push constants for timing and parameters
+layout(push_constant) uniform PushConstants {
+  uint n;            // Number of elements to process
+  float time_limit;  // Time limit in seconds (10.0)
+  float start_time;  // Start time from CPU
+}
+pc;
+
+// Buffer for input/output
+layout(std430, set = 0, binding = 0) buffer Buffer { float data[]; };
+
+// High-precision mathematical stress operations
+float stress_math(float x, float y, uint iterations) {
+  float result = x;
+  float temp = y;
+
+  // Perform intensive mathematical operations
+  for (uint i = 0; i < iterations; i++) {
+    // Trigonometric operations (expensive on GPU)
+    result = sin(result) * cos(temp) + tan(result * 0.1);
+    temp = sqrt(abs(result)) + pow(abs(temp), 1.1);
+
+    // Logarithmic operations
+    result = log(abs(result) + 1.0) + exp(temp * 0.01);
+    temp = atan(result) + asin(clamp(temp * 0.1, -1.0, 1.0));
+
+    // Complex polynomial calculations
+    result = result * result * 0.1 + temp * temp * 0.1;
+    temp = result * temp + sin(result + temp);
+
+    // Memory access pattern simulation
+    result = fract(result * 1.618033988749) + temp * 0.618033988749;
+    temp = fract(temp * 2.718281828459) + result * 0.2718281828459;
+  }
+
+  return result;
+}
+
+// Matrix-like operations for memory bandwidth stress
+void stress_memory_access(uint index, uint iterations) {
+  float accumulator = 0.0;
+
+  for (uint i = 0; i < iterations; i++) {
+    // Strided memory access pattern
+    uint stride = (i * 7 + index) % pc.n;
+    if (stride < pc.n) {
+      accumulator += data[stride] * float(i + 1);
+    }
+
+    // Reverse stride access
+    uint rev_stride = (pc.n - 1 - stride) % pc.n;
+    if (rev_stride < pc.n) {
+      accumulator -= data[rev_stride] * float(i + 1) * 0.5;
+    }
+
+    // Random-like access pattern
+    uint rand_stride = (stride * 1103515245u + 12345u) % pc.n;
+    if (rand_stride < pc.n) {
+      accumulator += sin(data[rand_stride]) * cos(float(i));
+    }
+  }
+
+  // Write back the result
+  if (index < pc.n) {
+    data[index] = accumulator;
+  }
+}
+
+void main() {
+  uint i = gl_GlobalInvocationID.x;
+  if (i >= pc.n) return;
+
+  // Get current time (approximate using invocation ID and work group)
+  float current_time =
+      float(gl_GlobalInvocationID.x) * 0.000001;  // Microsecond precision simulation
+
+  // Calculate iterations based on time limit
+  // More iterations = more stress, but we need to balance with time
+  uint math_iterations = 1000u;   // Mathematical stress iterations
+  uint memory_iterations = 500u;  // Memory access stress iterations
+
+  // Main stress loop - run until time limit
+  float time_elapsed = 0.0;
+  uint stress_cycles = 0;
+
+  while (time_elapsed < pc.time_limit) {
+    // Mathematical stress
+    float math_result = stress_math(float(i), float(stress_cycles), math_iterations);
+
+    // Memory bandwidth stress
+    stress_memory_access(i, memory_iterations);
+
+    // Additional computational stress
+    float temp = math_result;
+    for (uint j = 0; j < 100u; j++) {
+      temp = sin(temp) + cos(temp * 1.1) + tan(temp * 0.9);
+      temp = sqrt(abs(temp)) + pow(abs(temp), 1.05);
+      temp = fract(temp * 1.414213562373) + 0.1;
+    }
+
+    // Update data with stress result
+    data[i] = temp + float(stress_cycles) * 0.001;
+
+    // Simulate time progression
+    time_elapsed += 0.001;  // 1ms per cycle
+    stress_cycles++;
+
+    // Prevent infinite loops in case of timing issues
+    if (stress_cycles > 20000u) break;
+  }
+
+  // Final result - ensure we've done maximum work
+  float final_result = 0.0;
+  for (uint k = 0; k < 1000u; k++) {
+    final_result +=
+        sin(float(k + i)) * cos(float(k * i)) + sqrt(abs(float(k))) * pow(abs(float(i)), 0.1);
+  }
+
+  data[i] = final_result + float(stress_cycles);
+}

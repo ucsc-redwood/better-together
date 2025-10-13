@@ -1,0 +1,87 @@
+"""
+Output paths:
+- SVG: scripts/paper_figures/svg/figure_6_correlation_heatmap_all.svg
+- PNG: scripts/paper_figures/png/figure_6_correlation_heatmap_all.png
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+
+# Data definition
+devices = ["OnePlus", "Google", "Jetson", "Jetson (LP)"]
+apps = ["CIFAR-D", "CIFAR-S", "Tree"]
+
+pearson_data = np.array(
+    [
+        [0.974, 0.9678, 0.9816],  # OnePlus
+        [0.9497, 0.8887, 0.8220],  # Google
+        [0.9481, 0.7005, 0.6532],  # Jetson
+        [0.9472, 0.7325, 0.6839],  # Jetson
+    ]
+)
+
+# Calculate averages
+row_averages = np.mean(pearson_data, axis=1, keepdims=True)
+column_averages = np.mean(pearson_data, axis=0, keepdims=True)
+overall_average = np.mean(pearson_data)
+
+# Append averages to data
+pearson_data = np.hstack((pearson_data, row_averages))
+pearson_data = np.vstack((pearson_data, np.append(column_averages, overall_average)))
+
+# Update labels
+devices.append("Avg.")
+apps.append("Avg.")
+
+# Transpose data for visualization
+pearson_data_transposed = pearson_data.T
+
+# Plot setup
+plt.figure(figsize=(12, 3))
+plt.rcParams.update({"font.size": 24})
+
+# Create heatmap
+ax = sns.heatmap(
+    pearson_data_transposed,
+    annot=True,
+    cmap="YlGnBu",
+    vmin=0.8,
+    vmax=1.0,
+    xticklabels=devices,
+    yticklabels=apps,
+    fmt=".4f",
+    annot_kws={"size": 20},
+    linewidths=0.5,
+    linecolor="black",
+)
+
+# Add black lines to separate averages
+# Vertical line to the left of average column
+ax.axvline(x=4, color="black", linewidth=2.5)
+# Horizontal line above average row
+ax.axhline(y=3, color="black", linewidth=2.5)
+
+# Customize plot
+ax.set_ylabel("", fontsize=24, labelpad=5)
+ax.set_xlabel("", fontsize=24, labelpad=5)
+ax.tick_params(axis="both", which="major", labelsize=20)
+
+# Adjust layout
+plt.tight_layout()
+
+# Save figures
+base_dir = os.path.dirname(os.path.abspath(__file__))
+plt.savefig(
+    os.path.join(base_dir, "svg", "figure_6_b_correlation_heatmap_all_isolated.svg"),
+    bbox_inches="tight",
+    format="svg",
+)
+plt.savefig(
+    os.path.join(base_dir, "png", "figure_6_b_correlation_heatmap_all_isolated.png"),
+    bbox_inches="tight",
+    format="png",
+    dpi=300,
+)
+plt.close()

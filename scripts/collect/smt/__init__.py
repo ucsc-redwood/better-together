@@ -1,0 +1,1 @@
+# SMT (Satisfiability Modulo Theories) package for schedule optimization

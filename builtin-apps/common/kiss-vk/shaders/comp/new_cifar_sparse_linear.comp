@@ -1,0 +1,66 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// Work-group size: 256 invocations per workgroup.
+layout(local_size_x = 256) in;
+
+// Input data buffer: flattened tensor of shape [batch_size, input_features]
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer { float input_data[]; };
+
+// Output data buffer: flattened tensor of shape [batch_size, out_neurons]
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer { float output_data[]; };
+
+// Sparse weight values (nonzeros) for the CSR matrix (dimensions: [out_neurons, input_features])
+layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer { float weight_vals[]; };
+
+// CSR row pointers: length = out_neurons + 1.
+layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer { int weight_row_ptr[]; };
+
+// CSR column indices: flat indices of nonzero weight locations (i.e. input feature indices).
+layout(std430, set = 0, binding = 4) readonly buffer WeightColIdxBuffer { int weight_col_idx[]; };
+
+// Bias vector: one element per output neuron.
+layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+// Push constants for kernel parameters.
+layout(push_constant) uniform Params {
+  int batch_size;      // Number of samples in the batch.
+  int input_features;  // Number of features in each input sample.
+  int out_neurons;     // Number of output neurons (rows in the weight matrix).
+}
+params;
+
+void main() {
+  // Total number of output elements: one per (batch, output neuron) pair.
+  int total = params.batch_size * params.out_neurons;
+  uint global_idx = gl_GlobalInvocationID.x;
+  if (global_idx >= uint(total)) return;
+
+  // Decompose the flat index into (batch index, output neuron index).
+  int idx = int(global_idx);
+  int i = idx % params.out_neurons;  // output neuron index.
+  int b = idx / params.out_neurons;  // batch index.
+
+  float sum = 0.0;
+
+  // Get the start and end positions in CSR for the current output neuron i.
+  int row_start = weight_row_ptr[i];
+  int row_end = weight_row_ptr[i + 1];
+
+  // Loop over the sparse weight elements in the i-th row.
+  for (int pos = row_start; pos < row_end; ++pos) {
+    int col = weight_col_idx[pos];  // Input feature index.
+    // Compute index in the input for the current batch sample.
+    int input_idx = b * params.input_features + col;
+    sum += input_data[input_idx] * weight_vals[pos];
+  }
+
+  // Add the bias for this output neuron.
+  sum += bias_data[i];
+
+  // Write the result to the output buffer.
+  int output_idx = b * params.out_neurons + i;
+  output_data[output_idx] = sum;
+}

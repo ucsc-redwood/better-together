@@ -1,0 +1,112 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// Work-group size: 256 threads per work-group.
+layout(local_size_x = 256) in;
+
+// Bindings for the input and output data.
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // Input layout: [batch, in_channels, in_height, in_width]
+};
+
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer {
+  float output_data[];  // Output layout: [batch, out_channels, out_height, out_width]
+};
+
+// Bindings for sparse weight tensors in CSR format.
+layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer {
+  float weight_vals[];  // Nonzero weight values.
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer {
+  int weight_row_ptr[];  // Row pointers: length = out_channels + 1.
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer WeightColIdxBuffer {
+  int weight_col_idx[];  // Column indices (flat kernel index).
+};
+
+// Binding for bias vector (if available). If no bias is used, set bias_size to 0.
+layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+// Push constants holding all kernel parameters.
+layout(push_constant) uniform Params {
+  int batch_size;    // Number of batches.
+  int in_channels;   // Input channels.
+  int in_height;     // Input height.
+  int in_width;      // Input width.
+  int out_channels;  // Output channels.
+  int out_height;    // Output height.
+  int out_width;     // Output width.
+  int kernel_size;   // Kernel size (assumed square: kernel_size x kernel_size).
+  int stride;        // Convolution stride.
+  int padding;       // Padding.
+  int relu;          // Flag for ReLU activation (nonzero true).
+  int bias_size;     // Bias vector size (0 if bias is not used).
+}
+params;
+
+void main() {
+  // Compute the total number of output elements.
+  int total_output = params.batch_size * params.out_channels * params.out_height * params.out_width;
+
+  // Use the global invocation index as the linear index for an output element.
+  uint global_idx = gl_GlobalInvocationID.x;
+  if (global_idx >= uint(total_output)) return;
+
+  // Decode global_idx into 4D coordinates: [batch, out_channel, out_y, out_x].
+  int idx = int(global_idx);
+  int ow = idx % params.out_width;
+  idx /= params.out_width;
+  int oh = idx % params.out_height;
+  idx /= params.out_height;
+  int out_c = idx % params.out_channels;
+  int b = idx / params.out_channels;
+
+  float sum = 0.0;
+
+  // Fetch the CSR range for the current output channel.
+  int row_start = weight_row_ptr[out_c];
+  int row_end = weight_row_ptr[out_c + 1];
+  int kernel_area = params.kernel_size * params.kernel_size;
+
+  // Loop over the nonzero weights for this output channel.
+  for (int nz = row_start; nz < row_end; nz++) {
+    int flat_kernel_idx = weight_col_idx[nz];
+    float weight_val = weight_vals[nz];
+
+    // Decode the flat kernel index into an input channel and a kernel (ky, kx) position.
+    int in_c = flat_kernel_idx / kernel_area;
+    int rem =
+        flat_kernel_idx - (in_c * kernel_area);  // Equivalent to flat_kernel_idx % kernel_area.
+    int ky = rem / params.kernel_size;
+    int kx = rem % params.kernel_size;
+
+    // Compute corresponding input spatial coordinates.
+    int in_y = oh * params.stride + ky - params.padding;
+    int in_x = ow * params.stride + kx - params.padding;
+
+    // Check input bounds.
+    if (in_y >= 0 && in_y < params.in_height && in_x >= 0 && in_x < params.in_width) {
+      // Compute the flattened index for the input tensor.
+      int input_idx =
+          ((b * params.in_channels + in_c) * params.in_height + in_y) * params.in_width + in_x;
+      sum += input_data[input_idx] * weight_val;
+    }
+  }
+
+  // Add bias if provided.
+  if (params.bias_size > 0 && out_c < params.bias_size) {
+    sum += bias_data[out_c];
+  }
+
+  // Apply ReLU activation if requested.
+  if (params.relu != 0 && sum < 0.0) sum = 0.0;
+
+  // Compute the flattened index for the output tensor.
+  int out_index =
+      ((b * params.out_channels + out_c) * params.out_height + oh) * params.out_width + ow;
+  output_data[out_index] = sum;
+}

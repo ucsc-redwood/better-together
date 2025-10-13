@@ -1,0 +1,58 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [N, in_features]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float weight_data[];  // [out_features, in_features]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [out_features]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, out_features]
+};
+
+// Push constants to pass kernel parameters
+layout(push_constant) uniform Params {
+  int N;             // Batch size
+  int in_features;   // Number of input features
+  int out_features;  // Number of output features
+}
+params;
+
+void main() {
+  // Use gl_GlobalInvocationID.x to compute a flat index
+  int idx = int(gl_GlobalInvocationID.x);
+
+  // Determine batch index (n) and output feature index (of) from the flat index.
+  int n = idx / params.out_features;
+  int of = idx % params.out_features;
+
+  // If n is out-of-range, exit.
+  if (n >= params.N) {
+    return;
+  }
+
+  // Initialize the sum with the corresponding bias.
+  float sum = bias_data[of];
+
+  // Compute the dot product for this (n, of) pair.
+  for (int inf = 0; inf < params.in_features; ++inf) {
+    int inputIndex = n * params.in_features + inf;
+    int weightIndex = of * params.in_features + inf;
+    sum += input_data[inputIndex] * weight_data[weightIndex];
+  }
+
+  // Store the result in the output buffer (assumed [N, out_features] order).
+  int outputIndex = n * params.out_features + of;
+  output_data[outputIndex] = sum;
+}

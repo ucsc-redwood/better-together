@@ -1,0 +1,156 @@
+
+Running only on specified device: 9b034f1b
+Deploying and running 'bm-gen-logs-cifar-dense-vk' on device: 9b034f1b
+build/android/arm64-v8a/release/bm-gen-logs-cifar-dense-vk: 1 file pushed, 0 skipped. 487.6 MB/s (6981840 bytes in 0.014s)
+[2025-06-29 13:45:20.246] [info] Pinable Lit cores: 0 1 2 
+[2025-06-29 13:45:20.247] [info] Pinable Med cores: 3 4 
+[2025-06-29 13:45:20.247] [info] Pinable Big cores: 5 6 7 
+[2025-06-29 13:45:20.247] [info] Pinable Sup cores: 
+[2025-06-29 13:45:21.988] [info] Fetching JSON from URL: http://192.168.1.12:8080/9b034f1b/cifar-dense/vk/schedules_btpm_tmax.json
+[2025-06-29 13:45:22.057] [info] Loaded 30 valid schedules from JSON
+[2025-06-29 13:45:22.058] [info] Loaded 30 schedules
+--------------------------------
+Schedule 0 [UID: SCH-M9-G000-3ec6]:
+  Chunk 0 [OMP/Medium]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 1 [UID: SCH-L9-G000-d5da]:
+  Chunk 0 [OMP/Little]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 2 [UID: SCH-G9-G000-8889]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 3 [UID: SCH-B9-G000-cd46]:
+  Chunk 0 [OMP/Big   ]: 1, 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 4 [UID: SCH-G7L2-G074-88dc]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 5 [UID: SCH-G7M2-G341-241b]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Medium]: 8, 9
+--------------------------------
+Schedule 6 [UID: SCH-G7B2-G401-e157]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Big   ]: 8, 9
+--------------------------------
+Schedule 7 [UID: SCH-G7M1L1-G414-732d]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Medium]: 8
+  Chunk 2 [OMP/Little]: 9
+--------------------------------
+Schedule 8 [UID: SCH-G8L1-G419-2841]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7, 8
+  Chunk 1 [OMP/Little]: 9
+--------------------------------
+Schedule 9 [UID: SCH-G7L1M1-G437-3c7f]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Little]: 8
+  Chunk 2 [OMP/Medium]: 9
+--------------------------------
+Schedule 10 [UID: SCH-G7B1L1-G447-dd78]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Big   ]: 8
+  Chunk 2 [OMP/Little]: 9
+--------------------------------
+Schedule 11 [UID: SCH-G7B1M1-G447-3dfd]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Big   ]: 8
+  Chunk 2 [OMP/Medium]: 9
+--------------------------------
+Schedule 12 [UID: SCH-G7M1B1-G464-8326]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Medium]: 8
+  Chunk 2 [OMP/Big   ]: 9
+--------------------------------
+Schedule 13 [UID: SCH-G7L1B1-G464-0b8b]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7
+  Chunk 1 [OMP/Little]: 8
+  Chunk 2 [OMP/Big   ]: 9
+--------------------------------
+Schedule 14 [UID: SCH-G8M1-G467-1dee]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7, 8
+  Chunk 1 [OMP/Medium]: 9
+--------------------------------
+Schedule 15 [UID: SCH-G8B1-G494-f2f0]:
+  Chunk 0 [Vulkan    ]: 1, 2, 3, 4, 5, 6, 7, 8
+  Chunk 1 [OMP/Big   ]: 9
+--------------------------------
+Schedule 16 [UID: SCH-B1G8-G4005-b2ea]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 17 [UID: SCH-B1L1G7-G4046-3b01]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [OMP/Little]: 2
+  Chunk 2 [Vulkan    ]: 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 18 [UID: SCH-B1G6L2-G4179-43e3]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7
+  Chunk 2 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 19 [UID: SCH-B1M1G7-G4209-1124]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [OMP/Medium]: 2
+  Chunk 2 [Vulkan    ]: 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 20 [UID: SCH-B1M1G5L2-G4221-eaec]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [OMP/Medium]: 2
+  Chunk 2 [Vulkan    ]: 3, 4, 5, 6, 7
+  Chunk 3 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 21 [UID: SCH-B2G7-G4299-24ca]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5, 6, 7, 8, 9
+--------------------------------
+Schedule 22 [UID: SCH-B1L1G5M2-G4431-6084]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [OMP/Little]: 2
+  Chunk 2 [Vulkan    ]: 3, 4, 5, 6, 7
+  Chunk 3 [OMP/Medium]: 8, 9
+--------------------------------
+Schedule 23 [UID: SCH-B1G6M2-G4431-97bf]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7
+  Chunk 2 [OMP/Medium]: 8, 9
+--------------------------------
+Schedule 24 [UID: SCH-B2G5L2-G4473-3335]:
+  Chunk 0 [OMP/Big   ]: 1, 2
+  Chunk 1 [Vulkan    ]: 3, 4, 5, 6, 7
+  Chunk 2 [OMP/Little]: 8, 9
+--------------------------------
+Schedule 25 [UID: SCH-B1G7L1-G4479-ef47]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7, 8
+  Chunk 2 [OMP/Little]: 9
+--------------------------------
+Schedule 26 [UID: SCH-B1M1G6L1-G4479-ebb0]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [OMP/Medium]: 2
+  Chunk 2 [Vulkan    ]: 3, 4, 5, 6, 7, 8
+  Chunk 3 [OMP/Little]: 9
+--------------------------------
+Schedule 27 [UID: SCH-B1G6M1L1-G4505-73ab]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7
+  Chunk 2 [OMP/Medium]: 8
+  Chunk 3 [OMP/Little]: 9
+--------------------------------
+Schedule 28 [UID: SCH-B1G7M1-G4528-c430]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7, 8
+  Chunk 2 [OMP/Medium]: 9
+--------------------------------
+Schedule 29 [UID: SCH-B1G6L1M1-G4528-402a]:
+  Chunk 0 [OMP/Big   ]: 1
+  Chunk 1 [Vulkan    ]: 2, 3, 4, 5, 6, 7
+  Chunk 2 [OMP/Little]: 8
+  Chunk 3 [OMP/Medium]: 9
+[2025-06-29 13:45:22.070] [info] Running 30/30 schedules
+
+--------------------------------
+[2025-06-29 13:45:22.070] [info] Available Vulkan Layers:
+[2025-06-29 13:45:22.070] [warning] Validation layer requested but not available, continuing without it...
+[2025-06-29 13:45:22.076] [info] Using integrated GPU: Adreno (TM) 740

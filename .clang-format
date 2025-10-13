@@ -1,0 +1,5 @@
+BasedOnStyle: Google
+BinPackParameters: false
+BinPackArguments: false
+AlignTrailingComments: true
+ColumnLimit: 100

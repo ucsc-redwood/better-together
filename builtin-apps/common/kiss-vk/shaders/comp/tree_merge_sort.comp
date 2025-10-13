@@ -1,0 +1,64 @@
+#version 450
+
+// Constants
+const uint LOCAL_SIZE_X = 256;
+
+// Shader storage buffers for u_input and u_alt arrays
+layout(std430, set = 0, binding = 0) buffer InputBuffer { uint u_input[]; };
+layout(std430, set = 0, binding = 1) buffer OutputBuffer { uint u_alt[]; };
+
+// Push constants for kernel parameters
+layout(push_constant) uniform PushConstants {
+  uint n_logical_blocks;  // Number of logical blocks requested
+  uint n;                 // Total number of elements in the array
+  uint width;             // Current width of each sorted subsequence
+  uint num_pairs;         // Number of pairs to merge
+}
+pc;
+
+// Define the local workgroup size
+layout(local_size_x = LOCAL_SIZE_X) in;
+
+void main() {
+  // Map Vulkan's built-in variables to CUDA's thread and block indices
+  const uint threadIdx_x = gl_LocalInvocationID.x;
+  const uint blockIdx_x = gl_WorkGroupID.x;
+  const uint blockDim_x = gl_WorkGroupSize.x;
+  const uint gridDim_x = gl_NumWorkGroups.x;
+
+  // Emulate additional blocks if necessary
+  for (uint emulated_block_idx = blockIdx_x;
+       emulated_block_idx < pc.n_logical_blocks;
+       emulated_block_idx += gridDim_x) {
+    uint pair_idx = emulated_block_idx * blockDim_x + threadIdx_x;
+    if (pair_idx >= pc.num_pairs) continue;
+
+    uint left_start = pair_idx * 2 * pc.width;
+    uint right_start = left_start + pc.width;
+    uint left_end = min(right_start, pc.n);
+    uint right_end = min(right_start + pc.width, pc.n);
+
+    uint i = left_start;
+    uint j = right_start;
+    uint k = left_start;
+
+    // Standard merge operation
+    while (i < left_end && j < right_end) {
+      if (u_input[i] <= u_input[j]) {
+        u_alt[k++] = u_input[i++];
+      } else {
+        u_alt[k++] = u_input[j++];
+      }
+    }
+
+    // Copy any remaining elements from the left subsequence
+    while (i < left_end) {
+      u_alt[k++] = u_input[i++];
+    }
+
+    // Copy any remaining elements from the right subsequence
+    while (j < right_end) {
+      u_alt[k++] = u_input[j++];
+    }
+  }
+}

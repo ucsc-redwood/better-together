@@ -1,0 +1,113 @@
+#pragma once
+
+#include <spdlog/spdlog.h>
+
+#include <CLI/CLI.hpp>
+#include <optional>
+#include <vector>
+
+#include "conf.hpp"
+
+inline std::string g_device_id;
+inline std::string g_spdlog_log_level;
+
+// cores
+inline std::vector<int> g_lit_cores;
+inline std::vector<int> g_med_cores;
+inline std::vector<int> g_big_cores;
+inline std::vector<int> g_sup_cores;
+
+[[nodiscard]] static inline bool has_lit_cores() { return !g_lit_cores.empty(); }
+[[nodiscard]] static inline bool has_med_cores() { return !g_med_cores.empty(); }
+[[nodiscard]] static inline bool has_big_cores() { return !g_big_cores.empty(); }
+[[nodiscard]] static inline bool has_sup_cores() { return !g_sup_cores.empty(); }
+
+[[nodiscard]] static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
+  switch (core_type) {
+    case ProcessorType::kLittleCore:
+      return g_lit_cores;
+    case ProcessorType::kMediumCore:
+      return g_med_cores;
+    case ProcessorType::kBigCore:
+      return g_big_cores;
+    case ProcessorType::kSuperCore:
+      return g_sup_cores;
+    default:
+      throw std::invalid_argument("Invalid core type");
+  }
+}
+
+[[nodiscard]] static inline std::optional<std::vector<int>> get_cpu_cores_by_type(
+    const ProcessorType core_type) {
+  switch (core_type) {
+    case ProcessorType::kLittleCore:
+      return g_lit_cores;
+    case ProcessorType::kMediumCore:
+      return g_med_cores;
+    case ProcessorType::kBigCore:
+      return g_big_cores;
+    case ProcessorType::kSuperCore:
+      return g_sup_cores;
+    default:
+      return std::nullopt;
+  }
+}
+
+// Define macros for clearer test code
+#define LITTLE_CORES g_lit_cores, g_lit_cores.size()
+#define MEDIUM_CORES g_med_cores, g_med_cores.size()
+#define BIG_CORES g_big_cores, g_big_cores.size()
+#define SUPER_CORES g_sup_cores, g_sup_cores.size()
+
+[[nodiscard]] size_t get_vulkan_warp_size();
+
+#define PARSE_ARGS_BEGIN CLI::App app{"default"};
+
+// this way we can add app.add_option() before PARSE_ARGS_END to add additional options
+
+#define PARSE_ARGS_END                                                                    \
+  app.add_option("-d,--device", g_device_id, "Device ID")->required();                    \
+  app.add_option("-l,--log-level", g_spdlog_log_level, "Log level")->default_val("info"); \
+  app.allow_extras();                                                                     \
+  CLI11_PARSE(app, argc, argv);                                                           \
+  if (g_device_id.empty()) {                                                              \
+    throw std::runtime_error("Device ID is required");                                    \
+    exit(1);                                                                              \
+  }                                                                                       \
+  auto& registry = GlobalDeviceRegistry();                                                \
+  try {                                                                                   \
+    const Device& device = registry.getDevice(g_device_id);                               \
+    auto littleCores = device.getCores(ProcessorType::kLittleCore);                       \
+    auto mediumCores = device.getCores(ProcessorType::kMediumCore);                       \
+    auto bigCores = device.getCores(ProcessorType::kBigCore);                             \
+    auto supCores = device.getCores(ProcessorType::kSuperCore);                           \
+    std::string little_cores_str;                                                         \
+    for (const auto& core : littleCores) {                                                \
+      little_cores_str += std::to_string(core.id) + " ";                                  \
+      g_lit_cores.push_back(core.id);                                                     \
+    }                                                                                     \
+    spdlog::info("Pinable Lit cores: {}", little_cores_str);                              \
+    std::string medium_cores_str;                                                         \
+    for (const auto& core : mediumCores) {                                                \
+      medium_cores_str += std::to_string(core.id) + " ";                                  \
+      g_med_cores.push_back(core.id);                                                     \
+    }                                                                                     \
+    spdlog::info("Pinable Med cores: {}", medium_cores_str);                              \
+    std::string big_cores_str;                                                            \
+    for (const auto& core : bigCores) {                                                   \
+      big_cores_str += std::to_string(core.id) + " ";                                     \
+      g_big_cores.push_back(core.id);                                                     \
+    }                                                                                     \
+    spdlog::info("Pinable Big cores: {}", big_cores_str);                                 \
+    std::string sup_cores_str;                                                            \
+    for (const auto& core : supCores) {                                                   \
+      sup_cores_str += std::to_string(core.id) + " ";                                     \
+      g_sup_cores.push_back(core.id);                                                     \
+    }                                                                                     \
+    spdlog::info("Pinable Sup cores: {}", sup_cores_str);                                 \
+  } catch (const std::exception& e) {                                                     \
+    std::cerr << e.what() << std::endl;                                                   \
+    return 1;                                                                             \
+  }
+
+int parse_args(int argc, char** argv);

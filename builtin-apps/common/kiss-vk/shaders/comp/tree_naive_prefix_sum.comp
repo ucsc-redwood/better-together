@@ -1,0 +1,23 @@
+#version 460
+
+layout(local_size_x = 1) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  uint inputData[];
+};
+layout(std430, set = 0, binding = 1) buffer OutputBuffer { uint outputData[]; };
+
+layout(push_constant) uniform Constants { uint inputSize; };
+
+void main() {
+  // Single thread does all the work
+  if (gl_GlobalInvocationID.x == 0) {
+    // First element is copied as-is
+    outputData[0] = inputData[0];
+
+    // Each subsequent element adds the previous sum
+    for (uint i = 1; i < inputSize; i++) {
+      outputData[i] = inputData[i] + outputData[i - 1];
+    }
+  }
+}
