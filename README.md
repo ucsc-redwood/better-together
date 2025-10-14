@@ -10,6 +10,14 @@
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 
+### Supported Backends
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Vulkan-AC162C?style=for-the-badge&logo=vulkan&logoColor=white" alt="Vulkan"/>
+  <img src="https://img.shields.io/badge/CUDA-76B900?style=for-the-badge&logo=nvidia&logoColor=white" alt="CUDA"/>
+  <img src="https://img.shields.io/badge/OpenMP-0071C5?style=for-the-badge&logo=openmp&logoColor=white" alt="OpenMP"/>
+</p>
+
 **Keywords**: Edge Computing • Heterogeneous Computing • GPU Computing • Pipeline Parallelism • Performance Modeling • Scheduling Algorithms
 
 </div>
@@ -23,7 +31,6 @@
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
 - [Configuration Files](#configuration-files)
-- [Performance Results](#performance-results)
 - [Advanced Usage](#advanced-usage)
 - [Publications & Citation](#publications--citation)
 
@@ -370,47 +377,10 @@ just compare-schedules <device> <app> <backend> <num_schedules>
 
 ---
 
-## Performance Results
-
-BetterTogether demonstrates significant performance improvements through accurate performance modeling and intelligent scheduling:
-
-### Speedups vs. Homogeneous Baselines
-
-- **Geomean speedup**: **2.14×** over GPU-only baselines across all workload-platform combinations
-- **Maximum speedup**: **7.59×** over GPU-only execution
-- **CPU-only comparison**: Even larger speedups when compared to CPU-only implementations
-- **Consistency**: Outperforms homogeneous implementations in nearly all evaluated cases
-
-### Model Accuracy
-
-- **Strong correlation** between BTPM-predicted and measured latencies
-- Prior isolated profiling techniques show **low correlation**, especially for ARM and NVIDIA SoCs on sparse workloads
-- Traditional models can have prediction errors up to **57-60%** in latency estimation
-- BTPM captures **intra-application interference**, critical for accurate predictions
-
-### Evaluated Platforms
-
-| Device | CPU | GPU | Vendor |
-|--------|-----|-----|--------|
-| Google Pixel 7a | 2×Cortex-X1 (big)<br>2×Cortex-A78 (med)<br>4×Cortex-A55 (little) | Arm Mali-G710 | Google Tensor G2 |
-| OnePlus 11 | 1×Cortex-X3 (super)<br>3×Cortex-A715 (big)<br>4×Cortex-A510 (little) | Qualcomm Adreno 740 | Qualcomm Snapdragon 8 Gen 2 |
-| NVIDIA Jetson Nano | 4×Cortex-A57 | NVIDIA Maxwell (128 CUDA cores) | NVIDIA Tegra X1 |
-
-### Key Observations
-
-- **Heterogeneity matters**: Different stages prefer different PUs (e.g., sorting on CPU, tree construction on GPU)
-- **Interference is real**: Execution time differences of up to **2.25×** observed with vs. without background load
-- **Portability proven**: Effective schedules generated across three different GPU vendors (Arm, Qualcomm, NVIDIA)
-- **EdgeTPU potential**: Preliminary exploration shows promise for AI accelerator integration
-
-*(See `scripts/paper_figures/` for detailed performance analysis and visualization tools)*
-
----
-
 ## Publications & Citation
 
 ```bibtex
-to be added
+Just presented at IISWC 2025, the citation is coming soon
 ```
 
 ---
