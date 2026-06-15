@@ -1,0 +1,65 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "pc",
+      "displayName": "PC native (x86_64, OpenMP) — test on this host",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/pc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BT_ENABLE_CUDA": "OFF",
+        "BT_ENABLE_VULKAN": "OFF",
+        "BT_TEST_DEVICE": "pc"
+      }
+    },
+    {
+      "name": "jetson",
+      "displayName": "Jetson Orin (aarch64, CUDA sm_87 + Vulkan) — run inside Dockerfile.cross",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/jetson",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/jetson-aarch64.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BT_ENABLE_CUDA": "ON",
+        "BT_ENABLE_VULKAN": "ON",
+        "BT_CUDA_ARCH": "87",
+        "BT_TEST_DEVICE": "jetson",
+        "CPM_SOURCE_CACHE": "${sourceDir}/build/.cpm-cache"
+      }
+    },
+    {
+      "name": "vulkan",
+      "displayName": "Vulkan native (x86_64) — scp to an integrated-GPU box (rocky-ryzen)",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/vulkan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BT_ENABLE_CUDA": "OFF",
+        "BT_ENABLE_VULKAN": "ON",
+        "BT_TEST_DEVICE": "minipc"
+      }
+    },
+    {
+      "name": "android",
+      "displayName": "Android arm64-v8a (Vulkan) — needs ANDROID_NDK_HOME",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/android",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/android-arm64.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BT_ENABLE_CUDA": "OFF",
+        "BT_ENABLE_VULKAN": "ON",
+        "BT_BUILD_TESTS": "ON",
+        "BT_TEST_DEVICE": "android"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "pc", "configurePreset": "pc" },
+    { "name": "jetson", "configurePreset": "jetson" },
+    { "name": "vulkan", "configurePreset": "vulkan" },
+    { "name": "android", "configurePreset": "android" }
+  ]
+}

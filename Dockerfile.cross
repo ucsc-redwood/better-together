@@ -1,0 +1,22 @@
+# Reproducible cross-compile environment for the Jetson Orin CUDA backend.
+#
+#   docker build -t bt-cross:6.1 -f Dockerfile.cross .
+#   # then: cmake --preset jetson && cmake --build --preset jetson   (inside the image)
+#   # or just run scripts/cross-build-jetson.sh
+#
+# Base = NVIDIA's x86 cross-compile image: native nvcc 12.6 + aarch64-linux-gnu-g++-11
+# + a JetPack sysroot, matching JetPack 6.x (Ubuntu 22.04, glibc 2.35, sm_87).
+# We only add a current CMake (the base ships 3.22.1, too old for CUDA_STANDARD 20).
+FROM nvcr.io/nvidia/jetpack-linux-aarch64-crosscompile-x86:6.1
+
+ARG CMAKE_VERSION=3.31.6
+RUN wget -qO /tmp/cmake.tgz \
+      "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" \
+ && tar -xzf /tmp/cmake.tgz -C /opt \
+ && rm /tmp/cmake.tgz \
+ && ln -sf "/opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/cmake" /usr/local/bin/cmake \
+ && ln -sf "/opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/ctest" /usr/local/bin/ctest
+
+# Put nvcc on PATH (so ptxas/cicc resolve) — toolchain file pins the absolute path too.
+ENV PATH=/usr/local/cuda-12.6/bin:${PATH}
+WORKDIR /workspace
