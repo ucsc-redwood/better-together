@@ -52,7 +52,8 @@
         "BT_ENABLE_CUDA": "OFF",
         "BT_ENABLE_VULKAN": "ON",
         "BT_BUILD_TESTS": "ON",
-        "BT_TEST_DEVICE": "android"
+        "BT_TEST_DEVICE": "android",
+        "BT_ANDROID_NDK_VERSION": "29.0.14206865"
       }
     }
   ],

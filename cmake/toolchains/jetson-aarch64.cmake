@@ -10,7 +10,14 @@ set(CMAKE_C_COMPILER   aarch64-linux-gnu-gcc)
 set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
 
 # CUDA: x86 nvcc emitting aarch64 host code via the cross g++; statically links cudart.
-set(CMAKE_CUDA_COMPILER       /usr/local/cuda-12.6/bin/nvcc)
+# Resolve nvcc from $CUDACXX, else the NVIDIA cross container's default (CUDA 12.6),
+# else leave it for CMake to find on PATH. Must be a CUDA that matches the target
+# JetPack (12.6 for JetPack 6.x); the Dockerfile.cross image provides it.
+if(DEFINED ENV{CUDACXX})
+  set(CMAKE_CUDA_COMPILER "$ENV{CUDACXX}")
+elseif(EXISTS "/usr/local/cuda-12.6/bin/nvcc")
+  set(CMAKE_CUDA_COMPILER "/usr/local/cuda-12.6/bin/nvcc")
+endif()
 set(CMAKE_CUDA_HOST_COMPILER  aarch64-linux-gnu-g++)
 set(CMAKE_CUDA_ARCHITECTURES  87)
 

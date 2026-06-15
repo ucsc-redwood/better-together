@@ -48,7 +48,9 @@ endif()
 add_library(bt::openmp ALIAS bt_openmp)
 
 # ---- third-party deps (versions mirror xmake's) ---------------------------
-CPMAddPackage("gh:gabime/spdlog@1.14.1")
+# spdlog 1.15.x bundles a newer fmt that compiles cleanly on modern clang
+# (Android NDK r29); 1.14.1's bundled fmt hit a consteval error there.
+CPMAddPackage("gh:gabime/spdlog@1.15.3")
 CPMAddPackage("gh:CLIUtils/CLI11@2.4.2")
 CPMAddPackage(NAME glm GITHUB_REPOSITORY g-truc/glm GIT_TAG 1.0.1)
 CPMAddPackage(NAME libmorton GITHUB_REPOSITORY Forceflow/libmorton GIT_TAG v0.2.12
