@@ -20,9 +20,10 @@ project(better_together
   LANGUAGES CXX)
 
 # ---- options --------------------------------------------------------------
-option(BT_ENABLE_CUDA   "Build the CUDA backend"   ON)
-option(BT_ENABLE_VULKAN "Build the Vulkan backend" OFF)
-option(BT_BUILD_TESTS   "Build unit tests"         ON)
+option(BT_ENABLE_CUDA      "Build the CUDA backend"        ON)
+option(BT_ENABLE_VULKAN    "Build the Vulkan backend"      OFF)
+option(BT_BUILD_TESTS      "Build unit tests"              ON)
+option(BT_BUILD_BENCHMARKS "Build benchmark (bm-*) targets" OFF)
 set(BT_CUDA_ARCH   "87" CACHE STRING "CUDA architecture(s): 87=Orin, 89=Ada")
 set(BT_TEST_DEVICE "pc" CACHE STRING "Device spec passed to tests via --device")
 
@@ -58,6 +59,11 @@ CPMAddPackage(NAME libmorton GITHUB_REPOSITORY Forceflow/libmorton GIT_TAG v0.2.
 if(BT_BUILD_TESTS)
   CPMAddPackage(NAME googletest GITHUB_REPOSITORY google/googletest GIT_TAG v1.17.0
                 OPTIONS "INSTALL_GTEST OFF" "gtest_force_shared_crt ON")
+endif()
+if(BT_BUILD_BENCHMARKS)
+  CPMAddPackage(NAME benchmark GITHUB_REPOSITORY google/benchmark GIT_TAG v1.9.5
+                OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "BENCHMARK_ENABLE_INSTALL OFF"
+                        "BENCHMARK_ENABLE_GTEST_TESTS OFF")
 endif()
 
 # ---- bt::core — shared CPU/OpenMP runtime (tree + cifar OMP dispatchers) ---
@@ -102,6 +108,24 @@ if(BT_ENABLE_CUDA)
   target_compile_options(bt_cuda PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
   target_link_libraries(bt_cuda PUBLIC bt::core)
+
+  # ---- runners (executor / pipeline) — tree slice (RFC Phase C2) ----
+  # NOTE: source currently lives under pipe/; it moves out of pipe/ when the
+  # duplication farm is deleted (RFC Phase C3). Hybrid OMP(stage1)+CUDA(stage2).
+  add_executable(run-pipe-tree-cu pipe/tree-cu/main.cu)
+  set_target_properties(run-pipe-tree-cu PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
+  target_compile_options(run-pipe-tree-cu PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
+  target_link_libraries(run-pipe-tree-cu PRIVATE bt::cuda bt::core bt::openmp)
+
+  # ---- profiler (bm-*) — tree slice (RFC Phase C3); curl-based bm-gen-logs TBD ----
+  if(BT_BUILD_BENCHMARKS)
+    add_executable(bm-baseline-tree-cu pipe/tree-cu/bm_baseline.cu)
+    set_target_properties(bm-baseline-tree-cu PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
+    target_compile_options(bm-baseline-tree-cu PRIVATE
+      $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
+    target_link_libraries(bm-baseline-tree-cu PRIVATE bt::cuda bt::core bt::openmp benchmark::benchmark)
+  endif()
 endif()
 
 # ---- bt::vulkan — Vulkan backend (kiss-vk + tree/cifar dispatchers) --------
