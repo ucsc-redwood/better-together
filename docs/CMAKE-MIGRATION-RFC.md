@@ -174,6 +174,35 @@ CMake target passes the parity gate.
   (87-only on Jetson speeds builds); keep the discrete-GPU Vulkan rejection or add an opt-in
   `eDiscreteGpu` fallback for CI on dGPU boxes.
 
+## Remaining migration plan (decided 2026-06-15)
+
+**Scope decision:** full pipeline parity — migrate the profiler (`bm-*`) and the
+executor (`run-*`) so CMake can run the whole **profile → optimize → execute**
+flow, and **delete the `pipe/` duplication farm** (per §2 Layer-4 / Phase 4)
+rather than porting it. **Retire decision:** conservative — keep xmake as a
+fallback until every needed target is covered and backend parity passes, then
+delete `xmake.lua` and thin out the `justfile`.
+
+Done so far: `bt::core/cuda/vulkan/openmp` libs + the per-(app×backend) unit tests
+(OMP/CUDA/Vulkan), OMP parity vs xmake, real-device runs (Jetson Orin, Galaxy S24,
+Pixel 7a, rocky-ryzen iGPU), `BUILD.md`. Remaining ≈ `bm-*` (30), `run-*` (9),
+octree/sort tests, `query/check/stressor` (8), NNAPI (4).
+
+| Phase | Work | Done when |
+|------|------|-----------|
+| **C1** | Deps + data: add `benchmark`, `nlohmann_json` (then `cnpy`, `libcurl`); wire real cifar `.npy` weights/inputs + resource paths. | tree run/bm link; cifar data loads |
+| **C2** | **Executor** (`run-*`): single-app `main` runners + `run-pipe-*` that read a schedule JSON. Validate by running a shipped schedule. | schedule executes; **parity vs xmake** |
+| **C3** | **Profiler** (`bm-*`): port the core table generators (`bm-gen-logs-*`, `bm-for-table`, `bm-baseline`, `bm-fully`) from `builtin-apps`; **delete `pipe/`**. | CMake-generated table == xmake's |
+| **C4** | End-to-end: CMake profiler → Python z3 optimizer (existing) → CMake executor; compare against shipped data. | full flow reproduces |
+| **C5** | Fill-ins: `test-octree-*`/`test-sort-*`, `query/check/stressor`, octree dispatchers in `bt::core`; NNAPI optional. | targets build/run |
+| **C6** | CI: GitHub Actions Tier-0 — `pc` preset + Vulkan via lavapipe + all backends build-only. | CI green |
+| **C7** | Retire xmake: delete `xmake.lua`/`android.lua`, `justfile` → CMake-preset wrapper, docs. | xmake removed |
+
+Recommended start: a **vertical slice on `tree`** (no `.npy` needed) — `run-tree-cu`
++ `run-pipe-tree-cu` (executor) + the tree profiler `bm-*`, cross-built to the
+Jetson and parity-checked — proves the whole chain end-to-end, then fan out to
+cifar (adds cnpy/`.npy`) and Vulkan, deleting `pipe/` as C3 lands.
+
 ## Appendix B — parity gate results (this session)
 
 OMP/CPU path (the oracle) is parity-verified: the three OMP test binaries built
