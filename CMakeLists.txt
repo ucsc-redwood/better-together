@@ -109,22 +109,25 @@ if(BT_ENABLE_CUDA)
     $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
   target_link_libraries(bt_cuda PUBLIC bt::core)
 
-  # ---- runners (executor / pipeline) — tree slice (RFC Phase C2) ----
-  # NOTE: source currently lives under pipe/; it moves out of pipe/ when the
-  # duplication farm is deleted (RFC Phase C3). Hybrid OMP(stage1)+CUDA(stage2).
-  add_executable(run-pipe-tree-cu pipe/tree-cu/main.cu)
-  set_target_properties(run-pipe-tree-cu PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
-  target_compile_options(run-pipe-tree-cu PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
-  target_link_libraries(run-pipe-tree-cu PRIVATE bt::cuda bt::core bt::openmp)
-
-  # ---- profiler (bm-*) — tree slice (RFC Phase C3); curl-based bm-gen-logs TBD ----
-  if(BT_BUILD_BENCHMARKS)
-    add_executable(bm-baseline-tree-cu pipe/tree-cu/bm_baseline.cu)
-    set_target_properties(bm-baseline-tree-cu PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
-    target_compile_options(bm-baseline-tree-cu PRIVATE
+  # ---- CUDA runners (executor) + benchmarks (profiler) ----
+  # Sources currently under pipe/; they relocate out of pipe/ when the duplication
+  # farm is deleted (RFC Phase C3). curl-based bm-gen-logs is still TBD.
+  function(bt_add_cuda_app name src)
+    add_executable(${name} ${src})
+    set_target_properties(${name} PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
+    target_compile_options(${name} PRIVATE
       $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
-    target_link_libraries(bm-baseline-tree-cu PRIVATE bt::cuda bt::core bt::openmp benchmark::benchmark)
+    target_link_libraries(${name} PRIVATE bt::cuda bt::core bt::openmp ${ARGN})
+  endfunction()
+
+  bt_add_cuda_app(run-pipe-tree-cu         pipe/tree-cu/main.cu)
+  bt_add_cuda_app(run-pipe-cifar-dense-cu  pipe/cifar-dense-cu/main.cu)
+  bt_add_cuda_app(run-pipe-cifar-sparse-cu pipe/cifar-sparse-cu/main.cu)
+
+  if(BT_BUILD_BENCHMARKS)
+    bt_add_cuda_app(bm-baseline-tree-cu         pipe/tree-cu/bm_baseline.cu         benchmark::benchmark)
+    bt_add_cuda_app(bm-baseline-cifar-dense-cu  pipe/cifar-dense-cu/bm_baseline.cu  benchmark::benchmark)
+    bt_add_cuda_app(bm-baseline-cifar-sparse-cu pipe/cifar-sparse-cu/bm_baseline.cu benchmark::benchmark)
   endif()
 endif()
 
@@ -155,6 +158,17 @@ if(BT_ENABLE_VULKAN)
     $<BUILD_INTERFACE:${VulkanHeaders_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${VulkanMemoryAllocator_SOURCE_DIR}/include>)
   target_link_libraries(bt_vulkan PUBLIC bt::core ${CMAKE_DL_LIBS})
+
+  # ---- Vulkan benchmarks (profiler) ----
+  if(BT_BUILD_BENCHMARKS)
+    function(bt_add_vk_app name src)
+      add_executable(${name} ${src})
+      target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp ${ARGN})
+    endfunction()
+    bt_add_vk_app(bm-baseline-tree-vk         pipe/tree-vk/bm_baseline.cpp         benchmark::benchmark)
+    bt_add_vk_app(bm-baseline-cifar-dense-vk  pipe/cifar-dense-vk/bm_baseline.cpp  benchmark::benchmark)
+    bt_add_vk_app(bm-baseline-cifar-sparse-vk pipe/cifar-sparse-vk/bm_baseline.cpp benchmark::benchmark)
+  endif()
 endif()
 
 # ---- tests ----------------------------------------------------------------
