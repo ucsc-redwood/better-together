@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ucsc-redwood/better-together/schemas/device-spec.schema.json",
+  "title": "BetterTogether Device Specification",
+  "description": "Declarative description of a target SoC's CPU core topology and pinning affinity. One file per device under devices/ replaces a hardcoded entry in builtin-apps/conf.cpp. Adding a new SoC should mean dropping a file here, not editing and recompiling C++.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "cores"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Device identifier used to look the device up at runtime (e.g. an adb serial like '3A021JEHN02756', or a logical name like 'jetson'). Must match the file stem."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable model/notes. Informational only; not used at runtime."
+    },
+    "cores": {
+      "type": "array",
+      "minItems": 1,
+      "description": "CPU cores in this device. GPU/accelerator descriptors are a planned schema extension (see docs/REARCHITECTURE.md); today the GPU is implicit per backend.",
+      "items": { "$ref": "#/$defs/core" }
+    }
+  },
+  "$defs": {
+    "core": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "pinnable"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "OS core id passed to sched_setaffinity."
+        },
+        "type": {
+          "enum": ["little", "medium", "big", "super"],
+          "description": "Performance tier; mirrors ProcessorType / CoreTypeName in builtin-apps/conf.hpp."
+        },
+        "pinnable": {
+          "type": "boolean",
+          "description": "Whether the scheduler may pin a worker thread to this core."
+        }
+      }
+    }
+  }
+}

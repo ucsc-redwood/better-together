@@ -1,0 +1,12 @@
+{
+  "id": "jetson",
+  "description": "NVIDIA Jetson Orin Nano (normal power mode): 6 cores, single tier.",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "little", "pinnable": true },
+    { "id": 5, "type": "little", "pinnable": true }
+  ]
+}

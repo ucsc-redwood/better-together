@@ -1,0 +1,14 @@
+{
+  "id": "3A021JEHN02756",
+  "description": "Google Pixel 7a (Tensor G2): 4 little + 2 medium + 2 big.",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "medium", "pinnable": true },
+    { "id": 5, "type": "medium", "pinnable": true },
+    { "id": 6, "type": "big", "pinnable": true },
+    { "id": 7, "type": "big", "pinnable": true }
+  ]
+}

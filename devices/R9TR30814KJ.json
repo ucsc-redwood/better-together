@@ -1,0 +1,14 @@
+{
+  "id": "R9TR30814KJ",
+  "description": "Samsung tablet: 4 little + 4 big; only the last big core (id 7) is pinnable.",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "big", "pinnable": false },
+    { "id": 5, "type": "big", "pinnable": false },
+    { "id": 6, "type": "big", "pinnable": false },
+    { "id": 7, "type": "big", "pinnable": true }
+  ]
+}

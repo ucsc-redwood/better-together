@@ -1,0 +1,16 @@
+{
+  "id": "R5CY21Y3VEV",
+  "description": "Samsung Galaxy (device-reported model SM-S926B): 4 little + 3 medium + 2 big + 1 super.",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "medium", "pinnable": true },
+    { "id": 5, "type": "medium", "pinnable": true },
+    { "id": 6, "type": "medium", "pinnable": true },
+    { "id": 7, "type": "big", "pinnable": true },
+    { "id": 8, "type": "big", "pinnable": true },
+    { "id": 9, "type": "super", "pinnable": true }
+  ]
+}

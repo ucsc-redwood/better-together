@@ -1,0 +1,14 @@
+{
+  "id": "ce0717178d7758b00b7e",
+  "description": "Android device split into LITTLE (cores 4-7) and big (cores 0-3).",
+  "cores": [
+    { "id": 4, "type": "little", "pinnable": true },
+    { "id": 5, "type": "little", "pinnable": true },
+    { "id": 6, "type": "little", "pinnable": true },
+    { "id": 7, "type": "little", "pinnable": true },
+    { "id": 0, "type": "big", "pinnable": true },
+    { "id": 1, "type": "big", "pinnable": true },
+    { "id": 2, "type": "big", "pinnable": true },
+    { "id": 3, "type": "big", "pinnable": true }
+  ]
+}
