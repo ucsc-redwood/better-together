@@ -26,8 +26,18 @@ std::string format_bytes(std::size_t bytes) {
 
 void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t /*alignment*/) {
   void *ptr = nullptr;
+  // NOTE: cudaMemAttachHost is deliberate — it lets a CPU pipeline thread access
+  // these buffers concurrently with GPU kernels running on other items (the
+  // CPU+GPU hybrid that is the point of the paper) on Tegra/Jetson, where
+  // concurrentManagedAccess=0 forbids host access to *global*-attached managed
+  // memory while any kernel runs. BUT the other half is missing: the GPU side
+  // must cudaStreamAttachMemAsync(stream, ptr, 0, cudaMemAttachSingle) before a
+  // kernel uses a buffer and launch that kernel on `stream` — this code never
+  // does, and kernels run on the default stream, so GPU access is racy and the
+  // host reads partial output (see docs/BUGS-FOUND.md §1). Do NOT "fix" this by
+  // switching to global attach: that corrects sequential GPU output but faults
+  // the concurrent CPU thread. The real fix is stream-attach + per-stream launch.
   cudaError_t err = cudaMallocManaged(&ptr, bytes, cudaMemAttachHost);
-  // cudaError_t err = cudaMallocManaged(&ptr, bytes);
   if (err != cudaSuccess) {
     throw std::bad_alloc();
   }

@@ -1,281 +1,40 @@
+#include <cuda_runtime.h>
 #include <gtest/gtest.h>
-
-#include <cstdint>
-#include <queue>
+#include <omp.h>
+#include <spdlog/spdlog.h>
 
 #include "../../app.hpp"
-#include "../omp/dispatchers.hpp"
+#include "../tree_diff_oracle.hpp"
 #include "dispatchers.cuh"
 
 // ----------------------------------------------------------------------------
-// test Stage 1
+// Tree × CUDA differential oracle. CUDA dispatches each stage into the same
+// SafeAppData _out buffers; the OMP golden (computed host-side at construction)
+// is the reference. Same BT_DECLARE expansion as the OMP suite, only the Runner
+// differs. GTEST_SKIPs when no CUDA device is present (e.g. desktop CI box).
 // ----------------------------------------------------------------------------
 
-TEST(Stage1Test, Basic) {
+namespace {
+struct CudaTreeRunner {
   tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  const std::vector<uint32_t> before(appdata.u_morton_keys_s1_out.begin(),
-                                  appdata.u_morton_keys_s1_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
-
-  const std::vector<uint32_t> after(appdata.u_morton_keys_s1_out.begin(),
-                                 appdata.u_morton_keys_s1_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 2
-// ----------------------------------------------------------------------------
-
-TEST(Stage2Test, Basic) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run stage 1 first
-  disp.dispatch_stage(appdata, 1);
-
-  const std::vector<uint32_t> before(appdata.u_morton_keys_sorted_s2_out.begin(),
-                                     appdata.u_morton_keys_sorted_s2_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2)) << "Stage 2 should not throw";
-
-  const std::vector<uint32_t> after(appdata.u_morton_keys_sorted_s2_out.begin(),
-                                    appdata.u_morton_keys_sorted_s2_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 3
-// ----------------------------------------------------------------------------
-
-TEST(Stage3Test, Basic) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run previous stages
-  disp.dispatch_multi_stage(appdata, 1, 2);
-
-  const std::vector<uint32_t> before(appdata.u_morton_keys_unique_s3_out.begin(),
-                                     appdata.u_morton_keys_unique_s3_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3)) << "Stage 3 should not throw";
-
-  const std::vector<uint32_t> after(appdata.u_morton_keys_unique_s3_out.begin(),
-                                    appdata.u_morton_keys_unique_s3_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 4
-// ----------------------------------------------------------------------------
-
-TEST(Stage4Test, Basic) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run previous stages
-  disp.dispatch_multi_stage(appdata, 1, 3);
-
-  const std::vector<uint8_t> before(appdata.u_brt_prefix_n_s4_out.begin(),
-                                    appdata.u_brt_prefix_n_s4_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4)) << "Stage 4 should not throw";
-
-  const std::vector<uint8_t> after(appdata.u_brt_prefix_n_s4_out.begin(),
-                                   appdata.u_brt_prefix_n_s4_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 5
-// ----------------------------------------------------------------------------
-
-TEST(Stage5Test, Basic) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run previous stages
-  disp.dispatch_multi_stage(appdata, 1, 4);
-
-  const std::vector<int32_t> before(appdata.u_edge_count_s5_out.begin(),
-                                    appdata.u_edge_count_s5_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5)) << "Stage 5 should not throw";
-
-  const std::vector<int32_t> after(appdata.u_edge_count_s5_out.begin(),
-                                   appdata.u_edge_count_s5_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 6
-// ----------------------------------------------------------------------------
-
-TEST(Stage6Test, Basic) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run previous stages
-  disp.dispatch_multi_stage(appdata, 1, 5);
-
-  const std::vector<int32_t> before(appdata.u_edge_offset_s6_out.begin(),
-                                    appdata.u_edge_offset_s6_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6)) << "Stage 6 should not throw";
-
-  const std::vector<int32_t> after(appdata.u_edge_offset_s6_out.begin(),
-                                   appdata.u_edge_offset_s6_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-// ----------------------------------------------------------------------------
-// test Stage 7
-// ----------------------------------------------------------------------------
-
-TEST(Stage7Test, Basic) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run previous stages
-  disp.dispatch_multi_stage(appdata, 1, 6);
-
-  const std::vector<float> before(appdata.u_oct_cell_size_s7_out.begin(),
-                                  appdata.u_oct_cell_size_s7_out.end());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7)) << "Stage 7 should not throw";
-
-  const std::vector<float> after(appdata.u_oct_cell_size_s7_out.begin(),
-                                 appdata.u_oct_cell_size_s7_out.end());
-
-  const bool is_different = !std::ranges::equal(before, after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// Test Mixing Omp and Vulkan
-// ----------------------------------------------------------------------------
-
-TEST(MixingTest, VulkanThenOmp) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
-  EXPECT_NO_THROW(tree::omp::run_stage_2(appdata));
-}
-
-TEST(MixingTest, OmpThenVulkan) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  EXPECT_NO_THROW(tree::omp::run_stage_1(appdata));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
-}
-
-TEST(MixingTest, MultipleStages) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run first 3 stages with CUDA
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
-
-  // Run next 2 stages with OMP
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
-
-  // Run final stages with CUDA
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
-}
-
-TEST(MixingTest, AlternatingStages) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Alternate between CUDA and OMP for each stage
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 2));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 4));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 6));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
-}
-
-TEST(MixingTest, MixedBatch) {
-  tree::cuda::CudaDispatcher disp;
-  tree::SafeAppData appdata(&disp.get_mr());
-
-  // Run first half with CUDA
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 2));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 3));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 4));
-
-  // Run second half with OMP
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 5));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 6));
-  EXPECT_NO_THROW(disp.dispatch_stage(appdata, 7));
-}
-
-// ----------------------------------------------------------------------------
-// Test Queue environment
-// ----------------------------------------------------------------------------
-
-TEST(QueueTest, Basic) {
-  tree::cuda::CudaDispatcher disp;
-
-  std::vector<std::shared_ptr<tree::SafeAppData>> appdatas;
-  appdatas.reserve(10);
-  for (int i = 0; i < 10; i++) {
-    appdatas.push_back(std::make_shared<tree::SafeAppData>(&disp.get_mr()));
+  static bool Available() {
+    int n = 0;
+    return cudaGetDeviceCount(&n) == cudaSuccess && n > 0;
   }
+  std::pmr::memory_resource* Mr() { return &disp.get_mr(); }
+  void RunStage(tree::SafeAppData& a, int stage) { disp.dispatch_stage(a, stage); }
+};
+}  // namespace
 
-  std::queue<std::shared_ptr<tree::SafeAppData>> queue;
-  for (auto& appdata : appdatas) {
-    queue.push(appdata);
-  }
-
-  while (!queue.empty()) {
-    auto appdata = queue.front();
-    queue.pop();
-
-    EXPECT_NO_THROW(disp.dispatch_multi_stage(*appdata, 1, 7));
-  }
-
-  EXPECT_TRUE(queue.empty());
-}
-
-// ----------------------------------------------------------------------------
-// Main
-// ----------------------------------------------------------------------------
+BT_DECLARE_TREE_DIFF_TESTS(TreeDiffCuda, CudaTreeRunner)
 
 int main(int argc, char** argv) {
-  parse_args(argc, argv);
-
-  spdlog::set_level(spdlog::level::off);
-
   ::testing::InitGoogleTest(&argc, argv);
+  parse_args_test(argc, argv);
+  spdlog::set_level(spdlog::level::off);
+  // The host-side golden uses OMP for the radix-tree / octree builds, which are
+  // order-nondeterministic in parallel; pin it single-threaded so the reference
+  // is stable (matches the OMP suite). CUDA execution is unaffected.
+  omp_set_num_threads(1);
   return RUN_ALL_TESTS();
 }
