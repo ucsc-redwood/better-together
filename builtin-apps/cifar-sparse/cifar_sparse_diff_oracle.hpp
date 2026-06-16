@@ -2,12 +2,11 @@
 // ----------------------------------------------------------------------------
 // cifar-sparse differential-oracle harness (backend-parametrized).
 //
-// IMPORTANT: the shipped cifar_sparse::AppData fills only CSRMatrix::values and
-// leaves row_ptr / col_idx all-zero, so the sparse kernels iterate empty rows
-// and the whole pipeline computes zeros (verified). To get real ground truth we
-// build a deterministic *valid* CSR from the seeded values in-test (PopulateCsr)
-// before running any stage — this does not touch shipped code. The shipped
-// empty-CSR defect is surfaced separately by a guard test in test_main.
+// The shipped cifar_sparse::AppData now builds a real CSR in its constructor
+// (CSRMatrix::build_from_dense) from the seeded dense weights, so the sparse
+// kernels run actual convolutions. (Previously it left row_ptr/col_idx all-zero
+// and the pipeline computed zeros; the regression guard in test_main asserts the
+// shipped CSR is non-empty.)
 //
 // Each stage's output is then checked against an independent double-precision
 // reference (bt::testing::cnn) computed from the SAME CSR (densified) and the
@@ -36,40 +35,6 @@ inline constexpr float kAtol = 1e-4f;
 // reference chained from the seed (densified CSR). Looser tol — error accumulates.
 inline constexpr float kE2eRtol = 5e-3f;
 inline constexpr float kE2eAtol = 5e-3f;
-
-// Build a deterministic valid CSR in place from the dense `values` the AppData
-// seeded. Keeps a fixed ~3/4 subset of columns per row (so rows have varying,
-// non-trivial nnz that exercises the kernel's index decode), compacting the kept
-// weights into values[0..nnz) with matching col_idx / row_ptr.
-inline void PopulateCsr(cifar_sparse::CSRMatrix& m) {
-  auto& vals = m.values_pmr_vec();
-  auto& rptr = m.row_ptr_pmr_vec();
-  auto& cidx = m.col_idx_pmr_vec();
-  std::vector<float> kept;
-  kept.reserve(static_cast<std::size_t>(m.rows) * m.cols);
-  int nz = 0;
-  rptr[0] = 0;
-  for (int r = 0; r < m.rows; ++r) {
-    for (int c = 0; c < m.cols; ++c) {
-      if (((r * 131 + c * 17) % 4) != 0) {  // deterministic keep pattern
-        cidx[nz] = c;
-        kept.push_back(vals[static_cast<std::size_t>(r) * m.cols + c]);
-        ++nz;
-      }
-    }
-    rptr[r + 1] = nz;
-  }
-  for (int i = 0; i < nz; ++i) vals[i] = kept[i];  // compact (aliasing-safe via `kept`)
-}
-
-inline void PopulateAllCsr(cifar_sparse::AppData& a) {
-  PopulateCsr(a.conv1_sparse);
-  PopulateCsr(a.conv2_sparse);
-  PopulateCsr(a.conv3_sparse);
-  PopulateCsr(a.conv4_sparse);
-  PopulateCsr(a.conv5_sparse);
-  PopulateCsr(a.linear_sparse);
-}
 
 // Densify a CSR into a row-major (rows x cols) dense matrix.
 inline std::vector<float> Densify(const cifar_sparse::CSRMatrix& m) {
@@ -128,8 +93,7 @@ inline void RunAndCheckStage(int s) {
     GTEST_SKIP() << "backend device not available on this target";
   }
   Runner runner;
-  AppData a(runner.Mr());
-  PopulateAllCsr(a);  // shipped AppData leaves the CSR empty; build a valid one in-test
+  AppData a(runner.Mr());  // ctor builds a real CSR (CSRMatrix::build_from_dense)
   for (int i = 1; i <= s; ++i) runner.RunStage(a, i);
   CheckStage(a, s);
 }
@@ -186,8 +150,7 @@ inline void RunFullAndCheckFinal() {
     GTEST_SKIP() << "backend device not available on this target";
   }
   Runner runner;
-  AppData a(runner.Mr());
-  PopulateAllCsr(a);
+  AppData a(runner.Mr());  // ctor builds a real CSR (CSRMatrix::build_from_dense)
   for (int i = 1; i <= 9; ++i) runner.RunStage(a, i);
   CheckFinalPipeline(a);
 }

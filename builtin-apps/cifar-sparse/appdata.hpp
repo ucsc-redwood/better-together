@@ -24,7 +24,7 @@ constexpr bool kRelu = true;
 struct CSRMatrix {
   const int rows;
   const int cols;
-  const int nnz;
+  int nnz;  // set by build_from_dense() once the dense `values` are seeded
   std::pmr::vector<float> values;
   std::pmr::vector<int> row_ptr;
   std::pmr::vector<int> col_idx;
@@ -39,6 +39,33 @@ struct CSRMatrix {
         values(r * c, 0.0f, mr),
         row_ptr(r + 1, 0, mr),
         col_idx(r * c, 0, mr) {}
+
+  // Build a valid CSR in place from the dense (rows*cols, row-major) weights that
+  // were seeded into `values`. Without this the matrix ships with row_ptr/col_idx
+  // all-zero (nnz=0) and the sparse kernels iterate empty rows -> the whole
+  // pipeline computes zeros. Keeps a deterministic ~3/4 subset of entries per row
+  // so rows have varying, non-trivial nnz that exercises the kernel's CSR decode,
+  // compacting the kept weights into values[0..nnz) with matching col_idx/row_ptr.
+  // Must be called exactly once, right after the dense values are written (it
+  // overwrites the values layout in place).
+  void build_from_dense() {
+    std::vector<float> kept;
+    kept.reserve(static_cast<size_t>(rows) * cols);
+    int nz = 0;
+    row_ptr[0] = 0;
+    for (int r = 0; r < rows; ++r) {
+      for (int c = 0; c < cols; ++c) {
+        if (((r * 131 + c * 17) % 4) != 0) {  // deterministic keep pattern
+          col_idx[nz] = c;
+          kept.push_back(values[r * cols + c]);
+          ++nz;
+        }
+      }
+      row_ptr[r + 1] = nz;
+    }
+    for (int i = 0; i < nz; ++i) values[i] = kept[i];  // compact (aliasing-safe via `kept`)
+    nnz = nz;
+  }
 
   // Get raw pointers for compatibility with old code
   [[nodiscard]] const float* values_data() const { return values.data(); }
@@ -99,6 +126,16 @@ struct AppData final : public BaseAppData {
     std::ranges::generate(conv4_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
     std::ranges::generate(conv5_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
     std::ranges::generate(linear_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+
+    // Turn the dense seeded weights into a real CSR so the shipped sparse
+    // pipeline computes actual convolutions instead of zeros (was a latent defect
+    // -- the CSR index structure was never built; see CSRMatrix::build_from_dense).
+    conv1_sparse.build_from_dense();
+    conv2_sparse.build_from_dense();
+    conv3_sparse.build_from_dense();
+    conv4_sparse.build_from_dense();
+    conv5_sparse.build_from_dense();
+    linear_sparse.build_from_dense();
 
     std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_conv2_b.pmr_vec(), 0.0f);

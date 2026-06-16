@@ -26,19 +26,19 @@ struct OmpRunner {
 
 BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(CifarSparseDiffOmp, OmpRunner)
 
-// Shipped-path assertion (NOT a skip): the shipped AppData must build real CSR
-// indices. Today it leaves row_ptr/col_idx all-zero (nnz=0), so the shipped sparse
-// pipeline computes all zeros — the differential tests work around it with an
-// in-test CSR. This FAILS by design until that's fixed, so the green suite can no
-// longer hide that the SHIPPED application is broken (BUGS-FOUND §5). The fix is to
-// build the CSR in AppData::initialize() (which needs nnz to be non-const).
+// Shipped-path regression guard: the shipped AppData must build real CSR indices
+// (CSRMatrix::build_from_dense in the ctor). A regression to the old behavior --
+// leaving row_ptr/col_idx all-zero (nnz=0) -- would make the sparse pipeline
+// compute all zeros while the differential tests (which run the same shipped
+// ctor) silently still pass against a zero reference. This catches that (§5).
 TEST(CifarSparseAppData, ShippedCsrIndicesAreNonEmpty) {
   cifar_sparse::AppData a(std::pmr::new_delete_resource());
   const auto& rptr = a.conv1_sparse.row_ptr;
   const long row_ptr_sum = std::accumulate(rptr.begin(), rptr.end(), 0L);
   EXPECT_GT(row_ptr_sum, 0)
-      << "cifar_sparse::AppData leaves the CSR empty (nnz=0) -> the shipped sparse pipeline "
-         "outputs all zeros. Build the CSR in AppData::initialize() for a faithful sparse run.";
+      << "cifar_sparse::AppData shipped with an empty CSR (nnz=0) -> the sparse pipeline "
+         "outputs all zeros. CSRMatrix::build_from_dense must run in the ctor.";
+  EXPECT_GT(a.conv1_sparse.nnz, 0) << "conv1 CSR has no nonzeros";
 }
 
 int main(int argc, char** argv) {
