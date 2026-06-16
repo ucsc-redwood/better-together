@@ -16,7 +16,7 @@ size_t get_vulkan_warp_size() {
       {"jetson", 32},                // NVIDIA Tegra Orin (nvgpu)
       {"jetsonlowpower", 32},        // NVIDIA Tegra Orin (nvgpu)
       {"mba", 32},                   // Apple M4
-      {"R5CY21Y3VEV", 32},           // Samsung s25
+      {"R5CY21Y3VEV", 32},           // Samsung Galaxy S24 (SM-S926B), Xclipse 940
   };
 
   auto it = device_warp_sizes.find(g_device_id);

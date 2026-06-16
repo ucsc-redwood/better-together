@@ -58,8 +58,10 @@ class Device {
     return result;
   }
 
-  // Get all pinnable cores (optionally filtered by type).
-  std::vector<Core> getPinnableCores(ProcessorType type = ProcessorType::kLittleCore) const {
+  // Get pinnable cores of a specific type. NOTE: no default -- a missing arg used
+  // to silently mean "little cores only", which is easily mistaken for
+  // getAllPinnableCores() (all types). Callers must name the tier explicitly.
+  std::vector<Core> getPinnableCores(ProcessorType type) const {
     std::vector<Core> result;
     for (const auto& core : cores_) {
       if (core.pinnable && core.type == type) result.push_back(core);
