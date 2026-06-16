@@ -83,6 +83,32 @@ target_include_directories(bt_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOUR
 target_link_libraries(bt_core PUBLIC
   spdlog::spdlog CLI11::CLI11 glm::glm libmorton bt::openmp)
 
+# ---- OMP single-app runners (executor; BT-Implementer single-app smoke) -----
+# Always built (not gated behind BT_BUILD_BENCHMARKS). ${ARGN} lets a runner
+# pull in its app's dispatcher .cpp when it isn't part of bt::core (e.g. octree).
+function(bt_add_omp_run name src)
+  add_executable(${name} ${src} ${ARGN})
+  target_link_libraries(${name} PRIVATE bt::core bt::openmp)
+endfunction()
+
+bt_add_omp_run(run-cifar-dense-omp builtin-apps/cifar-dense/omp/main.cpp)
+# octree/omp dispatchers aren't in bt::core, so pull them in here (like the test).
+bt_add_omp_run(run-octree-omp      builtin-apps/octree/omp/main.cpp
+                                   builtin-apps/octree/omp/dispatchers.cpp)
+
+# ---- OMP per-stage benchmarks (profiler; the paper's per-stage table) ------
+# bm_main.cpp registers one Google-benchmark per stage (BM_Stage1..N). Isolated
+# per-stage latency on the CPU/OMP backend. (Interference-aware bm-table-* is C3.)
+if(BT_BUILD_BENCHMARKS)
+  function(bt_add_omp_app name src)
+    add_executable(${name} ${src})
+    target_link_libraries(${name} PRIVATE bt::core bt::openmp ${ARGN})
+  endfunction()
+  bt_add_omp_app(bm-tree-omp         builtin-apps/tree/omp/bm_main.cpp         benchmark::benchmark)
+  bt_add_omp_app(bm-cifar-dense-omp  builtin-apps/cifar-dense/omp/bm_main.cpp  benchmark::benchmark)
+  bt_add_omp_app(bm-cifar-sparse-omp builtin-apps/cifar-sparse/omp/bm_main.cpp benchmark::benchmark)
+endif()
+
 # ---- bt::cuda — CUDA backend (tree + cifar) -------------------------------
 if(BT_ENABLE_CUDA)
   enable_language(CUDA)
@@ -124,10 +150,18 @@ if(BT_ENABLE_CUDA)
   bt_add_cuda_app(run-pipe-cifar-dense-cu  pipe/cifar-dense-cu/main.cu)
   bt_add_cuda_app(run-pipe-cifar-sparse-cu pipe/cifar-sparse-cu/main.cu)
 
+  # Single-app CUDA runners (BT-Implementer per-app smoke; sources in builtin-apps).
+  bt_add_cuda_app(run-tree-cu          builtin-apps/tree/cuda/main.cu)
+  bt_add_cuda_app(run-cifar-dense-cu   builtin-apps/cifar-dense/cuda/main.cu)
+  bt_add_cuda_app(run-cifar-sparse-cu  builtin-apps/cifar-sparse/cuda/main.cu)
+
   if(BT_BUILD_BENCHMARKS)
     bt_add_cuda_app(bm-baseline-tree-cu         pipe/tree-cu/bm_baseline.cu         benchmark::benchmark)
     bt_add_cuda_app(bm-baseline-cifar-dense-cu  pipe/cifar-dense-cu/bm_baseline.cu  benchmark::benchmark)
     bt_add_cuda_app(bm-baseline-cifar-sparse-cu pipe/cifar-sparse-cu/bm_baseline.cu benchmark::benchmark)
+    # per-stage (BM_Stage1..N) — tree/cuda has no bm_main.cu upstream, only cifar
+    bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
+    bt_add_cuda_app(bm-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
   endif()
 endif()
 
@@ -159,6 +193,18 @@ if(BT_ENABLE_VULKAN)
     $<BUILD_INTERFACE:${VulkanMemoryAllocator_SOURCE_DIR}/include>)
   target_link_libraries(bt_vulkan PUBLIC bt::core ${CMAKE_DL_LIBS})
 
+  # ---- Vulkan single-app runners (executor) ----
+  # Always built when Vulkan is enabled (not gated behind BT_BUILD_BENCHMARKS).
+  function(bt_add_vk_run name src)
+    add_executable(${name} ${src} ${ARGN})
+    target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp)
+  endfunction()
+
+  bt_add_vk_run(run-tree-vk builtin-apps/tree/vulkan/run_main.cpp)
+  # octree/vulkan dispatchers aren't in bt::vulkan, so pull them in (like the test).
+  bt_add_vk_run(run-octree-vk builtin-apps/octree/vulkan/main.cpp
+                              builtin-apps/octree/vulkan/dispatchers.cpp)
+
   # ---- Vulkan benchmarks (profiler) ----
   if(BT_BUILD_BENCHMARKS)
     function(bt_add_vk_app name src)
@@ -168,6 +214,10 @@ if(BT_ENABLE_VULKAN)
     bt_add_vk_app(bm-baseline-tree-vk         pipe/tree-vk/bm_baseline.cpp         benchmark::benchmark)
     bt_add_vk_app(bm-baseline-cifar-dense-vk  pipe/cifar-dense-vk/bm_baseline.cpp  benchmark::benchmark)
     bt_add_vk_app(bm-baseline-cifar-sparse-vk pipe/cifar-sparse-vk/bm_baseline.cpp benchmark::benchmark)
+    # per-stage (BM_Stage1..N)
+    bt_add_vk_app(bm-tree-vk         builtin-apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
+    bt_add_vk_app(bm-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
+    bt_add_vk_app(bm-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
   endif()
 endif()
 
