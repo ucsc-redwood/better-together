@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <numeric>
+#include <stdexcept>
+#include <thread>
 #include <vector>
 
 #include "../conf.hpp"
@@ -36,9 +39,19 @@ static inline uint64_t now_cycles() {
 }
 
 static inline uint64_t get_counter_frequency() {
-  // TSC frequency is not standard — you need to measure it or read from sysfs
-  // Returning 0 here as a placeholder
-  return 0;
+  // TSC frequency is not architectural; returning 0 (the old placeholder) made
+  // every cycles->ms conversion divide by zero and silently yield inf/nan on
+  // x86 (e.g. rocky-ryzen). Calibrate once against a steady clock instead.
+  static const uint64_t tsc_hz = [] {
+    const auto t0 = std::chrono::steady_clock::now();
+    const uint64_t c0 = now_cycles();
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    const uint64_t c1 = now_cycles();
+    const auto t1 = std::chrono::steady_clock::now();
+    const double seconds = std::chrono::duration<double>(t1 - t0).count();
+    return static_cast<uint64_t>(static_cast<double>(c1 - c0) / seconds);
+  }();
+  return tsc_hz;
 }
 
 #else
@@ -53,32 +66,34 @@ struct Record {
 
 template <size_t NumToProcess>
 struct Logger {
-  // 100x4
-  // records_[processing_id][chunk_id]
-  std::array<std::array<Record, 4>, NumToProcess> records_;
+  // Worst case is one chunk per stage; the canonical AlexNetCIFAR has 11 stages,
+  // so 16 leaves headroom for every app. The old hard-coded 4 silently corrupted
+  // memory when a (machine-generated) schedule had more than four chunks.
+  static constexpr size_t kMaxChunks = 16;
 
-  explicit Logger() {
-    constexpr std::array<Record, 4> default_record_array = {{
-        {0, 0},
-        {0, 0},
-        {0, 0},
-        {0, 0},
-    }};
-    records_.fill(default_record_array);
-  }
+  // records_[processing_id][chunk_id]
+  std::array<std::array<Record, kMaxChunks>, NumToProcess> records_;
+
+  explicit Logger() { records_.fill(std::array<Record, kMaxChunks>{}); }
 
   void start_tick(const uint32_t processing_id, const int chunk_id) {
+    if (static_cast<size_t>(chunk_id) >= kMaxChunks) {
+      throw std::out_of_range("Logger::start_tick: chunk_id >= kMaxChunks");
+    }
     records_[processing_id][chunk_id].start = now_cycles();
   }
 
   void end_tick(const uint32_t processing_id, const int chunk_id) {
+    if (static_cast<size_t>(chunk_id) >= kMaxChunks) {
+      throw std::out_of_range("Logger::end_tick: chunk_id >= kMaxChunks");
+    }
     records_[processing_id][chunk_id].end = now_cycles();
   }
 
   void dump_records() const {
     for (size_t i = 0; i < records_.size(); ++i) {
       std::cout << "Task " << i << ":\n";
-      for (size_t j = 0; j < 4; ++j) {
+      for (size_t j = 0; j < kMaxChunks; ++j) {
         auto& rec = records_[i][j];
 
         std::cout << "  Chunk " << j << ":\n";
@@ -111,7 +126,7 @@ struct Logger {
     std::cout << "Frequency=" << freq << " Hz\n";
 
     for (size_t i = 0; i < records_.size(); ++i) {
-      for (size_t j = 0; j < 4; ++j) {
+      for (size_t j = 0; j < kMaxChunks; ++j) {
         const auto& rec = records_[i][j];
         if (rec.end > rec.start) {  // skip empty chunks
           std::cout << "Task=" << i << " Chunk="
@@ -274,11 +289,11 @@ struct Logger {
   }
 
   // write a helper function to convert cycles to microseconds
-  static inline double cycles_to_microseconds(const uint64_t cycles, const uint32_t frequency) {
-    return static_cast<double>(cycles) * 1e6 / frequency;
+  static inline double cycles_to_microseconds(const uint64_t cycles, const uint64_t frequency) {
+    return static_cast<double>(cycles) * 1e6 / static_cast<double>(frequency);
   }
 
-  static inline double cycles_to_milliseconds(const uint64_t cycles, const uint32_t frequency) {
-    return static_cast<double>(cycles) * 1e3 / frequency;
+  static inline double cycles_to_milliseconds(const uint64_t cycles, const uint64_t frequency) {
+    return static_cast<double>(cycles) * 1e3 / static_cast<double>(frequency);
   }
 };
