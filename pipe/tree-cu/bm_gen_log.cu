@@ -29,7 +29,7 @@ static void BM_pipe_warmup(const Schedule schedule) {
       QueueT& q_in = queues[chunk_id];
       QueueT& q_out = queues[(chunk_id + 1) % n_chunks];
 
-      const int start = schedule.start_stage(chunk_id) + 1;
+      const int start = schedule.start_stage(chunk_id);  // 1-based, inclusive [start,end] (config_reader already +1)
       const int end = schedule.end_stage(chunk_id);
 
       const ExecutionModel em = schedule.chunks[chunk_id].exec_model;
@@ -94,7 +94,7 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
     QueueT& q_in = queues[chunk_id];
     QueueT& q_out = queues[(chunk_id + 1) % n_chunks];
 
-    const int start = schedule.start_stage(chunk_id) + 1;
+    const int start = schedule.start_stage(chunk_id);  // 1-based, inclusive [start,end] (config_reader already +1)
     const int end = schedule.end_stage(chunk_id);
 
     const ExecutionModel em = schedule.chunks[chunk_id].exec_model;
