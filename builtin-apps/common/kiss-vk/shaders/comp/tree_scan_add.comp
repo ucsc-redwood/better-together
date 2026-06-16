@@ -1,0 +1,32 @@
+#version 460
+
+// Device-wide inclusive scan - pass 3 of 3 (add block offsets).
+//
+// g_output already holds per-block inclusive scans (pass 1). Add the exclusive
+// block offset g_block_offsets[blockId] (pass 2) to every element so the result
+// is a global inclusive prefix sum. Each thread strides over ITEMS_PER_THREAD
+// elements of its tile.
+
+#define WORKGROUP_SIZE 256
+#define ITEMS_PER_THREAD 8
+#define ELEMENTS_PER_WG (WORKGROUP_SIZE * ITEMS_PER_THREAD)  // 2048
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants { uint g_n; };
+
+layout(std430, set = 0, binding = 0) buffer OutBuf { uint g_output[]; };
+layout(std430, set = 0, binding = 1) readonly buffer BlockOffsets { uint g_block_offsets[]; };
+
+void main() {
+  const uint block = gl_WorkGroupID.x;
+  const uint base = block * ELEMENTS_PER_WG;
+  const uint add = g_block_offsets[block];
+
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint gidx = base + gl_LocalInvocationID.x + i * WORKGROUP_SIZE;
+    if (gidx < g_n) {
+      g_output[gidx] += add;
+    }
+  }
+}

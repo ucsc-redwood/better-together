@@ -1,0 +1,80 @@
+#version 460
+
+// Device-wide inclusive scan - pass 1 of 3 (per-block local scan).
+//
+// Each workgroup scans a contiguous tile of ELEMENTS_PER_WG elements with a
+// work-efficient Blelloch scan over shared memory, writes the per-element
+// INCLUSIVE prefix sums to g_output, and writes the tile's total to
+// g_block_sums[gl_WorkGroupID.x]. Pass 2 scans g_block_sums; pass 3 adds the
+// exclusive block offsets back. No subgroup ops -> portable across sg16/32/64.
+//
+// The Blelloch sweeps need ELEMENTS_PER_WG/2 active lanes; with only
+// WORKGROUP_SIZE threads each thread strides over the active lanes.
+
+#define WORKGROUP_SIZE 256
+#define ITEMS_PER_THREAD 8
+#define ELEMENTS_PER_WG (WORKGROUP_SIZE * ITEMS_PER_THREAD)  // 2048
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants { uint g_n; };
+
+layout(std430, set = 0, binding = 0) readonly buffer InBuf { uint g_input[]; };
+layout(std430, set = 0, binding = 1) writeonly buffer OutBuf { uint g_output[]; };
+layout(std430, set = 0, binding = 2) writeonly buffer BlockSums { uint g_block_sums[]; };
+
+shared uint temp[ELEMENTS_PER_WG];
+
+void main() {
+  const uint tid = gl_LocalInvocationID.x;
+  const uint base = gl_WorkGroupID.x * ELEMENTS_PER_WG;
+
+  // Load tile (zero-pad the tail of the final partial tile).
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint local = tid + i * WORKGROUP_SIZE;
+    const uint gidx = base + local;
+    temp[local] = (gidx < g_n) ? g_input[gidx] : 0u;
+  }
+  barrier();
+
+  // Up-sweep (reduce). d = number of active lanes at this level.
+  uint offset = 1u;
+  for (uint d = ELEMENTS_PER_WG >> 1; d > 0u; d >>= 1) {
+    for (uint k = tid; k < d; k += WORKGROUP_SIZE) {
+      const uint ai = offset * (2u * k + 1u) - 1u;
+      const uint bi = offset * (2u * k + 2u) - 1u;
+      temp[bi] += temp[ai];
+    }
+    offset <<= 1;
+    barrier();
+  }
+
+  // Save total, clear last for the exclusive down-sweep.
+  if (tid == 0u) {
+    g_block_sums[gl_WorkGroupID.x] = temp[ELEMENTS_PER_WG - 1u];
+    temp[ELEMENTS_PER_WG - 1u] = 0u;
+  }
+  barrier();
+
+  // Down-sweep -> exclusive scan in temp[].
+  for (uint d = 1u; d < ELEMENTS_PER_WG; d <<= 1) {
+    offset >>= 1;
+    for (uint k = tid; k < d; k += WORKGROUP_SIZE) {
+      const uint ai = offset * (2u * k + 1u) - 1u;
+      const uint bi = offset * (2u * k + 2u) - 1u;
+      const uint t = temp[ai];
+      temp[ai] = temp[bi];
+      temp[bi] += t;
+    }
+    barrier();
+  }
+
+  // Write INCLUSIVE prefix sums (exclusive + own value).
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint local = tid + i * WORKGROUP_SIZE;
+    const uint gidx = base + local;
+    if (gidx < g_n) {
+      g_output[gidx] = temp[local] + g_input[gidx];
+    }
+  }
+}

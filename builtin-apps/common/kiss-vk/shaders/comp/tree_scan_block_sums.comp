@@ -1,0 +1,66 @@
+#version 460
+
+// Device-wide inclusive scan - pass 2 of 3 (scan the per-block totals).
+//
+// A single workgroup computes the EXCLUSIVE prefix sum of g_block_sums[0..n)
+// in place, so g_block_sums[b] becomes the offset to add to every element of
+// block b in pass 3. Requires g_num_blocks <= ELEMENTS_PER_WG (one tile);
+// padded up to the next power of two with zeros. No subgroup ops.
+
+#define WORKGROUP_SIZE 256
+#define ITEMS_PER_THREAD 8
+#define ELEMENTS_PER_WG (WORKGROUP_SIZE * ITEMS_PER_THREAD)  // 2048
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants { uint g_num_blocks; };
+
+layout(std430, set = 0, binding = 0) buffer BlockSums { uint g_block_sums[]; };
+
+shared uint temp[ELEMENTS_PER_WG];
+
+void main() {
+  const uint tid = gl_LocalInvocationID.x;
+
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint local = tid + i * WORKGROUP_SIZE;
+    temp[local] = (local < g_num_blocks) ? g_block_sums[local] : 0u;
+  }
+  barrier();
+
+  uint offset = 1u;
+  for (uint d = ELEMENTS_PER_WG >> 1; d > 0u; d >>= 1) {
+    for (uint k = tid; k < d; k += WORKGROUP_SIZE) {
+      const uint ai = offset * (2u * k + 1u) - 1u;
+      const uint bi = offset * (2u * k + 2u) - 1u;
+      temp[bi] += temp[ai];
+    }
+    offset <<= 1;
+    barrier();
+  }
+
+  if (tid == 0u) {
+    temp[ELEMENTS_PER_WG - 1u] = 0u;
+  }
+  barrier();
+
+  for (uint d = 1u; d < ELEMENTS_PER_WG; d <<= 1) {
+    offset >>= 1;
+    for (uint k = tid; k < d; k += WORKGROUP_SIZE) {
+      const uint ai = offset * (2u * k + 1u) - 1u;
+      const uint bi = offset * (2u * k + 2u) - 1u;
+      const uint t = temp[ai];
+      temp[ai] = temp[bi];
+      temp[bi] += t;
+    }
+    barrier();
+  }
+
+  // Write EXCLUSIVE block offsets back.
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint local = tid + i * WORKGROUP_SIZE;
+    if (local < g_num_blocks) {
+      g_block_sums[local] = temp[local];
+    }
+  }
+}

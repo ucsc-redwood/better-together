@@ -1,24 +1,23 @@
 #version 460
 
-layout(std430, set = 0, binding = 0) readonly buffer OutIdx { uint out_idx[]; };
-layout(std430, set = 0, binding = 1) readonly buffer InKeys { uint in_keys[]; };
-layout(std430, set = 0, binding = 2) writeonly buffer OutKeys {
-  uint out_keys[];
-};
+// Stream-compaction scatter for stage 3 (unique).
+//
+// g_flags[i]      : 1 if key i is the head of a run (kept), else 0  (find_dups)
+// g_scan[i]       : INCLUSIVE prefix sum of g_flags (device-wide scan)
+// For a kept key i, its compacted position is g_scan[i] - 1.
 
-layout(push_constant) uniform Constants { uint n; }
-constants;
+layout(std430, set = 0, binding = 0) readonly buffer Flags { uint g_flags[]; };
+layout(std430, set = 0, binding = 1) readonly buffer Scan { uint g_scan[]; };
+layout(std430, set = 0, binding = 2) readonly buffer InKeys { uint g_in_keys[]; };
+layout(std430, set = 0, binding = 3) writeonly buffer OutKeys { uint g_out_keys[]; };
+
+layout(push_constant) uniform Constants { uint n; } constants;
 
 layout(local_size_x = 256) in;
 
 void main() {
   const uint idx = gl_GlobalInvocationID.x;
-
-  if (idx < constants.n) {
-    if (idx == 0) {
-      out_keys[0] = in_keys[0];
-    } else {
-      out_keys[out_idx[idx] - 1] = in_keys[idx];
-    }
+  if (idx < constants.n && g_flags[idx] != 0u) {
+    g_out_keys[g_scan[idx] - 1u] = g_in_keys[idx];
   }
 }

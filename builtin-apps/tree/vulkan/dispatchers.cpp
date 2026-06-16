@@ -1,7 +1,6 @@
 #include "dispatchers.hpp"
 
 #include <cstdint>
-#include <numeric>
 
 #include "../../app.hpp"
 #include "../../debug_logger.hpp"
@@ -153,19 +152,41 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("find_dups", std::move(find_dups_algo));
 
-  auto prefix_sum_algo = engine.make_algo("tree_naive_prefix_sum")
-                             ->work_group_size(1, 1, 1)
+  // Device-wide inclusive scan (3 passes), used by stage 3 (flags) and stage 6
+  // (edge counts). See tree_scan_*.comp. Each pass is its own algo; all three
+  // are recorded into one command buffer with shaderWrite->shaderRead barriers
+  // between them.
+  auto scan_local_algo = engine.make_algo("tree_scan_local")
+                             ->work_group_size(256, 1, 1)
                              ->num_sets(1)
-                             ->num_buffers(2)
+                             ->num_buffers(3)
                              ->push_constant<PrefixSumPushConstants>()
                              ->build();
 
-  cached_algorithms.try_emplace("prefix_sum", std::move(prefix_sum_algo));
+  cached_algorithms.try_emplace("scan_local", std::move(scan_local_algo));
+
+  auto scan_block_sums_algo = engine.make_algo("tree_scan_block_sums")
+                                  ->work_group_size(256, 1, 1)
+                                  ->num_sets(1)
+                                  ->num_buffers(1)
+                                  ->push_constant<GlobalPushConstants>()
+                                  ->build();
+
+  cached_algorithms.try_emplace("scan_block_sums", std::move(scan_block_sums_algo));
+
+  auto scan_add_algo = engine.make_algo("tree_scan_add")
+                           ->work_group_size(256, 1, 1)
+                           ->num_sets(1)
+                           ->num_buffers(2)
+                           ->push_constant<PrefixSumPushConstants>()
+                           ->build();
+
+  cached_algorithms.try_emplace("scan_add", std::move(scan_add_algo));
 
   auto move_dups_algo = engine.make_algo("tree_move_dups")
                             ->work_group_size(256, 1, 1)
                             ->num_sets(1)
-                            ->num_buffers(3)
+                            ->num_buffers(4)
                             ->push_constant<MoveDupsPushConstants>()
                             ->build();
 
@@ -344,16 +365,124 @@ void VulkanDispatcher::run_stage_2(VkAppData_Safe &appdata) {
 // Stage 3 (Sorted Morton -> Unique Sorted Morton)
 // ----------------------------------------------------------------------------
 
+// Record a device-wide INCLUSIVE scan of `src` (n elements) into `dst`, using
+// u_scan_block_sums as scratch, into the already-open command buffer `cmd`.
+// Three passes (local scan -> scan block totals -> add block offsets) separated
+// by shaderWrite->shaderRead barriers (kiss-vk has no inter-dispatch pipeline
+// barrier API, so everything stays in one submit). Caller does cmd_begin/end +
+// submit + fence-wait. `descriptor_set` selects which set index each scan algo
+// uses (so two scans in one cmd buffer don't clobber each other's bindings).
+void VulkanDispatcher::record_device_scan(vk::CommandBuffer cmd,
+                                          vk::DescriptorBufferInfo src,
+                                          vk::DescriptorBufferInfo dst,
+                                          vk::DescriptorBufferInfo block_sums,
+                                          uint32_t n,
+                                          uint32_t descriptor_set) {
+  auto *local_algo = cached_algorithms.at("scan_local").get();
+  auto *block_algo = cached_algorithms.at("scan_block_sums").get();
+  auto *add_algo = cached_algorithms.at("scan_add").get();
+
+  const uint32_t elems_per_wg = VkAppData_Safe::kScanElementsPerWg;
+  const uint32_t num_blocks = static_cast<uint32_t>(kiss_vk::div_ceil(n, elems_per_wg));
+
+  const vk::MemoryBarrier mem_barrier{
+      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+      .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+  };
+  auto barrier = [&] {
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                        vk::PipelineStageFlagBits::eComputeShader,
+                        vk::DependencyFlags{}, mem_barrier, nullptr, nullptr);
+  };
+
+  // Pass 1: per-block inclusive scan + per-block totals.
+  local_algo->update_descriptor_set(descriptor_set, {src, dst, block_sums});
+  local_algo->update_push_constant(PrefixSumPushConstants{.inputSize = n});
+  local_algo->record_bind_core(cmd, descriptor_set);
+  local_algo->record_bind_push(cmd);
+  local_algo->record_dispatch(cmd, {num_blocks, 1, 1});
+  barrier();
+
+  // Pass 2: exclusive scan of the per-block totals (single workgroup, in place).
+  block_algo->update_descriptor_set(descriptor_set, {block_sums});
+  block_algo->update_push_constant(GlobalPushConstants{.n_blocks = num_blocks});
+  block_algo->record_bind_core(cmd, descriptor_set);
+  block_algo->record_bind_push(cmd);
+  block_algo->record_dispatch(cmd, {1, 1, 1});
+  barrier();
+
+  // Pass 3: add the exclusive block offset to every element of each block.
+  add_algo->update_descriptor_set(descriptor_set, {dst, block_sums});
+  add_algo->update_push_constant(PrefixSumPushConstants{.inputSize = n});
+  add_algo->record_bind_core(cmd, descriptor_set);
+  add_algo->record_bind_push(cmd);
+  add_algo->record_dispatch(cmd, {num_blocks, 1, 1});
+}
+
 void VulkanDispatcher::run_stage_3(VkAppData_Safe &appdata) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
-  const auto last = std::unique_copy(appdata.u_morton_keys_sorted_s2.data(),
-                                     appdata.u_morton_keys_sorted_s2.data() + appdata.get_n_input(),
-                                     appdata.u_morton_keys_unique_s3_out.data());
-  const auto n_unique = std::distance(appdata.u_morton_keys_unique_s3_out.data(), last);
+  // Stream compaction on the GPU: find_dups (run-head flags) -> device-wide
+  // inclusive scan of the flags (compacted index) -> move_dups (scatter the
+  // kept keys). All recorded into one command buffer / one submit with
+  // shaderWrite->shaderRead barriers between dependent dispatches.
+  const uint32_t n = appdata.get_n_input();
 
-  appdata.set_n_unique(n_unique);
-  appdata.set_n_brt_nodes(n_unique - 1);
+  auto *find_algo = cached_algorithms.at("find_dups").get();
+  auto *move_algo = cached_algorithms.at("move_dups").get();
+
+  // Flags -> u_contributes; inclusive scan -> u_out_idx.
+  find_algo->update_descriptor_set(0,
+                                   {
+                                       engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                                       engine.get_buffer_info(appdata.u_contributes),
+                                   });
+  find_algo->update_push_constant(FindDupsPushConstants{.n = static_cast<int32_t>(n)});
+
+  move_algo->update_descriptor_set(0,
+                                   {
+                                       engine.get_buffer_info(appdata.u_contributes),
+                                       engine.get_buffer_info(appdata.u_out_idx),
+                                       engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                                       engine.get_buffer_info(appdata.u_morton_keys_unique_s3_out),
+                                   });
+  move_algo->update_push_constant(MoveDupsPushConstants{.n = n});
+
+  const vk::MemoryBarrier mem_barrier{
+      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+      .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+  };
+  auto barrier = [&] {
+    seq->get_handle().pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                                      vk::PipelineStageFlagBits::eComputeShader,
+                                      vk::DependencyFlags{}, mem_barrier, nullptr, nullptr);
+  };
+
+  seq->cmd_begin();
+  // find_dups: flags into u_contributes.
+  find_algo->record_bind_core(seq->get_handle(), 0);
+  find_algo->record_bind_push(seq->get_handle());
+  find_algo->record_dispatch(seq->get_handle(),
+                             {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  barrier();
+
+  // device-wide inclusive scan of the flags -> u_out_idx.
+  record_device_scan(seq->get_handle(),
+                     engine.get_buffer_info(appdata.u_contributes),
+                     engine.get_buffer_info(appdata.u_out_idx),
+                     engine.get_buffer_info(appdata.u_scan_block_sums), n, 0);
+  barrier();
+
+  // move_dups: scatter kept keys to their compacted positions.
+  move_algo->record_bind_core(seq->get_handle(), 0);
+  move_algo->record_bind_push(seq->get_handle());
+  move_algo->record_dispatch(seq->get_handle(),
+                             {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  seq->cmd_end();
+
+  seq->reset_fence();
+  seq->submit();
+  seq->wait_for_fence();
 }
 
 // ----------------------------------------------------------------------------
@@ -432,18 +561,21 @@ void VulkanDispatcher::run_stage_5(VkAppData_Safe &appdata) {
 void VulkanDispatcher::run_stage_6(VkAppData_Safe &appdata) {
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
 
-  const int start = 0;
-  const int end = appdata.get_n_brt_nodes();
+  // Device-wide INCLUSIVE prefix sum of the edge counts (matches std::partial_sum
+  // / cub::DeviceScan::InclusiveSum), entirely on the GPU. The buffers are int32
+  // but the values are non-negative edge counts, so a uint scan is bit-identical.
+  const uint32_t n = appdata.get_n_brt_nodes();
 
-  std::partial_sum(appdata.u_edge_count_s5.data() + start,
-                   appdata.u_edge_count_s5.data() + end,
-                   appdata.u_edge_offset_s6_out.data() + start);
+  seq->cmd_begin();
+  record_device_scan(seq->get_handle(),
+                     engine.get_buffer_info(appdata.u_edge_count_s5),
+                     engine.get_buffer_info(appdata.u_edge_offset_s6_out),
+                     engine.get_buffer_info(appdata.u_scan_block_sums), n, 0);
+  seq->cmd_end();
 
-  // num_octree node is the result of the partial sum
-  const auto num_octree_nodes = appdata.u_edge_offset_s6_out[end - 1];
-
-  // No-op since SafeAppData has const n_octree_nodes
-  appdata.set_n_octree_nodes(num_octree_nodes);
+  seq->reset_fence();
+  seq->submit();
+  seq->wait_for_fence();
 }
 
 //----------------------------------------------------------------------------

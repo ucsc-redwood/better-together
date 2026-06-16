@@ -55,6 +55,16 @@ class VulkanDispatcher final {
   }
 
  private:
+  // Record a device-wide INCLUSIVE prefix scan of `src` (n uints) into `dst`,
+  // using `block_sums` as scratch, into the already-open command buffer `cmd`.
+  // Shared by stage 3 (flag scan) and stage 6 (edge-count scan).
+  void record_device_scan(vk::CommandBuffer cmd,
+                          vk::DescriptorBufferInfo src,
+                          vk::DescriptorBufferInfo dst,
+                          vk::DescriptorBufferInfo block_sums,
+                          uint32_t n,
+                          uint32_t descriptor_set);
+
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> seq;
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;

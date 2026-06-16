@@ -44,6 +44,9 @@ namespace shaders {
 #include "h/tree_morton_spv.h"
 #include "h/tree_move_dups_spv.h"
 #include "h/tree_naive_prefix_sum_spv.h"
+#include "h/tree_scan_local_spv.h"
+#include "h/tree_scan_block_sums_spv.h"
+#include "h/tree_scan_add_spv.h"
 // new shaders
 #include "h/new_cifar_dense_conv2d_spv.h"
 #include "h/new_cifar_dense_linear_spv.h"
@@ -109,6 +112,9 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(tree_morton),
         SHADER_ENTRY(tree_move_dups),
         SHADER_ENTRY(tree_naive_prefix_sum),
+        SHADER_ENTRY(tree_scan_local),
+        SHADER_ENTRY(tree_scan_block_sums),
+        SHADER_ENTRY(tree_scan_add),
         // new shaders
         SHADER_ENTRY(new_cifar_dense_conv2d),
         SHADER_ENTRY(new_cifar_dense_maxpool),

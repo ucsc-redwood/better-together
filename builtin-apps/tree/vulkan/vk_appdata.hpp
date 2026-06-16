@@ -12,6 +12,12 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   static constexpr uint32_t kRadixBins = 256;
   static constexpr uint32_t kRadixNumWorkgroups = 256;
 
+  // Device-wide scan tile size (must match ELEMENTS_PER_WG in the
+  // tree_scan_*.comp shaders). One block per tile; the per-block totals are
+  // scanned by a single workgroup in pass 2, so #blocks must stay <= the tile
+  // size (640x480 -> 150 blocks, FHD 2M -> ~977; well within 2048).
+  static constexpr uint32_t kScanElementsPerWg = 256 * 8;
+
   explicit VkAppData_Safe(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr)
       : SafeAppData(vk_mr),
         u_contributes(n_input, vk_mr),
@@ -19,7 +25,8 @@ struct VkAppData_Safe final : public tree::SafeAppData {
         u_sums(n_input, vk_mr),
         u_prefix_sums(n_input, vk_mr),
         u_sort_tmp(n_input, vk_mr),
-        u_sort_histograms(kRadixBins * kRadixNumWorkgroups, vk_mr) {
+        u_sort_histograms(kRadixBins * kRadixNumWorkgroups, vk_mr),
+        u_scan_block_sums((n_input + kScanElementsPerWg - 1) / kScanElementsPerWg + 1, vk_mr) {
     spdlog::trace("VkAppData_Safe constructor, address: {}", (void*)this);
   }
 
@@ -40,6 +47,9 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // for multi-workgroup radix sort (stage 2): ping-pong scratch + histograms
   std::pmr::vector<uint32_t> u_sort_tmp;
   std::pmr::vector<uint32_t> u_sort_histograms;
+
+  // for the device-wide scan (stages 3 & 6): per-block totals / offsets
+  std::pmr::vector<uint32_t> u_scan_block_sums;
 };
 
 }  // namespace tree::vulkan
