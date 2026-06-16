@@ -14,7 +14,10 @@ __device__ __forceinline__ void set_child(const int node_idx,
                                           const unsigned int which_child,
                                           const int oct_idx) {
   u_children[node_idx][which_child] = oct_idx;
-  u_child_node_mask[node_idx] |= 1 << which_child;
+  // Several brt nodes target the same octree node concurrently; a plain |= is a
+  // racy read-modify-write that drops bits. Match the OMP (#pragma omp atomic)
+  // and Vulkan (atomicOr) golden so the mask is order-independent. (BUGS-FOUND §8)
+  atomicOr(&u_child_node_mask[node_idx], 1 << which_child);
 }
 
 __device__ __forceinline__ void set_leaf(const int node_idx,

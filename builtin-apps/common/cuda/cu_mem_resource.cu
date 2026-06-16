@@ -26,21 +26,18 @@ std::string format_bytes(std::size_t bytes) {
 
 void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t /*alignment*/) {
   void *ptr = nullptr;
-  // TODO(cuda-managed-mem, docs/BUGS-FOUND.md §1): deferred — address later, do
-  // NOT switch to global attach (it faults the CPU+GPU hybrid). Real fix =
-  // stream-attach + per-stream kernel launch, or zero-copy pinned.
-  //
-  // NOTE: cudaMemAttachHost is deliberate — it lets a CPU pipeline thread access
-  // these buffers concurrently with GPU kernels running on other items (the
-  // CPU+GPU hybrid that is the point of the paper) on Tegra/Jetson, where
-  // concurrentManagedAccess=0 forbids host access to *global*-attached managed
-  // memory while any kernel runs. BUT the other half is missing: the GPU side
-  // must cudaStreamAttachMemAsync(stream, ptr, 0, cudaMemAttachSingle) before a
-  // kernel uses a buffer and launch that kernel on `stream` — this code never
-  // does, and kernels run on the default stream, so GPU access is racy and the
-  // host reads partial output (see docs/BUGS-FOUND.md §1). Do NOT "fix" this by
-  // switching to global attach: that corrects sequential GPU output but faults
-  // the concurrent CPU thread. The real fix is stream-attach + per-stream launch.
+  // NOTE (docs/BUGS-FOUND.md §1): cudaMemAttachHost is deliberate, but on its own
+  // it is the §1 defect — nothing ever stream-attaches the buffer for the GPU, so
+  // on Tegra (concurrentManagedAccess=0) the kernel's writes are only partially
+  // visible to the host. The CUDA dispatchers therefore now build their CudaManager
+  // on CudaPinnedResource (zero-copy mapped pinned, below), which is physically
+  // shared/coherent on the Jetson UMA and stays host-accessible concurrently with
+  // GPU kernels — fixing both the sequential visibility race AND keeping the CPU+GPU
+  // hybrid legal, with no per-buffer stream-attach juggling. This CudaManagedResource
+  // is left intact (no caller uses it on Tegra now); do NOT "fix" it by switching to
+  // global attach, which corrects sequential output but faults the concurrent CPU
+  // thread. If it is ever used on Tegra again, the GPU half (cudaStreamAttachMemAsync
+  // + per-stream launch) must be added.
   cudaError_t err = cudaMallocManaged(&ptr, bytes, cudaMemAttachHost);
   if (err != cudaSuccess) {
     throw std::bad_alloc();

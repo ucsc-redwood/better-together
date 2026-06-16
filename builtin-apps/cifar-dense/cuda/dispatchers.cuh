@@ -14,7 +14,7 @@ class CudaDispatcher {
   CudaDispatcher(CudaDispatcher &&) = delete;
   CudaDispatcher &operator=(CudaDispatcher &&) = delete;
 
-  ::cuda::CudaManagedResource &get_mr() { return mgr_.get_mr(); }
+  ::cuda::CudaPinnedResource &get_mr() { return mgr_.get_mr(); }
 
   void run_stage_1_async(cifar_dense::AppData &appdata);
   void run_stage_2_async(cifar_dense::AppData &appdata);
@@ -61,7 +61,7 @@ class CudaDispatcher {
   }
 
  private:
-  ::cuda::CudaManager<::cuda::CudaManagedResource> mgr_;
+  ::cuda::CudaManager<::cuda::CudaPinnedResource> mgr_;
 };
 
 }  // namespace cifar_dense::cuda

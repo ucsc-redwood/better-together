@@ -9,7 +9,7 @@ class CudaDispatcher {
  public:
   CudaDispatcher() = default;
 
-  ::cuda::CudaManagedResource &get_mr() { return mgr_.get_mr(); }
+  ::cuda::CudaPinnedResource &get_mr() { return mgr_.get_mr(); }
 
   void run_stage_1_async(cifar_sparse::AppData &appdata);
   void run_stage_2_async(cifar_sparse::AppData &appdata);
@@ -57,7 +57,7 @@ class CudaDispatcher {
   }
 
  private:
-  ::cuda::CudaManager<::cuda::CudaManagedResource> mgr_;
+  ::cuda::CudaManager<::cuda::CudaPinnedResource> mgr_;
 };
 
 }  // namespace cifar_sparse::cuda
