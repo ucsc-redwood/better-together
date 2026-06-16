@@ -13,7 +13,7 @@
 // test Stage 1
 // ----------------------------------------------------------------------------
 
-constexpr int kTestBatchSize = 128;
+static constexpr auto kTestBatchSize = cifar_sparse::AppData::BATCH_SIZE;
 
 TEST(Stage1Test, Basic) {
   cifar_sparse::cuda::CudaDispatcher disp;

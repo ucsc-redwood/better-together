@@ -1,120 +1,41 @@
 #include <gtest/gtest.h>
+#include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include <memory_resource>
+
 #include "../../app.hpp"
-#include "../safe_tree_appdata.hpp"
+#include "../tree_diff_oracle.hpp"
 #include "dispatchers.hpp"
 
 // ----------------------------------------------------------------------------
-// test Stage 1
+// Tree × OMP differential oracle. OMP is the reference, so this run is a
+// self-consistency check: dispatching each stage must reproduce the golden
+// computed at SafeAppData construction (same kernels), proving the harness and
+// the per-stage comparisons before CUDA/Vulkan adopt the identical BT_DECLARE
+// expansion. Always available (every target has a CPU).
 // ----------------------------------------------------------------------------
 
-TEST(Stage1Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
+namespace {
+struct OmpTreeRunner {
+  static constexpr bool Available() { return true; }
+  static std::pmr::memory_resource* Mr() { return std::pmr::new_delete_resource(); }
+  void RunStage(tree::SafeAppData& a, int stage) { tree::omp::dispatch_stage(a, stage); }
+};
+}  // namespace
 
-  const std::vector<float> morton_before(appdata.u_morton_keys_s1_out.begin(),
-                                         appdata.u_morton_keys_s1_out.end());
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
-
-  const std::vector<float> morton_after(appdata.u_morton_keys_s1_out.begin(),
-                                        appdata.u_morton_keys_s1_out.end());
-
-  const bool is_different = !std::ranges::equal(morton_before, morton_after);
-
-  EXPECT_TRUE(is_different) << "Output buffer did not change after dispatch.";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 2
-// ----------------------------------------------------------------------------
-
-TEST(Stage2Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
-
-  // Run previous stages
-  tree::omp::dispatch_stage(appdata, 1);
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 2)) << "Stage 2 should not throw";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 3
-// ----------------------------------------------------------------------------
-
-TEST(Stage3Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
-
-  // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 2);
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 3)) << "Stage 3 should not throw";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 4
-// ----------------------------------------------------------------------------
-
-TEST(Stage4Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
-
-  // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 3);
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 4)) << "Stage 4 should not throw";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 5
-// ----------------------------------------------------------------------------
-
-TEST(Stage5Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
-
-  // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 4);
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 5)) << "Stage 5 should not throw";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 6
-// ----------------------------------------------------------------------------
-
-TEST(Stage6Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
-
-  // Run previous stages
-  tree::omp::dispatch_multi_stage(appdata, 1, 5);
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 6)) << "Stage 6 should not throw";
-}
-
-// ----------------------------------------------------------------------------
-// test Stage 7
-// ----------------------------------------------------------------------------
-
-TEST(Stage7Test, Basic) {
-  auto mr = std::pmr::new_delete_resource();
-  tree::SafeAppData appdata(mr);
-
-  tree::omp::dispatch_multi_stage(appdata, 1, 6);
-
-  EXPECT_NO_THROW(tree::omp::dispatch_stage(appdata, 7)) << "Stage 7 should not throw";
-}
+BT_DECLARE_TREE_DIFF_TESTS(TreeDiffOmp, OmpTreeRunner)
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
-
-  parse_args(argc, argv);
-
+  parse_args_test(argc, argv);
   spdlog::set_level(spdlog::level::off);
-
+  // Run the oracle deterministically: the radix-tree (stage 4) and octree
+  // (stage 7) builds have cross-node writes whose result is order-sensitive
+  // under parallel `omp for`, so a multi-threaded reference is not bitwise
+  // stable run-to-run. A correctness oracle must be deterministic; speed is not
+  // under test here. (Cross-backend GPU comparison of these structural stages
+  // will still need invariant/canonical checks — see docs/TESTING.md.)
+  omp_set_num_threads(1);
   return RUN_ALL_TESTS();
 }

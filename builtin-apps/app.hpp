@@ -111,3 +111,11 @@ inline std::vector<int> g_sup_cores;
   }
 
 int parse_args(int argc, char** argv);
+
+// Non-fatal variant for unit tests. Resolves --device when present and fills the
+// g_*_cores from the registry when the device is known, but NEVER exit()s or
+// returns non-zero on a missing/unknown device — tests that need specific cores
+// or a GPU guard themselves with GTEST_SKIP(). This decouples CI from the
+// hardcoded device allow-list: a board absent from the registry no longer aborts
+// the whole test binary before a single test runs.
+int parse_args_test(int argc, char** argv);

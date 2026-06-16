@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <algorithm>  // std::ranges::generate
 #include <glm/vec4.hpp>
 #include <iostream>
 #include <memory_resource>

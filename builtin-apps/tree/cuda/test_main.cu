@@ -15,12 +15,12 @@ TEST(Stage1Test, Basic) {
   tree::cuda::CudaDispatcher disp;
   tree::SafeAppData appdata(&disp.get_mr());
 
-  const std::vector<float> before(appdata.u_morton_keys_s1_out.begin(),
+  const std::vector<uint32_t> before(appdata.u_morton_keys_s1_out.begin(),
                                   appdata.u_morton_keys_s1_out.end());
 
   EXPECT_NO_THROW(disp.dispatch_stage(appdata, 1)) << "Stage 1 should not throw";
 
-  const std::vector<float> after(appdata.u_morton_keys_s1_out.begin(),
+  const std::vector<uint32_t> after(appdata.u_morton_keys_s1_out.begin(),
                                  appdata.u_morton_keys_s1_out.end());
 
   const bool is_different = !std::ranges::equal(before, after);

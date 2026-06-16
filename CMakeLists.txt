@@ -175,26 +175,43 @@ endif()
 if(BT_BUILD_TESTS)
   enable_testing()
 
+  # Every test is tagged with a backend LABEL so CI can gate per-runner:
+  #   ctest -L omp     (every PR, desktop, no GPU)
+  #   ctest -L cuda    (Jetson self-hosted runner)
+  #   ctest -L vulkan  (integrated-GPU box / Android via adb)
+  # Hardware-gated tests GTEST_SKIP() when the device/cores are absent; gtest
+  # still exits 0 on a skip, so a skipped test is a pass (not a CI failure) —
+  # no SKIP_RETURN_CODE needed. Extra source args (${ARGN}) let a test pull in
+  # its app's dispatcher .cpp (e.g. octree, whose stages aren't in bt::core).
+
   # CPU/OpenMP unit tests.
   function(bt_add_omp_test name src)
-    add_executable(${name} ${src})
+    add_executable(${name} ${src} ${ARGN})
     target_link_libraries(${name} PRIVATE bt::core GTest::gtest GTest::gtest_main bt::openmp)
     add_test(NAME ${name} COMMAND ${name} --device ${BT_TEST_DEVICE})
+    set_tests_properties(${name} PROPERTIES LABELS "omp")
   endfunction()
 
   bt_add_omp_test(test-tree-omp         builtin-apps/tree/omp/test_main.cpp)
   bt_add_omp_test(test-cifar-dense-omp  builtin-apps/cifar-dense/omp/test_main.cpp)
   bt_add_omp_test(test-cifar-sparse-omp builtin-apps/cifar-sparse/omp/test_main.cpp)
+  # Previously xmake-only: test_sort.cpp is the one suite with real correctness
+  # checks (is_sorted + permutation oracle); octree/omp self-test pulls in its
+  # own dispatchers (not part of bt::core).
+  bt_add_omp_test(test-sort-omp         builtin-apps/octree/omp/test_sort.cpp)
+  bt_add_omp_test(test-octree-omp       builtin-apps/octree/omp/test_main.cpp
+                                        builtin-apps/octree/omp/dispatchers.cpp)
 
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)
     function(bt_add_cuda_test name src)
-      add_executable(${name} ${src})
+      add_executable(${name} ${src} ${ARGN})
       set_target_properties(${name} PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
       target_compile_options(${name} PRIVATE
         $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
       target_link_libraries(${name} PRIVATE bt::cuda bt::core GTest::gtest GTest::gtest_main bt::openmp)
       add_test(NAME ${name} COMMAND ${name} --device ${BT_TEST_DEVICE})
+      set_tests_properties(${name} PROPERTIES LABELS "cuda")
     endfunction()
 
     bt_add_cuda_test(test-tree-cu         builtin-apps/tree/cuda/test_main.cu)
@@ -205,18 +222,22 @@ if(BT_BUILD_TESTS)
   # Vulkan unit tests — run on an integrated-GPU box (rocky-ryzen) or the Jetson.
   if(BT_ENABLE_VULKAN)
     function(bt_add_vk_test name src)
-      add_executable(${name} ${src})
+      add_executable(${name} ${src} ${ARGN})
       target_link_libraries(${name} PRIVATE bt::vulkan bt::core GTest::gtest GTest::gtest_main bt::openmp)
       add_test(NAME ${name} COMMAND ${name} --device ${BT_TEST_DEVICE})
+      set_tests_properties(${name} PROPERTIES LABELS "vulkan")
     endfunction()
 
     # kiss-vk engine self-test takes no --device.
     add_executable(test-kiss-vk builtin-apps/common/kiss-vk/test_main.cpp)
     target_link_libraries(test-kiss-vk PRIVATE bt::vulkan bt::core GTest::gtest GTest::gtest_main bt::openmp)
     add_test(NAME test-kiss-vk COMMAND test-kiss-vk)
+    set_tests_properties(test-kiss-vk PROPERTIES LABELS "vulkan")
 
     bt_add_vk_test(test-tree-vk         builtin-apps/tree/vulkan/test_main.cpp)
     bt_add_vk_test(test-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_main.cpp)
     bt_add_vk_test(test-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_main.cpp)
+    bt_add_vk_test(test-octree-vk       builtin-apps/octree/vulkan/test_main.cpp
+                                        builtin-apps/octree/vulkan/dispatchers.cpp)
   endif()
 endif()

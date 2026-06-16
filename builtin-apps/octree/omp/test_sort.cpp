@@ -725,7 +725,7 @@ TEST_F(RadixSortTest, HeterogeneousCoreCombinations) {
 }
 
 int main(int argc, char** argv) {
-  parse_args(argc, argv);
+  parse_args_test(argc, argv);
 
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

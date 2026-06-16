@@ -311,7 +311,7 @@ TEST(Stage7Test, Basic) {
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
 
-  parse_args(argc, argv);
+  parse_args_test(argc, argv);
 
   spdlog::set_level(spdlog::level::off);
 

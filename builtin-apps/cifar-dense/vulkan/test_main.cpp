@@ -12,7 +12,7 @@
 // Test Vulkan Context Setup
 // ----------------------------------------------------------------------------
 
-constexpr int kTestBatchSize = 128;
+static constexpr auto kTestBatchSize = cifar_dense::AppData::BATCH_SIZE;
 
 class CIFARDenseVulkanTest : public ::testing::Test {
  protected:
