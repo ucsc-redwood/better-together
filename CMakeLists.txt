@@ -93,6 +93,11 @@ endfunction()
 
 bt_add_omp_run(run-cifar-dense-omp builtin-apps/cifar-dense/omp/main.cpp)
 
+# ---- utility / diagnostics (standalone CPU tools) -------------------------
+add_executable(test-affinity utility/test_affinity.cpp)   # core-pinning probe
+target_link_libraries(test-affinity PRIVATE bt::core bt::openmp)
+add_executable(query-cpuinfo utility/query_cpuinfo.cpp)   # CPU topology (Linux/Android)
+
 # ---- OMP per-stage benchmarks (profiler; the paper's per-stage table) ------
 # bm_main.cpp registers one Google-benchmark per stage (BM_Stage1..N). Isolated
 # per-stage latency on the CPU/OMP backend. (Interference-aware bm-table-* is C3.)
@@ -104,6 +109,8 @@ if(BT_BUILD_BENCHMARKS)
   bt_add_omp_app(bm-tree-omp         builtin-apps/tree/omp/bm_main.cpp         benchmark::benchmark)
   bt_add_omp_app(bm-cifar-dense-omp  builtin-apps/cifar-dense/omp/bm_main.cpp  benchmark::benchmark)
   bt_add_omp_app(bm-cifar-sparse-omp builtin-apps/cifar-sparse/omp/bm_main.cpp benchmark::benchmark)
+  # core-type classifier (probe each core, label big/medium/little/super)
+  bt_add_omp_app(bm-check-core-types utility/bm_core_type.cpp benchmark::benchmark)
 endif()
 
 # ---- bt::cuda — CUDA backend (tree + cifar) -------------------------------
@@ -152,6 +159,12 @@ if(BT_ENABLE_CUDA)
   bt_add_cuda_app(run-cifar-dense-cu   builtin-apps/cifar-dense/cuda/main.cu)
   bt_add_cuda_app(run-cifar-sparse-cu  builtin-apps/cifar-sparse/cuda/main.cu)
 
+  # utility: OMP-inside-a-CUDA-TU sanity (test_omp.cu)
+  add_executable(test-omp utility/test_omp.cu)
+  set_target_properties(test-omp PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
+  target_compile_options(test-omp PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fopenmp>)
+  target_link_libraries(test-omp PRIVATE bt::openmp)
+
   if(BT_BUILD_BENCHMARKS)
     bt_add_cuda_app(bm-baseline-tree-cu         pipe/tree-cu/bm_baseline.cu         benchmark::benchmark)
     bt_add_cuda_app(bm-baseline-cifar-dense-cu  pipe/cifar-dense-cu/bm_baseline.cu  benchmark::benchmark)
@@ -171,6 +184,12 @@ if(BT_ENABLE_VULKAN)
     GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers GIT_TAG v1.3.290 DOWNLOAD_ONLY YES)
   CPMAddPackage(NAME VulkanMemoryAllocator
     GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator GIT_TAG v3.1.0 DOWNLOAD_ONLY YES)
+
+  # utility: print the compiled vulkan-hpp header version (compile-time constant)
+  add_executable(query-vulkan-hpp-version utility/query_vulkan_hpp_version.cpp)
+  target_compile_features(query-vulkan-hpp-version PRIVATE cxx_std_20)
+  target_include_directories(query-vulkan-hpp-version SYSTEM PRIVATE
+    $<BUILD_INTERFACE:${VulkanHeaders_SOURCE_DIR}/include>)
 
   add_library(bt_vulkan STATIC
     builtin-apps/common/kiss-vk/algorithm.cpp
