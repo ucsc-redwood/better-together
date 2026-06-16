@@ -32,6 +32,11 @@ namespace ref = bt::testing::cnn;
 inline constexpr float kRtol = 1e-3f;
 inline constexpr float kAtol = 1e-4f;
 
+// End-to-end (L2a): full 9-stage pipeline on one backend vs a full double-precision
+// reference chained from the seed (densified CSR). Looser tol — error accumulates.
+inline constexpr float kE2eRtol = 5e-3f;
+inline constexpr float kE2eAtol = 5e-3f;
+
 // Build a deterministic valid CSR in place from the dense `values` the AppData
 // seeded. Keeps a fixed ~3/4 subset of columns per row (so rows have varying,
 // non-trivial nnz that exercises the kernel's index decode), compacting the kept
@@ -129,6 +134,64 @@ inline void RunAndCheckStage(int s) {
   CheckStage(a, s);
 }
 
+// L2a end-to-end: run all 9 stages on the backend, compare FINAL logits against a
+// full double-precision reference chained from the seed (densified CSR weights).
+inline void CheckFinalPipeline(const AppData& a) {
+  const int N = a.u_input.d0();
+  const auto w1 = Densify(a.conv1_sparse);
+  auto c1 = ref::Conv2dRef(a.u_input.data(), w1.data(), a.u_conv1_b.data(),
+                           N, a.u_input.d1(), a.u_input.d2(), a.u_input.d3(),
+                           a.u_conv1_out.d1(), kKernelSize, kKernelSize,
+                           a.u_conv1_out.d2(), a.u_conv1_out.d3(), kStride, kPadding, kRelu);
+  auto p1 = ref::MaxPool2dRef(c1.data(), N, a.u_conv1_out.d1(), a.u_conv1_out.d2(),
+                              a.u_conv1_out.d3(), a.u_pool1_out.d2(), a.u_pool1_out.d3(),
+                              kPoolSize, kPoolStride);
+  const auto w2 = Densify(a.conv2_sparse);
+  auto c2 = ref::Conv2dRef(p1.data(), w2.data(), a.u_conv2_b.data(),
+                           N, a.u_pool1_out.d1(), a.u_pool1_out.d2(), a.u_pool1_out.d3(),
+                           a.u_conv2_out.d1(), kKernelSize, kKernelSize,
+                           a.u_conv2_out.d2(), a.u_conv2_out.d3(), kStride, kPadding, kRelu);
+  auto p2 = ref::MaxPool2dRef(c2.data(), N, a.u_conv2_out.d1(), a.u_conv2_out.d2(),
+                              a.u_conv2_out.d3(), a.u_pool2_out.d2(), a.u_pool2_out.d3(),
+                              kPoolSize, kPoolStride);
+  const auto w3 = Densify(a.conv3_sparse);
+  auto c3 = ref::Conv2dRef(p2.data(), w3.data(), a.u_conv3_b.data(),
+                           N, a.u_pool2_out.d1(), a.u_pool2_out.d2(), a.u_pool2_out.d3(),
+                           a.u_conv3_out.d1(), kKernelSize, kKernelSize,
+                           a.u_conv3_out.d2(), a.u_conv3_out.d3(), kStride, kPadding, kRelu);
+  const auto w4 = Densify(a.conv4_sparse);
+  auto c4 = ref::Conv2dRef(c3.data(), w4.data(), a.u_conv4_b.data(),
+                           N, a.u_conv3_out.d1(), a.u_conv3_out.d2(), a.u_conv3_out.d3(),
+                           a.u_conv4_out.d1(), kKernelSize, kKernelSize,
+                           a.u_conv4_out.d2(), a.u_conv4_out.d3(), kStride, kPadding, kRelu);
+  const auto w5 = Densify(a.conv5_sparse);
+  auto c5 = ref::Conv2dRef(c4.data(), w5.data(), a.u_conv5_b.data(),
+                           N, a.u_conv4_out.d1(), a.u_conv4_out.d2(), a.u_conv4_out.d3(),
+                           a.u_conv5_out.d1(), kKernelSize, kKernelSize,
+                           a.u_conv5_out.d2(), a.u_conv5_out.d3(), kStride, kPadding, kRelu);
+  auto p3 = ref::MaxPool2dRef(c5.data(), N, a.u_conv5_out.d1(), a.u_conv5_out.d2(),
+                              a.u_conv5_out.d3(), a.u_pool3_out.d2(), a.u_pool3_out.d3(),
+                              kPoolSize, kPoolStride);
+  const auto wl = Densify(a.linear_sparse);
+  const int in_features = a.u_pool3_out.d1() * a.u_pool3_out.d2() * a.u_pool3_out.d3();
+  auto logits = ref::LinearRef(p3.data(), wl.data(), a.u_linear_b.data(),
+                               N, in_features, a.u_linear_out.d1());
+  EXPECT_TRUE(bt::testing::NearEqual(logits, a.u_linear_out.pmr_vec(), kE2eRtol, kE2eAtol,
+                                     "cifar-sparse end-to-end logits"));
+}
+
+template <class Runner>
+inline void RunFullAndCheckFinal() {
+  if (!Runner::Available()) {
+    GTEST_SKIP() << "backend device not available on this target";
+  }
+  Runner runner;
+  AppData a(runner.Mr());
+  PopulateAllCsr(a);
+  for (int i = 1; i <= 9; ++i) runner.RunStage(a, i);
+  CheckFinalPipeline(a);
+}
+
 }  // namespace cifar_sparse::testing
 
 #define BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(SUITE, RUNNER)                                 \
@@ -140,4 +203,5 @@ inline void RunAndCheckStage(int s) {
   TEST(SUITE, Stage6_Conv4)  { cifar_sparse::testing::RunAndCheckStage<RUNNER>(6); }      \
   TEST(SUITE, Stage7_Conv5)  { cifar_sparse::testing::RunAndCheckStage<RUNNER>(7); }      \
   TEST(SUITE, Stage8_Pool3)  { cifar_sparse::testing::RunAndCheckStage<RUNNER>(8); }      \
-  TEST(SUITE, Stage9_Linear) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(9); }
+  TEST(SUITE, Stage9_Linear) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(9); }       \
+  TEST(SUITE, EndToEnd_FinalLogits) { cifar_sparse::testing::RunFullAndCheckFinal<RUNNER>(); }
