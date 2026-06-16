@@ -9,8 +9,8 @@ namespace helpers {
 // Based on the platform, this will be different.
 // ----------------------------------------------------------------------------
 
-// We assume you will run the program using "xmake run XXX" from the $(project_root) instead of
-// directly running the binary.
+// We assume you run the program from the project root (so relative resource paths
+// resolve), not from the binary's own directory.
 
 [[nodiscard]] inline std::filesystem::path get_project_root_path() {
   auto cwd = std::filesystem::current_path();

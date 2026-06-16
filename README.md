@@ -138,7 +138,7 @@ Each application is divided into stages that can be independently scheduled acro
 
 ### Core Dependencies
 
-- **[xmake](https://xmake.io/)** - Modern C++ build system
+- **[CMake](https://cmake.org/) ≥ 3.25** - Build system (presets-based; deps auto-fetched via CPM)
 - **[uv](https://astral.sh/uv)** - Fast Python package manager
 - **[just](https://github.com/casey/just)** - Command runner (Rust-based)
 - **Python 3.13+** - For scheduling and analysis scripts
@@ -159,8 +159,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Install just (command runner)
 cargo install just
 
-# Install xmake (build system)
-# Visit: https://xmake.io/#/guide/installation
+# CMake ≥ 3.25 (build system) — via your package manager, e.g. apt/brew/pip
 ```
 
 ---
@@ -169,23 +168,20 @@ cargo install just
 
 ### 1. Build the Project
 
-For x86_64 PC with CUDA:
+For x86_64 PC (CPU/OpenMP — the everyday build & test):
 ```bash
-just set-default
-xmake build
+cmake --preset pc && cmake --build --preset pc
+ctest --test-dir build/pc -L omp
 ```
 
-For NVIDIA Jetson:
+For NVIDIA Jetson (CUDA, cross-compiled in the container) and Android (ARM64):
 ```bash
-just set-jetson
-xmake build
+cmake --preset jetson  && cmake --build --preset jetson    # via bt-cross:6.1 container
+cmake --preset android && cmake --build --preset android   # needs ANDROID_NDK_HOME
 ```
 
-For Android (ARM64):
-```bash
-just set-android
-xmake build
-```
+See [`docs/instruction-for-ai/02-building.md`](docs/instruction-for-ai/02-building.md)
+for the full preset/cross-build/deploy details.
 
 ### 2. Profile Workloads
 

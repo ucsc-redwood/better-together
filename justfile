@@ -2,20 +2,25 @@
 #  Setup Configuration
 #  ----------------------------------------------------------------------------
 # Requirements:
-#   - xmake (modern build system)
+#   - cmake >= 3.25 (build system; xmake was retired 2026-06-16)
 #   - uv (modern python package manager)
 #   - ssh
 #   - adb (for Android)
 #   - glslc (for compiling shaders)
 #   - xxd (for generating header files from shaders)
+#
+# NOTE: build is now CMake presets. The set-* / build recipes below are CMake;
+# the device-run recipes further down still read "xmake r ..." and need porting
+# to the CMake deploy flow (build the target, scp/adb-push it, run --device <id>)
+# documented in docs/instruction-for-ai/03-unit-testing.md.
 
-# Set default configuration for PC
+# Configure + build for PC (CPU/OpenMP; everyday build & test)
 set-default:
-    xmake f -p linux -a x86_64 -c -v --use_vulkan=no --use_cuda=yes -m release
+    cmake --preset pc && cmake --build --preset pc
 
-# Set configuration for NVIDIA Jetson Orin Dev Kit
+# Configure + build for NVIDIA Jetson Orin (CUDA+Vulkan; cross-compiled in bt-cross:6.1)
 set-jetson:
-    xmake f -p linux -a arm64 --use_cuda=yes --use_vulkan=yes -c -v -m release
+    cmake --preset jetson && cmake --build --preset jetson
 
 # Set configuration for Android devices (on a machine using ADB)
 # Download NDK from: https://developer.android.com/ndk/downloads
@@ -42,7 +47,7 @@ set-jetson:
 # Set the NDK version in the justfile
 #
 set-android:
-    xmake f -p android -a arm64-v8a --ndk=~/Android/android-ndk-r29-beta3 --ndk_sdkver=29 -c -v --use_vulkan=yes --use_cuda=no -m release
+    ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865 cmake --preset android && cmake --build --preset android
 
 # Serving the generated schedules locally, so my android phones can access it via its IP address
 # at port 8080

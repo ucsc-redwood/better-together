@@ -1,8 +1,11 @@
-# BetterTogether — CMake build (WORK IN PROGRESS).
+# BetterTogether — CMake build (the build system).
 #
-# A separate, modern-CMake build that lives alongside the xmake build during the
-# migration (see docs/reports-for-human/cmake-migration-rfc.md). xmake stays the source of truth
-# until each target passes a parity gate.
+# CMake is now the sole build system; xmake was retired 2026-06-16 once CMake
+# reached parity on every target that matters (see
+# docs/reports-for-human/cmake-migration-rfc.md for the migration history).
+# Not (yet) ported from the old xmake build: the volk diagnostics
+# (check-vulkan / query-warpsize) and the NNAPI/EdgeTPU targets -- their sources
+# still live under utility/ and can be re-added here when needed.
 #
 # Backends are orthogonal, combinable options (hybrid = enable two at once):
 #   BT_ENABLE_OPENMP  always on (the bt::core CPU runtime)

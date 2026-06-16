@@ -1,9 +1,10 @@
 # Building BetterTogether (CMake)
 
-> The CMake build is a **work-in-progress migration target** that lives next to
-> the original xmake build (rationale: [`../reports-for-human/cmake-migration-rfc.md`](../reports-for-human/cmake-migration-rfc.md)).
-> xmake remains the source of truth; CMake currently covers the CPU(OpenMP) +
-> CUDA + Vulkan paths for all three apps. Nothing here touches `xmake.lua`.
+> CMake is **the build system** (xmake was retired 2026-06-16; history:
+> [`../reports-for-human/cmake-migration-rfc.md`](../reports-for-human/cmake-migration-rfc.md)).
+> It covers the CPU(OpenMP) + CUDA + Vulkan paths for all three apps, plus the
+> runners, benchmarks, and tests. Not ported: the volk diagnostics
+> (check-vulkan/query-warpsize) and NNAPI targets (sources still under `utility/`).
 
 ## TL;DR — just want to build & test on this machine
 
@@ -128,10 +129,10 @@ The `--device <id>` passed to tests must match an entry in the device registry
 
 ## Notes
 
-- **xmake still works** and is unchanged; build it the usual way. The CMake build
-  is additive and selected only when you invoke `cmake`.
-- **Parity:** the OpenMP test output is byte-identical between the xmake (clang/-O2)
-  and CMake (gcc/Release) builds — see [RFC Appendix B](../reports-for-human/cmake-migration-rfc.md).
-- Some Vulkan tests can fail on a specific mobile GPU (e.g. `cifar-dense-vk` on
-  Mali-G710) — that's driver/hardware-specific, not a build issue; the same binary
-  passes on other GPUs.
+- **xmake is retired** (2026-06-16); CMake is the only build system. The retirement
+  was gated on parity: the OpenMP test output was byte-identical between the old
+  xmake (clang/-O2) and CMake (gcc/Release) builds — see
+  [RFC Appendix B](../reports-for-human/cmake-migration-rfc.md).
+- All Vulkan suites pass on every target GPU including Mali-G710 (the earlier
+  `cifar-dense-vk`-on-Mali failure was a kiss-vk host-coherency/perf defect, since
+  fixed — HOST_CACHED memory + explicit flush/invalidate).

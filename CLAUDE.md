@@ -26,9 +26,9 @@ Status, audits, decision logs, and roadmaps (the *why* and *where we are*) are i
 
 ## Essential facts (don't trip on these)
 
-- **Build system:** `xmake` is the **source of truth** (ships the paper results); the
-  CMake build (`cmake/` + presets) is a **work-in-progress migration**. Don't touch
-  `xmake.lua` unless asked.
+- **Build system:** **CMake** (`cmake/` + presets `pc`/`jetson`/`vulkan`/`android`) is
+  the build system. xmake was retired 2026-06-16; no `xmake.lua` remains. (volk
+  diagnostics + NNAPI were not ported; their sources still live under `utility/`.)
 - **Where each backend runs:** OMP runs **anywhere** and is the **reference oracle**.
   CUDA is **cross-compiled to the Jetson** (the PC is build-only — CUDA 13 breaks the
   build via CUB removal). Vulkan needs an **integrated GPU** — `kiss-vk` hard-selects
