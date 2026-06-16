@@ -56,6 +56,9 @@ CPMAddPackage("gh:CLIUtils/CLI11@2.4.2")
 CPMAddPackage(NAME glm GITHUB_REPOSITORY g-truc/glm GIT_TAG 1.0.1)
 CPMAddPackage(NAME libmorton GITHUB_REPOSITORY Forceflow/libmorton GIT_TAG v0.2.12
               OPTIONS "BUILD_TESTING OFF")
+# Header-only JSON: device specs parsed by bt::core (conf.cpp) + schedule files
+# read by bm-gen-logs. Always fetched (bt::core needs it).
+CPMAddPackage("gh:nlohmann/json@3.11.3")
 if(BT_BUILD_TESTS)
   CPMAddPackage(NAME googletest GITHUB_REPOSITORY google/googletest GIT_TAG v1.17.0
                 OPTIONS "INSTALL_GTEST OFF" "gtest_force_shared_crt ON")
@@ -64,9 +67,6 @@ if(BT_BUILD_BENCHMARKS)
   CPMAddPackage(NAME benchmark GITHUB_REPOSITORY google/benchmark GIT_TAG v1.9.5
                 OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "BENCHMARK_ENABLE_INSTALL OFF"
                         "BENCHMARK_ENABLE_GTEST_TESTS OFF")
-  # Header-only JSON, for bm-gen-logs reading schedule files (replaces the old
-  # curl/HTTP fetch -- schedules are now plain local files, see schedule_source.hpp).
-  CPMAddPackage("gh:nlohmann/json@3.11.3")
 endif()
 
 # ---- bt::core — shared CPU/OpenMP runtime (tree + cifar OMP dispatchers) ---
@@ -84,7 +84,7 @@ add_library(bt::core ALIAS bt_core)
 target_compile_features(bt_core PUBLIC cxx_std_20)
 target_include_directories(bt_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(bt_core PUBLIC
-  spdlog::spdlog CLI11::CLI11 glm::glm libmorton bt::openmp)
+  spdlog::spdlog CLI11::CLI11 glm::glm libmorton bt::openmp nlohmann_json::nlohmann_json)
 
 # ---- OMP single-app runners (executor; BT-Implementer single-app smoke) -----
 # Always built (not gated behind BT_BUILD_BENCHMARKS). ${ARGN} lets a runner

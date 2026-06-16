@@ -1,220 +1,47 @@
 #include "conf.hpp"
 
+#include <nlohmann/json.hpp>
+#include <stdexcept>
+
+#include "device_specs_embedded.hpp"
+
+// The device registry is now data-driven: it parses the per-device specs under
+// devices/*.json (embedded at build time into device_specs_embedded.hpp via
+// scripts/embed_device_specs.py, so there is no runtime file dependency). This
+// replaces the old hand-maintained C++ table and is the single source of truth
+// for core topology, pinnability, and GPU subgroup size. To add/change a device,
+// edit devices/<id>.json (validate with scripts/validate_devices.py) and
+// regenerate the embedded header.
+
+namespace {
+ProcessorType parse_core_type(const std::string& s) {
+  if (s == "little") return ProcessorType::kLittleCore;
+  if (s == "medium") return ProcessorType::kMediumCore;
+  if (s == "big") return ProcessorType::kBigCore;
+  if (s == "super") return ProcessorType::kSuperCore;
+  throw std::runtime_error("device spec: unknown core type '" + s + "'");
+}
+}  // namespace
+
 DeviceRegistry::DeviceRegistry() {
-  // For "pc": 8 P cores and 12 E cores
-  devices_.emplace(
-      "pc",
-      Device("pc",
-             std::vector<Core>{
-                 {0, ProcessorType::kBigCore, true},     {1, ProcessorType::kBigCore, true},
-                 {2, ProcessorType::kBigCore, true},     {3, ProcessorType::kBigCore, true},
-                 {4, ProcessorType::kBigCore, true},     {5, ProcessorType::kBigCore, true},
-                 {6, ProcessorType::kBigCore, true},     {7, ProcessorType::kBigCore, true},
-                 {8, ProcessorType::kLittleCore, true},  {9, ProcessorType::kLittleCore, true},
-                 {10, ProcessorType::kLittleCore, true}, {11, ProcessorType::kLittleCore, true},
-                 {12, ProcessorType::kLittleCore, true}, {13, ProcessorType::kLittleCore, true},
-                 {14, ProcessorType::kLittleCore, true}, {15, ProcessorType::kLittleCore, true},
-                 {16, ProcessorType::kLittleCore, true}, {17, ProcessorType::kLittleCore, true},
-                 {18, ProcessorType::kLittleCore, true}, {19, ProcessorType::kLittleCore, true},
-                 {20, ProcessorType::kLittleCore, true}, {21, ProcessorType::kLittleCore, true},
-                 {22, ProcessorType::kLittleCore, true}, {23, ProcessorType::kLittleCore, true},
-             }));
+  for (const auto spec : bt::device_specs::kEmbedded) {
+    const auto j = nlohmann::json::parse(std::string(spec));
 
-  // For "jetson": 6 cores all of one type.
+    const std::string id = j.at("id").get<std::string>();
 
-  // 2025-03-20T09:43:23-07:00
-  // Running /home/yanwen/Desktop/redwood-aio/build/linux/arm64/releasedbg/bm-check-core-types
-  // Run on (6 X 1510.4 MHz CPU s)
-  // CPU Caches:
-  //   L1 Data 64 KiB (x6)
-  //   L1 Instruction 64 KiB (x6)
-  //   L2 Unified 256 KiB (x6)
-  //   L3 Unified 2048 KiB (x1)
-  // Load Average: 0.45, 0.40, 0.19
-  // ***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and
-  // will incur extra overhead.
-  // ---------------------------------------------------------------
-  // Benchmark                     Time             CPU   Iterations
-  // ---------------------------------------------------------------
-  // HeavyFloat/CoreID0/0       47.1 ms         47.0 ms           15
-  // HeavyFloat/CoreID1/1       47.0 ms         47.0 ms           14
-  // HeavyFloat/CoreID2/2       47.0 ms         47.0 ms           14
-  // HeavyFloat/CoreID3/3       47.3 ms         47.2 ms           13
-  // HeavyFloat/CoreID4/4       47.0 ms         47.0 ms           15
-  // HeavyFloat/CoreID5/5       47.7 ms         47.6 ms           13
-  // GraphBFS/CoreID0/0         6.52 ms         6.50 ms          107
-  // GraphBFS/CoreID1/1         6.62 ms         6.61 ms          104
-  // GraphBFS/CoreID2/2         6.40 ms         6.39 ms          107
-  // GraphBFS/CoreID3/3         6.64 ms         6.62 ms          105
-  // GraphBFS/CoreID4/4         6.13 ms         6.12 ms          107
-  // GraphBFS/CoreID5/5         6.45 ms         6.43 ms          108
-  devices_.emplace("jetson",
-                   Device("jetson",
-                          std::vector<Core>{
-                              {0, ProcessorType::kLittleCore, true},
-                              {1, ProcessorType::kLittleCore, true},
-                              {2, ProcessorType::kLittleCore, true},
-                              {3, ProcessorType::kLittleCore, true},
-                              {4, ProcessorType::kLittleCore, true},
-                              {5, ProcessorType::kLittleCore, true},
-                          }));
+    std::vector<Core> cores;
+    cores.reserve(j.at("cores").size());
+    for (const auto& c : j.at("cores")) {
+      cores.push_back(Core{c.at("id").get<int>(),
+                           parse_core_type(c.at("type").get<std::string>()),
+                           c.at("pinnable").get<bool>()});
+    }
 
-  // ----------------------------------------------------------------------------
-  // For "jetsonlowpower": 4 cores all of one type.
-  // ----------------------------------------------------------------------------
+    int subgroup = 0;
+    if (j.contains("gpu") && j["gpu"].contains("subgroup_size")) {
+      subgroup = j["gpu"]["subgroup_size"].get<int>();
+    }
 
-  // bm-check-core-types 2025-03-20T10:04:46-07:00 Running
-  // /home/yanwen/Desktop/redwood-aio/build/linux/arm64/releasedbg/bm-check-core-types Run on (4 X
-  // 1510.4 MHz CPU s) CPU Caches:
-  //   L1 Data 64 KiB (x4)
-  //   L1 Instruction 64 KiB (x4)
-  //   L2 Unified 256 KiB (x4)
-  //   L3 Unified 2048 KiB (x1)
-  // Load Average: 0.31, 0.20, 0.08
-  // ***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and
-  // will incur extra overhead.
-  // ---------------------------------------------------------------
-  // Benchmark                     Time             CPU   Iterations
-  // ---------------------------------------------------------------
-  // HeavyFloat/CoreID0/0       74.4 ms         74.2 ms            9
-  // HeavyFloat/CoreID1/1       75.2 ms         75.0 ms            9
-  // HeavyFloat/CoreID2/2       74.5 ms         74.4 ms            9
-  // HeavyFloat/CoreID3/3       73.9 ms         73.9 ms            9
-  // GraphBFS/CoreID0/0         29.0 ms         28.9 ms           20
-  // GraphBFS/CoreID1/1         29.8 ms         29.7 ms           21
-  // GraphBFS/CoreID2/2         29.7 ms         29.6 ms           21
-  // GraphBFS/CoreID3/3         29.9 ms         29.8 ms           22
-  devices_.emplace("jetsonlowpower",
-                   Device("jetsonlowpower",
-                          std::vector<Core>{
-                              {0, ProcessorType::kLittleCore, true},
-                              {1, ProcessorType::kLittleCore, true},
-                              {2, ProcessorType::kLittleCore, true},
-                              {3, ProcessorType::kLittleCore, true},
-                          }));
-
-  // For "3A021JEHN02756": 8 cores in 3 groups.
-  devices_.emplace("3A021JEHN02756",
-                   Device("3A021JEHN02756",
-                          std::vector<Core>{
-                              {0, ProcessorType::kLittleCore, true},
-                              {1, ProcessorType::kLittleCore, true},
-                              {2, ProcessorType::kLittleCore, true},
-                              {3, ProcessorType::kLittleCore, true},
-                              {4, ProcessorType::kMediumCore, true},
-                              {5, ProcessorType::kMediumCore, true},
-                              {6, ProcessorType::kBigCore, true},
-                              {7, ProcessorType::kBigCore, true},
-                          }));
-
-  // For "9b034f1b": 8 cores, only cores 0-4 are pinnable.
-  devices_.emplace("9b034f1b",
-                   Device("9b034f1b",
-                          std::vector<Core>{
-                              {0, ProcessorType::kLittleCore, true},
-                              {1, ProcessorType::kLittleCore, true},
-                              {2, ProcessorType::kLittleCore, true},
-                              {3, ProcessorType::kMediumCore, true},
-                              {4, ProcessorType::kMediumCore, true},
-                              {5, ProcessorType::kBigCore, false},
-                              {6, ProcessorType::kBigCore, false},
-                              {7, ProcessorType::kBigCore, false},
-                          }));
-
-  // For "ce0717178d7758b00b7e": 8 cores split into LITTLE and BIG.
-  devices_.emplace("ce0717178d7758b00b7e",
-                   Device("ce0717178d7758b00b7e",
-                          std::vector<Core>{
-                              {4, ProcessorType::kLittleCore, true},
-                              {5, ProcessorType::kLittleCore, true},
-                              {6, ProcessorType::kLittleCore, true},
-                              {7, ProcessorType::kLittleCore, true},
-                              {0, ProcessorType::kBigCore, true},
-                              {1, ProcessorType::kBigCore, true},
-                              {2, ProcessorType::kBigCore, true},
-                              {3, ProcessorType::kBigCore, true},
-                          }));
-
-  // For "R9TR30814KJ": Samsung Tablet 8 cores,
-  devices_.emplace("R9TR30814KJ",
-                   Device("R9TR30814KJ",
-                          std::vector<Core>{
-                              {0, ProcessorType::kLittleCore, true},
-                              {1, ProcessorType::kLittleCore, true},
-                              {2, ProcessorType::kLittleCore, true},
-                              {3, ProcessorType::kLittleCore, true},
-                              {4, ProcessorType::kBigCore, false},
-                              {5, ProcessorType::kBigCore, false},
-                              {6, ProcessorType::kBigCore, false},
-                              {7, ProcessorType::kBigCore, true},
-                          }));
-
-  // For "minipc": 16 cores all of the same type.
-  devices_.emplace("minipc",
-                   Device("minipc",
-                          std::vector<Core>({
-                              {0, ProcessorType::kBigCore, true},
-                              {1, ProcessorType::kBigCore, true},
-                              {2, ProcessorType::kBigCore, true},
-                              {3, ProcessorType::kBigCore, true},
-                              {4, ProcessorType::kBigCore, true},
-                              {5, ProcessorType::kBigCore, true},
-                              {6, ProcessorType::kBigCore, true},
-                              {7, ProcessorType::kBigCore, true},
-                              {8, ProcessorType::kBigCore, true},
-                              {9, ProcessorType::kBigCore, true},
-                              {10, ProcessorType::kBigCore, true},
-                              {11, ProcessorType::kBigCore, true},
-                              {12, ProcessorType::kBigCore, true},
-                              {13, ProcessorType::kBigCore, true},
-                              {14, ProcessorType::kBigCore, true},
-                              {15, ProcessorType::kBigCore, true},
-                          })));
-
-  // [3/3] Processing device: R5CY21Y3VEV
-  // Deploying and running 'bm-check-core-types' on device: R5CY21Y3VEV
-  // build/android/arm64-v8a/release/bm-check-core-types: 1 file pushed, 0 skipped. 332.5 MB/s
-  // (1012336 bytes in 0.003s) 2025-06-16T14:20:04-07:00 Running /data/local/tmp/bm-check-core-types
-  // Run on (10 X 1959 MHz CPU s)
-  // Load Average: 15.48, 15.41, 14.18
-  // ***WARNING*** CPU scaling is enabled, the benchmark real time measurements may be noisy and
-  // will incur extra overhead.
-  // ---------------------------------------------------------------
-  // Benchmark                     Time             CPU   Iterations
-  // ---------------------------------------------------------------
-  // HeavyFloat/CoreID0/0       90.0 ms         88.2 ms            8
-  // HeavyFloat/CoreID1/1       89.4 ms         88.2 ms            8
-  // HeavyFloat/CoreID2/2       89.2 ms         88.1 ms            8
-  // HeavyFloat/CoreID3/3       89.2 ms         88.1 ms            8
-  // HeavyFloat/CoreID4/4       20.4 ms         20.2 ms           35
-  // HeavyFloat/CoreID5/5       20.4 ms         20.2 ms           35
-  // HeavyFloat/CoreID6/6       20.4 ms         20.2 ms           35
-  // HeavyFloat/CoreID7/7       18.2 ms         18.1 ms           39
-  // HeavyFloat/CoreID8/8       18.2 ms         18.1 ms           39
-  // HeavyFloat/CoreID9/9       11.1 ms         11.1 ms           63
-  // GraphBFS/CoreID0/0         4.34 ms         4.22 ms          165
-  // GraphBFS/CoreID1/1         4.31 ms         4.22 ms          166
-  // GraphBFS/CoreID2/2         4.19 ms         4.11 ms          170
-  // GraphBFS/CoreID3/3         4.19 ms         4.11 ms          170
-  // GraphBFS/CoreID4/4         1.19 ms         1.19 ms          608
-  // GraphBFS/CoreID5/5         1.19 ms         1.18 ms          611
-  // GraphBFS/CoreID6/6         1.21 ms         1.20 ms          598
-  // GraphBFS/CoreID7/7         1.10 ms         1.10 ms          661
-  // GraphBFS/CoreID8/8         1.09 ms         1.08 ms          664
-  // GraphBFS/CoreID9/9        0.615 ms        0.612 ms         1135
-
-  devices_.emplace("R5CY21Y3VEV",
-                   Device("R5CY21Y3VEV",
-                          std::vector<Core>{
-                              {0, ProcessorType::kLittleCore, true},
-                              {1, ProcessorType::kLittleCore, true},
-                              {2, ProcessorType::kLittleCore, true},
-                              {3, ProcessorType::kLittleCore, true},
-                              {4, ProcessorType::kMediumCore, true},
-                              {5, ProcessorType::kMediumCore, true},
-                              {6, ProcessorType::kMediumCore, true},
-                              {7, ProcessorType::kBigCore, true},
-                              {8, ProcessorType::kBigCore, true},
-                              {9, ProcessorType::kSuperCore, true},
-                          }));
+    devices_.emplace(id, Device(id, std::move(cores), subgroup));
+  }
 }

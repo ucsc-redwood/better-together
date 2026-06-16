@@ -40,9 +40,15 @@ struct Core {
 // 3. Create a Device class that holds a list of cores.
 class Device {
  public:
-  // Construct a device with a name and a list of cores.
-  Device(std::string name, std::vector<Core> cores)
-      : name_(std::move(name)), cores_(std::move(cores)) {}
+  // Construct a device with a name, a list of cores, and (optionally) the GPU
+  // subgroup/warp size (0 = unknown / no GPU spec).
+  Device(std::string name, std::vector<Core> cores, int gpu_subgroup_size = 0)
+      : name_(std::move(name)),
+        cores_(std::move(cores)),
+        gpu_subgroup_size_(gpu_subgroup_size) {}
+
+  // GPU subgroup (warp) size from the device spec; 0 if unspecified.
+  [[nodiscard]] int gpu_subgroup_size() const { return gpu_subgroup_size_; }
 
   // Get all cores.
   const std::vector<Core>& getCores() const { return cores_; }
@@ -81,6 +87,7 @@ class Device {
  private:
   std::string name_;
   std::vector<Core> cores_;
+  int gpu_subgroup_size_ = 0;
 };
 
 // 4. Create a device registry for easy lookup.
