@@ -7,7 +7,14 @@
 
 ---
 
-## 1. CUDA managed buffers never stream-attached for the GPU — **CONFIRMED, fix is non-trivial (NOT yet applied)**
+## 1. CUDA managed buffers never stream-attached for the GPU — **CONFIRMED · DEFERRED (TODO, address later)**
+
+> **TODO (deferred by decision):** do not apply an aggressive fix now. The correct
+> fix touches the production CUDA memory model and must be validated on the Jetson
+> against *both* the sequential differential oracle and the concurrent hybrid
+> pipeline. Tracked here and as `TODO(cuda-managed-mem)` in
+> `builtin-apps/common/cuda/cu_mem_resource.cu`. The `*-cu` differential tests
+> stay red on the Jetson until then — by design.
 
 **File:** `builtin-apps/common/cuda/cu_mem_resource.cu`, `CudaManagedResource::do_allocate()`
 
@@ -132,6 +139,27 @@ comparison (e.g. compare the set of `(parent, child)` edges) rather than exact
 buffer equality. Tracked as the remaining tree gap (CUDA tree 5/7).
 
 ---
+
+## 7. Vulkan cross-backend findings (first run on rocky-ryzen AMD 780M) — **TRIAGE / DEFERRED**
+
+Vulkan Runners wired for all three apps (same harness). First differential run on
+the rocky-ryzen iGPU (`--device minipc`, subgroup 64):
+
+- **cifar-sparse-vk: 9/9 PASS** — the sparse Vulkan path is numerically correct.
+- **cifar-dense-vk:** conv stages fail with `out=0` at the worst element (zero /
+  partial output, not a tolerance miss) — pool/linear behave differently. Real
+  defect or device-specific; the sparse path passing makes a blanket coherence
+  cause unlikely. Pending triage.
+- **tree-vk:** stage-2 **sort** returns garbage (`out=855638110`) — most likely
+  the hardcoded `--device`→subgroup map (`minipc`=64) selecting the wrong
+  `radixsort_warp{16,32,64}` shader variant for this GPU; this is the
+  "warp-size from device string" trap the audit flagged (fix = runtime subgroup
+  query, plan T3). stages 4/7 fail = the §6 structural stages (expected; need
+  invariant compare).
+
+These are deferred triage items (like §1), not fixed here — the point is the
+oracle now *runs cross-backend on Vulkan* and pinpoints them per stage. The old
+smoke suite reported 35/35 on this box.
 
 ## Latent issue noticed (not fixed)
 

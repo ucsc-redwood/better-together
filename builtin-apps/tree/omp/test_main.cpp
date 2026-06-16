@@ -18,6 +18,7 @@
 
 namespace {
 struct OmpTreeRunner {
+  using AppData = tree::SafeAppData;
   static constexpr bool Available() { return true; }
   static std::pmr::memory_resource* Mr() { return std::pmr::new_delete_resource(); }
   void RunStage(tree::SafeAppData& a, int stage) { tree::omp::dispatch_stage(a, stage); }

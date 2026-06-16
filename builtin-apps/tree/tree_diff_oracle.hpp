@@ -40,13 +40,12 @@ template <class Vec4Range>
   return std::span<const float>(reinterpret_cast<const float*>(v.data()), v.size() * 4);
 }
 
-// Run stages 1..s_last on the runner-allocated appdata. Each stage reads its
-// reference input and writes its own _out buffer (stage 2 chains off stage-1's
-// _out), so running the prefix populates the stage-S output to be checked.
-template <class Runner>
-inline void RunThrough(Runner& runner, tree::SafeAppData& a, int s_last) {
-  for (int s = 1; s <= s_last; ++s) runner.RunStage(a, s);
-}
+// Each Runner declares `using AppData = …` — tree::SafeAppData for OMP/CUDA, or
+// the Vulkan subclass tree::vulkan::VkAppData_Safe (which IS-A SafeAppData, so
+// the golden/_out buffers the checks read are inherited). The checks always take
+// the SafeAppData base. Running stages 1..S populates the stage-S _out (each
+// stage reads its reference input and writes its own _out; stage 2 chains off
+// stage-1's _out).
 
 inline void CheckStage1(const tree::SafeAppData& a) {
   // Morton keys are an unordered set over the input points; the sorted golden
@@ -108,16 +107,17 @@ inline void RunAndCheckStage(int s) {
     GTEST_SKIP() << "backend device not available on this target";
   }
   Runner runner;
-  tree::SafeAppData a(runner.Mr());
-  RunThrough(runner, a, s);
+  typename Runner::AppData a(runner.Mr());  // SafeAppData (OMP/CUDA) or VkAppData_Safe (Vulkan)
+  for (int i = 1; i <= s; ++i) runner.RunStage(a, i);
+  const tree::SafeAppData& base = a;  // checks read the inherited golden / _out
   switch (s) {
-    case 1: CheckStage1(a); break;
-    case 2: CheckStage2(a); break;
-    case 3: CheckStage3(a); break;
-    case 4: CheckStage4(a); break;
-    case 5: CheckStage5(a); break;
-    case 6: CheckStage6(a); break;
-    case 7: CheckStage7(a); break;
+    case 1: CheckStage1(base); break;
+    case 2: CheckStage2(base); break;
+    case 3: CheckStage3(base); break;
+    case 4: CheckStage4(base); break;
+    case 5: CheckStage5(base); break;
+    case 6: CheckStage6(base); break;
+    case 7: CheckStage7(base); break;
     default: FAIL() << "no such tree stage: " << s;
   }
 }

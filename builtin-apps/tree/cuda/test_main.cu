@@ -16,6 +16,7 @@
 
 namespace {
 struct CudaTreeRunner {
+  using AppData = tree::SafeAppData;
   tree::cuda::CudaDispatcher disp;
   static bool Available() {
     int n = 0;

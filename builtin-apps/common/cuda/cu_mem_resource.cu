@@ -26,6 +26,10 @@ std::string format_bytes(std::size_t bytes) {
 
 void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t /*alignment*/) {
   void *ptr = nullptr;
+  // TODO(cuda-managed-mem, docs/BUGS-FOUND.md §1): deferred — address later, do
+  // NOT switch to global attach (it faults the CPU+GPU hybrid). Real fix =
+  // stream-attach + per-stream kernel launch, or zero-copy pinned.
+  //
   // NOTE: cudaMemAttachHost is deliberate — it lets a CPU pipeline thread access
   // these buffers concurrently with GPU kernels running on other items (the
   // CPU+GPU hybrid that is the point of the paper) on Tegra/Jetson, where
