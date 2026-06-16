@@ -34,6 +34,15 @@ struct InputSizePushConstantsUnsigned {
   uint32_t n;
 };
 
+// Multi-workgroup (device-wide) radix sort push constants (shared by the
+// histogram and scatter passes); see multi_radixsort_*.comp.
+struct RadixSortPushConstants {
+  uint32_t g_num_elements;
+  uint32_t g_shift;
+  uint32_t g_num_workgroups;
+  uint32_t g_num_blocks_per_workgroup;
+};
+
 struct FindDupsPushConstants {
   int32_t n;
 };
@@ -111,15 +120,29 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("morton", std::move(morton_algo));
 
-  auto radixsort_algo =
-      engine.make_algo("tmp_single_radixsort_warp" + std::to_string(get_vulkan_warp_size()))
+  // Multi-workgroup (device-wide) LSD radix sort: histogram pass (in,
+  // histograms) + scatter pass (in, out, histograms), 4x8-bit, ping-pong.
+  // 4 descriptor sets each: the 4 radix passes are recorded into one command
+  // buffer (one submit), so each pass needs its own descriptor set (a single
+  // shared set would be overwritten and all passes would use the last binding).
+  auto radix_histograms_algo = engine.make_algo("multi_radixsort_histograms")
+                                   ->work_group_size(256, 1, 1)
+                                   ->num_sets(4)
+                                   ->num_buffers(2)
+                                   ->push_constant<RadixSortPushConstants>()
+                                   ->build();
+
+  cached_algorithms.try_emplace("radix_histograms", std::move(radix_histograms_algo));
+
+  auto radix_scatter_algo =
+      engine.make_algo("multi_radixsort_warp" + std::to_string(get_vulkan_warp_size()))
           ->work_group_size(256, 1, 1)
-          ->num_sets(1)
-          ->num_buffers(2)
-          ->push_constant<InputSizePushConstantsUnsigned>()
+          ->num_sets(4)
+          ->num_buffers(3)
+          ->push_constant<RadixSortPushConstants>()
           ->build();
 
-  cached_algorithms.try_emplace("radixsort", std::move(radixsort_algo));
+  cached_algorithms.try_emplace("radix_scatter", std::move(radix_scatter_algo));
 
   auto find_dups_algo = engine.make_algo("tree_find_dups")
                             ->work_group_size(256, 1, 1)
@@ -217,39 +240,101 @@ void VulkanDispatcher::run_stage_1(VkAppData_Safe &appdata) {
 void VulkanDispatcher::run_stage_2(VkAppData_Safe &appdata) {
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
-  // auto algo = cached_algorithms.at("merge_sort").get();
+  // Device-wide multi-workgroup LSD radix sort (Mirco Werner / Embree). Each of
+  // the 4 8-bit passes runs two dispatches: a histogram pass (per-workgroup
+  // 256-bin counts) and a scatter pass (global offsets + reorder). Buffers
+  // ping-pong so the result lands in u_morton_keys_sorted_s2_out after 4 passes:
+  //   src/dst:  s1->tmp -> out -> tmp -> out  (final = out).
+  // kiss-vk exposes no inter-dispatch pipeline barrier, so each dispatch is its
+  // own submit+fence-wait; the fence wait is a full memory barrier between
+  // passes (histogram writes -> scatter reads, and pass i -> pass i+1).
 
-  // algo->update_descriptor_set(0,
-  //                             {
-  //                                 engine.get_buffer_info(appdata.u_morton_keys_s1),
-  //                                 engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-  //                             });
+  auto *hist_algo = cached_algorithms.at("radix_histograms").get();
+  auto *scatter_algo = cached_algorithms.at("radix_scatter").get();
 
-  // algo->update_push_constant(MergeSortPushConstants{
-  //     .n_logical_blocks = 1,
-  //     .n = appdata.get_n_input(),
-  //     .width = 1,
-  //     .num_pairs = 1,
-  // });
+  const uint32_t n = appdata.get_n_input();
+  constexpr uint32_t kWorkgroupSize = 256;
+  const uint32_t num_workgroups = VkAppData_Safe::kRadixNumWorkgroups;
+  // Cover all elements: each workgroup processes blocks_per_wg blocks of
+  // kWorkgroupSize elements. ceil(ceil(n / WG) / num_workgroups).
+  const uint32_t total_blocks =
+      static_cast<uint32_t>(kiss_vk::div_ceil(n, kWorkgroupSize));
+  const uint32_t blocks_per_workgroup =
+      static_cast<uint32_t>(kiss_vk::div_ceil(total_blocks, num_workgroups));
 
-  auto algo = cached_algorithms.at("radixsort").get();
+  // Ping-pong buffer sequence so the final pass writes into _out.
+  const std::pmr::vector<uint32_t> *src_seq[4] = {
+      &appdata.u_morton_keys_s1,
+      &appdata.u_sort_tmp,
+      &appdata.u_morton_keys_sorted_s2_out,
+      &appdata.u_sort_tmp,
+  };
+  std::pmr::vector<uint32_t> *dst_seq[4] = {
+      &appdata.u_sort_tmp,
+      &appdata.u_morton_keys_sorted_s2_out,
+      &appdata.u_sort_tmp,
+      &appdata.u_morton_keys_sorted_s2_out,
+  };
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_morton_keys_s1),
-                                  engine.get_buffer_info(appdata.u_morton_keys_sorted_s2_out),
-                              });
+  // All 4 passes (8 dispatches) are recorded into ONE command buffer / ONE
+  // submit. Between every dispatch we insert a shaderWrite->shaderRead memory
+  // barrier: histogram->scatter shares the histograms buffer, and pass i's
+  // scatter output is pass i+1's histogram/scatter input (ping-pong). A
+  // fence-wait between separate submits guarantees execution order but NOT
+  // memory availability/visibility across submits -- AMD/Xclipse are coherent
+  // and tolerate it, but Mali-G710 is not (the next stage saw a partially
+  // written buffer, non-deterministic ~65/256 workgroups, -> garbage). Doing it
+  // in one submit with explicit barriers makes the dependencies correct on all
+  // three backends. Each pass uses its own descriptor set (num_sets(4)).
+  const vk::MemoryBarrier mem_barrier{
+      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+      .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+  };
+  auto record_barrier = [&] {
+    seq->get_handle().pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                                      vk::PipelineStageFlagBits::eComputeShader,
+                                      vk::DependencyFlags{}, mem_barrier, nullptr, nullptr);
+  };
 
-  algo->update_push_constant(InputSizePushConstantsUnsigned{
-      .n = appdata.get_n_input(),
-  });
+  // Bind buffers up-front: each pass -> its own descriptor set index.
+  for (uint32_t pass = 0; pass < 4; ++pass) {
+    hist_algo->update_descriptor_set(pass,
+                                     {
+                                         engine.get_buffer_info(*src_seq[pass]),
+                                         engine.get_buffer_info(appdata.u_sort_histograms),
+                                     });
+    scatter_algo->update_descriptor_set(pass,
+                                        {
+                                            engine.get_buffer_info(*src_seq[pass]),
+                                            engine.get_buffer_info(*dst_seq[pass]),
+                                            engine.get_buffer_info(appdata.u_sort_histograms),
+                                        });
+  }
 
   seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
-  algo->record_bind_push(seq->get_handle());
-  algo->record_dispatch(seq->get_handle(), {1, 1, 1});  // Special case: single workgroup
-  seq->cmd_end();
+  for (uint32_t pass = 0; pass < 4; ++pass) {
+    const RadixSortPushConstants pc{
+        .g_num_elements = n,
+        .g_shift = 8u * pass,
+        .g_num_workgroups = num_workgroups,
+        .g_num_blocks_per_workgroup = blocks_per_workgroup,
+    };
 
+    // histogram pass (src -> histograms)
+    hist_algo->update_push_constant(pc);
+    hist_algo->record_bind_core(seq->get_handle(), pass);
+    hist_algo->record_bind_push(seq->get_handle());
+    hist_algo->record_dispatch(seq->get_handle(), {num_workgroups, 1, 1});
+    record_barrier();
+
+    // scatter pass (src + histograms -> dst)
+    scatter_algo->update_push_constant(pc);
+    scatter_algo->record_bind_core(seq->get_handle(), pass);
+    scatter_algo->record_bind_push(seq->get_handle());
+    scatter_algo->record_dispatch(seq->get_handle(), {num_workgroups, 1, 1});
+    if (pass != 3) record_barrier();
+  }
+  seq->cmd_end();
   seq->reset_fence();
   seq->submit();
   seq->wait_for_fence();
@@ -397,9 +482,11 @@ void VulkanDispatcher::run_stage_7(VkAppData_Safe &appdata) {
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
+  // The shader loops over brt node indices [1, n_brt_nodes); size the grid for
+  // n_brt_nodes (the grid-stride loop covers the rest).
   algo->record_dispatch(
       seq->get_handle(),
-      {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_octree_nodes(), 256)), 1, 1});
+      {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
   seq->cmd_end();
 
   seq->reset_fence();

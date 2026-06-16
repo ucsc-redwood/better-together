@@ -2,12 +2,18 @@
 
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 
-layout(push_constant) uniform N { int n; };
+// `n_brt_nodes_pc` is n_unique (the dispatcher passes get_n_unique()); the
+// algorithm derives n_brt_nodes = n_unique - 1 inside k_BuildRadixTree.
+layout(push_constant) uniform N { int n_brt_nodes_pc; };
 
 layout(set = 0, binding = 0) readonly buffer Codes { uint codes[]; };
 layout(set = 0, binding = 1) writeonly buffer PrefixN { uint8_t prefix_n[]; };
-layout(set = 0, binding = 2) buffer HasLeafLeft { bool has_leaf_left[]; };
-layout(set = 0, binding = 3) buffer HasLeafRight { bool has_leaf_right[]; };
+// Host buffers are std::pmr::vector<uint8_t> (1 byte/elem). A GLSL `bool` in an
+// SSBO is laid out as a 32-bit word (std430), so writing `bool` here scattered
+// the flags at a 4x stride and corrupted has_leaf_{left,right}. Use uint8_t to
+// match the host 1-byte FakeBool, exactly like prefix_n.
+layout(set = 0, binding = 2) buffer HasLeafLeft { uint8_t has_leaf_left[]; };
+layout(set = 0, binding = 3) buffer HasLeafRight { uint8_t has_leaf_right[]; };
 layout(set = 0, binding = 4) writeonly buffer LeftChild { int left_child[]; };
 layout(set = 0, binding = 5) buffer Parent { int parent[]; };
 
@@ -19,7 +25,10 @@ uint8_t delta_u32(const uint a, const uint b) {
   // uint bit1_mask = uint(1) << (4 * 8 - 1);
   uint val = a ^ b;
   int msb = findMSB(val);
-  return uint8_t(31 - msb);
+  // (31 - msb) == CLZ(a^b); the OMP/CUDA reference uses CLZ(a^b) - 1, so subtract
+  // 1 to match (previously missing → every prefix_n was +1, corrupting has_leaf
+  // and the downstream octree level = prefix_n/3). See docs/BUGS-FOUND.md §6.
+  return uint8_t(31 - msb - 1);
 }
 
 int log2_ceil_u32(const uint x) {
@@ -33,6 +42,11 @@ int log2_ceil_u32(const uint x) {
 }
 
 void k_BuildRadixTree(int i) {
+  // The push constant `n` is n_unique; the radix-tree algorithm operates over
+  // n_brt_nodes = n_unique - 1 (matches CUDA k_BuildRadixTree which does the -1
+  // internally, and OMP which is passed get_n_brt_nodes()). Using n_unique here
+  // shifted every range bound by 1 -> off-by-one parents and flipped has_leaf.
+  const int n = n_brt_nodes_pc - 1;
   const uint code_i = codes[i];
   // Determine direction of the range (+1 or -1)
   int d;
@@ -94,15 +108,17 @@ void k_BuildRadixTree(int i) {
   // Split position
   const int gamma = i + s * d + min(d, 0);
   left_child[i] = gamma;
-  has_leaf_left[i] = (min(i, j) == gamma);
-  has_leaf_right[i] = (max(i, j) == (gamma + 1));
+  const bool leaf_left = (min(i, j) == gamma);
+  const bool leaf_right = (max(i, j) == (gamma + 1));
+  has_leaf_left[i] = uint8_t(leaf_left ? 1 : 0);
+  has_leaf_right[i] = uint8_t(leaf_right ? 1 : 0);
   // Set parents of left and right children, if they aren't leaves
   // can't set this node as parent of its leaves, because the
   // leaf also represents an internal node with a differnent parent
-  if (!has_leaf_left[i]) {
+  if (!leaf_left) {
     parent[gamma] = i;
   }
-  if (!has_leaf_right[i]) {
+  if (!leaf_right) {
     parent[gamma + 1] = i;
   }
 }
@@ -115,8 +131,11 @@ void main() {
   //     k_BuildRadixTree(i);
   //   }
 
+  // Process i in [0, n_brt_nodes) where n_brt_nodes = n_unique - 1 (matches the
+  // OMP reference and CUDA k_BuildRadixTree). Processing the extra node
+  // i == n_brt_nodes would scatter a bogus parent[] value into the golden range.
   uint idx = gl_GlobalInvocationID.x;
-  if (idx < n) {
+  if (idx < n_brt_nodes_pc - 1) {
     k_BuildRadixTree(int(idx));
   }
 }

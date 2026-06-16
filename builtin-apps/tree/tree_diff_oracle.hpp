@@ -86,18 +86,25 @@ inline void CheckStage6(const tree::SafeAppData& a) {
 
 inline void CheckStage7(const tree::SafeAppData& a) {
   const std::size_t n = a.get_n_octree_nodes();
-  // process_oct_node writes each node's own corner / cell_size / child_node_mask
-  // — per-node and deterministic, so these are stable differential targets.
+  // child_node_mask is an OR-reduction: several brt nodes scatter children into
+  // the same octree node's mask. With atomicOr in the shader (matching the
+  // commutative |= the reference intends) the mask is order-INDEPENDENT and is a
+  // stable differential target.
   EXPECT_TRUE(bt::testing::ExactEqual(a.u_oct_child_node_mask_s7, a.u_oct_child_node_mask_s7_out, "tree s7 node_mask", n));
+  // Geometry IS now a deterministic oracle target. The octree builder used the
+  // INCLUSIVE edge_offset prefix sum as each brt node's range START, which shifted
+  // every range +edge_count[i] -> the root (node 0) had no writer and adjacent
+  // brt ranges overlapped, so cell_size/corner were last-writer-wins (and node 0
+  // a hole). Fixed by using the EXCLUSIVE start (edge_offsets[x]-edge_counts[x])
+  // in process_oct_node / process_link_leaf on all three backends; a diagnostic
+  // confirmed 0 holes and 0 multi-writer collisions afterward, so each octree
+  // node now has exactly one geometry writer and the values are order-independent.
   EXPECT_TRUE(bt::testing::NearEqual(a.u_oct_cell_size_s7, a.u_oct_cell_size_s7_out, 1e-5f, 1e-6f, "tree s7 cell_size", n));
   EXPECT_TRUE(bt::testing::NearEqual(AsFloats(a.u_oct_corner_s7), AsFloats(a.u_oct_corner_s7_out), 1e-5f, 1e-6f, "tree s7 corner", n * 4));
-  // NOTE: u_oct_children_s7 and u_oct_child_leaf_mask_s7 are intentionally NOT
-  // compared. They are produced by process_link_leaf, whose cross-node writes
-  // under `#pragma omp for` make the leaf-child slots order-sensitive between
-  // two independent runs (verified: children diverge run-to-run on OMP). A
-  // stable check needs an order-independent / canonicalized octree comparison
-  // (e.g. compare the set of (parent,child) edges) — deferred. The node mask +
-  // geometry above already catch a wrong octree structure per node.
+  // u_oct_children_s7 and u_oct_child_leaf_mask_s7 are still NOT compared
+  // (process_link_leaf's cross-node child-slot writes remain order-sensitive: a
+  // single octnode slot can be set by different brt nodes). The node mask + the
+  // now-deterministic geometry already catch a wrong per-node octree structure.
 }
 
 // Drive: skip if the backend's device is absent, else run 1..s and check s.

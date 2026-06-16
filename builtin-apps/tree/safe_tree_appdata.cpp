@@ -86,7 +86,11 @@ void HostTreeManager::initialize() {
   // stage 4
   {
     const int start = 0;
-    const int end = appdata.get_n_unique();
+    // brt has exactly n_brt_nodes (= n_unique - 1) internal nodes. Iterating to
+    // n_unique ran one extra node i == n_brt_nodes that reads codes[i+1] (OOB:
+    // codes only has n_unique valid entries) and writes a non-existent brt slot.
+    // CUDA's k_BuildRadixTree loops i < n_brt_nodes. Match it.
+    const int end = appdata.get_n_brt_nodes();
 #pragma omp parallel for
     for (int i = start; i < end; ++i) {
       tree::omp::v1::process_radix_tree_i(i,
@@ -150,8 +154,14 @@ void HostTreeManager::initialize() {
 
   // stage 7 (everything -> octree)
   {
-    const int start = 1;
-    const int end = appdata.get_n_octree_nodes();
+    const int start = 1;  // skip the root brt node
+    // i is a BRT node index, so the bound is n_brt_nodes (CUDA k_MakeOctNodes
+    // loops i < n_brt_nodes). Using n_octree_nodes here (an octree-node count)
+    // left more than half of the octree nodes unwritten. NOTE: a separate,
+    // pre-existing octree defect remains -- some octree nodes are written by >1
+    // brt node with conflicting geometry (the edge_offset prefix-sum convention);
+    // tracked in docs/BUGS-FOUND.md, fixed across all backends separately.
+    const int end = appdata.get_n_brt_nodes();
 
 #pragma omp parallel for
     for (int i = start; i < end; ++i) {
@@ -167,6 +177,22 @@ void HostTreeManager::initialize() {
                                   appdata.u_brt_parents_s4.data(),
                                   tree::kMinCoord,
                                   tree::kRange);
+
+      // The golden previously omitted process_link_leaf, leaving the golden's
+      // children / child_leaf_mask incomplete (and the oracle's claim that
+      // link-leaf was "completed" untrue). Run it so the golden matches the
+      // full pipeline the dispatcher (run_stage_7) executes.
+      tree::omp::process_link_leaf(i,
+                                   reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7.data()),
+                                   appdata.u_oct_child_leaf_mask_s7.data(),
+                                   appdata.u_edge_offset_s6.data(),
+                                   appdata.u_edge_count_s5.data(),
+                                   appdata.u_morton_keys_unique_s3.data(),
+                                   appdata.u_brt_has_leaf_left_s4.data(),
+                                   appdata.u_brt_has_leaf_right_s4.data(),
+                                   appdata.u_brt_prefix_n_s4.data(),
+                                   appdata.u_brt_parents_s4.data(),
+                                   appdata.u_brt_left_child_s4.data());
     }
   }
 

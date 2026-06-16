@@ -46,7 +46,10 @@ __device__ __forceinline__ void process_oct_node(const int i /*brt node index*/,
   // brt[0] contains oct nodes [0, 3] (4 total)
   // brt[1] contains oct nodes [4, 4] (1 total)
   // brt[2] contains oct nodes [5, 6] (2 total) ...
-  auto oct_idx = edge_offsets[i];
+  // edge_offsets is an INCLUSIVE prefix sum (offset[i] includes count[i]); the
+  // first octree node of brt node i is the EXCLUSIVE prefix sum
+  // offset[i] - count[i] (see func_octree.hpp / tree_diff_oracle.hpp).
+  auto oct_idx = edge_offsets[i] - edge_counts[i];
   const auto n_new_nodes = edge_counts[i];
 
   // just a constant
@@ -90,7 +93,7 @@ __device__ __forceinline__ void process_oct_node(const int i /*brt node index*/,
       }
     }
 
-    const auto oct_parent = edge_offsets[rt_parent];
+    const auto oct_parent = edge_offsets[rt_parent] - edge_counts[rt_parent];
     const auto top_level = rt_prefix_n[i] / 3 - n_new_nodes + 1;
     const auto top_node_prefix = morton_codes[i] >> (morton_bits - (3 * top_level));
 
@@ -139,7 +142,7 @@ __device__ __forceinline__ void process_link_leaf(const int i /*brt node index*/
 
     // the lowest octnode in the string contributed by rt_node will be the
     // lowest index
-    const auto bottom_oct_idx = edge_offsets[rt_node];
+    const auto bottom_oct_idx = edge_offsets[rt_node] - edge_counts[rt_node];
     set_leaf(bottom_oct_idx, oct_children, oct_child_leaf_mask, child_idx, leaf_idx);
   }
   if (rt_has_leaf_right[i]) {
@@ -154,7 +157,7 @@ __device__ __forceinline__ void process_link_leaf(const int i /*brt node index*/
 
     // the lowest octnode in the string contributed by rt_node will be the
     // lowest index
-    const auto bottom_oct_idx = edge_offsets[rt_node];
+    const auto bottom_oct_idx = edge_offsets[rt_node] - edge_counts[rt_node];
     set_leaf(bottom_oct_idx, oct_children, oct_child_leaf_mask, child_idx, leaf_idx);
   }
 }
@@ -171,19 +174,11 @@ __global__ void k_MakeOctNodes(int (*oct_children)[8],
                                const float min_coord,
                                const float range,
                                const int n_brt_nodes) {
-  // do the initial setup on 1 thread
-  if (threadIdx.x == 0) {
-    const auto root_level = rt_prefix_n[0] / 3;
-    const auto root_prefix = codes[0] >> (morton_bits - (3 * root_level));
-
-    // compute root's corner
-    morton32_to_xyz(
-        &oct_corner[0], root_prefix << (morton_bits - (3 * root_level)), min_coord, range);
-    oct_cell_size[0] = range;
-  }
-
-  __syncthreads();
-
+  // No explicit root (node 0) setup: with the EXCLUSIVE edge-offset start, octree
+  // node 0 is owned and written exactly once by the first non-empty brt node's
+  // chain (brt node 1), matching the OMP/Vulkan builders. The previous
+  // threadIdx.x==0 root init (cell_size[0]=range) was always overwritten by that
+  // chain write and disagreed with OMP/Vulkan, so it is removed.
   const auto n = static_cast<unsigned>(n_brt_nodes);
   const auto idx = threadIdx.x + blockDim.x * blockIdx.x;
   const auto stride = blockDim.x * gridDim.x;

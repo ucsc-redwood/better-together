@@ -12,6 +12,11 @@ inline void set_child(const int node_idx,
                       const unsigned int which_child,
                       const int oct_idx) {
   u_children[node_idx][which_child] = oct_idx;
+  // Several brt nodes scatter children into the SAME octree node's mask under
+  // #pragma omp parallel for, so this OR is a concurrent read-modify-write and
+  // must be atomic (a plain |= can drop bits). OR is commutative, so the result
+  // is order-independent once atomic. (The GPU shaders use atomicOr to match.)
+#pragma omp atomic
   u_child_node_mask[node_idx] |= 1 << which_child;
 }
 
@@ -44,7 +49,11 @@ inline void process_oct_node(const int i /*brt node index*/,
   // brt[0] contains oct nodes [0, 3] (4 total)
   // brt[1] contains oct nodes [4, 4] (1 total)
   // brt[2] contains oct nodes [5, 6] (2 total) ...
-  auto oct_idx = edge_offsets[i];
+  // edge_offsets is an INCLUSIVE prefix sum (offset[i] includes count[i]), so the
+  // first octree node of brt node i is the EXCLUSIVE prefix sum
+  // offset[i] - count[i]. Using the inclusive value shifted every range +count[i],
+  // leaving the root (node 0) unwritten and overlapping the next brt node's range.
+  auto oct_idx = edge_offsets[i] - edge_counts[i];
   const auto n_new_nodes = edge_counts[i];
 
   // just a constant
@@ -88,7 +97,9 @@ inline void process_oct_node(const int i /*brt node index*/,
       }
     }
 
-    const auto oct_parent = edge_offsets[rt_parent];
+    // first (lowest-index) octree node contributed by rt_parent = its exclusive
+    // prefix-sum start (see oct_idx above).
+    const auto oct_parent = edge_offsets[rt_parent] - edge_counts[rt_parent];
     const auto top_level = rt_prefix_n[i] / 3 - n_new_nodes + 1;
     const auto top_node_prefix = morton_codes[i] >> (morton_bits - (3 * top_level));
 
@@ -127,15 +138,19 @@ inline void process_link_leaf(const int i /*brt node index*/,
     const auto leaf_prefix = morton_codes[leaf_idx] >> (morton_bits - (3 * leaf_level));
     const auto child_idx = leaf_prefix & 0b111;
 
-    // walk up the radix tree until finding a node which contributes an octnode
+    // walk up the radix tree until finding a node which contributes an octnode.
+    // The root brt node has rt_parents[0] == 0 (a self-loop, never assigned), so
+    // guard against an infinite loop exactly like process_oct_node does.
     auto rt_node = i;
+    auto counter = 0;
     while (edge_counts[rt_node] == 0) {
       rt_node = rt_parents[rt_node];
+      if (++counter > 30) break;
     }
 
     // the lowest octnode in the string contributed by rt_node will be the
     // lowest index
-    const auto bottom_oct_idx = edge_offsets[rt_node];
+    const auto bottom_oct_idx = edge_offsets[rt_node] - edge_counts[rt_node];
     set_leaf(bottom_oct_idx, oct_children, oct_child_leaf_mask, child_idx, leaf_idx);
   }
   if (rt_has_leaf_right) {
@@ -144,13 +159,15 @@ inline void process_link_leaf(const int i /*brt node index*/,
     const auto leaf_prefix = morton_codes[leaf_idx] >> (morton_bits - (3 * leaf_level));
     const auto child_idx = leaf_prefix & 0b111;
     auto rt_node = i;
+    auto counter = 0;
     while (edge_counts[rt_node] == 0) {
       rt_node = rt_parents[rt_node];
+      if (++counter > 30) break;
     }
 
     // the lowest octnode in the string contributed by rt_node will be the
     // lowest index
-    const auto bottom_oct_idx = edge_offsets[rt_node];
+    const auto bottom_oct_idx = edge_offsets[rt_node] - edge_counts[rt_node];
     set_leaf(bottom_oct_idx, oct_children, oct_child_leaf_mask, child_idx, leaf_idx);
   }
 }

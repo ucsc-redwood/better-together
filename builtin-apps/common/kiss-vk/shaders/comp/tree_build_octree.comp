@@ -1,6 +1,6 @@
 #version 460
 
-#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
 
 #define morton_bits 30
 
@@ -20,8 +20,10 @@ layout(set = 0, binding = 7) buffer Codes { uint codes[]; };
 layout(set = 0, binding = 8) buffer PrefixN { uint8_t rt_prefixN[]; };
 layout(set = 0, binding = 9) buffer Parents { int rt_parents[]; };
 layout(set = 0, binding = 10) buffer RtLeftChild { int rt_leftChild[]; };
-layout(set = 0, binding = 11) buffer RtHasLeafLeft { bool rt_hasLeafLeft[]; };
-layout(set = 0, binding = 12) buffer RtHasLeafRight { bool rt_hasLeafRight[]; };
+// Host buffers are std::pmr::vector<uint8_t> (1 byte/elem); a GLSL `bool` SSBO
+// element is a 32-bit word, so reading them as bool[] used a 4x-wrong stride.
+layout(set = 0, binding = 11) buffer RtHasLeafLeft { uint8_t rt_hasLeafLeft[]; };
+layout(set = 0, binding = 12) buffer RtHasLeafRight { uint8_t rt_hasLeafRight[]; };
 
 layout(push_constant) uniform Constants {
   float min_coord;
@@ -34,7 +36,10 @@ layout(local_size_x = 256) in;
 // Helper functions to access node data
 void SetChild(int node_idx, int which_child, int oct_idx) {
   children[node_idx * 8 + which_child] = oct_idx;
-  child_node_masks[node_idx] |= 1 << which_child;
+  // Multiple brt nodes scatter children into the SAME octree node's mask, so the
+  // read-modify-write must be atomic; a plain |= loses updates across subgroups
+  // (e.g. two children of the same octnode race -> only one bit survives).
+  atomicOr(child_node_masks[node_idx], 1 << which_child);
 }
 
 void SetLeaf(int node_idx, int which_child, int leaf_idx) {
@@ -80,10 +85,17 @@ void morton32_to_xyz(int node_idx, const int code) {
 }
 
 void k_MakeOctNodes(uint i) {
-  const int root_level = rt_prefixN[i] / 3;
+  // root_level is the level of the octree root, derived from brt node 0's
+  // prefix (rt_prefixN[0]), NOT the current node i. Using i made (level -
+  // root_level) collapse to -j, so every cell_size became ~range. Matches
+  // OMP/CUDA: `root_level = rt_prefix_n[0] / 3`.
+  const int root_level = rt_prefixN[0] / 3;
 
   if (i < n_brt_nodes) {
-    int oct_idx = int(node_offsets[i]);
+    // node_offsets is an INCLUSIVE prefix sum (offset[i] includes count[i]); the
+    // first octree node of brt node i is the EXCLUSIVE prefix sum
+    // offset[i] - count[i] (matches OMP/CUDA func_octree).
+    int oct_idx = int(node_offsets[i]) - int(rt_node_counts[i]);
     const int n_new_nodes = int(rt_node_counts[i]);
 
     for (int j = 0; j < n_new_nodes - 1; ++j) {
@@ -114,7 +126,7 @@ void k_MakeOctNodes(uint i) {
         }
       }
 
-      const int oct_parent = int(node_offsets[rt_parent]);
+      const int oct_parent = int(node_offsets[rt_parent]) - int(rt_node_counts[rt_parent]);
       const int top_level = rt_prefixN[i] / 3 - n_new_nodes + 1;
       const int top_node_prefix =
           int(codes[i] >> (morton_bits - (3 * top_level)));
@@ -131,7 +143,7 @@ void k_MakeOctNodes(uint i) {
 
 void k_LinkLeafNodes(int i) {
   if (i < n_brt_nodes) {
-    if (rt_hasLeafLeft[i]) {
+    if (rt_hasLeafLeft[i] != uint8_t(0)) {
       int leaf_idx = rt_leftChild[i];
       int leaf_level = rt_prefixN[i] / 3 + 1;
       int leaf_prefix =
@@ -141,10 +153,10 @@ void k_LinkLeafNodes(int i) {
       while (rt_node_counts[rt_node] == 0) {
         rt_node = rt_parents[rt_node];
       }
-      int bottom_oct_idx = int(node_offsets[rt_node]);
+      int bottom_oct_idx = int(node_offsets[rt_node]) - int(rt_node_counts[rt_node]);
       SetLeaf(bottom_oct_idx, which_child, leaf_idx);
     }
-    if (rt_hasLeafRight[i]) {
+    if (rt_hasLeafRight[i] != uint8_t(0)) {
       int leaf_idx = rt_leftChild[i] + 1;
       int leaf_level = rt_prefixN[i] / 3 + 1;
       int leaf_prefix =
@@ -154,7 +166,7 @@ void k_LinkLeafNodes(int i) {
       while (rt_node_counts[rt_node] == 0) {
         rt_node = rt_parents[rt_node];
       }
-      int bottom_oct_idx = int(node_offsets[rt_node]);
+      int bottom_oct_idx = int(node_offsets[rt_node]) - int(rt_node_counts[rt_node]);
       SetLeaf(bottom_oct_idx, which_child, leaf_idx);
     }
   }
@@ -165,7 +177,11 @@ void main() {
       gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
   const uint stride = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
 
+  // i is a BRT node index; loop i in [1, n_brt_nodes), skipping the root brt
+  // node 0 (matches the corrected OMP golden and CUDA's k_MakeOctNodes +
+  // `if (i == 0) continue;`).
   for (uint i = idx; i < n_brt_nodes; i += stride) {
+    if (i == 0u) continue;
     k_MakeOctNodes(i);
   }
 }

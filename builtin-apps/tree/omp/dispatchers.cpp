@@ -68,7 +68,10 @@ void run_stage_3(tree::SafeAppData &appdata) {
 
 void run_stage_4(tree::SafeAppData &appdata) {
   const int start = 0;
-  const int end = appdata.get_n_unique();
+  // brt has n_brt_nodes (= n_unique - 1) internal nodes; iterating to n_unique
+  // ran one extra node that reads codes[i+1] OOB and writes a non-existent slot.
+  // Match CUDA's k_BuildRadixTree (i < n_brt_nodes).
+  const int end = appdata.get_n_brt_nodes();
 
   LOG_KERNEL(LogKernelType::kOMP, 4, &appdata);
 
@@ -129,9 +132,11 @@ void run_stage_6(tree::SafeAppData &appdata) {
 // ----------------------------------------------------------------------------
 
 void run_stage_7(tree::SafeAppData &appdata) {
-  // note: 1 here, skipping root
+  // note: 1 here, skipping the root brt node
   const int start = 1;
-  const int end = appdata.get_n_octree_nodes();
+  // i is a BRT node index; bound is n_brt_nodes (matches CUDA k_MakeOctNodes).
+  // n_octree_nodes was wrong and left most octree nodes unwritten.
+  const int end = appdata.get_n_brt_nodes();
 
   LOG_KERNEL(LogKernelType::kOMP, 7, &appdata);
 
