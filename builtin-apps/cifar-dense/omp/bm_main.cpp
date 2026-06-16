@@ -4,6 +4,7 @@
 #include <memory_resource>
 
 #include "../../app.hpp"
+#include "../../common/bm_manual_time.hpp"
 #include "../appdata.hpp"
 #include "dispatchers.hpp"
 
@@ -16,11 +17,11 @@ static void BM_Stage1(benchmark::State& state) {
   cifar_dense::AppData appdata(mr);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 1);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 1); });
   }
 }
 
-BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage1");
+BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage1");
 
 // ----------------------------------------------------------------
 // Stage 2: MaxPool1
@@ -34,11 +35,11 @@ static void BM_Stage2(benchmark::State& state) {
   cifar_dense::omp::dispatch_stage(appdata, 1);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 2);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 2); });
   }
 }
 
-BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage2");
+BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage2");
 
 // ----------------------------------------------------------------
 // Stage 3: Conv2
@@ -52,11 +53,11 @@ static void BM_Stage3(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 2);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 3);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 3); });
   }
 }
 
-BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage3");
+BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage3");
 
 // ----------------------------------------------------------------
 // Stage 4: MaxPool2
@@ -70,11 +71,11 @@ static void BM_Stage4(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 3);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 4);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 4); });
   }
 }
 
-BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage4");
+BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage4");
 
 // ----------------------------------------------------------------
 // Stage 5: Conv3
@@ -88,11 +89,11 @@ static void BM_Stage5(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 4);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 5);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 5); });
   }
 }
 
-BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage5");
+BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage5");
 
 // ----------------------------------------------------------------
 // Stage 6: Conv4
@@ -106,11 +107,11 @@ static void BM_Stage6(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 5);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 6);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 6); });
   }
 }
 
-BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage6");
+BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage6");
 
 // ----------------------------------------------------------------
 // Stage 7: Conv5
@@ -124,11 +125,11 @@ static void BM_Stage7(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 6);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 7);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 7); });
   }
 }
 
-BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage7");
+BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage7");
 
 // ----------------------------------------------------------------
 // Stage 8: MaxPool3
@@ -142,11 +143,11 @@ static void BM_Stage8(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 7);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 8);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 8); });
   }
 }
 
-BENCHMARK(BM_Stage8)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage8");
+BENCHMARK(BM_Stage8)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage8");
 
 // ----------------------------------------------------------------
 // Stage 9: Linear
@@ -160,11 +161,11 @@ static void BM_Stage9(benchmark::State& state) {
   cifar_dense::omp::dispatch_multi_stage(appdata, 1, 8);
 
   for (auto _ : state) {
-    cifar_dense::omp::dispatch_stage(appdata, 9);
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_dense::omp::dispatch_stage(appdata, 9); });
   }
 }
 
-BENCHMARK(BM_Stage9)->Unit(benchmark::kMillisecond)->Name("OMP/CIFAR-Dense/Stage9");
+BENCHMARK(BM_Stage9)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("OMP/CIFAR-Dense/Stage9");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

@@ -3,6 +3,8 @@
 #include <memory_resource>
 
 #include "../../app.hpp"
+#define BT_BM_VULKAN
+#include "../../common/bm_manual_time.hpp"
 #include "../tree_appdata.hpp"
 #include "dispatchers.hpp"
 #include "vk_appdata.hpp"
@@ -20,11 +22,12 @@ static void BM_Stage1(benchmark::State& state) {
   vk_dispatcher->run_stage_1(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_1(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_1(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage1");
+BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage1");
 
 // ----------------------------------------------------------------
 // Stage 2
@@ -42,11 +45,12 @@ static void BM_Stage2(benchmark::State& state) {
   vk_dispatcher->run_stage_2(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_2(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_2(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage2");
+BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage2");
 
 // ----------------------------------------------------------------
 // Stage 3
@@ -65,11 +69,12 @@ static void BM_Stage3(benchmark::State& state) {
   vk_dispatcher->run_stage_3(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_3(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_3(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage3");
+BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage3");
 
 // ----------------------------------------------------------------
 // Stage 4
@@ -89,11 +94,12 @@ static void BM_Stage4(benchmark::State& state) {
   vk_dispatcher->run_stage_4(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_4(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_4(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage4");
+BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage4");
 
 // ----------------------------------------------------------------
 // Stage 5
@@ -114,11 +120,12 @@ static void BM_Stage5(benchmark::State& state) {
   vk_dispatcher->run_stage_5(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_5(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_5(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage5");
+BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage5");
 
 // ----------------------------------------------------------------
 // Stage 6
@@ -140,11 +147,12 @@ static void BM_Stage6(benchmark::State& state) {
   vk_dispatcher->run_stage_6(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_6(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_6(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage6");
+BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage6");
 
 // ----------------------------------------------------------------
 // Stage 7
@@ -167,11 +175,12 @@ static void BM_Stage7(benchmark::State& state) {
   vk_dispatcher->run_stage_7(appdata);
 
   for (auto _ : state) {
-    vk_dispatcher->run_stage_7(appdata);
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_7(appdata); });
   }
 }
 
-BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->Name("Vulkan/Tree/Stage7");
+BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("Vulkan/Tree/Stage7");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

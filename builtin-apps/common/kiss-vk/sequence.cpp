@@ -2,19 +2,46 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <array>
+
 namespace kiss_vk {
 
 Sequence::Sequence(const vk::Device device_ref,
                    const vk::Queue compute_queue_ref,
-                   const uint32_t compute_queue_index)
+                   const uint32_t compute_queue_index,
+                   const float timestamp_period_ns,
+                   const uint32_t timestamp_valid_bits)
     : device_ref_(device_ref),
       compute_queue_ref_(compute_queue_ref),
-      compute_queue_index_(compute_queue_index) {
+      compute_queue_index_(compute_queue_index),
+      timestamp_period_ns_(timestamp_period_ns),
+      timestamp_valid_bits_(timestamp_valid_bits) {
   spdlog::trace("Sequence constructor");
 
   create_sync_objects();
   create_command_pool();
   create_command_buffer();
+  create_query_pool();
+}
+
+Sequence::~Sequence() {
+  if (timestamp_valid_bits_ != 0 && query_pool_) {
+    device_ref_.destroyQueryPool(query_pool_);
+  }
+}
+
+void Sequence::create_query_pool() {
+  if (timestamp_valid_bits_ == 0) {
+    spdlog::trace("Sequence::create_query_pool() skipped (timestamps unsupported)");
+    return;
+  }
+
+  const vk::QueryPoolCreateInfo create_info{
+      .queryType = vk::QueryType::eTimestamp,
+      .queryCount = 2,
+  };
+
+  query_pool_ = device_ref_.createQueryPool(create_info);
 }
 
 void Sequence::create_command_pool() {
@@ -55,12 +82,54 @@ void Sequence::cmd_begin() const {
   };
 
   handle_.begin(begin_info);
+
+  // Record a top-of-pipe timestamp so we can measure GPU-side elapsed time of
+  // this command buffer. Cheap and harmless for the production path, which just
+  // ignores the result.
+  if (timestamp_valid_bits_ != 0) {
+    handle_.resetQueryPool(query_pool_, 0, 2);
+    handle_.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, query_pool_, 0);
+  }
 }
 
 void Sequence::cmd_end() const {
   spdlog::trace("Sequence::cmd_end()");
 
+  if (timestamp_valid_bits_ != 0) {
+    handle_.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, query_pool_, 1);
+  }
+
   handle_.end();
+}
+
+double Sequence::get_last_gpu_time_ns() const {
+  if (timestamp_valid_bits_ == 0) {
+    return 0.0;
+  }
+
+  std::array<uint64_t, 2> timestamps{};
+  const vk::Result result = device_ref_.getQueryPoolResults(
+      query_pool_,
+      0,
+      2,
+      sizeof(timestamps),
+      timestamps.data(),
+      sizeof(uint64_t),
+      vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait);
+
+  if (result != vk::Result::eSuccess) {
+    spdlog::warn("getQueryPoolResults returned {}", vk::to_string(result));
+    return 0.0;
+  }
+
+  // Mask off invalid high bits before subtracting.
+  const uint64_t mask = (timestamp_valid_bits_ >= 64)
+                            ? ~uint64_t{0}
+                            : ((uint64_t{1} << timestamp_valid_bits_) - 1);
+  const uint64_t t0 = timestamps[0] & mask;
+  const uint64_t t1 = timestamps[1] & mask;
+
+  return static_cast<double>(t1 - t0) * static_cast<double>(timestamp_period_ns_);
 }
 
 // void Sequence::insert_compute_memory_barrier() const {

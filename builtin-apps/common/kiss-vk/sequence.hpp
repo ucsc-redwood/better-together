@@ -8,9 +8,11 @@ class Sequence {
  public:
   explicit Sequence(vk::Device device_ref,
                     vk::Queue compute_queue_ref,
-                    uint32_t compute_queue_index);
+                    uint32_t compute_queue_index,
+                    float timestamp_period_ns = 0.0f,
+                    uint32_t timestamp_valid_bits = 0);
 
-  ~Sequence() = default;
+  ~Sequence();
 
   void cmd_begin() const;
   void cmd_end() const;
@@ -27,6 +29,13 @@ class Sequence {
 
   [[nodiscard]] vk::CommandBuffer get_handle() const { return handle_; }
 
+  // GPU-side elapsed time of the last submitted command buffer, in nanoseconds.
+  // Valid only after wait_for_fence(). Returns 0.0 if device timestamps are
+  // unsupported (timestamp_valid_bits == 0), in which case callers should fall
+  // back to wall-clock timing.
+  [[nodiscard]] double get_last_gpu_time_ns() const;
+  [[nodiscard]] bool gpu_timestamps_supported() const { return timestamp_valid_bits_ != 0; }
+
  protected:
   void destroy();
 
@@ -34,6 +43,7 @@ class Sequence {
   void create_sync_objects();
   void create_command_pool();
   void create_command_buffer();
+  void create_query_pool();
 
   vk::Device device_ref_;
   vk::Queue compute_queue_ref_;
@@ -43,6 +53,11 @@ class Sequence {
   vk::CommandBuffer handle_;
   vk::CommandPool command_pool_;
   vk::Fence fence_;
+
+  // Device-side timestamp query (2 entries: top-of-pipe, bottom-of-pipe).
+  vk::QueryPool query_pool_;
+  float timestamp_period_ns_;     // nanoseconds per timestamp tick
+  uint32_t timestamp_valid_bits_;  // 0 => timestamps unsupported on this queue
 };
 
 }  // namespace kiss_vk

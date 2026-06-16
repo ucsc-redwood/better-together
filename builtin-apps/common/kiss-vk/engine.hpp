@@ -24,8 +24,22 @@ class Engine final : public BaseEngine {
   }
 
   [[nodiscard]] std::shared_ptr<Sequence> make_seq() {
-    return std::make_shared<Sequence>(
-        this->get_device(), this->get_compute_queue(), this->get_compute_queue_family_index());
+    const auto props = this->get_physical_device().getProperties();
+    const float timestamp_period_ns = props.limits.timestampPeriod;
+
+    // timestampValidBits of the compute queue family (0 => unsupported).
+    uint32_t timestamp_valid_bits = 0;
+    const auto queue_families = this->get_physical_device().getQueueFamilyProperties();
+    const uint32_t qfi = this->get_compute_queue_family_index();
+    if (qfi < queue_families.size()) {
+      timestamp_valid_bits = queue_families[qfi].timestampValidBits;
+    }
+
+    return std::make_shared<Sequence>(this->get_device(),
+                                      this->get_compute_queue(),
+                                      this->get_compute_queue_family_index(),
+                                      timestamp_period_ns,
+                                      timestamp_valid_bits);
   }
 
   // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector'
