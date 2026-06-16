@@ -282,8 +282,17 @@ found several real defects. Fixed this session (each verified against
   `children`/`child_leaf_mask` remain excluded (their per-slot writes are still
   order-sensitive). Verified: `test-tree-omp` 7/7 (with geometry) locally;
   `test-tree-vk` 7/7 (with geometry) on rocky-ryzen. CUDA: source fix applied and
-  cross-compiles clean (`test-tree-cu`, aarch64); numerical run on a Jetson Orin
-  still pending.
+  cross-compiles clean (`test-tree-cu`, aarch64).
+
+  **CUDA numerical verification is BLOCKED by §1, not by this fix.** Ran the
+  cross-built `test-tree-cu` on the Jetson Orin (`duck-naughty`): 4/7 fail, but
+  the failure is the §1 managed-memory race, NOT a geometry regression — Stage1
+  morton (untouched by this work) already fails with `out=0` from index 0, and
+  the first-mismatch index is non-deterministic run-to-run (252032, then 262144),
+  the classic partial-visibility signature of §1. The values that DO land are
+  correct math. So the CUDA geometry fix cannot be validated on the Jetson until
+  §1 (`cudaStreamAttachMemAsync`) is addressed; the source change is correct by
+  construction (identical edit to the OMP/Vulkan paths that pass with geometry).
 
 ## Latent issue noticed (not fixed)
 
