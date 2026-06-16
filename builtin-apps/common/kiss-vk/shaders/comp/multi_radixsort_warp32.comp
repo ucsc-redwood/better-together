@@ -1,0 +1,121 @@
+/**
+ * Multi-workgroup (device-wide) LSD radix sort - scatter pass (SUBGROUP_SIZE=32).
+ * VkRadixSort written by Mirco Werner: https://github.com/MircoWerner/VkRadixSort
+ * Based on Intel's Embree:
+ * https://github.com/embree/embree/blob/v4.0.0-ploc/kernels/rthwif/builder/gpu/sort.h
+ *
+ * Reads per-workgroup histograms (multi_radixsort_histograms), computes global
+ * bin offsets, and scatters keys from g_elements_in into g_elements_out for the
+ * current 8-bit digit (g_shift). 4 passes ping-pong in<->out on the host side.
+ */
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_KHR_shader_subgroup_ballot : enable
+
+#define WORKGROUP_SIZE 256
+#define RADIX_SORT_BINS 256
+#define SUBGROUP_SIZE 32  // 32 NVIDIA; 64 AMD; 16 Mali
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants {
+  uint g_num_elements;
+  uint g_shift;
+  uint g_num_workgroups;
+  uint g_num_blocks_per_workgroup;
+};
+
+layout(std430, set = 0, binding = 0) buffer elements_in { uint g_elements_in[]; };
+
+layout(std430, set = 0, binding = 1) buffer elements_out { uint g_elements_out[]; };
+
+layout(std430, set = 0, binding = 2) buffer histograms {
+  uint g_histograms[];  // RADIX_SORT_BINS * g_num_workgroups
+};
+
+shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums;  // subgroup reductions
+shared uint[RADIX_SORT_BINS] global_offsets;        // global exclusive scan
+
+struct BinFlags {
+  uint flags[WORKGROUP_SIZE / 32];
+};
+shared BinFlags[RADIX_SORT_BINS] bin_flags;
+
+void main() {
+  // === global offsets (prefix sum) ===
+  uint local_histogram = 0;
+  uint histogram_count = 0;
+  if (gl_LocalInvocationID.x < RADIX_SORT_BINS) {
+    for (uint j = 0; j < g_num_workgroups; j++) {
+      const uint t = g_histograms[RADIX_SORT_BINS * j + gl_LocalInvocationID.x];
+      local_histogram = (j == gl_WorkGroupID.x) ? histogram_count : local_histogram;
+      histogram_count += t;
+    }
+  }
+
+  const uint sum = subgroupAdd(histogram_count);
+  const uint prefix_sum = subgroupExclusiveAdd(histogram_count);
+  if (subgroupElect()) {
+    if (gl_SubgroupID < (RADIX_SORT_BINS / SUBGROUP_SIZE)) {
+      sums[gl_SubgroupID] = sum;
+    }
+  }
+  barrier();
+
+  if (gl_LocalInvocationID.x < RADIX_SORT_BINS) {
+    uint sums_prefix_sum = 0;
+    for (uint i = 0; i < gl_SubgroupID; i++) {
+      sums_prefix_sum += sums[i];
+    }
+    global_offsets[gl_LocalInvocationID.x] = sums_prefix_sum + prefix_sum + local_histogram;
+  }
+
+  // === scatter keys according to global offsets ===
+  const uint flags_bin = gl_LocalInvocationID.x / 32;
+  const uint flags_bit = 1 << (gl_LocalInvocationID.x % 32);
+
+  for (uint index = 0; index < g_num_blocks_per_workgroup; index++) {
+    uint elementId = gl_WorkGroupID.x * g_num_blocks_per_workgroup * WORKGROUP_SIZE +
+                     index * WORKGROUP_SIZE + gl_LocalInvocationID.x;
+
+    // initialize bin flags
+    if (gl_LocalInvocationID.x < RADIX_SORT_BINS) {
+      for (int i = 0; i < WORKGROUP_SIZE / 32; i++) {
+        bin_flags[gl_LocalInvocationID.x].flags[i] = 0U;
+      }
+    }
+    barrier();
+
+    uint element_in = 0;
+    uint binID = 0;
+    uint binOffset = 0;
+    if (elementId < g_num_elements) {
+      element_in = g_elements_in[elementId];
+      binID = uint(element_in >> g_shift) & uint(RADIX_SORT_BINS - 1);
+      binOffset = global_offsets[binID];
+      atomicAdd(bin_flags[binID].flags[flags_bin], flags_bit);
+    }
+    barrier();
+
+    if (elementId < g_num_elements) {
+      uint prefix = 0;
+      uint count = 0;
+      for (uint i = 0; i < WORKGROUP_SIZE / 32; i++) {
+        const uint bits = bin_flags[binID].flags[i];
+        const uint full_count = bitCount(bits);
+        const uint partial_count = bitCount(bits & (flags_bit - 1));
+        prefix += (i < flags_bin) ? full_count : 0U;
+        prefix += (i == flags_bin) ? partial_count : 0U;
+        count += full_count;
+      }
+      g_elements_out[binOffset + prefix] = element_in;
+      if (prefix == count - 1) {
+        atomicAdd(global_offsets[binID], count);
+      }
+    }
+
+    barrier();
+  }
+}

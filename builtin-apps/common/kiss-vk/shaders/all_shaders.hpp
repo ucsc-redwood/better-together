@@ -32,6 +32,10 @@ namespace shaders {
 #include "h/tmp_single_radixsort_warp16_spv.h"
 #include "h/tmp_single_radixsort_warp32_spv.h"
 #include "h/tmp_single_radixsort_warp64_spv.h"
+#include "h/multi_radixsort_histograms_spv.h"
+#include "h/multi_radixsort_warp16_spv.h"
+#include "h/multi_radixsort_warp32_spv.h"
+#include "h/multi_radixsort_warp64_spv.h"
 #include "h/tree_build_octree_spv.h"
 #include "h/tree_build_radix_tree_spv.h"
 #include "h/tree_edge_count_spv.h"
@@ -93,6 +97,10 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(tmp_single_radixsort_warp16),
         SHADER_ENTRY(tmp_single_radixsort_warp32),
         SHADER_ENTRY(tmp_single_radixsort_warp64),
+        SHADER_ENTRY(multi_radixsort_histograms),
+        SHADER_ENTRY(multi_radixsort_warp16),
+        SHADER_ENTRY(multi_radixsort_warp32),
+        SHADER_ENTRY(multi_radixsort_warp64),
         SHADER_ENTRY(tree_build_octree),
         SHADER_ENTRY(tree_build_radix_tree),
         SHADER_ENTRY(tree_edge_count),

@@ -17,6 +17,9 @@ class VulkanDispatcher final {
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() { return engine.get_mr(); }
 
+  // Sequence handle, used by benchmarks to read device-side GPU time per stage.
+  kiss_vk::Sequence* get_seq() { return seq.get(); }
+
   void run_stage_1(VkAppData_Safe& appdata);
   void run_stage_2(VkAppData_Safe& appdata);
   void run_stage_3(VkAppData_Safe& appdata);
