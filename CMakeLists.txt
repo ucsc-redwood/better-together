@@ -1,7 +1,7 @@
 # BetterTogether — CMake build (WORK IN PROGRESS).
 #
 # A separate, modern-CMake build that lives alongside the xmake build during the
-# migration (see docs/CMAKE-MIGRATION-RFC.md). xmake stays the source of truth
+# migration (see docs/reports-for-human/cmake-migration-rfc.md). xmake stays the source of truth
 # until each target passes a parity gate.
 #
 # Backends are orthogonal, combinable options (hybrid = enable two at once):
@@ -97,6 +97,8 @@ bt_add_omp_run(run-cifar-dense-omp builtin-apps/cifar-dense/omp/main.cpp)
 add_executable(test-affinity utility/test_affinity.cpp)   # core-pinning probe
 target_link_libraries(test-affinity PRIVATE bt::core bt::openmp)
 add_executable(query-cpuinfo utility/query_cpuinfo.cpp)   # CPU topology (Linux/Android)
+add_executable(stressor-omp utility/stress/stressor-omp.cpp)  # OMP CPU interference load
+target_link_libraries(stressor-omp PRIVATE bt::core bt::openmp)
 
 # ---- OMP per-stage benchmarks (profiler; the paper's per-stage table) ------
 # bm_main.cpp registers one Google-benchmark per stage (BM_Stage1..N). Isolated
@@ -172,6 +174,10 @@ if(BT_ENABLE_CUDA)
     # per-stage (BM_Stage1..N) — tree/cuda has no bm_main.cu upstream, only cifar
     bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
     bt_add_cuda_app(bm-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
+    # fully-offload-vs-normal baseline (no curl; interference-aware bm-gen-logs is C3)
+    bt_add_cuda_app(bm-fully-tree-cu         pipe/tree-cu/bm_fully_vs_normal.cu         benchmark::benchmark)
+    bt_add_cuda_app(bm-fully-cifar-dense-cu  pipe/cifar-dense-cu/bm_fully_vs_normal.cu  benchmark::benchmark)
+    bt_add_cuda_app(bm-fully-cifar-sparse-cu pipe/cifar-sparse-cu/bm_fully_vs_normal.cu benchmark::benchmark)
   endif()
 endif()
 
@@ -218,6 +224,10 @@ if(BT_ENABLE_VULKAN)
 
   bt_add_vk_run(run-tree-vk builtin-apps/tree/vulkan/run_main.cpp)
 
+  # Vulkan GPU interference load (kiss-vk engine; no benchmark, no volk)
+  add_executable(stressor-vk utility/stress/stressor-vk.cpp)
+  target_link_libraries(stressor-vk PRIVATE bt::vulkan bt::core bt::openmp)
+
   # ---- Vulkan benchmarks (profiler) ----
   if(BT_BUILD_BENCHMARKS)
     function(bt_add_vk_app name src)
@@ -231,6 +241,10 @@ if(BT_ENABLE_VULKAN)
     bt_add_vk_app(bm-tree-vk         builtin-apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
     bt_add_vk_app(bm-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
     bt_add_vk_app(bm-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
+    # fully-offload-vs-normal baseline (no curl; interference-aware bm-gen-logs is C3)
+    bt_add_vk_app(bm-fully-tree-vk         pipe/tree-vk/bm_fully_vs_normal.cpp         benchmark::benchmark)
+    bt_add_vk_app(bm-fully-cifar-dense-vk  pipe/cifar-dense-vk/bm_fully_vs_normal.cpp  benchmark::benchmark)
+    bt_add_vk_app(bm-fully-cifar-sparse-vk pipe/cifar-sparse-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
   endif()
 endif()
 
