@@ -55,6 +55,11 @@ struct OctRefNode {
   // occupied octant -> child internal node prefix (left-aligned) if the child
   // is itself internal; absent if that octant is a pure leaf.
   std::map<int, uint32_t> child_internal;  // octant(0..7) -> child prefix
+  // occupied octant -> the leaf's full morton code, when that octant resolves to
+  // a SINGLE input code (a pure leaf rather than a deeper internal node). This is
+  // the independent ground truth for leaf LINKING (which point hangs off which
+  // octnode+octant), used to validate process_link_leaf.
+  std::map<int, uint32_t> child_leaf;  // octant(0..7) -> leaf morton code
   int n_occupied_octants = 0;              // distinct next-octants present
 };
 
@@ -172,9 +177,12 @@ inline std::vector<OctRefNode> BuildBruteForceOctree(const std::vector<uint32_t>
         child_is_internal = true;
         node.child_internal[oct] = prefix_at(codes[clo], cl);
         work.push_back({clo, chi, cl});
+      } else {
+        // single code -> pure leaf octant. Record the leaf's code so the leaf
+        // LINKING (process_link_leaf) can be validated against this ground truth.
+        node.child_leaf[oct] = codes[clo];
       }
       (void)child_is_internal;
-      // else: single code -> pure leaf octant; not a node->node edge.
     }
 
     nodes.push_back(std::move(node));
