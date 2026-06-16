@@ -156,12 +156,21 @@ the rocky-ryzen iGPU (`--device minipc`, subgroup 64):
   reference on rocky-ryzen, stable. (cifar-sparse-vk was already correct — its
   dispatcher launches the right grid; only the dense dispatcher was wrong.)
   Unambiguous fix, no tradeoff — committed.
-- **tree-vk:** stage-2 **sort** returns garbage (`out=855638110`) — most likely
-  the hardcoded `--device`→subgroup map (`minipc`=64) selecting the wrong
-  `radixsort_warp{16,32,64}` shader variant for this GPU; this is the
-  "warp-size from device string" trap the audit flagged (fix = runtime subgroup
-  query, plan T3). stages 4/7 fail = the §6 structural stages (expected; need
-  invariant compare).
+- **tree-vk: stage-2 sort fails** (`out[0]=855638110`, unsorted). Root cause
+  re-investigated (earlier warp-size guess was WRONG — GPU subgroupSize=64 =
+  registry `minipc`=64, and it fails on all warp variants). The shader is a
+  single-workgroup LSD radix sort (Mirco Werner's VkRadixSort, 4×8-bit passes)
+  that grid-strides, so it is NOT capacity-limited by n. It ping-pongs between
+  binding-0 (`g_elements_in`) and binding-1 (`g_elements_out`) each pass; with
+  **4 (even) passes the final sorted result lands back in binding-0**
+  (`u_morton_keys_s1`), while the dispatcher/test read binding-1
+  (`u_morton_keys_sorted_s2_out`), which only holds the 3rd-pass intermediate →
+  garbage. So it's an output-buffer **parity/wiring** issue, not a hard rewrite.
+  - **TODO(better-sort):** the single-workgroup radix sort is a placeholder
+    (`tmp_single_radixsort_*`, "tmp"); replace with a proper multi-workgroup /
+    device-wide sort eventually. Until then, fix the binding parity so the sorted
+    result reaches `sorted_s2_out`.
+  - stages 4/7 fail = the §6 structural stages (need invariant compare).
 
 These are deferred triage items (like §1), not fixed here — the point is the
 oracle now *runs cross-backend on Vulkan* and pinpoints them per stage. The old
