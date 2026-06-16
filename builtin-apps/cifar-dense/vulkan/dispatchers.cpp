@@ -133,7 +133,9 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(out_channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -182,7 +184,9 @@ void VulkanDispatcher::run_stage_2(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=C, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -235,7 +239,9 @@ void VulkanDispatcher::run_stage_3(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(out_channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -284,7 +290,9 @@ void VulkanDispatcher::run_stage_4(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=C, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -337,7 +345,9 @@ void VulkanDispatcher::run_stage_5(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(out_channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -390,7 +400,9 @@ void VulkanDispatcher::run_stage_6(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(out_channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -443,7 +455,9 @@ void VulkanDispatcher::run_stage_7(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(out_channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
   seq->cmd_end();
 
   seq->submit();
@@ -492,7 +506,9 @@ void VulkanDispatcher::run_stage_8(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
+                         static_cast<uint32_t>(channels),
+                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=C, z=N
   seq->cmd_end();
 
   seq->submit();

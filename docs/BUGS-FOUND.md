@@ -146,10 +146,16 @@ Vulkan Runners wired for all three apps (same harness). First differential run o
 the rocky-ryzen iGPU (`--device minipc`, subgroup 64):
 
 - **cifar-sparse-vk: 9/9 PASS** — the sparse Vulkan path is numerically correct.
-- **cifar-dense-vk:** conv stages fail with `out=0` at the worst element (zero /
-  partial output, not a tolerance miss) — pool/linear behave differently. Real
-  defect or device-specific; the sparse path passing makes a blanket coherence
-  cause unlikely. Pending triage.
+- **cifar-dense-vk: FIXED — 9/9.** The dense conv2d and maxpool shaders expect a
+  **3D dispatch grid** (`gl_WorkGroupID.z`=batch n, `.y`=channel k/c,
+  `.x`=spatial), but `cifar-dense/vulkan/dispatchers.cpp` launched them flat 1D
+  (`{div_ceil(total_output,256), 1, 1}`), so `WorkGroupID.z`/`.y` were always 0 →
+  only batch-0 / channel-0 was computed; every other output stayed at its
+  zero-init (hence `out=0`). Fixed the 5 conv + 3 pool dispatches to
+  `{div_ceil(P*Q,256), channels, batch}`; verified 9/9 vs the double-precision
+  reference on rocky-ryzen, stable. (cifar-sparse-vk was already correct — its
+  dispatcher launches the right grid; only the dense dispatcher was wrong.)
+  Unambiguous fix, no tradeoff — committed.
 - **tree-vk:** stage-2 **sort** returns garbage (`out=855638110`) — most likely
   the hardcoded `--device`→subgroup map (`minipc`=64) selecting the wrong
   `radixsort_warp{16,32,64}` shader variant for this GPU; this is the
