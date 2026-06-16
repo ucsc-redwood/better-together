@@ -43,6 +43,13 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
 
   [[nodiscard]] vk::Buffer get_buffer_from_pointer(void *p);
 
+  // Host<->device cache maintenance for NON-coherent (HOST_CACHED) memory; no-ops
+  // on coherent memory. flush_all() makes host writes visible to the GPU (call
+  // before submitting GPU work); invalidate_all() makes GPU writes visible to the
+  // host (call after the GPU fence is signaled). See do_allocate's heap choice.
+  void flush_all();
+  void invalidate_all();
+
   //   [[nodiscard]] vk::DescriptorBufferInfo make_descriptor_buffer_info(vk::Buffer buffer) const;
 
  protected:

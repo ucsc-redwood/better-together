@@ -10,7 +10,8 @@ class Sequence {
                     vk::Queue compute_queue_ref,
                     uint32_t compute_queue_index,
                     float timestamp_period_ns = 0.0f,
-                    uint32_t timestamp_valid_bits = 0);
+                    uint32_t timestamp_valid_bits = 0,
+                    VulkanMemoryResource* mr = nullptr);
 
   ~Sequence();
 
@@ -58,6 +59,11 @@ class Sequence {
   vk::QueryPool query_pool_;
   float timestamp_period_ns_;     // nanoseconds per timestamp tick
   uint32_t timestamp_valid_bits_;  // 0 => timestamps unsupported on this queue
+
+  // Optional: the engine's memory resource, for host<->device cache maintenance
+  // on non-coherent memory (flush before submit, invalidate after fence). Null =>
+  // no cache maintenance (memory is coherent or caller manages it).
+  VulkanMemoryResource* mr_;
 };
 
 }  // namespace kiss_vk

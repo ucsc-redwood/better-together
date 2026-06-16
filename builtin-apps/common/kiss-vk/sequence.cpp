@@ -10,12 +10,14 @@ Sequence::Sequence(const vk::Device device_ref,
                    const vk::Queue compute_queue_ref,
                    const uint32_t compute_queue_index,
                    const float timestamp_period_ns,
-                   const uint32_t timestamp_valid_bits)
+                   const uint32_t timestamp_valid_bits,
+                   VulkanMemoryResource* mr)
     : device_ref_(device_ref),
       compute_queue_ref_(compute_queue_ref),
       compute_queue_index_(compute_queue_index),
       timestamp_period_ns_(timestamp_period_ns),
-      timestamp_valid_bits_(timestamp_valid_bits) {
+      timestamp_valid_bits_(timestamp_valid_bits),
+      mr_(mr) {
   spdlog::trace("Sequence constructor");
 
   create_sync_objects();
@@ -182,6 +184,10 @@ void Sequence::sync() const {
 void Sequence::submit() const {
   spdlog::trace("Sequence::launch_kernel_async()");
 
+  // Make any pending host writes (inputs/weights) visible to the GPU before it
+  // runs. No-op on coherent memory; required on HOST_CACHED (see do_allocate).
+  if (mr_) mr_->flush_all();
+
   const vk::SubmitInfo submit_info{
       .commandBufferCount = 1,
       .pCommandBuffers = &handle_,
@@ -202,6 +208,11 @@ void Sequence::wait_for_fence() const {
     spdlog::error("waitForFences failed with error: {}", vk::to_string(result));
     throw std::runtime_error("Failed to sync sequence");
   }
+
+  // GPU work is done: invalidate host caches so subsequent CPU reads see the
+  // freshly written results. No-op on coherent memory; required on HOST_CACHED
+  // (this is the cache maintenance BUGS-FOUND.md §7 originally lacked).
+  if (mr_) mr_->invalidate_all();
 }
 
 void Sequence::reset_fence() const {

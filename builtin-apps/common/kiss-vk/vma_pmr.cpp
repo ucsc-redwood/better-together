@@ -60,14 +60,19 @@ void *VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std:
   VmaAllocationCreateInfo allocCreateInfo{};
   allocCreateInfo.flags = allocationFlags_;
   allocCreateInfo.usage = memoryUsage_;
-  // Force a HOST_COHERENT host-visible heap. On non-coherent GPUs (e.g.
-  // Mali-G710 on Pixel 7a) the default VMA_MEMORY_USAGE_AUTO selection picks
-  // host-visible-but-non-coherent memory, and kiss-vk never issues
-  // vkInvalidateMappedMemoryRanges after GPU work, so the host CPU reads
-  // stale/partially-written data (BUGS-FOUND.md §7). Requiring HOST_COHERENT
-  // removes the need for manual invalidate; coherent GPUs are unaffected.
-  allocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+  // Prefer a HOST_VISIBLE + HOST_CACHED heap. Previously we FORCED HOST_COHERENT
+  // to avoid manual cache maintenance (BUGS-FOUND.md §7: kiss-vk never invalidated
+  // after GPU work, so non-coherent Mali read stale data). But on Mali (Pixel 7a)
+  // the coherent heap is uncached/write-combined, and the differential test's CPU
+  // readback of full output tensors from it is ~90x slower than on a cached heap
+  // (Pixel cifar-dense-vk: 233s vs 2.5s on a coherent-friendly GPU). HOST_CACHED
+  // restores fast CPU reads; correctness on the resulting NON-coherent memory is
+  // handled explicitly by flush_all() before GPU work and invalidate_all() after
+  // (Sequence::submit / wait_for_fence) -- the cache maintenance §7 lacked. VMA
+  // falls back to a coherent type if no cached host-visible type exists, and
+  // flush/invalidate are no-ops on coherent memory, so other GPUs are unaffected.
+  allocCreateInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+  allocCreateInfo.preferredFlags = VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 
   VkBuffer buffer;
   VmaAllocation allocation;
@@ -126,6 +131,23 @@ void VulkanMemoryResource::do_deallocate(void *p,
 
 bool VulkanMemoryResource::do_is_equal(const std::pmr::memory_resource &other) const noexcept {
   return dynamic_cast<const VulkanMemoryResource *>(&other) != nullptr;
+}
+
+// Cache maintenance for NON-coherent (HOST_CACHED) memory. vmaFlush/Invalidate
+// are no-ops when the allocation lives in HOST_COHERENT memory, so these are safe
+// (and cheap) to call unconditionally regardless of the heap VMA chose.
+void VulkanMemoryResource::flush_all() {
+  std::lock_guard lock(mutex_);
+  for (auto &[ptr, record] : allocations_) {
+    vmaFlushAllocation(g_vma_allocator, record.allocation, 0, VK_WHOLE_SIZE);
+  }
+}
+
+void VulkanMemoryResource::invalidate_all() {
+  std::lock_guard lock(mutex_);
+  for (auto &[ptr, record] : allocations_) {
+    vmaInvalidateAllocation(g_vma_allocator, record.allocation, 0, VK_WHOLE_SIZE);
+  }
 }
 
 }  // namespace kiss_vk

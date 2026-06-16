@@ -39,7 +39,8 @@ class Engine final : public BaseEngine {
                                       this->get_compute_queue(),
                                       this->get_compute_queue_family_index(),
                                       timestamp_period_ns,
-                                      timestamp_valid_bits);
+                                      timestamp_valid_bits,
+                                      mr_ptr_.get());
   }
 
   // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector'
