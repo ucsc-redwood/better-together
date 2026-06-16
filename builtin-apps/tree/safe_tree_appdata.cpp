@@ -154,7 +154,9 @@ void HostTreeManager::initialize() {
 
   // stage 7 (everything -> octree)
   {
-    const int start = 1;  // skip the root brt node
+    // brt node 0 now contributes the full-domain ROOT octree node (edge_count[0]
+    // == 1), so it must be processed too -- start at 0, not 1.
+    const int start = 0;
     // i is a BRT node index, so the bound is n_brt_nodes (CUDA k_MakeOctNodes
     // loops i < n_brt_nodes). Using n_octree_nodes here (an octree-node count)
     // left more than half of the octree nodes unwritten. NOTE: a separate,

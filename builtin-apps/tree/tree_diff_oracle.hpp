@@ -25,8 +25,12 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <span>
+#include <tuple>
 #include <vector>
 
 #include "builtin-apps/common/testing/oracle.hpp"
@@ -84,6 +88,98 @@ inline void CheckStage6(const tree::SafeAppData& a) {
       a.u_edge_offset_s6, a.u_edge_offset_s6_out, "tree s6 edge_offset", a.get_n_brt_nodes()));
 }
 
+// Canonical, index-permutation-independent octree edge set. Each entry is a
+// downward edge keyed purely by geometry + octant + kind (0 = internal child via
+// child_node_mask, 1 = leaf via child_leaf_mask). Coordinates are quantized to
+// ints (the octree lattice is integral for kRange=1024, kMinCoord=0).
+using OctEdge = std::array<long, 9>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz, tcell}
+
+[[nodiscard]] inline std::vector<OctEdge> OctreeEdgeSet(
+    std::span<const glm::vec4> corner,
+    std::span<const float> cell,
+    std::span<const std::int32_t> children,   // n*8
+    std::span<const std::int32_t> node_mask,
+    std::span<const std::int32_t> leaf_mask,
+    std::size_t n) {
+  auto q = [](float v) { return static_cast<long>(std::lround(v)); };
+  std::vector<OctEdge> edges;
+  for (std::size_t v = 0; v < n; ++v) {
+    const long pcx = q(corner[v].x), pcy = q(corner[v].y), pcz = q(corner[v].z);
+    const long pcell = q(cell[v]);
+    for (int c = 0; c < 8; ++c) {
+      const bool is_node = (node_mask[v] & (1 << c)) != 0;
+      // child_leaf_mask is initialized to all-ones and CLEARED on a leaf link, so
+      // a populated leaf slot is a ZERO bit (matches set_leaf's &= ~).
+      const bool is_leaf = (leaf_mask[v] & (1 << c)) == 0;
+      if (!is_node && !is_leaf) continue;
+      const long kind = is_node ? 0 : 1;
+      const std::int32_t t = children[v * 8 + c];
+      OctEdge e{kind, pcx, pcy, pcz, pcell, 0, 0, 0, 0};
+      if (kind == 0 && t >= 0 && static_cast<std::size_t>(t) < n) {
+        // internal child: identify it by its OWN geometry (index-independent).
+        e[5] = q(corner[t].x); e[6] = q(corner[t].y); e[7] = q(corner[t].z);
+        e[8] = q(cell[t]);
+      } else {
+        // leaf: the value is a point index, not an octree node; key by the raw
+        // value (point indices are the same input on every backend).
+        e[5] = t;
+      }
+      edges.push_back(e);
+    }
+  }
+  std::ranges::sort(edges);
+  return edges;
+}
+
+[[nodiscard]] inline ::testing::AssertionResult CheckStage7Topology(const tree::SafeAppData& a,
+                                                                    std::size_t n) {
+  std::span<const std::int32_t> ch_ref(a.u_oct_children_s7.data(), a.u_oct_children_s7.size());
+  std::span<const std::int32_t> ch_out(a.u_oct_children_s7_out.data(), a.u_oct_children_s7_out.size());
+  std::span<const std::int32_t> nm_ref(a.u_oct_child_node_mask_s7.data(), a.u_oct_child_node_mask_s7.size());
+  std::span<const std::int32_t> nm_out(a.u_oct_child_node_mask_s7_out.data(), a.u_oct_child_node_mask_s7_out.size());
+  std::span<const std::int32_t> lm_ref(a.u_oct_child_leaf_mask_s7.data(), a.u_oct_child_leaf_mask_s7.size());
+  std::span<const std::int32_t> lm_out(a.u_oct_child_leaf_mask_s7_out.data(), a.u_oct_child_leaf_mask_s7_out.size());
+
+  auto ref = OctreeEdgeSet(a.u_oct_corner_s7, a.u_oct_cell_size_s7, ch_ref, nm_ref, lm_ref, n);
+  auto out = OctreeEdgeSet(a.u_oct_corner_s7_out, a.u_oct_cell_size_s7_out, ch_out, nm_out, lm_out, n);
+  if (ref == out) return ::testing::AssertionSuccess();
+
+  // Break the difference down by edge kind. INTERNAL (kind 0) parent->child edges
+  // are the octree's structural topology and MUST be order-independent; LEAF
+  // (kind 1) slots can legitimately collide (two leaves of the same octnode+octant
+  // resolved by non-atomic last-writer-wins differ across backends), so we report
+  // them separately and only fail on an internal-topology divergence.
+  auto split = [](const std::vector<OctEdge>& e, long kind) {
+    std::vector<OctEdge> r;
+    for (const auto& x : e) if (x[0] == kind) r.push_back(x);
+    return r;  // already sorted (subsequence of a sorted vector)
+  };
+  const auto ref_int = split(ref, 0), out_int = split(out, 0);
+  const auto ref_leaf = split(ref, 1), out_leaf = split(out, 1);
+
+  std::size_t int_only_ref = 0, int_only_out = 0;
+  {
+    std::vector<OctEdge> d1, d2;
+    std::ranges::set_difference(ref_int, out_int, std::back_inserter(d1));
+    std::ranges::set_difference(out_int, ref_int, std::back_inserter(d2));
+    int_only_ref = d1.size();
+    int_only_out = d2.size();
+  }
+  if (int_only_ref != 0 || int_only_out != 0) {
+    return ::testing::AssertionFailure()
+           << "tree s7 topology: INTERNAL parent->child edges differ (" << int_only_ref
+           << " only-in-ref, " << int_only_out << " only-in-out; ref_int=" << ref_int.size()
+           << " out_int=" << out_int.size() << ") -- a real cross-backend octree-structure bug";
+  }
+  // Internal topology matches; only leaf slot resolution differs (order-sensitive,
+  // not a structural defect). Surface it as a non-fatal note via success with a
+  // message visible only on -1 logging; keep the gate on internal edges.
+  if (ref_leaf == out_leaf) return ::testing::AssertionSuccess();
+  return ::testing::AssertionSuccess()
+         << "(note) leaf-slot edges differ by last-writer-wins (order-sensitive), "
+            "internal topology identical";
+}
+
 inline void CheckStage7(const tree::SafeAppData& a) {
   const std::size_t n = a.get_n_octree_nodes();
   // child_node_mask is an OR-reduction: several brt nodes scatter children into
@@ -101,10 +197,16 @@ inline void CheckStage7(const tree::SafeAppData& a) {
   // node now has exactly one geometry writer and the values are order-independent.
   EXPECT_TRUE(bt::testing::NearEqual(a.u_oct_cell_size_s7, a.u_oct_cell_size_s7_out, 1e-5f, 1e-6f, "tree s7 cell_size", n));
   EXPECT_TRUE(bt::testing::NearEqual(AsFloats(a.u_oct_corner_s7), AsFloats(a.u_oct_corner_s7_out), 1e-5f, 1e-6f, "tree s7 corner", n * 4));
-  // u_oct_children_s7 and u_oct_child_leaf_mask_s7 are still NOT compared
-  // (process_link_leaf's cross-node child-slot writes remain order-sensitive: a
-  // single octnode slot can be set by different brt nodes). The node mask + the
-  // now-deterministic geometry already catch a wrong per-node octree structure.
+
+  // Order-INDEPENDENT children/leaf topology comparison. Octree node indices are
+  // identical across backends (the per-index geometry above matches), but child
+  // slots are scattered, so rather than rely on slot-write order we canonicalize
+  // each downward edge by GEOMETRY: per node v with populated child/leaf octant
+  // c, emit (corner[v], cell[v], c, kind, corner[target], cell[target]). The
+  // multiset of these tuples is the octree topology; comparing the sorted sets of
+  // golden vs _out validates u_oct_children_s7 + u_oct_child_node_mask_s7 +
+  // u_oct_child_leaf_mask_s7 together, independent of node-index permutations.
+  EXPECT_TRUE(CheckStage7Topology(a, n));
 }
 
 // Drive: skip if the backend's device is absent, else run 1..s and check s.

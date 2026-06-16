@@ -11,26 +11,24 @@ layout(push_constant) uniform Constant { int n_brt_nodes; };
 layout(local_size_x = 512) in;
 
 void countEdges(uint i) {
-  int my_depth = int(prefix_n[i] / 3);
-  int parent_depth = int(prefix_n[parent[i]] / 3);
+  // Octant depth = (prefix_n - 1)/3, NOT prefix_n/3 (prefix_n = clz(xor)-1 over a
+  // 30-bit morton in a 32-bit word over-counts by 1; plain /3 rounds up an octant
+  // at octant boundaries -> children mis-rooted). Matches OMP/CUDA.
+  int my_depth = (int(prefix_n[i]) - 1) / 3;
+  int parent_depth = (int(prefix_n[parent[i]]) - 1) / 3;
   edge_count[i] = my_depth - parent_depth;
 }
 
 void main() {
-  //   const uint idx =
-  //       gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
-  //   const uint stride = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
-
-  //   for (uint i = idx; i < n_brt_nodes; i += stride) {
-  //     if (i == 0) {
-  //       edge_count[i] = 0;
-  //       continue;
-  //     }
-  //     countEdges(i);
-  //   }
-
   uint i = gl_GlobalInvocationID.x;
   if (i < n_brt_nodes) {
-    countEdges(i);
+    // brt node 0 (radix-tree root) contributes exactly ONE octree node: the
+    // full-domain ROOT (cell = range). Was 0 -> no root and the cross-brt parent
+    // walk degenerated onto octree node 0. Matches OMP/CUDA.
+    if (i == 0u) {
+      edge_count[0] = 1;
+    } else {
+      countEdges(i);
+    }
   }
 }

@@ -218,8 +218,9 @@ TinyOct RunRepoOctreeTiny(const std::vector<uint32_t>& codes) {
   out.cell_size.assign(n_oct, 0.0f);
   out.child_node_mask.assign(n_oct, 0);
 
-  // Stage 7 (skip root brt node 0, exactly as the golden), single-threaded.
-  for (int i = 1; i < n_brt; ++i) {
+  // Stage 7 (brt node 0 now contributes the root octree node, exactly as the
+  // golden -- start at 0), single-threaded.
+  for (int i = 0; i < n_brt; ++i) {
     tree::omp::process_oct_node(
         i,
         reinterpret_cast<int(*)[8]>(out.children.data()),

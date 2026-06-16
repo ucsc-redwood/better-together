@@ -132,8 +132,9 @@ void run_stage_6(tree::SafeAppData &appdata) {
 // ----------------------------------------------------------------------------
 
 void run_stage_7(tree::SafeAppData &appdata) {
-  // note: 1 here, skipping the root brt node
-  const int start = 1;
+  // brt node 0 now contributes the full-domain ROOT octree node (edge_count[0]
+  // == 1), so it must be processed too -- start at 0, not 1.
+  const int start = 0;
   // i is a BRT node index; bound is n_brt_nodes (matches CUDA k_MakeOctNodes).
   // n_octree_nodes was wrong and left most octree nodes unwritten.
   const int end = appdata.get_n_brt_nodes();

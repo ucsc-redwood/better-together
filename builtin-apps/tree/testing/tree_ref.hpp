@@ -72,9 +72,19 @@ constexpr int kMortonBits = 30;
 // a missing root rule, or a corrupted prefix_n feeding stage 5 -- it is NOT a
 // byte-clone of the kernel call site, but a recomputation from validated inputs.
 [[nodiscard]] inline int EdgeCountRef(int i, const uint8_t* prefix_n, const int* parents) {
-  if (i == 0) return 0;  // root: no parent edge
-  const int my_depth = prefix_n[i] / 3;
-  const int parent_depth = prefix_n[parents[i]] / 3;
+  // The radix-tree root (brt node 0) contributes exactly ONE octree node: the
+  // full-domain ROOT octree node (level prefix_n[0]/3, cell = range). Earlier the
+  // root contributed 0, so no root octree node existed and the cross-brt parent
+  // walk degenerated onto the deepest octree node -- the topology bug this anchor
+  // now guards against. Every top-level chain links its shallowest node up to
+  // this root node.
+  if (i == 0) return 1;  // root: the full-domain root octree node
+  // Octant depth = (prefix_n - 1)/3, not prefix_n/3: prefix_n (clz(xor)-1 over a
+  // 30-bit morton in a 32-bit word) over-counts by one bit, so plain /3 rounds up
+  // by a whole octant at octant boundaries -- the mis-rooting bug. See
+  // func_octree.hpp oct_depth().
+  const int my_depth = (static_cast<int>(prefix_n[i]) - 1) / 3;
+  const int parent_depth = (static_cast<int>(prefix_n[parents[i]]) - 1) / 3;
   return my_depth - parent_depth;
 }
 

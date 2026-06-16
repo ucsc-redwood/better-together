@@ -70,6 +70,10 @@ void m3D_d_magicbits(const int m, inout vec3 xyz) {
   xyz[2] = morton3D_GetThirdBits(m >> 2);
 }
 
+// Geometric octree depth of a radix node = (prefix_n - 1)/3 (see OMP
+// func_octree.hpp oct_depth() for why, not prefix_n/3).
+int oct_depth(int prefix_n) { return (prefix_n - 1) / 3; }
+
 void morton32_to_xyz(int node_idx, const int code) {
   const float bit_scale = 1024.f;
   vec3 dec_raw_x;
@@ -89,9 +93,20 @@ void k_MakeOctNodes(uint i) {
   // prefix (rt_prefixN[0]), NOT the current node i. Using i made (level -
   // root_level) collapse to -j, so every cell_size became ~range. Matches
   // OMP/CUDA: `root_level = rt_prefix_n[0] / 3`.
-  const int root_level = rt_prefixN[0] / 3;
+  const int root_level = oct_depth(int(rt_prefixN[0]));
 
   if (i < n_brt_nodes) {
+    // brt node 0 (radix-tree root) owns exactly ONE octree node: the full-domain
+    // ROOT (cell = range). Write its geometry and return (it has no octree parent).
+    if (i == 0u) {
+      const int root_oct_idx = int(node_offsets[0]) - int(rt_node_counts[0]);
+      const int root_prefix =
+          int(codes[0] >> (morton_bits - (3 * root_level)))
+              << (morton_bits - (3 * root_level));
+      morton32_to_xyz(root_oct_idx, root_prefix);
+      cell_sizes[root_oct_idx] = range;  // range / 2^(root_level - root_level)
+      return;
+    }
     // node_offsets is an INCLUSIVE prefix sum (offset[i] includes count[i]); the
     // first octree node of brt node i is the EXCLUSIVE prefix sum
     // offset[i] - count[i] (matches OMP/CUDA func_octree).
@@ -99,7 +114,7 @@ void k_MakeOctNodes(uint i) {
     const int n_new_nodes = int(rt_node_counts[i]);
 
     for (int j = 0; j < n_new_nodes - 1; ++j) {
-      const int level = rt_prefixN[i] / 3 - j;
+      const int level = oct_depth(int(rt_prefixN[i])) - j;
       const int node_prefix = int(codes[i] >> (morton_bits - (3 * level)));
       const int which_child = node_prefix & 0x7;
       const int parent = oct_idx + 1;
@@ -127,7 +142,7 @@ void k_MakeOctNodes(uint i) {
       }
 
       const int oct_parent = int(node_offsets[rt_parent]) - int(rt_node_counts[rt_parent]);
-      const int top_level = rt_prefixN[i] / 3 - n_new_nodes + 1;
+      const int top_level = oct_depth(int(rt_prefixN[i])) - n_new_nodes + 1;
       const int top_node_prefix =
           int(codes[i] >> (morton_bits - (3 * top_level)));
       const int which_child = top_node_prefix & 0x7;
@@ -145,7 +160,7 @@ void k_LinkLeafNodes(int i) {
   if (i < n_brt_nodes) {
     if (rt_hasLeafLeft[i] != uint8_t(0)) {
       int leaf_idx = rt_leftChild[i];
-      int leaf_level = rt_prefixN[i] / 3 + 1;
+      int leaf_level = oct_depth(int(rt_prefixN[i])) + 1;
       int leaf_prefix =
           int(codes[leaf_idx] >> (morton_bits - (3 * leaf_level)));
       int which_child = leaf_prefix & 0x7;
@@ -158,7 +173,7 @@ void k_LinkLeafNodes(int i) {
     }
     if (rt_hasLeafRight[i] != uint8_t(0)) {
       int leaf_idx = rt_leftChild[i] + 1;
-      int leaf_level = rt_prefixN[i] / 3 + 1;
+      int leaf_level = oct_depth(int(rt_prefixN[i])) + 1;
       int leaf_prefix =
           int(codes[leaf_idx] >> (morton_bits - (3 * leaf_level)));
       int which_child = leaf_prefix & 0x7;
@@ -177,11 +192,10 @@ void main() {
       gl_LocalInvocationID.x + gl_WorkGroupSize.x * gl_WorkGroupID.x;
   const uint stride = gl_WorkGroupSize.x * gl_NumWorkGroups.x;
 
-  // i is a BRT node index; loop i in [1, n_brt_nodes), skipping the root brt
-  // node 0 (matches the corrected OMP golden and CUDA's k_MakeOctNodes +
-  // `if (i == 0) continue;`).
+  // brt node 0 now contributes the full-domain ROOT octree node (edge_count[0]
+  // == 1); k_MakeOctNodes writes the root for i==0 and returns. Process it too
+  // (no i==0 skip) -- matches the corrected OMP golden and CUDA's k_MakeOctNodes.
   for (uint i = idx; i < n_brt_nodes; i += stride) {
-    if (i == 0u) continue;
     k_MakeOctNodes(i);
   }
 }

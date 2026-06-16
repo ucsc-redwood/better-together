@@ -8,6 +8,10 @@ namespace kernels {
 
 constexpr auto morton_bits = 30;
 
+// Geometric octree depth of a radix node = (prefix_n - 1)/3 (see OMP
+// func_octree.hpp oct_depth() / func_edge.hpp for why, not prefix_n/3).
+__device__ __forceinline__ int oct_depth(const int prefix_n) { return (prefix_n - 1) / 3; }
+
 __device__ __forceinline__ void set_child(const int node_idx,
                                           int (*u_children)[8],
                                           int* u_child_node_mask,
@@ -52,17 +56,28 @@ __device__ __forceinline__ void process_oct_node(const int i /*brt node index*/,
   // edge_offsets is an INCLUSIVE prefix sum (offset[i] includes count[i]); the
   // first octree node of brt node i is the EXCLUSIVE prefix sum
   // offset[i] - count[i] (see func_octree.hpp / tree_diff_oracle.hpp).
+  // just a constant
+  const auto root_level = oct_depth(rt_prefix_n[0]);
+
+  // brt node 0 (radix-tree root) owns exactly ONE octree node: the full-domain
+  // ROOT (cell = range). Write its geometry and return (it has no octree parent).
+  if (i == 0) {
+    const auto root_oct_idx = edge_offsets[0] - edge_counts[0];
+    const auto root_prefix = morton_codes[0] >> (morton_bits - (3 * root_level))
+                                              << (morton_bits - (3 * root_level));
+    morton32_to_xyz(&oct_corner[root_oct_idx], root_prefix, min_coord, range);
+    oct_cell_size[root_oct_idx] = range;  // range / 2^(root_level - root_level)
+    return;
+  }
+
   auto oct_idx = edge_offsets[i] - edge_counts[i];
   const auto n_new_nodes = edge_counts[i];
-
-  // just a constant
-  const auto root_level = rt_prefix_n[0] / 3;
 
   // for each new node,
   // (1) create their cornor/cell size
   // (2) attach them to their parent
   for (auto j = 0; j < n_new_nodes - 1; ++j) {
-    const auto level = rt_prefix_n[i] / 3 - j;  // every new node has a level
+    const auto level = oct_depth(rt_prefix_n[i]) - j;  // every new node has a level
 
     const auto node_prefix = morton_codes[i] >> (morton_bits - (3 * level));
     const auto which_child = node_prefix & 0b111;
@@ -97,7 +112,7 @@ __device__ __forceinline__ void process_oct_node(const int i /*brt node index*/,
     }
 
     const auto oct_parent = edge_offsets[rt_parent] - edge_counts[rt_parent];
-    const auto top_level = rt_prefix_n[i] / 3 - n_new_nodes + 1;
+    const auto top_level = oct_depth(rt_prefix_n[i]) - n_new_nodes + 1;
     const auto top_node_prefix = morton_codes[i] >> (morton_bits - (3 * top_level));
 
     const auto which_child = top_node_prefix & 0b111;
@@ -126,7 +141,7 @@ __device__ __forceinline__ void process_link_leaf(const int i /*brt node index*/
                                                   const int* rt_left_child) {
   if (rt_has_leaf_left[i]) {
     const auto leaf_idx = rt_left_child[i];
-    const auto leaf_level = rt_prefix_n[i] / 3 + 1;
+    const auto leaf_level = oct_depth(rt_prefix_n[i]) + 1;
     const auto leaf_prefix = morton_codes[leaf_idx] >> (morton_bits - (3 * leaf_level));
     const auto child_idx = leaf_prefix & 0b111;
 
@@ -150,7 +165,7 @@ __device__ __forceinline__ void process_link_leaf(const int i /*brt node index*/
   }
   if (rt_has_leaf_right[i]) {
     const auto leaf_idx = rt_left_child[i] + 1;
-    const auto leaf_level = rt_prefix_n[i] / 3 + 1;
+    const auto leaf_level = oct_depth(rt_prefix_n[i]) + 1;
     const auto leaf_prefix = morton_codes[leaf_idx] >> (morton_bits - (3 * leaf_level));
     const auto child_idx = leaf_prefix & 0b111;
     auto rt_node = i;
@@ -177,22 +192,16 @@ __global__ void k_MakeOctNodes(int (*oct_children)[8],
                                const float min_coord,
                                const float range,
                                const int n_brt_nodes) {
-  // No explicit root (node 0) setup: with the EXCLUSIVE edge-offset start, octree
-  // node 0 is owned and written exactly once by the first non-empty brt node's
-  // chain (brt node 1), matching the OMP/Vulkan builders. The previous
-  // threadIdx.x==0 root init (cell_size[0]=range) was always overwritten by that
-  // chain write and disagreed with OMP/Vulkan, so it is removed.
+  // brt node 0 now contributes the full-domain ROOT octree node (edge_count[0]
+  // == 1) and process_oct_node writes its geometry, so it MUST be processed --
+  // the i==0 skip is removed. Matches OMP/Vulkan (start at 0).
   const auto n = static_cast<unsigned>(n_brt_nodes);
   const auto idx = threadIdx.x + blockDim.x * blockIdx.x;
   const auto stride = blockDim.x * gridDim.x;
 
   // all threads participate in the main work
-  // i > 0 && i < N
+  // i < N
   for (auto i = idx; i < n; i += stride) {
-    if (i == 0) {
-      continue;
-    }
-    // printf("i: %d\n", i);
     process_oct_node(static_cast<int>(i),
                      oct_children,
                      oct_corner,
