@@ -218,6 +218,16 @@ int main(int argc, char** argv) {
     return 0;
   }
 
+  // Fail-fast: a machine-generated schedule must contiguously cover all stages.
+  for (size_t vi = 0; vi < schedules.size(); ++vi) {
+    try {
+      validate_schedule_coverage(schedules[vi], kNumStages);
+    } catch (const std::exception&e) {
+      spdlog::error("Schedule {} fails coverage validation: {}", vi, e.what());
+      return 1;
+    }
+  }
+
   auto n_schedules = schedules.size();
   if (n_schedules == 0) {
     spdlog::info("No schedules found.");
