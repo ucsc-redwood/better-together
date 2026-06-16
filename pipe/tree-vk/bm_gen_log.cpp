@@ -2,7 +2,7 @@
 
 #include "builtin-apps/app.hpp"
 #include "builtin-apps/config_reader.hpp"
-#include "builtin-apps/curl_json.hpp"
+#include "builtin-apps/schedule_source.hpp"
 #include "const.hpp"
 
 // ----------------------------------------------------------------------------
@@ -155,11 +155,11 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
 // ----------------------------------------------------------------------------
 // Main
 //
-// You want to serve the schedule using
-// python -m http.server 8080
+// Deliver the schedule as a file (adb push / scp), then pass its local path:
+// 
 //
 // Run with:
-// xmake r bm-gen-logs-tree-vk --device 3A021JEHN02756 --schedule-url
+// xmake r bm-gen-logs-tree-vk --device 3A021JEHN02756 --schedule-file
 // http://192.168.1.204:8080/3A021JEHN02756/tree/vk/schedules.json
 //
 //
@@ -168,8 +168,8 @@ static void BM_pipe_tree_vk_schedule_auto(const Schedule schedule) {
 int main(int argc, char** argv) {
   PARSE_ARGS_BEGIN;
 
-  std::string schedule_url;
-  app.add_option("--schedule-url", schedule_url, "Schedule URL");
+  std::string schedule_file;
+  app.add_option("--schedule-file", schedule_file, "Schedule JSON file path");
 
   size_t n_schedules_to_run = 0;  // 0 means run all schedules
   app.add_option(
@@ -202,18 +202,18 @@ int main(int argc, char** argv) {
 
   spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
 
-  // If schedule_url is empty or we fail to fetch the URL, just run warmup and quit
-  if (schedule_url.empty()) {
-    spdlog::info("No schedule URL provided. Running only warmup phase.");
+  // If schedule_file is empty or we fail to fetch the URL, just run warmup and quit
+  if (schedule_file.empty()) {
+    spdlog::info("No schedule file provided. Running only warmup phase.");
     return 0;
   }
 
   std::vector<Schedule> schedules;
   try {
-    const auto json = fetch_json_from_url(schedule_url);
+    const auto json = load_schedule_json(schedule_file);
     schedules = readSchedulesFromJson(json);
   } catch (const std::exception& e) {
-    spdlog::error("Failed to fetch or parse schedules: {}", e.what());
+    spdlog::error("Failed to read or parse schedules: {}", e.what());
     spdlog::warn("Running only warmup phase.");
     return 0;
   }

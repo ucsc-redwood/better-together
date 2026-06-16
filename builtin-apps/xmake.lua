@@ -19,7 +19,7 @@ do
 		"debug_logger.hpp",
 		"cache.hpp",
 		"config_reader.hpp",
-		"curl_json.hpp",
+		"schedule_source.hpp",
 		"ndarray.hpp",
 
 		-- cifar-sparse headers

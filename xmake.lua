@@ -29,7 +29,6 @@ add_requires("libmorton") -- octree applications
 add_requires("glm") -- tree applications
 
 add_requires("nlohmann_json")
-add_requires("libcurl")
 add_requires("cnpy")
 add_requires("benchmark")
 add_requires("gtest")
@@ -56,7 +55,6 @@ on_load(function(target)
 	target:add("packages", "glm")
 	target:add("packages", "nlohmann_json")
 	target:add("packages", "libmorton")
-	target:add("packages", "libcurl")
 	target:add("packages", "cnpy")
 
 	-- -- for adding debugging

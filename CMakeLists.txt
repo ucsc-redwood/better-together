@@ -64,6 +64,9 @@ if(BT_BUILD_BENCHMARKS)
   CPMAddPackage(NAME benchmark GITHUB_REPOSITORY google/benchmark GIT_TAG v1.9.5
                 OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "BENCHMARK_ENABLE_INSTALL OFF"
                         "BENCHMARK_ENABLE_GTEST_TESTS OFF")
+  # Header-only JSON, for bm-gen-logs reading schedule files (replaces the old
+  # curl/HTTP fetch -- schedules are now plain local files, see schedule_source.hpp).
+  CPMAddPackage("gh:nlohmann/json@3.11.3")
 endif()
 
 # ---- bt::core — shared CPU/OpenMP runtime (tree + cifar OMP dispatchers) ---
@@ -174,10 +177,15 @@ if(BT_ENABLE_CUDA)
     # per-stage (BM_Stage1..N) — tree/cuda has no bm_main.cu upstream, only cifar
     bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
     bt_add_cuda_app(bm-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
-    # fully-offload-vs-normal baseline (no curl; interference-aware bm-gen-logs is C3)
+    # fully-offload-vs-normal baseline
     bt_add_cuda_app(bm-fully-tree-cu         pipe/tree-cu/bm_fully_vs_normal.cu         benchmark::benchmark)
     bt_add_cuda_app(bm-fully-cifar-dense-cu  pipe/cifar-dense-cu/bm_fully_vs_normal.cu  benchmark::benchmark)
     bt_add_cuda_app(bm-fully-cifar-sparse-cu pipe/cifar-sparse-cu/bm_fully_vs_normal.cu benchmark::benchmark)
+    # interference-aware schedule profiler (the paper's BTPM table). Reads the
+    # schedule from a LOCAL file (adb push / scp) -- no libcurl, no HTTP server.
+    bt_add_cuda_app(bm-gen-logs-tree-cu         pipe/tree-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
+    bt_add_cuda_app(bm-gen-logs-cifar-dense-cu  pipe/cifar-dense-cu/bm_gen_log.cu  nlohmann_json::nlohmann_json)
+    bt_add_cuda_app(bm-gen-logs-cifar-sparse-cu pipe/cifar-sparse-cu/bm_gen_log.cu nlohmann_json::nlohmann_json)
   endif()
 endif()
 
@@ -241,10 +249,15 @@ if(BT_ENABLE_VULKAN)
     bt_add_vk_app(bm-tree-vk         builtin-apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
     bt_add_vk_app(bm-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
     bt_add_vk_app(bm-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
-    # fully-offload-vs-normal baseline (no curl; interference-aware bm-gen-logs is C3)
+    # fully-offload-vs-normal baseline
     bt_add_vk_app(bm-fully-tree-vk         pipe/tree-vk/bm_fully_vs_normal.cpp         benchmark::benchmark)
     bt_add_vk_app(bm-fully-cifar-dense-vk  pipe/cifar-dense-vk/bm_fully_vs_normal.cpp  benchmark::benchmark)
     bt_add_vk_app(bm-fully-cifar-sparse-vk pipe/cifar-sparse-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
+    # interference-aware schedule profiler (the paper's BTPM table). Reads the
+    # schedule from a LOCAL file (adb push / scp) -- no libcurl, no HTTP server.
+    bt_add_vk_app(bm-gen-logs-tree-vk         pipe/tree-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
+    bt_add_vk_app(bm-gen-logs-cifar-dense-vk  pipe/cifar-dense-vk/bm_gen_log.cpp  nlohmann_json::nlohmann_json)
+    bt_add_vk_app(bm-gen-logs-cifar-sparse-vk pipe/cifar-sparse-vk/bm_gen_log.cpp nlohmann_json::nlohmann_json)
   endif()
 endif()
 
