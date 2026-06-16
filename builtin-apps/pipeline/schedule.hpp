@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <optional>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "../conf.hpp"
@@ -104,3 +106,50 @@ struct Schedule {
     }
   }
 };
+
+// ---------------------------------------------------------------------
+// Validate that a schedule's chunks contiguously cover stages [1, n_stages]
+// (1-based, inclusive — the convention config_reader produces and the executor
+// dispatches verbatim). Throws std::runtime_error on any gap, overlap, missing
+// first/last stage, out-of-range chunk, or empty schedule.
+//
+// This is the pipeline's correctness gate: it catches a malformed / incomplete
+// schedule before the executor runs the pipeline on partial data — e.g. the
+// "dropped first stage of every chunk" class of bug (a chunk starting at 2
+// instead of 1), which previously survived because the pipeline path had no
+// correctness assertions (only timing).
+// ---------------------------------------------------------------------
+inline void validate_schedule_coverage(const Schedule& schedule, const size_t n_stages) {
+  const int n = static_cast<int>(n_stages);
+
+  if (schedule.chunks.empty()) {
+    throw std::runtime_error("Schedule [" + schedule.uid + "] has no chunks");
+  }
+
+  int expected = 1;  // the next stage that must be covered (1-based)
+  for (size_t i = 0; i < schedule.chunks.size(); ++i) {
+    const ChunkConfig& c = schedule.chunks[i];
+
+    if (c.start_stage != expected) {
+      throw std::runtime_error(
+          "Schedule [" + schedule.uid + "] chunk " + std::to_string(i) +
+          ": expected start_stage " + std::to_string(expected) + " but got " +
+          std::to_string(c.start_stage) +
+          " (gap, overlap, or dropped stage — chunks must contiguously cover [1, " +
+          std::to_string(n) + "])");
+    }
+    if (c.end_stage < c.start_stage) {
+      throw std::runtime_error("Schedule [" + schedule.uid + "] chunk " + std::to_string(i) +
+                               ": end_stage " + std::to_string(c.end_stage) +
+                               " < start_stage " + std::to_string(c.start_stage));
+    }
+    expected = c.end_stage + 1;
+  }
+
+  const int covered = expected - 1;  // last stage covered
+  if (covered != n) {
+    throw std::runtime_error("Schedule [" + schedule.uid + "] covers stages [1, " +
+                             std::to_string(covered) + "] but the application has " +
+                             std::to_string(n) + " stages");
+  }
+}

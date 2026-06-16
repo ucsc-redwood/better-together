@@ -289,6 +289,9 @@ if(BT_BUILD_TESTS)
   # permutation oracle). Kept after removing the dead standalone octree app
   # (the live octree pipeline is the `tree` app; see git history).
   bt_add_omp_test(test-sort-omp         builtin-apps/octree/omp/test_sort.cpp)
+  # Pipeline schedule contract: chunks must contiguously cover [1, n_stages].
+  # The correctness gate the pipeline path was missing (catches the dropped-stage class).
+  bt_add_omp_test(test-schedule-omp     builtin-apps/pipeline/test_schedule.cpp)
 
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)
