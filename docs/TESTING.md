@@ -5,6 +5,58 @@
 > cross-backend correctness suite. Companion to [`CMAKE-MIGRATION-RFC.md`](CMAKE-MIGRATION-RFC.md)
 > (which covers the build) and [`BUILD.md`](BUILD.md) (how to build/run).
 
+## Running the tests
+
+The per-stage differential tests (`bt::testing` oracle: OMP is the reference,
+exact for integer/structural stages, `NearEqual` for float). One harness per app
+(`*_diff_oracle.hpp`), one Runner per backend.
+
+**Local — OMP (the everyday command, no GPU/devices):**
+```bash
+cmake --preset pc && cmake --build --preset pc
+ctest --test-dir build/pc -L omp --output-on-failure        # 5/5 green
+# single binary / subset:
+./build/pc/test-cifar-dense-omp --device pc --gtest_filter='*Conv*'
+./build/pc/test-tree-omp --gtest_list_tests
+```
+`--device` is non-fatal: an unknown/missing one self-skips core-pinning tests.
+
+**CUDA — Jetson Orin (`duck-naughty`):** cross-build in the container, copy, run.
+```bash
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
+  -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc \
+  'cmake --preset jetson && cmake --build --preset jetson --target \
+     test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu'
+scp build/jetson/test-*-cu duck-naughty:~/bt-omp-test/
+ssh duck-naughty 'cd ~/bt-omp-test && ./test-cifar-dense-cu --device jetson'
+```
+(Currently red — blocked by `TODO(cuda-managed-mem)`, see BUGS-FOUND.md §1.)
+
+**Vulkan — rocky-ryzen iGPU (x86, easiest):** build natively, copy x86 binaries,
+run there (its login shell is fish → wrap in `bash -lc`).
+```bash
+cmake --preset vulkan
+cmake --build --preset vulkan --target test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+scp build/vulkan/test-*-vk doremy@rocky-ryzen:~/bt-vk-test/
+ssh doremy@rocky-ryzen 'bash -lc "cd ~/bt-vk-test && LD_LIBRARY_PATH=. ./test-cifar-dense-vk --device minipc"'
+```
+cifar-dense-vk / cifar-sparse-vk = 9/9; tree-vk has the sort + 4/7 TODOs (§7).
+
+**OMP on Android phones** (Pixel 7a on this box; Samsung on rocky-ryzen):
+```bash
+export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865
+cmake --preset android
+cmake --build --preset android --target test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp
+LIBCXX=$(find "$ANDROID_NDK_HOME" -name libc++_shared.so -path '*aarch64*' | head -1)
+adb -s 3A021JEHN02756 push build/android/test-*-omp "$LIBCXX" /data/local/tmp/bt/
+adb -s 3A021JEHN02756 shell 'cd /data/local/tmp/bt && chmod 755 test-* && \
+  LD_LIBRARY_PATH=. ./test-tree-omp --device 3A021JEHN02756'
+```
+
+Host/serial/access details (Jetson `yanwen@duck-naughty`, Samsung via
+`doremy@rocky-ryzen`, NDK path, libc++) are also in `BUILD.md` and the device
+inventory. Verified green (OMP) on all four targets: PC, Pixel 7a, Jetson, Samsung.
+
 ## The goal
 
 Each **application** (`tree`, `cifar-dense`, `cifar-sparse`; more later) is a sequence
