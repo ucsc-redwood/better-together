@@ -92,9 +92,6 @@ function(bt_add_omp_run name src)
 endfunction()
 
 bt_add_omp_run(run-cifar-dense-omp builtin-apps/cifar-dense/omp/main.cpp)
-# octree/omp dispatchers aren't in bt::core, so pull them in here (like the test).
-bt_add_omp_run(run-octree-omp      builtin-apps/octree/omp/main.cpp
-                                   builtin-apps/octree/omp/dispatchers.cpp)
 
 # ---- OMP per-stage benchmarks (profiler; the paper's per-stage table) ------
 # bm_main.cpp registers one Google-benchmark per stage (BM_Stage1..N). Isolated
@@ -201,9 +198,6 @@ if(BT_ENABLE_VULKAN)
   endfunction()
 
   bt_add_vk_run(run-tree-vk builtin-apps/tree/vulkan/run_main.cpp)
-  # octree/vulkan dispatchers aren't in bt::vulkan, so pull them in (like the test).
-  bt_add_vk_run(run-octree-vk builtin-apps/octree/vulkan/main.cpp
-                              builtin-apps/octree/vulkan/dispatchers.cpp)
 
   # ---- Vulkan benchmarks (profiler) ----
   if(BT_BUILD_BENCHMARKS)
@@ -245,12 +239,10 @@ if(BT_BUILD_TESTS)
   bt_add_omp_test(test-tree-omp         builtin-apps/tree/omp/test_main.cpp)
   bt_add_omp_test(test-cifar-dense-omp  builtin-apps/cifar-dense/omp/test_main.cpp)
   bt_add_omp_test(test-cifar-sparse-omp builtin-apps/cifar-sparse/omp/test_main.cpp)
-  # Previously xmake-only: test_sort.cpp is the one suite with real correctness
-  # checks (is_sorted + permutation oracle); octree/omp self-test pulls in its
-  # own dispatchers (not part of bt::core).
+  # test_sort.cpp is the one suite with real correctness checks (is_sorted +
+  # permutation oracle). Kept after removing the dead standalone octree app
+  # (the live octree pipeline is the `tree` app; see git history).
   bt_add_omp_test(test-sort-omp         builtin-apps/octree/omp/test_sort.cpp)
-  bt_add_omp_test(test-octree-omp       builtin-apps/octree/omp/test_main.cpp
-                                        builtin-apps/octree/omp/dispatchers.cpp)
 
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)
@@ -287,7 +279,5 @@ if(BT_BUILD_TESTS)
     bt_add_vk_test(test-tree-vk         builtin-apps/tree/vulkan/test_main.cpp)
     bt_add_vk_test(test-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_main.cpp)
     bt_add_vk_test(test-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_main.cpp)
-    bt_add_vk_test(test-octree-vk       builtin-apps/octree/vulkan/test_main.cpp
-                                        builtin-apps/octree/vulkan/dispatchers.cpp)
   endif()
 endif()
