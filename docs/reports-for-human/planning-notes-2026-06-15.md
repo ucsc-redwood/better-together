@@ -4,7 +4,7 @@ A decision log from a working session on turning BetterTogether from a published
 research artifact into a reproducible, extensible framework. This captures the
 findings, decisions, and roadmap so future work (human or agentic) has context.
 
-Related: [`REARCHITECTURE.md`](REARCHITECTURE.md) (the framework plan).
+Related: [`rearchitecture.md`](rearchitecture.md) (the framework plan).
 
 ---
 
@@ -80,7 +80,7 @@ Host/orchestration: a Linux x86 box driving phones over `adb` (the `justfile`
 
 ## 4. Re-architecture plan (summary)
 
-See [`REARCHITECTURE.md`](REARCHITECTURE.md). The spine is **Layer 0: explicit,
+See [`rearchitecture.md`](rearchitecture.md). The spine is **Layer 0: explicit,
 versioned, validated data contracts** (device spec, profiling table, schedule,
 app manifest) shared by C++ and Python — because the framework is born when the
 implicit file contracts between the three tools become explicit and swappable.

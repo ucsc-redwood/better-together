@@ -326,9 +326,16 @@ better-together/
 ├── resources/             # Model weights and test data
 │   ├── cifar/             # CIFAR-10 model parameters
 │   └── cifar_batches_*/   # Input batches
+├── devices/               # Per-device topology specs (*.json, source of truth)
+├── docs/                  # instruction-for-ai/ (how-to) + reports-for-human/ (status)
 ├── pipe/                  # Pipeline benchmarking utilities
 └── utility/               # System utilities and tests
 ```
+
+> **Working on the code (human or AI)?** Start with
+> [`docs/instruction-for-ai/README.md`](docs/instruction-for-ai/README.md) —
+> project goal, hardware & access, build, test, and the canonical model spec.
+> Status, audits, and roadmaps are in [`docs/reports-for-human/`](docs/reports-for-human/).
 
 ---
 

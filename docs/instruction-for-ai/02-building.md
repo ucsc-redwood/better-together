@@ -1,7 +1,7 @@
 # Building BetterTogether (CMake)
 
 > The CMake build is a **work-in-progress migration target** that lives next to
-> the original xmake build (see [`CMAKE-MIGRATION-RFC.md`](CMAKE-MIGRATION-RFC.md)).
+> the original xmake build (rationale: [`../reports-for-human/cmake-migration-rfc.md`](../reports-for-human/cmake-migration-rfc.md)).
 > xmake remains the source of truth; CMake currently covers the CPU(OpenMP) +
 > CUDA + Vulkan paths for all three apps. Nothing here touches `xmake.lua`.
 
@@ -21,12 +21,15 @@ That's it for the CPU path — no system packages to install beyond a compiler.
 |------|-----|-------|
 | **CMake ≥ 3.25** | presets + `CUDA_STANDARD 20` | `cmake --version` |
 | A **C++20 compiler** | gcc 11+ or clang 14+ | the `pc` preset uses your default compiler |
-| **Network access** | deps are fetched via [CPM.cmake](cmake/CPM.cmake) | spdlog, CLI11, glm, libmorton, gtest (+ Vulkan-Headers/VMA) — no system install needed |
-| **Docker** | only for the Jetson cross-build | image built from [`Dockerfile.cross`](../Dockerfile.cross) |
+| **Network access** | deps are fetched via [CPM.cmake](../../cmake/CPM.cmake) | spdlog, CLI11, glm, libmorton, gtest (+ Vulkan-Headers/VMA) — no system install needed |
+| **Docker** | only for the Jetson cross-build | image built from [`Dockerfile.cross`](../../Dockerfile.cross) |
 | **Android NDK** | only for the `android` preset | installed via `sdkmanager` (see below) |
 
 First configure downloads dependency sources into the build tree (CPM); set
 `CPM_SOURCE_CACHE` (the `jetson` preset already does) to share them across builds.
+
+> Target hardware, access (ssh/adb), and per-device deploy recipes live in
+> [`01-hardware.md`](01-hardware.md).
 
 ## The presets / build matrix
 
@@ -103,7 +106,7 @@ adb push build/android/test-tree-vk \
 adb shell 'cd /data/local/tmp/bt && chmod 755 * && LD_LIBRARY_PATH=. ./test-tree-vk --device <serial>'
 ```
 
-NDK resolution order in [`android-arm64.cmake`](../cmake/toolchains/android-arm64.cmake):
+NDK resolution order in [`android-arm64.cmake`](../../cmake/toolchains/android-arm64.cmake):
 `$ANDROID_NDK_HOME` → `$ANDROID_HOME/ndk/$BT_ANDROID_NDK_VERSION` → `$ANDROID_NDK_ROOT`.
 `libc++_shared.so` must ride along with the binary; `libvulkan` is on the device.
 
@@ -121,14 +124,14 @@ All environment-specific values are cache variables, not hardcoded:
 | `BT_ANDROID_NDK_VERSION` | `29.0.14206865` | `-DBT_ANDROID_NDK_VERSION=27.2.12479018` |
 
 The `--device <id>` passed to tests must match an entry in the device registry
-(`builtin-apps/conf.cpp` / `devices/*.json`); find a phone's id with `adb devices`.
+(`../../builtin-apps/conf.cpp` / `../../devices/*.json`); find a phone's id with `adb devices`.
 
 ## Notes
 
 - **xmake still works** and is unchanged; build it the usual way. The CMake build
   is additive and selected only when you invoke `cmake`.
 - **Parity:** the OpenMP test output is byte-identical between the xmake (clang/-O2)
-  and CMake (gcc/Release) builds — see [RFC Appendix B](CMAKE-MIGRATION-RFC.md).
+  and CMake (gcc/Release) builds — see [RFC Appendix B](../reports-for-human/cmake-migration-rfc.md).
 - Some Vulkan tests can fail on a specific mobile GPU (e.g. `cifar-dense-vk` on
   Mali-G710) — that's driver/hardware-specific, not a build issue; the same binary
   passes on other GPUs.

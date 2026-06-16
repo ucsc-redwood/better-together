@@ -8,7 +8,7 @@ These files are the **single source of truth** for device configuration. They
 were extracted from the hardcoded `DeviceRegistry` in
 [`../builtin-apps/conf.cpp`](../builtin-apps/conf.cpp); the C++ runtime will be
 migrated to load them at runtime (see
-[`../docs/REARCHITECTURE.md`](../docs/REARCHITECTURE.md), Phase 2), after which
+[`../docs/reports-for-human/rearchitecture.md`](../docs/reports-for-human/rearchitecture.md), Phase 2), after which
 the hardcoded table is deleted.
 
 > Note: where the top-level `README.md` and `conf.cpp` disagreed about a

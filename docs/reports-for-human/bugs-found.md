@@ -1,7 +1,7 @@
 # Bugs surfaced by the differential-oracle test suite
 
 > Record of real defects found while replacing the smoke-level gtest suite with
-> OMP-as-oracle differential correctness tests (see [`TESTING.md`](TESTING.md)).
+> OMP-as-oracle differential correctness tests (method: [`../instruction-for-ai/03-unit-testing.md`](../instruction-for-ai/03-unit-testing.md); status: [`testing-status.md`](testing-status.md)).
 > Each was invisible to the old "did it run / did the buffer change" checks.
 > Branch: `refactor/framework-device-axis`.
 

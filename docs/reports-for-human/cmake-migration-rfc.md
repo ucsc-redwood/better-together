@@ -2,7 +2,7 @@
 
 Status: **draft / for discussion** · Branch: `refactor/framework-device-axis` · Author session: 2026-06-15
 
-Related: [`REARCHITECTURE.md`](REARCHITECTURE.md) · [`PLANNING-NOTES-2026-06-15.md`](PLANNING-NOTES-2026-06-15.md)
+Related: [`rearchitecture.md`](rearchitecture.md) · [`planning-notes-2026-06-15.md`](planning-notes-2026-06-15.md)
 
 ---
 
