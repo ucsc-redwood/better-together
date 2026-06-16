@@ -75,7 +75,7 @@ def structural_errors(name: str, spec: object) -> list[str]:
     for key in ("id", "cores"):
         if key not in spec:
             errs.append(f"{name}: missing required key '{key}'")
-    extra = set(spec) - {"id", "description", "cores"}
+    extra = set(spec) - {"id", "description", "cores", "gpu"}
     if extra:
         errs.append(f"{name}: unexpected key(s) {sorted(extra)}")
     if spec.get("id") != name:
@@ -98,6 +98,21 @@ def structural_errors(name: str, spec: object) -> list[str]:
         if core.get("id") in seen_ids:
             errs.append(f"{name}: duplicate core id {core['id']}")
         seen_ids.add(core.get("id"))
+    gpu = spec.get("gpu")
+    if gpu is not None:
+        if not isinstance(gpu, dict):
+            errs.append(f"{name}: 'gpu' must be an object")
+        else:
+            extra_gpu = set(gpu) - {"backend", "name", "subgroup_size"}
+            if extra_gpu:
+                errs.append(f"{name}: gpu has unexpected key(s) {sorted(extra_gpu)}")
+            if gpu.get("backend") not in {"cuda", "vulkan"}:
+                errs.append(f"{name}: gpu.backend {gpu.get('backend')!r} not in ['cuda', 'vulkan']")
+            ss = gpu.get("subgroup_size")
+            if not isinstance(ss, int) or isinstance(ss, bool) or ss < 1:
+                errs.append(f"{name}: gpu.subgroup_size must be a positive integer")
+            if "name" in gpu and not isinstance(gpu["name"], str):
+                errs.append(f"{name}: gpu.name must be a string")
     return errs
 
 

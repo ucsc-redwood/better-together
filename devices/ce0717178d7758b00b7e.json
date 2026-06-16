@@ -10,5 +10,6 @@
     { "id": 1, "type": "big", "pinnable": true },
     { "id": 2, "type": "big", "pinnable": true },
     { "id": 3, "type": "big", "pinnable": true }
-  ]
+  ],
+  "gpu": { "backend": "vulkan", "name": "Adreno 540", "subgroup_size": 32 }
 }

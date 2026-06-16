@@ -19,11 +19,33 @@
     "cores": {
       "type": "array",
       "minItems": 1,
-      "description": "CPU cores in this device. GPU/accelerator descriptors are a planned schema extension (see docs/REARCHITECTURE.md); today the GPU is implicit per backend.",
+      "description": "CPU cores in this device.",
       "items": { "$ref": "#/$defs/core" }
-    }
+    },
+    "gpu": { "$ref": "#/$defs/gpu" }
   },
   "$defs": {
+    "gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "subgroup_size"],
+      "description": "GPU/accelerator descriptor. 'backend' = the GPU compute API the device's accelerator speaks; 'subgroup_size' selects the Vulkan compute-shader variant (warp16/32/64). Transitional: once the Vulkan engine queries VkPhysicalDeviceSubgroupProperties at runtime, subgroup_size becomes informational. Replaces the hardcoded device->warp map in builtin-apps/app.cpp.",
+      "properties": {
+        "backend": {
+          "enum": ["cuda", "vulkan"],
+          "description": "GPU compute API for this device (NVIDIA -> cuda, everything else -> vulkan)."
+        },
+        "name": {
+          "type": "string",
+          "description": "GPU model. Informational only."
+        },
+        "subgroup_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Subgroup/warp size used to pick the compute-shader variant (e.g. 16 Mali, 32 Adreno/NVIDIA, 64 AMD/some Adreno)."
+        }
+      }
+    },
     "core": {
       "type": "object",
       "additionalProperties": false,

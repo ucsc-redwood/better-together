@@ -18,5 +18,6 @@
     { "id": 13, "type": "big", "pinnable": true },
     { "id": 14, "type": "big", "pinnable": true },
     { "id": 15, "type": "big", "pinnable": true }
-  ]
+  ],
+  "gpu": { "backend": "vulkan", "name": "AMD Radeon 780M", "subgroup_size": 64 }
 }

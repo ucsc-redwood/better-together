@@ -10,5 +10,6 @@
     { "id": 5, "type": "medium", "pinnable": true },
     { "id": 6, "type": "big", "pinnable": true },
     { "id": 7, "type": "big", "pinnable": true }
-  ]
+  ],
+  "gpu": { "backend": "vulkan", "name": "Mali-G710", "subgroup_size": 16 }
 }
