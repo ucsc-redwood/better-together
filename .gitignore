@@ -43,3 +43,10 @@ cifar-10-batches-py/
 .venv/
 venv/
 data/cifar-10-python.tar.gz
+
+# Trained checkpoints (~137MB; regenerable via scripts/data_prep/alexnet_cifar10.py)
+saved_params/
+# CTest-generated artifacts
+Testing/
+# Local Claude Code settings (shared agents/commands are committed; personal config is not)
+.claude/settings.local.json
