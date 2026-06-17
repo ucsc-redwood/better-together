@@ -23,6 +23,8 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <set>
 #include <thread>
 #include <vector>
 
@@ -61,6 +63,14 @@ inline void run_pipeline(const Schedule& sched,
         << "queue[0] full at item " << i << " -- pool_size exceeds QueueT capacity";
   }
 
+  // Completion-edge sink: the LAST chunk records every item it finishes. Asserting
+  // the count == n_items (and that all pool objects appear) catches a drop/dup that
+  // the per-item golden check below cannot -- a later-cycle drop leaves the item's
+  // _out holding an EARLIER cycle's still-correct result, so the golden compare
+  // passes while throughput is silently wrong.
+  std::vector<AppDataTArg*> completed;
+  std::mutex completed_mu;
+
   std::vector<std::thread> threads;
   for (size_t chunk_id = 0; chunk_id < n_chunks; ++chunk_id) {
     QueueTArg& q_in = queues[chunk_id];
@@ -70,26 +80,39 @@ inline void run_pipeline(const Schedule& sched,
     const bool is_last = chunk_id == n_chunks - 1;
     const ExecutionModel em = sched.chunks[chunk_id].exec_model;
 
+    std::function<void(AppDataTArg*)> fn;
     if (em == gpu_em) {
-      threads.emplace_back(
-          worker, std::ref(q_in), std::ref(q_out),
-          [&disp, start, end](AppDataTArg* app) { disp.dispatch_multi_stage(*app, start, end); },
-          n_items, is_last);
+      fn = [&disp, start, end](AppDataTArg* app) { disp.dispatch_multi_stage(*app, start, end); };
     } else {  // kOMP chunk pinned to its CPU tier
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(sched.chunks[chunk_id]);
-      threads.emplace_back(
-          worker, std::ref(q_in), std::ref(q_out),
-          [&omp_dispatch, cpu_pt, start, end](AppDataTArg* app) {
-            auto& cores = get_cores_by_type(cpu_pt);
-            omp_dispatch(cores, cores.size(), *app, start, end);
-          },
-          n_items, is_last);
+      fn = [&omp_dispatch, cpu_pt, start, end](AppDataTArg* app) {
+        auto& cores = get_cores_by_type(cpu_pt);
+        omp_dispatch(cores, cores.size(), *app, start, end);
+      };
     }
+    if (is_last) {
+      fn = [inner = std::move(fn), &completed, &completed_mu](AppDataTArg* app) {
+        inner(app);
+        std::lock_guard<std::mutex> lk(completed_mu);
+        completed.push_back(app);
+      };
+    }
+    threads.emplace_back(worker, std::ref(q_in), std::ref(q_out), std::move(fn), n_items, is_last);
   }
   for (auto& t : threads) t.join();
 
+  // Completion-edge invariants: the last chunk must have finished exactly n_items and
+  // every one of the pool_size distinct objects must have reached it (no orphan/starve).
+  EXPECT_EQ(completed.size(), n_items)
+      << "last chunk finished " << completed.size() << " of " << n_items
+      << " items -- the ring dropped or duplicated items";
+  const std::set<AppDataTArg*> distinct(completed.begin(), completed.end());
+  EXPECT_EQ(distinct.size(), pool_size)
+      << "only " << distinct.size() << " of " << pool_size
+      << " pool objects reached the last chunk -- an orphaned/starved item";
+
   // After the ring drains, every pooled item's _out holds the result the pipeline
-  // last wrote for it. Check each against its own inherited golden.
+  // last wrote for it. Check each against its own inherited (distinct-seed) golden.
   for (const auto& item : dataset) {
     per_item_check(*item);
     if (::testing::Test::HasFatalFailure()) return;

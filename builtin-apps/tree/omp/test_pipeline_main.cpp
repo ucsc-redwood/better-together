@@ -26,18 +26,18 @@
 // (worker loop, SPSC handoff, AppData pool reuse, cross-tier OMP-barrier
 // visibility, affinity-pinned dispatch). OMP-only, locally verifiable on pc.
 //
-// SCOPE / KNOWN HARDENING TODO (see docs/reports-for-human/runtime-test-suite-plan.md,
-// Category 1, "two load-bearing corrections"). This first cut asserts each pool item's
-// _out against a self-golden from the SAME seed 114514 and checks EVERY pool object
-// after drain. The adversarial review flagged two blind spots to close before this
-// becomes the GPU ordering/visibility gate (Category 3):
-//   1. Distinguishable items: seed pool item i with 114514+i and assert output id ==
-//      input id, so a wrong-item write (pool aliasing / stale mapped ptr surviving
-//      reset) can't pass by writing a correct value into the wrong item.
-//   2. Completion-edge assertion: record what the LAST chunk completed and assert the
-//      multiset == kNumToProcess (catches drop/dup/orphan), not the static pool vector.
-//      NB on x86-TSO OMP->OMP the parallel-region barrier makes this insensitive to
-//      handoff ORDERING -- ordering is gated on GPU only.
+// ORACLE HARDENING (the adversarial review's "two load-bearing corrections"):
+//   1. Distinguishable items -- ALREADY satisfied: tree_appdata.cpp seeds points from a
+//      STATIC std::mt19937(114514) that advances per construction, so each pool item
+//      has DISTINCT input -> a DISTINCT golden. A wrong-item write lands a value that
+//      mismatches the victim's golden -> caught. (The critique assumed a fixed per-item
+//      seed without checking the generator; the code already distinguishes items.)
+//   2. Completion-edge assertion -- DONE in run_pipeline(): the last chunk records every
+//      finished item; the runner asserts the count == n_items and all pool objects
+//      reached it, so a later-cycle drop (whose stale _out still matches its golden)
+//      can't pass silently.
+// NB on x86-TSO OMP->OMP the parallel-region barrier makes this path insensitive to
+// handoff ORDERING -- ordering/visibility is gated on the GPU tests (vk/cu).
 // ----------------------------------------------------------------------------
 
 namespace {
