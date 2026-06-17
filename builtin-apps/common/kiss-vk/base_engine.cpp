@@ -42,6 +42,21 @@ BaseEngine::BaseEngine(const bool enable_validation_layer)
 // ----------------------------------------------------------------------------
 
 BaseEngine::~BaseEngine() {
+  // Tear down explicitly and in order. Previously only the VMA allocator was
+  // destroyed; the vk::Device and vk::Instance were leaked, so the Vulkan loader's
+  // own static/atexit teardown raced and segfaulted on exit on Tegra (§9) — after the
+  // results were already flushed. By the time this base dtor runs, the derived
+  // Engine's memory resource (buffers) and the dispatcher's sequences/algorithms
+  // (command/descriptor pools) are already destroyed (declaration/destruction order),
+  // so draining and destroying the device + instance here is safe.
+  if (device_) {
+    // waitIdle can throw (vulkan-hpp), which in a destructor would std::terminate.
+    try {
+      device_.waitIdle();
+    } catch (const std::exception &e) {
+      spdlog::warn("BaseEngine teardown: device.waitIdle() failed: {}", e.what());
+    }
+  }
   if (g_vma_allocator) {
     vmaDestroyAllocator(g_vma_allocator);
     // Null the global so a second BaseEngine destruction (or any later use via
@@ -49,6 +64,14 @@ BaseEngine::~BaseEngine() {
     // is still a single global shared across engines, so two BaseEngines must not
     // coexist; this guard makes the common create→destroy→create sequence safe.
     g_vma_allocator = nullptr;
+  }
+  if (device_) {
+    device_.destroy();
+    device_ = nullptr;
+  }
+  if (instance_) {
+    instance_.destroy();
+    instance_ = nullptr;
   }
 }
 

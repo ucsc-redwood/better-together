@@ -302,9 +302,22 @@ found several real defects. Fixed this session (each verified against
   §1 (`cudaStreamAttachMemAsync`) is addressed; the source change is correct by
   construction (identical edit to the OMP/Vulkan paths that pass with geometry).
 
-## 9. `bm-baseline-cifar-dense-vk` segfaults on exit (Jetson) — **NOTED · DEFERRED (fix later)**
+## 9. `bm-baseline-cifar-dense-vk` segfaults on exit (Jetson) — **RESOLVED (2026-06-17)**
 
-**Symptom.** The single-PU baseline on the Jetson
+> **Resolved:** `~BaseEngine` (`kiss-vk/base_engine.cpp`) only destroyed the VMA
+> allocator — the `vk::Device` and `vk::Instance` were leaked, so the Vulkan loader's
+> own static/atexit teardown raced and segfaulted on Tegra. The dtor now drains
+> (`device_.waitIdle()`, guarded — it can throw) and destroys, in order, the VMA
+> allocator → device → instance. Safe because the dispatcher declares `engine` first
+> (destroyed last), so the sequences/algorithms (pools) and the engine's memory
+> resource (buffers) are already gone when the base dtor runs.
+>
+> **Verified on Jetson 2026-06-17:** `bm-baseline-cifar-dense-vk`, `test-tree-vk`, and
+> `bm-gen-logs-tree-vk` all **exit 0** (were 139/SIGSEGV); `ctest -L vulkan` on rocky
+> stays GREEN (tree 7/7, cifar-dense/sparse 10/10). The `03_run_schedule.py`
+> `check=False` workaround can stay (harmless) but is no longer required for Jetson VK.
+
+**Symptom (original).** The single-PU baseline on the Jetson
 (`./bm-baseline-cifar-dense-vk --device jetson --benchmark_min_time=2s`) prints
 **all** results correctly, then **segfaults during process teardown**:
 

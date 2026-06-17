@@ -184,10 +184,13 @@ the **dead old executor** that includes a nonexistent `common.hpp`. **L / med ea
    do_allocate alignment, per-launch CheckCudaLaunch — none regressed it). The unused
    `CudaManagedResource` is left in place; reusing it on Tegra would still need the
    stream-attach. See bugs-found §1.
-2. **§9 kiss-vk no teardown** (`kiss-vk` engine/base_engine): teardown segfault on
-   Tegra (device/instance leak, no `waitIdle`). Fix dtor ordering / add `waitIdle` +
-   explicit reset before `benchmark::Shutdown()`. **GATE: VK binaries `exit 0` on
-   Jetson** (today they crash on exit; `03` masks it) + `ctest -L vulkan` green. **M / med.**
+2. **§9 kiss-vk no teardown — DONE 2026-06-17.** `~BaseEngine` leaked the vk::Device
+   and vk::Instance (only the VMA allocator was destroyed) → loader static teardown
+   segfaulted on Tegra. The dtor now drains (`device_.waitIdle()`, guarded) and
+   destroys allocator → device → instance in order (safe: `engine` is the dispatcher's
+   first member so it's destroyed last). **GATE MET:** `bm-baseline-cifar-dense-vk`,
+   `test-tree-vk`, `bm-gen-logs-tree-vk` all **exit 0** on Jetson (were 139); rocky
+   `ctest -L vulkan` stays GREEN (7/10/10). See bugs-found §9. **M / med.**
 3. **Tier-3 perf — these CHANGE the GPU times z3 reads, so re-profile after:**
    - device-wide `cudaDeviceSynchronize` + per-item cub alloc/free in the hot path
      (`tree/cuda/dispatchers`) — serializes concurrent chunks, churn lands in the
