@@ -93,37 +93,37 @@ TEST(PipelineE2EVk, AllVulkan) {
                                               ExecutionModel::kVulkan, omp_dispatch, CheckItem);
 }
 
-// Finer hybrid: alternate CPU/GPU at single-stage boundaries (VK 1-3, OMP 4, VK 5,
-// OMP 6, VK 7). FINDING (2026-06-17, TRIAGED on rocky): reproducibly crashes/mis-
-// computes. ROOT CAUSE = GPU RE-ENTRY into the data-dependent octree (stage 7). When
-// the Vulkan dispatcher runs early stages (1-3), a CPU chunk runs the middle (4-6),
-// and the GPU then re-enters for octree (7) alone, the stage-7 data-dependent count
-// (n_brt_nodes / n_octree_nodes) is stale -> wrong output (the minimal repro
-// {VK 1-3, OMP 4-6, VK 7} FAILS the oracle) or an out-of-bounds octree write ->
-// SIGSEGV (this 5-chunk case). Contiguous GPU chunks always pass: {OMP 1-3, VK 4-7},
-// {OMP 1-6, VK 7}, and even {VK 1-3, OMP 4, VK 5-7} -- the GPU enters once per
-// item-pass and inherits the counts via UMA. The z3 solver only ever assigns ONE
-// contiguous chunk per PU, so it never emits a GPU-re-entry schedule; this is a
-// tree-app/dispatcher data-dependency limitation under re-entry, NOT a generic
-// SPSC/concurrency bug. DISABLED (real crash) pending a dispatcher fix (re-read the
-// stage-7 count from AppData on entry) or an executor guard rejecting re-entry.
-TEST(PipelineE2EVk, DISABLED_AlternatingBoundary) {
-  if (!has_big_cores() && !has_med_cores() && !has_lit_cores()) {
-    GTEST_SKIP() << "no CPU tier to host the OMP chunks";
-  }
-  const ProcessorType pt = first_present_cpu_type();
+// Finer hybrid that ALTERNATES the GPU across multiple chunks (VK 1-3, OMP 4, VK 5,
+// OMP 6, VK 7 -> THREE Vulkan chunks). FINDING (2026-06-17): reproducibly SIGSEGVs.
+// ROOT CAUSE (diagnosed with GPU-assisted validation on rocky/RADV) = a concurrent
+// command-buffer race, NOT octree re-entry (the earlier "stale stage-7 count" triage
+// was wrong -- VkAppData_Safe's counts are const-correct). Each chunk runs on its own
+// worker thread, but all Vulkan chunks share ONE VulkanDispatcher -> one Sequence /
+// command buffer / fence. With ≥2 Vulkan chunks, two threads record into that one
+// buffer at once: vkBeginCommandBuffer on a buffer still in another thread's recording
+// state (VUID-vkBeginCommandBuffer-commandBuffer-00049) -> corruption -> device loss.
+// Crash frequency tracks the NUMBER of concurrent Vulkan chunks; a single contiguous
+// GPU chunk ({OMP 1-3, VK 4-7}, {VK 1-7}) never races. The z3 solver assigns one
+// contiguous chunk per PU, so it never emits a multi-GPU-chunk schedule -- the
+// framework now REJECTS one via first_concurrent_gpu_chunk() rather than racing the
+// GPU. This test asserts that rejection (no GPU needed; runs on any target).
+TEST(PipelineE2EVk, RejectsMultiGpuChunkSchedule) {
   Schedule sched;
   sched.uid = "e2e-alt";
   sched.chunks = {
       {ExecutionModel::kVulkan, 1, 3, std::nullopt},
-      {ExecutionModel::kOMP, 4, 4, pt},
+      {ExecutionModel::kOMP, 4, 4, ProcessorType::kBigCore},
       {ExecutionModel::kVulkan, 5, 5, std::nullopt},
-      {ExecutionModel::kOMP, 6, 6, pt},
+      {ExecutionModel::kOMP, 6, 6, ProcessorType::kBigCore},
       {ExecutionModel::kVulkan, 7, 7, std::nullopt},
   };
-  validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kVulkan, omp_dispatch, CheckItem);
+  validate_schedule_coverage(sched, kNumStages);  // coverage is fine; the GPU re-use is not
+  EXPECT_TRUE(first_concurrent_gpu_chunk(sched).has_value())
+      << "a schedule with 3 Vulkan chunks must be rejected (shared command-buffer race)";
+  // The single-GPU-chunk schedules the real tests use must NOT be rejected.
+  EXPECT_FALSE(first_concurrent_gpu_chunk(Schedule{"ok-hybrid",
+      {{ExecutionModel::kOMP, 1, 3, ProcessorType::kBigCore},
+       {ExecutionModel::kVulkan, 4, 7, std::nullopt}}}).has_value());
 }
 
 }  // namespace

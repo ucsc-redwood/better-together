@@ -57,6 +57,14 @@ inline void run_pipeline(const Schedule& sched,
                          const ExecutionModel gpu_em,
                          OmpDispatch omp_dispatch,
                          const std::function<void(AppDataTArg&)>& per_item_check) {
+  // The GPU dispatcher's command buffer/fence is shared across the per-chunk worker
+  // threads, so a schedule with >1 GPU chunk would race it into VK_ERROR_DEVICE_LOST.
+  // Reject up front (z3 never emits such a schedule) instead of crashing the device.
+  if (const auto reason = first_concurrent_gpu_chunk(sched)) {
+    FAIL() << *reason;
+    return;
+  }
+
   const auto n_chunks = sched.n_chunks();
   DispatcherTArg disp;
   const std::vector<std::unique_ptr<AppDataTArg>> dataset = make_dataset(disp, pool_size);

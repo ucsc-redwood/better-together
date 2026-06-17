@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <optional>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -176,6 +177,42 @@ template <typename PuPresentFn>
     const ProcessorType pu = get_processor_type_from_chunk_config(c);
     if (!pu_present(pu)) {
       return "chunk " + std::to_string(i) + " targets absent PU '" + CoreTypeName(pu) + "'";
+    }
+  }
+  return std::nullopt;
+}
+
+// ---------------------------------------------------------------------
+// A GPU backend (Vulkan / CUDA) owns a SINGLE dispatcher — one engine, one command
+// buffer / Sequence, one fence. Every schedule chunk runs on its own worker thread,
+// so a schedule that puts a GPU backend in MORE THAN ONE chunk spawns multiple
+// threads that concurrently record into that one shared command buffer:
+// `vkBeginCommandBuffer` is called on a buffer still in the recording/pending state
+// of another thread (VUID-vkBeginCommandBuffer-commandBuffer-00049) → corruption →
+// VK_ERROR_DEVICE_LOST → crash.
+//
+// Diagnosed 2026-06-17 with GPU-assisted validation on rocky/RADV — this SUPERSEDES
+// the earlier "stale octree count / GPU re-entry" triage: the octree is a red
+// herring, the bug is concurrent command-buffer reuse, and it tracks the number of
+// concurrent GPU chunks (≥2), not octree re-entry. The z3 solver only ever assigns
+// ONE contiguous chunk per PU, so it never emits such a schedule; this guard rejects
+// it cleanly instead of racing the GPU into a device loss.
+//
+// Returns the offending chunk's reason, or std::nullopt when every GPU backend
+// appears in at most one chunk.
+[[nodiscard]] inline std::optional<std::string> first_concurrent_gpu_chunk(
+    const Schedule& schedule) {
+  std::set<ExecutionModel> gpu_seen;
+  for (size_t i = 0; i < schedule.chunks.size(); ++i) {
+    const ExecutionModel m = schedule.chunks[i].exec_model;
+    if (m != ExecutionModel::kVulkan && m != ExecutionModel::kCuda) continue;
+    if (!gpu_seen.insert(m).second) {
+      return "Schedule [" + schedule.uid + "] places a GPU backend in >1 chunk (chunk " +
+             std::to_string(i) +
+             "): the GPU dispatcher's single command buffer/fence is shared across the "
+             "per-chunk worker threads and is not safe under concurrent recording "
+             "(VK_ERROR_DEVICE_LOST). A GPU backend must run in exactly one chunk — the z3 "
+             "solver assigns one contiguous chunk per PU and never emits otherwise.";
     }
   }
   return std::nullopt;

@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "builtin-apps/pipeline/record.hpp"
 #include "builtin-apps/pipeline/schedule.hpp"
 
 namespace {
@@ -126,6 +127,53 @@ TEST(SchedulePUs, GpuChunkPresenceFromPredicate) {
   EXPECT_TRUE(first_unavailable_pu(
       make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan}}), cpu_only)
                   .has_value());
+}
+
+// ---- first_concurrent_gpu_chunk: a GPU backend may appear in at most one chunk ----
+// The GPU dispatcher's single command buffer/fence is shared across the per-chunk
+// worker threads, so >1 GPU chunk races it into VK_ERROR_DEVICE_LOST (diagnosed with
+// GPU-assisted validation, 2026-06-17). z3 emits one contiguous GPU chunk per PU;
+// this guard rejects any schedule that would spawn concurrent GPU dispatchers.
+
+TEST(ScheduleGpuReuse, SingleGpuChunkAllowed) {
+  EXPECT_FALSE(first_concurrent_gpu_chunk(
+                   make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                     {ExecutionModel::kVulkan, ProcessorType::kVulkan}}))
+                   .has_value());
+}
+
+TEST(ScheduleGpuReuse, NoGpuChunkAllowed) {
+  EXPECT_FALSE(first_concurrent_gpu_chunk(
+                   make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                     {ExecutionModel::kOMP, ProcessorType::kLittleCore}}))
+                   .has_value());
+}
+
+TEST(ScheduleGpuReuse, TwoVulkanChunksRejected) {
+  const auto reason = first_concurrent_gpu_chunk(
+      make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan},
+                        {ExecutionModel::kOMP, ProcessorType::kBigCore},
+                        {ExecutionModel::kVulkan, ProcessorType::kVulkan}}));
+  ASSERT_TRUE(reason.has_value());
+  EXPECT_NE(reason->find("chunk 2"), std::string::npos);  // the offending (second Vulkan) chunk
+}
+
+TEST(ScheduleGpuReuse, TwoCudaChunksRejected) {
+  EXPECT_TRUE(first_concurrent_gpu_chunk(
+                  make_pu_schedule({{ExecutionModel::kCuda, ProcessorType::kCuda},
+                                    {ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                    {ExecutionModel::kCuda, ProcessorType::kCuda}}))
+                  .has_value());
+}
+
+// ---- Case 5.2: a >kMaxChunks schedule must throw a clean std::out_of_range from the
+// Logger bound check (caught by worker_with_record's try/catch -> process survives),
+// not silently corrupt memory as the old hard-coded-4 array did. Test the guard directly.
+TEST(PipelineRobust, LoggerRejectsOverflowChunk) {
+  Logger<4> logger;
+  EXPECT_NO_THROW(logger.start_tick(0, Logger<4>::kMaxChunks - 1));  // last valid chunk id
+  EXPECT_THROW(logger.start_tick(0, Logger<4>::kMaxChunks), std::out_of_range);
+  EXPECT_THROW(logger.end_tick(0, Logger<4>::kMaxChunks + 3), std::out_of_range);
 }
 
 }  // namespace
