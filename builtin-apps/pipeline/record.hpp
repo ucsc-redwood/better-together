@@ -128,12 +128,16 @@ struct Logger {
     for (size_t i = 0; i < records_.size(); ++i) {
       for (size_t j = 0; j < kMaxChunks; ++j) {
         const auto& rec = records_[i][j];
-        if (rec.end > rec.start) {  // skip empty chunks
+        // Emit any cell that was actually ticked (start != 0); never-used cells are
+        // zero-init and stay skipped. Clamp the duration so a sub-resolution-fast
+        // stage (end == start) is still counted instead of vanishing and biasing the
+        // surviving durations upward (it used to be dropped by `end > start`).
+        if (rec.start != 0) {
+          const uint64_t dur = rec.end > rec.start ? rec.end - rec.start : 0;
           std::cout << "Task=" << i << " Chunk="
                     << j
                     // << " Processor=" << processor_type_to_string(rec.processed_by)
-                    << " Start=" << rec.start << " End=" << rec.end
-                    << " Duration=" << (rec.end - rec.start) << "\n";
+                    << " Start=" << rec.start << " End=" << rec.end << " Duration=" << dur << "\n";
         }
       }
     }
@@ -149,8 +153,11 @@ struct Logger {
     // Collect all durations for the given chunk ID
     for (size_t i = 0; i < records_.size(); ++i) {
       const auto& record = records_[i][chunk_id];
-      if (record.end > record.start) {
-        const auto cycles_elapsed = record.end - record.start;
+      // Count any ticked cell (start != 0); clamp so a sub-resolution-fast stage
+      // (end == start) contributes a 0 ms sample instead of being dropped — see
+      // dump_records_for_python above.
+      if (record.start != 0) {
+        const auto cycles_elapsed = record.end > record.start ? record.end - record.start : 0;
         const auto ms_elapsed = cycles_to_milliseconds(cycles_elapsed, counter_frequency);
         durations_ms.push_back(ms_elapsed);
       }
