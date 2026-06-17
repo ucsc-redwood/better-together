@@ -1,5 +1,8 @@
 #include <spdlog/spdlog.h>
 
+#include <new>
+#include <stdexcept>
+
 #include "cu_mem_resource.cuh"
 #include "helpers.cuh"
 
@@ -20,11 +23,32 @@ std::string format_bytes(std::size_t bytes) {
   return fmt::format("{} bytes", bytes);
 }
 
+namespace {
+// CUDA's allocators guarantee at least 256-byte alignment; every alignment we are
+// actually asked for (alignof of the app data types) is far under that. Reject a
+// larger request loudly rather than silently handing back under-aligned memory.
+constexpr std::size_t kCudaGuaranteedAlign = 256;
+void check_alignment(std::size_t alignment, const char *who) {
+  if (alignment > kCudaGuaranteedAlign) {
+    throw std::runtime_error(fmt::format(
+        "{}: requested alignment {} exceeds CUDA's guaranteed {} bytes", who, alignment,
+        kCudaGuaranteedAlign));
+  }
+}
+
+// Surface the actual CUDA error text (it used to be discarded by a bare bad_alloc).
+[[noreturn]] void fail_alloc(const char *call, std::size_t bytes, cudaError_t err) {
+  spdlog::error("{}({} bytes) failed: {}", call, bytes, cudaGetErrorString(err));
+  throw std::bad_alloc();
+}
+}  // namespace
+
 // ----------------------------------------------------------------------------
 // CudaManagedResource
 // ----------------------------------------------------------------------------
 
-void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t /*alignment*/) {
+void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t alignment) {
+  check_alignment(alignment, "CudaManagedResource::do_allocate");
   void *ptr = nullptr;
   // NOTE (docs/BUGS-FOUND.md §1): cudaMemAttachHost is deliberate, but on its own
   // it is the §1 defect — nothing ever stream-attaches the buffer for the GPU, so
@@ -40,7 +64,7 @@ void *CudaManagedResource::do_allocate(std::size_t bytes, std::size_t /*alignmen
   // + per-stream launch) must be added.
   cudaError_t err = cudaMallocManaged(&ptr, bytes, cudaMemAttachHost);
   if (err != cudaSuccess) {
-    throw std::bad_alloc();
+    fail_alloc("cudaMallocManaged", bytes, err);
   }
 
   spdlog::trace(
@@ -62,17 +86,19 @@ bool CudaManagedResource::do_is_equal(const std::pmr::memory_resource &other) co
 // CudaPinnedResource
 // ----------------------------------------------------------------------------
 
-void *CudaPinnedResource::do_allocate(std::size_t bytes, std::size_t /*alignment*/) {
+void *CudaPinnedResource::do_allocate(std::size_t bytes, std::size_t alignment) {
+  check_alignment(alignment, "CudaPinnedResource::do_allocate");
   void *h_ptr = nullptr;
   cudaError_t err = cudaHostAlloc(&h_ptr, bytes, cudaHostAllocMapped);
   if (err != cudaSuccess) {
-    throw std::bad_alloc();
+    fail_alloc("cudaHostAlloc", bytes, err);
   }
 
   void *d_ptr = nullptr;
   err = cudaHostGetDevicePointer(&d_ptr, h_ptr, 0);
   if (err != cudaSuccess) {
-    throw std::bad_alloc();
+    cudaFreeHost(h_ptr);  // the host alloc succeeded; don't leak it on this failure
+    fail_alloc("cudaHostGetDevicePointer", bytes, err);
   }
 
   spdlog::trace(
