@@ -155,7 +155,9 @@ def main():
         sys.exit(0)
 
     try:
-        stage_timings, use_cuda = load_csv_and_compute_averages(csv_path, app, verbose)
+        stage_timings, use_cuda = load_csv_and_compute_averages(
+            csv_path, app, verbose, backend=backend
+        )
 
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"

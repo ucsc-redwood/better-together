@@ -4,7 +4,7 @@ import pandas as pd
 from .baselines import get_num_stages_for_app
 
 
-def load_csv_and_compute_averages(csv_path, app_name, verbose=False):
+def load_csv_and_compute_averages(csv_path, app_name, verbose=False, backend=None):
     """
     Load data from a CSV file and compute average timings for each stage across all runs.
     The CSV input contains multiple runs for the same stage. like this:
@@ -43,10 +43,13 @@ def load_csv_and_compute_averages(csv_path, app_name, verbose=False):
         print(avg_df)
         print()
 
-    # Determine which GPU backend to use (CUDA or Vulkan)
-    # If CUDA values are all zeros, use Vulkan
-    # Otherwise, use CUDA as the GPU backend
-    use_cuda = avg_df["cuda"].sum() > 0
+    # Which GPU backend: prefer the EXPLICIT backend flag ("cu"/"vk") over sniffing the
+    # data -- a stray nonzero cuda cell in a Vulkan run would otherwise flip the target.
+    # Fall back to the data sniff only when no flag is passed.
+    if backend in ("cu", "vk"):
+        use_cuda = backend == "cu"
+    else:
+        use_cuda = avg_df["cuda"].sum() > 0
 
     if verbose:
         print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")

@@ -53,19 +53,24 @@ uv run scripts/collect/coverage.py            # 12/12 supported cells when compl
 
 ## `00_bm.py`
 
-Run the benchmark on a single device single application on the single backend
-Results will be stoed in the specified folder
+Legacy single-(device, app, backend) benchmark runner. Its run path is dead (`xmake r`,
+retired); only `--only-aggregate` (text-log → CSV) still works. Superseded by `bm_prof`
++ `export_btpm_csv.py`.
 
 ```bash
-uv run scripts/collect/00_bm.py --log_folder data/bm_logs --repeat 1 --app tree --backend vk --device 3A021JEHN02756
+uv run scripts/collect/00_bm.py --log_folder data/bm_logs --only-aggregate --app tree --backend vk --device 3A021JEHN02756
 ```
 
-### `02_schedule.py` and `02_schedule_using_normal_table.py`
+## Schedule pipeline (`02` → `03` → `04`)
 
-Using the specified folder as input (termed _profiling table_ in the paper), 
-it will generated a JSON files of schedules.
+`02_gen_schedule_merged.py` reads the BTPM/isolated CSV (the paper's _profiling table_)
+and runs the z3 solver to emit schedule JSONs; `03_run_schedule.py` runs them on a
+device; `04_parse_schedules.py` parses the per-task logs. Full step-by-step:
+[`docs/instruction-for-ai/06-end-to-end-scheduling.md`](../../docs/instruction-for-ai/06-end-to-end-scheduling.md).
 
 ```bash
-uv run scripts/collect/02_schedule.py --csv_folder data/bm_logs/ --device 3A021JEHN02756 --app cifar-sparse --backend vk --num_solutions 30 --output_folder data/schedules/
+uv run scripts/collect/02_gen_schedule_merged.py --csv_root_folder data/btpm_export \
+  --device 3A021JEHN02756 --app cifar-sparse --backend vk --table_type btpm \
+  --minimize_mode tmax --num_solutions 30 --output_folder data/schedules_btpm
 ```
 

@@ -212,12 +212,14 @@ def dump_solutions_as_json(
             for key, value in baseline_data.items():
                 solution["metrics"][key] = value
 
-            # Calculate speedups
-            if "avg_time" in solution["metrics"]:
-                avg_time = solution["metrics"]["avg_time"]
+            # Calculate speedups against the pipeline MAKESPAN (max chunk time =
+            # steady-state per-task throughput), NOT avg chunk time. avg <= max always,
+            # so avg inflated every speedup and favored imbalanced schedules.
+            if "max_time" in solution["metrics"]:
+                makespan = solution["metrics"]["max_time"]
                 if "omp" in baseline_data:
                     solution["metrics"]["speedup_over_cpu"] = (
-                        baseline_data["omp"] / avg_time
+                        baseline_data["omp"] / makespan
                     )
 
                 gpu_key = next(
@@ -226,7 +228,7 @@ def dump_solutions_as_json(
                 )
                 if gpu_key:
                     solution["metrics"]["speedup_over_gpu"] = (
-                        baseline_data[gpu_key] / avg_time
+                        baseline_data[gpu_key] / makespan
                     )
 
     # print("\n\n=== MACHINE PARSABLE OUTPUT START ===")
