@@ -1,0 +1,45 @@
+>> staging 3 binaries to duck-naughty:/tmp/bt
+>> running on duck-naughty (--device jetson)
+== test-pipeline-e2e-vk ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2EVk
+[ RUN      ] PipelineE2EVk.HybridOmpVulkan
+[       OK ] PipelineE2EVk.HybridOmpVulkan (14287 ms)
+[ RUN      ] PipelineE2EVk.AllVulkan
+[       OK ] PipelineE2EVk.AllVulkan (13593 ms)
+[ DISABLED ] PipelineE2EVk.DISABLED_AlternatingBoundary
+[----------] 2 tests from PipelineE2EVk (27881 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (27881 ms total)
+[  PASSED  ] 2 tests.
+
+  YOU HAVE 1 DISABLED TEST
+
+== test-pipeline-e2e-cifar-dense-vk ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECifarDenseVk
+[ RUN      ] PipelineE2ECifarDenseVk.HybridOmpVulkan
+[       OK ] PipelineE2ECifarDenseVk.HybridOmpVulkan (18233 ms)
+[ RUN      ] PipelineE2ECifarDenseVk.AllVulkan
+[       OK ] PipelineE2ECifarDenseVk.AllVulkan (18448 ms)
+[----------] 2 tests from PipelineE2ECifarDenseVk (36682 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (36682 ms total)
+[  PASSED  ] 2 tests.
+== test-pipeline-e2e-cifar-sparse-vk ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECifarSparseVk
+[ RUN      ] PipelineE2ECifarSparseVk.HybridOmpVulkan
+[       OK ] PipelineE2ECifarSparseVk.HybridOmpVulkan (60425 ms)
+[ RUN      ] PipelineE2ECifarSparseVk.AllVulkan
+[       OK ] PipelineE2ECifarSparseVk.AllVulkan (52391 ms)
+[----------] 2 tests from PipelineE2ECifarSparseVk (112817 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (112817 ms total)
+[  PASSED  ] 2 tests.

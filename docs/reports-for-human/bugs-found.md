@@ -359,6 +359,46 @@ the data is flushed is harmless to the measurement). The underlying engine-dtor
 crash is still the real fix; until then, Jetson VK schedule/baseline runs exit
 non-zero but produce valid logs.
 
+## 10. Concurrent GPU pipeline chunks share one command buffer → device loss — **GUARDED (2026-06-17)**
+
+**Symptom:** the `PipelineE2EVk.DISABLED_AlternatingBoundary` schedule
+`{VK 1-3, OMP 4, VK 5, OMP 6, VK 7}` reproducibly SIGSEGVs on rocky/RADV; the
+backtrace lands in `run_stage_1 → cmd_end` after `radv/amdgpu: The CS has been
+cancelled because the context is lost`.
+
+**Earlier triage was WRONG.** The 2026-06-17 triage blamed "GPU re-entry into the
+data-dependent octree (stale `n_brt_nodes`)". That cannot be it: the test uses
+`VkAppData_Safe`, whose `n_unique`/`n_brt_nodes`/`n_octree_nodes` are **`const`,
+fixed at construction from the OMP golden** (`safe_tree_appdata.hpp`), so the
+stage-7 count `run_stage_7` reads is always correct. The octree was a red herring.
+
+**Real root cause (GPU-assisted validation, rocky):** a concurrent command-buffer
+race. Validation reports `VUID-vkBeginCommandBuffer-commandBuffer-00049` —
+*"vkBeginCommandBuffer on an active command buffer still in the recording state."*
+Each schedule chunk runs on its own worker thread, but **all Vulkan chunks share
+one `VulkanDispatcher` → one `Sequence`/command buffer/fence**
+(`pipeline_test_runner.hpp` captures `&disp` into every GPU chunk's lambda). With
+≥2 Vulkan chunks, two threads record into that one buffer at once → corruption →
+`VK_ERROR_DEVICE_LOST` → the next item's `cmd_begin` SIGSEGVs on the lost context.
+Crash frequency tracks the **number of concurrent Vulkan chunks**, not octree
+re-entry: a single contiguous GPU chunk (`{OMP 1-3, VK 4-7}`, `{VK 1-7}`) never
+races; the 3-Vulkan-chunk schedule reliably crashes; the 2-chunk one
+(`{VK 1-3, OMP 4-6, VK 7}`) is flaky (passed in our run).
+
+**Why production is unaffected:** the z3 solver assigns exactly one contiguous
+chunk per PU, so it never emits a multi-GPU-chunk schedule.
+
+**Fix (guard, not a dispatcher rewrite):** `first_concurrent_gpu_chunk()`
+(`pipeline/schedule.hpp`) rejects any schedule that puts a GPU backend in >1 chunk;
+`run_pipeline()` calls it up front and fails cleanly instead of racing the GPU.
+Making the dispatcher concurrency-safe would only enable a capability nothing uses
+(one GPU engine serializes anyway). Unit-tested on pc (`ScheduleGpuReuse.*` in
+`test-schedule-omp`); the ex-DISABLED case is now
+`PipelineE2EVk.RejectsMultiGpuChunkSchedule`, asserting the rejection (no GPU
+needed). Diagnosis path: GPU-AV via
+`VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT` on rocky
+(validation layers installed 2026-06-17).
+
 ## Latent issue noticed (not fixed)
 
 `SETUP_DEFAULT_LAUNCH_PARAMS` (`builtin-apps/common/cuda/helpers.cuh`) declares

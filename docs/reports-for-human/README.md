@@ -12,6 +12,7 @@ instructions; for how to actually build/test/deploy, see
 | [`planning-notes-2026-06-15.md`](planning-notes-2026-06-15.md) | Decision log from the re-architecture working session (reproducibility, hardware, CI, build-system) |
 | [`rearchitecture.md`](rearchitecture.md) | The framework vision — 5-layer target architecture, "add a device = drop a data file" |
 | [`cmake-migration-rfc.md`](cmake-migration-rfc.md) | RFC: migrate the build from xmake → CMake (build matrix, toolchains, phased plan) |
+| [`perf-results/`](perf-results/README.md) | Dated performance-measurement campaigns on the fleet (method + results + insights), e.g. RGA static shader analysis on the Radeon 780M |
 
 The project overview / quick-start for newcomers is the repo-root
 [`README.md`](../../README.md).

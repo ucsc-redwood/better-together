@@ -1,0 +1,83 @@
+>> staging 3 binaries to duck-naughty:/tmp/bt
+>> running on duck-naughty (--device jetson)
+== test-tree-vk ==
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffVulkan
+[ RUN      ] TreeDiffVulkan.Stage1_Morton
+[       OK ] TreeDiffVulkan.Stage1_Morton (368 ms)
+[ RUN      ] TreeDiffVulkan.Stage2_Sort
+[       OK ] TreeDiffVulkan.Stage2_Sort (266 ms)
+[ RUN      ] TreeDiffVulkan.Stage3_Unique
+[       OK ] TreeDiffVulkan.Stage3_Unique (488 ms)
+[ RUN      ] TreeDiffVulkan.Stage4_RadixTree
+[       OK ] TreeDiffVulkan.Stage4_RadixTree (487 ms)
+[ RUN      ] TreeDiffVulkan.Stage5_EdgeCount
+[       OK ] TreeDiffVulkan.Stage5_EdgeCount (487 ms)
+[ RUN      ] TreeDiffVulkan.Stage6_EdgeOffset
+[       OK ] TreeDiffVulkan.Stage6_EdgeOffset (261 ms)
+[ RUN      ] TreeDiffVulkan.Stage7_Octree
+[       OK ] TreeDiffVulkan.Stage7_Octree (997 ms)
+[----------] 7 tests from TreeDiffVulkan (3358 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (3358 ms total)
+[  PASSED  ] 7 tests.
+== test-cifar-dense-vk ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffVulkan
+[ RUN      ] CifarDenseDiffVulkan.Stage1_Conv1
+[       OK ] CifarDenseDiffVulkan.Stage1_Conv1 (304 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage2_Pool1
+[       OK ] CifarDenseDiffVulkan.Stage2_Pool1 (132 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage3_Conv2
+[       OK ] CifarDenseDiffVulkan.Stage3_Conv2 (463 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage4_Pool2
+[       OK ] CifarDenseDiffVulkan.Stage4_Pool2 (138 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage5_Conv3
+[       OK ] CifarDenseDiffVulkan.Stage5_Conv3 (473 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage6_Conv4
+[       OK ] CifarDenseDiffVulkan.Stage6_Conv4 (833 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage7_Conv5
+[       OK ] CifarDenseDiffVulkan.Stage7_Conv5 (823 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage8_Pool3
+[       OK ] CifarDenseDiffVulkan.Stage8_Pool3 (189 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage9_Linear
+[       OK ] CifarDenseDiffVulkan.Stage9_Linear (224 ms)
+[ RUN      ] CifarDenseDiffVulkan.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffVulkan.EndToEnd_FinalLogits (2287 ms)
+[----------] 10 tests from CifarDenseDiffVulkan (5872 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (5872 ms total)
+[  PASSED  ] 10 tests.
+== test-cifar-sparse-vk ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffVulkan
+[ RUN      ] CifarSparseDiffVulkan.Stage1_Conv1
+[       OK ] CifarSparseDiffVulkan.Stage1_Conv1 (653 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage2_Pool1
+[       OK ] CifarSparseDiffVulkan.Stage2_Pool1 (256 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage3_Conv2
+[       OK ] CifarSparseDiffVulkan.Stage3_Conv2 (1064 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage4_Pool2
+[       OK ] CifarSparseDiffVulkan.Stage4_Pool2 (316 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage5_Conv3
+[       OK ] CifarSparseDiffVulkan.Stage5_Conv3 (1093 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage6_Conv4
+[       OK ] CifarSparseDiffVulkan.Stage6_Conv4 (1935 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage7_Conv5
+[       OK ] CifarSparseDiffVulkan.Stage7_Conv5 (2048 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage8_Pool3
+[       OK ] CifarSparseDiffVulkan.Stage8_Pool3 (655 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage9_Linear
+[       OK ] CifarSparseDiffVulkan.Stage9_Linear (640 ms)
+[ RUN      ] CifarSparseDiffVulkan.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffVulkan.EndToEnd_FinalLogits (5339 ms)
+[----------] 10 tests from CifarSparseDiffVulkan (14006 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (14006 ms total)
+[  PASSED  ] 10 tests.

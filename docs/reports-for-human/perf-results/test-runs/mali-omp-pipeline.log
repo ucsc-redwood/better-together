@@ -1,0 +1,43 @@
+>> staging 1 binaries + libc++_shared.so to rocky-ryzen:/tmp/bt-android
+>> ===== phone 3A021JEHN02756 =====
+/tmp/bt-android/test-pipeline-e2e-omp: 1 file pushed, 0 skipped. 389.8 MB/s (17366480 bytes in 0.042s)
+/tmp/bt-android/libc++_shared.so: 1 file pushed, 0 skipped. 131.6 MB/s (9290184 bytes in 0.067s)
+2 files pushed, 0 skipped. 115.4 MB/s (26656664 bytes in 0.220s)
+== test-pipeline-e2e-omp ==
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PipelineE2EOmp
+[ RUN      ] PipelineE2EOmp.TwoChunkBigLittle
+[       OK ] PipelineE2EOmp.TwoChunkBigLittle (19223 ms)
+[ RUN      ] PipelineE2EOmp.PerStageSevenChunks
+[       OK ] PipelineE2EOmp.PerStageSevenChunks (21160 ms)
+[ RUN      ] PipelineE2EOmp.ThreeChunkBigMediumLittle
+[       OK ] PipelineE2EOmp.ThreeChunkBigMediumLittle (18544 ms)
+[ RUN      ] PipelineE2EOmp.AffinityTierBinding
+[       OK ] PipelineE2EOmp.AffinityTierBinding (4 ms)
+[----------] 4 tests from PipelineE2EOmp (58934 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (58934 ms total)
+[  PASSED  ] 4 tests.
+>> ===== phone R5CY21Y3VEV =====
+/tmp/bt-android/test-pipeline-e2e-omp: 1 file pushed, 0 skipped. 334.4 MB/s (17366480 bytes in 0.050s)
+/tmp/bt-android/libc++_shared.so: 1 file pushed, 0 skipped. 131.0 MB/s (9290184 bytes in 0.068s)
+2 files pushed, 0 skipped. 103.7 MB/s (26656664 bytes in 0.245s)
+== test-pipeline-e2e-omp ==
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from PipelineE2EOmp
+[ RUN      ] PipelineE2EOmp.TwoChunkBigLittle
+[       OK ] PipelineE2EOmp.TwoChunkBigLittle (8428 ms)
+[ RUN      ] PipelineE2EOmp.PerStageSevenChunks
+[       OK ] PipelineE2EOmp.PerStageSevenChunks (10903 ms)
+[ RUN      ] PipelineE2EOmp.ThreeChunkBigMediumLittle
+[       OK ] PipelineE2EOmp.ThreeChunkBigMediumLittle (8465 ms)
+[ RUN      ] PipelineE2EOmp.AffinityTierBinding
+[       OK ] PipelineE2EOmp.AffinityTierBinding (9 ms)
+[----------] 4 tests from PipelineE2EOmp (27806 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (27807 ms total)
+[  PASSED  ] 4 tests.

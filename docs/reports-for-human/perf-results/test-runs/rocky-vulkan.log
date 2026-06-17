@@ -1,0 +1,126 @@
+>> staging 6 binaries to rocky-ryzen:/tmp/bt
+>> running on rocky-ryzen (--device minipc)
+== test-tree-vk ==
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffVulkan
+[ RUN      ] TreeDiffVulkan.Stage1_Morton
+[       OK ] TreeDiffVulkan.Stage1_Morton (84 ms)
+[ RUN      ] TreeDiffVulkan.Stage2_Sort
+[       OK ] TreeDiffVulkan.Stage2_Sort (30 ms)
+[ RUN      ] TreeDiffVulkan.Stage3_Unique
+[       OK ] TreeDiffVulkan.Stage3_Unique (31 ms)
+[ RUN      ] TreeDiffVulkan.Stage4_RadixTree
+[       OK ] TreeDiffVulkan.Stage4_RadixTree (32 ms)
+[ RUN      ] TreeDiffVulkan.Stage5_EdgeCount
+[       OK ] TreeDiffVulkan.Stage5_EdgeCount (32 ms)
+[ RUN      ] TreeDiffVulkan.Stage6_EdgeOffset
+[       OK ] TreeDiffVulkan.Stage6_EdgeOffset (32 ms)
+[ RUN      ] TreeDiffVulkan.Stage7_Octree
+[       OK ] TreeDiffVulkan.Stage7_Octree (290 ms)
+[----------] 7 tests from TreeDiffVulkan (535 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (535 ms total)
+[  PASSED  ] 7 tests.
+== test-cifar-dense-vk ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffVulkan
+[ RUN      ] CifarDenseDiffVulkan.Stage1_Conv1
+[       OK ] CifarDenseDiffVulkan.Stage1_Conv1 (76 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage2_Pool1
+[       OK ] CifarDenseDiffVulkan.Stage2_Pool1 (28 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage3_Conv2
+[       OK ] CifarDenseDiffVulkan.Stage3_Conv2 (131 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage4_Pool2
+[       OK ] CifarDenseDiffVulkan.Stage4_Pool2 (31 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage5_Conv3
+[       OK ] CifarDenseDiffVulkan.Stage5_Conv3 (158 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage6_Conv4
+[       OK ] CifarDenseDiffVulkan.Stage6_Conv4 (269 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage7_Conv5
+[       OK ] CifarDenseDiffVulkan.Stage7_Conv5 (297 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage8_Pool3
+[       OK ] CifarDenseDiffVulkan.Stage8_Pool3 (112 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage9_Linear
+[       OK ] CifarDenseDiffVulkan.Stage9_Linear (82 ms)
+[ RUN      ] CifarDenseDiffVulkan.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffVulkan.EndToEnd_FinalLogits (652 ms)
+[----------] 10 tests from CifarDenseDiffVulkan (1841 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (1841 ms total)
+[  PASSED  ] 10 tests.
+== test-cifar-sparse-vk ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffVulkan
+[ RUN      ] CifarSparseDiffVulkan.Stage1_Conv1
+[       OK ] CifarSparseDiffVulkan.Stage1_Conv1 (212 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage2_Pool1
+[       OK ] CifarSparseDiffVulkan.Stage2_Pool1 (82 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage3_Conv2
+[       OK ] CifarSparseDiffVulkan.Stage3_Conv2 (426 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage4_Pool2
+[       OK ] CifarSparseDiffVulkan.Stage4_Pool2 (120 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage5_Conv3
+[       OK ] CifarSparseDiffVulkan.Stage5_Conv3 (440 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage6_Conv4
+[       OK ] CifarSparseDiffVulkan.Stage6_Conv4 (780 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage7_Conv5
+[       OK ] CifarSparseDiffVulkan.Stage7_Conv5 (827 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage8_Pool3
+[       OK ] CifarSparseDiffVulkan.Stage8_Pool3 (241 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage9_Linear
+[       OK ] CifarSparseDiffVulkan.Stage9_Linear (197 ms)
+[ RUN      ] CifarSparseDiffVulkan.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffVulkan.EndToEnd_FinalLogits (2062 ms)
+[----------] 10 tests from CifarSparseDiffVulkan (5391 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (5391 ms total)
+[  PASSED  ] 10 tests.
+== test-pipeline-e2e-vk ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2EVk
+[ RUN      ] PipelineE2EVk.HybridOmpVulkan
+[       OK ] PipelineE2EVk.HybridOmpVulkan (4792 ms)
+[ RUN      ] PipelineE2EVk.AllVulkan
+[       OK ] PipelineE2EVk.AllVulkan (4457 ms)
+[ DISABLED ] PipelineE2EVk.DISABLED_AlternatingBoundary
+[----------] 2 tests from PipelineE2EVk (9250 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (9250 ms total)
+[  PASSED  ] 2 tests.
+
+  YOU HAVE 1 DISABLED TEST
+
+== test-pipeline-e2e-cifar-dense-vk ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECifarDenseVk
+[ RUN      ] PipelineE2ECifarDenseVk.HybridOmpVulkan
+[       OK ] PipelineE2ECifarDenseVk.HybridOmpVulkan (6150 ms)
+[ RUN      ] PipelineE2ECifarDenseVk.AllVulkan
+[       OK ] PipelineE2ECifarDenseVk.AllVulkan (6196 ms)
+[----------] 2 tests from PipelineE2ECifarDenseVk (12347 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (12347 ms total)
+[  PASSED  ] 2 tests.
+== test-pipeline-e2e-cifar-sparse-vk ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECifarSparseVk
+[ RUN      ] PipelineE2ECifarSparseVk.HybridOmpVulkan
+[       OK ] PipelineE2ECifarSparseVk.HybridOmpVulkan (21572 ms)
+[ RUN      ] PipelineE2ECifarSparseVk.AllVulkan
+[       OK ] PipelineE2ECifarSparseVk.AllVulkan (19697 ms)
+[----------] 2 tests from PipelineE2ECifarSparseVk (41269 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (41269 ms total)
+[  PASSED  ] 2 tests.

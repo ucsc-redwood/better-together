@@ -1,0 +1,215 @@
+>> staging 3 binaries + libc++_shared.so to rocky-ryzen:/tmp/bt-android
+>> ===== phone 3A021JEHN02756 =====
+/tmp/bt-android/test-tree-omp: 1 file pushed, 0 skipped. 450.8 MB/s (17394392 bytes in 0.037s)
+/tmp/bt-android/test-cifar-dense-omp: 1 file pushed, 0 skipped. 213.8 MB/s (16040896 bytes in 0.072s)
+/tmp/bt-android/test-cifar-sparse-omp: 1 file pushed, 0 skipped. 99.5 MB/s (16169968 bytes in 0.155s)
+/tmp/bt-android/libc++_shared.so: 1 file pushed, 0 skipped. 129.1 MB/s (9290184 bytes in 0.069s)
+4 files pushed, 0 skipped. 121.0 MB/s (58895440 bytes in 0.464s)
+== test-tree-omp ==
+[==========] Running 13 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffOmp
+[ RUN      ] TreeDiffOmp.Stage1_Morton
+[       OK ] TreeDiffOmp.Stage1_Morton (93 ms)
+[ RUN      ] TreeDiffOmp.Stage2_Sort
+[       OK ] TreeDiffOmp.Stage2_Sort (24 ms)
+[ RUN      ] TreeDiffOmp.Stage3_Unique
+[       OK ] TreeDiffOmp.Stage3_Unique (24 ms)
+[ RUN      ] TreeDiffOmp.Stage4_RadixTree
+[       OK ] TreeDiffOmp.Stage4_RadixTree (33 ms)
+[ RUN      ] TreeDiffOmp.Stage5_EdgeCount
+[       OK ] TreeDiffOmp.Stage5_EdgeCount (33 ms)
+[ RUN      ] TreeDiffOmp.Stage6_EdgeOffset
+[       OK ] TreeDiffOmp.Stage6_EdgeOffset (33 ms)
+[ RUN      ] TreeDiffOmp.Stage7_Octree
+[       OK ] TreeDiffOmp.Stage7_Octree (482 ms)
+[----------] 7 tests from TreeDiffOmp (725 ms total)
+
+[----------] 6 tests from TreeAnchorOmp
+[ RUN      ] TreeAnchorOmp.Stage1_MortonRef
+[       OK ] TreeAnchorOmp.Stage1_MortonRef (21 ms)
+[ RUN      ] TreeAnchorOmp.Stage4_RadixTreeInvariants
+[       OK ] TreeAnchorOmp.Stage4_RadixTreeInvariants (3 ms)
+[ RUN      ] TreeAnchorOmp.Stage4_RadixTreeBruteForce
+[       OK ] TreeAnchorOmp.Stage4_RadixTreeBruteForce (0 ms)
+[ RUN      ] TreeAnchorOmp.Stage5_EdgeCountRef
+[       OK ] TreeAnchorOmp.Stage5_EdgeCountRef (0 ms)
+[ RUN      ] TreeAnchorOmp.Stage7_OctreeInvariants
+[       OK ] TreeAnchorOmp.Stage7_OctreeInvariants (2 ms)
+[ RUN      ] TreeAnchorOmp.Stage7_TinyBruteForceOctree
+[       OK ] TreeAnchorOmp.Stage7_TinyBruteForceOctree (0 ms)
+[----------] 6 tests from TreeAnchorOmp (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 2 test suites ran. (755 ms total)
+[  PASSED  ] 13 tests.
+== test-cifar-dense-omp ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffOmp
+[ RUN      ] CifarDenseDiffOmp.Stage1_Conv1
+[       OK ] CifarDenseDiffOmp.Stage1_Conv1 (319 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage2_Pool1
+[       OK ] CifarDenseDiffOmp.Stage2_Pool1 (84 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage3_Conv2
+[       OK ] CifarDenseDiffOmp.Stage3_Conv2 (468 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage4_Pool2
+[       OK ] CifarDenseDiffOmp.Stage4_Pool2 (230 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage5_Conv3
+[       OK ] CifarDenseDiffOmp.Stage5_Conv3 (616 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage6_Conv4
+[       OK ] CifarDenseDiffOmp.Stage6_Conv4 (1178 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage7_Conv5
+[       OK ] CifarDenseDiffOmp.Stage7_Conv5 (1531 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage8_Pool3
+[       OK ] CifarDenseDiffOmp.Stage8_Pool3 (904 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage9_Linear
+[       OK ] CifarDenseDiffOmp.Stage9_Linear (889 ms)
+[ RUN      ] CifarDenseDiffOmp.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffOmp.EndToEnd_FinalLogits (2590 ms)
+[----------] 10 tests from CifarDenseDiffOmp (8815 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (8816 ms total)
+[  PASSED  ] 10 tests.
+== test-cifar-sparse-omp ==
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffOmp
+[ RUN      ] CifarSparseDiffOmp.Stage1_Conv1
+[       OK ] CifarSparseDiffOmp.Stage1_Conv1 (902 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage2_Pool1
+[       OK ] CifarSparseDiffOmp.Stage2_Pool1 (541 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage3_Conv2
+[       OK ] CifarSparseDiffOmp.Stage3_Conv2 (2175 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage4_Pool2
+[       OK ] CifarSparseDiffOmp.Stage4_Pool2 (1129 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage5_Conv3
+[       OK ] CifarSparseDiffOmp.Stage5_Conv3 (2940 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage6_Conv4
+[       OK ] CifarSparseDiffOmp.Stage6_Conv4 (5113 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage7_Conv5
+[       OK ] CifarSparseDiffOmp.Stage7_Conv5 (6287 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage8_Pool3
+[       OK ] CifarSparseDiffOmp.Stage8_Pool3 (4373 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage9_Linear
+[       OK ] CifarSparseDiffOmp.Stage9_Linear (4479 ms)
+[ RUN      ] CifarSparseDiffOmp.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffOmp.EndToEnd_FinalLogits (11021 ms)
+[----------] 10 tests from CifarSparseDiffOmp (38967 ms total)
+
+[----------] 1 test from CifarSparseAppData
+[ RUN      ] CifarSparseAppData.ShippedCsrIndicesAreNonEmpty
+[       OK ] CifarSparseAppData.ShippedCsrIndicesAreNonEmpty (40 ms)
+[----------] 1 test from CifarSparseAppData (41 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (39010 ms total)
+[  PASSED  ] 11 tests.
+>> ===== phone R5CY21Y3VEV =====
+/tmp/bt-android/test-tree-omp: 1 file pushed, 0 skipped. 359.5 MB/s (17394392 bytes in 0.046s)
+/tmp/bt-android/test-cifar-dense-omp: 1 file pushed, 0 skipped. 148.1 MB/s (16040896 bytes in 0.103s)
+/tmp/bt-android/test-cifar-sparse-omp: 1 file pushed, 0 skipped. 123.9 MB/s (16169968 bytes in 0.124s)
+/tmp/bt-android/libc++_shared.so: 1 file pushed, 0 skipped. 130.5 MB/s (9290184 bytes in 0.068s)
+4 files pushed, 0 skipped. 120.5 MB/s (58895440 bytes in 0.466s)
+== test-tree-omp ==
+[==========] Running 13 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffOmp
+[ RUN      ] TreeDiffOmp.Stage1_Morton
+[       OK ] TreeDiffOmp.Stage1_Morton (60 ms)
+[ RUN      ] TreeDiffOmp.Stage2_Sort
+[       OK ] TreeDiffOmp.Stage2_Sort (18 ms)
+[ RUN      ] TreeDiffOmp.Stage3_Unique
+[       OK ] TreeDiffOmp.Stage3_Unique (17 ms)
+[ RUN      ] TreeDiffOmp.Stage4_RadixTree
+[       OK ] TreeDiffOmp.Stage4_RadixTree (23 ms)
+[ RUN      ] TreeDiffOmp.Stage5_EdgeCount
+[       OK ] TreeDiffOmp.Stage5_EdgeCount (23 ms)
+[ RUN      ] TreeDiffOmp.Stage6_EdgeOffset
+[       OK ] TreeDiffOmp.Stage6_EdgeOffset (23 ms)
+[ RUN      ] TreeDiffOmp.Stage7_Octree
+[       OK ] TreeDiffOmp.Stage7_Octree (247 ms)
+[----------] 7 tests from TreeDiffOmp (415 ms total)
+
+[----------] 6 tests from TreeAnchorOmp
+[ RUN      ] TreeAnchorOmp.Stage1_MortonRef
+[       OK ] TreeAnchorOmp.Stage1_MortonRef (16 ms)
+[ RUN      ] TreeAnchorOmp.Stage4_RadixTreeInvariants
+[       OK ] TreeAnchorOmp.Stage4_RadixTreeInvariants (2 ms)
+[ RUN      ] TreeAnchorOmp.Stage4_RadixTreeBruteForce
+[       OK ] TreeAnchorOmp.Stage4_RadixTreeBruteForce (0 ms)
+[ RUN      ] TreeAnchorOmp.Stage5_EdgeCountRef
+[       OK ] TreeAnchorOmp.Stage5_EdgeCountRef (0 ms)
+[ RUN      ] TreeAnchorOmp.Stage7_OctreeInvariants
+[       OK ] TreeAnchorOmp.Stage7_OctreeInvariants (1 ms)
+[ RUN      ] TreeAnchorOmp.Stage7_TinyBruteForceOctree
+[       OK ] TreeAnchorOmp.Stage7_TinyBruteForceOctree (0 ms)
+[----------] 6 tests from TreeAnchorOmp (21 ms total)
+
+[----------] Global test environment tear-down
+[==========] 13 tests from 2 test suites ran. (437 ms total)
+[  PASSED  ] 13 tests.
+== test-cifar-dense-omp ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffOmp
+[ RUN      ] CifarDenseDiffOmp.Stage1_Conv1
+[       OK ] CifarDenseDiffOmp.Stage1_Conv1 (152 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage2_Pool1
+[       OK ] CifarDenseDiffOmp.Stage2_Pool1 (48 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage3_Conv2
+[       OK ] CifarDenseDiffOmp.Stage3_Conv2 (323 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage4_Pool2
+[       OK ] CifarDenseDiffOmp.Stage4_Pool2 (120 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage5_Conv3
+[       OK ] CifarDenseDiffOmp.Stage5_Conv3 (368 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage6_Conv4
+[       OK ] CifarDenseDiffOmp.Stage6_Conv4 (668 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage7_Conv5
+[       OK ] CifarDenseDiffOmp.Stage7_Conv5 (800 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage8_Pool3
+[       OK ] CifarDenseDiffOmp.Stage8_Pool3 (449 ms)
+[ RUN      ] CifarDenseDiffOmp.Stage9_Linear
+[       OK ] CifarDenseDiffOmp.Stage9_Linear (448 ms)
+[ RUN      ] CifarDenseDiffOmp.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffOmp.EndToEnd_FinalLogits (1558 ms)
+[----------] 10 tests from CifarDenseDiffOmp (4943 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (4943 ms total)
+[  PASSED  ] 10 tests.
+== test-cifar-sparse-omp ==
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffOmp
+[ RUN      ] CifarSparseDiffOmp.Stage1_Conv1
+[       OK ] CifarSparseDiffOmp.Stage1_Conv1 (615 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage2_Pool1
+[       OK ] CifarSparseDiffOmp.Stage2_Pool1 (280 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage3_Conv2
+[       OK ] CifarSparseDiffOmp.Stage3_Conv2 (1533 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage4_Pool2
+[       OK ] CifarSparseDiffOmp.Stage4_Pool2 (788 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage5_Conv3
+[       OK ] CifarSparseDiffOmp.Stage5_Conv3 (2020 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage6_Conv4
+[       OK ] CifarSparseDiffOmp.Stage6_Conv4 (3627 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage7_Conv5
+[       OK ] CifarSparseDiffOmp.Stage7_Conv5 (4456 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage8_Pool3
+[       OK ] CifarSparseDiffOmp.Stage8_Pool3 (3108 ms)
+[ RUN      ] CifarSparseDiffOmp.Stage9_Linear
+[       OK ] CifarSparseDiffOmp.Stage9_Linear (3070 ms)
+[ RUN      ] CifarSparseDiffOmp.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffOmp.EndToEnd_FinalLogits (7483 ms)
+[----------] 10 tests from CifarSparseDiffOmp (26988 ms total)
+
+[----------] 1 test from CifarSparseAppData
+[ RUN      ] CifarSparseAppData.ShippedCsrIndicesAreNonEmpty
+[       OK ] CifarSparseAppData.ShippedCsrIndicesAreNonEmpty (14 ms)
+[----------] 1 test from CifarSparseAppData (14 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (27002 ms total)
+[  PASSED  ] 11 tests.

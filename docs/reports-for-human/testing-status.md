@@ -160,6 +160,20 @@ this cell is empty by design, not a coverage gap. **The two phones are what
 uniquely exercise the subgroup-16 (Mali) vs subgroup-32 shader variants**
 (`tmp_single_radixsort_warp{16,32,64}`) — the Jetson alone cannot.
 
+> **Update 2026-06-17 — full matrix swept with logs + runtime-pipeline matrix added.**
+> Every supported per-stage cell above was re-run on real HW and the logs committed
+> under [`perf-results/test-runs/`](perf-results/test-runs/) (pc OMP, Jetson CUDA+VK+OMP,
+> rocky VK, both phones VK+OMP). The **runtime hetero-pipeline** matrix
+> (`test-pipeline-e2e-*`) is now complete too: OMP (pc, both phones incl. a new
+> big|medium|little **medium-tier** case, + new cifar-dense/-sparse OMP variants),
+> CUDA ×3 apps (Jetson), Vulkan ×3 apps (Jetson — newly built+run, rocky, both phones
+> incl. cifar-sparse on Mali). The only ex-`DISABLED` runtime test
+> (`AlternatingBoundary`) was a **shared-command-buffer race across concurrent GPU
+> chunks**, not octree re-entry — now rejected up front by `first_concurrent_gpu_chunk()`
+> and asserted by `PipelineE2EVk.RejectsMultiGpuChunkSchedule` + `ScheduleGpuReuse.*`
+> (see [`bugs-found.md`](bugs-found.md) §10). Remaining runtime-plan depth (GPU-bottleneck
+> visibility stress, TSan, DVFS timing) is tracked separately.
+
 ### B. The harness — one parametrized differential test, not 32×3 hand-written
 
 **OMP-in-process oracle (the key choice).** Every target has a CPU, so each test

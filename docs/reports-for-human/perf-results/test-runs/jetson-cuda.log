@@ -1,0 +1,122 @@
+>> staging 6 binaries to duck-naughty:/tmp/bt
+>> running on duck-naughty (--device jetson)
+== test-tree-cu ==
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffCuda
+[ RUN      ] TreeDiffCuda.Stage1_Morton
+[       OK ] TreeDiffCuda.Stage1_Morton (210 ms)
+[ RUN      ] TreeDiffCuda.Stage2_Sort
+[       OK ] TreeDiffCuda.Stage2_Sort (31 ms)
+[ RUN      ] TreeDiffCuda.Stage3_Unique
+[       OK ] TreeDiffCuda.Stage3_Unique (31 ms)
+[ RUN      ] TreeDiffCuda.Stage4_RadixTree
+[       OK ] TreeDiffCuda.Stage4_RadixTree (32 ms)
+[ RUN      ] TreeDiffCuda.Stage5_EdgeCount
+[       OK ] TreeDiffCuda.Stage5_EdgeCount (35 ms)
+[ RUN      ] TreeDiffCuda.Stage6_EdgeOffset
+[       OK ] TreeDiffCuda.Stage6_EdgeOffset (31 ms)
+[ RUN      ] TreeDiffCuda.Stage7_Octree
+[       OK ] TreeDiffCuda.Stage7_Octree (701 ms)
+[----------] 7 tests from TreeDiffCuda (1074 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (1074 ms total)
+[  PASSED  ] 7 tests.
+== test-cifar-dense-cu ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffCuda
+[ RUN      ] CifarDenseDiffCuda.Stage1_Conv1
+[       OK ] CifarDenseDiffCuda.Stage1_Conv1 (260 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage2_Pool1
+[       OK ] CifarDenseDiffCuda.Stage2_Pool1 (40 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage3_Conv2
+[       OK ] CifarDenseDiffCuda.Stage3_Conv2 (441 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage4_Pool2
+[       OK ] CifarDenseDiffCuda.Stage4_Pool2 (41 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage5_Conv3
+[       OK ] CifarDenseDiffCuda.Stage5_Conv3 (425 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage6_Conv4
+[       OK ] CifarDenseDiffCuda.Stage6_Conv4 (820 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage7_Conv5
+[       OK ] CifarDenseDiffCuda.Stage7_Conv5 (828 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage8_Pool3
+[       OK ] CifarDenseDiffCuda.Stage8_Pool3 (82 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage9_Linear
+[       OK ] CifarDenseDiffCuda.Stage9_Linear (60 ms)
+[ RUN      ] CifarDenseDiffCuda.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffCuda.EndToEnd_FinalLogits (2143 ms)
+[----------] 10 tests from CifarDenseDiffCuda (5145 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (5145 ms total)
+[  PASSED  ] 10 tests.
+== test-cifar-sparse-cu ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffCuda
+[ RUN      ] CifarSparseDiffCuda.Stage1_Conv1
+[       OK ] CifarSparseDiffCuda.Stage1_Conv1 (570 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage2_Pool1
+[       OK ] CifarSparseDiffCuda.Stage2_Pool1 (164 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage3_Conv2
+[       OK ] CifarSparseDiffCuda.Stage3_Conv2 (954 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage4_Pool2
+[       OK ] CifarSparseDiffCuda.Stage4_Pool2 (196 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage5_Conv3
+[       OK ] CifarSparseDiffCuda.Stage5_Conv3 (973 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage6_Conv4
+[       OK ] CifarSparseDiffCuda.Stage6_Conv4 (1763 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage7_Conv5
+[       OK ] CifarSparseDiffCuda.Stage7_Conv5 (1864 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage8_Pool3
+[       OK ] CifarSparseDiffCuda.Stage8_Pool3 (473 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage9_Linear
+[       OK ] CifarSparseDiffCuda.Stage9_Linear (455 ms)
+[ RUN      ] CifarSparseDiffCuda.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffCuda.EndToEnd_FinalLogits (5132 ms)
+[----------] 10 tests from CifarSparseDiffCuda (12550 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (12550 ms total)
+[  PASSED  ] 10 tests.
+== test-pipeline-e2e-cu ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECu
+[ RUN      ] PipelineE2ECu.HybridOmpCuda
+[       OK ] PipelineE2ECu.HybridOmpCuda (23981 ms)
+[ RUN      ] PipelineE2ECu.AllCuda
+[       OK ] PipelineE2ECu.AllCuda (23174 ms)
+[----------] 2 tests from PipelineE2ECu (47156 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (47156 ms total)
+[  PASSED  ] 2 tests.
+== test-pipeline-e2e-cifar-dense-cu ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECifarDenseCu
+[ RUN      ] PipelineE2ECifarDenseCu.HybridOmpCuda
+[       OK ] PipelineE2ECifarDenseCu.HybridOmpCuda (18118 ms)
+[ RUN      ] PipelineE2ECifarDenseCu.AllCuda
+[       OK ] PipelineE2ECifarDenseCu.AllCuda (17618 ms)
+[----------] 2 tests from PipelineE2ECifarDenseCu (35737 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (35737 ms total)
+[  PASSED  ] 2 tests.
+== test-pipeline-e2e-cifar-sparse-cu ==
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PipelineE2ECifarSparseCu
+[ RUN      ] PipelineE2ECifarSparseCu.HybridOmpCuda
+[       OK ] PipelineE2ECifarSparseCu.HybridOmpCuda (60771 ms)
+[ RUN      ] PipelineE2ECifarSparseCu.AllCuda
+[       OK ] PipelineE2ECifarSparseCu.AllCuda (49486 ms)
+[----------] 2 tests from PipelineE2ECifarSparseCu (110257 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (110257 ms total)
+[  PASSED  ] 2 tests.

@@ -62,14 +62,10 @@ Verified: OMP on pc; VK on rocky-ryzen (RADV) + Pixel 7a + Samsung (Mali, non-co
 
 ## 3. Findings & open items
 
-- **🐛 GPU re-entry into the tree octree** (`DISABLED_AlternatingBoundary`, triaged):
-  a schedule where Vulkan runs early stages, a CPU chunk runs the middle, then Vulkan
-  re-enters for octree (stage 7) alone reads a STALE data-dependent count
-  (`n_brt_nodes`) → wrong output, or an OOB octree write → SIGSEGV. Minimal repro
-  `{VK 1-3, OMP 4-6, VK 7}`. Contiguous GPU chunks always pass. **Not** a generic
-  SPSC/concurrency bug, and z3 only emits one contiguous chunk per PU so it never
-  produces a re-entry schedule. Fix = dispatcher re-reads the stage-7 count on entry,
-  or an executor guard rejecting GPU re-entry. cifar is feed-forward → not affected.
+- **🐛 GPU re-entry into the tree octree** (`DISABLED_AlternatingBoundary`) — **this
+  triage was WRONG; corrected below in §4 / [`bugs-found.md`](bugs-found.md) §10.** The
+  real root cause is a concurrent shared-command-buffer race, not a stale octree count;
+  now fixed by a guard. Left here for the record.
 - **Hardware:** both phones (Pixel `3A021JEHN02756` + Samsung `R5CY21Y3VEV`) moved to
   rocky-ryzen's adb this session (`adb -s <serial>`); docs synced. Serialize all
   rocky-side work (minipc Vulkan ↔ Pixel ↔ Samsung).
@@ -79,3 +75,90 @@ Verified: OMP on pc; VK on rocky-ryzen (RADV) + Pixel 7a + Samsung (Mali, non-co
 - **Uncommitted in the tree:** `docs/reports-for-human/perf-results/` + a README.md
   edit (the RGA static-analysis write-up) — pre-existing, not from this session's work;
   left for the owner to commit.
+
+## 4. Continued session — full-matrix completion + corrected octree triage
+
+Picked up the question "have we run the full unit tests on all HWs?" → swept the
+whole matrix and closed the gaps. **Commits `a39eff6`, `e767b71`, `2e86d41` on `dev`.**
+
+**Matrix now complete (apps × backends × HW), every supported cell run on real HW with
+logs committed under [`perf-results/test-runs/`](perf-results/test-runs/):**
+- per-stage differential: OMP (pc + Jetson + both phones), CUDA (Jetson), Vulkan
+  (Jetson — **newly run**, rocky, both phones). Jetson Vulkan per-stage was the one
+  blank cell; filled.
+- runtime hetero-pipeline (`test-pipeline-e2e-*`): CUDA ×3 apps (Jetson), Vulkan ×3 apps
+  (Jetson — **newly cross-built+run**, rocky, both phones incl. **cifar-sparse on Mali**,
+  the §3 gap). OMP column completed: new `test-pipeline-e2e-cifar-{dense,sparse}-omp`,
+  plus a mobile `big|medium|little` **medium-tier** case + a `sched_getaffinity`
+  read-back check on the tree OMP test.
+
+**🎯 `DISABLED_AlternatingBoundary` — root cause found (overturns §3 triage).**
+GPU-assisted validation on rocky (validation layers installed this session) shows
+`VUID-vkBeginCommandBuffer-commandBuffer-00049`: **not** octree re-entry / a stale
+count (VkAppData_Safe's counts are `const`-correct) but a **concurrent
+command-buffer race** — all Vulkan chunks share one `VulkanDispatcher`/`Sequence`, and
+≥2 Vulkan chunks run as concurrent worker threads recording into the one buffer →
+`VK_ERROR_DEVICE_LOST`. Crash tracks the *number of concurrent GPU chunks*, not octree
+re-entry. **Fix:** `first_concurrent_gpu_chunk()` guard (`pipeline/schedule.hpp`)
+rejects any >1-GPU-chunk schedule (z3 never emits one); the ex-DISABLED test is now
+`PipelineE2EVk.RejectsMultiGpuChunkSchedule` + `ScheduleGpuReuse.*` static unit tests.
+**No DISABLED tests remain.** Full detail: [`bugs-found.md`](bugs-found.md) §10.
+
+**Also added** (pc robustness): `LoggerRejectsOverflowChunk` (>kMaxChunks → clean
+`out_of_range`). `ctest -L omp` now **8/8**.
+
+**Not done (deliberately deferred — needs HW iteration / heavy infra, not matrix gaps):**
+GPU-bottleneck concurrent-visibility stress (Jetson+Mali); TSan (blocked on GCC
+libgomp not being TSan-instrumented → needs archer or clang+TSan-OMP runtime; `next_uid`
+still non-atomic); mobile DVFS timing; watchdog self-test (needs a configurable timeout).
+
+## 5. Pipeline-hygiene + cross-tool-contract pass (continued session)
+
+After the matrix work, a second pass on repo hygiene and the three-tool seams.
+Commits on `dev` (main still at `e767b71`, dev ahead by 5): `8d45084`, `3ea1b74`,
+`89d615e`, `80a0b98`, `24c5b2d`.
+
+- **data/ out of git** (`8d45084`): 383 files / ~396MB of regenerable experiment
+  output (profiling tables, schedules, exec logs, CIFAR dataset) un-tracked
+  (`git rm --cached`, kept on disk) + `data/` gitignored. `.gitignore` had been
+  inconsistent (ignored the CIFAR tarball/`saved_params`/`Testing` but committed the
+  rest). **New model: data is regenerable, not versioned** — no committed snapshot
+  (owner's choice); regenerate via BT-Profiler → export → 02 → 03.
+- **Legacy purge** (`3ea1b74`): removed the iiswc2025-era cluster — `scripts/misc/`
+  (param/print helpers that only read the retired `data/exe_logs_*`), `justfile.old`,
+  and on-disk `data/exe_logs_*`+`data/bm_logs` (~52MB) + `.xmake/`. `utility/` kept
+  (live CMake tools + intentionally-retained volk/NNAPI).
+- **Schedule contract hardened** (`89d615e`, the one cross-tool artifact that lacked a
+  schema): added `schemas/schedule.schema.json` (core_type enum = single PU-string
+  source; GPU chunk requires `hardware`); dropped the dead `stage_assignments` field;
+  chunks now carry explicit **1-based-inclusive `start_stage`/`end_stage`** instead of
+  a 0-based `stages[]` + the C++ `+1` blanket shift (the old off-by-one). Producer
+  validates against the schema before writing; consumer fails fast.
+- **Round-trip contract test** (`80a0b98`, Lever B): C++ `ScheduleContract` consumes
+  the committed `tests/fixtures/schedule.contract.json`; Python `test_schedule_contract.py`
+  validates the fixture + live producer output against the schema. Producer/consumer
+  drift now reds CI.
+- **Case path builder** (`24c5b2d`, Seam 3): `scripts/collect/case.py` owns the
+  `<root>/<device>/<app>/<backend>/...` layout (+ cu/vk↔cuda/vulkan naming); 02/03/
+  export call it instead of hand-joining paths.
+- **Profiling refresh** (jetson/tree/cu only — the cell §3.1's cub fix staled): 6 runs
+  (isolated+interference) at the post-fix sha; cuda cub stages dropped ~3× (sort 2.98×,
+  unique 3.10×, prefix-sum 3.45×). New schedule: **GPU 1-6 + Little 7** (z3 offloads
+  the GPU-slow octree to CPU). Local-only (data/ gitignored).
+
+**Noted, not changed:** 03's default `--schedules-root data/schedules_btpm` ≠ where 02
+writes (`data/schedules`) — a real path mismatch, left for a deliberate fix.
+
+### Remaining cross-tool seams (next-session backlog, session-sized each)
+- **Seam 1** — kill the legacy wide-CSV bridge: `export_btpm_csv.py` is a
+  self-described shim; make `smt/data_loader.py` read the JSONL store directly →
+  removes the 5-hardcoded-column CSV + the fragile `absent = 0.0` convention
+  (`data_loader.py:52 use_cuda = avg_df["cuda"].sum() > 0` misreads a real 0.0).
+- **Lever A** — shared vocabulary codegen (à la `embed_device_specs.py`): PU enum +
+  app→stage count (`baselines.py:get_num_stages_for_app` vs C++ `kNumStages`) +
+  backend names, generated once for Python + C++ (the "add a PU = touch 1 place" the
+  EdgeTPU/NNAPI roadmap needs).
+- **Seam 2** — schedule identity header `{device, app, n_stages, pu_vocab, table_type,
+  mode}` so the Implementer rejects a wrong-device/wrong-app schedule at load, not deep
+  in a worker. Design choice: wrap as `{meta, schedules}` (breaks the array contract +
+  config_reader + my consumer tests, once) vs per-schedule fields.
