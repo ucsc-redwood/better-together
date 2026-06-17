@@ -47,9 +47,31 @@ Record the current gate states so regressions are detectable:
 
 ---
 
-## Phase 1 — low-risk scripts / build / dead code (no devices)
+## Phase 1 — low-risk scripts / build / dead code (no devices) — DONE 2026-06-17
 Gate for the whole phase: `uv run python scripts/collect/smt/test_minimize_mode.py`
 green + new unit tests + `02` generates cleanly + presets configure. Batchable.
+
+**All 7 items done** (gates below all green): `test_minimize_mode` + new
+`smt/test_baselines.py` pass; `02` generates a schedule cleanly with derived
+baselines; `pc`/`vulkan` presets configure and `bm-*` targets exist; OMP gate 5/5;
+CUDA cross-build (run-*-cu + bm-prof-tree-cu) green in `bt-cross:6.1`.
+1. **DONE** — `baselines.py` now DERIVES baselines from the committed
+   `data/btpm_export/<dev>/<app>/<backend>/isolated.csv` (GPU = backend column sum;
+   OMP = fastest fully-populated CPU tier sum); covers minipc. Gate: `smt/test_baselines.py`.
+2. **DONE** — `05_timeline.py` freq/UID regex fixed to the current
+   `Frequency=<hz> Hz` / `Schedule_UID=<uid>` format (+warn on missing freq). Verified
+   on `data/sched_logs/minipc/schedule_run_1.log` (freq 3.99 GHz, sane ms).
+3. **DONE** — `device_specs_embedded.hpp` regenerated at build by a CMake custom
+   command (`bt_device_specs`) from `devices/*.json` (identical bytes → tree stays clean).
+4. **DONE** — `BT_GIT_SHA` captured at BUILD time via an always-run `bt_git_sha`
+   target → `build/<preset>/generated/bt_git_sha.h` (`cmake/write_git_sha.cmake`).
+5. **DONE** — `results/log_parser.py` guards non-positive `Frequency=` (skip+warn,
+   was a ZeroDivisionError traceback); empty-log path already graceful.
+6. **DONE** — `vulkan` + `android` presets set `BT_BUILD_BENCHMARKS=ON` (bm-*-vk exist).
+7. **DONE** — deleted orphan `builtin-apps/pipeline/worker.hpp` + dead
+   `scripts/collect/00_bm.py` (+README refs); dropped the unused stream from `CudaManager`.
+
+Original item descriptions (for reference):
 
 1. **Hardcoded/stale baselines** (`scripts/collect/smt/baselines.py`). They're
    hand-coded, decoupled from measured data, and return `None` for minipc — so the
