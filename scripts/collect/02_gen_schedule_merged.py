@@ -115,14 +115,14 @@ def main():
     minimize_mode = args.minimize_mode
     verbose = args.verbose
 
-    # Get baseline data for this configuration
-    baseline_data = get_baseline_for_config(device, app, backend)
+    # Get baseline data for this configuration (derived from the same CSV root).
+    baseline_data = get_baseline_for_config(device, app, backend, args.csv_root_folder)
     if baseline_data:
         if verbose:
             print(f"Baseline data for {device}/{app}/{backend}:")
-            print(f"  CPU (OpenMP): {baseline_data['omp']} ms")
-            print(f"  GPU ({backend}): {baseline_data[backend]} ms")
-            print(f"  Fastest: {baseline_data['fastest']} ms")
+            print(f"  CPU (OpenMP): {baseline_data.get('omp')} ms")
+            print(f"  GPU ({backend}): {baseline_data.get(backend)} ms")
+            print(f"  Fastest: {baseline_data.get('fastest')} ms")
     else:
         print(f"No baseline data available for {device}/{app}/{backend}")
 
