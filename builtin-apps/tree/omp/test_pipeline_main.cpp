@@ -80,7 +80,7 @@ TEST(PipelineE2EOmp, TwoChunkBigLittle) {
   validate_schedule_coverage(sched, kNumStages);
 
   run_pipeline<tree::SafeAppData, bt_pipe_test::OmpDispatcher, QueueT>(
-      sched, kPoolSize, kNumToProcess, omp_dispatch, CheckItem);
+      sched, kPoolSize, kNumToProcess, ExecutionModel::kCuda, omp_dispatch, CheckItem);
 }
 
 // ----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ TEST(PipelineE2EOmp, PerStageSevenChunks) {
   validate_schedule_coverage(sched, kNumStages);
 
   run_pipeline<tree::SafeAppData, bt_pipe_test::OmpDispatcher, QueueT>(
-      sched, kPoolSize, kNumToProcess, omp_dispatch, CheckItem);
+      sched, kPoolSize, kNumToProcess, ExecutionModel::kCuda, omp_dispatch, CheckItem);
 }
 
 // ----------------------------------------------------------------------------

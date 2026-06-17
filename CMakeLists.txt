@@ -363,5 +363,8 @@ if(BT_BUILD_TESTS)
     bt_add_vk_test(test-tree-vk         builtin-apps/tree/vulkan/test_main.cpp)
     bt_add_vk_test(test-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_main.cpp)
     bt_add_vk_test(test-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_main.cpp)
+    # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|Vulkan
+    # schedule -- concurrent CPU+GPU on shared UMA (the §1/§7 visibility gate).
+    bt_add_vk_test(test-pipeline-e2e-vk builtin-apps/tree/vulkan/test_pipeline_main_vk.cpp)
   endif()
 endif()
