@@ -110,12 +110,14 @@ scripts/run-on-rocky.sh                   # deploy + run all *-vk on the iGPU bo
 ```
 cifar-dense-vk / cifar-sparse-vk = 9/9; tree-vk has the sort + 4/7 TODOs.
 
-**OMP on Android phones** (Pixel 7a on the build box; Samsung on rocky-ryzen):
+**OMP on Android phones** (both phones' adb is on rocky-ryzen now; copy `build/android`
+there and run the script on rocky — `adb -s <serial>` selects the phone):
 ```bash
 export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865
 cmake --preset android
 cmake --build --preset android --target test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp
-scripts/run-on-android.sh 3A021JEHN02756  # Pixel; for Samsung run the same script on rocky-ryzen
+scripts/run-on-android.sh 3A021JEHN02756  # Pixel 7a   (on rocky-ryzen)
+scripts/run-on-android.sh R5CY21Y3VEV     # Samsung    (same host, other serial)
 ```
 
 **What success looks like:** gtest prints `[  PASSED  ] N tests`; `ctest` prints

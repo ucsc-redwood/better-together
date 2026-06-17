@@ -106,7 +106,7 @@ projected onto the GPU; kernel-to-kernel gaps in `cuda_gpu_trace` → GPU starve
 | AMD uProf CLI | `AMDuProfCLI collect …` then `AMDuProfCLI report --format csv` | CSV |
 | `radeontop` | `radeontop -d - -l 1` | text (iGPU busy / bandwidth) |
 
-### Android — Mali phones (Pixel on build box, Samsung on rocky; all adb-scriptable)
+### Android — Mali phones (both Pixel + Samsung adb-attached to rocky; all adb-scriptable)
 
 | Tool | Agent command | Output | Note |
 |---|---|---|---|

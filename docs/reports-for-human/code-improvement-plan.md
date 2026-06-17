@@ -192,8 +192,9 @@ bash scripts/run-on-jetson.sh test-tree-cu test-cifar-dense-cu test-cifar-sparse
 # end-to-end (schedule on a device): docs/instruction-for-ai/06-end-to-end-scheduling.md
 ```
 Hosts/serials/gotchas: `docs/instruction-for-ai/01-hardware.md`. Devices: Jetson
-`duck-naughty` (cu+vk), MiniPC `rocky-ryzen` (vk, Big-only), Samsung `R5CY21Y3VEV`
-(vk, adb-on-rocky, all CPU tiers). Parallelize Jetson ∥ rocky; serialize MiniPC↔Samsung.
+`duck-naughty` (cu+vk), MiniPC `rocky-ryzen` (vk, Big-only), Pixel 7a `3A021JEHN02756`
+(vk subgroup-16) + Samsung `R5CY21Y3VEV` (vk subgroup-32) — **both phones now adb-on-rocky**
+(`adb -s <serial>`). Parallelize Jetson ∥ rocky; serialize all rocky work (MiniPC ↔ Pixel ↔ Samsung).
 
 ## Recommended order
 Phase 1 (this/next session, fast) → Phase 2 (build+oracle) → Phase 3 (per family,

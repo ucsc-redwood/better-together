@@ -93,7 +93,7 @@ def main():
     ap.add_argument("--build-dir", help="dir holding bm-gen-logs-<app>-<be> (default by backend)")
     ap.add_argument("--ssh-host", help="deploy+run over ssh/scp (jetson=duck-naughty, minipc=rocky-ryzen)")
     ap.add_argument("--adb-serial", help="deploy+run over adb (phones)")
-    ap.add_argument("--adb-host", help="run adb on this ssh host (Samsung is attached to rocky-ryzen)")
+    ap.add_argument("--adb-host", help="run adb on this ssh host (both phones are attached to rocky-ryzen)")
     ap.add_argument("--log-folder", required=True)
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--n-schedules-to-run", type=int, default=0, help="0 = all")

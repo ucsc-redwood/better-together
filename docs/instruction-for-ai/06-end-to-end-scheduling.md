@@ -48,12 +48,13 @@ JSONL; logs go to stderr) to the store path. Knobs: `BT_PROF_SCENARIO=isolated|i
 # ssh device (jetson=duck-naughty, minipc=rocky-ryzen) — fish login shell ⇒ bash -s
 ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference BT_PROF_RUN=1 \
   ./bm-prof-<app>-<be> --device <dev> 2>/dev/null' > data/profiling/<dev>/<app>/<bedir>/interference/run-001.jsonl
-# android (adb on rocky for Samsung) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
+# android (adb on rocky for BOTH phones; adb -s <serial>) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
 ```
 
 **Parallelism rule:** Jetson is independent → run it concurrently with the rocky
-side, but **serialize MiniPC ↔ Samsung** (both hang off rocky-ryzen; concurrent runs
-contend and produce empty output).
+side, but **serialize everything on rocky-ryzen — MiniPC (Vulkan) ↔ Pixel ↔ Samsung**.
+All three now hang off rocky (the iGPU runs + both phones' adb); concurrent runs
+contend (CPU + USB) and produce empty/erratic output.
 
 Validate + view:
 
