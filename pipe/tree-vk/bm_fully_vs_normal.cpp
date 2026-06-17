@@ -116,10 +116,17 @@ static void BM_run_fully(BmTable<kNumStages>& table,
 
   const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
 
-  LocalQueue q_0 = make_queue_from_vector(dataset);
-  LocalQueue q_1 = make_queue_from_vector(dataset);
-  LocalQueue q_2 = make_queue_from_vector(dataset);
-  LocalQueue q_3 = make_queue_from_vector(dataset);
+  // Each PU thread gets a DISJOINT slice of the pool. The old code built all four
+  // queues from the same dataset, aliasing identical AppData into every queue, so
+  // a CPU thread and the GPU thread mutated the same tree buffers concurrently --
+  // a data race tree's data-dependent stages (sort/unique/build) can't tolerate
+  // (it hangs the CUDA/Mali path; cifar's fixed-shape convs survived it).
+  const size_t per = kPoolSize / 4;
+  LocalQueue q_0, q_1, q_2, q_3;
+  for (size_t i = 0 * per; i < 1 * per; ++i) q_0.push(dataset[i].get());
+  for (size_t i = 1 * per; i < 2 * per; ++i) q_1.push(dataset[i].get());
+  for (size_t i = 2 * per; i < 3 * per; ++i) q_2.push(dataset[i].get());
+  for (size_t i = 3 * per; i < 4 * per; ++i) q_3.push(dataset[i].get());
 
   // Use atomic counters for task tracking, but we'll only report on the one we're measuring
   std::atomic<int> lit_processed(0);
