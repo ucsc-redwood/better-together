@@ -343,6 +343,9 @@ if(BT_BUILD_TESTS)
     bt_add_cuda_test(test-tree-cu         builtin-apps/tree/cuda/test_main.cu)
     bt_add_cuda_test(test-cifar-dense-cu  builtin-apps/cifar-dense/cuda/test_main.cu)
     bt_add_cuda_test(test-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/test_main.cu)
+    # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|CUDA
+    # schedule -- concurrent CPU+GPU on zero-copy pinned UMA (the §1 visibility gate).
+    bt_add_cuda_test(test-pipeline-e2e-cu builtin-apps/tree/cuda/test_pipeline_main_cu.cu)
   endif()
 
   # Vulkan unit tests — run on an integrated-GPU box (rocky-ryzen) or the Jetson.
