@@ -15,3 +15,4 @@ instructions; for how to actually build/test/deploy, see
 
 The project overview / quick-start for newcomers is the repo-root
 [`README.md`](../../README.md).
+| [`code-improvement-plan.md`](code-improvement-plan.md) | **Resume here:** phased execution plan for the review findings (gates per change, risk order) |

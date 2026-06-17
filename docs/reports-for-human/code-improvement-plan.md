@@ -1,0 +1,178 @@
+# Code-improvement execution plan (resume here)
+
+> Companion to [`code-review-2026-06-17.md`](code-review-2026-06-17.md) (the 46
+> confirmed findings + evidence). **This is the EXECUTION plan** — phased, with a
+> verification gate per change, ordered low-risk → high-risk. Started 2026-06-17;
+> meant to be resumed across sessions. Branch: `dev`.
+
+## How to read this
+Each item has a **gate** (how to prove it didn't break anything). The cardinal rule:
+- touches **builtin-apps kernels / memory / kiss-vk engine** → the **differential
+  oracle** (`ctest -L cuda` on Jetson / `-L vulkan` on rocky) is the gate.
+- touches a **pipe/ benchmark driver** → **numeric match on all HW** is the gate
+  (re-run the bm and compare to the snapshot in `data/sched_logs/speedup-summary.md`).
+- touches **solver / loaders / scripts** → a **unit test** is the gate.
+
+---
+
+## Status as of 2026-06-17 (what's DONE)
+
+| area | item | commit |
+|---|---|---|
+| T1 | `minimize_mode` wired into z3 (was a gapness clone) + `smt/test_minimize_mode.py` | d1928fd |
+| T1 | absent CPU tier → UNAVAILABLE (not 0.0) + missing-stage raises | 9ed2bfa |
+| T1 | speedup uses makespan not avg-chunk | 83f72fa |
+| T2 | `use_cuda` from `--backend` flag, not data-sniff | 83f72fa |
+| T2 | missing-target-until-deploy → fixed by CMake foreach | 0d01b6e |
+| T4 | `const.hpp` dedup → `pipe/pipeline_common.hpp` (−397 lines) | a72c259 |
+| T4 | `get_mr()` ref/ptr normalized via `pipe/mr_ptr.hpp` `as_mr_ptr` | a72c259 / d8ae83c |
+| T4 | `bm_baseline` dedup → `pipe/bm_baseline_common.hpp` (−476 lines) | d8ae83c |
+| T4 | CMake bm-* targets via `foreach(app × backend)` | 0d01b6e |
+| T5 | delete `gen_schedule_tpu.py`, `04_parse_schedules_adv.py`, `utility/nnapi/` | 83f72fa |
+| T5 | fix stale `scripts/collect/README.md` | 83f72fa |
+| robustness | `03_run_schedule.py` tolerates the §9 teardown segfault (`check=False`) | 18c79e6 |
+| robustness | executor warmup uses `first_present_cpu_type()` (was hardcoded Little) | f47e2d7 |
+
+All pushed to `origin/dev` through `0d01b6e`.
+
+## Phase 0 — safety-net baselines (DONE 2026-06-17)
+Record the current gate states so regressions are detectable:
+- **`ctest -L omp` (local, build/pc): GREEN 5/5.** The everyday gate.
+- **`ctest -L vulkan` on rocky-ryzen: GREEN** (tree/cifar-dense/cifar-sparse, 10/10 each).
+  `cmake --build --preset vulkan --target test-*-vk && bash scripts/run-on-rocky.sh test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk`
+- **`ctest -L cuda` on Jetson: RED/HANGS** — the §1 managed-mem race (tree CUDA path
+  hangs; cifar returns mostly-zero, run-to-run varying). This is the **§1 fix target**:
+  Phase 4 §1 is done when this goes GREEN.
+- Numeric snapshot for the bm dedup regression check: `data/sched_logs/speedup-summary.md`.
+
+---
+
+## Phase 1 — low-risk scripts / build / dead code (no devices)
+Gate for the whole phase: `uv run python scripts/collect/smt/test_minimize_mode.py`
+green + new unit tests + `02` generates cleanly + presets configure. Batchable.
+
+1. **Hardcoded/stale baselines** (`scripts/collect/smt/baselines.py`). They're
+   hand-coded, decoupled from measured data, and return `None` for minipc — so the
+   (now makespan-based) `speedup_over_*` divides by a stale number (e.g. jetson cuda
+   baseline 5.48 vs measured 38.1). Fix: load baselines from a real source (the
+   `bm-baseline-*` output or a committed baseline CSV keyed by device/app/backend).
+   Gate: new unit test asserting the loader returns measured values incl. minipc.
+   **M / med** (decide the source-of-truth for baselines).
+2. **`05_timeline.py` parses the obsolete log format** (wrong UID/freq regex;
+   frequency falls back to a hardcoded 24576000, mis-scaling cycles→ms). Fix the
+   regex to the current `### Python Begin ###` / `Frequency=` / `Task=… Start/End`
+   format. Gate: run on a real `data/sched_logs/*/schedule_run_1.log`, no crash,
+   sane ms. **M / low**.
+3. **`device_specs_embedded.hpp` has no codegen** (`conf.cpp`): editing `devices/*.json`
+   without re-running the generator compiles stale topology silently. Fix: a CMake
+   custom-command (or a checked-in `scripts/embed_device_specs.py` invoked at
+   configure) that regenerates it from `devices/*.json`; or at least a staleness
+   check. Gate: edit a device JSON → build picks it up. **S / low**.
+4. **`BT_GIT_SHA` captured at configure time** (CMakeLists): a commit+rebuild keeps
+   the old sha in provenance. Fix: a build-time custom command that re-runs
+   `git rev-parse` each build. Gate: commit then rebuild → bm-prof provenance sha
+   updates. **M / low**.
+5. **`04_parse_schedules.py` div-by-zero / swallowed parse** (and `smt/statistics.py`,
+   `smt/model_comparison.py`): empty/malformed logs → ZeroDivisionError aborts; widest
+   window silently widened. Fix: guard len==0, skip non-positive, surface parse errors.
+   Gate: feed an empty log → graceful message, no traceback. **M / low**.
+6. **`vulkan` preset omits `BT_BUILD_BENCHMARKS`** (CMakePresets.json) — caveat: also
+   check `android`. Fix: set it ON where the bm targets are expected. Gate: configure
+   the preset, the bm-*-vk targets exist. **S / low**.
+7. **Tier-5 dead code**: orphan `bm_*` + duplicate `worker.hpp` from the pipe
+   migration; `00_bm.py` full removal (only `--only-aggregate` worked, xmake run path
+   dead — confirm no doc/script depends on it, then delete + drop from README);
+   `CudaManager` holds an unused stream. Gate: grep confirms unreferenced, then build.
+   **S / low**.
+
+## Phase 2 — C++ robustness guards (build + device smoke + oracle stays green)
+Gate for the phase: vk+cu compile; `ctest -L omp` green; `ctest -L vulkan` on rocky
+stays GREEN (proves kernels untouched); plus the per-item gate below.
+
+1. **No schedule-vs-device validation** (`pipeline/schedule.hpp:122-155`, executor
+   mains): a schedule chunk referencing an absent PU throws in an unguarded worker
+   thread → uncatchable `terminate`. Fix: validate each chunk's PU against the device
+   (`has_*_cores` / GPU present) before running; skip+warn. Gate: **new test/smoke** —
+   craft a schedule with a Little chunk, run on the Big-only MiniPC → graceful skip,
+   not a crash. **M / low**.
+2. **Worker threads have no per-thread try/catch** (`pipeline_common.hpp` worker,
+   executor): a Logger OOB on >16 chunks throws in the thread body → terminate. Fix:
+   wrap the worker loop body; surface the error to the main thread. Gate: build + smoke.
+   **M / low**.
+3. **Logger drops `end ≤ start` records** (`pipeline/record.hpp:131,152`): a
+   sub-resolution fast stage vanishes, biasing durations up. Fix: clamp `end = max(end,
+   start)` (or count zero-duration). Gate: build + records still emitted; **oracle green**.
+   **S / low**.
+4. **`g_vma_allocator` global never nulled** (`kiss-vk/base_engine.cpp:15,45`):
+   latent UAF/double-free if two Engines coexist. Fix: null on destroy, or make it a
+   member. Gate: vk build + smoke; `ctest -L vulkan` green. **M / med**.
+5. **`do_allocate` ignores alignment, drops the cudaError string**
+   (`common/cuda/cu_mem_resource.cu:27-76`). Fix: honor alignment; keep the error text.
+   Gate: jetson build + run. **S / low**.
+6. **CUDA launch errors deferred / mis-attributed** (`*/cuda/dispatchers`,
+   `cifar-cuda/all_kernels.cuh`): no post-launch `cudaGetLastError`, so a bad early
+   launch is blamed on a later stage. Fix: check after each launch (debug build).
+   Gate: jetson build. **S / low**.
+
+## Phase 3 — `bm_fully` + `bm_gen_log` dedup (HIGH risk — full-HW numeric gate)
+These have real per-PU thread + timing logic (4 concurrent PU threads; cudaEvent vs
+VK-timestamp GPU branch; the schedule-exec loop + hardcoded warmup). Do **one family
+at a time**:
+1. Factor into a shared header (the `bm_prof_common.hpp` pattern: per-cell closures for
+   the OMP/GPU dispatch + timing).
+2. Rebuild vk (local) + cu (jetson cross).
+3. **Re-run the benchmark on minipc + Jetson + Samsung and assert the numbers match
+   the Phase-0 snapshot within noise.** This is the mandatory "E2E on all HW" gate.
+4. Any HW drifts → revert that family.
+Also fold in: the **warmup magic-schedule** (validate it via the Phase-2 validator);
+the **dead old executor** that includes a nonexistent `common.hpp`. **L / med each.**
+
+## Phase 4 — deep bugs + perf (HIGHEST risk — devices, separate, one at a time)
+1. **§1 CUDA managed-mem** (`common/cuda/cu_mem_resource.cu`,
+   `TODO(cuda-managed-mem)`): `cudaMallocManaged(cudaMemAttachHost)` is never
+   `cudaStreamAttachMemAsync`'d and all launches use the default stream → undefined on
+   Tegra (concurrentManagedAccess=0). Fix per bugs-found §1; validate on BOTH the
+   sequential differential oracle AND the concurrent hybrid pipeline. **GATE: Jetson
+   `ctest -L cuda` flips RED→GREEN** (the definitive test). Unlocks all CUDA
+   correctness. **M / high.**
+2. **§9 kiss-vk no teardown** (`kiss-vk` engine/base_engine): teardown segfault on
+   Tegra (device/instance leak, no `waitIdle`). Fix dtor ordering / add `waitIdle` +
+   explicit reset before `benchmark::Shutdown()`. **GATE: VK binaries `exit 0` on
+   Jetson** (today they crash on exit; `03` masks it) + `ctest -L vulkan` green. **M / med.**
+3. **Tier-3 perf — these CHANGE the GPU times z3 reads, so re-profile after:**
+   - device-wide `cudaDeviceSynchronize` + per-item cub alloc/free in the hot path
+     (`tree/cuda/dispatchers`) — serializes concurrent chunks, churn lands in the
+     profiled ticks.
+   - HOST_CACHED flushes ALL allocations per submit (`kiss-vk/sequence.cpp`,
+     `vma_pmr.cpp`) — O(total buffers) cache maintenance under a mutex per stage.
+   - per-stage descriptor + cmd re-record + fence round-trip (`kiss-vk/sequence.cpp`)
+     — record once, replay.
+   **GATE: differential oracle stays green + re-collect the profiling tables + confirm
+   schedules regenerate sanely + quantify the speedup.** **M–L / med.**
+
+Plus doc nit: `rearchitecture.md` Phase 2 is marked "Next" but is DONE (move to Done).
+
+---
+
+## Resume che-sheet (gate commands)
+```bash
+# OMP gate (everyday)
+cmake --preset pc && cmake --build --preset pc && ctest --test-dir build/pc -L omp --output-on-failure
+# solver unit test
+uv run python scripts/collect/smt/test_minimize_mode.py
+# Vulkan differential oracle (rocky)
+cmake --build --preset vulkan --target test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+bash scripts/run-on-rocky.sh test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+# CUDA differential oracle (Jetson) — RED until §1 is fixed; tree path may HANG
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace \
+  bt-cross:6.1 bash -lc 'cmake --build --preset jetson --target test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu'
+bash scripts/run-on-jetson.sh test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu
+# end-to-end (schedule on a device): docs/instruction-for-ai/06-end-to-end-scheduling.md
+```
+Hosts/serials/gotchas: `docs/instruction-for-ai/01-hardware.md`. Devices: Jetson
+`duck-naughty` (cu+vk), MiniPC `rocky-ryzen` (vk, Big-only), Samsung `R5CY21Y3VEV`
+(vk, adb-on-rocky, all CPU tiers). Parallelize Jetson ∥ rocky; serialize MiniPC↔Samsung.
+
+## Recommended order
+Phase 1 (this/next session, fast) → Phase 2 (build+oracle) → Phase 3 (per family,
+all-HW numeric) → Phase 4 (§1 first — biggest unlock — then §9, then perf).
