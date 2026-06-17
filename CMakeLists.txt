@@ -323,6 +323,10 @@ if(BT_BUILD_TESTS)
   # Pipeline schedule contract: chunks must contiguously cover [1, n_stages].
   # The correctness gate the pipeline path was missing (catches the dropped-stage class).
   bt_add_omp_test(test-schedule-omp     builtin-apps/pipeline/test_schedule.cpp)
+  # Cross-tool round-trip contract: the C++ consumer reads the committed schedule
+  # fixture the Python producer/schema side also checks (Lever B).
+  target_compile_definitions(test-schedule-omp PRIVATE
+    BT_SCHEDULE_FIXTURE="${CMAKE_SOURCE_DIR}/tests/fixtures/schedule.contract.json")
   # First framework runtime-correctness test: drive the tree app through the REAL
   # concurrent worker/SPSC ring with a multi-tier OMP schedule and assert the §1
   # differential holds + chunks bind to their intended big/little cores.

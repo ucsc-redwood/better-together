@@ -12,6 +12,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <fstream>
+
 #include "builtin-apps/config_reader.hpp"  // readSchedulesFromJson (the schedule consumer)
 #include "builtin-apps/pipeline/record.hpp"
 #include "builtin-apps/pipeline/schedule.hpp"
@@ -217,5 +219,28 @@ TEST(ScheduleConsumer, RejectsInvertedRange) {
       R"([{"uid":"S","chunks":[{"core_type":"Big","start_stage":5,"end_stage":2}]}])");
   EXPECT_THROW(readSchedulesFromJson(j), std::runtime_error);
 }
+
+// ---- Cross-tool round-trip contract (Lever B) ----------------------------------
+// The committed fixture tests/fixtures/schedule.contract.json is the shared example
+// of the schedule contract: the Python producer side validates it against
+// schemas/schedule.schema.json (test_schedule_contract.py), and the C++ consumer
+// side (here) must read it through readSchedulesFromJson + validate_schedule_coverage.
+// If the consumer ever drifts from the contract shape, this reds; the Python test
+// reds if the schema/producer drifts. BT_SCHEDULE_FIXTURE is the absolute path,
+// passed by CMake.
+#ifdef BT_SCHEDULE_FIXTURE
+TEST(ScheduleContract, ConsumerReadsCommittedFixture) {
+  std::ifstream f(BT_SCHEDULE_FIXTURE);
+  ASSERT_TRUE(f.good()) << "contract fixture not found at " << BT_SCHEDULE_FIXTURE;
+  nlohmann::json j;
+  ASSERT_NO_THROW(f >> j);
+  const auto scheds = readSchedulesFromJson(j);
+  ASSERT_GE(scheds.size(), 1u);
+  // The fixture's schedules each cover a 9-stage app contiguously.
+  for (const auto& s : scheds) {
+    EXPECT_NO_THROW(validate_schedule_coverage(s, 9)) << "fixture schedule " << s.uid;
+  }
+}
+#endif
 
 }  // namespace
