@@ -66,16 +66,22 @@ def extract_python_sections(content):
 
 
 def extract_frequency(section):
-    """Extract frequency information from a Python section."""
-    freq_match = re.search(r"# Frequency=(\d+) Hz", section)
+    """Extract frequency information from a Python section.
+
+    Current log format is `Frequency=<hz> Hz` (no leading "# "). Falling back to a
+    hardcoded constant silently mis-scales cycles->ms, so warn when it's missing.
+    """
+    freq_match = re.search(r"Frequency=(\d+)\s*Hz", section)
     if freq_match:
         return int(freq_match.group(1))
+    print("WARNING: no Frequency= line found; falling back to 24576000 Hz")
     return 24576000  # Default frequency in Hz
 
 
 def extract_schedule_uid(section):
     """Extract Schedule_UID from a Python section."""
-    uid_match = re.search(r"Schedule_UID: ([\w\-]+)", section)
+    # Current log format is `Schedule_UID=<uid>`; tolerate the older `: ` separator.
+    uid_match = re.search(r"Schedule_UID[=:]\s*([\w\-]+)", section)
     if uid_match:
         return uid_match.group(1)
     return None
