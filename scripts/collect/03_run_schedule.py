@@ -28,6 +28,9 @@ import os
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from case import Case  # noqa: E402
+
 DEFAULT_BUILD = {"vk": "build/vulkan", "cu": "build/jetson"}
 
 
@@ -104,9 +107,9 @@ def main():
 
     build_dir = args.build_dir or DEFAULT_BUILD[args.backend]
     binary = os.path.join(build_dir, f"bm-gen-logs-{args.app}-{args.backend}")
-    schedule = args.schedule_file or os.path.join(
-        args.schedules_root, args.device, args.app, args.backend,
-        f"schedules_{args.table_type}_{args.minimize_mode}.json")
+    schedule = args.schedule_file or Case(
+        args.device, args.app, args.backend
+    ).schedule_path(args.schedules_root, args.table_type, args.minimize_mode)
     for p in (binary, schedule):
         if not os.path.exists(p):
             sys.exit(f"missing: {p}")

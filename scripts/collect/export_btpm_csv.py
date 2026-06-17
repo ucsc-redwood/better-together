@@ -23,16 +23,19 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from case import Case, to_short_backend  # noqa: E402
 from profiling_loader import read_records, validate  # noqa: E402
 
 PU_COLS = ["little", "medium", "big", "vulkan", "cuda"]
-SCEN_OUT = {"isolated": "isolated.csv", "interference": "btpm.csv"}
-# Canonical store backend dir -> legacy dir name the z3 consumer's --backend uses.
-BACKEND_OUT = {"vulkan": "vk", "cuda": "cu"}
+# Scenarios that map to a wide CSV (isolated -> isolated.csv, interference -> btpm.csv,
+# via Case.csv_path); other scenarios in the store are skipped.
+VALID_SCENARIOS = {"isolated", "interference"}
 
 
 def export_cell(root, out_root, device, app, backend, scenario, metric):
-    paths = sorted(glob.glob(f"{root}/{device}/{app}/{backend}/{scenario}/run-*.jsonl"))
+    # `backend` here is the profiling-store long name (cuda/vulkan); Case owns the layout.
+    case = Case(device, app, to_short_backend(backend))
+    paths = sorted(glob.glob(case.profiling_glob(root, scenario)))
     if not paths:
         return None
     records = read_records(paths)
@@ -43,9 +46,8 @@ def export_cell(root, out_root, device, app, backend, scenario, metric):
     for r in records:
         rows.setdefault((r["run"], r["stage"]), {})[r["pu"]] = r["timing"][metric]
 
-    out_dir = os.path.join(out_root, device, app, BACKEND_OUT.get(backend, backend))
-    os.makedirs(out_dir, exist_ok=True)
-    out = os.path.join(out_dir, SCEN_OUT[scenario])
+    out = case.csv_path(out_root, scenario)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["stage"] + PU_COLS + ["device", "run"])
@@ -72,7 +74,7 @@ def main():
 
     n = 0
     for device, app, backend, scenario in sorted(cells):
-        if scenario not in SCEN_OUT:
+        if scenario not in VALID_SCENARIOS:
             continue
         res = export_cell(args.root, args.out_root, device, app, backend, scenario, args.metric)
         if res:

@@ -13,6 +13,7 @@ import argparse
 import os
 import sys
 
+from case import Case
 from smt.baselines import get_baseline_for_config
 from smt.data_loader import load_csv_and_compute_averages
 from smt.solver import solve_optimization_problem
@@ -114,6 +115,7 @@ def main():
     table_type = args.table_type
     minimize_mode = args.minimize_mode
     verbose = args.verbose
+    case = Case(device, app, backend)  # the data-layout single source of truth
 
     # Get baseline data for this configuration (derived from the same CSV root).
     baseline_data = get_baseline_for_config(device, app, backend, args.csv_root_folder)
@@ -127,8 +129,7 @@ def main():
         print(f"No baseline data available for {device}/{app}/{backend}")
 
     # Input CSV path with mode-based file selection
-    csv_filename = f"{table_type}.csv"
-    csv_path = os.path.join(args.csv_root_folder, device, app, backend, csv_filename)
+    csv_path = case.csv_path(args.csv_root_folder, table_type)
 
     # Check if the CSV file exists
     if not os.path.exists(csv_path):
@@ -143,13 +144,8 @@ def main():
 
     # Output path for schedule JSON
     if args.output_folder:
-        # Create output directory structure if needed
-        output_dir = os.path.join(args.output_folder, device, app, backend)
-        os.makedirs(output_dir, exist_ok=True)
-
-        out_path = os.path.join(
-            output_dir, f"schedules_{table_type}_{minimize_mode}.json"
-        )
+        out_path = case.schedule_path(args.output_folder, table_type, minimize_mode)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
     else:
         print("No output folder specified, skipping")
         sys.exit(0)
