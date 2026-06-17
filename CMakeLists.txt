@@ -327,6 +327,10 @@ if(BT_BUILD_TESTS)
   # concurrent worker/SPSC ring with a multi-tier OMP schedule and assert the §1
   # differential holds + chunks bind to their intended big/little cores.
   bt_add_omp_test(test-pipeline-e2e-omp builtin-apps/tree/omp/test_pipeline_main.cpp)
+  # cifar (feed-forward) hetero-pipeline on the CPU-only path: completes the OMP column
+  # of the runtime matrix (vk/cu cover the GPU columns).
+  bt_add_omp_test(test-pipeline-e2e-cifar-dense-omp  builtin-apps/cifar-dense/omp/test_pipeline_main.cpp)
+  bt_add_omp_test(test-pipeline-e2e-cifar-sparse-omp builtin-apps/cifar-sparse/omp/test_pipeline_main.cpp)
 
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)

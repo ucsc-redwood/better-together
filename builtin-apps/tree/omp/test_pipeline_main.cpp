@@ -7,6 +7,8 @@
 #include <atomic>
 #include <mutex>
 #include <set>
+#include <thread>
+#include <utility>
 #include <vector>
 
 #include "../../app.hpp"
@@ -104,6 +106,29 @@ TEST(PipelineE2EOmp, PerStageSevenChunks) {
 }
 
 // ----------------------------------------------------------------------------
+// Case 2.4 -- 3-chunk big|medium|little e2e: exercises the MEDIUM tier, which only
+// the mobile SoCs have (pc is big+little only -> skips here). Proves a medium chunk
+// binds to its JSON tier and the concurrent ring preserves the §1 differential
+// across all three tiers handing AppData between them.
+// ----------------------------------------------------------------------------
+TEST(PipelineE2EOmp, ThreeChunkBigMediumLittle) {
+  if (!has_big_cores() || !has_med_cores() || !has_lit_cores()) {
+    GTEST_SKIP() << "device lacks a distinct big+medium+little tier (mobile SoC only)";
+  }
+  Schedule sched;
+  sched.uid = "e2e-big-med-little";
+  sched.chunks = {
+      {ExecutionModel::kOMP, 1, 3, ProcessorType::kBigCore},
+      {ExecutionModel::kOMP, 4, 5, ProcessorType::kMediumCore},
+      {ExecutionModel::kOMP, 6, 7, ProcessorType::kLittleCore},
+  };
+  validate_schedule_coverage(sched, kNumStages);
+
+  run_pipeline<tree::SafeAppData, bt_pipe_test::OmpDispatcher, QueueT>(
+      sched, kPoolSize, kNumToProcess, ExecutionModel::kCuda, omp_dispatch, CheckItem);
+}
+
+// ----------------------------------------------------------------------------
 // Case 2.x -- affinity / tier binding. A standalone OMP region pinned to a tier:
 // each thread samples sched_getcpu() inside the region; assert every sampled core
 // is in the intended tier's set. Symmetric for big and little.
@@ -127,8 +152,16 @@ std::set<int> SampleRunningCores(const std::vector<int>& cores) {
 }
 
 TEST(PipelineE2EOmp, AffinityTierBinding) {
-  if (!has_big_cores() && !has_lit_cores()) {
+  if (!has_big_cores() && !has_med_cores() && !has_lit_cores()) {
     GTEST_SKIP() << "device has no pinnable CPU tier";
+  }
+  if (has_med_cores()) {
+    const std::set<int> med_set(g_med_cores.begin(), g_med_cores.end());
+    const std::set<int> ran = SampleRunningCores(g_med_cores);
+    EXPECT_FALSE(ran.empty());
+    for (const int cpu : ran) {
+      EXPECT_TRUE(med_set.count(cpu)) << "medium-pinned thread ran on off-tier core " << cpu;
+    }
   }
   if (has_big_cores()) {
     const std::set<int> big_set(g_big_cores.begin(), g_big_cores.end());
@@ -145,6 +178,42 @@ TEST(PipelineE2EOmp, AffinityTierBinding) {
     for (const int cpu : ran) {
       EXPECT_TRUE(lit_set.count(cpu)) << "little-pinned thread ran on off-tier core " << cpu;
     }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Case 2.2 -- bind + sched_getaffinity read-back: after binding to a tier, the
+// thread's affinity MASK must equal exactly that tier's device-JSON core set (no
+// extra, no missing). Necessary-but-not-sufficient companion to the running-core
+// sampling above (a setaffinity can succeed yet the thread keep running on its old
+// core until the next reschedule); this asserts the mask the kernel actually holds.
+// Run on a dedicated thread so the test thread's own affinity is left untouched.
+std::set<int> ReadBackMask(const std::vector<int>& cores) {
+  std::set<int> got;
+  std::thread([&] {
+    bind_thread_to_cores(cores);
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    if (sched_getaffinity(0, sizeof(set), &set) == 0) {
+      for (int c = 0; c < CPU_SETSIZE; ++c)
+        if (CPU_ISSET(c, &set)) got.insert(c);
+    }
+  }).join();
+  return got;
+}
+
+TEST(PipelineE2EOmp, AffinityMaskReadback) {
+  if (!has_big_cores() && !has_med_cores() && !has_lit_cores()) {
+    GTEST_SKIP() << "device has no pinnable CPU tier";
+  }
+  const std::vector<std::pair<bool, const std::vector<int>*>> tiers = {
+      {has_big_cores(), &g_big_cores}, {has_med_cores(), &g_med_cores},
+      {has_lit_cores(), &g_lit_cores}};
+  for (const auto& [present, cores] : tiers) {
+    if (!present) continue;
+    const std::set<int> want(cores->begin(), cores->end());
+    EXPECT_EQ(ReadBackMask(*cores), want)
+        << "sched_getaffinity read-back mask != the device-JSON tier core set";
   }
 }
 
