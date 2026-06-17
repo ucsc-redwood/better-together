@@ -153,3 +153,30 @@ inline void validate_schedule_coverage(const Schedule& schedule, const size_t n_
                              std::to_string(n) + " stages");
   }
 }
+
+// ---------------------------------------------------------------------
+// Validate that every chunk's processing unit is actually PRESENT on the device
+// we're about to run on. A chunk targeting an absent PU (e.g. a Little-core chunk
+// on the Big-only MiniPC) would otherwise throw deep inside an unguarded worker
+// thread → std::terminate; checking up front lets the caller skip+warn.
+//
+// `pu_present(ProcessorType) -> bool` answers "does this device have that PU".
+// Returns the first offending chunk's reason, or std::nullopt when every chunk's
+// PU is available. Kept predicate-driven (not tied to the device globals) so it is
+// unit-testable without a real device; app.hpp wraps it with the live capabilities.
+// ---------------------------------------------------------------------
+template <typename PuPresentFn>
+[[nodiscard]] inline std::optional<std::string> first_unavailable_pu(const Schedule& schedule,
+                                                                     PuPresentFn pu_present) {
+  for (size_t i = 0; i < schedule.chunks.size(); ++i) {
+    const ChunkConfig& c = schedule.chunks[i];
+    if (c.exec_model == ExecutionModel::kOMP && !c.cpu_proc_type.has_value()) {
+      return "chunk " + std::to_string(i) + " is OMP but names no CPU tier";
+    }
+    const ProcessorType pu = get_processor_type_from_chunk_config(c);
+    if (!pu_present(pu)) {
+      return "chunk " + std::to_string(i) + " targets absent PU '" + CoreTypeName(pu) + "'";
+    }
+  }
+  return std::nullopt;
+}

@@ -249,6 +249,10 @@ int main(int argc, char** argv) {
   spdlog::info("Running {}/{} schedules", n_schedules_to_run, n_schedules);
 
   for (size_t i = 0; i < n_schedules_to_run; ++i) {
+    if (const auto reason = schedule_unrunnable_reason(schedules[i])) {
+      spdlog::warn("Skipping schedule {} [{}]: {}", i, schedules[i].uid, *reason);
+      continue;
+    }
     std::cout << "\n--------------------------------" << std::endl;
     BM_pipe_tree_vk_schedule_auto(schedules[i]);
   }

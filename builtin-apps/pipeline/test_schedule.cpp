@@ -72,4 +72,60 @@ TEST(ScheduleCoverage, BackwardChunkThrows) {
   EXPECT_THROW(validate_schedule_coverage(make_schedule({{1, 0}}), 7), std::runtime_error);
 }
 
+// ---- first_unavailable_pu: skip-don't-crash on an absent PU --------------------
+// Build a schedule with explicit per-chunk PUs (exec model + cpu tier).
+namespace {
+Schedule make_pu_schedule(const std::vector<std::pair<ExecutionModel, ProcessorType>>& pus) {
+  Schedule s;
+  s.uid = "test";
+  int stage = 1;
+  for (const auto& [em, pt] : pus) {
+    ChunkConfig c;
+    c.exec_model = em;
+    c.start_stage = stage;
+    c.end_stage = stage;
+    if (em == ExecutionModel::kOMP) c.cpu_proc_type = pt;
+    s.chunks.push_back(c);
+    ++stage;
+  }
+  return s;
+}
+}  // namespace
+
+TEST(SchedulePUs, AllPresentReturnsNullopt) {
+  // Big-only device: a Big chunk is fine.
+  auto big_only = [](ProcessorType pt) { return pt == ProcessorType::kBigCore; };
+  EXPECT_FALSE(first_unavailable_pu(
+      make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore}}), big_only)
+                   .has_value());
+}
+
+// The plan's gate: a Little chunk on the Big-only MiniPC must be reported (so the
+// executor skips+warns), not run into an absent-tier throw in a worker thread.
+TEST(SchedulePUs, LittleChunkOnBigOnlyReported) {
+  auto big_only = [](ProcessorType pt) { return pt == ProcessorType::kBigCore; };
+  const auto reason = first_unavailable_pu(
+      make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kLittleCore}}), big_only);
+  ASSERT_TRUE(reason.has_value());
+  EXPECT_NE(reason->find("little"), std::string::npos);
+}
+
+TEST(SchedulePUs, ReportsFirstOffendingChunk) {
+  auto big_only = [](ProcessorType pt) { return pt == ProcessorType::kBigCore; };
+  const auto reason = first_unavailable_pu(
+      make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore},
+                        {ExecutionModel::kOMP, ProcessorType::kMediumCore}}),
+      big_only);
+  ASSERT_TRUE(reason.has_value());
+  EXPECT_NE(reason->find("chunk 1"), std::string::npos);
+}
+
+TEST(SchedulePUs, GpuChunkPresenceFromPredicate) {
+  // A predicate that lacks Vulkan flags a Vulkan chunk.
+  auto cpu_only = [](ProcessorType pt) { return pt != ProcessorType::kVulkan; };
+  EXPECT_TRUE(first_unavailable_pu(
+      make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan}}), cpu_only)
+                  .has_value());
+}
+
 }  // namespace

@@ -4,9 +4,11 @@
 
 #include <CLI/CLI.hpp>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "conf.hpp"
+#include "pipeline/schedule.hpp"  // Schedule, first_unavailable_pu
 
 inline std::string g_device_id;
 inline std::string g_spdlog_log_level;
@@ -29,6 +31,35 @@ inline std::vector<int> g_sup_cores;
   if (has_big_cores()) return ProcessorType::kBigCore;
   if (has_med_cores()) return ProcessorType::kMediumCore;
   return ProcessorType::kLittleCore;  // little, or the only remaining choice
+}
+
+// Is this PU type present on the device we parsed (g_*_cores filled by PARSE_ARGS)?
+// GPU PUs (kVulkan/kCuda) are implied present: each executor binary is backend-specific
+// and only ever dispatches its own GPU chunks, so reaching one means the device has it.
+[[nodiscard]] static inline bool device_has_pu(const ProcessorType pt) {
+  switch (pt) {
+    case ProcessorType::kLittleCore:
+      return has_lit_cores();
+    case ProcessorType::kMediumCore:
+      return has_med_cores();
+    case ProcessorType::kBigCore:
+      return has_big_cores();
+    case ProcessorType::kSuperCore:
+      return has_sup_cores();
+    case ProcessorType::kVulkan:
+    case ProcessorType::kCuda:
+      return true;
+  }
+  return false;
+}
+
+// Up-front executor guard: nullopt if the schedule is runnable on THIS device, else
+// the reason its first offending chunk can't run (so the caller can skip+warn instead
+// of letting an absent-PU chunk throw inside an unguarded worker thread). See
+// first_unavailable_pu() in pipeline/schedule.hpp.
+[[nodiscard]] static inline std::optional<std::string> schedule_unrunnable_reason(
+    const Schedule& schedule) {
+  return first_unavailable_pu(schedule, device_has_pu);
 }
 
 [[nodiscard]] static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
