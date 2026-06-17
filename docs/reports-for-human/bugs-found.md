@@ -294,6 +294,39 @@ found several real defects. Fixed this session (each verified against
   §1 (`cudaStreamAttachMemAsync`) is addressed; the source change is correct by
   construction (identical edit to the OMP/Vulkan paths that pass with geometry).
 
+## 9. `bm-baseline-cifar-dense-vk` segfaults on exit (Jetson) — **NOTED · DEFERRED (fix later)**
+
+**Symptom.** The single-PU baseline on the Jetson
+(`./bm-baseline-cifar-dense-vk --device jetson --benchmark_min_time=2s`) prints
+**all** results correctly, then **segfaults during process teardown**:
+
+```
+OMP/CIFAR-dense/Baseline/LittleCores        196 ms          191 ms           15
+VK/Baseline                                59.0 ms         1.84 ms         1000
+...Segmentation fault (core dumped)
+```
+
+**Impact.** None on the numbers — the crash is *after* the last result is flushed,
+on exit, so the measurements are valid (these are the no-framework baselines used
+for the schedule-vs-single-PU speedup: pure-CPU 196 ms, pure-GPU 59 ms/task). Only
+the process exit code is non-zero, which could trip a CI gate that checks it. The
+schedule-execution path (`bm-gen-logs`) and the profiler (`bm-prof`) were **not**
+observed to crash.
+
+**Suspected cause (unverified).** Static-destruction order of the kiss-vk Vulkan
+engine (`DispatcherT` / VMA pools) vs. google-benchmark global state, or a
+double-free in the engine dtor after 1000 GPU iterations on Tegra. The VK baseline
+holds the engine for the whole run; OMP-only baselines have not been seen to crash.
+May interact with the managed-mem path (§1). Not yet reproduced under a debugger.
+
+**Repro.** Cross-build the `jetson` preset → `scp build/jetson/bm-baseline-cifar-dense-vk`
+→ run on `duck-naughty` as above. First seen 2026-06-17 while collecting the
+no-framework baseline.
+
+**Next step (deferred by request).** Run under `cuda-gdb`/`gdb` on the Jetson for
+the teardown backtrace; likely a one-line dtor-ordering fix in the kiss-vk engine,
+or an explicit `disp.reset()` before `benchmark::Shutdown()`.
+
 ## Latent issue noticed (not fixed)
 
 `SETUP_DEFAULT_LAUNCH_PARAMS` (`builtin-apps/common/cuda/helpers.cuh`) declares
