@@ -7,14 +7,22 @@
 
 ---
 
-## 1. CUDA managed buffers never stream-attached for the GPU — **CONFIRMED · DEFERRED (TODO, address later)**
+## 1. CUDA managed buffers never stream-attached for the GPU — **RESOLVED (commit 4161664)**
 
-> **TODO (deferred by decision):** do not apply an aggressive fix now. The correct
-> fix touches the production CUDA memory model and must be validated on the Jetson
-> against *both* the sequential differential oracle and the concurrent hybrid
-> pipeline. Tracked here and as `TODO(cuda-managed-mem)` in
-> `builtin-apps/common/cuda/cu_mem_resource.cu`. The `*-cu` differential tests
-> stay red on the Jetson until then — by design.
+> **Resolved (2026-06-16, commit `4161664`):** instead of the stream-attach surgery,
+> the CUDA dispatchers' `CudaManager` was switched from `CudaManagedResource` to
+> **`CudaPinnedResource`** (zero-copy mapped pinned: `cudaHostAlloc(cudaHostAllocMapped)`
+> + `cudaHostGetDevicePointer`). On the Jetson Orin UMA, pinned memory is physically
+> shared/coherent and stays host-accessible *concurrently* with GPU kernels, fixing
+> both the sequential visibility race and the CPU+GPU hybrid pipeline — with no
+> per-buffer stream-attach juggling and the kernel launches unchanged. The
+> `CudaManagedResource` below is left intact (no caller uses it on Tegra now); if it
+> is ever reused there, the stream-attach analysis still applies.
+>
+> **Re-verified on Jetson 2026-06-17** (current `dev`, incl. the Phase 1/2 robustness
+> changes): `ctest -L cuda` GREEN — tree-cu 7/7, cifar-dense-cu 10/10,
+> cifar-sparse-cu 10/10, deterministic, no hangs. The analysis below is kept for the
+> record (and for any future reuse of the managed resource).
 
 **File:** `builtin-apps/common/cuda/cu_mem_resource.cu`, `CudaManagedResource::do_allocate()`
 

@@ -40,9 +40,11 @@ Record the current gate states so regressions are detectable:
 - **`ctest -L omp` (local, build/pc): GREEN 5/5.** The everyday gate.
 - **`ctest -L vulkan` on rocky-ryzen: GREEN** (tree/cifar-dense/cifar-sparse, 10/10 each).
   `cmake --build --preset vulkan --target test-*-vk && bash scripts/run-on-rocky.sh test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk`
-- **`ctest -L cuda` on Jetson: RED/HANGS** — the §1 managed-mem race (tree CUDA path
-  hangs; cifar returns mostly-zero, run-to-run varying). This is the **§1 fix target**:
-  Phase 4 §1 is done when this goes GREEN.
+- **`ctest -L cuda` on Jetson: GREEN** (re-verified 2026-06-17 on current `dev`):
+  tree-cu 7/7, cifar-dense-cu 10/10, cifar-sparse-cu 10/10, deterministic, no hangs.
+  The §1 managed-mem race was already fixed by the pinned-memory switch (commit
+  `4161664`, before this plan); the earlier "RED/HANGS" note here was stale. Phase 4
+  §1 is therefore already met (see below).
 - Numeric snapshot for the bm dedup regression check: `data/sched_logs/speedup-summary.md`.
 
 ---
@@ -171,13 +173,17 @@ Also fold in: the **warmup magic-schedule** (validate it via the Phase-2 validat
 the **dead old executor** that includes a nonexistent `common.hpp`. **L / med each.**
 
 ## Phase 4 — deep bugs + perf (HIGHEST risk — devices, separate, one at a time)
-1. **§1 CUDA managed-mem** (`common/cuda/cu_mem_resource.cu`,
-   `TODO(cuda-managed-mem)`): `cudaMallocManaged(cudaMemAttachHost)` is never
-   `cudaStreamAttachMemAsync`'d and all launches use the default stream → undefined on
-   Tegra (concurrentManagedAccess=0). Fix per bugs-found §1; validate on BOTH the
-   sequential differential oracle AND the concurrent hybrid pipeline. **GATE: Jetson
-   `ctest -L cuda` flips RED→GREEN** (the definitive test). Unlocks all CUDA
-   correctness. **M / high.**
+1. **§1 CUDA managed-mem — DONE (already fixed pre-plan by commit `4161664`).** The
+   defect was resolved by switching the dispatchers' `CudaManager` from
+   `CudaManagedResource` to **`CudaPinnedResource`** (zero-copy mapped pinned), which
+   is coherent on the Jetson UMA — so no `cudaStreamAttachMemAsync` surgery was needed
+   and the launches stay on the default stream. The "RED" baseline in this plan was
+   stale. **GATE MET: Jetson `ctest -L cuda` GREEN** — re-verified 2026-06-17 on
+   current `dev` (tree-cu 7/7, cifar-dense-cu 10/10, cifar-sparse-cu 10/10,
+   deterministic) *including* the Phase 1/2 CUDA changes (CudaManager stream removal,
+   do_allocate alignment, per-launch CheckCudaLaunch — none regressed it). The unused
+   `CudaManagedResource` is left in place; reusing it on Tegra would still need the
+   stream-attach. See bugs-found §1.
 2. **§9 kiss-vk no teardown** (`kiss-vk` engine/base_engine): teardown segfault on
    Tegra (device/instance leak, no `waitIdle`). Fix dtor ordering / add `waitIdle` +
    explicit reset before `benchmark::Shutdown()`. **GATE: VK binaries `exit 0` on
