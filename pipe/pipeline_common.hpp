@@ -12,6 +12,9 @@
 // at the END of const.hpp, after those declarations.
 // ---------------------------------------------------------------------------
 
+#include <spdlog/spdlog.h>
+
+#include <exception>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -43,6 +46,11 @@
 // Main Worker: pull an AppData from q_in, run func, push to q_out (reset on the
 // last stage). Busy-yield SPSC queues.
 // ----------------------------------------------------------------------------
+// A throw escaping a std::thread body calls std::terminate (the main thread can't
+// catch it). Catch it here, log it (the operator's signal — std::thread can't carry
+// a default-arg sink, so we don't try to thread one through), and ALWAYS re-enqueue
+// the item so the next worker in the SPSC ring keeps draining — catching-and-breaking
+// would instead hang every downstream worker on its busy-yield dequeue.
 static inline void worker(QueueT& q_in,
                           QueueT& q_out,
                           std::function<void(AppDataT*)> func,
@@ -59,7 +67,13 @@ static inline void worker(QueueT& q_in,
     }
 
     // ------------------------------------------------------------------------
-    func(app);
+    try {
+      func(app);
+    } catch (const std::exception& e) {
+      spdlog::error("worker: item {} threw: {}", i, e.what());
+    } catch (...) {
+      spdlog::error("worker: item {} threw unknown exception", i);
+    }
     // ------------------------------------------------------------------------
 
     if (is_last) {
@@ -72,6 +86,9 @@ static inline void worker(QueueT& q_in,
   }
 }
 
+// See worker() above: a throw here (e.g. Logger OOB on a malformed >kMaxChunks
+// schedule) would terminate the process from a worker thread. Catch it, log it with
+// the chunk context, and re-enqueue so the SPSC ring doesn't deadlock.
 static inline void worker_with_record(const int chunk_id,
                                       Logger<kNumToProcess>& logger,
                                       QueueT& q_in,
@@ -90,9 +107,17 @@ static inline void worker_with_record(const int chunk_id,
     }
 
     // ------------------------------------------------------------------------
-    logger.start_tick(processing_id, chunk_id);
-    func(app);
-    logger.end_tick(processing_id, chunk_id);
+    try {
+      logger.start_tick(processing_id, chunk_id);
+      func(app);
+      logger.end_tick(processing_id, chunk_id);
+    } catch (const std::exception& e) {
+      spdlog::error("worker_with_record: chunk {} item {} threw: {}", chunk_id, processing_id,
+                    e.what());
+    } catch (...) {
+      spdlog::error("worker_with_record: chunk {} item {} threw unknown exception", chunk_id,
+                    processing_id);
+    }
     // ------------------------------------------------------------------------
 
     if (is_last) {
