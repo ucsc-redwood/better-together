@@ -136,6 +136,15 @@ def process_log_file(
         frequency = extract_frequency(section)
         tasks = parse_task_data(section)
 
+        # A malformed/zero Frequency= line would make cycles->ms a division by zero.
+        # Skip the section with a warning instead of aborting the whole run.
+        if frequency <= 0:
+            print(
+                f"Warning: non-positive frequency ({frequency} Hz) in section "
+                f"{section_idx+1} ({schedule_uid}); skipping."
+            )
+            continue
+
         # Calculate cycles to ms conversion factor
         cycles_to_ms = 1e3 / frequency
 
