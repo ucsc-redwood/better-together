@@ -106,9 +106,10 @@ Done (Phase 1, device axis):
 - `devices/README.md` — how to add a device.
 - `LICENSE` — MIT (was referenced everywhere but missing).
 
-Next (Phase 2): add the C++ loader so `conf.cpp` consumes `devices/*.json`, then
-delete the hardcoded `DeviceRegistry` body. This is the step that makes "add a
-device = drop a file" real at runtime, and needs the C++ toolchain to verify.
+Done (Phase 2): `conf.cpp` is now data-driven — it parses `devices/*.json` (embedded
+into `builtin-apps/device_specs_embedded.hpp`, regenerated at build time by the CMake
+`bt_device_specs` target) and the hardcoded `DeviceRegistry` body is gone. "Add a
+device = drop a file" is real at runtime; editing a JSON is picked up on the next build.
 
 ## 6. Planned schema extensions
 
