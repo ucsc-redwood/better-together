@@ -21,6 +21,7 @@ scripts/run-on-rocky.sh                         # build/vulkan  → rocky-ryzen 
 # Both phones' adb lives on rocky-ryzen now → copy build/android there & run the script on it:
 scripts/run-on-android.sh 3A021JEHN02756        # build/android → Pixel 7a   (adb -s picks the phone)
 scripts/run-on-android.sh R5CY21Y3VEV           # build/android → Samsung    (same host, other serial)
+scripts/run-mali-oracle.sh                      # build/android → BOTH phones (Mali oracle gate, run from the build box)
 # pass explicit targets to narrow:  scripts/run-on-jetson.sh test-tree-cu
 ```
 

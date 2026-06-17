@@ -45,6 +45,12 @@ Record the current gate states so regressions are detectable:
   The §1 managed-mem race was already fixed by the pinned-memory switch (commit
   `4161664`, before this plan); the earlier "RED/HANGS" note here was stale. Phase 4
   §1 is therefore already met (see below).
+- **Mali differential oracle (Pixel 7a + Samsung) on rocky: GREEN** (baseline fixed
+  2026-06-17 at commit `360e579`): both phones tree-vk 7/7, cifar-dense-vk 10/10,
+  cifar-sparse-vk 10/10. This is the **gate for Phase 4 §3.2/§3.3** — the HOST_CACHED
+  flush is a no-op on rocky/RADV, so a kiss-vk coherency regression only surfaces here.
+  Reproduce: `cmake --build build/android --target test-*-vk && bash scripts/run-mali-oracle.sh`
+  (stages to rocky, runs both phones via `adb -s`; non-zero exit if any fails).
 - Numeric snapshot for the bm dedup regression check: `data/sched_logs/speedup-summary.md`.
 
 ---
