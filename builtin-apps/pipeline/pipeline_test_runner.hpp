@@ -21,7 +21,11 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <cstdlib>
 #include <functional>
+#include <future>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -99,7 +103,23 @@ inline void run_pipeline(const Schedule& sched,
     }
     threads.emplace_back(worker, std::ref(q_in), std::ref(q_out), std::move(fn), n_items, is_last);
   }
-  for (auto& t : threads) t.join();
+
+  // Watchdog: the workers busy-yield on dequeue/enqueue with no timeout, so a stalled
+  // SPSC handoff would hang forever. Join on a helper thread and bound the wait. On
+  // timeout the ring is deadlocked and the stuck workers still reference these stack
+  // locals, so we can't safely detach/unwind -- abort with a diagnostic, turning an
+  // infinite hang into a fast, informative failure. The bound is generous (slow
+  // devices: cifar-sparse on Mali takes minutes) -- only a true deadlock trips it.
+  constexpr auto kWatchdog = std::chrono::seconds(300);
+  std::future<void> joined =
+      std::async(std::launch::async, [&threads]() { for (auto& t : threads) t.join(); });
+  if (joined.wait_for(kWatchdog) != std::future_status::ready) {
+    std::cerr << "\nFATAL: pipeline ring did not drain within " << kWatchdog.count()
+              << "s -- deadlock (SPSC handoff stalled); last chunk completed "
+              << completed.size() << "/" << n_items << " items. Aborting.\n";
+    std::abort();
+  }
+  joined.get();
 
   // Completion-edge invariants: the last chunk must have finished exactly n_items and
   // every one of the pool_size distinct objects must have reached it (no orphan/starve).
