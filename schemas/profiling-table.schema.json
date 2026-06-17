@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ucsc-redwood/better-together/schemas/profiling-table.schema.json",
+  "title": "BetterTogether Profiling Record",
+  "description": "One self-describing measurement of a single (stage, processing-unit) under one scenario, on one device, in one run. The canonical profiling store is JSON Lines: one file per run (run-NNN.jsonl), one record per line, each line validating against this schema. Emitted by the bm-prof-* profiler; consumed by the Python loader before the data ever reaches the SMT solver. Replaces the old print-text -> regex -> half-wide CSV path.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "device", "app", "backend", "scenario", "run", "stage", "pu", "timing", "provenance"],
+  "properties": {
+    "schema": {
+      "const": "bt.profiling/v0",
+      "description": "Format tag. Bump when the record shape changes so loaders can refuse data they don't understand."
+    },
+    "device": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Device id, matching a devices/<id>.json stem (e.g. 'minipc', '3A021JEHN02756')."
+    },
+    "app": {
+      "type": "string",
+      "enum": ["cifar-dense", "cifar-sparse", "tree", "octree"],
+      "description": "Application whose stage was measured."
+    },
+    "backend": {
+      "type": "string",
+      "enum": ["vulkan", "cuda", "omp"],
+      "description": "GPU backend the binary was built for. The CPU tiers are always OMP; this names the accelerator path."
+    },
+    "scenario": {
+      "type": "string",
+      "enum": ["isolated", "interference"],
+      "description": "'isolated' = the measured PU runs alone. 'interference' = other PUs are saturated by a co-runner during measurement (the paper's BTPM condition)."
+    },
+    "run": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Run number. Also encoded in the filename (run-NNN.jsonl); duplicated here so a record is self-contained once detached from its file."
+    },
+    "stage": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-based pipeline stage index within the app."
+    },
+    "pu": {
+      "type": "string",
+      "enum": ["little", "medium", "big", "vulkan", "cuda"],
+      "description": "Processing unit the stage ran on. A self-describing field, NOT a CSV column position -- absent PUs simply produce no record rather than a silent 0."
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "count", "p50", "p95", "p99", "mean", "cv", "min", "max"],
+      "description": "Per-iteration timing distribution, not a single throughput-mean.",
+      "properties": {
+        "unit": { "const": "ms" },
+        "count": { "type": "integer", "minimum": 1, "description": "Number of measured (post-warmup) iterations." },
+        "p50": { "type": "number", "minimum": 0 },
+        "p95": { "type": "number", "minimum": 0 },
+        "p99": { "type": "number", "minimum": 0 },
+        "mean": { "type": "number", "minimum": 0 },
+        "cv": { "type": "number", "minimum": 0, "description": "Coefficient of variation (stddev/mean); the noise gate the loader filters on." },
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["git_sha", "ts", "host", "freq_governor", "freq_locked", "warmup_iters", "harness"],
+      "description": "What was true when the row was measured -- so the table is self-explaining, reproducible, and auditable. Open to extra MEASURED fields (e.g. a future 'throttled' once thermals are sampled); a field absent here means it was not measured, never assume a default.",
+      "properties": {
+        "git_sha": { "type": "string", "description": "Short git sha of the binary, stamped at build time. 'unknown' if built outside a git tree." },
+        "ts": { "type": "string", "format": "date-time", "description": "UTC ISO-8601 timestamp of the run." },
+        "host": { "type": "string", "description": "Hostname the binary ran on." },
+        "freq_governor": { "type": "string", "description": "cpu0 scaling_governor read from /sys at runtime; 'unknown' where unreadable." },
+        "freq_locked": { "type": "boolean", "description": "Derived: governor is 'performance' or 'userspace' (DVFS effectively pinned)." },
+        "warmup_iters": { "type": "integer", "minimum": 0, "description": "Iterations discarded before measurement." },
+        "harness": { "type": "string", "description": "Profiler harness id+version, e.g. 'bt.prof/v0'." }
+      }
+    }
+  }
+}
