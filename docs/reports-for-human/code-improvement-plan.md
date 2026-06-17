@@ -107,9 +107,30 @@ Original item descriptions (for reference):
    `CudaManager` holds an unused stream. Gate: grep confirms unreferenced, then build.
    **S / low**.
 
-## Phase 2 — C++ robustness guards (build + device smoke + oracle stays green)
+## Phase 2 — C++ robustness guards (build + device smoke + oracle stays green) — DONE 2026-06-17
 Gate for the phase: vk+cu compile; `ctest -L omp` green; `ctest -L vulkan` on rocky
 stays GREEN (proves kernels untouched); plus the per-item gate below.
+
+**All 6 items done.** Phase gate met: `ctest -L omp` 5/5 (incl. new SchedulePUs
+tests); vulkan differential oracle GREEN on rocky (tree 7/7, cifar-dense/sparse 10/10
+— kernels untouched); vk bm-gen-logs + cu (test-*-cu/run-*-cu, bt-cross:6.1) build.
+1. **DONE** — `first_unavailable_pu()` (schedule.hpp, predicate-driven/unit-testable)
+   + `schedule_unrunnable_reason()` (app.hpp); the 6 bm_gen_log executors skip+warn a
+   schedule whose PU the device lacks. 4 new SchedulePUs tests incl. the Little-on-
+   Big-only gate.
+2. **DONE** — worker/worker_with_record (pipe/pipeline_common.hpp) catch a thrown
+   body, log it, and re-enqueue to keep the SPSC ring alive (was uncatchable terminate;
+   catch-and-break would hang). No signature change (std::thread can't carry a default sink).
+3. **DONE** — Logger (record.hpp) emits any ticked cell (start != 0) with a clamped
+   duration, so a sub-resolution-fast stage is counted instead of dropped.
+4. **DONE** — `~BaseEngine` nulls `g_vma_allocator` after destroy (no double-free).
+5. **DONE** — `cu_mem_resource.cu` do_allocate honors alignment (validate vs CUDA's
+   256B) + logs cudaGetErrorString (was a bare bad_alloc); frees host alloc on the
+   device-pointer failure path.
+6. **DONE** — `CheckCudaLaunch()` (helpers.cuh) after every kernel launch (5 tree + 4
+   dense + 3 sparse): cheap cudaGetLastError always, cudaDeviceSynchronize in debug.
+
+Original item descriptions (for reference):
 
 1. **No schedule-vs-device validation** (`pipeline/schedule.hpp:122-155`, executor
    mains): a schedule chunk referencing an absent PU throws in an unguarded worker
