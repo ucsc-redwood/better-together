@@ -94,13 +94,19 @@ TEST(PipelineE2EVk, AllVulkan) {
 }
 
 // Finer hybrid: alternate CPU/GPU at single-stage boundaries (VK 1-3, OMP 4, VK 5,
-// OMP 6, VK 7). FINDING (2026-06-17): this REPRODUCIBLY SEGFAULTS on rocky-ryzen
-// (RADV) while the 2-chunk Hybrid + the all-VK cases pass -- a coverage-valid schedule
-// that crashes the executor. DISABLED until triaged: still TBD whether it's a real
-// framework robustness bug (the 5-chunk ring / fine-grained GPU<->CPU handoff) or a
-// tree data-dependency limitation (a single mid-pipeline GPU stage entered from a
-// CPU-produced state, e.g. stage 5 or 7 alone, needing setup an earlier GPU stage
-// would have done). Run: --gtest_also_run_disabled_tests on a device + gdb/cuda-gdb.
+// OMP 6, VK 7). FINDING (2026-06-17, TRIAGED on rocky): reproducibly crashes/mis-
+// computes. ROOT CAUSE = GPU RE-ENTRY into the data-dependent octree (stage 7). When
+// the Vulkan dispatcher runs early stages (1-3), a CPU chunk runs the middle (4-6),
+// and the GPU then re-enters for octree (7) alone, the stage-7 data-dependent count
+// (n_brt_nodes / n_octree_nodes) is stale -> wrong output (the minimal repro
+// {VK 1-3, OMP 4-6, VK 7} FAILS the oracle) or an out-of-bounds octree write ->
+// SIGSEGV (this 5-chunk case). Contiguous GPU chunks always pass: {OMP 1-3, VK 4-7},
+// {OMP 1-6, VK 7}, and even {VK 1-3, OMP 4, VK 5-7} -- the GPU enters once per
+// item-pass and inherits the counts via UMA. The z3 solver only ever assigns ONE
+// contiguous chunk per PU, so it never emits a GPU-re-entry schedule; this is a
+// tree-app/dispatcher data-dependency limitation under re-entry, NOT a generic
+// SPSC/concurrency bug. DISABLED (real crash) pending a dispatcher fix (re-read the
+// stage-7 count from AppData on entry) or an executor guard rejecting re-entry.
 TEST(PipelineE2EVk, DISABLED_AlternatingBoundary) {
   if (!has_big_cores() && !has_med_cores() && !has_lit_cores()) {
     GTEST_SKIP() << "no CPU tier to host the OMP chunks";
