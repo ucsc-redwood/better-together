@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../common/cuda/helpers.cuh"  // CheckCudaLaunch
+
 namespace cifar_dense::cuda {
 
 __global__ void conv2d_batch_kernel(const float* __restrict__ input,
@@ -58,6 +60,7 @@ inline void conv2d_batch_cuda(const float* input,
                                        stride,
                                        padding,
                                        relu);
+  CheckCudaLaunch("conv2d_batch_kernel");
 }
 
 __global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
@@ -87,6 +90,7 @@ inline void maxpool2d_batch_cuda(const float* input,
 
   maxpool2d_batch_kernel<<<blocks, TPB>>>(
       input, output, N, C, inH, inW, outH, outW, pool_size, stride);
+  CheckCudaLaunch("maxpool2d_batch_kernel");
 }
 
 __global__ void linear_batch_kernel(const float* __restrict__ input,
@@ -109,6 +113,7 @@ inline void linear_batch_cuda(const float* input,
   int blocks = (total + TPB - 1) / TPB;
 
   linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF);
+  CheckCudaLaunch("linear_batch_kernel");
 }
 
 // ---------------------------------------------------------------------------
@@ -175,6 +180,7 @@ inline void conv2d_tiled_cuda(const float* input,
                                                     stride,
                                                     padding,
                                                     relu);
+  CheckCudaLaunch("conv2d_tiled_shared");
 }
 
 }  // namespace cifar_dense::cuda

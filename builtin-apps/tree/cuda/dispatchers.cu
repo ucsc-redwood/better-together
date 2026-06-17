@@ -31,6 +31,7 @@ void CudaDispatcher::run_stage_1_async(tree::SafeAppData &appdata) {
       appdata.get_n_input(),
       tree::kMinCoord,
       tree::kRange);
+  CheckCudaLaunch("k_ComputeMortonCode");
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -130,6 +131,7 @@ void CudaDispatcher::run_stage_4_async(tree::SafeAppData &appdata) {
       appdata.u_brt_has_leaf_right_s4_out.data(),
       appdata.u_brt_left_child_s4_out.data(),
       appdata.u_brt_parents_s4_out.data());
+  CheckCudaLaunch("k_BuildRadixTree");
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -148,6 +150,7 @@ void CudaDispatcher::run_stage_5_async(tree::SafeAppData &appdata) {
       appdata.u_brt_parents_s4.data(),
       appdata.u_edge_count_s5_out.data(),
       appdata.get_n_brt_nodes());
+  CheckCudaLaunch("k_EdgeCount");
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -210,6 +213,7 @@ void CudaDispatcher::run_stage_7_async(tree::SafeAppData &appdata) {
       tree::kMinCoord,
       tree::kRange,
       appdata.get_n_brt_nodes());
+  CheckCudaLaunch("k_MakeOctNodes");
 
   // CubDebugExit(cudaDeviceSynchronize());
 
@@ -226,6 +230,7 @@ void CudaDispatcher::run_stage_7_async(tree::SafeAppData &appdata) {
       appdata.u_brt_parents_s4.data(),
       appdata.u_brt_left_child_s4.data(),
       appdata.get_n_brt_nodes());
+  CheckCudaLaunch("k_LinkLeafNodes");
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../common/cuda/helpers.cuh"  // CheckCudaLaunch
+
 namespace cifar_sparse::cuda {
 
 __global__ void conv2d_csr_batch_kernel(const float* __restrict__ input_data,
@@ -58,6 +60,7 @@ inline void conv2d_csr_batch_cuda(const float* input_data,
                                            padding,
                                            relu,
                                            output_data);
+  CheckCudaLaunch("conv2d_csr_batch_kernel");
 }
 
 __global__ void maxpool2d_batch_kernel(const float* __restrict__ input_data,
@@ -95,6 +98,7 @@ inline void maxpool2d_batch_cuda(const float* input_data,
                                           out_width,
                                           pool_size,
                                           stride);
+  CheckCudaLaunch("maxpool2d_batch_kernel");
 }
 
 __global__ void linear_csr_batch_kernel(const float* __restrict__ input_data,
@@ -129,6 +133,7 @@ inline void linear_csr_batch_cuda(const float* input_data,
                                            bias_data,
                                            out_neurons,
                                            output_data);
+  CheckCudaLaunch("linear_csr_batch_kernel");
 }
 
 }  // namespace cifar_sparse::cuda

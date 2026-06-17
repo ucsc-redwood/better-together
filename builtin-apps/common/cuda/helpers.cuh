@@ -24,6 +24,28 @@ constexpr size_t div_up(const size_t a, const size_t b) { return (a + b - 1) / b
   } while (0)
 
 // ----------------------------------------------------------------------------
+// Post-launch error check
+// ----------------------------------------------------------------------------
+// A kernel launch returns no value, so a launch-time error (bad grid/block/shared-mem
+// config) only surfaces at the NEXT CUDA call — getting mis-attributed to a later
+// stage. cudaGetLastError() right after the launch attributes it to THIS launch and is
+// cheap (no sync). In debug builds we also synchronize to surface in-kernel execution
+// errors at the same site.
+namespace cuda {
+inline void check_cuda_launch(const char *name, const char *file, int line) {
+  cudaError_t err = cudaGetLastError();
+#ifndef NDEBUG
+  if (err == cudaSuccess) err = cudaDeviceSynchronize();
+#endif
+  if (err != cudaSuccess) {
+    spdlog::error("CUDA launch error ({}) at {}:{}: {}", name, file, line, cudaGetErrorString(err));
+    exit(1);
+  }
+}
+}  // namespace cuda
+#define CheckCudaLaunch(name) ::cuda::check_cuda_launch(name, __FILE__, __LINE__)
+
+// ----------------------------------------------------------------------------
 // Simplify launch parameters
 // Need to define TOTAL_ITER (e.g., 'total_iter' = 10000), and then write some
 // number for BLOCK_SIZE (e.g., 256)
