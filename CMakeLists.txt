@@ -70,6 +70,17 @@ if(BT_BUILD_BENCHMARKS)
   CPMAddPackage(NAME benchmark GITHUB_REPOSITORY google/benchmark GIT_TAG v1.9.5
                 OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "BENCHMARK_ENABLE_INSTALL OFF"
                         "BENCHMARK_ENABLE_GTEST_TESTS OFF")
+  # bm-prof stamps the git sha into its provenance JSON. Capture it at BUILD time
+  # (not configure time) via an always-run custom target, so a commit+rebuild
+  # refreshes the sha; bm_prof_common.hpp picks up the generated header. The
+  # script only rewrites the file when the sha changes, so it won't force rebuilds.
+  set(BT_GIT_SHA_HEADER ${CMAKE_BINARY_DIR}/generated/bt_git_sha.h)
+  add_custom_target(bt_git_sha
+    BYPRODUCTS ${BT_GIT_SHA_HEADER}
+    COMMAND ${CMAKE_COMMAND} -DGIT_SRC_DIR=${CMAKE_SOURCE_DIR} -DGIT_OUT=${BT_GIT_SHA_HEADER}
+            -P ${CMAKE_SOURCE_DIR}/cmake/write_git_sha.cmake
+    COMMENT "Capturing git sha for bm-prof provenance"
+    VERBATIM)
 endif()
 
 # ---- bt::core — shared CPU/OpenMP runtime (tree + cifar OMP dispatchers) ---
@@ -88,6 +99,25 @@ target_compile_features(bt_core PUBLIC cxx_std_20)
 target_include_directories(bt_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(bt_core PUBLIC
   spdlog::spdlog CLI11::CLI11 glm::glm libmorton bt::openmp nlohmann_json::nlohmann_json)
+
+# device_specs_embedded.hpp (conf.cpp includes it) is generated from devices/*.json by
+# scripts/embed_device_specs.py. Regenerate it at build time whenever a device JSON or
+# the generator changes, so editing devices/*.json is picked up without a manual step.
+# The script writes identical bytes when nothing changed, so a clean tree stays clean;
+# if no python is found, the committed header is used as-is.
+find_program(BT_PYTHON NAMES python3 python)
+if(BT_PYTHON)
+  file(GLOB BT_DEVICE_JSONS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/devices/*.json)
+  add_custom_command(
+    OUTPUT ${CMAKE_SOURCE_DIR}/builtin-apps/device_specs_embedded.hpp
+    COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
+    DEPENDS ${BT_DEVICE_JSONS} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
+    COMMENT "Embedding devices/*.json -> device_specs_embedded.hpp"
+    VERBATIM)
+  add_custom_target(bt_device_specs
+    DEPENDS ${CMAKE_SOURCE_DIR}/builtin-apps/device_specs_embedded.hpp)
+  add_dependencies(bt_core bt_device_specs)
+endif()
 
 # ---- OMP single-app runners (executor; BT-Implementer single-app smoke) -----
 # Always built (not gated behind BT_BUILD_BENCHMARKS). ${ARGN} lets a runner
@@ -174,10 +204,6 @@ if(BT_ENABLE_CUDA)
   target_link_libraries(test-omp PRIVATE bt::openmp)
 
   if(BT_BUILD_BENCHMARKS)
-    # git sha for bm-prof provenance (configure-time); captured here since the CUDA
-    # block precedes the Vulkan one that also needs it.
-    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                    OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
     # Per-cell pipe/ benchmark drivers: one target per app x {baseline, fully-vs-normal,
     # gen-logs, prof}. Generated to avoid hand-list drift (a dropped line builds fine and
     # only fails at deploy -- a missing bm-gen-logs-tree-vk bit us once).
@@ -186,7 +212,9 @@ if(BT_ENABLE_CUDA)
       bt_add_cuda_app(bm-fully-${app}-cu    pipe/${app}-cu/bm_fully_vs_normal.cu benchmark::benchmark)
       bt_add_cuda_app(bm-gen-logs-${app}-cu pipe/${app}-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
       bt_add_cuda_app(bm-prof-${app}-cu     pipe/${app}-cu/bm_prof.cu            benchmark::benchmark nlohmann_json::nlohmann_json)
-      target_compile_definitions(bm-prof-${app}-cu PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
+      # build-time git sha (see bt_git_sha target): generated header on the include path.
+      add_dependencies(bm-prof-${app}-cu bt_git_sha)
+      target_include_directories(bm-prof-${app}-cu PRIVATE ${CMAKE_BINARY_DIR}/generated)
     endforeach()
     # per-stage (BM_Stage1..N) -- irregular: tree/cuda has no bm_main.cu upstream.
     bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
@@ -247,17 +275,15 @@ if(BT_ENABLE_VULKAN)
       add_executable(${name} ${src})
       target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp ${ARGN})
     endfunction()
-    # git sha for bm-prof provenance (configure-time); set again here because a
-    # vulkan-only build (BT_ENABLE_CUDA off) skips the CUDA block above.
-    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                    OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
     # Per-cell pipe/ benchmark drivers, one target per app x driver (see CUDA block).
     foreach(app tree cifar-dense cifar-sparse)
       bt_add_vk_app(bm-baseline-${app}-vk pipe/${app}-vk/bm_baseline.cpp        benchmark::benchmark)
       bt_add_vk_app(bm-fully-${app}-vk    pipe/${app}-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
       bt_add_vk_app(bm-gen-logs-${app}-vk pipe/${app}-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
       bt_add_vk_app(bm-prof-${app}-vk     pipe/${app}-vk/bm_prof.cpp            benchmark::benchmark nlohmann_json::nlohmann_json)
-      target_compile_definitions(bm-prof-${app}-vk PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
+      # build-time git sha (see bt_git_sha target): generated header on the include path.
+      add_dependencies(bm-prof-${app}-vk bt_git_sha)
+      target_include_directories(bm-prof-${app}-vk PRIVATE ${CMAKE_BINARY_DIR}/generated)
     endforeach()
     # per-stage (BM_Stage1..N) -- all three exist for vulkan.
     bt_add_vk_app(bm-tree-vk         builtin-apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)

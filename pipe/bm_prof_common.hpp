@@ -29,6 +29,12 @@
 
 #include "builtin-apps/app.hpp"  // ProcessorType, g_device_id, has_*_cores
 
+// Build-time provenance: the bt_git_sha CMake target regenerates bt_git_sha.h each
+// build and puts it on the bm-prof include path. Falls back to "unknown" when the
+// header isn't present (e.g. a non-benchmark build that still includes this header).
+#if __has_include("bt_git_sha.h")
+#include "bt_git_sha.h"
+#endif
 #ifndef BT_GIT_SHA
 #define BT_GIT_SHA "unknown"
 #endif

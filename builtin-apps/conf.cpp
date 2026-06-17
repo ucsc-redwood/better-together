@@ -10,8 +10,8 @@
 // scripts/embed_device_specs.py, so there is no runtime file dependency). This
 // replaces the old hand-maintained C++ table and is the single source of truth
 // for core topology, pinnability, and GPU subgroup size. To add/change a device,
-// edit devices/<id>.json (validate with scripts/validate_devices.py) and
-// regenerate the embedded header.
+// edit devices/<id>.json (validate with scripts/validate_devices.py); the build
+// regenerates the embedded header automatically (CMake bt_device_specs target).
 
 namespace {
 ProcessorType parse_core_type(const std::string& s) {
