@@ -10,6 +10,9 @@
 #include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
+#include "builtin-apps/config_reader.hpp"  // readSchedulesFromJson (the schedule consumer)
 #include "builtin-apps/pipeline/record.hpp"
 #include "builtin-apps/pipeline/schedule.hpp"
 
@@ -174,6 +177,45 @@ TEST(PipelineRobust, LoggerRejectsOverflowChunk) {
   EXPECT_NO_THROW(logger.start_tick(0, Logger<4>::kMaxChunks - 1));  // last valid chunk id
   EXPECT_THROW(logger.start_tick(0, Logger<4>::kMaxChunks), std::out_of_range);
   EXPECT_THROW(logger.end_tick(0, Logger<4>::kMaxChunks + 3), std::out_of_range);
+}
+
+// ---- readSchedulesFromJson: the C++ consumer of the schedule contract ----------
+// New contract: chunks carry explicit 1-based-inclusive start_stage/end_stage (no
+// stages[] array, no +1 base-shift). These guard config_reader.hpp against a
+// regression of the off-by-one that previously dropped a stage.
+
+TEST(ScheduleConsumer, ParsesNewFormatVerbatim) {
+  const auto j = nlohmann::json::parse(R"([
+    {"uid":"S1","chunks":[
+      {"id":0,"core_type":"Big","start_stage":1,"end_stage":5,"time":1.0},
+      {"id":1,"core_type":"GPU","start_stage":6,"end_stage":9,"time":2.0,"hardware":"gpu_cuda"}
+    ]}
+  ])");
+  const auto scheds = readSchedulesFromJson(j);
+  ASSERT_EQ(scheds.size(), 1u);
+  ASSERT_EQ(scheds[0].chunks.size(), 2u);
+  // Stages read verbatim — 1-based, no +1.
+  EXPECT_EQ(scheds[0].chunks[0].start_stage, 1);
+  EXPECT_EQ(scheds[0].chunks[0].end_stage, 5);
+  EXPECT_EQ(scheds[0].chunks[0].exec_model, ExecutionModel::kOMP);
+  EXPECT_EQ(scheds[0].chunks[0].cpu_proc_type, ProcessorType::kBigCore);
+  EXPECT_EQ(scheds[0].chunks[1].start_stage, 6);
+  EXPECT_EQ(scheds[0].chunks[1].end_stage, 9);
+  EXPECT_EQ(scheds[0].chunks[1].exec_model, ExecutionModel::kCuda);
+  // The parsed schedule satisfies the coverage gate for a 9-stage app.
+  EXPECT_NO_THROW(validate_schedule_coverage(scheds[0], 9));
+}
+
+TEST(ScheduleConsumer, RejectsMissingStageBounds) {
+  const auto j = nlohmann::json::parse(
+      R"([{"uid":"S","chunks":[{"core_type":"Big","start_stage":1}]}])");  // no end_stage
+  EXPECT_THROW(readSchedulesFromJson(j), std::runtime_error);
+}
+
+TEST(ScheduleConsumer, RejectsInvertedRange) {
+  const auto j = nlohmann::json::parse(
+      R"([{"uid":"S","chunks":[{"core_type":"Big","start_stage":5,"end_stage":2}]}])");
+  EXPECT_THROW(readSchedulesFromJson(j), std::runtime_error);
 }
 
 }  // namespace

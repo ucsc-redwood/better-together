@@ -52,9 +52,11 @@ inline std::vector<Schedule> readSchedulesFromJson(const nlohmann::json& j) {
     for (const auto& chunk_json : chunks_json) {
       ChunkConfig chunk;
 
-      if (!chunk_json.contains("core_type") || !chunk_json.contains("stages")) {
-        throw std::runtime_error("Schedule [" + schedule.uid +
-                                 "] chunk missing required field 'core_type' or 'stages'");
+      if (!chunk_json.contains("core_type") || !chunk_json.contains("start_stage") ||
+          !chunk_json.contains("end_stage")) {
+        throw std::runtime_error(
+            "Schedule [" + schedule.uid +
+            "] chunk missing required field 'core_type', 'start_stage', or 'end_stage'");
       }
 
       // Get the core type string and convert to ExecutionModel and ProcessorType
@@ -97,20 +99,16 @@ inline std::vector<Schedule> readSchedulesFromJson(const nlohmann::json& j) {
         }
       }
 
-      // Get the stages array and set start and end stages
-      const auto& stages = chunk_json["stages"];
-      if (!stages.is_array() || stages.empty()) {
-        throw std::runtime_error("Schedule [" + schedule.uid +
-                                 "] chunk 'stages' is not a non-empty array");
+      // Stages are explicit and 1-based inclusive in the contract
+      // (schemas/schedule.schema.json) -- read them verbatim, no array inference and
+      // no +1 base-shift. validate_schedule_coverage() below enforces contiguity.
+      chunk.start_stage = chunk_json["start_stage"].get<int>();
+      chunk.end_stage = chunk_json["end_stage"].get<int>();
+      if (chunk.start_stage < 1 || chunk.end_stage < chunk.start_stage) {
+        throw std::runtime_error("Schedule [" + schedule.uid + "] chunk has invalid stage range [" +
+                                 std::to_string(chunk.start_stage) + ", " +
+                                 std::to_string(chunk.end_stage) + "] (need 1 <= start <= end)");
       }
-
-      // Get first and last elements of the stages array for start and end
-      chunk.start_stage = stages[0].get<int>();
-      chunk.end_stage = stages[stages.size() - 1].get<int>();
-
-      // add 1 to stages
-      chunk.start_stage += 1;
-      chunk.end_stage += 1;
 
       // Add the chunk to the schedule
       schedule.chunks.push_back(chunk);

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ucsc-redwood/better-together/schemas/schedule.schema.json",
+  "title": "BetterTogether Schedule",
+  "description": "The cross-tool contract: an array of candidate schedules produced by BT-Optimizer (Python/z3) and consumed by BT-Implementer (C++ config_reader.hpp::readSchedulesFromJson). One schedule assigns every application stage to a processing unit as a sequence of contiguous chunks. Stage numbering is 1-based and inclusive: a chunk covers stages [start_stage, end_stage]; the chunks of a schedule must contiguously cover [1, n_stages] (the C++ validate_schedule_coverage gate enforces this at load). Producer validates against this schema before writing; consumer fails fast on any deviation.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["uid", "chunks"],
+    "properties": {
+      "uid": {
+        "type": "string",
+        "description": "Opaque unique id for this candidate (e.g. SCH-...); used for logging/selection."
+      },
+      "solution_id": {
+        "type": "integer",
+        "description": "1-based rank of this candidate within the solver's output (metadata)."
+      },
+      "chunks": {
+        "type": "array",
+        "minItems": 1,
+        "description": "Contiguous chunks, in stage order, that partition [1, n_stages] across PUs.",
+        "items": {
+          "type": "object",
+          "required": ["core_type", "start_stage", "end_stage"],
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Chunk index within the schedule (metadata)."
+            },
+            "core_type": {
+              "type": "string",
+              "enum": ["Little", "Medium", "Big", "GPU"],
+              "description": "Processing unit class. The single source of truth for the PU-string set (C++ and Python map this enum). 'GPU' additionally requires 'hardware'."
+            },
+            "start_stage": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "First stage in the chunk (1-based, inclusive)."
+            },
+            "end_stage": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Last stage in the chunk (1-based, inclusive); must be >= start_stage."
+            },
+            "time": {
+              "type": "number",
+              "description": "Predicted chunk time in ms (metadata; not consumed by the runtime)."
+            },
+            "hardware": {
+              "type": "string",
+              "enum": ["gpu_cuda", "gpu_vulkan"],
+              "description": "Which GPU backend a GPU chunk runs on. Required iff core_type == 'GPU'."
+            }
+          },
+          "additionalProperties": false,
+          "if": {
+            "properties": { "core_type": { "const": "GPU" } }
+          },
+          "then": {
+            "required": ["hardware"]
+          },
+          "else": {
+            "not": { "required": ["hardware"] }
+          }
+        }
+      },
+      "metrics": {
+        "type": "object",
+        "description": "Optimizer-side predicted metrics (makespan, gapness, speedups, baselines). Advisory; the runtime ignores them.",
+        "additionalProperties": true
+      }
+    },
+    "additionalProperties": false
+  }
+}

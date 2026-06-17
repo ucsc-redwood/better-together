@@ -4,6 +4,25 @@ import hashlib
 import json
 import os
 
+# Repo-root-relative path to the schedule contract schema (this file lives at
+# scripts/collect/smt/, so root is three levels up).
+_SCHEDULE_SCHEMA_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "..", "schemas", "schedule.schema.json"
+)
+
+
+def validate_against_schema(solutions):
+    """Validate a list of schedules against schemas/schedule.schema.json.
+
+    The producer must never emit a schedule the C++ consumer would reject, so we
+    fail loud here rather than ship a malformed contract.
+    """
+    import jsonschema  # local import: only needed when actually writing schedules
+
+    with open(_SCHEDULE_SCHEMA_PATH) as f:
+        schema = json.load(f)
+    jsonschema.validate(instance=solutions, schema=schema)
+
 
 def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
     """Print a summary of chunks with their core types and times."""
@@ -124,7 +143,11 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
                 {
                     "id": current_chunk,
                     "core_type": current_core_type,
-                    "stages": chunk_stages.copy(),
+                    # 1-based, inclusive [start_stage, end_stage] -- the schedule
+                    # contract base (schemas/schedule.schema.json). chunk_stages is
+                    # 0-based and contiguous (z3 contiguity constraint), so +1 once here.
+                    "start_stage": chunk_stages[0] + 1,
+                    "end_stage": chunk_stages[-1] + 1,
                     "time": chunk_time,
                 }
             )
@@ -139,7 +162,8 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
             {
                 "id": current_chunk,
                 "core_type": current_core_type,
-                "stages": chunk_stages.copy(),
+                "start_stage": chunk_stages[0] + 1,
+                "end_stage": chunk_stages[-1] + 1,
                 "time": chunk_time,
             }
         )
@@ -178,16 +202,18 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
             cores_summary += "B"
         elif chunk["core_type"] == "GPU":
             cores_summary += "G"
-        cores_summary += str(len(chunk["stages"]))
+        cores_summary += str(chunk["end_stage"] - chunk["start_stage"] + 1)
 
     # Add gapness and unique hash to ensure uniqueness
     gapness_str = f"{metrics.get('gapness', 0):.2f}".replace(".", "")
     unique_hash = hashlib.md5(str(chunks).encode()).hexdigest()[:4]
     uid = f"SCH-{cores_summary}-G{gapness_str}-{unique_hash}"
 
+    # stage_assignments stays a local (it builds chunks above) but is NOT exported:
+    # it was a dead field on the consumer side (zero C++ readers) that duplicated and
+    # drifted from chunks. The schedule contract is chunks alone.
     return {
         "uid": uid,
-        "stage_assignments": stage_assignments,
         "chunks": chunks,
         "metrics": metrics,
     }
@@ -231,7 +257,9 @@ def dump_solutions_as_json(
                         baseline_data[gpu_key] / makespan
                     )
 
-    # print("\n\n=== MACHINE PARSABLE OUTPUT START ===")
+    # Fail before writing if the produced schedules don't match the contract the
+    # C++ consumer reads (schemas/schedule.schema.json).
+    validate_against_schema(solutions)
 
     if output_format == "pretty":
         json_str = json.dumps(solutions, indent=2)
