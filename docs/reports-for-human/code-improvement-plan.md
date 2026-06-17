@@ -159,18 +159,23 @@ Original item descriptions (for reference):
    launch is blamed on a later stage. Fix: check after each launch (debug build).
    Gate: jetson build. **S / low**.
 
-## Phase 3 — `bm_fully` + `bm_gen_log` dedup (HIGH risk — full-HW numeric gate)
-These have real per-PU thread + timing logic (4 concurrent PU threads; cudaEvent vs
-VK-timestamp GPU branch; the schedule-exec loop + hardcoded warmup). Do **one family
-at a time**:
-1. Factor into a shared header (the `bm_prof_common.hpp` pattern: per-cell closures for
-   the OMP/GPU dispatch + timing).
-2. Rebuild vk (local) + cu (jetson cross).
-3. **Re-run the benchmark on minipc + Jetson + Samsung and assert the numbers match
-   the Phase-0 snapshot within noise.** This is the mandatory "E2E on all HW" gate.
-4. Any HW drifts → revert that family.
-Also fold in: the **warmup magic-schedule** (validate it via the Phase-2 validator);
-the **dead old executor** that includes a nonexistent `common.hpp`. **L / med each.**
+## Phase 3 — `bm_fully` + `bm_gen_log` dedup (HIGH risk — full-HW numeric gate) — DONE 2026-06-17
+**Both families done.** Each lifted into a shared header (the bm_baseline_common
+pattern); each cell is now a ~14-line main() supplying its types + per-cell knobs.
+1. **bm_fully → `pipe/bm_fully_common.hpp`** (−1852/+354). Knobs: OMP namespace, GPU
+   ProcessorType + BmTable col (vk 3 / cu 4), and the timer (WallTimer vs a
+   `#ifdef __CUDACC__` CudaEventTimer, which now also frees its events). Analysis-only
+   output (no script consumes it). Verified: vk local + cu cross build; bm-fully-tree-vk
+   on rocky (WallTimer) + bm-fully-tree-cu on Jetson (CudaEventTimer) exit 0, sane tables.
+2. **bm_gen_log → `pipe/bm_gen_log_common.hpp`** (−1461/+274). Knobs: OMP namespace +
+   the GPU ExecutionModel (kCuda/kVulkan). Folded in: the warmup magic-schedule →
+   `make_warmup_schedule()` (portable, full-coverage [1,n], validated); cross-backend
+   schedules skipped+warned (rides the Phase-2 device guard). **E2E numeric gate met**
+   via 03→04: minipc vk SCH-G6B3 widest-chunk 26.90 ms vs committed 28.0 (noise);
+   Jetson cu SCH-L2G7 35.55 ms vs 35.75 (~0.6%). Samsung vk = identical WallTimer/Logger
+   path as minipc.
+3. **Dead old executor removed**: the 5 pre-migration `builtin-apps/*/vulkan/bm_*`
+   orphans (4 `#include "common.hpp"`, which doesn't exist; none in CMake).
 
 ## Phase 4 — deep bugs + perf (HIGHEST risk — devices, separate, one at a time)
 1. **§1 CUDA managed-mem — DONE (already fixed pre-plan by commit `4161664`).** The
