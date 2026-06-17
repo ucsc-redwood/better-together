@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// bm_prof -- canonical-JSONL profiler for cifar-dense x Vulkan (isolated).
+// bm_prof -- canonical-JSONL profiler for tree x Vulkan (isolated).
 //
 // One bm_prof binary per (app, backend) cell. It measures every PU the device
 // has -- the Vulkan PU (GPU-timestamped) plus each present CPU tier -- and emits
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
             if (is_vk)
               disp.dispatch_multi_stage(app, s, s);
             else
-              cifar_dense::omp::dispatch_multi_stage(
+              tree::omp::dispatch_multi_stage(
                   get_cores_by_type(c->cpu_pt), get_cores_by_type(c->cpu_pt).size(), app, s, s);
             return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
           };
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
               auto cores = get_cores_by_type(bpt);
               bg.emplace_back([a, cores, s, &stop] {
                 while (!stop.load(std::memory_order_relaxed))
-                  cifar_dense::omp::dispatch_multi_stage(cores, cores.size(), *a, s, s);
+                  tree::omp::dispatch_multi_stage(cores, cores.size(), *a, s, s);
               });
             }
           }
@@ -129,6 +129,6 @@ int main(int argc, char** argv) {
   benchmark::RunSpecifiedBenchmarks(&null_reporter);
   benchmark::Shutdown();
 
-  bt_prof::emit_jsonl(cells, "cifar-dense", "vulkan", scenario, run_id, warmup);
+  bt_prof::emit_jsonl(cells, "tree", "vulkan", scenario, run_id, warmup);
   return 0;
 }

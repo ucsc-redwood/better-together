@@ -189,6 +189,15 @@ if(BT_ENABLE_CUDA)
     bt_add_cuda_app(bm-gen-logs-tree-cu         pipe/tree-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
     bt_add_cuda_app(bm-gen-logs-cifar-dense-cu  pipe/cifar-dense-cu/bm_gen_log.cu  nlohmann_json::nlohmann_json)
     bt_add_cuda_app(bm-gen-logs-cifar-sparse-cu pipe/cifar-sparse-cu/bm_gen_log.cu nlohmann_json::nlohmann_json)
+    # canonical-JSONL profiler (distribution + measured provenance). Git sha
+    # stamped at configure time; captured here too since the CUDA block precedes
+    # the Vulkan one that also needs it.
+    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    foreach(app tree cifar-dense cifar-sparse)
+      bt_add_cuda_app(bm-prof-${app}-cu pipe/${app}-cu/bm_prof.cu benchmark::benchmark nlohmann_json::nlohmann_json)
+      target_compile_definitions(bm-prof-${app}-cu PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
+    endforeach()
   endif()
 endif()
 
@@ -265,8 +274,10 @@ if(BT_ENABLE_VULKAN)
     # + measured provenance). Stamps the git sha at configure time for provenance.
     execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                     OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-    bt_add_vk_app(bm-prof-cifar-dense-vk pipe/cifar-dense-vk/bm_prof.cpp benchmark::benchmark nlohmann_json::nlohmann_json)
-    target_compile_definitions(bm-prof-cifar-dense-vk PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
+    foreach(app tree cifar-dense cifar-sparse)
+      bt_add_vk_app(bm-prof-${app}-vk pipe/${app}-vk/bm_prof.cpp benchmark::benchmark nlohmann_json::nlohmann_json)
+      target_compile_definitions(bm-prof-${app}-vk PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
+    endforeach()
   endif()
 endif()
 

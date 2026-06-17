@@ -1,12 +1,11 @@
 // ---------------------------------------------------------------------------
-// bm_prof -- canonical-JSONL profiler for cifar-dense x Vulkan (isolated).
+// bm_prof -- canonical-JSONL profiler for cifar-sparse x CUDA (isolated).
 //
-// One bm_prof binary per (app, backend) cell. It measures every PU the device
-// has -- the Vulkan PU (GPU-timestamped) plus each present CPU tier -- and emits
-// one self-describing JSONL record per (stage, pu) carrying the full timing
-// DISTRIBUTION (p50/p95/p99/cv/...) and MEASURED provenance. Shared plumbing
-// (stats, provenance, emission) lives in ../bm_prof_common.hpp; this file owns
-// only the measured loop (VK gpu-timestamp path) and the app/backend identity.
+// One bm_prof binary per (app, backend) cell. It measures the CUDA PU (timed with
+// cudaEvent GPU elapsed) plus each present CPU tier and emits one self-describing
+// JSONL record per (stage, pu) with the full timing distribution + measured
+// provenance. Shared plumbing lives in ../bm_prof_common.hpp; this file owns only
+// the measured loop (CUDA-event path) and the app/backend identity.
 //
 // Sampling is a calibrated TIME budget (bm_prof_common::measure_calibrated), not
 // a fixed iteration count -- slow cells (e.g. little-core conv) self-limit to a
@@ -28,13 +27,12 @@
 
 #include "../bm_prof_common.hpp"
 #include "builtin-apps/app.hpp"  // parse_args, get_cores_by_type
-#include "const.hpp"             // DispatcherT (VulkanDispatcher), AppDataT, kNumStages
+#include "const.hpp"             // DispatcherT (CudaDispatcher), AppDataT, kNumStages; pulls in CheckCuda
 
 using bt_prof::Cell;
 
 int main(int argc, char** argv) {
-  // stdout is reserved for JSONL records -- send every log line to stderr so a
-  // captured run-NNN.jsonl is pure data regardless of what parse_args logs.
+  // stdout is reserved for JSONL records -- send every log line to stderr.
   spdlog::set_default_logger(spdlog::stderr_color_mt("bt_prof"));
   spdlog::set_level(spdlog::level::off);
 
@@ -47,63 +45,73 @@ int main(int argc, char** argv) {
   const char* scenario = std::getenv("BT_PROF_SCENARIO");
   if (!scenario) scenario = "isolated";
   const bool interfere = std::string(scenario) == "interference";
-  // BT_PROF_GPU_WALLCLOCK=1 times the GPU PU by host wall-clock (full dispatch
-  // round-trip) instead of the on-GPU timestamp -- so interference captures the
-  // host-side contention (submit/fence-wait) the GPU timestamp excludes.
+  // BT_PROF_GPU_WALLCLOCK=1 times the CUDA PU by host wall-clock (dispatch +
+  // device sync) instead of cudaEvent GPU-elapsed -- so interference captures the
+  // host-side contention (launch/sync) the GPU clock excludes.
   const bool gpu_wall = bt_prof::env_int("BT_PROF_GPU_WALLCLOCK", 0) != 0;
 
-  DispatcherT disp;  // one Vulkan engine for the whole process
+  DispatcherT disp;
 
-  std::vector<Cell> cells = bt_prof::make_cells(static_cast<int>(kNumStages), "vulkan");
+  std::vector<Cell> cells = bt_prof::make_cells(static_cast<int>(kNumStages), "cuda");
 
   for (Cell& cell : cells) {
     Cell* c = &cell;
     benchmark::RegisterBenchmark(
         (cell.pu + "/stage" + std::to_string(cell.stage)).c_str(),
         [c, &disp, interfere, gpu_wall](benchmark::State& state) {
-          AppDataT app(disp.get_mr());
+          AppDataT app(&disp.get_mr());
           const int s = c->stage;
-          const bool is_vk = (c->pu == "vulkan");
-          auto* seq = disp.get_seq();
-          const bool gpu_ts = is_vk && seq->gpu_timestamps_supported() && !gpu_wall;
+          const bool is_cuda = (c->pu == "cuda");
 
-          // One measured run -> seconds. Prefer the on-GPU timestamp for Vulkan.
+          cudaEvent_t ev_start, ev_stop;
+          CheckCuda(cudaEventCreate(&ev_start));
+          CheckCuda(cudaEventCreate(&ev_stop));
+
+          // One measured run -> seconds. CUDA PU uses GPU-elapsed via cudaEvent,
+          // unless gpu_wall -> host wall-clock around dispatch + a device sync.
           auto time_once = [&]() -> double {
-            if (gpu_ts) {
+            if (is_cuda && !gpu_wall) {
+              CheckCuda(cudaEventRecord(ev_start, 0));
               disp.dispatch_multi_stage(app, s, s);
-              return seq->get_last_gpu_time_ns() * 1e-9;
+              CheckCuda(cudaEventRecord(ev_stop, 0));
+              CheckCuda(cudaEventSynchronize(ev_stop));
+              float ms = 0.0f;
+              CheckCuda(cudaEventElapsedTime(&ms, ev_start, ev_stop));
+              return ms * 1e-3;
             }
             const auto t0 = std::chrono::steady_clock::now();
-            if (is_vk)
+            if (is_cuda) {
               disp.dispatch_multi_stage(app, s, s);
-            else
-              cifar_dense::omp::dispatch_multi_stage(
+              CheckCuda(cudaDeviceSynchronize());
+            } else {
+              cifar_sparse::omp::dispatch_multi_stage(
                   get_cores_by_type(c->cpu_pt), get_cores_by_type(c->cpu_pt).size(), app, s, s);
+            }
             return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
           };
 
           // Interference: saturate every OTHER present PU with the same stage on
           // its OWN AppData (disjoint -> no cross-PU data race). At most one thread
-          // ever touches the GPU dispatcher, matching the old BM_run_fully.
+          // ever touches the GPU, matching the old BM_run_fully.
           std::atomic<bool> stop{false};
           std::vector<std::unique_ptr<AppDataT>> bg_apps;
           std::vector<std::thread> bg;
           if (interfere) {
-            if (!is_vk) {  // GPU contends only when the target is a CPU tier
-              bg_apps.push_back(std::make_unique<AppDataT>(disp.get_mr()));
+            if (!is_cuda) {  // GPU contends only when the target is a CPU tier
+              bg_apps.push_back(std::make_unique<AppDataT>(&disp.get_mr()));
               AppDataT* a = bg_apps.back().get();
               bg.emplace_back([&disp, a, s, &stop] {
                 while (!stop.load(std::memory_order_relaxed)) disp.dispatch_multi_stage(*a, s, s);
               });
             }
             for (auto& [bname, bpt] : bt_prof::present_cpu_pus()) {
-              if (!is_vk && bpt == c->cpu_pt) continue;  // skip the target CPU tier itself
-              bg_apps.push_back(std::make_unique<AppDataT>(disp.get_mr()));
+              if (!is_cuda && bpt == c->cpu_pt) continue;  // skip the target CPU tier itself
+              bg_apps.push_back(std::make_unique<AppDataT>(&disp.get_mr()));
               AppDataT* a = bg_apps.back().get();
               auto cores = get_cores_by_type(bpt);
               bg.emplace_back([a, cores, s, &stop] {
                 while (!stop.load(std::memory_order_relaxed))
-                  cifar_dense::omp::dispatch_multi_stage(cores, cores.size(), *a, s, s);
+                  cifar_sparse::omp::dispatch_multi_stage(cores, cores.size(), *a, s, s);
               });
             }
           }
@@ -118,6 +126,9 @@ int main(int argc, char** argv) {
 
           stop.store(true);
           for (auto& t : bg) t.join();
+
+          CheckCuda(cudaEventDestroy(ev_start));
+          CheckCuda(cudaEventDestroy(ev_stop));
         })
         ->Unit(benchmark::kMillisecond)
         ->UseManualTime()
@@ -129,6 +140,6 @@ int main(int argc, char** argv) {
   benchmark::RunSpecifiedBenchmarks(&null_reporter);
   benchmark::Shutdown();
 
-  bt_prof::emit_jsonl(cells, "cifar-dense", "vulkan", scenario, run_id, warmup);
+  bt_prof::emit_jsonl(cells, "cifar-sparse", "cuda", scenario, run_id, warmup);
   return 0;
 }
