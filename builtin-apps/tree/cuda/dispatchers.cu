@@ -63,7 +63,12 @@ void CudaDispatcher::run_stage_2_async(tree::SafeAppData &appdata) {
 
   CubDebugExit(cudaDeviceSynchronize());
 
-  CubDebugExit(cudaFree(d_temp_storage));
+  // Return the temp storage to g_allocator's cache (it was obtained via
+  // DeviceAllocate). The old code cudaFree'd it directly, which both defeated the
+  // caching allocator (every call paid a real cudaMalloc/cudaFree) and left the block
+  // marked live -- a latent double-free when g_allocator is torn down at exit. The
+  // sync above is required first: the cub op uses d_temp_storage asynchronously.
+  CubDebugExit(g_allocator.DeviceFree(d_temp_storage));
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -109,7 +114,7 @@ void CudaDispatcher::run_stage_3_async(tree::SafeAppData &appdata) {
   appdata.set_n_brt_nodes(n_unique - 1);
   // ----------------------------
 
-  CubDebugExit(cudaFree(d_temp_storage));
+  CubDebugExit(g_allocator.DeviceFree(d_temp_storage));
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -185,7 +190,7 @@ void CudaDispatcher::run_stage_6_async(tree::SafeAppData &appdata) {
   appdata.set_n_octree_nodes(appdata.u_edge_offset_s6_out[appdata.get_n_brt_nodes() - 1]);
   // ----------------------------
 
-  CubDebugExit(cudaFree(d_temp_storage));
+  CubDebugExit(g_allocator.DeviceFree(d_temp_storage));
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
