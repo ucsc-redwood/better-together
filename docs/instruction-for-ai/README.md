@@ -15,6 +15,7 @@ Canonical, load-bearing knowledge an AI agent needs to work on BetterTogether
 | 03 | [`03-unit-testing.md`](03-unit-testing.md) | How to run & write tests: the OMP-as-oracle differential method, per-backend commands, CI labels |
 | 04 | [`04-alexnet-cifar-spec.md`](04-alexnet-cifar-spec.md) | The canonical AlexNet/CIFAR model — exact shapes to match when writing kernels |
 | 05 | [`05-profiling.md`](05-profiling.md) | How to profile **runtime overhead** (CLI / agent-driven): which tool per backend & target, exact commands, what the output means |
+| 06 | [`06-end-to-end-scheduling.md`](06-end-to-end-scheduling.md) | The full **profile → export → z3 schedule → run on device → parse → baseline/speedup** procedure, step by step, with the gotchas |
 
 For **status, audits, decision logs, and roadmaps** (the "why" and "where we are"),
 see [`../reports-for-human/`](../reports-for-human/README.md).
