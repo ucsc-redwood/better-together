@@ -323,6 +323,10 @@ if(BT_BUILD_TESTS)
   # Pipeline schedule contract: chunks must contiguously cover [1, n_stages].
   # The correctness gate the pipeline path was missing (catches the dropped-stage class).
   bt_add_omp_test(test-schedule-omp     builtin-apps/pipeline/test_schedule.cpp)
+  # First framework runtime-correctness test: drive the tree app through the REAL
+  # concurrent worker/SPSC ring with a multi-tier OMP schedule and assert the §1
+  # differential holds + chunks bind to their intended big/little cores.
+  bt_add_omp_test(test-pipeline-e2e-omp builtin-apps/tree/omp/test_pipeline_main.cpp)
 
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)
