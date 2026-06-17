@@ -197,17 +197,34 @@ pattern); each cell is now a ~14-line main() supplying its types + per-cell knob
    `test-tree-vk`, `bm-gen-logs-tree-vk` all **exit 0** on Jetson (were 139); rocky
    `ctest -L vulkan` stays GREEN (7/10/10). See bugs-found §9. **M / med.**
 3. **Tier-3 perf — these CHANGE the GPU times z3 reads, so re-profile after:**
-   - device-wide `cudaDeviceSynchronize` + per-item cub alloc/free in the hot path
-     (`tree/cuda/dispatchers`) — serializes concurrent chunks, churn lands in the
-     profiled ticks.
-   - HOST_CACHED flushes ALL allocations per submit (`kiss-vk/sequence.cpp`,
-     `vma_pmr.cpp`) — O(total buffers) cache maintenance under a mutex per stage.
-   - per-stage descriptor + cmd re-record + fence round-trip (`kiss-vk/sequence.cpp`)
-     — record once, replay.
+   - **§3.1 cub alloc/free — DONE 2026-06-17** (commit `364e0b0`). The per-item cub
+     temp-storage churn: stages 2/3/6 of `tree/cuda/dispatchers` allocated from the
+     caching `g_allocator` but freed with raw `cudaFree`, defeating the cache (real
+     cudaMalloc/cudaFree every call) + a latent double-free at exit. Fixed to
+     `g_allocator.DeviceFree`. **Measured Jetson cuda p50: stage 2 1.476→0.496 (3.0×),
+     stage 3 0.489→0.159 (3.1×), stage 6 0.505→0.144 (3.5×)**; oracle stays GREEN.
+     ⚠ jetson/tree/cu profiling tables (isolated+btpm) + derived schedules are now
+     stale → need re-collection (ideally all cells together for consistency).
+     - **Deferred (separate, riskier):** the device-wide `cudaDeviceSynchronize` ⇒
+       per-chunk-stream redesign — those syncs are correctness-required (before freeing
+       async-used temp storage / before the host count read) and per-stream conflicts
+       with the §1 default-stream pinned model.
+   - **§3.2 HOST_CACHED flush-all — NOT DONE (high risk).** `flush_all`/`invalidate_all`
+     iterate ALL allocations every submit (`vma_pmr.cpp:139-150`, called from
+     `sequence.cpp:189,215`). Flushing only the buffers a stage touches is the win — but
+     it is the §7 Mali coherency fix; under-flushing reintroduces the **47× Pixel
+     regression / wrong output**. NB the flush is a **no-op on rocky/RADV (coherent)** —
+     the cost AND the regression risk exist **only on Mali (Pixel/Samsung)**, so this
+     MUST be validated on the phones, not just rocky. Needs per-stage buffer-usage
+     tracking threaded from the descriptor binding to the flush.
+   - **§3.3 per-stage cmd re-record + fence — NOT DONE (redesign).** Record-once/replay
+     needs caching command buffers per (stage, descriptor set); each stage currently
+     re-records with different descriptors/push-constants. Also Mali-validated.
    **GATE: differential oracle stays green + re-collect the profiling tables + confirm
-   schedules regenerate sanely + quantify the speedup.** **M–L / med.**
+   schedules regenerate sanely + quantify the speedup.** §3.2/§3.3 additionally need the
+   **Mali phones** (Pixel + Samsung) in the gate, not just rocky. **M–L / med.**
 
-Plus doc nit: `rearchitecture.md` Phase 2 is marked "Next" but is DONE (move to Done).
+Doc nit: `rearchitecture.md` Phase 2 "Next"→Done — **DONE** (commit `3a4a3ab`).
 
 ---
 
