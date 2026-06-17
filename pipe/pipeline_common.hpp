@@ -18,20 +18,7 @@
 #include <thread>
 #include <vector>
 
-namespace bt_pipe {
-// AppData constructors take a std::pmr::memory_resource*. CUDA dispatchers return
-// get_mr() by REFERENCE, Vulkan dispatchers by POINTER -- normalize both to a
-// pointer here so make_dataset is identical across backends (the one line that
-// used to differ: `&disp.get_mr()` vs `disp.get_mr()`).
-template <class T>
-inline T* as_mr_ptr(T* p) {
-  return p;
-}
-template <class T>
-inline T* as_mr_ptr(T& r) {
-  return &r;
-}
-}  // namespace bt_pipe
+#include "mr_ptr.hpp"  // bt_pipe::as_mr_ptr (CUDA-ref vs Vulkan-pointer get_mr())
 
 // Build a pool of fresh AppData, each backed by the dispatcher's memory resource.
 [[nodiscard]] static inline const std::vector<AppDataPtr> make_dataset(
