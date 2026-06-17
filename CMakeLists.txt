@@ -261,6 +261,12 @@ if(BT_ENABLE_VULKAN)
     bt_add_vk_app(bm-gen-logs-tree-vk         pipe/tree-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
     bt_add_vk_app(bm-gen-logs-cifar-dense-vk  pipe/cifar-dense-vk/bm_gen_log.cpp  nlohmann_json::nlohmann_json)
     bt_add_vk_app(bm-gen-logs-cifar-sparse-vk pipe/cifar-sparse-vk/bm_gen_log.cpp nlohmann_json::nlohmann_json)
+    # P1 prototype: gbench-based profiler emitting canonical JSONL (distribution
+    # + measured provenance). Stamps the git sha at configure time for provenance.
+    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    bt_add_vk_app(bm-prof-cifar-dense-vk pipe/cifar-dense-vk/bm_prof.cpp benchmark::benchmark nlohmann_json::nlohmann_json)
+    target_compile_definitions(bm-prof-cifar-dense-vk PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
   endif()
 endif()
 
