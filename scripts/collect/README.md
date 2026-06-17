@@ -3,7 +3,7 @@
 There are two generations here. The **canonical JSONL store** (`bm-prof-*` →
 `profiling_loader.py` / `render_isolated_table.py` / `coverage.py`) is the current
 path: schema-validated, keeps the full timing distribution, self-describing `pu`.
-The legacy text→regex→CSV path (`00_bm.py`, the `02_*`/`04_*` schedule scripts)
+The legacy text→regex→CSV path (the `02_*`/`04_*` schedule scripts)
 still feeds the paper's z3 pipeline.
 
 ## Canonical JSONL profiling store
@@ -49,16 +49,6 @@ missing. `--` = hardware lacks that backend (not a gap); `MISSING` = a real gap.
 
 ```bash
 uv run scripts/collect/coverage.py            # 12/12 supported cells when complete
-```
-
-## `00_bm.py`
-
-Legacy single-(device, app, backend) benchmark runner. Its run path is dead (`xmake r`,
-retired); only `--only-aggregate` (text-log → CSV) still works. Superseded by `bm_prof`
-+ `export_btpm_csv.py`.
-
-```bash
-uv run scripts/collect/00_bm.py --log_folder data/bm_logs --only-aggregate --app tree --backend vk --device 3A021JEHN02756
 ```
 
 ## Schedule pipeline (`02` → `03` → `04`)

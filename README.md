@@ -309,7 +309,6 @@ better-together/
 │   └── common/            # Shared utilities (CUDA, Vulkan helpers)
 ├── scripts/               # Python utilities
 │   ├── collect/           # Profiling and scheduling scripts
-│   │   ├── 00_bm.py       # Benchmark runner
 │   │   ├── 02_gen_schedule_merged.py  # Schedule generator
 │   │   ├── 03_run_schedule.py         # Schedule executor
 │   │   └── smt/           # SMT solver implementation
