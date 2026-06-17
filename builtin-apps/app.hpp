@@ -22,6 +22,15 @@ inline std::vector<int> g_sup_cores;
 [[nodiscard]] static inline bool has_big_cores() { return !g_big_cores.empty(); }
 [[nodiscard]] static inline bool has_sup_cores() { return !g_sup_cores.empty(); }
 
+// First CPU tier the device actually has -- use for portable warmups/defaults so
+// a hardcoded tier (e.g. Little) never throws on a device that lacks it (the
+// Big-only MiniPC has no Little cores).
+[[nodiscard]] static inline ProcessorType first_present_cpu_type() {
+  if (has_big_cores()) return ProcessorType::kBigCore;
+  if (has_med_cores()) return ProcessorType::kMediumCore;
+  return ProcessorType::kLittleCore;  // little, or the only remaining choice
+}
+
 [[nodiscard]] static inline std::vector<int>& get_cores_by_type(const ProcessorType core_type) {
   switch (core_type) {
     case ProcessorType::kLittleCore:

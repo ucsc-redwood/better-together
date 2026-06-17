@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
                   .exec_model = ExecutionModel::kOMP,
                   .start_stage = 1,
                   .end_stage = 3,
-                  .cpu_proc_type = ProcessorType::kLittleCore,
+                  .cpu_proc_type = first_present_cpu_type(),  // portable warmup tier
               },
               {
                   .exec_model = ExecutionModel::kVulkan,
