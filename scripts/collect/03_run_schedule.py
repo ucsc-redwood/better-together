@@ -31,9 +31,9 @@ import sys
 DEFAULT_BUILD = {"vk": "build/vulkan", "cu": "build/jetson"}
 
 
-def run(cmd, **kw):
+def run(cmd, check=True, **kw):
     print("  $", " ".join(cmd))
-    return subprocess.run(cmd, check=True, **kw)
+    return subprocess.run(cmd, check=check, **kw)
 
 
 def deploy_and_run_ssh(host, binary, schedule, device, dest, n_sched):
@@ -47,7 +47,9 @@ def deploy_and_run_ssh(host, binary, schedule, device, dest, n_sched):
         f"LD_LIBRARY_PATH=. ./{bname} --device {device} "
         f"--schedule-file {sname} --n-schedules-to-run {n_sched}\n"
     )
-    p = run(["ssh", host, "bash", "-s"], input=script, text=True, stdout=subprocess.PIPE)
+    # check=False: VK executors can segfault on TEARDOWN (Tegra, bugs-found §9) after
+    # the records are already on stdout -- keep the captured output regardless of exit.
+    p = run(["ssh", host, "bash", "-s"], input=script, text=True, stdout=subprocess.PIPE, check=False)
     return p.stdout
 
 
@@ -64,7 +66,7 @@ def deploy_and_run_adb(serial, adb_host, binary, schedule, device, n_sched):
               f"adb -s {serial} shell 'chmod 755 {dest}/{bname}' </dev/null\n"
               f"adb -s {serial} shell \"cd {dest} && LD_LIBRARY_PATH=. ./{bname} "
               f"--device {device} --schedule-file {sname} --n-schedules-to-run {n_sched}\" </dev/null\n")
-        p = run(["ssh", adb_host, "bash", "-s"], input=sh, text=True, stdout=subprocess.PIPE)
+        p = run(["ssh", adb_host, "bash", "-s"], input=sh, text=True, stdout=subprocess.PIPE, check=False)
         return p.stdout.replace("\r", "")
 
     adb = ["adb", "-s", serial]
@@ -74,7 +76,7 @@ def deploy_and_run_adb(serial, adb_host, binary, schedule, device, n_sched):
     p = run(adb + ["shell",
                    f"cd {dest} && LD_LIBRARY_PATH=. ./{bname} --device {device} "
                    f"--schedule-file {sname} --n-schedules-to-run {n_sched}"],
-            stdin=subprocess.DEVNULL, text=True, stdout=subprocess.PIPE)
+            stdin=subprocess.DEVNULL, text=True, stdout=subprocess.PIPE, check=False)
     return p.stdout.replace("\r", "")
 
 

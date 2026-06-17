@@ -327,6 +327,17 @@ no-framework baseline.
 the teardown backtrace; likely a one-line dtor-ordering fix in the kiss-vk engine,
 or an explicit `disp.reset()` before `benchmark::Shutdown()`.
 
+**Update (2026-06-17): generalizes to `bm-gen-logs-*-vk` on the Jetson.** The same
+teardown segfault hits the schedule executor — it prints all `### Python Begin ###`
+records, then crashes on exit (non-zero code). This silently broke
+`03_run_schedule.py`, which used `subprocess.run(check=True)` and so *discarded the
+captured stdout* when the executor exited non-zero (the `jetson_sparse_vk` cell came
+back with an empty log). **Worked around:** `03` now runs the executor with
+`check=False`, keeping the records regardless of exit code (a teardown crash after
+the data is flushed is harmless to the measurement). The underlying engine-dtor
+crash is still the real fix; until then, Jetson VK schedule/baseline runs exit
+non-zero but produce valid logs.
+
 ## Latent issue noticed (not fixed)
 
 `SETUP_DEFAULT_LAUNCH_PARAMS` (`builtin-apps/common/cuda/helpers.cuh`) declares
