@@ -174,30 +174,23 @@ if(BT_ENABLE_CUDA)
   target_link_libraries(test-omp PRIVATE bt::openmp)
 
   if(BT_BUILD_BENCHMARKS)
-    bt_add_cuda_app(bm-baseline-tree-cu         pipe/tree-cu/bm_baseline.cu         benchmark::benchmark)
-    bt_add_cuda_app(bm-baseline-cifar-dense-cu  pipe/cifar-dense-cu/bm_baseline.cu  benchmark::benchmark)
-    bt_add_cuda_app(bm-baseline-cifar-sparse-cu pipe/cifar-sparse-cu/bm_baseline.cu benchmark::benchmark)
-    # per-stage (BM_Stage1..N) — tree/cuda has no bm_main.cu upstream, only cifar
-    bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
-    bt_add_cuda_app(bm-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
-    # fully-offload-vs-normal baseline
-    bt_add_cuda_app(bm-fully-tree-cu         pipe/tree-cu/bm_fully_vs_normal.cu         benchmark::benchmark)
-    bt_add_cuda_app(bm-fully-cifar-dense-cu  pipe/cifar-dense-cu/bm_fully_vs_normal.cu  benchmark::benchmark)
-    bt_add_cuda_app(bm-fully-cifar-sparse-cu pipe/cifar-sparse-cu/bm_fully_vs_normal.cu benchmark::benchmark)
-    # interference-aware schedule profiler (the paper's BTPM table). Reads the
-    # schedule from a LOCAL file (adb push / scp) -- no libcurl, no HTTP server.
-    bt_add_cuda_app(bm-gen-logs-tree-cu         pipe/tree-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
-    bt_add_cuda_app(bm-gen-logs-cifar-dense-cu  pipe/cifar-dense-cu/bm_gen_log.cu  nlohmann_json::nlohmann_json)
-    bt_add_cuda_app(bm-gen-logs-cifar-sparse-cu pipe/cifar-sparse-cu/bm_gen_log.cu nlohmann_json::nlohmann_json)
-    # canonical-JSONL profiler (distribution + measured provenance). Git sha
-    # stamped at configure time; captured here too since the CUDA block precedes
-    # the Vulkan one that also needs it.
+    # git sha for bm-prof provenance (configure-time); captured here since the CUDA
+    # block precedes the Vulkan one that also needs it.
     execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
                     OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    # Per-cell pipe/ benchmark drivers: one target per app x {baseline, fully-vs-normal,
+    # gen-logs, prof}. Generated to avoid hand-list drift (a dropped line builds fine and
+    # only fails at deploy -- a missing bm-gen-logs-tree-vk bit us once).
     foreach(app tree cifar-dense cifar-sparse)
-      bt_add_cuda_app(bm-prof-${app}-cu pipe/${app}-cu/bm_prof.cu benchmark::benchmark nlohmann_json::nlohmann_json)
+      bt_add_cuda_app(bm-baseline-${app}-cu pipe/${app}-cu/bm_baseline.cu        benchmark::benchmark)
+      bt_add_cuda_app(bm-fully-${app}-cu    pipe/${app}-cu/bm_fully_vs_normal.cu benchmark::benchmark)
+      bt_add_cuda_app(bm-gen-logs-${app}-cu pipe/${app}-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
+      bt_add_cuda_app(bm-prof-${app}-cu     pipe/${app}-cu/bm_prof.cu            benchmark::benchmark nlohmann_json::nlohmann_json)
       target_compile_definitions(bm-prof-${app}-cu PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
     endforeach()
+    # per-stage (BM_Stage1..N) -- irregular: tree/cuda has no bm_main.cu upstream.
+    bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
+    bt_add_cuda_app(bm-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
   endif()
 endif()
 
@@ -254,30 +247,22 @@ if(BT_ENABLE_VULKAN)
       add_executable(${name} ${src})
       target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp ${ARGN})
     endfunction()
-    bt_add_vk_app(bm-baseline-tree-vk         pipe/tree-vk/bm_baseline.cpp         benchmark::benchmark)
-    bt_add_vk_app(bm-baseline-cifar-dense-vk  pipe/cifar-dense-vk/bm_baseline.cpp  benchmark::benchmark)
-    bt_add_vk_app(bm-baseline-cifar-sparse-vk pipe/cifar-sparse-vk/bm_baseline.cpp benchmark::benchmark)
-    # per-stage (BM_Stage1..N)
+    # git sha for bm-prof provenance (configure-time); set again here because a
+    # vulkan-only build (BT_ENABLE_CUDA off) skips the CUDA block above.
+    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    # Per-cell pipe/ benchmark drivers, one target per app x driver (see CUDA block).
+    foreach(app tree cifar-dense cifar-sparse)
+      bt_add_vk_app(bm-baseline-${app}-vk pipe/${app}-vk/bm_baseline.cpp        benchmark::benchmark)
+      bt_add_vk_app(bm-fully-${app}-vk    pipe/${app}-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
+      bt_add_vk_app(bm-gen-logs-${app}-vk pipe/${app}-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
+      bt_add_vk_app(bm-prof-${app}-vk     pipe/${app}-vk/bm_prof.cpp            benchmark::benchmark nlohmann_json::nlohmann_json)
+      target_compile_definitions(bm-prof-${app}-vk PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
+    endforeach()
+    # per-stage (BM_Stage1..N) -- all three exist for vulkan.
     bt_add_vk_app(bm-tree-vk         builtin-apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
     bt_add_vk_app(bm-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
     bt_add_vk_app(bm-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
-    # fully-offload-vs-normal baseline
-    bt_add_vk_app(bm-fully-tree-vk         pipe/tree-vk/bm_fully_vs_normal.cpp         benchmark::benchmark)
-    bt_add_vk_app(bm-fully-cifar-dense-vk  pipe/cifar-dense-vk/bm_fully_vs_normal.cpp  benchmark::benchmark)
-    bt_add_vk_app(bm-fully-cifar-sparse-vk pipe/cifar-sparse-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
-    # interference-aware schedule profiler (the paper's BTPM table). Reads the
-    # schedule from a LOCAL file (adb push / scp) -- no libcurl, no HTTP server.
-    bt_add_vk_app(bm-gen-logs-tree-vk         pipe/tree-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
-    bt_add_vk_app(bm-gen-logs-cifar-dense-vk  pipe/cifar-dense-vk/bm_gen_log.cpp  nlohmann_json::nlohmann_json)
-    bt_add_vk_app(bm-gen-logs-cifar-sparse-vk pipe/cifar-sparse-vk/bm_gen_log.cpp nlohmann_json::nlohmann_json)
-    # P1 prototype: gbench-based profiler emitting canonical JSONL (distribution
-    # + measured provenance). Stamps the git sha at configure time for provenance.
-    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                    OUTPUT_VARIABLE BT_GIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-    foreach(app tree cifar-dense cifar-sparse)
-      bt_add_vk_app(bm-prof-${app}-vk pipe/${app}-vk/bm_prof.cpp benchmark::benchmark nlohmann_json::nlohmann_json)
-      target_compile_definitions(bm-prof-${app}-vk PRIVATE BT_GIT_SHA="${BT_GIT_SHA}")
-    endforeach()
   endif()
 endif()
 
