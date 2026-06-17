@@ -18,8 +18,15 @@ from .solution_analyzer import (
 
 
 # baseline_data,
-def solve_optimization_problem(stage_timings, num_solutions=30, app_name=None):
-    """Solve the optimization problem and return the solutions."""
+def solve_optimization_problem(
+    stage_timings, num_solutions=30, app_name=None, minimize_mode="gapness"
+):
+    """Solve the optimization problem and return the solutions.
+
+    minimize_mode: "gapness" (minimize T_max - T_min, load balance) or "max_time"
+    (minimize T_max, the pipeline makespan). Was hardcoded to gapness -- the caller's
+    choice never reached the solver, so every "tmax" schedule was a gapness clone.
+    """
     # Initialize data
     num_stages, core_types, stage_timings_data = define_data(stage_timings, app_name)
 
@@ -37,12 +44,17 @@ def solve_optimization_problem(stage_timings, num_solutions=30, app_name=None):
     add_assignment_constraints(opt, x, num_stages, core_types)
 
     T_max, T_min, Gapness = add_chunk_time_constraint(
-        opt, x, core_types, num_stages, stage_timings_data
+        opt, x, core_types, num_stages, stage_timings_data, minimize_mode
     )
 
     add_contiguity_constraints(opt, x, core_types, num_stages)
 
-    print("\nOptimization approach: Minimizing the gap between max and min chunk times")
+    objective = (
+        "T_max (the pipeline makespan)"
+        if minimize_mode == "max_time"
+        else "the gap between max and min chunk times"
+    )
+    print(f"\nOptimization approach: Minimizing {objective}")
     print("---------------------------------------------------------------------")
 
     # Find up to num_solutions solutions

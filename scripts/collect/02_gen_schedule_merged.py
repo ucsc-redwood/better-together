@@ -160,8 +160,12 @@ def main():
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
-        # Solve the optimization problem
-        solutions = solve_optimization_problem(stage_timings, args.num_solutions, app)
+        # Solve the optimization problem. Map the CLI token "tmax" to the solver's
+        # "max_time" (constraints.py uses the latter); "gapness" passes through.
+        solver_mode = "max_time" if minimize_mode == "tmax" else minimize_mode
+        solutions = solve_optimization_problem(
+            stage_timings, args.num_solutions, app, solver_mode
+        )
 
         # Update the solutions to reflect the correct GPU backend
         for solution in solutions:
