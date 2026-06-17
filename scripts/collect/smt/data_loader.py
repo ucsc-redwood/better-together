@@ -51,6 +51,18 @@ def load_csv_and_compute_averages(csv_path, app_name, verbose=False):
     if verbose:
         print(f"Using {'CUDA' if use_cuda else 'Vulkan'} as the GPU backend")
 
+    # A CPU tier whose whole column is zero is ABSENT on this device (the profiler omits
+    # PUs the hardware lacks; the CSV exports them as 0.0). Encode absent tiers as
+    # UNAVAILABLE -- a huge cost -- so z3 never assigns a stage to hardware that does not
+    # exist. A 0.0 cost looks infinitely fast in a minimization, so z3 would pick the
+    # absent PU and the executor would then crash (e.g. the Big-only MiniPC has no
+    # little/medium cores). GPU is always present (the profiler measured it).
+    UNAVAILABLE = 1e9
+    tier_present = {pu: float(avg_df[pu].sum()) > 0.0 for pu in ("little", "medium", "big")}
+    if verbose:
+        absent = [pu for pu, ok in tier_present.items() if not ok]
+        print(f"Absent CPU tiers (marked unavailable): {absent or 'none'}")
+
     # Get application-specific stage count
     num_stages = get_num_stages_for_app(app_name) if app_name else 9
 
@@ -59,15 +71,21 @@ def load_csv_and_compute_averages(csv_path, app_name, verbose=False):
     # where gpu_time is either vulkan_time or cuda_time
     avg_timings = []
     for stage in range(1, num_stages + 1):  # Use app-specific number of stages
-        if stage in avg_df.index:
-            row = avg_df.loc[stage]
-            # Use cuda if available, otherwise use vulkan
-            gpu_time = row["cuda"] if use_cuda else row["vulkan"]
-            avg_timings.append([row["little"], row["medium"], row["big"], gpu_time])
-        else:
-            print(f"Warning: Stage {stage} not found in data")
-            # Use zeros as fallback
-            avg_timings.append([0.0, 0.0, 0.0, 0.0])
+        if stage not in avg_df.index:
+            # Fail loud: a missing stage means incomplete profiling data. Fabricating a
+            # zero-cost stage would hand z3 a free phantom and a bogus schedule.
+            raise ValueError(
+                f"stage {stage} missing from {csv_path} (incomplete profiling data); "
+                f"refusing to fabricate a zero-cost stage"
+            )
+        row = avg_df.loc[stage]
+        gpu_time = row["cuda"] if use_cuda else row["vulkan"]
+        avg_timings.append([
+            row["little"] if tier_present["little"] else UNAVAILABLE,
+            row["medium"] if tier_present["medium"] else UNAVAILABLE,
+            row["big"] if tier_present["big"] else UNAVAILABLE,
+            gpu_time,
+        ])
 
     return avg_timings, use_cuda
 
