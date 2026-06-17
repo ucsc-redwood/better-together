@@ -66,10 +66,13 @@ docker build -t bt-cross:6.1 -f Dockerfile.cross .
 # build everything for the Jetson (native x86 speed, no emulation)
 scripts/cross-build-jetson.sh         # == cmake --preset jetson && cmake --build --preset jetson
 
-# run on the device
-scp build/jetson/test-tree-cu <user>@<jetson>:~/
-ssh <user>@<jetson> './test-tree-cu --device jetson'
+# deploy to /tmp and run (handles the fish login shell for you)
+scripts/run-on-jetson.sh              # all CUDA tests; or pass targets: ... test-tree-cu
 ```
+
+> Prefer the script. The manual equivalent must pipe bash over stdin because
+> `duck-naughty`'s login shell is fish — `ssh duck-naughty bash -s <<'EOF' …` — an
+> inline `ssh duck-naughty '… for …'` fails to parse. Hosts/serials: [`01-hardware.md`](01-hardware.md).
 
 nvcc statically links the CUDA runtime, so the binary needs no extra libraries on
 the Jetson. The toolchain finds nvcc from `$CUDACXX`, else the container's
@@ -83,12 +86,12 @@ and run on a machine with an iGPU (Intel/AMD), or on the Jetson.
 
 ```bash
 cmake --preset vulkan && cmake --build --preset vulkan
-# copy to an iGPU box and run (gcc's libgomp is usually already present there):
-scp build/vulkan/test-tree-vk <user>@<igpu-box>:~/
-ssh <user>@<igpu-box> 'LD_LIBRARY_PATH=. ./test-tree-vk --device minipc'
+# deploy to the iGPU box (rocky-ryzen) and run; gcc's libgomp is usually present there:
+scripts/run-on-rocky.sh               # all Vulkan tests; or pass targets to narrow
 ```
 
 `libvulkan` is loaded via `dlopen` at runtime, so the binary doesn't link it.
+(rocky-ryzen is also fish — the script uses `ssh … bash -s`; see [`01-hardware.md`](01-hardware.md).)
 
 ## `android` — arm64-v8a (OpenMP + Vulkan), cross-compiled
 
@@ -100,12 +103,13 @@ sdkmanager "ndk;29.0.14206865"          # -> $ANDROID_HOME/ndk/29.0.14206865
 
 cmake --preset android && cmake --build --preset android
 
-# run on a connected device via adb
-adb push build/android/test-tree-vk \
-  "$ANDROID_HOME/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" \
-  /data/local/tmp/bt/
-adb shell 'cd /data/local/tmp/bt && chmod 755 * && LD_LIBRARY_PATH=. ./test-tree-vk --device <serial>'
+# deploy to the phone and run (finds libc++_shared.so, pushes, runs; serial = device id)
+scripts/run-on-android.sh 3A021JEHN02756        # Pixel 7a (adb on build box)
+# Samsung is attached to rocky-ryzen — run the script from there (it self-checks the host)
 ```
+
+> The script suffixes every `adb shell` with `</dev/null` — without that, the first
+> `adb shell` eats the rest of a heredoc/script and later commands silently no-op.
 
 NDK resolution order in [`android-arm64.cmake`](../../cmake/toolchains/android-arm64.cmake):
 `$ANDROID_NDK_HOME` → `$ANDROID_HOME/ndk/$BT_ANDROID_NDK_VERSION` → `$ANDROID_NDK_ROOT`.

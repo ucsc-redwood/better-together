@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Deploy & run BetterTogether test binaries on the Jetson Orin (CUDA + Vulkan).
+#
+# Why this script exists (gotcha it handles for you):
+#   duck-naughty's LOGIN SHELL IS FISH. An inline
+#     ssh duck-naughty '... for t in ...; do ...; done'
+#   fails with a fish parse error ("Missing end to balance this for loop").
+#   We pipe a real bash script over stdin via `ssh HOST bash -s` instead, which
+#   bypasses the login shell entirely.
+#
+# Deploy goes to the target's /tmp (never the home dir): /tmp/bt.
+#
+# Usage:   scripts/run-on-jetson.sh [test-target ...]
+#          default targets: the three CUDA test binaries
+# Env:     BT_JETSON_HOST (default duck-naughty), BT_JETSON_DEVICE (jetson),
+#          BT_JETSON_BUILD (build/jetson)
+set -euo pipefail
+
+HOST=${BT_JETSON_HOST:-duck-naughty}
+DEVICE=${BT_JETSON_DEVICE:-jetson}
+BUILD=${BT_JETSON_BUILD:-build/jetson}
+DEST=/tmp/bt
+
+targets=("$@")
+[ ${#targets[@]} -gt 0 ] || targets=(test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu)
+
+paths=(); for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
+
+echo ">> staging ${#targets[@]} binaries to $HOST:$DEST"
+ssh "$HOST" bash -s <<EOF
+mkdir -p $DEST
+EOF
+scp "${paths[@]}" "$HOST:$DEST/"
+
+echo ">> running on $HOST (--device $DEVICE)"
+# QUOTED heredoc -> nothing expands locally; args are passed via \`bash -s\`.
+ssh "$HOST" bash -s "$DEVICE" "${targets[@]}" <<'EOF'
+set -e
+device=$1; shift
+cd /tmp/bt
+fail=0
+for t in "$@"; do
+  echo "== $t =="
+  ./"$t" --device "$device" || fail=1
+done
+exit $fail
+EOF

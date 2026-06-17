@@ -66,7 +66,7 @@ per-stage GPU time is available on the phones via the same JSON.
 | off-CPU (the sync tax) | `bpftrace` one-liner / BCC `offcputime` | histogram text | **finds `waitForFences` / queue-empty blocking** |
 | TMA top-down | `perf stat --topdown` or `toplev -lN --csv` | CSV | top-down beats roofline for the dispatch path |
 
-### Jetson — CUDA (`ssh duck-naughty`)
+### Jetson — CUDA (`ssh duck-naughty`; login shell is fish → `ssh … bash -s` for multi-line)
 
 `nsys`/`ncu` are **not deprecated** — they replaced `nvprof`/`nvvp`. Both have headless
 CLI export. For *this* runtime, the valuable signal is the **gap between the CPU submit
@@ -98,7 +98,7 @@ projected onto the GPU; kernel-to-kernel gaps in `cuda_gpu_trace` → GPU starve
 > Tegra is **UMA**: no separate H2D/D2H copy timeline, so watch kernel gaps + sync, not
 > copy/compute overlap. GPU context-switch trace needs `sudo nsys`.
 
-### Rocky MiniPC — Vulkan / RADV (`ssh rocky-ryzen`, fish → `bash -lc`)
+### Rocky MiniPC — Vulkan / RADV (`ssh rocky-ryzen`, fish → `ssh … bash -s` / `bash -lc`)
 
 | Tool | Command | Output |
 |---|---|---|
