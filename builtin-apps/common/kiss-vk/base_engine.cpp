@@ -44,6 +44,11 @@ BaseEngine::BaseEngine(const bool enable_validation_layer)
 BaseEngine::~BaseEngine() {
   if (g_vma_allocator) {
     vmaDestroyAllocator(g_vma_allocator);
+    // Null the global so a second BaseEngine destruction (or any later use via
+    // vma_pmr) can't double-free / use-after-free this handle. NOTE: g_vma_allocator
+    // is still a single global shared across engines, so two BaseEngines must not
+    // coexist; this guard makes the common create→destroy→create sequence safe.
+    g_vma_allocator = nullptr;
   }
 }
 
