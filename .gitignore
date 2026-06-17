@@ -42,7 +42,10 @@ cifar-10-batches-py/
 *.sqlite
 .venv/
 venv/
-data/cifar-10-python.tar.gz
+# Experiment artifacts: profiling tables, z3 schedules, execution/benchmark logs,
+# and the CIFAR dataset — all regenerable (BT-Profiler → export → z3 → run). The
+# canonical results live as a release artifact / external store, not in git history.
+data/
 
 # Trained checkpoints (~137MB; regenerable via scripts/data_prep/alexnet_cifar10.py)
 saved_params/
