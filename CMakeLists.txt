@@ -346,6 +346,8 @@ if(BT_BUILD_TESTS)
     # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|CUDA
     # schedule -- concurrent CPU+GPU on zero-copy pinned UMA (the §1 visibility gate).
     bt_add_cuda_test(test-pipeline-e2e-cu builtin-apps/tree/cuda/test_pipeline_main_cu.cu)
+    bt_add_cuda_test(test-pipeline-e2e-cifar-dense-cu  builtin-apps/cifar-dense/cuda/test_pipeline_main_cu.cu)
+    bt_add_cuda_test(test-pipeline-e2e-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/test_pipeline_main_cu.cu)
   endif()
 
   # Vulkan unit tests — run on an integrated-GPU box (rocky-ryzen) or the Jetson.
@@ -369,5 +371,7 @@ if(BT_BUILD_TESTS)
     # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|Vulkan
     # schedule -- concurrent CPU+GPU on shared UMA (the §1/§7 visibility gate).
     bt_add_vk_test(test-pipeline-e2e-vk builtin-apps/tree/vulkan/test_pipeline_main_vk.cpp)
+    bt_add_vk_test(test-pipeline-e2e-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_pipeline_main_vk.cpp)
+    bt_add_vk_test(test-pipeline-e2e-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_pipeline_main_vk.cpp)
   endif()
 endif()
