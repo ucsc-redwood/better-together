@@ -130,7 +130,7 @@ endfunction()
 bt_add_omp_run(run-cifar-dense-omp builtin-apps/cifar-dense/omp/main.cpp)
 
 # ---- utility / diagnostics (standalone CPU tools) -------------------------
-add_executable(test-affinity utility/test_affinity.cpp)   # core-pinning probe
+add_executable(test-affinity utility/probe_affinity.cpp)   # core-pinning probe
 target_link_libraries(test-affinity PRIVATE bt::core bt::openmp)
 add_executable(query-cpuinfo utility/query_cpuinfo.cpp)   # CPU topology (Linux/Android)
 add_executable(stressor-omp utility/stress/stressor-omp.cpp)  # OMP CPU interference load
@@ -197,8 +197,8 @@ if(BT_ENABLE_CUDA)
   bt_add_cuda_app(run-cifar-dense-cu   builtin-apps/cifar-dense/cuda/main.cu)
   bt_add_cuda_app(run-cifar-sparse-cu  builtin-apps/cifar-sparse/cuda/main.cu)
 
-  # utility: OMP-inside-a-CUDA-TU sanity (test_omp.cu)
-  add_executable(test-omp utility/test_omp.cu)
+  # utility: OMP-inside-a-CUDA-TU sanity (probe_omp.cu)
+  add_executable(test-omp utility/probe_omp.cu)
   set_target_properties(test-omp PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
   target_compile_options(test-omp PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fopenmp>)
   target_link_libraries(test-omp PRIVATE bt::openmp)
