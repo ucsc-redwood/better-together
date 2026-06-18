@@ -3,8 +3,9 @@
 > CMake is **the build system** (xmake was retired 2026-06-16; history:
 > [`../reports-for-human/cmake-migration-rfc.md`](../reports-for-human/cmake-migration-rfc.md)).
 > It covers the CPU(OpenMP) + CUDA + Vulkan paths for all three apps, plus the
-> runners, benchmarks, and tests. Not ported: the volk diagnostics
-> (check-vulkan/query-warpsize) and NNAPI targets (sources still under `utility/`).
+> runners, benchmarks, and tests. The unported volk diagnostics
+> (check-vulkan/query-warpsize, query_warpsize superseded by the devices `subgroup_size`)
+> and the NNAPI targets were removed as dead code (2026-06-18); recover from git if needed.
 
 ## TL;DR — just want to build & test on this machine
 
