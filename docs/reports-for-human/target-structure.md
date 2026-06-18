@@ -272,14 +272,18 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       `orchestrate.case` — the SMT layer depends *up* onto orchestrate; `case.py` is really a
       shared model. Candidate for a later move. **Gate: G-omp + `pytest optimizer/tests`.**
 
-- [ ] **P3 — Break the cycle + kill the executor (the load-bearing C++ change, contained).** Move
-      `pipe/pipeline_common.hpp` → `runtime/pipeline.hpp`, `pipe/mr_ptr.hpp` → `platform/mem/mr_ptr.hpp`.
-      Introduce `runtime/app_traits.hpp`; re-thread `pipeline_runner` to take `AppTraits`; **delete
-      `pipeline_test_executor.hpp`**. Update the 11 reverse includes + the 6 `profiler/*/const.hpp`
-      cells + 8 pipeline-test TUs to instantiate `pipeline_runner<App>()`. ~30 edits, mostly the
-      typedef-preamble shrink. **Riskiest edit (live SPSC ring; deadlock watchdog + open
-      `AlternatingBoundary` segfault) — Gate: G-omp AND G-gpu AND G-runtime on all three machines
-      before proceeding.**
+- [x] **P3 — Break the cycle + kill the executor (the load-bearing C++ change, contained).** ✅ DONE.
+      Moved `pipe/pipeline_common.hpp` → `runtime/pipeline.hpp`, `pipe/mr_ptr.hpp` →
+      `platform/mem/mr_ptr.hpp`, `pipeline_test_runner.hpp` → `runtime/pipeline_runner.hpp`. Added
+      `runtime/app_traits.hpp` (`AppTraits<Dispatcher>` + C++20 `BtRuntimeApp` concept); **deleted
+      `pipeline_test_executor.hpp`** (generic `OmpStubDispatcher<AppData>` replaces its tree-hardcoded
+      stub). The 4 free functions are now templates (the magic-typedef ODR contract is gone); the SPSC
+      ring body of `run_pipeline()` is byte-identical. The 9 test TUs shrink to an `AppTraits`
+      specialization + `run_runtime_test<Dispatcher>()`. **Keying decision (diverges from the plan's
+      `AppTraits<App>`):** keyed on the **Dispatcher** type — tree's OMP+CUDA cells share
+      `tree::SafeAppData` and all of cifar's backends share one `cifar_*::AppData`, so AppData/App
+      can't identify a cell (see [[safe-appdata-debt]]). **Gate: G-omp + G-gpu + G-runtime all
+      green** — Jetson CUDA + rocky Vulkan, every differential AND pipeline-e2e test passed.
 
 - [ ] **P4 — Vocabulary codegen (additive, proven pattern).** Add `vocab.json` + `embed_vocab.py`
       + `bt_codegen.cmake` (clone the device-spec `add_custom_command`). Replace the ~6 enum sites
