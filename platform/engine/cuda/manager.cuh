@@ -12,8 +12,7 @@ namespace cuda {
 // the previously-held cudaStream_ was created/destroyed but never used; dropped.
 
 template <typename MemResourceT>
-  requires std::is_same_v<MemResourceT, CudaManagedResource> ||
-           std::is_same_v<MemResourceT, CudaPinnedResource>
+  requires std::is_same_v<MemResourceT, CudaPinnedResource>
 class CudaManager {
  public:
   [[nodiscard]] MemResourceT &get_mr() { return mr_; }
