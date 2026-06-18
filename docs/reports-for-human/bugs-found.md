@@ -410,26 +410,29 @@ noted for the registry/refactor work.
 
 ---
 
-## Stale `worker<QueueT>` in the `pipe/*-cu/main.cu` cell runners — **SUSPECTED PRE-EXISTING BREAK (surfaced 2026-06-17, P3 refactor; left as-is)**
+## Non-standard `worker<QueueT>` in the `pipe/*-cu/main.cu` cell runners — **PORTABILITY NIT, nvcc-only-accepted (surfaced 2026-06-17; resolved as a side effect of P3)**
 
 **Files:** `pipe/{tree,cifar-dense,cifar-sparse}-cu/main.cu` (the `run-pipe-*-cu`
 targets, `CMakeLists.txt:191-193`).
 
-Each calls the pipeline worker as a **template**: `std::thread t0(worker<QueueT>, …)`
+Each calls the pipeline worker as a **template-id**: `std::thread t0(worker<QueueT>, …)`
 (`pipe/tree-cu/main.cu:15,23`). But `worker` in `pipe/pipeline_common.hpp:54` is a
-**non-template** `static inline void worker(QueueT&, …)` — it has been a plain
-function since commit `a72c259` ("lift the duplicated const.hpp plumbing into
+**non-template** `static inline void worker(QueueT&, …)` — it has been a plain function
+since commit `a72c259` ("lift the duplicated const.hpp plumbing into
 pipeline_common.hpp"), which replaced the per-cell templated workers with one
 magic-typedef function but did **not** update these `main.cu` call sites.
-`worker<QueueT>` against a non-template `worker` is ill-formed, so these three
-CUDA cell *run* targets almost certainly fail to compile on the Jetson cross-build
-today. They are `run-` app drivers, not ctest tests, so no test inventory hides it;
-the pc baseline (OMP) never builds them.
 
-**Why noted, not fixed (mandate: behavior-preserving refactor — surface, don't fix):**
-the *intended* `worker` is templated on the queue type (with the callable deduced),
-which is exactly the form the P3 templatization introduces (`runtime/pipeline.hpp`).
-So `worker<QueueT>` becomes valid again as a **side effect** of P3's mechanical
-templatization — no deliberate bug-fix edit. To be confirmed by the Jetson
-cross-build that gates P3/P5; if the targets were already red, that is captured as a
-pre-existing failure, not a refactor regression.
+**Correction to the first triage:** a template-argument-list on a non-template name is
+ill-formed in standard C++ — a standalone **g++ -std=c++20** repro rejects it
+(`error: expected '(' after template-argument-list`). I initially inferred the cu
+targets must be broken. They are **not**: **nvcc accepts** the construct (it tolerates
+the bogus `<QueueT>` and binds to the plain `worker`). Verified by a clean docker
+cross-rebuild (`CCACHE_DISABLE=1`, source touched, no ccache configured anywhere) —
+`run-pipe-tree-cu` builds green, rc=0. So this is a **latent portability nit** (compiles
+only because the CUDA toolchain is lenient and is the only toolchain these cells use),
+**not** a break. No test inventory is affected (they are `run-` drivers, not ctest tests).
+
+**Resolution:** P3 templatizes `worker` into a real `template<class Queue, class AppData>`
+(`runtime/pipeline.hpp`) and updates the call sites to the explicit, standard-conforming
+`worker<QueueT, AppDataT>` — which compiles on **both** g++ and nvcc. So P3 removes the
+nit mechanically; not a deliberate behavior change.
