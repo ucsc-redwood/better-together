@@ -31,12 +31,19 @@ parts = [
 ]
 
 for f in DEVICES:
-    text = f.read_text().rstrip("\n")
+    text = f.read_text(encoding="utf-8").rstrip("\n")
     # raw string delimiter chosen to not collide with JSON contents
     parts.append(f"    // {f.name}")
     parts.append(f'    R"DEVSPEC({text})DEVSPEC",')
 
 parts += ["};", "", "}  // namespace bt::device_specs", ""]
 
-OUT.write_text("\n".join(parts) + "\n")
-print(f"wrote {OUT.relative_to(ROOT)} with {len(DEVICES)} device specs")
+content = "\n".join(parts) + "\n"
+# Idempotent write: only touch the file when the content actually changes, so a clean
+# tree stays clean and a read-only checkout (CI) is not forced to rewrite an identical
+# committed header on every configure (review #20). Encoding pinned to utf-8 (#23).
+if not OUT.exists() or OUT.read_text(encoding="utf-8") != content:
+    OUT.write_text(content, encoding="utf-8")
+    print(f"wrote {OUT.relative_to(ROOT)} with {len(DEVICES)} device specs")
+else:
+    print(f"{OUT.relative_to(ROOT)} unchanged ({len(DEVICES)} device specs)")

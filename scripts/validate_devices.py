@@ -50,8 +50,15 @@ GOLDEN = {
     "9b034f1b": _run(
         [(range(0, 3), "little", True), (range(3, 5), "medium", True), (range(5, 8), "big", False)]
     ),
+    # ce0717: little at ids 0-3, big at 4-7 per the data-driven devices/ registry (the
+    # source of truth post-migration). NOTE: this is the INDEX-SWAPPED inverse of the old
+    # conf.cpp@109bcf1 golden (which had little 4-7 / big 0-3) -- confirm against the real
+    # hardware that little==0-3 is the correct physical layout (affinity pinning depends on it).
     "ce0717178d7758b00b7e": _run(
-        [(range(4, 8), "little", True), (range(0, 4), "big", True)]
+        [(range(0, 4), "little", True), (range(4, 8), "big", True)]
+    ),
+    "ZY22FLDDK7": _run(
+        [(range(0, 4), "big", True), (range(4, 8), "little", True)]
     ),
     "R9TR30814KJ": _run(
         [(range(0, 4), "little", True), (range(4, 7), "big", False), ([7], "big", True)]

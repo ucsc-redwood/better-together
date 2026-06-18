@@ -35,7 +35,10 @@ if ! adb -s "$serial" get-state >/dev/null 2>&1; then
 fi
 
 ndk=${ANDROID_NDK_HOME:-${ANDROID_HOME:-$HOME/Android/Sdk}/ndk/29.0.14206865}
-libcxx=$(find "$ndk" -name libc++_shared.so -path '*aarch64*' 2>/dev/null | head -1)
+# libc++ ABI dir under the NDK: aarch64 for the arm64 preset; set BT_ANDROID_LIBCXX_ARCH=
+# arm-linux-androideabi for an armeabi-v7a (android32) build so the matching .so is shipped.
+libcxx_arch=${BT_ANDROID_LIBCXX_ARCH:-aarch64}
+libcxx=$(find "$ndk" -name libc++_shared.so -path "*${libcxx_arch}*" 2>/dev/null | head -1)
 [ -n "$libcxx" ] || { echo "error: libc++_shared.so not found under $ndk" >&2; exit 1; }
 
 paths=(); for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done

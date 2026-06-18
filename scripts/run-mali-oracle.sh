@@ -25,7 +25,8 @@ targets=("$@")
 [ ${#targets[@]} -gt 0 ] || targets=(test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk)
 
 ndk=${ANDROID_NDK_HOME:-${ANDROID_HOME:-$HOME/Android/Sdk}/ndk/29.0.14206865}
-libcxx=$(find "$ndk" -name libc++_shared.so -path '*aarch64*' 2>/dev/null | head -1)
+libcxx_arch=${BT_ANDROID_LIBCXX_ARCH:-aarch64}
+libcxx=$(find "$ndk" -name libc++_shared.so -path "*${libcxx_arch}*" 2>/dev/null | head -1)
 [ -n "$libcxx" ] || { echo "error: libc++_shared.so not found under $ndk" >&2; exit 1; }
 
 paths=(); for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done

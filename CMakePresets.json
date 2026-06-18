@@ -58,12 +58,29 @@
         "BT_TEST_DEVICE": "android",
         "BT_ANDROID_NDK_VERSION": "29.0.14206865"
       }
+    },
+    {
+      "name": "android32",
+      "displayName": "Android armeabi-v7a / 32-bit (Vulkan) — needs ANDROID_NDK_HOME",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/android32",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/android-arm32.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BT_ENABLE_CUDA": "OFF",
+        "BT_ENABLE_VULKAN": "ON",
+        "BT_BUILD_TESTS": "ON",
+        "BT_BUILD_BENCHMARKS": "ON",
+        "BT_TEST_DEVICE": "android",
+        "BT_ANDROID_NDK_VERSION": "29.0.14206865"
+      }
     }
   ],
   "buildPresets": [
     { "name": "pc", "configurePreset": "pc" },
     { "name": "jetson", "configurePreset": "jetson" },
     { "name": "vulkan", "configurePreset": "vulkan" },
-    { "name": "android", "configurePreset": "android" }
+    { "name": "android", "configurePreset": "android" },
+    { "name": "android32", "configurePreset": "android32" }
   ]
 }

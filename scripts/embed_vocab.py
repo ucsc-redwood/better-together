@@ -20,7 +20,15 @@ OUT_PY = ROOT / "optimizer" / "smt" / "bt_vocab.py"
 if not VOCAB.exists():
     sys.exit("vocab.json not found")
 
-v = json.loads(VOCAB.read_text())
+v = json.loads(VOCAB.read_text(encoding="utf-8"))
+
+
+def _write_if_changed(path, content):
+    # Only touch the file when content changes: clean tree stays clean, read-only CI is
+    # not forced to rewrite an identical committed file (review #20). utf-8 pinned (#23).
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists() or path.read_text(encoding="utf-8") != content:
+        path.write_text(content, encoding="utf-8")
 pus = v["processor_types"]
 named = [p for p in pus if p.get("name")]  # CoreTypeName/parse handle the named tiers
 cpu_tiers = [p["name"] for p in pus if p.get("solver_cpu_tier")]
@@ -59,8 +67,7 @@ hpp += [
     "}",
     "",
 ]
-OUT_HPP.parent.mkdir(parents=True, exist_ok=True)
-OUT_HPP.write_text("\n".join(hpp))
+_write_if_changed(OUT_HPP, "\n".join(hpp))
 
 # ---- Python : optimizer/smt/bt_vocab.py -----------------------------------------
 py = [
@@ -79,6 +86,6 @@ py = [
     f"APP_STAGES = {dict(v['app_stages'])!r}",
     "",
 ]
-OUT_PY.write_text("\n".join(py))
+_write_if_changed(OUT_PY, "\n".join(py))
 
 print(f"wrote {OUT_HPP.relative_to(ROOT)} and {OUT_PY.relative_to(ROOT)}")

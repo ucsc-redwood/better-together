@@ -138,6 +138,14 @@ if(BT_BUILD_TESTS)
     add_test(NAME guard-runtime-agnostic
              COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/guard_runtime_agnostic.py)
     set_tests_properties(guard-runtime-agnostic PROPERTIES LABELS "omp;guard")
+
+    # validate-devices: structural schema check of devices/*.json + a golden core-topology
+    # characterization that locks each device's affinity map against silent drift. The
+    # embed step bakes these JSONs into the runtime verbatim, so this is the guard that a
+    # structurally-valid-but-wrong value can't slip in unnoticed. Hardware-free -> omp gate.
+    add_test(NAME validate-devices
+             COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/validate_devices.py)
+    set_tests_properties(validate-devices PROPERTIES LABELS "omp;guard")
   endif()
 endif()
 

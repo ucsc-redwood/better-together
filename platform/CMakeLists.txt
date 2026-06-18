@@ -19,27 +19,19 @@ target_link_libraries(bt_core PUBLIC
   spdlog::spdlog CLI11::CLI11 glm::glm libmorton bt::openmp nlohmann_json::nlohmann_json)
 
 # device_specs_embedded.hpp (conf.cpp includes it) is generated from devices/*.json by
-# scripts/embed_device_specs.py. Regenerate it at build time whenever a device JSON or
-# the generator changes, so editing devices/*.json is picked up without a manual step.
-# The script writes identical bytes when nothing changed, so a clean tree stays clean;
-# if no python is found, the committed header is used as-is.
-if(BT_PYTHON)
-  file(GLOB BT_DEVICE_JSONS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/devices/*.json)
-  add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp
-    COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
-    DEPENDS ${BT_DEVICE_JSONS} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
-    COMMENT "Embedding devices/*.json -> device_specs_embedded.hpp"
-    VERBATIM)
-  add_custom_target(bt_device_specs
-    DEPENDS ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp)
-  add_dependencies(bt_core bt_device_specs)
-endif()
+# scripts/embed_device_specs.py. Both the device specs and the vocab go through bt_codegen
+# (regenerate at build time when a source JSON or the generator changes; the script writes
+# only when bytes change so a clean tree stays clean; no python -> committed header used).
+include(${CMAKE_SOURCE_DIR}/cmake/bt_codegen.cmake)
+
+file(GLOB BT_DEVICE_JSONS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/devices/*.json)
+bt_codegen(TARGET  bt_device_specs
+           SCRIPT  ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
+           DEPENDS ${BT_DEVICE_JSONS}
+           OUTPUTS ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp)
 
 # Vocabulary codegen: vocab.json -> platform/vocab/generated/bt_vocab.hpp (the
-# ProcessorType enum etc., included by conf.hpp) + optimizer/smt/bt_vocab.py. Same
-# committed-fallback pattern as the device specs (bt_codegen depends bt_core on it).
-include(${CMAKE_SOURCE_DIR}/cmake/bt_codegen.cmake)
+# ProcessorType enum etc., included by conf.hpp) + optimizer/smt/bt_vocab.py.
 bt_codegen(TARGET  bt_vocab
            SCRIPT  ${CMAKE_SOURCE_DIR}/scripts/embed_vocab.py
            DEPENDS ${CMAKE_SOURCE_DIR}/vocab.json
