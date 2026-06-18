@@ -14,6 +14,7 @@ row, so an N-run isolated.csv inflated the baseline N-fold.
 """
 from orchestrate.case import Case
 from smt.profiling_loader import load_profiling
+from .bt_vocab import APP_STAGES  # generated from vocab.json
 
 # Default profiling-store root (overridable by callers, e.g. 02's --profiling_root).
 DEFAULT_PROFILING_ROOT = "data/profiling"
@@ -66,11 +67,7 @@ def get_baseline_for_config(device, app, backend, root=DEFAULT_PROFILING_ROOT):
 
 def get_num_stages_for_app(app_name):
     """Get the number of stages for the given application."""
-    stage_counts = {
-        "tree": 7,
-        "cifar-dense": 9,
-        "cifar-sparse": 9,
-    }
+    stage_counts = APP_STAGES  # generated from vocab.json
 
     # Extract the base app name without backend suffix
     base_app = app_name.split("-")[0] if "-" in app_name else app_name

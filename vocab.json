@@ -1,0 +1,22 @@
+{
+  "_comment": "Single source of truth for the framework vocabulary (PU tiers, backends, app stage counts). Codegen -> builtin-apps/generated/bt_vocab.hpp (C++) + optimizer/smt/bt_vocab.py (Python) via scripts/embed_vocab.py. Encodes the CURRENT values verbatim; behavior-preserving (the orphaned 'super' tier stays out of the solver's tier list exactly as today -- see docs/reports-for-human/target-structure.md P4).",
+  "processor_types": [
+    { "cpp": "kLittleCore", "value": 0, "name": "little", "display": "Little", "solver_cpu_tier": true },
+    { "cpp": "kMediumCore", "value": 1, "name": "medium", "display": "Medium", "solver_cpu_tier": true },
+    { "cpp": "kBigCore",    "value": 2, "name": "big",    "display": "Big",    "solver_cpu_tier": true },
+    { "cpp": "kVulkan",     "value": 3, "name": null,     "display": "GPU" },
+    { "cpp": "kCuda",       "value": 4, "name": null,     "display": "GPU" },
+    { "cpp": "kSuperCore",  "value": 5, "name": "super",  "display": "Super", "orphaned_tier": true }
+  ],
+  "solver_core_types": ["Little", "Medium", "Big", "GPU"],
+  "backends": [
+    { "short": "omp", "long": "omp",    "exec_model": "kOMP",    "hardware": null },
+    { "short": "cu",  "long": "cuda",   "exec_model": "kCuda",   "hardware": "gpu_cuda" },
+    { "short": "vk",  "long": "vulkan", "exec_model": "kVulkan", "hardware": "gpu_vulkan" }
+  ],
+  "app_stages": {
+    "tree": 7,
+    "cifar-dense": 9,
+    "cifar-sparse": 9
+  }
+}

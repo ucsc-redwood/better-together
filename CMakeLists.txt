@@ -119,6 +119,16 @@ if(BT_PYTHON)
   add_dependencies(bt_core bt_device_specs)
 endif()
 
+# Vocabulary codegen: vocab.json -> builtin-apps/generated/bt_vocab.hpp (the
+# ProcessorType enum etc., included by conf.hpp) + optimizer/smt/bt_vocab.py. Same
+# committed-fallback pattern as the device specs (BT_PYTHON already found above).
+include(${CMAKE_SOURCE_DIR}/cmake/bt_codegen.cmake)
+bt_codegen(TARGET  bt_vocab
+           SCRIPT  ${CMAKE_SOURCE_DIR}/scripts/embed_vocab.py
+           DEPENDS ${CMAKE_SOURCE_DIR}/vocab.json
+           OUTPUTS ${CMAKE_SOURCE_DIR}/builtin-apps/generated/bt_vocab.hpp
+                   ${CMAKE_SOURCE_DIR}/optimizer/smt/bt_vocab.py)
+
 # ---- OMP single-app runners (executor; BT-Implementer single-app smoke) -----
 # Always built (not gated behind BT_BUILD_BENCHMARKS). ${ARGN} lets a runner
 # pull in its app's dispatcher .cpp when it isn't part of bt::core (e.g. octree).

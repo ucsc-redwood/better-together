@@ -3,13 +3,13 @@
 from orchestrate.case import Case
 from smt.profiling_loader import load_profiling
 from .baselines import get_num_stages_for_app
+from .bt_vocab import CPU_TIERS as _CPU_TIERS, CORE_TYPES  # generated from vocab.json
 
 # A CPU tier the device physically lacks -- encode as a huge cost so z3 never assigns a
 # stage to hardware that does not exist (0.0 would look infinitely fast in a minimization
 # and z3 would pick it, then the executor crashes -- e.g. the Big-only MiniPC has no
 # little/medium cores).
 UNAVAILABLE = 1e9
-_CPU_TIERS = ("little", "medium", "big")
 
 
 def load_stage_timings(root, device, app, backend, scenario,
@@ -70,7 +70,7 @@ def define_data(stage_timings=None, app_name=None):
     """Define the problem data."""
     # Get application-specific stage count if available
     num_stages = get_num_stages_for_app(app_name) if app_name else 9
-    core_types = ["Little", "Medium", "Big", "GPU"]
+    core_types = list(CORE_TYPES)
 
     # Use provided stage timings if available, otherwise use default values
     if stage_timings is not None:

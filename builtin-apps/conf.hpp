@@ -5,30 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
-// 1. Define an enum for core types.
-enum class ProcessorType {
-  kLittleCore = 0,
-  kMediumCore = 1,
-  kBigCore = 2,
-  kVulkan = 3,
-  kCuda = 4,
-  kSuperCore = 5,
-};
-
-inline std::string CoreTypeName(const ProcessorType core_type) {
-  switch (core_type) {
-    case ProcessorType::kLittleCore:
-      return "little";
-    case ProcessorType::kMediumCore:
-      return "medium";
-    case ProcessorType::kBigCore:
-      return "big";
-    case ProcessorType::kSuperCore:
-      return "super";
-    default:
-      return "unknown";
-  }
-}
+// 1. ProcessorType enum + CoreTypeName + ParseCoreType are generated from
+// vocab.json (the single source of truth) by scripts/embed_vocab.py, so the PU
+// tier set lives in ONE place instead of being hand-duplicated across conf.cpp,
+// config_reader, the schema, and the Python optimizer.
+#include "generated/bt_vocab.hpp"
 
 // 2. Define a struct for a Core.
 struct Core {
