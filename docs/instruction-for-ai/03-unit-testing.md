@@ -27,7 +27,7 @@ and compare the stage-S output buffer **element-wise**:
 
 Computing the OMP reference in-process on each target sidesteps x86-vs-aarch64 FP
 drift — the binary is self-validating wherever it runs, with no shipped goldens.
-Oracle helpers: `builtin-apps/common/testing/oracle.hpp`. Canonical model shapes for
+Oracle helpers: `platform/util/testing/oracle.hpp`. Canonical model shapes for
 cifar: [`04-alexnet-cifar-spec.md`](04-alexnet-cifar-spec.md).
 
 **Hardware gating, not hardware-required:** probe for the CUDA/Vulkan device at
@@ -99,8 +99,9 @@ docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
      test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu'
 scripts/run-on-jetson.sh                 # deploy to /tmp/bt + run all *-cu
 ```
-(Currently red — blocked by `TODO(cuda-managed-mem)`, see
-[`../reports-for-human/bugs-found.md`](../reports-for-human/bugs-found.md) §1.)
+(Green as of 2026-06-16 — the `cuda-managed-mem` visibility defect was fixed with
+zero-copy pinned memory; see [`../reports-for-human/bugs-found.md`](../reports-for-human/bugs-found.md) §1.
+Reverified 2026-06-18: tree-cu 7 / cifar-dense-cu 10 / cifar-sparse-cu 10.)
 
 **Vulkan — rocky-ryzen iGPU (x86, easiest):** build natively, then run.
 ```bash
@@ -108,7 +109,8 @@ cmake --preset vulkan
 cmake --build --preset vulkan --target test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
 scripts/run-on-rocky.sh                   # deploy + run all *-vk on the iGPU box
 ```
-cifar-dense-vk / cifar-sparse-vk = 9/9; tree-vk has the sort + 4/7 TODOs.
+All Vulkan suites green as of the 2026-06-16 all-green milestone (reverified on
+rocky-ryzen 2026-06-18: tree-vk 7 / cifar-dense-vk 10 / cifar-sparse-vk 10).
 
 **OMP on Android phones** (both phones' adb is on rocky-ryzen now; copy `build/android`
 there and run the script on rocky — `adb -s <serial>` selects the phone):

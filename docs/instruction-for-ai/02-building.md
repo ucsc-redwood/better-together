@@ -80,7 +80,7 @@ the Jetson. The toolchain finds nvcc from `$CUDACXX`, else the container's
 
 ## `vulkan` — Vulkan on an integrated-GPU box
 
-The Vulkan engine selects an **integrated GPU** (`kiss-vk/base_engine.cpp`), so it
+The Vulkan engine selects an **integrated GPU** (`platform/engine/vulkan/base_engine.cpp`), so it
 throws "No integrated GPU found" on a discrete-GPU desktop. Build natively on x86
 and run on a machine with an iGPU (Intel/AMD), or on the Jetson.
 
@@ -130,7 +130,7 @@ All environment-specific values are cache variables, not hardcoded:
 | `BT_ANDROID_NDK_VERSION` | `29.0.14206865` | `-DBT_ANDROID_NDK_VERSION=27.2.12479018` |
 
 The `--device <id>` passed to tests must match an entry in the device registry
-(`../../builtin-apps/conf.cpp` / `../../devices/*.json`); find a phone's id with `adb devices`.
+(`../../platform/registry/conf.cpp` / `../../devices/*.json`); find a phone's id with `adb devices`.
 
 ## Notes
 

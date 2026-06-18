@@ -27,7 +27,7 @@ built and run):
    everything measured is **pure framework tax**. `1.8M tasks/s` empty ⇒ `~555 ns/task`
    overhead. This is the headline number and the regression guard.
 2. **Differential** = `T_pipeline(fully) − Σ(kernel-only stage times)`. Both terms
-   already exist (`pipe/*/bm_fully_vs_normal` dumps them in the `### PYTHON_DATA ###`
+   already exist (`profiler/*/bm_fully_vs_normal` dumps them in the `### PYTHON_DATA ###`
    block); subtract to get overhead + parallelism net.
 
 Where the overhead hides in this codebase (the suspects worth instrumenting first):
@@ -152,7 +152,7 @@ the runtime.
 - **Report distributions (p50/p99), not means** — per-task overhead is long-tailed from
   scheduling jitter; an HdrHistogram is the right shape.
 - **Hot-path timestamps must be cheap**: `cntvct_el0` / `rdtsc` (the harness already has
-  `bt_bm::host_cycles()` in [`bm_manual_time.hpp`](../../builtin-apps/common/bm_manual_time.hpp)),
+  `bt_bm::host_cycles()` in [`bm_manual_time.hpp`](../../platform/util/bm_manual_time.hpp)),
   never `clock_gettime` in the inner loop.
 - **Pin threads** (affinity is already done) so migration doesn't masquerade as overhead.
 

@@ -49,7 +49,7 @@ source of truth for core tiers and pinning. This doc is the human/agent-readable
 | Pixel 7a | `3A021JEHN02756` | OMP + Vulkan (**subgroup 16**) | adb on `rocky-ryzen` (`adb -s`) | Mali subgroup-16 shader variant |
 | Samsung Galaxy | `R5CY21Y3VEV` | OMP + Vulkan (**subgroup 32**) | adb on `rocky-ryzen` (`adb -s`) | subgroup-32 shader variant |
 
-Key hardware constraint: `builtin-apps/common/kiss-vk/base_engine.cpp` **hard-selects
+Key hardware constraint: `platform/engine/vulkan/base_engine.cpp` **hard-selects
 an integrated GPU** (`eIntegratedGpu`) — discrete GPUs throw "No integrated GPU
 found", which is why the build box's RTX 4070 Ti never runs Vulkan.
 
@@ -139,6 +139,6 @@ backend bugs are in [`../reports-for-human/bugs-found.md`](../reports-for-human/
 | `fish: Missing end to balance this for loop` (or syntax errors over ssh) | Jetson / rocky **login shell is fish**; you sent bash syntax inline | `ssh HOST bash -s <<'EOF' … EOF`, or use the `run-on-*.sh` scripts. |
 | `adb` run exits 0 but produces **empty output**; later commands skipped | `adb shell` **ate the heredoc stdin** | Suffix every `adb` call with `</dev/null` (the scripts already do). |
 | CUDA build fails on the build box (CUB / `cub::` errors) | **CUDA 13** removed CUB; PC is **build-only** | Cross-compile in `bt-cross:6.1` and run on the Jetson; don't expect CUDA to run on the PC. |
-| `*-cu` tests **red on Jetson** (wrong/zero output) | known managed-memory visibility defect | See `bugs-found.md` §1 (`TODO(cuda-managed-mem)`) — not your change. |
+| `*-cu` tests **red on Jetson** (wrong/zero output) | was the managed-memory visibility defect | **Fixed** (zero-copy pinned, 2026-06-16); see `bugs-found.md` §1. If you still see it, rebuild from current `dev`. |
 | `--device <id>` self-skips core-pinning tests | unknown/missing device id (non-fatal by design) | Pass a real id from `devices/*.json`; `adb devices` for a phone serial. |
 | Vulkan on Mali was very slow / wrong before a rebuild | old kiss-vk host-coherency defect | Already fixed (HOST_CACHED + flush/invalidate); rebuild from current `dev`. |
