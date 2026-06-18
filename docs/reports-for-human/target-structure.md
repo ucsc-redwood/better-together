@@ -295,8 +295,21 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       vocab.json / data_loader / baselines / the schema enum. **← This is the off-ramp: P0–P4 deliver
       every robustness/decoupling win except build-enforcement, all gated green.**
 
-- [ ] **P5 — The component split (the atomic rewrite; do last, as one mechanical pass).**
-      `git mv builtin-apps/{pipeline→runtime, conf.*+app.*+affinity→platform/registry,
+- [~] **P5 — The component split.** Split into two commits:
+  - [x] **P5a — the move (DONE, full-fleet green).** `git mv` builtin-apps/pipe/utility into
+        `platform/ runtime/ apps/ profiler/ tools/` (app.*→`device_registry.*`); 228 includes rewritten
+        (relative→repo-root-prefixed→component paths; bare cross-boundary includes resolved by basename);
+        CMakeLists source paths + device/vocab codegen outputs + shader-bake Makefile remapped. Behavior-
+        preserving; gated **G-omp + G-gpu + G-runtime** (Jetson CUDA + rocky Vulkan, all differential +
+        pipeline-e2e green). Repo root is still the PUBLIC include dir (move correct, not yet enforced).
+  - [ ] **P5b — the enforcement (REMAINING).** Split the ~400-line root `CMakeLists.txt` into ~6
+        per-component sub-files + a thin `add_subdirectory` root, **narrowing each target's include scope
+        to its own component dir** (the §5 lever that makes P3's decoupling build-enforced). Move the shader
+        bake into `bt_add_app` (`BT_GLSLC` + committed-`.spv` fallback). Re-gate the full fleet; verify the
+        PC preset still never invokes `nvcc` and `bt::vulkan` keeps its `VulkanHeaders` SYSTEM include.
+
+  <!-- original P5 text retained below for reference -->
+  `git mv builtin-apps/{pipeline→runtime, conf.*+app.*+affinity→platform/registry,
       common/kiss-vk→platform/engine/vulkan, common/cuda→platform/engine/cuda, util→platform/util,
       <apps>→apps/}`, `pipe/→profiler/`, shaders into `apps/<app>/vulkan/shaders/`. Then one scripted
       `sed` pass rewriting the 66 prefixed + 162 relative includes to component paths, and **split the
