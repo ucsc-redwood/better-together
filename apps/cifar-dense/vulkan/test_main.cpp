@@ -17,7 +17,7 @@
 namespace {
 struct VulkanRunner {
   cifar_dense::vulkan::VulkanDispatcher disp;
-  static bool Available() { return true; }  // engine selects an integrated GPU
+  static bool Available() { return kiss_vk::has_integrated_gpu(); }  // skip if no iGPU
   std::pmr::memory_resource* Mr() { return disp.get_mr(); }
   void RunStage(cifar_dense::AppData& a, int stage) { disp.dispatch_stage(a, stage); }
 };

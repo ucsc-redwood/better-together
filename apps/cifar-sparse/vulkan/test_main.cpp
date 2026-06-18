@@ -17,7 +17,7 @@
 namespace {
 struct VulkanRunner {
   cifar_sparse::vulkan::VulkanDispatcher disp;
-  static bool Available() { return true; }  // engine selects an integrated GPU
+  static bool Available() { return kiss_vk::has_integrated_gpu(); }  // skip if no iGPU
   std::pmr::memory_resource* Mr() { return disp.get_mr(); }
   // cifar-sparse's Vulkan dispatcher exposes only dispatch_multi_stage; run one
   // stage as a width-1 range.

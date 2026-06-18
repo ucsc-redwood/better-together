@@ -7,6 +7,7 @@ or #include "apps/..."). Wired as a CTest (LABEL "guard").
 
 Run:  python3 scripts/guard_runtime_agnostic.py
 """
+import json
 import os
 import re
 import sys
@@ -14,9 +15,16 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(ROOT, "runtime")
 EXTS = (".hpp", ".cpp", ".cu", ".cuh")
+
+# The forbidden app namespaces are DERIVED from vocab.json (the single source of truth), so
+# adding a 4th app there automatically guards its `<app>::` namespace -- no edit here needed.
+_apps = json.load(open(os.path.join(ROOT, "vocab.json")))["app_stages"].keys()
+_app_ns = [re.escape(a.replace("-", "_")) + "::" for a in _apps]  # tree:: cifar_dense:: ...
+# App-internal identifiers vocab.json does not name (sub-namespaces / kernel identifiers).
+_extra = [r"octree::", r"cifar::", r"\bmorton\b"]
 # Real code leaks: an app namespace/identifier or an apps/ include. (Prose in // and
 # /* */ comments is stripped first, so explanatory comments naming apps are allowed.)
-FORBID = re.compile(r'tree::|cifar_dense|cifar_sparse|cifar::|octree::|\bmorton\b|#\s*include\s*"apps/')
+FORBID = re.compile("|".join(_app_ns + _extra) + r'|#\s*include\s*"apps/')
 
 
 def strip_comments(text):

@@ -65,12 +65,16 @@ inline void CheckStage2(const tree::SafeAppData& a) {
 }
 
 inline void CheckStage3(const tree::SafeAppData& a) {
+  // Guard the count: a 0-length ExactEqual passes vacuously, masking a stage that
+  // produced nothing -- make that a failure, not a silent green (review #25).
+  ASSERT_GT(a.get_n_unique(), 0u) << "tree s3: zero unique keys (compare would be vacuous)";
   EXPECT_TRUE(bt::testing::ExactEqual(
       a.u_morton_keys_unique_s3, a.u_morton_keys_unique_s3_out, "tree s3 unique", a.get_n_unique()));
 }
 
 inline void CheckStage4(const tree::SafeAppData& a) {
   const std::size_t n = a.get_n_brt_nodes();
+  ASSERT_GT(n, 0u) << "tree s4: zero BRT nodes (compare would be vacuous)";
   EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_prefix_n_s4, a.u_brt_prefix_n_s4_out, "tree s4 prefix_n", n));
   EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_has_leaf_left_s4, a.u_brt_has_leaf_left_s4_out, "tree s4 leaf_left", n));
   EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_has_leaf_right_s4, a.u_brt_has_leaf_right_s4_out, "tree s4 leaf_right", n));
@@ -79,11 +83,13 @@ inline void CheckStage4(const tree::SafeAppData& a) {
 }
 
 inline void CheckStage5(const tree::SafeAppData& a) {
+  ASSERT_GT(a.get_n_brt_nodes(), 0u) << "tree s5: zero BRT nodes (compare would be vacuous)";
   EXPECT_TRUE(bt::testing::ExactEqual(
       a.u_edge_count_s5, a.u_edge_count_s5_out, "tree s5 edge_count", a.get_n_brt_nodes()));
 }
 
 inline void CheckStage6(const tree::SafeAppData& a) {
+  ASSERT_GT(a.get_n_brt_nodes(), 0u) << "tree s6: zero BRT nodes (compare would be vacuous)";
   EXPECT_TRUE(bt::testing::ExactEqual(
       a.u_edge_offset_s6, a.u_edge_offset_s6_out, "tree s6 edge_offset", a.get_n_brt_nodes()));
 }

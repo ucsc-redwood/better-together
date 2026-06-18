@@ -175,6 +175,21 @@ void BaseEngine::create_physical_device(vk::PhysicalDeviceType type) {
   spdlog::info("Using integrated GPU: {}", physical_device_.getProperties().deviceName.data());
 }
 
+bool has_integrated_gpu() noexcept {
+  // Constructing a throwaway engine reuses the exact loader+enumeration path: it succeeds
+  // only if an integrated GPU was selected, and throws "No integrated GPU found" (or a
+  // loader error) otherwise. Probe once and cache; validation layer off to stay quiet.
+  static const bool available = [] {
+    try {
+      BaseEngine probe(/*enable_validation_layer=*/false);
+      return true;
+    } catch (...) {
+      return false;
+    }
+  }();
+  return available;
+}
+
 // ----------------------------------------------------------------------------
 // Device
 // ----------------------------------------------------------------------------

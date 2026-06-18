@@ -53,4 +53,9 @@ class BaseEngine {
   PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr_;
 };
 
+// Probe (once, cached) whether this machine has an integrated GPU the engine can select.
+// Used by the differential tests' Runner::Available() so they GTEST_SKIP (like the CUDA
+// suites) on a discrete-GPU-only box instead of crashing. noexcept: any failure -> false.
+[[nodiscard]] bool has_integrated_gpu() noexcept;
+
 }  // namespace kiss_vk

@@ -19,9 +19,8 @@ namespace {
 struct VulkanTreeRunner {
   using AppData = tree::vulkan::VkAppData_Safe;
   tree::vulkan::VulkanDispatcher disp;
-  // The engine constructor selects an integrated GPU and throws if none exists;
-  // only run `ctest -L vulkan` on a target that has one.
-  static bool Available() { return true; }
+  // Skip (don't crash) on a box with no integrated GPU -- mirrors the CUDA suites' probe.
+  static bool Available() { return kiss_vk::has_integrated_gpu(); }
   kiss_vk::VulkanMemoryResource::memory_resource* Mr() { return disp.get_mr(); }
   void RunStage(AppData& a, int stage) { disp.dispatch_stage(a, stage); }
 };
