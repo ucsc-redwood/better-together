@@ -5,12 +5,13 @@ from z3 import sat
 from .constraints import (
     create_decision_variables,
     add_assignment_constraints,
+    add_availability_constraints,
     add_chunk_time_constraint,
     add_contiguity_constraints,
     block_solution,
     create_optimizer,
 )
-from .data_loader import define_data
+from .data_loader import define_data, UNAVAILABLE
 from .solution_analyzer import (
     get_solution_representation,
     get_detailed_solution,
@@ -42,6 +43,9 @@ def solve_optimization_problem(
 
     # Add constraints
     add_assignment_constraints(opt, x, num_stages, core_types)
+    # Forbid PUs the device lacks (UNAVAILABLE sentinel) -- structural, protects every
+    # objective regardless of what is minimized (review #2).
+    add_availability_constraints(opt, x, core_types, num_stages, stage_timings_data, UNAVAILABLE)
 
     T_max, T_min, Gapness = add_chunk_time_constraint(
         opt, x, core_types, num_stages, stage_timings_data, minimize_mode
@@ -77,9 +81,12 @@ def solve_optimization_problem(
 
         detailed_solutions.append(detailed_solution)
 
-        # Store solution
+        # Store solution (carry the uid in the tuple so a re-sorted summary reads the
+        # uid of the RIGHT solution, not detailed_solutions[i] in discovery order -- #33).
         solution_repr = get_solution_representation(m, x, num_stages, core_types)
-        top_solutions.append((gapness_value, max_time, solution_repr))
+        top_solutions.append(
+            (gapness_value, max_time, solution_repr, detailed_solution["uid"])
+        )
 
         # Block this solution to find the next one
         block_solution(opt, x, num_stages, core_types, m)
@@ -91,17 +98,15 @@ def solve_optimization_problem(
     else:
         # Print a summary of all solutions
         print("\n=== Summary of All Solutions ===")
-        for i, (gapness, max_time, _) in enumerate(top_solutions):
-            solution_uid = detailed_solutions[i]["uid"]
+        for i, (gapness, max_time, _, solution_uid) in enumerate(top_solutions):
             print(
                 f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms, UID: {solution_uid}"
             )
 
         # Print the solutions again but sorted by max time
         print("\n=== Summary of All Solutions Sorted by Max Time ===")
-        sorted_solutions = sorted(top_solutions, key=lambda x: x[1], reverse=False)
-        for i, (gapness, max_time, _) in enumerate(sorted_solutions):
-            solution_uid = detailed_solutions[i]["uid"]
+        sorted_solutions = sorted(top_solutions, key=lambda t: t[1], reverse=False)
+        for i, (gapness, max_time, _, solution_uid) in enumerate(sorted_solutions):
             print(
                 f"Solution {i + 1}: Gap = {gapness:.2f} ms, Max time = {max_time:.2f} ms, UID: {solution_uid}"
             )

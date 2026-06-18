@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: bt-optimizer
+Version: 0.1.0
+Summary: BetterTogether BT-Optimizer: z3 SMT scheduler + orchestration + analysis
+Requires-Python: >=3.10
+Requires-Dist: z3-solver
+Requires-Dist: jsonschema
+Requires-Dist: numpy
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Provides-Extra: plot
+Requires-Dist: matplotlib; extra == "plot"
+Requires-Dist: pandas; extra == "plot"

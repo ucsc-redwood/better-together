@@ -14,12 +14,10 @@ row, so an N-run isolated.csv inflated the baseline N-fold.
 """
 from orchestrate.case import Case
 from smt.profiling_loader import load_profiling
-from .bt_vocab import APP_STAGES  # generated from vocab.json
+from .bt_vocab import APP_STAGES, CPU_TIERS as _CPU_TIERS  # generated from vocab.json
 
 # Default profiling-store root (overridable by callers, e.g. 02's --profiling_root).
 DEFAULT_PROFILING_ROOT = "data/profiling"
-
-_CPU_TIERS = ("little", "medium", "big")
 
 
 def get_baseline_for_config(device, app, backend, root=DEFAULT_PROFILING_ROOT):

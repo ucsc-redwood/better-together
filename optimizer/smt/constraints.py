@@ -24,6 +24,20 @@ def add_assignment_constraints(opt, x, num_stages, core_types):
                 opt.add(Or(Not(x[(i, core_types[j])]), Not(x[(i, core_types[k])])))
 
 
+def add_availability_constraints(opt, x, core_types, num_stages, stage_timings, unavailable):
+    """Forbid assigning a stage to a PU the device physically lacks (cost == the
+    ``UNAVAILABLE`` sentinel). This makes absent hardware *structurally* impossible to
+    select, protecting every objective. A cost penalty alone does NOT: a load-balancing
+    objective (gapness) finds a zero-gap schedule on an absent tier just as cheaply as on
+    a real one, then z3 emits an unrunnable schedule (review #2)."""
+    if not stage_timings:
+        return
+    for i in range(num_stages):
+        for c in core_types:
+            if stage_timings[i][core_types.index(c)] >= unavailable:
+                opt.add(Not(x[(i, c)]))
+
+
 def add_chunk_time_constraint(
     opt, x, core_types, num_stages, stage_timings, minimize_mode="gapness"
 ):
@@ -68,8 +82,13 @@ def add_chunk_time_constraint(
     # Define Gapness as the difference between max and min chunk times
     opt.add(Gapness == T_max - T_min)
 
-    # Optimize only for minimal gap
     if minimize_mode == "gapness":
+        # Makespan is the PRIMARY objective; the gap is only a lexicographic tie-breaker
+        # among equal-makespan schedules (z3 Optimize is lexicographic in objective order).
+        # Minimizing the gap ALONE is degenerate: a slow single-PU chunk has gap=0 and would
+        # win over any pipelined schedule, so z3 systematically picked the slowest single-PU
+        # assignment and ignored pipelining (review #1).
+        opt.minimize(T_max)
         opt.minimize(Gapness)
     elif minimize_mode == "max_time":
         opt.minimize(T_max)
