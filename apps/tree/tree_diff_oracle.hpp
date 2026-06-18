@@ -98,7 +98,24 @@ inline void CheckStage6(const tree::SafeAppData& a) {
 // downward edge keyed purely by geometry + octant + kind (0 = internal child via
 // child_node_mask, 1 = leaf via child_leaf_mask). Coordinates are quantized to
 // ints (the octree lattice is integral for kRange=1024, kMinCoord=0).
-using OctEdge = std::array<long, 9>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz, tcell}
+//
+// Field 9 (`oct`, the parent's child-slot index) is part of the key for BOTH
+// kinds; it is deterministic regardless of node-index permutation. For a LEAF
+// edge the target field tcx (e[5]) carries the slot's resolved point index as a
+// VALUE, not slot identity: two leaves of the same (octnode, octant) collide and
+// the surviving point index is non-atomic last-writer-wins, so it can differ
+// across backends. The leaf check therefore compares the slot KEY set (parent
+// geometry + octant) with the value dropped -- see LeafSlotKey / CheckStage7Topology.
+using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,tcell, oct}
+
+// Strip the value-bearing target fields from a leaf edge, keeping only its slot
+// identity (kind + parent geometry + octant). Two backends that disagree only on
+// which point index won a contended (octnode, octant) leaf slot map to the same
+// key, so a difference between the ref and out key sets is a real
+// missing/spurious/misplaced leaf link, independent of last-writer-wins.
+[[nodiscard]] inline OctEdge LeafSlotKey(const OctEdge& e) {
+  return OctEdge{e[0], e[1], e[2], e[3], e[4], 0, 0, 0, 0, e[9]};
+}
 
 [[nodiscard]] inline std::vector<OctEdge> OctreeEdgeSet(
     std::span<const glm::vec4> corner,
@@ -120,14 +137,15 @@ using OctEdge = std::array<long, 9>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz, 
       if (!is_node && !is_leaf) continue;
       const long kind = is_node ? 0 : 1;
       const std::int32_t t = children[v * 8 + c];
-      OctEdge e{kind, pcx, pcy, pcz, pcell, 0, 0, 0, 0};
+      OctEdge e{kind, pcx, pcy, pcz, pcell, 0, 0, 0, 0, c};
       if (kind == 0 && t >= 0 && static_cast<std::size_t>(t) < n) {
         // internal child: identify it by its OWN geometry (index-independent).
         e[5] = q(corner[t].x); e[6] = q(corner[t].y); e[7] = q(corner[t].z);
         e[8] = q(cell[t]);
       } else {
-        // leaf: the value is a point index, not an octree node; key by the raw
-        // value (point indices are the same input on every backend).
+        // leaf: the value is a point index, not an octree node; carry the raw
+        // value (point indices are the same input on every backend), but it is a
+        // value, not slot identity -- see LeafSlotKey.
         e[5] = t;
       }
       edges.push_back(e);
@@ -177,13 +195,48 @@ using OctEdge = std::array<long, 9>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz, 
            << " only-in-ref, " << int_only_out << " only-in-out; ref_int=" << ref_int.size()
            << " out_int=" << out_int.size() << ") -- a real cross-backend octree-structure bug";
   }
-  // Internal topology matches; only leaf slot resolution differs (order-sensitive,
-  // not a structural defect). Surface it as a non-fatal note via success with a
-  // message visible only on -1 logging; keep the gate on internal edges.
+
+  // Internal topology matches. Now validate the LEAF links (the entire output of
+  // process_link_leaf -- which child[] slots resolve to which point indices), the
+  // surface the previous oracle threw away. The slot VALUE (point index) is
+  // legitimately last-writer-wins for a contended (octnode, octant) slot, so we
+  // cannot compare raw leaf edges; but WHICH slots are leaf-populated -- keyed by
+  // parent geometry + octant -- is deterministic. A residual difference in that
+  // key set (after dropping the multiply-written value) is a real missing,
+  // spurious, or misplaced leaf link (a wrong child[] index, leaf-mask bit, or
+  // off-by-one leaf code), so we fail on it.
+  auto slot_keys = [](const std::vector<OctEdge>& leaf) {
+    std::vector<OctEdge> keys;
+    keys.reserve(leaf.size());
+    for (const auto& e : leaf) keys.push_back(LeafSlotKey(e));
+    std::ranges::sort(keys);
+    keys.erase(std::ranges::unique(keys).begin(), keys.end());  // collapse contended slots
+    return keys;
+  };
+  const auto ref_keys = slot_keys(ref_leaf), out_keys = slot_keys(out_leaf);
+  std::size_t leaf_only_ref = 0, leaf_only_out = 0;
+  {
+    std::vector<OctEdge> d1, d2;
+    std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(d1));
+    std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(d2));
+    leaf_only_ref = d1.size();
+    leaf_only_out = d2.size();
+  }
+  if (leaf_only_ref != 0 || leaf_only_out != 0) {
+    return ::testing::AssertionFailure()
+           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref << " only-in-ref, "
+           << leaf_only_out << " only-in-out; ref_leaf_slots=" << ref_keys.size()
+           << " out_leaf_slots=" << out_keys.size()
+           << ") -- a real missing/spurious/misplaced leaf link (the slot key set, parent "
+              "geometry + octant, is deterministic; only the resolved point index is "
+              "last-writer-wins and is excluded)";
+  }
+  // Slot key sets match; the only residual difference is the resolved point index
+  // of a contended (octnode, octant) slot (last-writer-wins, order-sensitive).
   if (ref_leaf == out_leaf) return ::testing::AssertionSuccess();
   return ::testing::AssertionSuccess()
-         << "(note) leaf-slot edges differ by last-writer-wins (order-sensitive), "
-            "internal topology identical";
+         << "(note) leaf-slot VALUES differ by last-writer-wins on contended slots; "
+            "leaf slot key set + internal topology identical";
 }
 
 inline void CheckStage7(const tree::SafeAppData& a) {
