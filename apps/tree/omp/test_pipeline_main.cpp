@@ -71,6 +71,11 @@ constexpr int kNumStages = AppTraits<OmpTreeDispatcher>::kNumStages;
 // detector (a partial-visibility / stale-read regression leaves a stage output
 // all-zero on a subset of items).
 void CheckItem(tree::SafeAppData& a) {
+  // Assert interior hand-off too, not just the terminal stage: a mid-pipeline buffer
+  // corrupted by a bad chunk hand-off can be numerically swamped before stage 7 (review #9).
+  // Stage 4 (radix tree) + stage 6 (edge offset) bracket the interior at exact tolerance.
+  tree::testing::CheckStage4(a);
+  tree::testing::CheckStage6(a);
   tree::testing::CheckStage7(a);
   const auto n = a.get_n_octree_nodes();
   bool all_zero = n > 0;

@@ -45,7 +45,14 @@ using bt_pipe_test::run_runtime_test;
 using AppDataT = AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::AppData;
 constexpr int kNumStages = AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::kNumStages;
 
-void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a); }
+void CheckItem(AppDataT& a) {
+  // Assert a couple of interior stages too (review #9): an intermediate buffer corrupted by
+  // a bad chunk hand-off can be swamped before the final logits pass at the loose e2e
+  // tolerance. CheckStage uses the tighter per-stage bound on the actual upstream buffer.
+  cifar_dense::testing::CheckStage(a, 3);
+  cifar_dense::testing::CheckStage(a, 6);
+  cifar_dense::testing::CheckFinalPipeline(a);
+}
 
 TEST(PipelineE2ECifarDenseOmp, TwoChunkBigLittle) {
   if (!has_big_cores() || !has_lit_cores()) {
