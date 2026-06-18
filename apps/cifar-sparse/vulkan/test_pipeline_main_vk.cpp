@@ -42,7 +42,7 @@ using bt_pipe_test::run_runtime_test;
 using AppDataT = AppTraits<cifar_sparse::vulkan::VulkanDispatcher>::AppData;
 constexpr int kNumStages = AppTraits<cifar_sparse::vulkan::VulkanDispatcher>::kNumStages;
 
-void CheckItem(AppDataT& a) { cifar_sparse::testing::CheckFinalPipeline(a); }
+void CheckItem(AppDataT& a) { cifar_sparse::testing::CheckFinalPipeline(a, 5e-3f, 5e-3f); }  // OMP+Vulkan: relaxed
 
 TEST(PipelineE2ECifarSparseVk, HybridOmpVulkan) {
   Schedule sched;

@@ -48,7 +48,7 @@ bool CudaAvailable() {
   return cudaGetDeviceCount(&n) == cudaSuccess && n > 0;
 }
 
-void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a); }
+void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a, 1e-3f, 1e-3f); }  // OMP+CUDA: tight
 
 TEST(PipelineE2ECifarDenseCu, HybridOmpCuda) {
   if (!CudaAvailable()) GTEST_SKIP() << "no CUDA device";

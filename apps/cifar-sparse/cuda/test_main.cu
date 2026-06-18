@@ -15,6 +15,11 @@
 
 namespace {
 struct CudaRunner {
+  // IEEE fp32 against a double-precision reference: hold tight (as OMP).
+  static constexpr float kRtol = 1e-5f;
+  static constexpr float kAtol = 1e-4f;
+  static constexpr float kE2eRtol = 1e-3f;
+  static constexpr float kE2eAtol = 1e-3f;
   cifar_sparse::cuda::CudaDispatcher disp;
   static bool Available() {
     int n = 0;

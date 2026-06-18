@@ -49,9 +49,9 @@ void CheckItem(AppDataT& a) {
   // Assert a couple of interior stages too (review #9): an intermediate buffer corrupted by
   // a bad chunk hand-off can be swamped before the final logits pass at the loose e2e
   // tolerance. CheckStage uses the tighter per-stage bound on the actual upstream buffer.
-  cifar_dense::testing::CheckStage(a, 3);
-  cifar_dense::testing::CheckStage(a, 6);
-  cifar_dense::testing::CheckFinalPipeline(a);
+  cifar_dense::testing::CheckStage(a, 3, 1e-5f, 1e-4f);  // OMP: tight IEEE-fp32 bound
+  cifar_dense::testing::CheckStage(a, 6, 1e-5f, 1e-4f);
+  cifar_dense::testing::CheckFinalPipeline(a, 1e-3f, 1e-3f);
 }
 
 TEST(PipelineE2ECifarDenseOmp, TwoChunkBigLittle) {

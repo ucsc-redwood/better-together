@@ -47,7 +47,7 @@ bool CudaAvailable() {
   return cudaGetDeviceCount(&n) == cudaSuccess && n > 0;
 }
 
-void CheckItem(AppDataT& a) { cifar_sparse::testing::CheckFinalPipeline(a); }
+void CheckItem(AppDataT& a) { cifar_sparse::testing::CheckFinalPipeline(a, 1e-3f, 1e-3f); }  // OMP+CUDA: tight
 
 TEST(PipelineE2ECifarSparseCu, HybridOmpCuda) {
   if (!CudaAvailable()) GTEST_SKIP() << "no CUDA device";

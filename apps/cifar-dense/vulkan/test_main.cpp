@@ -16,6 +16,11 @@
 
 namespace {
 struct VulkanRunner {
+  // Relaxed-precision fp32 shaders: keep the looser bound.
+  static constexpr float kRtol = 1e-3f;
+  static constexpr float kAtol = 1e-4f;
+  static constexpr float kE2eRtol = 5e-3f;
+  static constexpr float kE2eAtol = 5e-3f;
   cifar_dense::vulkan::VulkanDispatcher disp;
   static bool Available() { return kiss_vk::has_integrated_gpu(); }  // skip if no iGPU
   std::pmr::memory_resource* Mr() { return disp.get_mr(); }

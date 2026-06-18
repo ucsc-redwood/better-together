@@ -18,6 +18,13 @@
 
 namespace {
 struct OmpRunner {
+  // IEEE fp32 against a double-precision reference: hold tight. The e2e bound is
+  // looser than per-stage because float error accumulates across all 9 stages,
+  // but still far tighter than Vulkan's.
+  static constexpr float kRtol = 1e-5f;
+  static constexpr float kAtol = 1e-4f;
+  static constexpr float kE2eRtol = 1e-3f;
+  static constexpr float kE2eAtol = 1e-3f;
   static constexpr bool Available() { return true; }
   static std::pmr::memory_resource* Mr() { return std::pmr::new_delete_resource(); }
   void RunStage(cifar_sparse::AppData& a, int stage) { cifar_sparse::omp::dispatch_stage(a, stage); }
