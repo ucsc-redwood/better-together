@@ -1,10 +1,10 @@
 # Collection Scripts
 
-There are two generations here. The **canonical JSONL store** (`bm-prof-*` →
-`profiling_loader.py` / `render_isolated_table.py` / `coverage.py`) is the current
-path: schema-validated, keeps the full timing distribution, self-describing `pu`.
-The legacy text→regex→CSV path (the `02_*`/`04_*` schedule scripts)
-still feeds the paper's z3 pipeline.
+The **canonical JSONL store** (`bm-prof-*` → `profiling_loader.py` /
+`render_isolated_table.py` / `coverage.py`) is the source of truth: schema-validated,
+keeps the full timing distribution, self-describing `pu`. The `02_*`/`04_*` schedule
+scripts feed the paper's z3 pipeline and now read that store directly (the legacy
+wide-CSV export shim was retired — Seam 1).
 
 ## Canonical JSONL profiling store
 
@@ -53,13 +53,14 @@ uv run scripts/collect/coverage.py            # 12/12 supported cells when compl
 
 ## Schedule pipeline (`02` → `03` → `04`)
 
-`02_gen_schedule_merged.py` reads the BTPM/isolated CSV (the paper's _profiling table_)
-and runs the z3 solver to emit schedule JSONs; `03_run_schedule.py` runs them on a
-device; `04_parse_schedules.py` parses the per-task logs. Full step-by-step:
+`02_gen_schedule_merged.py` reads the canonical JSONL store directly (the paper's
+_profiling table_) and runs the z3 solver to emit schedule JSONs; `03_run_schedule.py`
+runs them on a device; `04_parse_schedules.py` parses the per-task logs. Full
+step-by-step:
 [`docs/instruction-for-ai/06-end-to-end-scheduling.md`](../../docs/instruction-for-ai/06-end-to-end-scheduling.md).
 
 ```bash
-uv run scripts/collect/02_gen_schedule_merged.py --csv_root_folder data/btpm_export \
+uv run scripts/collect/02_gen_schedule_merged.py --profiling_root data/profiling \
   --device 3A021JEHN02756 --app cifar-sparse --backend vk --table_type btpm \
   --minimize_mode tmax --num_solutions 30 --output_folder data/schedules_btpm
 ```

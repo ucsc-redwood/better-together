@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from case import Case, to_short_backend  # noqa: E402
+from case import Case, to_short_backend, table_to_scenario  # noqa: E402
 
 
 def test_short_long_backend():
@@ -18,16 +18,17 @@ def test_short_long_backend():
     assert to_short_backend("cu") == "cu"  # idempotent
 
 
+def test_table_to_scenario():
+    # The z3 --table_type token maps to the profiling-store scenario dir.
+    assert table_to_scenario("isolated") == "isolated"
+    assert table_to_scenario("btpm") == "interference"
+
+
 def test_paths():
     c = Case("jetson", "tree", "cu")
     assert c.schedule_path("data/schedules", "btpm", "tmax") == (
         "data/schedules/jetson/tree/cu/schedules_btpm_tmax.json"
     )
-    assert c.csv_path("data/btpm_export", "isolated") == (
-        "data/btpm_export/jetson/tree/cu/isolated.csv"
-    )
-    # interference scenario maps to the btpm.csv name (the paper's BTPM table).
-    assert c.csv_path("data/btpm_export", "interference").endswith("/btpm.csv")
     # profiling store uses the LONG backend name.
     assert c.profiling_glob("data/profiling", "isolated") == (
         "data/profiling/jetson/tree/cuda/isolated/run-*.jsonl"
@@ -41,6 +42,7 @@ def test_from_profiling_relpath():
 
 if __name__ == "__main__":
     test_short_long_backend()
+    test_table_to_scenario()
     test_paths()
     test_from_profiling_relpath()
     print("PASS  Case path builder")

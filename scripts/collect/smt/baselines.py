@@ -1,65 +1,58 @@
 """Baseline data and configuration management for schedule optimization.
 
-Baselines are DERIVED from the committed measured profiling data, not hand-coded:
-each whole-pipeline single-PU baseline is the sum of the per-stage isolated times in
-``<csv_root>/<device>/<app>/<backend>/isolated.csv`` (the same table 02 solves on).
-The GPU baseline is the sum of the backend's column (vulkan/cuda); the OMP baseline is
-the sum of the *fastest fully-populated* CPU tier (little/medium/big). This keeps the
-numbers in lock-step with the measured data and naturally covers every device/app/
-backend present in the store (incl. minipc, which the old hand-coded table missed).
+Baselines are DERIVED from the measured profiling data, not hand-coded: each
+whole-pipeline single-PU baseline is the sum of the per-stage isolated times read
+straight from the canonical JSONL store (the same data 02 solves on). The GPU baseline
+is the sum of the backend's column (vulkan/cuda); the OMP baseline is the sum of the
+*fastest fully-measured* CPU tier (little/medium/big). This keeps the numbers in
+lock-step with the measured data and naturally covers every device/app/backend present
+in the store (incl. minipc, which the old hand-coded table missed).
+
+Reading the JSONL store directly (via profiling_loader, count-weighted across runs)
+also fixes the wide-CSV path's latent multi-run bug: that path summed every (run,stage)
+row, so an N-run isolated.csv inflated the baseline N-fold.
 """
-import csv
-import os
+from case import Case
+from profiling_loader import load_profiling
 
-# Default profiling-table root (overridable by callers, e.g. 02's --csv_root_folder).
-DEFAULT_CSV_ROOT = "data/btpm_export"
+# Default profiling-store root (overridable by callers, e.g. 02's --profiling_root).
+DEFAULT_PROFILING_ROOT = "data/profiling"
 
-# isolated.csv column name for each backend token used on the CLI / dir layout.
-_GPU_COLUMN = {"vk": "vulkan", "cu": "cuda"}
 _CPU_TIERS = ("little", "medium", "big")
 
 
-def _read_isolated(csv_path):
-    """Return {column: [per-stage value, ...]} from an isolated.csv, or None."""
-    if not os.path.exists(csv_path):
-        return None
-    columns = {}
-    with open(csv_path, newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            for tier in _CPU_TIERS + tuple(_GPU_COLUMN.values()):
-                if tier in row and row[tier] != "":
-                    columns.setdefault(tier, []).append(float(row[tier]))
-    return columns if columns else None
-
-
-def get_baseline_for_config(device, app, backend, csv_root=DEFAULT_CSV_ROOT):
-    """Whole-pipeline baselines for a config, derived from its isolated.csv.
+def get_baseline_for_config(device, app, backend, root=DEFAULT_PROFILING_ROOT):
+    """Whole-pipeline baselines for a config, derived from its isolated profiling.
 
     Returns ``{"omp": <ms>, <backend>: <ms>, "fastest": <ms>}`` (the GPU key is the
     backend token "vk"/"cu", matching the callers), or None when the data is absent.
     """
-    csv_path = os.path.join(csv_root, device, app, backend, "isolated.csv")
-    columns = _read_isolated(csv_path)
-    if columns is None:
-        print(f"Warning: No isolated.csv (baseline source) for {device}/{app}/{backend}")
+    case = Case(device, app, backend)
+    try:
+        # max_cv=1.0 mirrors the z3 cost-matrix loader (data_loader.load_stage_timings):
+        # keep every measured stage, dropping only explicit thermal-throttle samples, so
+        # the baseline covers the same stages the solver sees. (The retired wide-CSV path
+        # did no CV filtering at all.)
+        table, _ = load_profiling(root, device, app, case.backend_long, "isolated", max_cv=1.0)
+    except FileNotFoundError:
+        print(f"Warning: no isolated profiling (baseline source) for {device}/{app}/{backend}")
         return None
 
-    gpu_col = _GPU_COLUMN.get(backend)
-    gpu_vals = columns.get(gpu_col)
-    gpu_time = sum(gpu_vals) if gpu_vals and any(v > 0 for v in gpu_vals) else None
+    num_stages = get_num_stages_for_app(app)
+    stages = range(1, num_stages + 1)
 
-    # OMP baseline = the fastest CPU tier that is fully populated (every stage > 0);
-    # a partly-zero tier isn't a runnable whole-pipeline baseline.
-    tier_sums = [
-        sum(vals)
-        for tier in _CPU_TIERS
-        if (vals := columns.get(tier)) and all(v > 0 for v in vals)
-    ]
+    def column_sum(pu):
+        """Sum a PU's per-stage isolated time, or None unless every stage is measured
+        (a partly-measured tier isn't a runnable whole-pipeline baseline)."""
+        vals = [table[(s, pu)]["value"] for s in stages if (s, pu) in table]
+        return sum(vals) if len(vals) == num_stages else None
+
+    gpu_time = column_sum(case.backend_long)
+    tier_sums = [t for t in (column_sum(tier) for tier in _CPU_TIERS) if t is not None]
     omp_time = min(tier_sums) if tier_sums else None
 
     if omp_time is None and gpu_time is None:
-        print(f"Warning: isolated.csv for {device}/{app}/{backend} has no usable column")
+        print(f"Warning: isolated profiling for {device}/{app}/{backend} has no usable column")
         return None
 
     present = [t for t in (omp_time, gpu_time) if t is not None]

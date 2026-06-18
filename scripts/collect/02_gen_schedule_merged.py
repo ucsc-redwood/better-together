@@ -13,9 +13,9 @@ import argparse
 import os
 import sys
 
-from case import Case
+from case import Case, table_to_scenario
 from smt.baselines import get_baseline_for_config
-from smt.data_loader import load_csv_and_compute_averages
+from smt.data_loader import load_stage_timings
 from smt.solver import solve_optimization_problem
 from smt.solution_analyzer import dump_solutions_as_json
 
@@ -26,8 +26,11 @@ def parse_arguments():
         description="Solve scheduling optimization problem using data from a CSV file."
     )
 
-    # Input folder
-    # The CSV files are in the following structure:
+    # Input folder: the canonical JSONL profiling store, structured as
+    #   <root>/<device>/<app>/<backend_long>/<scenario>/run-*.jsonl
+    # e.g. data/profiling/jetson/cifar-dense/cuda/isolated/run-001.jsonl
+    # (scenario = isolated for --table_type isolated, interference for btpm).
+    # Legacy layout, kept for reference:
     #
     # data/bm_logs/
     # ├── 3A021JEHN02756
@@ -38,9 +41,10 @@ def parse_arguments():
     # │   │       └── isolated.csv
     #
     parser.add_argument(
-        "--csv_root_folder",
+        "--profiling_root",
         type=str,
-        help="Root folder path containing CSV data in device/app/backend structure",
+        help="Root of the canonical JSONL profiling store "
+        "(<root>/<device>/<app>/<backend>/<scenario>/run-*.jsonl)",
         required=True,
     )
 
@@ -117,8 +121,8 @@ def main():
     verbose = args.verbose
     case = Case(device, app, backend)  # the data-layout single source of truth
 
-    # Get baseline data for this configuration (derived from the same CSV root).
-    baseline_data = get_baseline_for_config(device, app, backend, args.csv_root_folder)
+    # Get baseline data for this configuration (derived from the same profiling store).
+    baseline_data = get_baseline_for_config(device, app, backend, args.profiling_root)
     if baseline_data:
         if verbose:
             print(f"Baseline data for {device}/{app}/{backend}:")
@@ -128,17 +132,16 @@ def main():
     else:
         print(f"No baseline data available for {device}/{app}/{backend}")
 
-    # Input CSV path with mode-based file selection
-    csv_path = case.csv_path(args.csv_root_folder, table_type)
+    # Profiling-store cell for this table_type (isolated.json -> isolated, btpm -> interference)
+    scenario = table_to_scenario(table_type)
+    prof_dir = case.profiling_dir(args.profiling_root, scenario)
 
-    # Check if the CSV file exists
-    if not os.path.exists(csv_path):
-        print(
-            f"Warning: CSV file {csv_path} does not exist. Skipping this combination."
-        )
+    # Skip a combination with no profiling data (rather than failing the whole sweep).
+    if not os.path.isdir(prof_dir):
+        print(f"Warning: no profiling data at {prof_dir}. Skipping this combination.")
         sys.exit(0)
     else:
-        print(f"Loading data from CSV file: {csv_path}")
+        print(f"Loading profiling data from: {prof_dir}")
         print(f"Using table type: {table_type}")
         print(f"Using minimize mode: {minimize_mode}")
 
@@ -151,8 +154,8 @@ def main():
         sys.exit(0)
 
     try:
-        stage_timings, use_cuda = load_csv_and_compute_averages(
-            csv_path, app, verbose, backend=backend
+        stage_timings, use_cuda = load_stage_timings(
+            args.profiling_root, device, app, backend, scenario, verbose=verbose
         )
 
         # Store which GPU backend was used
@@ -175,7 +178,7 @@ def main():
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
 
     except Exception as e:
-        print(f"Error processing {csv_path}: {str(e)}")
+        print(f"Error processing {prof_dir}: {str(e)}")
         sys.exit(1)
 
 

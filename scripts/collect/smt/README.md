@@ -8,7 +8,7 @@ This package provides modular components for solving schedule optimization probl
 smt/
 ├── __init__.py           # Package initialization
 ├── baselines.py          # Baseline data and configuration management
-├── data_loader.py        # CSV data loading and processing utilities
+├── data_loader.py        # builds the z3 cost matrix from the JSONL profiling store
 ├── constraints.py        # SMT constraints and optimization setup
 ├── solver.py            # Main SMT solver orchestration
 ├── solution_analyzer.py  # Solution analysis and output formatting
@@ -23,10 +23,12 @@ smt/
 - Manages application-specific stage counts
 
 ### `data_loader.py`
-- Handles CSV file loading and data preprocessing
-- Computes average timings across multiple runs
-- Determines GPU backend (CUDA vs Vulkan) based on data availability
-- Provides data structure definitions for the optimization problem
+- Reads the canonical JSONL profiling store directly (via `profiling_loader`):
+  schema-validated, count-weighted across runs
+- Builds the per-stage `[little, medium, big, gpu]` cost matrix the solver consumes
+- GPU column is the REQUESTED backend; absent CPU tiers (no measured record) are
+  encoded as `UNAVAILABLE` — presence is by existence, not a 0.0 sentinel
+- Provides data structure definitions for the optimization problem (`define_data`)
 
 ### `constraints.py`
 - Defines SMT decision variables and constraints
@@ -54,15 +56,16 @@ The main script `02_gen_schedule_merged.py` demonstrates how to use this package
 
 ```python
 from smt.baselines import get_baseline_for_config
-from smt.data_loader import load_csv_and_compute_averages
+from smt.data_loader import load_stage_timings
 from smt.solver import solve_optimization_problem
 from smt.solution_analyzer import dump_solutions_as_json
 
-# Get baseline data
-baseline_data = get_baseline_for_config(device, app, backend)
+# Get baseline data (summed straight from the isolated JSONL store)
+baseline_data = get_baseline_for_config(device, app, backend, profiling_root)
 
-# Load and process CSV data
-stage_timings, use_cuda = load_csv_and_compute_averages(csv_path, app)
+# Build the z3 cost matrix directly from the canonical JSONL store
+stage_timings, use_cuda = load_stage_timings(
+    profiling_root, device, app, backend, scenario)
 
 # Solve the optimization problem
 solutions = solve_optimization_problem(

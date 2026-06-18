@@ -10,9 +10,12 @@
 The pipeline is the paper's "three tools talking through files":
 
 ```
-bm_prof ─► JSONL store ─► export ─► BTPM CSV ─► 02 (z3) ─► schedule JSON ─► 03 (run) ─► logs ─► 04 (parse)
- (C++)     data/profiling          data/btpm_export        data/schedules_btpm        data/sched_logs
+bm_prof ─► JSONL store ─► 02 (z3) ─► schedule JSON ─► 03 (run) ─► logs ─► 04 (parse)
+ (C++)     data/profiling           data/schedules_btpm        data/sched_logs
 ```
+
+02 reads the JSONL store directly (schema-validated, count-weighted across runs); there
+is no longer a wide-CSV export step.
 
 Canonical store layout (one record per line, schema
 [`schemas/profiling-table.schema.json`](../../schemas/profiling-table.schema.json)):
@@ -64,23 +67,18 @@ uv run scripts/collect/render_isolated_table.py --scenario interference --metric
 uv run scripts/collect/coverage.py --scenario interference                                 # what's collected vs MISSING
 ```
 
-## Step 2 — export to the BTPM CSV the solver reads
+## Step 2 — generate schedules (z3)
 
 ```bash
-uv run scripts/collect/export_btpm_csv.py --root data/profiling --out-root data/btpm_export
-# isolated scenario -> isolated.csv, interference -> btpm.csv, in legacy vk/cu dirs
-```
-
-## Step 3 — generate schedules (z3)
-
-```bash
-uv run scripts/collect/02_gen_schedule_merged.py --csv_root_folder data/btpm_export \
+uv run scripts/collect/02_gen_schedule_merged.py --profiling_root data/profiling \
   --device <dev> --app <app> --backend <vk|cu> --table_type btpm --minimize_mode tmax \
   --num_solutions 10 --output_folder data/schedules_btpm
-# -> data/schedules_btpm/<dev>/<app>/<be>/schedules_btpm_tmax.json  (array of {uid, chunks:[{core_type,stages}], metrics})
+# table_type isolated -> isolated/ scenario, btpm -> interference/ scenario
+# -> data/schedules_btpm/<dev>/<app>/<be>/schedules_btpm_tmax.json
+#    (array of {uid, chunks:[{core_type,start_stage,end_stage,hardware?}], metrics})
 ```
 
-## Step 4 — run the schedule(s) on the device
+## Step 3 — run the schedule(s) on the device
 
 ```bash
 uv run scripts/collect/03_run_schedule.py --device <dev> --app <app> --backend <vk|cu> \
@@ -94,7 +92,7 @@ uv run scripts/collect/03_run_schedule.py --device <dev> --app <app> --backend <
 `schedule_run_<i>.log`. It runs the executor with `check=False` so a Jetson-VK
 teardown segfault (bugs §9) doesn't discard the already-flushed records.
 
-## Step 5 — parse / measure
+## Step 4 — parse / measure
 
 ```bash
 uv run scripts/collect/04_parse_schedules.py data/sched_logs/<dev>_<app>_<be>   # per-schedule, per-chunk timing
@@ -103,7 +101,7 @@ Per-task makespan of a schedule = `(max End − min Start) / n_tasks` over its
 `Task=… Start=… End=…` ticks (`Frequency=` gives the tick rate). The best schedule
 is the min makespan across candidates.
 
-## Step 6 — baseline & speedup
+## Step 5 — baseline & speedup
 
 The no-framework baseline (all 9 stages on one PU, no pipeline):
 
