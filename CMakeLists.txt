@@ -336,6 +336,17 @@ if(BT_BUILD_TESTS)
   bt_add_omp_test(test-pipeline-e2e-cifar-dense-omp  builtin-apps/cifar-dense/omp/test_pipeline_main.cpp)
   bt_add_omp_test(test-pipeline-e2e-cifar-sparse-omp builtin-apps/cifar-sparse/omp/test_pipeline_main.cpp)
 
+  # Kind axis: a SECOND label refining each test by purpose, while the backend
+  # label (set above) is kept so `ctest -L omp` stays the everyday gate.
+  #   unit        = hardware-free pure logic (no device needed)
+  #   differential = OMP-oracle correctness compare
+  #   runtime     = the concurrent worker/SPSC-ring pipeline suite
+  set_tests_properties(test-schedule-omp PROPERTIES LABELS "omp;unit")
+  set_tests_properties(test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-sort-omp
+                       PROPERTIES LABELS "omp;differential")
+  set_tests_properties(test-pipeline-e2e-omp test-pipeline-e2e-cifar-dense-omp
+                       test-pipeline-e2e-cifar-sparse-omp PROPERTIES LABELS "omp;runtime")
+
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)
     function(bt_add_cuda_test name src)
@@ -356,6 +367,12 @@ if(BT_BUILD_TESTS)
     bt_add_cuda_test(test-pipeline-e2e-cu builtin-apps/tree/cuda/test_pipeline_main_cu.cu)
     bt_add_cuda_test(test-pipeline-e2e-cifar-dense-cu  builtin-apps/cifar-dense/cuda/test_pipeline_main_cu.cu)
     bt_add_cuda_test(test-pipeline-e2e-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/test_pipeline_main_cu.cu)
+
+    # Kind axis (second label); backend label "cuda" kept for `ctest -L cuda`.
+    set_tests_properties(test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu
+                         PROPERTIES LABELS "cuda;differential")
+    set_tests_properties(test-pipeline-e2e-cu test-pipeline-e2e-cifar-dense-cu
+                         test-pipeline-e2e-cifar-sparse-cu PROPERTIES LABELS "cuda;runtime")
   endif()
 
   # Vulkan unit tests — run on an integrated-GPU box (rocky-ryzen) or the Jetson.
@@ -381,5 +398,13 @@ if(BT_BUILD_TESTS)
     bt_add_vk_test(test-pipeline-e2e-vk builtin-apps/tree/vulkan/test_pipeline_main_vk.cpp)
     bt_add_vk_test(test-pipeline-e2e-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_pipeline_main_vk.cpp)
     bt_add_vk_test(test-pipeline-e2e-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_pipeline_main_vk.cpp)
+
+    # Kind axis (second label); backend label "vulkan" kept for `ctest -L vulkan`.
+    #   engine = the kiss-vk backend self-test (no app, no --device)
+    set_tests_properties(test-kiss-vk PROPERTIES LABELS "vulkan;engine")
+    set_tests_properties(test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+                         PROPERTIES LABELS "vulkan;differential")
+    set_tests_properties(test-pipeline-e2e-vk test-pipeline-e2e-cifar-dense-vk
+                         test-pipeline-e2e-cifar-sparse-vk PROPERTIES LABELS "vulkan;runtime")
   endif()
 endif()
