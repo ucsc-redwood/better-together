@@ -37,7 +37,7 @@ template <>
 struct AppTraits<tree::vulkan::VulkanDispatcher> {
   using AppData = tree::vulkan::VkAppData_Safe;
   using Queue = SPSCQueue<AppData*, 32>;  // pow2 >= kPoolSize(16) with a free slot
-  static constexpr int kNumStages = 7;
+  static constexpr int kNumStages = bt::vocab::kTreeStages;
   static constexpr std::size_t kPoolSize = 16;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kVulkan;

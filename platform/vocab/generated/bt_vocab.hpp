@@ -37,3 +37,10 @@ inline ProcessorType ParseCoreType(const std::string& s) {
   if (s == "super") return ProcessorType::kSuperCore;
   throw std::runtime_error("unknown core type '" + s + "'");
 }
+
+// Per-app pipeline stage counts (single source for the AppTraits specializations).
+namespace bt::vocab {
+inline constexpr int kTreeStages = 7;
+inline constexpr int kCifarDenseStages = 9;
+inline constexpr int kCifarSparseStages = 9;
+}  // namespace bt::vocab

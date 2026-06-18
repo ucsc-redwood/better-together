@@ -66,6 +66,20 @@ hpp += [
     '  throw std::runtime_error("unknown core type \'" + s + "\'");',
     "}",
     "",
+    "// Per-app pipeline stage counts (single source for the AppTraits specializations).",
+    "namespace bt::vocab {",
+]
+
+
+def _app_const(key):
+    # tree -> kTreeStages, cifar-dense -> kCifarDenseStages
+    return "k" + "".join(part.capitalize() for part in key.replace("-", "_").split("_")) + "Stages"
+
+
+hpp += [f"inline constexpr int {_app_const(k)} = {n};" for k, n in v["app_stages"].items()]
+hpp += [
+    "}  // namespace bt::vocab",
+    "",
 ]
 _write_if_changed(OUT_HPP, "\n".join(hpp))
 

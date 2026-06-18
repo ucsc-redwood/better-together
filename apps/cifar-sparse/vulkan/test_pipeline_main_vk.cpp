@@ -26,7 +26,7 @@ template <>
 struct AppTraits<cifar_sparse::vulkan::VulkanDispatcher> {
   using AppData = cifar_sparse::AppData;
   using Queue = SPSCQueue<cifar_sparse::AppData*, 16>;
-  static constexpr int kNumStages = 9;
+  static constexpr int kNumStages = bt::vocab::kCifarSparseStages;
   static constexpr std::size_t kPoolSize = 8;
   static constexpr std::size_t kNumToProcess = 32;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kVulkan;

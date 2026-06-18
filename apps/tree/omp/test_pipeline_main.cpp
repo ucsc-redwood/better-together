@@ -23,7 +23,7 @@ template <>
 struct AppTraits<bt_pipe_test::OmpStubDispatcher<tree::SafeAppData>> {
   using AppData = tree::SafeAppData;
   using Queue = SPSCQueue<tree::SafeAppData*, 64>;  // pow2 >= kPoolSize(32) with a free slot
-  static constexpr int kNumStages = 7;
+  static constexpr int kNumStages = bt::vocab::kTreeStages;
   static constexpr std::size_t kPoolSize = 32;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;  // unused (OMP-only)

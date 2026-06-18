@@ -35,7 +35,7 @@ template <>
 struct AppTraits<tree::cuda::CudaDispatcher> {
   using AppData = tree::SafeAppData;
   using Queue = SPSCQueue<tree::SafeAppData*, 64>;
-  static constexpr int kNumStages = 7;
+  static constexpr int kNumStages = bt::vocab::kTreeStages;
   static constexpr std::size_t kPoolSize = 32;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;
