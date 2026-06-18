@@ -407,3 +407,29 @@ is computed once and **cached across calls** to the same stage function. Harmles
 when the per-stage iteration count is fixed (the seeded tests), but wrong if a
 stage is dispatched on inputs of different sizes within one process. Left as-is;
 noted for the registry/refactor work.
+
+---
+
+## Stale `worker<QueueT>` in the `pipe/*-cu/main.cu` cell runners — **SUSPECTED PRE-EXISTING BREAK (surfaced 2026-06-17, P3 refactor; left as-is)**
+
+**Files:** `pipe/{tree,cifar-dense,cifar-sparse}-cu/main.cu` (the `run-pipe-*-cu`
+targets, `CMakeLists.txt:191-193`).
+
+Each calls the pipeline worker as a **template**: `std::thread t0(worker<QueueT>, …)`
+(`pipe/tree-cu/main.cu:15,23`). But `worker` in `pipe/pipeline_common.hpp:54` is a
+**non-template** `static inline void worker(QueueT&, …)` — it has been a plain
+function since commit `a72c259` ("lift the duplicated const.hpp plumbing into
+pipeline_common.hpp"), which replaced the per-cell templated workers with one
+magic-typedef function but did **not** update these `main.cu` call sites.
+`worker<QueueT>` against a non-template `worker` is ill-formed, so these three
+CUDA cell *run* targets almost certainly fail to compile on the Jetson cross-build
+today. They are `run-` app drivers, not ctest tests, so no test inventory hides it;
+the pc baseline (OMP) never builds them.
+
+**Why noted, not fixed (mandate: behavior-preserving refactor — surface, don't fix):**
+the *intended* `worker` is templated on the queue type (with the callable deduced),
+which is exactly the form the P3 templatization introduces (`runtime/pipeline.hpp`).
+So `worker<QueueT>` becomes valid again as a **side effect** of P3's mechanical
+templatization — no deliberate bug-fix edit. To be confirmed by the Jetson
+cross-build that gates P3/P5; if the targets were already red, that is captured as a
+pre-existing failure, not a refactor regression.
