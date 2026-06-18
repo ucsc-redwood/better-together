@@ -7,6 +7,23 @@
 > "high"s to medium/low once reachability was checked); the original author severity is
 > noted in each section where it differed.
 
+## Resolution status (updated 2026-06-18)
+
+**34 of 37 findings fixed, full-fleet green** (OMP pc 10/10 · Vulkan rocky diff+engine+runtime ·
+CUDA Jetson diff+runtime · optimizer 14 · #6 profiler smoke-runs valid JSONL on Jetson). See the
+branch history (`refactor/component-structure`) — each fix commit names its finding number.
+
+- **DONE (33/34 confirmed + D2):** #1–#28, #30–#34, and D2. Highlights: the two real z3 scheduling
+  bugs (#1/#2), the Vulkan `Sequence` leak (#5), CUDA pinned guard (#15), the worker-terminate
+  hardening (D2), bm_prof dedup −346 LoC (#6), per-backend tolerance (#24), the tree leaf-edge
+  oracle (#7), the fleet-coverage manifest (#8).
+- **DEFERRED — #29 (SafeAppData split):** architectural, not a quick fix. The 3 backends' dispatchers
+  read SafeAppData's golden buffers AS STAGE INPUTS, so the naive lean/golden split starves them; it
+  needs a dispatcher restructuring (a separate effort, outside P0–P6). Left as backlog.
+- **NEEDS A HUMAN CALL — D1, D3 (disputed):** verifiers split. D1 (`target_sources` can silently
+  drop a new kernel source) and D3 (`run_pipeline` empty core vector) — both cheap to harden
+  defensively or to declare "by design"; not yet actioned.
+
 ## TL;DR
 
 30 confirmed findings, 3 disputed. The only **reachable, manifesting correctness bugs**
