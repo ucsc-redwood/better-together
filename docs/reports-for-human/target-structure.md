@@ -321,10 +321,17 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       (`enable_language(CUDA)` stays inside `if(BT_ENABLE_CUDA)`) and `bt::vulkan` keeps its
       `VulkanHeaders` SYSTEM include.
 
-- [ ] **P6 — `bt_add_app` consolidation (cleanup).** Replace the per-app hand-listed targets with
-      `bt_add_app(NAME … BACKENDS …)` reading stage-count from `vocab.json`. Add the
-      `guard-runtime-agnostic` grep CTest. Pure simplification. **Gate: G-omp + target-list diff (no
-      target lost).**
+- [~] **P6 — `bt_add_app` consolidation (cleanup).**
+  - [x] **`guard-runtime-agnostic` grep CTest (DONE, green).** `scripts/guard_runtime_agnostic.py`
+        greps `runtime/` for app namespaces/identifiers in CODE (comments stripped) + `#include "apps/"`;
+        wired as a CTest labelled `omp;guard` (rides the everyday omp gate). Build-enforces the P3
+        decoupling. (Also fixed a `refactor_gate.sh` inventory() sed bug that undercounted any dir >10
+        tests.) Landed early as the standalone enforcement complementing the P5 split.
+  - [ ] **`bt_add_app(NAME … BACKENDS …)` consolidation (REMAINING).** Replace the per-app hand-listed
+        targets with one helper reading stage-count from `vocab.json`. Intertwined with P5b: today
+        `bt_core`/`bt_cuda`/`bt_vulkan` bundle app sources, so the per-app-target separation that
+        `bt_add_app` provides is the SAME restructuring that enables P5b's per-component include-scope
+        narrowing. Do P5b + this together. **Gate: G-omp + target-list diff (no target lost).**
 
 **Off-ramp:** Phases 0–4 deliver every robustness/decoupling win *except* build-enforcement and are
 independently shippable. If the deadline bites, stop after P4 with the cycle broken, the executor
