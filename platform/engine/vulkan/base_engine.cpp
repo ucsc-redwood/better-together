@@ -167,7 +167,15 @@ void BaseEngine::create_physical_device(vk::PhysicalDeviceType type) {
   });
 
   if (integrated_gpu == physicalDevices.end()) {
-    throw std::runtime_error("No integrated GPU found");
+    // Surface WHAT was enumerated so the failure is diagnosable (the discrete-GPU
+    // build box hits this) instead of an opaque message (review #13).
+    for (const auto &dev : physicalDevices) {
+      const auto props = dev.getProperties();
+      spdlog::error("  available device: {} (type {})", props.deviceName.data(),
+                    vk::to_string(props.deviceType));
+    }
+    throw std::runtime_error("No integrated GPU found (kiss-vk requires an iGPU; see the "
+                             "enumerated devices above)");
   }
 
   physical_device_ = *integrated_gpu;
