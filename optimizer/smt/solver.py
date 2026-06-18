@@ -20,13 +20,17 @@ from .solution_analyzer import (
 
 # baseline_data,
 def solve_optimization_problem(
-    stage_timings, num_solutions=30, app_name=None, minimize_mode="gapness"
+    stage_timings, num_solutions=30, app_name=None, minimize_mode="gapness",
+    gpu_backend=None,
 ):
     """Solve the optimization problem and return the solutions.
 
     minimize_mode: "gapness" (minimize T_max - T_min, load balance) or "max_time"
     (minimize T_max, the pipeline makespan). Was hardcoded to gapness -- the caller's
     choice never reached the solver, so every "tmax" schedule was a gapness clone.
+
+    gpu_backend: GPU backend token ("gpu_cuda"/"gpu_vulkan") stamped onto GPU chunks as
+    the schema-required "hardware" field. Default None keeps the legacy shape.
     """
     # Initialize data
     num_stages, core_types, stage_timings_data = define_data(stage_timings, app_name)
@@ -72,7 +76,7 @@ def solve_optimization_problem(
 
         # Get detailed solution for JSON output
         detailed_solution = get_detailed_solution(
-            m, x, num_stages, core_types, stage_timings_data
+            m, x, num_stages, core_types, stage_timings_data, gpu_backend
         )
         detailed_solution["solution_id"] = solution_count + 1
         detailed_solution["metrics"]["max_time"] = max_time

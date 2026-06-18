@@ -165,15 +165,11 @@ def main():
         # Solve the optimization problem. Map the CLI token "tmax" to the solver's
         # "max_time" (constraints.py uses the latter); "gapness" passes through.
         solver_mode = "max_time" if minimize_mode == "tmax" else minimize_mode
+        # GPU chunks get their schema-required "hardware" stamped inside the solver
+        # (threaded through to get_detailed_solution), so the dump is self-validating.
         solutions = solve_optimization_problem(
-            stage_timings, args.num_solutions, app, solver_mode
+            stage_timings, args.num_solutions, app, solver_mode, gpu_backend
         )
-
-        # Update the solutions to reflect the correct GPU backend
-        for solution in solutions:
-            for chunk in solution["chunks"]:
-                if chunk["core_type"] == "GPU":
-                    chunk["hardware"] = gpu_backend
 
         # Output the solutions
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)

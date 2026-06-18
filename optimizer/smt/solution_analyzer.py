@@ -101,10 +101,15 @@ def get_solution_representation(m, x, num_stages, core_types):
     return solution
 
 
-def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
+def get_detailed_solution(m, x, num_stages, core_types, stage_timings, gpu_backend=None):
     """
     Extract a detailed representation of the solution including stage assignments,
     core types, and timing information.
+
+    gpu_backend: the GPU backend token ("gpu_cuda"/"gpu_vulkan", per vocab.json
+    backends[].hardware) to stamp onto GPU chunks as the schema-required "hardware"
+    field. Default None keeps the legacy shape (no "hardware" key) for callers that
+    patch it downstream.
     """
     # Get assignment of stages to core types
     stage_assignments = {}
@@ -139,18 +144,20 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
             chunk_time += stage_time
         else:
             # New chunk starts
-            chunks.append(
-                {
-                    "id": current_chunk,
-                    "core_type": current_core_type,
-                    # 1-based, inclusive [start_stage, end_stage] -- the schedule
-                    # contract base (schemas/schedule.schema.json). chunk_stages is
-                    # 0-based and contiguous (z3 contiguity constraint), so +1 once here.
-                    "start_stage": chunk_stages[0] + 1,
-                    "end_stage": chunk_stages[-1] + 1,
-                    "time": chunk_time,
-                }
-            )
+            chunk = {
+                "id": current_chunk,
+                "core_type": current_core_type,
+                # 1-based, inclusive [start_stage, end_stage] -- the schedule
+                # contract base (schemas/schedule.schema.json). chunk_stages is
+                # 0-based and contiguous (z3 contiguity constraint), so +1 once here.
+                "start_stage": chunk_stages[0] + 1,
+                "end_stage": chunk_stages[-1] + 1,
+                "time": chunk_time,
+            }
+            # GPU chunks need the schema-required "hardware" token; CPU chunks omit it.
+            if current_core_type == "GPU" and gpu_backend is not None:
+                chunk["hardware"] = gpu_backend
+            chunks.append(chunk)
             current_chunk += 1
             current_core_type = stage_core_type
             chunk_stages = [i]
@@ -158,15 +165,16 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings):
 
     # Add the last chunk
     if chunk_stages:
-        chunks.append(
-            {
-                "id": current_chunk,
-                "core_type": current_core_type,
-                "start_stage": chunk_stages[0] + 1,
-                "end_stage": chunk_stages[-1] + 1,
-                "time": chunk_time,
-            }
-        )
+        chunk = {
+            "id": current_chunk,
+            "core_type": current_core_type,
+            "start_stage": chunk_stages[0] + 1,
+            "end_stage": chunk_stages[-1] + 1,
+            "time": chunk_time,
+        }
+        if current_core_type == "GPU" and gpu_backend is not None:
+            chunk["hardware"] = gpu_backend
+        chunks.append(chunk)
 
     # Calculate load balancing metrics
     chunk_times = [chunk["time"] for chunk in chunks]
