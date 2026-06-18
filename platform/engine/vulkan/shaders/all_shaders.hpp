@@ -63,12 +63,14 @@ namespace shaders {
 #include "h/stressor_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
-#define SHADER_ENTRY(name)                                         \
-  {                                                                \
-    #name, {                                                       \
-      builtin_apps_common_kiss_vk_shaders_spv_##name##_spv,        \
-          builtin_apps_common_kiss_vk_shaders_spv_##name##_spv_len \
-    }                                                              \
+// The baked-header variable name is the bare .spv basename (xxd -i run from the
+// spv/ dir), so it is independent of the source-tree path -- relocating the
+// shaders dir (as the P5a component move did) no longer breaks these references.
+#define SHADER_ENTRY(name)       \
+  {                              \
+    #name, {                     \
+      name##_spv, name##_spv_len \
+    }                            \
   }
 
 // Map of shader names to their binary data and size

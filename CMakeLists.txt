@@ -247,6 +247,12 @@ if(BT_ENABLE_VULKAN)
     $<BUILD_INTERFACE:${VulkanMemoryAllocator_SOURCE_DIR}/include>)
   target_link_libraries(bt_vulkan PUBLIC bt::core ${CMAKE_DL_LIBS})
 
+  # Shaders: bt::vulkan compiles the committed *_spv.h directly. `bake-shaders`
+  # (opt-in target; needs glslc+xxd) re-bakes them -- it replaces the old root
+  # Makefile. See cmake/bt_shaders.cmake for why .comp->.spv is not on ALL.
+  include(${CMAKE_SOURCE_DIR}/cmake/bt_shaders.cmake)
+  bt_bake_shaders()
+
 
   bt_add_vk_run(run-tree-vk apps/tree/vulkan/run_main.cpp)
 

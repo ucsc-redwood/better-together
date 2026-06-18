@@ -163,12 +163,19 @@ better-together/
   super-core bug** caused by that drift. JSON (not YAML) on purpose — no new build dependency;
   committed generated headers are the fallback, exactly as `device_specs_embedded.hpp` is today.
 
-- **Shaders co-locate with their app** (`apps/<app>/vulkan/shaders/`), symmetric with CUDA's
-  per-app kernels. The `glslc → .spv → xxd` bake moves from the standalone root `Makefile`
-  (verified: 0 `glslc` refs in CMake, 29 `.comp` in the flat engine dir) into `bt_add_app` via
-  `add_custom_command`, so a stale `.spv` can no longer link green. Guarded by a `BT_GLSLC`
-  cache var + committed-`.spv` fallback so the Android/NDK preset (no `glslc` on PATH) is not
-  broken.
+- **Shader bake moved into CMake (DONE).** The `glslc → .spv → xxd` bake moved from the standalone
+  root `Makefile` (which CMake never invoked) into `cmake/bt_shaders.cmake`, exposed as an opt-in
+  `bake-shaders` target, guarded by `BT_GLSLC`/`BT_XXD` cache vars + committed-header fallback (the
+  Android/NDK preset with no `glslc` on PATH builds the committed `*_spv.h` directly). Two findings
+  forced the shape: (1) shaders are **engine-shared, keyed by name** — they did *not* co-locate per
+  app (`apps/<app>/vulkan/shaders/`); they stayed flat under `platform/engine/vulkan/shaders/`.
+  (2) **glslc is not byte-reproducible across versions** (measured: 5 of 29 `.spv` differ on a local
+  re-bake), so `.comp→.spv` must stay off the ALL target — `bake-shaders` is explicit, run only when
+  a `.comp` changes. Also fixed a **latent P5a bug**: the move left the committed `*_spv.h` carrying
+  stale `builtin_apps_common_kiss_vk_shaders_spv_*` (old-path) variable names that `all_shaders.hpp`
+  hard-referenced; re-baking would have emitted new names and broken the build. Variable names are
+  now the bare `<name>_spv` basename (`xxd -i` run from `spv/`), path-independent. (Vulkan compiled
+  green; clean-tree verified; omp gate 9/9.)
 
 - **CTest gains a "kind" axis** as a second label (no new infra): `"omp;unit"`,
   `"omp;differential"`, `"omp;runtime"`, `"vulkan;engine"`. `ctest -L omp` stays the everyday
@@ -302,11 +309,18 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
         CMakeLists source paths + device/vocab codegen outputs + shader-bake Makefile remapped. Behavior-
         preserving; gated **G-omp + G-gpu + G-runtime** (Jetson CUDA + rocky Vulkan, all differential +
         pipeline-e2e green). Repo root is still the PUBLIC include dir (move correct, not yet enforced).
-  - [ ] **P5b — the enforcement (REMAINING).** Split the ~400-line root `CMakeLists.txt` into ~6
-        per-component sub-files + a thin `add_subdirectory` root, **narrowing each target's include scope
-        to its own component dir** (the §5 lever that makes P3's decoupling build-enforced). Move the shader
-        bake into `bt_add_app` (`BT_GLSLC` + committed-`.spv` fallback). Re-gate the full fleet; verify the
-        PC preset still never invokes `nvcc` and `bt::vulkan` keeps its `VulkanHeaders` SYSTEM include.
+  - [~] **P5b — the enforcement (PARTIAL).**
+        - [x] **Shader bake into CMake (DONE)** — `cmake/bt_shaders.cmake` + opt-in `bake-shaders` target
+              replaces the dead root `Makefile`; `BT_GLSLC`/`BT_XXD` + committed-header fallback; fixed the
+              stale-variable-name P5a bug. See the §5 bullet above. (Vulkan green, clean-tree, omp 9/9.)
+        - [ ] **CMakeLists split + scope-narrowing (REMAINING)** — split the ~400-line root into ~6
+              per-component sub-files + a thin `add_subdirectory` root, **narrowing each target's include
+              scope to its own component dir** (the §5 lever that build-enforces P3's decoupling). NOTE: the
+              enforcement payoff is largely *already* delivered by `guard-runtime-agnostic`; true per-dir
+              scope-narrowing is blocked by the repo-root-prefixed includes (would need another ~228-include
+              rewrite to component-relative) and requires first un-bundling `bt_core/cuda/vulkan` into per-app
+              libs (the P6 restructuring). Re-gate the full fleet; verify the PC preset still never invokes
+              `nvcc` and `bt::vulkan` keeps its `VulkanHeaders` SYSTEM include.
 
   <!-- original P5 text retained below for reference -->
   `git mv builtin-apps/{pipeline→runtime, conf.*+app.*+affinity→platform/registry,
