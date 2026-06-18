@@ -1,47 +1,10 @@
-#include <thread>
-
-#include "platform/registry/device_registry.hpp"
-#include "const.hpp"
-
-void run(const std::vector<AppDataPtr>& data, DispatcherT& disp) {
-  QueueT q0;
-  QueueT q1;
-
-  for (const auto& item : data) {
-    q0.enqueue(item.get());
-  }
-
-  std::thread t0(
-      worker<QueueT, AppDataT>,
-      std::ref(q0),
-      std::ref(q1),
-      [](AppDataT* app) { cifar_dense::omp::dispatch_stage(*app, 1); },
-      kNumToProcess,
-      false);
-
-  std::thread t1(
-      worker<QueueT, AppDataT>,
-      std::ref(q1),
-      std::ref(q0),
-      [&disp](AppDataT* app) { disp.dispatch_stage(*app, 2); },
-      kNumToProcess,
-      true);
-
-  t0.join();
-  t1.join();
-}
+// Two-stage concurrent-pipeline demo for cifar-dense x CUDA. The runner lives in
+// ../bm_demo_common.hpp; this cell supplies only the stage-1 OMP token.
+#include "const.hpp"  // DispatcherT, AppDataT, QueueT, kNumToProcess; pulls in worker/make_dataset
+#include "profiler/bm_demo_common.hpp"
 
 int main(int argc, char** argv) {
-  parse_args(argc, argv);
-
-  spdlog::set_level(spdlog::level::from_str(g_spdlog_log_level));
-
-  DispatcherT disp;
-
-  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, 10);
-
-  run(dataset, disp);
-
-  spdlog::info("Done with vector");
-  return 0;
+  return bt_demo::run_main<DispatcherT, AppDataT, AppDataPtr, QueueT>(
+      argc, argv, kNumToProcess,
+      [](AppDataT* app) { cifar_dense::omp::dispatch_stage(*app, 1); });
 }
