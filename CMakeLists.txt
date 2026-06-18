@@ -1,20 +1,26 @@
 # BetterTogether — CMake build (the build system).
 #
-# CMake is now the sole build system; xmake was retired 2026-06-16 once CMake
-# reached parity on every target that matters (see
-# docs/reports-for-human/cmake-migration-rfc.md for the migration history).
-# Not (yet) ported from the old xmake build: the volk diagnostics
-# (check-vulkan / query-warpsize) and the NNAPI/EdgeTPU targets -- their sources
-# still live under utility/ and can be re-added here when needed.
+# CMake is the sole build system; xmake was retired 2026-06-16 (history:
+# docs/reports-for-human/cmake-migration-rfc.md). Not (yet) ported from xmake: the
+# volk diagnostics (check-vulkan / query-warpsize) and the NNAPI/EdgeTPU targets --
+# their sources still live under utility/ and can be re-added when needed.
+#
+# Structure: this root is thin -- options, third-party deps, the shared target
+# helpers, and the language/header setup -- then one add_subdirectory per component:
+#   platform/  bt::core + bt::cuda / bt::vulkan engine libs (+ codegen, shaders)
+#   apps/      per-app kernels (contributed to the backend libs via target_sources)
+#              and the per-app runner / test / benchmark targets
+#   runtime/   the app-agnostic pipeline runtime's schedule-contract test
+#   profiler/  BT-Profiler pipeline runners + per-cell benchmark drivers
+#   tools/     standalone probes and interference loads
+# The backend libs stay bundled (every target links the whole bt::core/cuda/vulkan);
+# runtime<->app decoupling is enforced by the guard-runtime-agnostic CTest, not by
+# per-dir include scoping (includes remain repo-root-prefixed).
 #
 # Backends are orthogonal, combinable options (hybrid = enable two at once):
 #   BT_ENABLE_OPENMP  always on (the bt::core CPU runtime)
 #   BT_ENABLE_CUDA    cross-compiled to Jetson Orin (sm_87), run there
 #   BT_ENABLE_VULKAN  x86 -> run on an integrated-GPU box (rocky-ryzen) or Jetson
-#
-# Modern-CMake conventions: target-scoped settings only, per-target compile
-# features, namespaced ALIAS targets (bt::core/cuda/vulkan), imported targets
-# for deps, generator expressions, explicit source lists (no file(GLOB)).
 cmake_minimum_required(VERSION 3.25)
 
 project(better_together
@@ -32,6 +38,10 @@ set(BT_TEST_DEVICE "pc" CACHE STRING "Device spec passed to tests via --device")
 
 # ---- project-wide niceties (kept minimal; prefer per-target settings) ------
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# All executables land flat in build/<preset>/ regardless of which component
+# subdirectory defines them, so the run-on-*.sh deploy scripts find them at the
+# same paths as before the per-component add_subdirectory split.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
@@ -83,313 +93,57 @@ if(BT_BUILD_BENCHMARKS)
     VERBATIM)
 endif()
 
-# ---- bt::core — shared CPU/OpenMP runtime (tree + cifar OMP dispatchers) ---
-add_library(bt_core STATIC
-  platform/registry/conf.cpp
-  platform/registry/device_registry.cpp
-  platform/util/hex_dump.cpp
-  apps/tree/tree_appdata.cpp
-  apps/tree/safe_tree_appdata.cpp
-  apps/tree/omp/dispatchers.cpp
-  apps/cifar-dense/omp/dispatchers.cpp
-  apps/cifar-sparse/omp/dispatchers.cpp
-)
-add_library(bt::core ALIAS bt_core)
-
-include(cmake/bt_targets.cmake)  # bt_add_{omp,cuda,vk}_{run,app,test} helpers
-target_compile_features(bt_core PUBLIC cxx_std_20)
-target_include_directories(bt_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-target_link_libraries(bt_core PUBLIC
-  spdlog::spdlog CLI11::CLI11 glm::glm libmorton bt::openmp nlohmann_json::nlohmann_json)
-
-# device_specs_embedded.hpp (conf.cpp includes it) is generated from devices/*.json by
-# scripts/embed_device_specs.py. Regenerate it at build time whenever a device JSON or
-# the generator changes, so editing devices/*.json is picked up without a manual step.
-# The script writes identical bytes when nothing changed, so a clean tree stays clean;
-# if no python is found, the committed header is used as-is.
+# Python for the codegen (devices/*.json + vocab.json) and the optimizer/guard tests;
+# optional, mirroring the committed-fallback pattern (no python -> committed headers).
 find_program(BT_PYTHON NAMES python3 python)
-if(BT_PYTHON)
-  file(GLOB BT_DEVICE_JSONS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/devices/*.json)
-  add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp
-    COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
-    DEPENDS ${BT_DEVICE_JSONS} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
-    COMMENT "Embedding devices/*.json -> device_specs_embedded.hpp"
-    VERBATIM)
-  add_custom_target(bt_device_specs
-    DEPENDS ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp)
-  add_dependencies(bt_core bt_device_specs)
-endif()
 
-# Vocabulary codegen: vocab.json -> platform/vocab/generated/bt_vocab.hpp (the
-# ProcessorType enum etc., included by conf.hpp) + optimizer/smt/bt_vocab.py. Same
-# committed-fallback pattern as the device specs (BT_PYTHON already found above).
-include(${CMAKE_SOURCE_DIR}/cmake/bt_codegen.cmake)
-bt_codegen(TARGET  bt_vocab
-           SCRIPT  ${CMAKE_SOURCE_DIR}/scripts/embed_vocab.py
-           DEPENDS ${CMAKE_SOURCE_DIR}/vocab.json
-           OUTPUTS ${CMAKE_SOURCE_DIR}/platform/vocab/generated/bt_vocab.hpp
-                   ${CMAKE_SOURCE_DIR}/optimizer/smt/bt_vocab.py)
+# Shared target helpers: bt_add_{omp,cuda,vk}_{run,app,test}; used by every component.
+include(cmake/bt_targets.cmake)
 
-
-bt_add_omp_run(run-cifar-dense-omp apps/cifar-dense/omp/main.cpp)
-
-# ---- utility / diagnostics (standalone CPU tools) -------------------------
-add_executable(test-affinity tools/probes/probe_affinity.cpp)   # core-pinning probe
-target_link_libraries(test-affinity PRIVATE bt::core bt::openmp)
-add_executable(query-cpuinfo tools/probes/query_cpuinfo.cpp)   # CPU topology (Linux/Android)
-add_executable(stressor-omp tools/probes/stress/stressor-omp.cpp)  # OMP CPU interference load
-target_link_libraries(stressor-omp PRIVATE bt::core bt::openmp)
-
-# ---- OMP per-stage benchmarks (profiler; the paper's per-stage table) ------
-# bm_main.cpp registers one Google-benchmark per stage (BM_Stage1..N). Isolated
-# per-stage latency on the CPU/OMP backend. (Interference-aware bm-table-* is C3.)
-if(BT_BUILD_BENCHMARKS)
-  bt_add_omp_app(bm-tree-omp         apps/tree/omp/bm_main.cpp         benchmark::benchmark)
-  bt_add_omp_app(bm-cifar-dense-omp  apps/cifar-dense/omp/bm_main.cpp  benchmark::benchmark)
-  bt_add_omp_app(bm-cifar-sparse-omp apps/cifar-sparse/omp/bm_main.cpp benchmark::benchmark)
-  # core-type classifier (probe each core, label big/medium/little/super)
-  bt_add_omp_app(bm-check-core-types tools/probes/bm_core_type.cpp benchmark::benchmark)
-endif()
-
-# ---- bt::cuda — CUDA backend (tree + cifar) -------------------------------
+# CUDA is enabled once here so every component's CUDA targets compile (a subdir
+# enable_language would not reach sibling dirs). PC preset leaves BT_ENABLE_CUDA OFF,
+# so nvcc is never invoked there.
 if(BT_ENABLE_CUDA)
   enable_language(CUDA)
-  add_library(bt_cuda STATIC
-    platform/engine/cuda/cu_mem_resource.cu
-    apps/tree/cuda/01_morton.cu
-    apps/tree/cuda/02_sort.cu
-    apps/tree/cuda/03_unique.cu
-    apps/tree/cuda/04_radix_tree.cu
-    apps/tree/cuda/05_edge_count.cu
-    apps/tree/cuda/06_prefix_sum.cu
-    apps/tree/cuda/07_octree.cu
-    apps/tree/cuda/dispatchers.cu
-    apps/cifar-dense/cuda/all_kernels.cu
-    apps/cifar-dense/cuda/dispatchers.cu
-    apps/cifar-sparse/cuda/all_kernels.cu
-    apps/cifar-sparse/cuda/dispatchers.cu
-  )
-  add_library(bt::cuda ALIAS bt_cuda)
-  target_compile_features(bt_cuda PUBLIC cxx_std_20 cuda_std_20)
-  target_include_directories(bt_cuda PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-  set_target_properties(bt_cuda PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
-  target_compile_options(bt_cuda PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
-  target_link_libraries(bt_cuda PUBLIC bt::core)
-
-
-  bt_add_cuda_app(run-pipe-tree-cu         profiler/tree-cu/main.cu)
-  bt_add_cuda_app(run-pipe-cifar-dense-cu  profiler/cifar-dense-cu/main.cu)
-  bt_add_cuda_app(run-pipe-cifar-sparse-cu profiler/cifar-sparse-cu/main.cu)
-
-  # Single-app CUDA runners (BT-Implementer per-app smoke; sources in builtin-apps).
-  bt_add_cuda_app(run-tree-cu          apps/tree/cuda/main.cu)
-  bt_add_cuda_app(run-cifar-dense-cu   apps/cifar-dense/cuda/main.cu)
-  bt_add_cuda_app(run-cifar-sparse-cu  apps/cifar-sparse/cuda/main.cu)
-
-  # utility: OMP-inside-a-CUDA-TU sanity (probe_omp.cu)
-  add_executable(test-omp tools/probes/probe_omp.cu)
-  set_target_properties(test-omp PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
-  target_compile_options(test-omp PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fopenmp>)
-  target_link_libraries(test-omp PRIVATE bt::openmp)
-
-  if(BT_BUILD_BENCHMARKS)
-    # Per-cell pipe/ benchmark drivers: one target per app x {baseline, fully-vs-normal,
-    # gen-logs, prof}. Generated to avoid hand-list drift (a dropped line builds fine and
-    # only fails at deploy -- a missing bm-gen-logs-tree-vk bit us once).
-    foreach(app tree cifar-dense cifar-sparse)
-      bt_add_cuda_app(bm-baseline-${app}-cu profiler/${app}-cu/bm_baseline.cu        benchmark::benchmark)
-      bt_add_cuda_app(bm-fully-${app}-cu    profiler/${app}-cu/bm_fully_vs_normal.cu benchmark::benchmark)
-      bt_add_cuda_app(bm-gen-logs-${app}-cu profiler/${app}-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
-      bt_add_cuda_app(bm-prof-${app}-cu     profiler/${app}-cu/bm_prof.cu            benchmark::benchmark nlohmann_json::nlohmann_json)
-      # build-time git sha (see bt_git_sha target): generated header on the include path.
-      add_dependencies(bm-prof-${app}-cu bt_git_sha)
-      target_include_directories(bm-prof-${app}-cu PRIVATE ${CMAKE_BINARY_DIR}/generated)
-    endforeach()
-    # per-stage (BM_Stage1..N) -- irregular: tree/cuda has no bm_main.cu upstream.
-    bt_add_cuda_app(bm-cifar-dense-cu  apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
-    bt_add_cuda_app(bm-cifar-sparse-cu apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
-  endif()
 endif()
 
-# ---- bt::vulkan — Vulkan backend (kiss-vk + tree/cifar dispatchers) --------
-# Uses vulkan-hpp's dynamic dispatch + vk::DynamicLoader (dlopen libvulkan at
-# runtime; no volk, no link-time -lvulkan). Pinned to 1.3.290 because newer
-# vulkan-hpp removed vk::DynamicLoader. SPIR-V shaders are pre-baked headers.
+# Vulkan headers fetched here so the SOURCE_DIR vars are visible in platform/apps/tools.
+# vulkan-hpp pinned to 1.3.290 (newer removed vk::DynamicLoader); VMA header-only.
 if(BT_ENABLE_VULKAN)
   CPMAddPackage(NAME VulkanHeaders
     GITHUB_REPOSITORY KhronosGroup/Vulkan-Headers GIT_TAG v1.3.290 DOWNLOAD_ONLY YES)
   CPMAddPackage(NAME VulkanMemoryAllocator
     GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator GIT_TAG v3.1.0 DOWNLOAD_ONLY YES)
-
-  # utility: print the compiled vulkan-hpp header version (compile-time constant)
-  add_executable(query-vulkan-hpp-version tools/probes/query_vulkan_hpp_version.cpp)
-  target_compile_features(query-vulkan-hpp-version PRIVATE cxx_std_20)
-  target_include_directories(query-vulkan-hpp-version SYSTEM PRIVATE
-    $<BUILD_INTERFACE:${VulkanHeaders_SOURCE_DIR}/include>)
-
-  add_library(bt_vulkan STATIC
-    platform/engine/vulkan/algorithm.cpp
-    platform/engine/vulkan/base_engine.cpp
-    platform/engine/vulkan/sequence.cpp
-    platform/engine/vulkan/vma_pmr.cpp
-    apps/tree/vulkan/dispatchers.cpp
-    apps/cifar-dense/vulkan/dispatchers.cpp
-    apps/cifar-sparse/vulkan/dispatchers.cpp
-  )
-  add_library(bt::vulkan ALIAS bt_vulkan)
-  target_compile_features(bt_vulkan PUBLIC cxx_std_20)
-  target_include_directories(bt_vulkan PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-  target_include_directories(bt_vulkan SYSTEM PUBLIC
-    $<BUILD_INTERFACE:${VulkanHeaders_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${VulkanMemoryAllocator_SOURCE_DIR}/include>)
-  target_link_libraries(bt_vulkan PUBLIC bt::core ${CMAKE_DL_LIBS})
-
-  # Shaders: bt::vulkan compiles the committed *_spv.h directly. `bake-shaders`
-  # (opt-in target; needs glslc+xxd) re-bakes them -- it replaces the old root
-  # Makefile. See cmake/bt_shaders.cmake for why .comp->.spv is not on ALL.
-  include(${CMAKE_SOURCE_DIR}/cmake/bt_shaders.cmake)
-  bt_bake_shaders()
-
-
-  bt_add_vk_run(run-tree-vk apps/tree/vulkan/run_main.cpp)
-
-  # Vulkan GPU interference load (kiss-vk engine; no benchmark, no volk)
-  add_executable(stressor-vk tools/probes/stress/stressor-vk.cpp)
-  target_link_libraries(stressor-vk PRIVATE bt::vulkan bt::core bt::openmp)
-
-  # ---- Vulkan benchmarks (profiler) ----
-  if(BT_BUILD_BENCHMARKS)
-    # Per-cell pipe/ benchmark drivers, one target per app x driver (see CUDA block).
-    foreach(app tree cifar-dense cifar-sparse)
-      bt_add_vk_app(bm-baseline-${app}-vk profiler/${app}-vk/bm_baseline.cpp        benchmark::benchmark)
-      bt_add_vk_app(bm-fully-${app}-vk    profiler/${app}-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
-      bt_add_vk_app(bm-gen-logs-${app}-vk profiler/${app}-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
-      bt_add_vk_app(bm-prof-${app}-vk     profiler/${app}-vk/bm_prof.cpp            benchmark::benchmark nlohmann_json::nlohmann_json)
-      # build-time git sha (see bt_git_sha target): generated header on the include path.
-      add_dependencies(bm-prof-${app}-vk bt_git_sha)
-      target_include_directories(bm-prof-${app}-vk PRIVATE ${CMAKE_BINARY_DIR}/generated)
-    endforeach()
-    # per-stage (BM_Stage1..N) -- all three exist for vulkan.
-    bt_add_vk_app(bm-tree-vk         apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
-    bt_add_vk_app(bm-cifar-dense-vk  apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
-    bt_add_vk_app(bm-cifar-sparse-vk apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
-  endif()
 endif()
 
-# ---- tests ----------------------------------------------------------------
+# ---- tests: infra + the cross-cutting (non-app) suites --------------------
 if(BT_BUILD_TESTS)
+  # Hardware-gated tests GTEST_SKIP() when the device is absent; gtest exits 0 on a
+  # skip, so a skip is a pass. Backend LABELs gate per-runner: -L omp (every PR) /
+  # -L cuda (Jetson) / -L vulkan (iGPU box or Android via adb). Per-app tests are
+  # registered in apps/<app>/CMakeLists.txt; the two cross-cutting suites are here.
   enable_testing()
 
-  # BT-Optimizer (Python/z3) test suite — its OWN label "optimizer", deliberately
-  # NOT part of any backend gate (`ctest -L omp` stays C++-only). Runs pytest over
-  # optimizer/tests/ with optimizer/ as the rootdir (pyproject pythonpath). Needs
-  # z3-solver/jsonschema/numpy (optimizer/pyproject.toml); only wired if a python
-  # is present, mirroring the device-spec codegen's optional BT_PYTHON.
   if(BT_PYTHON)
+    # BT-Optimizer (Python/z3) suite -- own label "optimizer", deliberately NOT in any
+    # backend gate (`ctest -L omp` stays C++-only). pytest over optimizer/tests.
     add_test(NAME test-optimizer
              COMMAND ${BT_PYTHON} -m pytest ${CMAKE_SOURCE_DIR}/optimizer/tests -q
              WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/optimizer)
     set_tests_properties(test-optimizer PROPERTIES LABELS "optimizer")
 
     # guard-runtime-agnostic: fail if runtime/ references an app by name in CODE
-    # (comments excluded). Build-enforces the decoupling P3 achieved -- a header-only
-    # leak (e.g. a runtime header using tree::SafeAppData) link-scoping cannot catch.
-    # LABEL "guard"; hardware-free, so it also rides the everyday omp gate.
+    # (comments excluded). Build-enforces the P3 decoupling -- a header-only leak
+    # link-scoping cannot catch. LABEL "guard"; hardware-free, rides the omp gate.
     add_test(NAME guard-runtime-agnostic
              COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/guard_runtime_agnostic.py)
     set_tests_properties(guard-runtime-agnostic PROPERTIES LABELS "omp;guard")
   endif()
-
-  # Every test is tagged with a backend LABEL so CI can gate per-runner:
-  #   ctest -L omp     (every PR, desktop, no GPU)
-  #   ctest -L cuda    (Jetson self-hosted runner)
-  #   ctest -L vulkan  (integrated-GPU box / Android via adb)
-  # Hardware-gated tests GTEST_SKIP() when the device/cores are absent; gtest
-  # still exits 0 on a skip, so a skipped test is a pass (not a CI failure) —
-  # no SKIP_RETURN_CODE needed. Extra source args (${ARGN}) let a test pull in
-  # its app's dispatcher .cpp (e.g. octree, whose stages aren't in bt::core).
-
-
-  bt_add_omp_test(test-tree-omp         apps/tree/omp/test_main.cpp)
-  bt_add_omp_test(test-cifar-dense-omp  apps/cifar-dense/omp/test_main.cpp)
-  bt_add_omp_test(test-cifar-sparse-omp apps/cifar-sparse/omp/test_main.cpp)
-  # test_sort.cpp is the one suite with real correctness checks (is_sorted +
-  # permutation oracle). Kept after removing the dead standalone octree app
-  # (the live octree pipeline is the `tree` app; see git history).
-  bt_add_omp_test(test-sort-omp         apps/octree/omp/test_sort.cpp)
-  # Pipeline schedule contract: chunks must contiguously cover [1, n_stages].
-  # The correctness gate the pipeline path was missing (catches the dropped-stage class).
-  bt_add_omp_test(test-schedule-omp     runtime/tests/test_schedule.cpp)
-  # Cross-tool round-trip contract: the C++ consumer reads the committed schedule
-  # fixture the Python producer/schema side also checks (Lever B).
-  target_compile_definitions(test-schedule-omp PRIVATE
-    BT_SCHEDULE_FIXTURE="${CMAKE_SOURCE_DIR}/tests/fixtures/schedule.contract.json")
-  # First framework runtime-correctness test: drive the tree app through the REAL
-  # concurrent worker/SPSC ring with a multi-tier OMP schedule and assert the §1
-  # differential holds + chunks bind to their intended big/little cores.
-  bt_add_omp_test(test-pipeline-e2e-omp apps/tree/omp/test_pipeline_main.cpp)
-  # cifar (feed-forward) hetero-pipeline on the CPU-only path: completes the OMP column
-  # of the runtime matrix (vk/cu cover the GPU columns).
-  bt_add_omp_test(test-pipeline-e2e-cifar-dense-omp  apps/cifar-dense/omp/test_pipeline_main.cpp)
-  bt_add_omp_test(test-pipeline-e2e-cifar-sparse-omp apps/cifar-sparse/omp/test_pipeline_main.cpp)
-
-  # Kind axis: a SECOND label refining each test by purpose, while the backend
-  # label (set above) is kept so `ctest -L omp` stays the everyday gate.
-  #   unit        = hardware-free pure logic (no device needed)
-  #   differential = OMP-oracle correctness compare
-  #   runtime     = the concurrent worker/SPSC-ring pipeline suite
-  set_tests_properties(test-schedule-omp PROPERTIES LABELS "omp;unit")
-  set_tests_properties(test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-sort-omp
-                       PROPERTIES LABELS "omp;differential")
-  set_tests_properties(test-pipeline-e2e-omp test-pipeline-e2e-cifar-dense-omp
-                       test-pipeline-e2e-cifar-sparse-omp PROPERTIES LABELS "omp;runtime")
-
-  # CUDA unit tests — built on x86, run on the Jetson.
-  if(BT_ENABLE_CUDA)
-
-    bt_add_cuda_test(test-tree-cu         apps/tree/cuda/test_main.cu)
-    bt_add_cuda_test(test-cifar-dense-cu  apps/cifar-dense/cuda/test_main.cu)
-    bt_add_cuda_test(test-cifar-sparse-cu apps/cifar-sparse/cuda/test_main.cu)
-    # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|CUDA
-    # schedule -- concurrent CPU+GPU on zero-copy pinned UMA (the §1 visibility gate).
-    bt_add_cuda_test(test-pipeline-e2e-cu apps/tree/cuda/test_pipeline_main_cu.cu)
-    bt_add_cuda_test(test-pipeline-e2e-cifar-dense-cu  apps/cifar-dense/cuda/test_pipeline_main_cu.cu)
-    bt_add_cuda_test(test-pipeline-e2e-cifar-sparse-cu apps/cifar-sparse/cuda/test_pipeline_main_cu.cu)
-
-    # Kind axis (second label); backend label "cuda" kept for `ctest -L cuda`.
-    set_tests_properties(test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu
-                         PROPERTIES LABELS "cuda;differential")
-    set_tests_properties(test-pipeline-e2e-cu test-pipeline-e2e-cifar-dense-cu
-                         test-pipeline-e2e-cifar-sparse-cu PROPERTIES LABELS "cuda;runtime")
-  endif()
-
-  # Vulkan unit tests — run on an integrated-GPU box (rocky-ryzen) or the Jetson.
-  if(BT_ENABLE_VULKAN)
-
-    # kiss-vk engine self-test takes no --device.
-    add_executable(test-kiss-vk platform/engine/vulkan/test_main.cpp)
-    target_link_libraries(test-kiss-vk PRIVATE bt::vulkan bt::core GTest::gtest GTest::gtest_main bt::openmp)
-    add_test(NAME test-kiss-vk COMMAND test-kiss-vk)
-    set_tests_properties(test-kiss-vk PROPERTIES LABELS "vulkan")
-
-    bt_add_vk_test(test-tree-vk         apps/tree/vulkan/test_main.cpp)
-    bt_add_vk_test(test-cifar-dense-vk  apps/cifar-dense/vulkan/test_main.cpp)
-    bt_add_vk_test(test-cifar-sparse-vk apps/cifar-sparse/vulkan/test_main.cpp)
-    # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|Vulkan
-    # schedule -- concurrent CPU+GPU on shared UMA (the §1/§7 visibility gate).
-    bt_add_vk_test(test-pipeline-e2e-vk apps/tree/vulkan/test_pipeline_main_vk.cpp)
-    bt_add_vk_test(test-pipeline-e2e-cifar-dense-vk  apps/cifar-dense/vulkan/test_pipeline_main_vk.cpp)
-    bt_add_vk_test(test-pipeline-e2e-cifar-sparse-vk apps/cifar-sparse/vulkan/test_pipeline_main_vk.cpp)
-
-    # Kind axis (second label); backend label "vulkan" kept for `ctest -L vulkan`.
-    #   engine = the kiss-vk backend self-test (no app, no --device)
-    set_tests_properties(test-kiss-vk PROPERTIES LABELS "vulkan;engine")
-    set_tests_properties(test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
-                         PROPERTIES LABELS "vulkan;differential")
-    set_tests_properties(test-pipeline-e2e-vk test-pipeline-e2e-cifar-dense-vk
-                         test-pipeline-e2e-cifar-sparse-vk PROPERTIES LABELS "vulkan;runtime")
-  endif()
 endif()
+
+# ---- components -----------------------------------------------------------
+add_subdirectory(platform)   # bt::core / bt::cuda / bt::vulkan (must precede apps/)
+add_subdirectory(apps)       # app kernels (target_sources -> backend libs) + targets
+add_subdirectory(runtime)    # schedule-contract test
+add_subdirectory(profiler)   # pipeline runners + benchmark drivers
+add_subdirectory(tools)      # probes + interference loads
