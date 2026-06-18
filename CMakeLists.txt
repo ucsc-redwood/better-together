@@ -95,6 +95,8 @@ add_library(bt_core STATIC
   apps/cifar-sparse/omp/dispatchers.cpp
 )
 add_library(bt::core ALIAS bt_core)
+
+include(cmake/bt_targets.cmake)  # bt_add_{omp,cuda,vk}_{run,app,test} helpers
 target_compile_features(bt_core PUBLIC cxx_std_20)
 target_include_directories(bt_core PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(bt_core PUBLIC
@@ -129,13 +131,6 @@ bt_codegen(TARGET  bt_vocab
            OUTPUTS ${CMAKE_SOURCE_DIR}/platform/vocab/generated/bt_vocab.hpp
                    ${CMAKE_SOURCE_DIR}/optimizer/smt/bt_vocab.py)
 
-# ---- OMP single-app runners (executor; BT-Implementer single-app smoke) -----
-# Always built (not gated behind BT_BUILD_BENCHMARKS). ${ARGN} lets a runner
-# pull in its app's dispatcher .cpp when it isn't part of bt::core (e.g. octree).
-function(bt_add_omp_run name src)
-  add_executable(${name} ${src} ${ARGN})
-  target_link_libraries(${name} PRIVATE bt::core bt::openmp)
-endfunction()
 
 bt_add_omp_run(run-cifar-dense-omp apps/cifar-dense/omp/main.cpp)
 
@@ -150,10 +145,6 @@ target_link_libraries(stressor-omp PRIVATE bt::core bt::openmp)
 # bm_main.cpp registers one Google-benchmark per stage (BM_Stage1..N). Isolated
 # per-stage latency on the CPU/OMP backend. (Interference-aware bm-table-* is C3.)
 if(BT_BUILD_BENCHMARKS)
-  function(bt_add_omp_app name src)
-    add_executable(${name} ${src})
-    target_link_libraries(${name} PRIVATE bt::core bt::openmp ${ARGN})
-  endfunction()
   bt_add_omp_app(bm-tree-omp         apps/tree/omp/bm_main.cpp         benchmark::benchmark)
   bt_add_omp_app(bm-cifar-dense-omp  apps/cifar-dense/omp/bm_main.cpp  benchmark::benchmark)
   bt_add_omp_app(bm-cifar-sparse-omp apps/cifar-sparse/omp/bm_main.cpp benchmark::benchmark)
@@ -187,16 +178,6 @@ if(BT_ENABLE_CUDA)
     $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
   target_link_libraries(bt_cuda PUBLIC bt::core)
 
-  # ---- CUDA runners (executor) + benchmarks (profiler) ----
-  # Sources currently under profiler/; they relocate out of pipe/ when the duplication
-  # farm is deleted (RFC Phase C3). curl-based bm-gen-logs is still TBD.
-  function(bt_add_cuda_app name src)
-    add_executable(${name} ${src})
-    set_target_properties(${name} PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
-    target_compile_options(${name} PRIVATE
-      $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
-    target_link_libraries(${name} PRIVATE bt::cuda bt::core bt::openmp ${ARGN})
-  endfunction()
 
   bt_add_cuda_app(run-pipe-tree-cu         profiler/tree-cu/main.cu)
   bt_add_cuda_app(run-pipe-cifar-dense-cu  profiler/cifar-dense-cu/main.cu)
@@ -266,12 +247,6 @@ if(BT_ENABLE_VULKAN)
     $<BUILD_INTERFACE:${VulkanMemoryAllocator_SOURCE_DIR}/include>)
   target_link_libraries(bt_vulkan PUBLIC bt::core ${CMAKE_DL_LIBS})
 
-  # ---- Vulkan single-app runners (executor) ----
-  # Always built when Vulkan is enabled (not gated behind BT_BUILD_BENCHMARKS).
-  function(bt_add_vk_run name src)
-    add_executable(${name} ${src} ${ARGN})
-    target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp)
-  endfunction()
 
   bt_add_vk_run(run-tree-vk apps/tree/vulkan/run_main.cpp)
 
@@ -281,10 +256,6 @@ if(BT_ENABLE_VULKAN)
 
   # ---- Vulkan benchmarks (profiler) ----
   if(BT_BUILD_BENCHMARKS)
-    function(bt_add_vk_app name src)
-      add_executable(${name} ${src})
-      target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp ${ARGN})
-    endfunction()
     # Per-cell pipe/ benchmark drivers, one target per app x driver (see CUDA block).
     foreach(app tree cifar-dense cifar-sparse)
       bt_add_vk_app(bm-baseline-${app}-vk profiler/${app}-vk/bm_baseline.cpp        benchmark::benchmark)
@@ -335,13 +306,6 @@ if(BT_BUILD_TESTS)
   # no SKIP_RETURN_CODE needed. Extra source args (${ARGN}) let a test pull in
   # its app's dispatcher .cpp (e.g. octree, whose stages aren't in bt::core).
 
-  # CPU/OpenMP unit tests.
-  function(bt_add_omp_test name src)
-    add_executable(${name} ${src} ${ARGN})
-    target_link_libraries(${name} PRIVATE bt::core GTest::gtest GTest::gtest_main bt::openmp)
-    add_test(NAME ${name} COMMAND ${name} --device ${BT_TEST_DEVICE})
-    set_tests_properties(${name} PROPERTIES LABELS "omp")
-  endfunction()
 
   bt_add_omp_test(test-tree-omp         apps/tree/omp/test_main.cpp)
   bt_add_omp_test(test-cifar-dense-omp  apps/cifar-dense/omp/test_main.cpp)
@@ -379,15 +343,6 @@ if(BT_BUILD_TESTS)
 
   # CUDA unit tests — built on x86, run on the Jetson.
   if(BT_ENABLE_CUDA)
-    function(bt_add_cuda_test name src)
-      add_executable(${name} ${src} ${ARGN})
-      set_target_properties(${name} PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
-      target_compile_options(${name} PRIVATE
-        $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=20012 -Xcompiler=-fopenmp>)
-      target_link_libraries(${name} PRIVATE bt::cuda bt::core GTest::gtest GTest::gtest_main bt::openmp)
-      add_test(NAME ${name} COMMAND ${name} --device ${BT_TEST_DEVICE})
-      set_tests_properties(${name} PROPERTIES LABELS "cuda")
-    endfunction()
 
     bt_add_cuda_test(test-tree-cu         apps/tree/cuda/test_main.cu)
     bt_add_cuda_test(test-cifar-dense-cu  apps/cifar-dense/cuda/test_main.cu)
@@ -407,12 +362,6 @@ if(BT_BUILD_TESTS)
 
   # Vulkan unit tests — run on an integrated-GPU box (rocky-ryzen) or the Jetson.
   if(BT_ENABLE_VULKAN)
-    function(bt_add_vk_test name src)
-      add_executable(${name} ${src} ${ARGN})
-      target_link_libraries(${name} PRIVATE bt::vulkan bt::core GTest::gtest GTest::gtest_main bt::openmp)
-      add_test(NAME ${name} COMMAND ${name} --device ${BT_TEST_DEVICE})
-      set_tests_properties(${name} PROPERTIES LABELS "vulkan")
-    endfunction()
 
     # kiss-vk engine self-test takes no --device.
     add_executable(test-kiss-vk platform/engine/vulkan/test_main.cpp)
