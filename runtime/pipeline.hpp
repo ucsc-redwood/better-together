@@ -63,23 +63,26 @@ inline void worker(Queue& q_in,
       std::this_thread::yield();
     }
 
-    if (app == nullptr) {
-      throw std::runtime_error("App is nullptr");
-    }
-
+    // A null here would be an invariant violation (the rings are only ever fed non-null
+    // items). This used to throw -- but a throw escaping a std::thread body calls
+    // std::terminate, the very crash the try/catch below exists to prevent (review D2).
+    // Log it and fall through to re-enqueue so the ring keeps draining instead of crashing.
     // ------------------------------------------------------------------------
-    try {
-      func(app);
-    } catch (const std::exception& e) {
-      spdlog::error("worker: item {} threw: {}", i, e.what());
-    } catch (...) {
-      spdlog::error("worker: item {} threw unknown exception", i);
+    if (app != nullptr) {
+      try {
+        func(app);
+      } catch (const std::exception& e) {
+        spdlog::error("worker: item {} threw: {}", i, e.what());
+      } catch (...) {
+        spdlog::error("worker: item {} threw unknown exception", i);
+      }
+      if (is_last) {
+        app->reset();
+      }
+    } else {
+      spdlog::error("worker: item {} dequeued a null app (invariant violation)", i);
     }
     // ------------------------------------------------------------------------
-
-    if (is_last) {
-      app->reset();
-    }
 
     while (!q_out.enqueue(app)) {
       std::this_thread::yield();
@@ -104,27 +107,29 @@ inline void worker_with_record(const int chunk_id,
       std::this_thread::yield();
     }
 
-    if (app == nullptr) {
-      throw std::runtime_error("App is nullptr");
-    }
-
+    // Log (don't throw -> don't std::terminate the worker thread; review D2) a null app
+    // and fall through to re-enqueue so the ring keeps draining.
     // ------------------------------------------------------------------------
-    try {
-      logger.start_tick(processing_id, chunk_id);
-      func(app);
-      logger.end_tick(processing_id, chunk_id);
-    } catch (const std::exception& e) {
-      spdlog::error("worker_with_record: chunk {} item {} threw: {}", chunk_id, processing_id,
-                    e.what());
-    } catch (...) {
-      spdlog::error("worker_with_record: chunk {} item {} threw unknown exception", chunk_id,
+    if (app != nullptr) {
+      try {
+        logger.start_tick(processing_id, chunk_id);
+        func(app);
+        logger.end_tick(processing_id, chunk_id);
+      } catch (const std::exception& e) {
+        spdlog::error("worker_with_record: chunk {} item {} threw: {}", chunk_id, processing_id,
+                      e.what());
+      } catch (...) {
+        spdlog::error("worker_with_record: chunk {} item {} threw unknown exception", chunk_id,
+                      processing_id);
+      }
+      if (is_last) {
+        app->reset();
+      }
+    } else {
+      spdlog::error("worker_with_record: chunk {} item {} dequeued a null app", chunk_id,
                     processing_id);
     }
     // ------------------------------------------------------------------------
-
-    if (is_last) {
-      app->reset();
-    }
 
     while (!q_out.enqueue(app)) {
       std::this_thread::yield();
