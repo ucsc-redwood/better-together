@@ -18,12 +18,6 @@ class Sequence {
   void cmd_begin() const;
   void cmd_end() const;
 
-  // void insert_compute_memory_barrier() const;
-
-  // void record_commands(const Algorithm* algo, std::array<uint32_t, 3> grid_size) const;
-  [[deprecated("use submit() instead")]] void launch_kernel_async() const;
-  [[deprecated("use wait_for_fence() instead")]] void sync() const;
-
   void submit() const;
   void wait_for_fence() const;
   void reset_fence() const;
@@ -36,9 +30,6 @@ class Sequence {
   // back to wall-clock timing.
   [[nodiscard]] double get_last_gpu_time_ns() const;
   [[nodiscard]] bool gpu_timestamps_supported() const { return timestamp_valid_bits_ != 0; }
-
- protected:
-  void destroy();
 
  private:
   void create_sync_objects();

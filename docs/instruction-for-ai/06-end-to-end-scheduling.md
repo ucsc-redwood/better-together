@@ -129,7 +129,7 @@ ms/task; comparing steady-state throughput, which is what the pipeline targets).
   tasks × multi-second stages). Run only the best-predicted schedule (filter the JSON
   to the min-`max_time` entry) when full enumeration is too slow.
 - **Warmup must use a present CPU tier.** The executor's warmup uses
-  `app.hpp::first_present_cpu_type()` (was hardcoded Little → threw on the Big-only
+  `device_registry.hpp::first_present_cpu_type()` (was hardcoded Little → threw on the Big-only
   MiniPC).
 - **Jetson VK teardown segfault (bugs §1/§9):** records are valid (flushed before the
   crash); CUDA outputs are partially wrong (managed-mem) but timings hold. `03`

@@ -34,10 +34,10 @@ Where the overhead hides in this codebase (the suspects worth instrumenting firs
 
 | Overhead source | Location | Why it's a suspect |
 |---|---|---|
-| Per-stage Vulkan `submit` + `wait_for_fence` | `common/kiss-vk/sequence.cpp` | 7 stages = 7 CPU↔GPU round-trips/task; fence latency dominates on iGPU/Mali |
+| Per-stage Vulkan `submit` + `wait_for_fence` | `platform/engine/vulkan/sequence.cpp` | 7 stages = 7 CPU↔GPU round-trips/task; fence latency dominates on iGPU/Mali |
 | Command-buffer re-record | `cmd_begin()` uses `eOneTimeSubmit` | re-recorded every task incl. descriptor binding |
 | UMA flush/invalidate | Mali `HOST_CACHED` path | correctness fix has a cache-maintenance cost — measure it |
-| SPSC queue atomics / false sharing | `pipeline/spsc_queue.hpp` | head/tail on one cache line bounces between cores |
+| SPSC queue atomics / false sharing | `runtime/spsc_queue.hpp` | head/tail on one cache line bounces between cores |
 | Per-task pmr allocation | `make_dataset` / AppData ctor | allocator in the hot path if not pooled |
 
 ## The agent rule: prefer tools whose output is JSON / CSV / SQL

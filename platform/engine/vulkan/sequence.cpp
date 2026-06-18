@@ -27,8 +27,17 @@ Sequence::Sequence(const vk::Device device_ref,
 }
 
 Sequence::~Sequence() {
+  // Destroy every child object this Sequence created, before BaseEngine destroys the
+  // device. Previously only the query pool was freed, so each Sequence leaked a
+  // VkCommandPool + VkFence and left them live at vkDestroyDevice (review #5).
   if (timestamp_valid_bits_ != 0 && query_pool_) {
     device_ref_.destroyQueryPool(query_pool_);
+  }
+  if (command_pool_) {
+    device_ref_.destroyCommandPool(command_pool_);  // also frees the command buffer handle_
+  }
+  if (fence_) {
+    device_ref_.destroyFence(fence_);
   }
 }
 
@@ -134,55 +143,8 @@ double Sequence::get_last_gpu_time_ns() const {
   return static_cast<double>(t1 - t0) * static_cast<double>(timestamp_period_ns_);
 }
 
-// void Sequence::insert_compute_memory_barrier() const {
-//   // For compute passes that read->write a buffer, we often do:
-//   //   srcAccess = SHADER_WRITE
-//   //   dstAccess = SHADER_READ
-//   //   pipeline stages = COMPUTE -> COMPUTE
-
-//   vk::MemoryBarrier memory_barrier{.srcAccessMask = vk::AccessFlagBits::eShaderWrite,
-//                                    .dstAccessMask = vk::AccessFlagBits::eShaderRead};
-
-//   handle_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,  // source stage
-//                           vk::PipelineStageFlagBits::eComputeShader,  // destination stage
-//                           vk::DependencyFlags{},                      // flags
-//                           1,
-//                           &memory_barrier,  // memory barrier(s)
-//                           0,
-//                           nullptr,  // buffer barriers
-//                           0,
-//                           nullptr  // image barriers
-//   );
-// }
-
-void Sequence::launch_kernel_async() const {
-  spdlog::trace("Sequence::launch_kernel_async()");
-
-  const vk::SubmitInfo submit_info{
-      .commandBufferCount = 1,
-      .pCommandBuffers = &handle_,
-  };
-
-  compute_queue_ref_.submit(submit_info, fence_);
-}
-
-void Sequence::sync() const {
-  spdlog::trace("Sequence::sync()");
-
-  if (device_ref_.waitForFences(1, &fence_, true, UINT64_MAX) != vk::Result::eSuccess) {
-    throw std::runtime_error("Failed to sync sequence");
-  }
-
-  if (device_ref_.resetFences(1, &fence_) != vk::Result::eSuccess) {
-    throw std::runtime_error("Failed to reset sequence");
-  }
-}
-// ----------------------------------------------------------------------------
-// new names
-// ----------------------------------------------------------------------------
-
 void Sequence::submit() const {
-  spdlog::trace("Sequence::launch_kernel_async()");
+  spdlog::trace("Sequence::submit()");
 
   // Make any pending host writes (inputs/weights) visible to the GPU before it
   // runs. No-op on coherent memory; required on HOST_CACHED (see do_allocate).
@@ -198,10 +160,6 @@ void Sequence::submit() const {
 
 void Sequence::wait_for_fence() const {
   spdlog::trace("Sequence::wait_for_fence()");
-
-  // if (device_ref_.waitForFences(1, &fence_, true, UINT64_MAX) != vk::Result::eSuccess) {
-  //   throw std::runtime_error("Failed to wait for fence");
-  // }
 
   if (vk::Result result = device_ref_.waitForFences(1, &fence_, true, UINT64_MAX);
       result != vk::Result::eSuccess) {
@@ -222,21 +180,5 @@ void Sequence::reset_fence() const {
     throw std::runtime_error("Failed to reset fence");
   }
 }
-
-// void Sequence::record_commands(const Algorithm* algo,
-//                                const std::array<uint32_t, 3> grid_size) const {
-//   spdlog::trace("Sequence::record_commands()");
-
-//   cmd_begin();
-
-//   algo->record_bind_core(handle_);
-//   if (algo->has_push_constants()) {
-//     algo->record_bind_push(handle_);
-//   }
-
-//   algo->record_dispatch(handle_, grid_size);
-
-//   cmd_end();
-// }
 
 }  // namespace kiss_vk

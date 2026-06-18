@@ -101,6 +101,17 @@ void *CudaPinnedResource::do_allocate(std::size_t bytes, std::size_t alignment) 
     fail_alloc("cudaHostGetDevicePointer", bytes, err);
   }
 
+  // We return the DEVICE pointer, but do_deallocate must cudaFreeHost the HOST pointer.
+  // On UVA platforms (Jetson Orin + every target we run) the two are identical, so freeing
+  // the returned pointer is correct. Assert that invariant so a future non-UVA target fails
+  // loudly here instead of silently cudaFreeHost-ing the wrong pointer (review #15).
+  if (d_ptr != h_ptr) {
+    cudaFreeHost(h_ptr);
+    throw std::runtime_error(
+        "CudaPinnedResource: non-UVA platform (device pointer != host pointer); "
+        "do_deallocate would free the wrong pointer -- track the host pointer instead");
+  }
+
   spdlog::trace(
       "CudaPinnedResource::do_allocate: {}, {}", static_cast<void *>(d_ptr), format_bytes(bytes));
 
