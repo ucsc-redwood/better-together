@@ -8,7 +8,7 @@
 // (app x backend) matrix lives here: env knobs, MEASURED provenance, the
 // percentile/stats math, and the canonical-JSONL record emission.
 //
-// See pipe/cifar-dense-vk/bm_prof.cpp for the design rationale (distribution over
+// See profiler/cifar-dense-vk/bm_prof.cpp for the design rationale (distribution over
 // throughput-mean, self-describing `pu`, absent-PU = absent, measured provenance,
 // scenario="isolated" only). Output schema: schemas/profiling-table.schema.json.
 // ---------------------------------------------------------------------------
