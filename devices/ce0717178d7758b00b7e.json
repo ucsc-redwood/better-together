@@ -1,15 +1,15 @@
 {
   "id": "ce0717178d7758b00b7e",
-  "description": "Android device split into LITTLE (cores 4-7) and big (cores 0-3).",
+  "description": "Samsung Galaxy Note 8 (SM-N950U), Snapdragon 835: 4 little (cores 0-3 @1.9GHz) + 4 big (cores 4-7 @2.36GHz). Tiers verified by cpufreq cluster + max_freq (the previous spec had little/big swapped).",
   "cores": [
-    { "id": 4, "type": "little", "pinnable": true },
-    { "id": 5, "type": "little", "pinnable": true },
-    { "id": 6, "type": "little", "pinnable": true },
-    { "id": 7, "type": "little", "pinnable": true },
-    { "id": 0, "type": "big", "pinnable": true },
-    { "id": 1, "type": "big", "pinnable": true },
-    { "id": 2, "type": "big", "pinnable": true },
-    { "id": 3, "type": "big", "pinnable": true }
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "big", "pinnable": true },
+    { "id": 5, "type": "big", "pinnable": true },
+    { "id": 6, "type": "big", "pinnable": true },
+    { "id": 7, "type": "big", "pinnable": true }
   ],
   "gpu": { "backend": "vulkan", "name": "Adreno 540", "subgroup_size": 32 }
 }

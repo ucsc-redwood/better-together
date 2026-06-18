@@ -75,19 +75,35 @@ inline const std::vector<std::string_view> kEmbedded = {
   ],
   "gpu": { "backend": "vulkan", "name": "Adreno 610", "subgroup_size": 64 }
 })DEVSPEC",
-    // ce0717178d7758b00b7e.json
+    // ZY22FLDDK7.json
     R"DEVSPEC({
-  "id": "ce0717178d7758b00b7e",
-  "description": "Android device split into LITTLE (cores 4-7) and big (cores 0-3).",
+  "id": "ZY22FLDDK7",
+  "description": "Motorola moto g pure, MediaTek MT6762G (32-bit armeabi-v7a userspace): 8x Cortex-A53 in two freq bins -- cores 0-3 @2.0GHz (cap 1024) -> big, cores 4-7 @1.5GHz (cap 768) -> little. GPU PowerVR Rogue GE8320: cifar kernels (no subgroup) verified numerically correct, but the subgroup-arithmetic radix sort (tree stage 2) gives all-zero output for every subgroup_size (16/32/64) -- a PowerVR subgroup limitation, so tree is unsupported here. subgroup_size kept at 32 (irrelevant to the working cifar path).",
   "cores": [
-    { "id": 4, "type": "little", "pinnable": true },
-    { "id": 5, "type": "little", "pinnable": true },
-    { "id": 6, "type": "little", "pinnable": true },
-    { "id": 7, "type": "little", "pinnable": true },
     { "id": 0, "type": "big", "pinnable": true },
     { "id": 1, "type": "big", "pinnable": true },
     { "id": 2, "type": "big", "pinnable": true },
-    { "id": 3, "type": "big", "pinnable": true }
+    { "id": 3, "type": "big", "pinnable": true },
+    { "id": 4, "type": "little", "pinnable": true },
+    { "id": 5, "type": "little", "pinnable": true },
+    { "id": 6, "type": "little", "pinnable": true },
+    { "id": 7, "type": "little", "pinnable": true }
+  ],
+  "gpu": { "backend": "vulkan", "name": "PowerVR Rogue GE8320", "subgroup_size": 32 }
+})DEVSPEC",
+    // ce0717178d7758b00b7e.json
+    R"DEVSPEC({
+  "id": "ce0717178d7758b00b7e",
+  "description": "Samsung Galaxy Note 8 (SM-N950U), Snapdragon 835: 4 little (cores 0-3 @1.9GHz) + 4 big (cores 4-7 @2.36GHz). Tiers verified by cpufreq cluster + max_freq (the previous spec had little/big swapped).",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "big", "pinnable": true },
+    { "id": 5, "type": "big", "pinnable": true },
+    { "id": 6, "type": "big", "pinnable": true },
+    { "id": 7, "type": "big", "pinnable": true }
   ],
   "gpu": { "backend": "vulkan", "name": "Adreno 540", "subgroup_size": 32 }
 })DEVSPEC",

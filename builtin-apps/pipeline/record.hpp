@@ -54,6 +54,25 @@ static inline uint64_t get_counter_frequency() {
   return tsc_hz;
 }
 
+#elif defined(__arm__)
+
+// ========== ARM 32-bit (armv7-a) ==========
+// armv7 userspace usually can't read the CP15 generic timer (EL0 access is trapped on
+// most Android kernels), so use the monotonic clock as a nanosecond "cycle" counter;
+// the frequency is then 1e9 and the cycles->ms math is unchanged.
+#include <time.h>
+
+static inline uint64_t now_cycles() {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return static_cast<uint64_t>(ts.tv_sec) * 1000000000ull +
+         static_cast<uint64_t>(ts.tv_nsec);
+}
+
+static inline uint64_t get_counter_frequency() {
+  return 1000000000ull;  // ns ticks
+}
+
 #else
 #error "Unsupported architecture"
 #endif
