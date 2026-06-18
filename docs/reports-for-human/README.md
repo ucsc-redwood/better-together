@@ -11,6 +11,7 @@ instructions; for how to actually build/test/deploy, see
 | [`bugs-found.md`](bugs-found.md) | Real defects surfaced by the differential-oracle test suite, with root cause + fix status |
 | [`planning-notes-2026-06-15.md`](planning-notes-2026-06-15.md) | Decision log from the re-architecture working session (reproducibility, hardware, CI, build-system) |
 | [`rearchitecture.md`](rearchitecture.md) | The framework vision — 5-layer target architecture, "add a device = drop a data file" |
+| [`target-structure.md`](target-structure.md) | **Next TODO:** concrete directory-level target structure + phased migration (P0–P6, gated) realizing the rearchitecture vision |
 | [`cmake-migration-rfc.md`](cmake-migration-rfc.md) | RFC: migrate the build from xmake → CMake (build matrix, toolchains, phased plan) |
 | [`perf-results/`](perf-results/README.md) | Dated performance-measurement campaigns on the fleet (method + results + insights), e.g. RGA static shader analysis on the Radeon 780M |
 

@@ -53,3 +53,6 @@ saved_params/
 Testing/
 # Local Claude Code settings (shared agents/commands are committed; personal config is not)
 .claude/settings.local.json
+
+# refactor behavior-preservation baseline (scripts/refactor_gate.sh)
+.refactor-gate/
