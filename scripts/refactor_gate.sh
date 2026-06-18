@@ -37,7 +37,9 @@ detect_dirs() {
 }
 
 # sorted list of test NAMES in a build dir (configure-time inventory)
-inventory() { ctest --test-dir "$1" -N 2>/dev/null | sed -n 's/^ *Test #[0-9]*: //p' | sort; }
+# Tolerate ctest's right-aligned numbering ("Test  #1" vs "Test #10" once a dir crosses
+# 10 tests) and drop any path-noise lines (cross-build dirs print /workspace/... entries).
+inventory() { ctest --test-dir "$1" -N 2>/dev/null | sed -n 's/^ *Test  *#[0-9]*: //p' | grep -vE '/|^$' | sort; }
 
 # from a ctest run log, emit "<name> <STATUS>" for non-passing outcomes
 nonpass() {

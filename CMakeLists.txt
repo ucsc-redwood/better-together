@@ -316,6 +316,14 @@ if(BT_BUILD_TESTS)
              COMMAND ${BT_PYTHON} -m pytest ${CMAKE_SOURCE_DIR}/optimizer/tests -q
              WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/optimizer)
     set_tests_properties(test-optimizer PROPERTIES LABELS "optimizer")
+
+    # guard-runtime-agnostic: fail if runtime/ references an app by name in CODE
+    # (comments excluded). Build-enforces the decoupling P3 achieved -- a header-only
+    # leak (e.g. a runtime header using tree::SafeAppData) link-scoping cannot catch.
+    # LABEL "guard"; hardware-free, so it also rides the everyday omp gate.
+    add_test(NAME guard-runtime-agnostic
+             COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/guard_runtime_agnostic.py)
+    set_tests_properties(guard-runtime-agnostic PROPERTIES LABELS "omp;guard")
   endif()
 
   # Every test is tagged with a backend LABEL so CI can gate per-runner:
