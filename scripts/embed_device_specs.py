@@ -11,7 +11,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DEVICES = sorted((ROOT / "devices").glob("*.json"))
-OUT = ROOT / "builtin-apps" / "device_specs_embedded.hpp"
+OUT = ROOT / "platform" / "registry" / "generated" / "device_specs_embedded.hpp"
 
 if not DEVICES:
     sys.exit("no devices/*.json found")

@@ -1,7 +1,7 @@
 # Directories
-SHADER_COMP_DIR := builtin-apps/common/kiss-vk/shaders/comp
-SHADER_SPV_DIR := builtin-apps/common/kiss-vk/shaders/spv
-SHADER_H_DIR := builtin-apps/common/kiss-vk/shaders/h
+SHADER_COMP_DIR := platform/engine/vulkan/shaders/comp
+SHADER_SPV_DIR := platform/engine/vulkan/shaders/spv
+SHADER_H_DIR := platform/engine/vulkan/shaders/h
 
 # Find all .comp shader files
 SHADERS := $(wildcard $(SHADER_COMP_DIR)/*.comp)

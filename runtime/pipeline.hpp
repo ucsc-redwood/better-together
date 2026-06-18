@@ -17,7 +17,7 @@
 #include <thread>
 #include <vector>
 
-#include "builtin-apps/pipeline/record.hpp"  // Logger (worker_with_record)
+#include "runtime/record.hpp"  // Logger (worker_with_record)
 #include "platform/mem/mr_ptr.hpp"           // bt_pipe::as_mr_ptr
 
 // Build a pool of fresh AppData, each backed by the dispatcher's memory resource.

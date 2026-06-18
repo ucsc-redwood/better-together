@@ -26,7 +26,7 @@
 #include <concepts>
 #include <cstddef>
 
-#include "builtin-apps/pipeline/schedule.hpp"  // ExecutionModel
+#include "runtime/schedule.hpp"  // ExecutionModel
 
 template <class Dispatcher>
 struct AppTraits;  // primary template intentionally left undefined

@@ -14,7 +14,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 VOCAB = ROOT / "vocab.json"
-OUT_HPP = ROOT / "builtin-apps" / "generated" / "bt_vocab.hpp"
+OUT_HPP = ROOT / "platform" / "vocab" / "generated" / "bt_vocab.hpp"
 OUT_PY = ROOT / "optimizer" / "smt" / "bt_vocab.py"
 
 if not VOCAB.exists():

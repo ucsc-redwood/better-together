@@ -85,14 +85,14 @@ endif()
 
 # ---- bt::core — shared CPU/OpenMP runtime (tree + cifar OMP dispatchers) ---
 add_library(bt_core STATIC
-  builtin-apps/conf.cpp
-  builtin-apps/app.cpp
-  builtin-apps/hex_dump.cpp
-  builtin-apps/tree/tree_appdata.cpp
-  builtin-apps/tree/safe_tree_appdata.cpp
-  builtin-apps/tree/omp/dispatchers.cpp
-  builtin-apps/cifar-dense/omp/dispatchers.cpp
-  builtin-apps/cifar-sparse/omp/dispatchers.cpp
+  platform/registry/conf.cpp
+  platform/registry/device_registry.cpp
+  platform/util/hex_dump.cpp
+  apps/tree/tree_appdata.cpp
+  apps/tree/safe_tree_appdata.cpp
+  apps/tree/omp/dispatchers.cpp
+  apps/cifar-dense/omp/dispatchers.cpp
+  apps/cifar-sparse/omp/dispatchers.cpp
 )
 add_library(bt::core ALIAS bt_core)
 target_compile_features(bt_core PUBLIC cxx_std_20)
@@ -109,24 +109,24 @@ find_program(BT_PYTHON NAMES python3 python)
 if(BT_PYTHON)
   file(GLOB BT_DEVICE_JSONS CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/devices/*.json)
   add_custom_command(
-    OUTPUT ${CMAKE_SOURCE_DIR}/builtin-apps/device_specs_embedded.hpp
+    OUTPUT ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp
     COMMAND ${BT_PYTHON} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
     DEPENDS ${BT_DEVICE_JSONS} ${CMAKE_SOURCE_DIR}/scripts/embed_device_specs.py
     COMMENT "Embedding devices/*.json -> device_specs_embedded.hpp"
     VERBATIM)
   add_custom_target(bt_device_specs
-    DEPENDS ${CMAKE_SOURCE_DIR}/builtin-apps/device_specs_embedded.hpp)
+    DEPENDS ${CMAKE_SOURCE_DIR}/platform/registry/generated/device_specs_embedded.hpp)
   add_dependencies(bt_core bt_device_specs)
 endif()
 
-# Vocabulary codegen: vocab.json -> builtin-apps/generated/bt_vocab.hpp (the
+# Vocabulary codegen: vocab.json -> platform/vocab/generated/bt_vocab.hpp (the
 # ProcessorType enum etc., included by conf.hpp) + optimizer/smt/bt_vocab.py. Same
 # committed-fallback pattern as the device specs (BT_PYTHON already found above).
 include(${CMAKE_SOURCE_DIR}/cmake/bt_codegen.cmake)
 bt_codegen(TARGET  bt_vocab
            SCRIPT  ${CMAKE_SOURCE_DIR}/scripts/embed_vocab.py
            DEPENDS ${CMAKE_SOURCE_DIR}/vocab.json
-           OUTPUTS ${CMAKE_SOURCE_DIR}/builtin-apps/generated/bt_vocab.hpp
+           OUTPUTS ${CMAKE_SOURCE_DIR}/platform/vocab/generated/bt_vocab.hpp
                    ${CMAKE_SOURCE_DIR}/optimizer/smt/bt_vocab.py)
 
 # ---- OMP single-app runners (executor; BT-Implementer single-app smoke) -----
@@ -137,13 +137,13 @@ function(bt_add_omp_run name src)
   target_link_libraries(${name} PRIVATE bt::core bt::openmp)
 endfunction()
 
-bt_add_omp_run(run-cifar-dense-omp builtin-apps/cifar-dense/omp/main.cpp)
+bt_add_omp_run(run-cifar-dense-omp apps/cifar-dense/omp/main.cpp)
 
 # ---- utility / diagnostics (standalone CPU tools) -------------------------
-add_executable(test-affinity utility/probe_affinity.cpp)   # core-pinning probe
+add_executable(test-affinity tools/probes/probe_affinity.cpp)   # core-pinning probe
 target_link_libraries(test-affinity PRIVATE bt::core bt::openmp)
-add_executable(query-cpuinfo utility/query_cpuinfo.cpp)   # CPU topology (Linux/Android)
-add_executable(stressor-omp utility/stress/stressor-omp.cpp)  # OMP CPU interference load
+add_executable(query-cpuinfo tools/probes/query_cpuinfo.cpp)   # CPU topology (Linux/Android)
+add_executable(stressor-omp tools/probes/stress/stressor-omp.cpp)  # OMP CPU interference load
 target_link_libraries(stressor-omp PRIVATE bt::core bt::openmp)
 
 # ---- OMP per-stage benchmarks (profiler; the paper's per-stage table) ------
@@ -154,30 +154,30 @@ if(BT_BUILD_BENCHMARKS)
     add_executable(${name} ${src})
     target_link_libraries(${name} PRIVATE bt::core bt::openmp ${ARGN})
   endfunction()
-  bt_add_omp_app(bm-tree-omp         builtin-apps/tree/omp/bm_main.cpp         benchmark::benchmark)
-  bt_add_omp_app(bm-cifar-dense-omp  builtin-apps/cifar-dense/omp/bm_main.cpp  benchmark::benchmark)
-  bt_add_omp_app(bm-cifar-sparse-omp builtin-apps/cifar-sparse/omp/bm_main.cpp benchmark::benchmark)
+  bt_add_omp_app(bm-tree-omp         apps/tree/omp/bm_main.cpp         benchmark::benchmark)
+  bt_add_omp_app(bm-cifar-dense-omp  apps/cifar-dense/omp/bm_main.cpp  benchmark::benchmark)
+  bt_add_omp_app(bm-cifar-sparse-omp apps/cifar-sparse/omp/bm_main.cpp benchmark::benchmark)
   # core-type classifier (probe each core, label big/medium/little/super)
-  bt_add_omp_app(bm-check-core-types utility/bm_core_type.cpp benchmark::benchmark)
+  bt_add_omp_app(bm-check-core-types tools/probes/bm_core_type.cpp benchmark::benchmark)
 endif()
 
 # ---- bt::cuda — CUDA backend (tree + cifar) -------------------------------
 if(BT_ENABLE_CUDA)
   enable_language(CUDA)
   add_library(bt_cuda STATIC
-    builtin-apps/common/cuda/cu_mem_resource.cu
-    builtin-apps/tree/cuda/01_morton.cu
-    builtin-apps/tree/cuda/02_sort.cu
-    builtin-apps/tree/cuda/03_unique.cu
-    builtin-apps/tree/cuda/04_radix_tree.cu
-    builtin-apps/tree/cuda/05_edge_count.cu
-    builtin-apps/tree/cuda/06_prefix_sum.cu
-    builtin-apps/tree/cuda/07_octree.cu
-    builtin-apps/tree/cuda/dispatchers.cu
-    builtin-apps/cifar-dense/cuda/all_kernels.cu
-    builtin-apps/cifar-dense/cuda/dispatchers.cu
-    builtin-apps/cifar-sparse/cuda/all_kernels.cu
-    builtin-apps/cifar-sparse/cuda/dispatchers.cu
+    platform/engine/cuda/cu_mem_resource.cu
+    apps/tree/cuda/01_morton.cu
+    apps/tree/cuda/02_sort.cu
+    apps/tree/cuda/03_unique.cu
+    apps/tree/cuda/04_radix_tree.cu
+    apps/tree/cuda/05_edge_count.cu
+    apps/tree/cuda/06_prefix_sum.cu
+    apps/tree/cuda/07_octree.cu
+    apps/tree/cuda/dispatchers.cu
+    apps/cifar-dense/cuda/all_kernels.cu
+    apps/cifar-dense/cuda/dispatchers.cu
+    apps/cifar-sparse/cuda/all_kernels.cu
+    apps/cifar-sparse/cuda/dispatchers.cu
   )
   add_library(bt::cuda ALIAS bt_cuda)
   target_compile_features(bt_cuda PUBLIC cxx_std_20 cuda_std_20)
@@ -188,7 +188,7 @@ if(BT_ENABLE_CUDA)
   target_link_libraries(bt_cuda PUBLIC bt::core)
 
   # ---- CUDA runners (executor) + benchmarks (profiler) ----
-  # Sources currently under pipe/; they relocate out of pipe/ when the duplication
+  # Sources currently under profiler/; they relocate out of pipe/ when the duplication
   # farm is deleted (RFC Phase C3). curl-based bm-gen-logs is still TBD.
   function(bt_add_cuda_app name src)
     add_executable(${name} ${src})
@@ -198,17 +198,17 @@ if(BT_ENABLE_CUDA)
     target_link_libraries(${name} PRIVATE bt::cuda bt::core bt::openmp ${ARGN})
   endfunction()
 
-  bt_add_cuda_app(run-pipe-tree-cu         pipe/tree-cu/main.cu)
-  bt_add_cuda_app(run-pipe-cifar-dense-cu  pipe/cifar-dense-cu/main.cu)
-  bt_add_cuda_app(run-pipe-cifar-sparse-cu pipe/cifar-sparse-cu/main.cu)
+  bt_add_cuda_app(run-pipe-tree-cu         profiler/tree-cu/main.cu)
+  bt_add_cuda_app(run-pipe-cifar-dense-cu  profiler/cifar-dense-cu/main.cu)
+  bt_add_cuda_app(run-pipe-cifar-sparse-cu profiler/cifar-sparse-cu/main.cu)
 
   # Single-app CUDA runners (BT-Implementer per-app smoke; sources in builtin-apps).
-  bt_add_cuda_app(run-tree-cu          builtin-apps/tree/cuda/main.cu)
-  bt_add_cuda_app(run-cifar-dense-cu   builtin-apps/cifar-dense/cuda/main.cu)
-  bt_add_cuda_app(run-cifar-sparse-cu  builtin-apps/cifar-sparse/cuda/main.cu)
+  bt_add_cuda_app(run-tree-cu          apps/tree/cuda/main.cu)
+  bt_add_cuda_app(run-cifar-dense-cu   apps/cifar-dense/cuda/main.cu)
+  bt_add_cuda_app(run-cifar-sparse-cu  apps/cifar-sparse/cuda/main.cu)
 
   # utility: OMP-inside-a-CUDA-TU sanity (probe_omp.cu)
-  add_executable(test-omp utility/probe_omp.cu)
+  add_executable(test-omp tools/probes/probe_omp.cu)
   set_target_properties(test-omp PROPERTIES CUDA_ARCHITECTURES "${BT_CUDA_ARCH}")
   target_compile_options(test-omp PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fopenmp>)
   target_link_libraries(test-omp PRIVATE bt::openmp)
@@ -218,17 +218,17 @@ if(BT_ENABLE_CUDA)
     # gen-logs, prof}. Generated to avoid hand-list drift (a dropped line builds fine and
     # only fails at deploy -- a missing bm-gen-logs-tree-vk bit us once).
     foreach(app tree cifar-dense cifar-sparse)
-      bt_add_cuda_app(bm-baseline-${app}-cu pipe/${app}-cu/bm_baseline.cu        benchmark::benchmark)
-      bt_add_cuda_app(bm-fully-${app}-cu    pipe/${app}-cu/bm_fully_vs_normal.cu benchmark::benchmark)
-      bt_add_cuda_app(bm-gen-logs-${app}-cu pipe/${app}-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
-      bt_add_cuda_app(bm-prof-${app}-cu     pipe/${app}-cu/bm_prof.cu            benchmark::benchmark nlohmann_json::nlohmann_json)
+      bt_add_cuda_app(bm-baseline-${app}-cu profiler/${app}-cu/bm_baseline.cu        benchmark::benchmark)
+      bt_add_cuda_app(bm-fully-${app}-cu    profiler/${app}-cu/bm_fully_vs_normal.cu benchmark::benchmark)
+      bt_add_cuda_app(bm-gen-logs-${app}-cu profiler/${app}-cu/bm_gen_log.cu         nlohmann_json::nlohmann_json)
+      bt_add_cuda_app(bm-prof-${app}-cu     profiler/${app}-cu/bm_prof.cu            benchmark::benchmark nlohmann_json::nlohmann_json)
       # build-time git sha (see bt_git_sha target): generated header on the include path.
       add_dependencies(bm-prof-${app}-cu bt_git_sha)
       target_include_directories(bm-prof-${app}-cu PRIVATE ${CMAKE_BINARY_DIR}/generated)
     endforeach()
     # per-stage (BM_Stage1..N) -- irregular: tree/cuda has no bm_main.cu upstream.
-    bt_add_cuda_app(bm-cifar-dense-cu  builtin-apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
-    bt_add_cuda_app(bm-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
+    bt_add_cuda_app(bm-cifar-dense-cu  apps/cifar-dense/cuda/bm_main.cu  benchmark::benchmark)
+    bt_add_cuda_app(bm-cifar-sparse-cu apps/cifar-sparse/cuda/bm_main.cu benchmark::benchmark)
   endif()
 endif()
 
@@ -243,19 +243,19 @@ if(BT_ENABLE_VULKAN)
     GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator GIT_TAG v3.1.0 DOWNLOAD_ONLY YES)
 
   # utility: print the compiled vulkan-hpp header version (compile-time constant)
-  add_executable(query-vulkan-hpp-version utility/query_vulkan_hpp_version.cpp)
+  add_executable(query-vulkan-hpp-version tools/probes/query_vulkan_hpp_version.cpp)
   target_compile_features(query-vulkan-hpp-version PRIVATE cxx_std_20)
   target_include_directories(query-vulkan-hpp-version SYSTEM PRIVATE
     $<BUILD_INTERFACE:${VulkanHeaders_SOURCE_DIR}/include>)
 
   add_library(bt_vulkan STATIC
-    builtin-apps/common/kiss-vk/algorithm.cpp
-    builtin-apps/common/kiss-vk/base_engine.cpp
-    builtin-apps/common/kiss-vk/sequence.cpp
-    builtin-apps/common/kiss-vk/vma_pmr.cpp
-    builtin-apps/tree/vulkan/dispatchers.cpp
-    builtin-apps/cifar-dense/vulkan/dispatchers.cpp
-    builtin-apps/cifar-sparse/vulkan/dispatchers.cpp
+    platform/engine/vulkan/algorithm.cpp
+    platform/engine/vulkan/base_engine.cpp
+    platform/engine/vulkan/sequence.cpp
+    platform/engine/vulkan/vma_pmr.cpp
+    apps/tree/vulkan/dispatchers.cpp
+    apps/cifar-dense/vulkan/dispatchers.cpp
+    apps/cifar-sparse/vulkan/dispatchers.cpp
   )
   add_library(bt::vulkan ALIAS bt_vulkan)
   target_compile_features(bt_vulkan PUBLIC cxx_std_20)
@@ -273,10 +273,10 @@ if(BT_ENABLE_VULKAN)
     target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp)
   endfunction()
 
-  bt_add_vk_run(run-tree-vk builtin-apps/tree/vulkan/run_main.cpp)
+  bt_add_vk_run(run-tree-vk apps/tree/vulkan/run_main.cpp)
 
   # Vulkan GPU interference load (kiss-vk engine; no benchmark, no volk)
-  add_executable(stressor-vk utility/stress/stressor-vk.cpp)
+  add_executable(stressor-vk tools/probes/stress/stressor-vk.cpp)
   target_link_libraries(stressor-vk PRIVATE bt::vulkan bt::core bt::openmp)
 
   # ---- Vulkan benchmarks (profiler) ----
@@ -287,18 +287,18 @@ if(BT_ENABLE_VULKAN)
     endfunction()
     # Per-cell pipe/ benchmark drivers, one target per app x driver (see CUDA block).
     foreach(app tree cifar-dense cifar-sparse)
-      bt_add_vk_app(bm-baseline-${app}-vk pipe/${app}-vk/bm_baseline.cpp        benchmark::benchmark)
-      bt_add_vk_app(bm-fully-${app}-vk    pipe/${app}-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
-      bt_add_vk_app(bm-gen-logs-${app}-vk pipe/${app}-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
-      bt_add_vk_app(bm-prof-${app}-vk     pipe/${app}-vk/bm_prof.cpp            benchmark::benchmark nlohmann_json::nlohmann_json)
+      bt_add_vk_app(bm-baseline-${app}-vk profiler/${app}-vk/bm_baseline.cpp        benchmark::benchmark)
+      bt_add_vk_app(bm-fully-${app}-vk    profiler/${app}-vk/bm_fully_vs_normal.cpp benchmark::benchmark)
+      bt_add_vk_app(bm-gen-logs-${app}-vk profiler/${app}-vk/bm_gen_log.cpp         nlohmann_json::nlohmann_json)
+      bt_add_vk_app(bm-prof-${app}-vk     profiler/${app}-vk/bm_prof.cpp            benchmark::benchmark nlohmann_json::nlohmann_json)
       # build-time git sha (see bt_git_sha target): generated header on the include path.
       add_dependencies(bm-prof-${app}-vk bt_git_sha)
       target_include_directories(bm-prof-${app}-vk PRIVATE ${CMAKE_BINARY_DIR}/generated)
     endforeach()
     # per-stage (BM_Stage1..N) -- all three exist for vulkan.
-    bt_add_vk_app(bm-tree-vk         builtin-apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
-    bt_add_vk_app(bm-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
-    bt_add_vk_app(bm-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
+    bt_add_vk_app(bm-tree-vk         apps/tree/vulkan/bm_main.cpp         benchmark::benchmark)
+    bt_add_vk_app(bm-cifar-dense-vk  apps/cifar-dense/vulkan/bm_main.cpp  benchmark::benchmark)
+    bt_add_vk_app(bm-cifar-sparse-vk apps/cifar-sparse/vulkan/bm_main.cpp benchmark::benchmark)
   endif()
 endif()
 
@@ -335,16 +335,16 @@ if(BT_BUILD_TESTS)
     set_tests_properties(${name} PROPERTIES LABELS "omp")
   endfunction()
 
-  bt_add_omp_test(test-tree-omp         builtin-apps/tree/omp/test_main.cpp)
-  bt_add_omp_test(test-cifar-dense-omp  builtin-apps/cifar-dense/omp/test_main.cpp)
-  bt_add_omp_test(test-cifar-sparse-omp builtin-apps/cifar-sparse/omp/test_main.cpp)
+  bt_add_omp_test(test-tree-omp         apps/tree/omp/test_main.cpp)
+  bt_add_omp_test(test-cifar-dense-omp  apps/cifar-dense/omp/test_main.cpp)
+  bt_add_omp_test(test-cifar-sparse-omp apps/cifar-sparse/omp/test_main.cpp)
   # test_sort.cpp is the one suite with real correctness checks (is_sorted +
   # permutation oracle). Kept after removing the dead standalone octree app
   # (the live octree pipeline is the `tree` app; see git history).
-  bt_add_omp_test(test-sort-omp         builtin-apps/octree/omp/test_sort.cpp)
+  bt_add_omp_test(test-sort-omp         apps/octree/omp/test_sort.cpp)
   # Pipeline schedule contract: chunks must contiguously cover [1, n_stages].
   # The correctness gate the pipeline path was missing (catches the dropped-stage class).
-  bt_add_omp_test(test-schedule-omp     builtin-apps/pipeline/test_schedule.cpp)
+  bt_add_omp_test(test-schedule-omp     runtime/tests/test_schedule.cpp)
   # Cross-tool round-trip contract: the C++ consumer reads the committed schedule
   # fixture the Python producer/schema side also checks (Lever B).
   target_compile_definitions(test-schedule-omp PRIVATE
@@ -352,11 +352,11 @@ if(BT_BUILD_TESTS)
   # First framework runtime-correctness test: drive the tree app through the REAL
   # concurrent worker/SPSC ring with a multi-tier OMP schedule and assert the §1
   # differential holds + chunks bind to their intended big/little cores.
-  bt_add_omp_test(test-pipeline-e2e-omp builtin-apps/tree/omp/test_pipeline_main.cpp)
+  bt_add_omp_test(test-pipeline-e2e-omp apps/tree/omp/test_pipeline_main.cpp)
   # cifar (feed-forward) hetero-pipeline on the CPU-only path: completes the OMP column
   # of the runtime matrix (vk/cu cover the GPU columns).
-  bt_add_omp_test(test-pipeline-e2e-cifar-dense-omp  builtin-apps/cifar-dense/omp/test_pipeline_main.cpp)
-  bt_add_omp_test(test-pipeline-e2e-cifar-sparse-omp builtin-apps/cifar-sparse/omp/test_pipeline_main.cpp)
+  bt_add_omp_test(test-pipeline-e2e-cifar-dense-omp  apps/cifar-dense/omp/test_pipeline_main.cpp)
+  bt_add_omp_test(test-pipeline-e2e-cifar-sparse-omp apps/cifar-sparse/omp/test_pipeline_main.cpp)
 
   # Kind axis: a SECOND label refining each test by purpose, while the backend
   # label (set above) is kept so `ctest -L omp` stays the everyday gate.
@@ -381,14 +381,14 @@ if(BT_BUILD_TESTS)
       set_tests_properties(${name} PROPERTIES LABELS "cuda")
     endfunction()
 
-    bt_add_cuda_test(test-tree-cu         builtin-apps/tree/cuda/test_main.cu)
-    bt_add_cuda_test(test-cifar-dense-cu  builtin-apps/cifar-dense/cuda/test_main.cu)
-    bt_add_cuda_test(test-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/test_main.cu)
+    bt_add_cuda_test(test-tree-cu         apps/tree/cuda/test_main.cu)
+    bt_add_cuda_test(test-cifar-dense-cu  apps/cifar-dense/cuda/test_main.cu)
+    bt_add_cuda_test(test-cifar-sparse-cu apps/cifar-sparse/cuda/test_main.cu)
     # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|CUDA
     # schedule -- concurrent CPU+GPU on zero-copy pinned UMA (the §1 visibility gate).
-    bt_add_cuda_test(test-pipeline-e2e-cu builtin-apps/tree/cuda/test_pipeline_main_cu.cu)
-    bt_add_cuda_test(test-pipeline-e2e-cifar-dense-cu  builtin-apps/cifar-dense/cuda/test_pipeline_main_cu.cu)
-    bt_add_cuda_test(test-pipeline-e2e-cifar-sparse-cu builtin-apps/cifar-sparse/cuda/test_pipeline_main_cu.cu)
+    bt_add_cuda_test(test-pipeline-e2e-cu apps/tree/cuda/test_pipeline_main_cu.cu)
+    bt_add_cuda_test(test-pipeline-e2e-cifar-dense-cu  apps/cifar-dense/cuda/test_pipeline_main_cu.cu)
+    bt_add_cuda_test(test-pipeline-e2e-cifar-sparse-cu apps/cifar-sparse/cuda/test_pipeline_main_cu.cu)
 
     # Kind axis (second label); backend label "cuda" kept for `ctest -L cuda`.
     set_tests_properties(test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu
@@ -407,19 +407,19 @@ if(BT_BUILD_TESTS)
     endfunction()
 
     # kiss-vk engine self-test takes no --device.
-    add_executable(test-kiss-vk builtin-apps/common/kiss-vk/test_main.cpp)
+    add_executable(test-kiss-vk platform/engine/vulkan/test_main.cpp)
     target_link_libraries(test-kiss-vk PRIVATE bt::vulkan bt::core GTest::gtest GTest::gtest_main bt::openmp)
     add_test(NAME test-kiss-vk COMMAND test-kiss-vk)
     set_tests_properties(test-kiss-vk PROPERTIES LABELS "vulkan")
 
-    bt_add_vk_test(test-tree-vk         builtin-apps/tree/vulkan/test_main.cpp)
-    bt_add_vk_test(test-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_main.cpp)
-    bt_add_vk_test(test-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_main.cpp)
+    bt_add_vk_test(test-tree-vk         apps/tree/vulkan/test_main.cpp)
+    bt_add_vk_test(test-cifar-dense-vk  apps/cifar-dense/vulkan/test_main.cpp)
+    bt_add_vk_test(test-cifar-sparse-vk apps/cifar-sparse/vulkan/test_main.cpp)
     # Runtime test: tree through the REAL concurrent ring with a hybrid OMP|Vulkan
     # schedule -- concurrent CPU+GPU on shared UMA (the §1/§7 visibility gate).
-    bt_add_vk_test(test-pipeline-e2e-vk builtin-apps/tree/vulkan/test_pipeline_main_vk.cpp)
-    bt_add_vk_test(test-pipeline-e2e-cifar-dense-vk  builtin-apps/cifar-dense/vulkan/test_pipeline_main_vk.cpp)
-    bt_add_vk_test(test-pipeline-e2e-cifar-sparse-vk builtin-apps/cifar-sparse/vulkan/test_pipeline_main_vk.cpp)
+    bt_add_vk_test(test-pipeline-e2e-vk apps/tree/vulkan/test_pipeline_main_vk.cpp)
+    bt_add_vk_test(test-pipeline-e2e-cifar-dense-vk  apps/cifar-dense/vulkan/test_pipeline_main_vk.cpp)
+    bt_add_vk_test(test-pipeline-e2e-cifar-sparse-vk apps/cifar-sparse/vulkan/test_pipeline_main_vk.cpp)
 
     # Kind axis (second label); backend label "vulkan" kept for `ctest -L vulkan`.
     #   engine = the kiss-vk backend self-test (no app, no --device)

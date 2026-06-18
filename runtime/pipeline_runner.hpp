@@ -35,8 +35,8 @@
 #include <thread>
 #include <vector>
 
-#include "builtin-apps/app.hpp"  // get_cores_by_type, ProcessorType
-#include "builtin-apps/pipeline/schedule.hpp"  // Schedule, ExecutionModel, get_processor_type_from_chunk_config
+#include "platform/registry/device_registry.hpp"  // get_cores_by_type, ProcessorType
+#include "runtime/schedule.hpp"  // Schedule, ExecutionModel, get_processor_type_from_chunk_config
 #include "runtime/app_traits.hpp"  // AppTraits, BtRuntimeApp
 #include "runtime/pipeline.hpp"    // make_dataset, worker
 
