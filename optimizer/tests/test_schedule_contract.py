@@ -15,7 +15,7 @@ example (tests/fixtures/schedule.contract.json).
 
 If the producer drifts from the schema -> this reds. If the consumer drifts from
 the contract shape -> the C++ test reds. Run:
-    uv run python scripts/collect/smt/test_schedule_contract.py
+    uv run python optimizer/tests/test_schedule_contract.py
 """
 import json
 import os
@@ -27,7 +27,7 @@ import jsonschema  # noqa: E402
 from smt.solution_analyzer import validate_against_schema  # noqa: E402
 from smt.solver import solve_optimization_problem  # noqa: E402
 
-_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..")
+_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
 _SCHEMA = os.path.join(_ROOT, "schemas", "schedule.schema.json")
 _FIXTURE = os.path.join(_ROOT, "tests", "fixtures", "schedule.contract.json")
 

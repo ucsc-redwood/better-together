@@ -17,7 +17,7 @@ This package contains modular components for parsing and analyzing schedule log 
 ### Command Line Interface
 
 ```bash
-python scripts/collect/parse_schedules.py /path/to/log/files [options]
+python optimizer/orchestrate/04_parse_schedules.py /path/to/log/files [options]
 ```
 
 ### Options

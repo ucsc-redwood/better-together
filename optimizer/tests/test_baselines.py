@@ -9,17 +9,17 @@ re-collection. What this pins is the LOGIC: GPU = backend column sum, OMP = fast
 fully-measured CPU tier, fastest = min(omp, gpu), absent config -> None, and the
 Big-only MiniPC vs all-tiers phone tier selection.
 
-    uv run python scripts/collect/smt/test_baselines.py
+    uv run python optimizer/tests/test_baselines.py
 """
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from case import Case  # noqa: E402
-from profiling_loader import load_profiling  # noqa: E402
+from orchestrate.case import Case  # noqa: E402
+from smt.profiling_loader import load_profiling  # noqa: E402
 from smt.baselines import get_baseline_for_config, get_num_stages_for_app  # noqa: E402
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 STORE = os.path.join(ROOT, "data", "profiling")
 _CPU_TIERS = ("little", "medium", "big")
 

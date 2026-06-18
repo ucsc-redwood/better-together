@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Unit test for the Case path builder (the data-layout single source of truth).
 
-Run:  uv run python scripts/collect/test_case.py
+Run:  uv run python optimizer/tests/test_case.py
 """
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
-from case import Case, to_short_backend, table_to_scenario  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from orchestrate.case import Case, to_short_backend, table_to_scenario  # noqa: E402
 
 
 def test_short_long_backend():

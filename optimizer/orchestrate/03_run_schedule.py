@@ -15,7 +15,7 @@ Replaces the retired xmake + HTTP-schedule-server path. The executor
 
 Examples:
   # Jetson (ssh), btpm table, tmax mode
-  uv run scripts/collect/03_run_schedule.py --device jetson --app cifar-dense \
+  uv run optimizer/orchestrate/03_run_schedule.py --device jetson --app cifar-dense \
     --backend vk --ssh-host duck-naughty --build-dir build/jetson \
     --table-type btpm --minimize-mode tmax --log-folder data/sched_logs --repeat 1
   # MiniPC (ssh)
@@ -28,8 +28,8 @@ import os
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from case import Case  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from orchestrate.case import Case  # noqa: E402
 
 DEFAULT_BUILD = {"vk": "build/vulkan", "cu": "build/jetson"}
 
@@ -130,7 +130,7 @@ def main():
             f.write(out)
         print(f"  -> {log}  ({out.count('### Python Begin ###')} schedule record blocks)")
 
-    print(f"\ndone. parse with: uv run scripts/collect/04_parse_schedules.py {args.log_folder}")
+    print(f"\ndone. parse with: uv run optimizer/orchestrate/04_parse_schedules.py {args.log_folder}")
 
 
 if __name__ == "__main__":

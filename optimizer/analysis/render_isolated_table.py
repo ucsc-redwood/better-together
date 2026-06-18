@@ -8,15 +8,15 @@ under --root, then pivots into one table per app: rows = stage, columns =
 "<device>/<pu>" (the GPU backend PU plus every present CPU tier), value = chosen
 metric in ms.
 
-    uv run python scripts/collect/render_isolated_table.py --metric p50 --max-cv 0.5
+    uv run python optimizer/analysis/render_isolated_table.py --metric p50 --max-cv 0.5
 """
 import argparse
 import glob
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from profiling_loader import load_profiling  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from smt.profiling_loader import load_profiling  # noqa: E402
 
 # Stable column ordering: devices in fleet order, PUs GPU-first then big->little.
 DEVICE_ORDER = ["jetson", "minipc", "R5CY21Y3VEV", "3A021JEHN02756"]

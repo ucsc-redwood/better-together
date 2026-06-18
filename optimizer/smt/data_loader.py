@@ -1,7 +1,7 @@
 """Data loading and processing utilities for schedule optimization."""
 
-from case import Case
-from profiling_loader import load_profiling
+from orchestrate.case import Case
+from smt.profiling_loader import load_profiling
 from .baselines import get_num_stages_for_app
 
 # A CPU tier the device physically lacks -- encode as a huge cost so z3 never assigns a

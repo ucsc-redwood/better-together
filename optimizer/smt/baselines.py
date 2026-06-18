@@ -12,8 +12,8 @@ Reading the JSONL store directly (via profiling_loader, count-weighted across ru
 also fixes the wide-CSV path's latent multi-run bug: that path summed every (run,stage)
 row, so an N-run isolated.csv inflated the baseline N-fold.
 """
-from case import Case
-from profiling_loader import load_profiling
+from orchestrate.case import Case
+from smt.profiling_loader import load_profiling
 
 # Default profiling-store root (overridable by callers, e.g. 02's --profiling_root).
 DEFAULT_PROFILING_ROOT = "data/profiling"

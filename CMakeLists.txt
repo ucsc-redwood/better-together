@@ -296,6 +296,18 @@ endif()
 if(BT_BUILD_TESTS)
   enable_testing()
 
+  # BT-Optimizer (Python/z3) test suite — its OWN label "optimizer", deliberately
+  # NOT part of any backend gate (`ctest -L omp` stays C++-only). Runs pytest over
+  # optimizer/tests/ with optimizer/ as the rootdir (pyproject pythonpath). Needs
+  # z3-solver/jsonschema/numpy (optimizer/pyproject.toml); only wired if a python
+  # is present, mirroring the device-spec codegen's optional BT_PYTHON.
+  if(BT_PYTHON)
+    add_test(NAME test-optimizer
+             COMMAND ${BT_PYTHON} -m pytest ${CMAKE_SOURCE_DIR}/optimizer/tests -q
+             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/optimizer)
+    set_tests_properties(test-optimizer PROPERTIES LABELS "optimizer")
+  endif()
+
   # Every test is tagged with a backend LABEL so CI can gate per-runner:
   #   ctest -L omp     (every PR, desktop, no GPU)
   #   ctest -L cuda    (Jetson self-hosted runner)

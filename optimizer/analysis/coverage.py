@@ -11,8 +11,8 @@ A cell is one of:
     n/a        -- the hardware lacks that backend (by FLEET below)  -> not a gap
     MISSING    -- supported by the hardware but no data on disk      -> a gap
 
-    uv run python scripts/collect/coverage.py            # default data/profiling
-    uv run python scripts/collect/coverage.py --min-runs 3   # flag < 3 runs as low
+    uv run python optimizer/analysis/coverage.py            # default data/profiling
+    uv run python optimizer/analysis/coverage.py --min-runs 3   # flag < 3 runs as low
 """
 import argparse
 import glob

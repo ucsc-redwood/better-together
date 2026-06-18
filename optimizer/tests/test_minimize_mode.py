@@ -11,7 +11,7 @@ except stage 8. So:
   - any single-PU assignment costs ~108 ms (gap 0, what gapness loves)
   - the makespan-optimal answer is a SPLIT (GPU does 0..7, Big does 8) at ~8 ms, gap 7
 Hence tmax (minimize T_max) must reach ~8 ms while gapness (minimize T_max - T_min)
-stays at ~108 ms.  Run:  uv run python scripts/collect/smt/test_minimize_mode.py
+stays at ~108 ms.  Run:  uv run python optimizer/tests/test_minimize_mode.py
 """
 import os
 import sys

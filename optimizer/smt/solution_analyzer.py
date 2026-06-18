@@ -5,9 +5,9 @@ import json
 import os
 
 # Repo-root-relative path to the schedule contract schema (this file lives at
-# scripts/collect/smt/, so root is three levels up).
+# optimizer/smt/, so root is two levels up).
 _SCHEDULE_SCHEMA_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "schemas", "schedule.schema.json"
+    os.path.dirname(__file__), "..", "..", "schemas", "schedule.schema.json"
 )
 
 

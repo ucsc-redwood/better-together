@@ -2,7 +2,7 @@
 
 > The reproducible procedure for taking one `(app × hardware × backend)` cell from
 > raw measurement to a scheduled run and a speedup-vs-baseline number. This is the
-> **how**, not the results. Tools live in [`scripts/collect/`](../../scripts/collect/);
+> **how**, not the results. Tools live in [`optimizer/`](../../optimizer/);
 > device access + gotchas in [`01-hardware.md`](01-hardware.md); builds in
 > [`02-building.md`](02-building.md); the profiler design in
 > [`05-profiling.md`](05-profiling.md).
@@ -62,15 +62,15 @@ contend (CPU + USB) and produce empty/erratic output.
 Validate + view:
 
 ```bash
-uv run scripts/collect/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate
-uv run scripts/collect/render_isolated_table.py --scenario interference --metric p50       # per-app table
-uv run scripts/collect/coverage.py --scenario interference                                 # what's collected vs MISSING
+uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate
+uv run optimizer/analysis/render_isolated_table.py --scenario interference --metric p50       # per-app table
+uv run optimizer/analysis/coverage.py --scenario interference                                 # what's collected vs MISSING
 ```
 
 ## Step 2 — generate schedules (z3)
 
 ```bash
-uv run scripts/collect/02_gen_schedule_merged.py --profiling_root data/profiling \
+uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
   --device <dev> --app <app> --backend <vk|cu> --table_type btpm --minimize_mode tmax \
   --num_solutions 10 --output_folder data/schedules_btpm
 # table_type isolated -> isolated/ scenario, btpm -> interference/ scenario
@@ -81,7 +81,7 @@ uv run scripts/collect/02_gen_schedule_merged.py --profiling_root data/profiling
 ## Step 3 — run the schedule(s) on the device
 
 ```bash
-uv run scripts/collect/03_run_schedule.py --device <dev> --app <app> --backend <vk|cu> \
+uv run optimizer/orchestrate/03_run_schedule.py --device <dev> --app <app> --backend <vk|cu> \
   --ssh-host <host> --build-dir <build/jetson|build/vulkan> \           # or --adb-serial <s> --adb-host rocky-ryzen (phones)
   --table-type btpm --minimize-mode tmax --log-folder data/sched_logs/<dev>_<app>_<be> \
   --repeat 1 --n-schedules-to-run 0                                     # 0 = all candidates
@@ -95,7 +95,7 @@ teardown segfault (bugs §9) doesn't discard the already-flushed records.
 ## Step 4 — parse / measure
 
 ```bash
-uv run scripts/collect/04_parse_schedules.py data/sched_logs/<dev>_<app>_<be>   # per-schedule, per-chunk timing
+uv run optimizer/orchestrate/04_parse_schedules.py data/sched_logs/<dev>_<app>_<be>   # per-schedule, per-chunk timing
 ```
 Per-task makespan of a schedule = `(max End − min Start) / n_tasks` over its
 `Task=… Start=… End=…` ticks (`Frequency=` gives the tick rate). The best schedule

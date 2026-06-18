@@ -11,24 +11,24 @@ import os
 import argparse
 from typing import Tuple
 
-# Add the results directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "results"))
+# Put the optimizer package root on sys.path (direct-run; pytest uses pyproject pythonpath)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Import our modular components
-from results.log_parser import find_log_files, process_log_file
-from results.statistics import (
+from analysis.results.log_parser import find_log_files, process_log_file
+from analysis.results.statistics import (
     print_individual_statistics,
     calculate_aggregated_statistics,
     extract_widest_chunks,
     print_aggregated_statistics,
     print_widest_chunk_summary,
 )
-from results.model_comparison import (
+from analysis.results.model_comparison import (
     load_model_predictions,
     print_comparison_results,
     perform_statistical_analysis,
 )
-from results.visualization import create_comparison_visualization
+from analysis.results.visualization import create_comparison_visualization
 
 
 def parse_arguments():

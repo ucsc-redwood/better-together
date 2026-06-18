@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bt-optimizer"
+version = "0.1.0"
+description = "BetterTogether BT-Optimizer: z3 SMT scheduler + orchestration + analysis"
+requires-python = ">=3.10"
+dependencies = ["z3-solver", "jsonschema", "numpy"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+plot = ["matplotlib", "pandas"]
+
+[tool.setuptools]
+packages = ["smt", "orchestrate", "analysis", "analysis.results"]
+
+# Make `smt` / `orchestrate` / `analysis` importable from the package root when
+# running the tests, without per-file sys.path hacks (rootdir is this directory).
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

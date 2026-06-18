@@ -13,7 +13,8 @@ import argparse
 import os
 import sys
 
-from case import Case, table_to_scenario
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from orchestrate.case import Case, table_to_scenario
 from smt.baselines import get_baseline_for_config
 from smt.data_loader import load_stage_timings
 from smt.solver import solve_optimization_problem

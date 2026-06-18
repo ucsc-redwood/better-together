@@ -32,7 +32,7 @@ of one `(device, app, backend)` cell into a stage×pu table; drops throttled /
 `cv > --max-cv` runs, fails loud on a cell with `< --min-runs` survivors.
 
 ```bash
-uv run scripts/collect/profiling_loader.py --device minipc --app cifar-dense --backend vulkan
+uv run optimizer/smt/profiling_loader.py --device minipc --app cifar-dense --backend vulkan
 ```
 
 ### `render_isolated_table.py`
@@ -40,7 +40,7 @@ Pivots every collected cell into one table **per app** (rows = stage, columns =
 `<device>/<pu>`), the isolated-time deliverable.
 
 ```bash
-uv run scripts/collect/render_isolated_table.py --metric p50 --max-cv 1.0 > data/profiling/isolated-tables.txt
+uv run optimizer/analysis/render_isolated_table.py --metric p50 --max-cv 1.0 > data/profiling/isolated-tables.txt
 ```
 
 ### `coverage.py`
@@ -48,7 +48,7 @@ What of the permutation table (app × device × supported-backend) is collected 
 missing. `--` = hardware lacks that backend (not a gap); `MISSING` = a real gap.
 
 ```bash
-uv run scripts/collect/coverage.py            # 12/12 supported cells when complete
+uv run optimizer/analysis/coverage.py            # 12/12 supported cells when complete
 ```
 
 ## Schedule pipeline (`02` → `03` → `04`)
@@ -60,7 +60,7 @@ step-by-step:
 [`docs/instruction-for-ai/06-end-to-end-scheduling.md`](../../docs/instruction-for-ai/06-end-to-end-scheduling.md).
 
 ```bash
-uv run scripts/collect/02_gen_schedule_merged.py --profiling_root data/profiling \
+uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
   --device 3A021JEHN02756 --app cifar-sparse --backend vk --table_type btpm \
   --minimize_mode tmax --num_solutions 30 --output_folder data/schedules_btpm
 ```
