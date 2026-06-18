@@ -8,7 +8,7 @@
 // for EVERY CPU tier the device actually has -- the bm_prof_common.hpp pattern.
 //
 // Each cell's bm_baseline.{cpp,cu} is now just a main() that calls run_baselines
-// with its types + dispatch closures. as_mr_ptr (pipeline_common.hpp, pulled in
+// with its types + dispatch closures. as_mr_ptr (platform/mem/mr_ptr.hpp, pulled in
 // via const.hpp) normalizes the CUDA-ref vs Vulkan-pointer get_mr().
 // ---------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "builtin-apps/app.hpp"  // parse_args, ProcessorType, get_cores_by_type, has_*_cores
-#include "mr_ptr.hpp"            // bt_pipe::as_mr_ptr
+#include "platform/mem/mr_ptr.hpp"            // bt_pipe::as_mr_ptr
 
 namespace bt_baseline {
 

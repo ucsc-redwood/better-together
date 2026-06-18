@@ -20,31 +20,33 @@
 #include "../cifar_dense_diff_oracle.hpp"  // cifar_dense::testing::CheckFinalPipeline
 #include "../omp/dispatchers.hpp"
 #include "dispatchers.cuh"  // cifar_dense::cuda::CudaDispatcher
+#include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
 
-using DispatcherT = cifar_dense::cuda::CudaDispatcher;
-using AppDataT = cifar_dense::AppData;
-using AppDataPtr = std::unique_ptr<AppDataT>;
-constexpr size_t kNumStages = 9;
-constexpr size_t kPoolSize = 8;
-constexpr size_t kNumToProcess = 32;
-using QueueT = SPSCQueue<AppDataT*, 16>;  // pow2 >= kPoolSize(8) with a free slot
-using LocalQueue = std::queue<AppDataT*>;
-
-#include "../../../pipe/pipeline_common.hpp"
-#include "../../pipeline/pipeline_test_runner.hpp"
+// AppTraits for this (cifar_dense, Cuda) runtime-test cell, keyed on its dispatcher.
+template <>
+struct AppTraits<cifar_dense::cuda::CudaDispatcher> {
+  using AppData = cifar_dense::AppData;
+  using Queue = SPSCQueue<cifar_dense::AppData*, 16>;
+  static constexpr int kNumStages = 9;
+  static constexpr std::size_t kPoolSize = 8;
+  static constexpr std::size_t kNumToProcess = 32;
+  static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;
+  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start,
+                           int end) {
+    cifar_dense::omp::dispatch_multi_stage(cores, n, app, start, end);
+  }
+};
 
 namespace {
 
-using bt_pipe_test::run_pipeline;
+using bt_pipe_test::run_runtime_test;
+using AppDataT = AppTraits<cifar_dense::cuda::CudaDispatcher>::AppData;
+constexpr int kNumStages = AppTraits<cifar_dense::cuda::CudaDispatcher>::kNumStages;
 
 bool CudaAvailable() {
   int n = 0;
   return cudaGetDeviceCount(&n) == cudaSuccess && n > 0;
 }
-
-auto omp_dispatch = [](const std::vector<int>& cores, int n, AppDataT& app, int s, int e) {
-  cifar_dense::omp::dispatch_multi_stage(cores, n, app, s, e);
-};
 
 void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a); }
 
@@ -55,8 +57,7 @@ TEST(PipelineE2ECifarDenseCu, HybridOmpCuda) {
   sched.chunks = {{ExecutionModel::kOMP, 1, 4, first_present_cpu_type()},
                   {ExecutionModel::kCuda, 5, 9, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<cifar_dense::cuda::CudaDispatcher>(sched, CheckItem);
 }
 
 TEST(PipelineE2ECifarDenseCu, AllCuda) {
@@ -65,8 +66,7 @@ TEST(PipelineE2ECifarDenseCu, AllCuda) {
   sched.uid = "cifar-dense-all-cu";
   sched.chunks = {{ExecutionModel::kCuda, 1, 9, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<cifar_dense::cuda::CudaDispatcher>(sched, CheckItem);
 }
 
 }  // namespace

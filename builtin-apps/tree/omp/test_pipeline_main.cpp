@@ -12,14 +12,31 @@
 #include <vector>
 
 #include "../../app.hpp"
-#include "../../pipeline/pipeline_test_executor.hpp"
+#include "../../pipeline/spsc_queue.hpp"
 #include "../tree_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "runtime/pipeline_runner.hpp"  // run_runtime_test, OmpStubDispatcher, AppTraits
+
+// AppTraits for the OMP-only tree runtime-test cell (keyed on the OMP stub dispatcher:
+// host memory, no GPU chunk -- its dispatch_multi_stage is never reached here).
+template <>
+struct AppTraits<bt_pipe_test::OmpStubDispatcher<tree::SafeAppData>> {
+  using AppData = tree::SafeAppData;
+  using Queue = SPSCQueue<tree::SafeAppData*, 64>;  // pow2 >= kPoolSize(32) with a free slot
+  static constexpr int kNumStages = 7;
+  static constexpr std::size_t kPoolSize = 32;
+  static constexpr std::size_t kNumToProcess = 100;
+  static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;  // unused (OMP-only)
+  static void omp_dispatch(const std::vector<int>& cores, int n, tree::SafeAppData& app, int start,
+                           int end) {
+    tree::omp::dispatch_multi_stage(cores, n, app, start, end);
+  }
+};
 
 // ----------------------------------------------------------------------------
 // FIRST framework runtime-correctness test: drive the tree app through the REAL
-// concurrent worker/SPSC ring (builtin-apps/pipeline/pipeline_test_executor.hpp,
-// reusing pipe/pipeline_common.hpp worker()) with a multi-chunk OMP schedule whose
+// concurrent worker/SPSC ring (runtime/pipeline_runner.hpp run_runtime_test(),
+// reusing runtime/pipeline.hpp worker()) with a multi-chunk OMP schedule whose
 // chunks run on DIFFERENT CPU tiers, and assert each item's final _out matches its
 // own OMP golden (the Contract §1 differential, seed 114514). This is the harness
 // every later category (visibility/SPSC/robustness) reuses by swapping the
@@ -44,11 +61,11 @@
 
 namespace {
 
-using bt_pipe_test::run_pipeline;
+using bt_pipe_test::run_runtime_test;
 
-// The omp_dispatch closure: forward to the tree OMP affinity-pinned dispatcher.
-auto omp_dispatch = [](const std::vector<int>& cores, int n, tree::SafeAppData& app, int start,
-                       int end) { tree::omp::dispatch_multi_stage(cores, n, app, start, end); };
+// This OMP-only cell's dispatcher key + stage count (used by validate_schedule_coverage).
+using OmpTreeDispatcher = bt_pipe_test::OmpStubDispatcher<tree::SafeAppData>;
+constexpr int kNumStages = AppTraits<OmpTreeDispatcher>::kNumStages;
 
 // Per-item check: the full stage-7 differential oracle, plus the §1/§7 subset-zero
 // detector (a partial-visibility / stale-read regression leaves a stage output
@@ -81,8 +98,7 @@ TEST(PipelineE2EOmp, TwoChunkBigLittle) {
   };
   validate_schedule_coverage(sched, kNumStages);
 
-  run_pipeline<tree::SafeAppData, bt_pipe_test::OmpDispatcher, QueueT>(
-      sched, kPoolSize, kNumToProcess, ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<OmpTreeDispatcher>(sched, CheckItem);
 }
 
 // ----------------------------------------------------------------------------
@@ -101,8 +117,7 @@ TEST(PipelineE2EOmp, PerStageSevenChunks) {
   }
   validate_schedule_coverage(sched, kNumStages);
 
-  run_pipeline<tree::SafeAppData, bt_pipe_test::OmpDispatcher, QueueT>(
-      sched, kPoolSize, kNumToProcess, ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<OmpTreeDispatcher>(sched, CheckItem);
 }
 
 // ----------------------------------------------------------------------------
@@ -124,8 +139,7 @@ TEST(PipelineE2EOmp, ThreeChunkBigMediumLittle) {
   };
   validate_schedule_coverage(sched, kNumStages);
 
-  run_pipeline<tree::SafeAppData, bt_pipe_test::OmpDispatcher, QueueT>(
-      sched, kPoolSize, kNumToProcess, ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<OmpTreeDispatcher>(sched, CheckItem);
 }
 
 // ----------------------------------------------------------------------------

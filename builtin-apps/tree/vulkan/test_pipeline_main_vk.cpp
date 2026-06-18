@@ -29,27 +29,28 @@
 // the Mali phones (the engine hard-selects an integrated GPU).
 // ----------------------------------------------------------------------------
 
-// Pipeline typedefs the shared worker()/make_dataset() reference by name (mirrors
-// pipe/tree-vk/const.hpp). Real Vulkan dispatcher + UMA AppData this time.
-using DispatcherT = tree::vulkan::VulkanDispatcher;
-using AppDataT = tree::vulkan::VkAppData_Safe;
-using AppDataPtr = std::unique_ptr<AppDataT>;
-constexpr size_t kNumStages = 7;
-constexpr size_t kPoolSize = 16;
-constexpr size_t kNumToProcess = 100;
-using QueueT = SPSCQueue<AppDataT*, 32>;  // pow2 >= kPoolSize(16) with a free slot
-using LocalQueue = std::queue<AppDataT*>;
+#include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
 
-#include "../../../pipe/pipeline_common.hpp"      // make_dataset + worker
-#include "../../pipeline/pipeline_test_runner.hpp"  // run_pipeline (after the typedefs)
+// AppTraits for the Vulkan tree runtime-test cell (keyed on its real GPU dispatcher;
+// mirrors the constants in pipe/tree-vk/const.hpp). Real Vulkan dispatcher + UMA AppData.
+template <>
+struct AppTraits<tree::vulkan::VulkanDispatcher> {
+  using AppData = tree::vulkan::VkAppData_Safe;
+  using Queue = SPSCQueue<AppData*, 32>;  // pow2 >= kPoolSize(16) with a free slot
+  static constexpr int kNumStages = 7;
+  static constexpr std::size_t kPoolSize = 16;
+  static constexpr std::size_t kNumToProcess = 100;
+  static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kVulkan;
+  static void omp_dispatch(const std::vector<int>& cores, int n, AppData& app, int start, int end) {
+    tree::omp::dispatch_multi_stage(cores, n, app, start, end);
+  }
+};
 
 namespace {
 
-using bt_pipe_test::run_pipeline;
-
-auto omp_dispatch = [](const std::vector<int>& cores, int n, AppDataT& app, int start, int end) {
-  tree::omp::dispatch_multi_stage(cores, n, app, start, end);
-};
+using bt_pipe_test::run_runtime_test;
+using AppDataT = AppTraits<tree::vulkan::VulkanDispatcher>::AppData;
+constexpr int kNumStages = AppTraits<tree::vulkan::VulkanDispatcher>::kNumStages;
 
 // Per-item check: the full stage-7 differential oracle + the §1/§7 subset-zero
 // detector (a partial-visibility / stale-read regression leaves the octree mask
@@ -78,8 +79,7 @@ TEST(PipelineE2EVk, HybridOmpVulkan) {
       {ExecutionModel::kVulkan, 4, 7, std::nullopt},
   };
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kVulkan, omp_dispatch, CheckItem);
+  run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
 // All-Vulkan through the ring: every stage on the GPU chunk -- the GPU runtime path
@@ -89,8 +89,7 @@ TEST(PipelineE2EVk, AllVulkan) {
   sched.uid = "e2e-all-vk";
   sched.chunks = {{ExecutionModel::kVulkan, 1, 7, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kVulkan, omp_dispatch, CheckItem);
+  run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
 // Finer hybrid that ALTERNATES the GPU across multiple chunks (VK 1-3, OMP 4, VK 5,

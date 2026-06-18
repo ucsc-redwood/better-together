@@ -35,7 +35,7 @@ static void warmup(const Schedule& schedule,
                    const OmpDispatch& omp_dispatch) {
   const auto n_chunks = schedule.n_chunks();
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
@@ -52,13 +52,13 @@ static void warmup(const Schedule& schedule,
 
     if (em == gpu_em) {
       threads.emplace_back(
-          worker, std::ref(q_in), std::ref(q_out),
+          worker<QueueT, AppDataT>, std::ref(q_in), std::ref(q_out),
           [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
           num_warmup_items, is_last);
     } else {  // kOMP (the warmup is constructed with only gpu_em + kOMP chunks)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
-          worker, std::ref(q_in), std::ref(q_out),
+          worker<QueueT, AppDataT>, std::ref(q_in), std::ref(q_out),
           [&omp_dispatch, cpu_pt, start, end](AppDataT* app) {
             auto& cores = get_cores_by_type(cpu_pt);
             omp_dispatch(cores, cores.size(), *app, start, end);
@@ -75,7 +75,7 @@ static void run_schedule(const Schedule& schedule,
                          const OmpDispatch& omp_dispatch) {
   const auto n_chunks = schedule.n_chunks();
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
@@ -92,14 +92,14 @@ static void run_schedule(const Schedule& schedule,
 
     if (em == gpu_em) {
       threads.emplace_back(
-          worker_with_record, static_cast<int>(chunk_id), std::ref(logger), std::ref(q_in),
+          worker_with_record<QueueT, AppDataT, kNumToProcess>, static_cast<int>(chunk_id), std::ref(logger), std::ref(q_in),
           std::ref(q_out),
           [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
           kNumToProcess, is_last);
     } else {  // kOMP (wrong-backend GPU chunks are filtered before we get here)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
-          worker_with_record, static_cast<int>(chunk_id), std::ref(logger), std::ref(q_in),
+          worker_with_record<QueueT, AppDataT, kNumToProcess>, static_cast<int>(chunk_id), std::ref(logger), std::ref(q_in),
           std::ref(q_out),
           [&omp_dispatch, cpu_pt, start, end](AppDataT* app) {
             auto& cores = get_cores_by_type(cpu_pt);

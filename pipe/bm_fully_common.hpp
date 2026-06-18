@@ -95,7 +95,7 @@ inline void run_normal(BmTable<kNumStages>& table,
                        const int seconds_to_run,
                        const bool print_progress) {
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
 
   const auto cores_to_use_opt = get_cpu_cores_by_type(pt);
   if (pt != gpu_pt && cores_to_use_opt.has_value() && cores_to_use_opt->empty()) {
@@ -103,7 +103,7 @@ inline void run_normal(BmTable<kNumStages>& table,
     return;
   }
 
-  LocalQueue q = make_queue_from_vector(dataset);
+  LocalQueue q = make_queue_from_vector<LocalQueue>(dataset);
 
   Timer timer;
   timer.start();
@@ -160,7 +160,7 @@ inline void run_fully(BmTable<kNumStages>& table,
                       const int seconds_to_run,
                       const bool print_progress) {
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
 
   // Each PU thread gets a DISJOINT slice of the pool. Aliasing the same AppData
   // into every queue let a CPU thread and the GPU thread mutate the same tree

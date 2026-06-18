@@ -22,37 +22,28 @@
 #include "../cifar_dense_diff_oracle.hpp"  // cifar_dense::testing::CheckFinalPipeline
 #include "../omp/dispatchers.hpp"
 
-namespace {
-// Trivial OMP "dispatcher": make_dataset() only needs get_mr() (every cifar AppData is
-// host memory on the OMP path). The GPU branch of run_pipeline() is never reached for
-// an OMP-only schedule; the throwing stub exists only so the template instantiates.
-struct OmpDispatcher {
-  static std::pmr::memory_resource* get_mr() { return std::pmr::new_delete_resource(); }
-  void dispatch_multi_stage(cifar_dense::AppData&, int, int) {
-    throw std::logic_error("OmpDispatcher has no GPU dispatch path");
+#include "runtime/pipeline_runner.hpp"  // run_runtime_test, OmpStubDispatcher, AppTraits
+
+// AppTraits for this (cifar_dense, OMP) runtime-test cell, keyed on its dispatcher.
+template <>
+struct AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>> {
+  using AppData = cifar_dense::AppData;
+  using Queue = SPSCQueue<cifar_dense::AppData*, 16>;
+  static constexpr int kNumStages = 9;
+  static constexpr std::size_t kPoolSize = 8;
+  static constexpr std::size_t kNumToProcess = 32;
+  static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;  // unused (OMP-only)
+  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start,
+                           int end) {
+    cifar_dense::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
-}  // namespace
-
-using DispatcherT = OmpDispatcher;
-using AppDataT = cifar_dense::AppData;
-using AppDataPtr = std::unique_ptr<AppDataT>;
-constexpr size_t kNumStages = 9;
-constexpr size_t kPoolSize = 8;
-constexpr size_t kNumToProcess = 32;
-using QueueT = SPSCQueue<AppDataT*, 16>;  // pow2 >= kPoolSize(8) with a free slot
-using LocalQueue = std::queue<AppDataT*>;
-
-#include "../../../pipe/pipeline_common.hpp"
-#include "../../pipeline/pipeline_test_runner.hpp"
 
 namespace {
 
-using bt_pipe_test::run_pipeline;
-
-auto omp_dispatch = [](const std::vector<int>& cores, int n, AppDataT& app, int s, int e) {
-  cifar_dense::omp::dispatch_multi_stage(cores, n, app, s, e);
-};
+using bt_pipe_test::run_runtime_test;
+using AppDataT = AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::AppData;
+constexpr int kNumStages = AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::kNumStages;
 
 void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a); }
 
@@ -65,8 +56,7 @@ TEST(PipelineE2ECifarDenseOmp, TwoChunkBigLittle) {
   sched.chunks = {{ExecutionModel::kOMP, 1, 5, ProcessorType::kBigCore},
                   {ExecutionModel::kOMP, 6, 9, ProcessorType::kLittleCore}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>(sched, CheckItem);
 }
 
 }  // namespace

@@ -12,7 +12,7 @@ void run(const std::vector<AppDataPtr>& data, DispatcherT& disp) {
   }
 
   std::thread t0(
-      worker<QueueT>,
+      worker<QueueT, AppDataT>,
       std::ref(q0),
       std::ref(q1),
       [](AppDataT* app) { cifar_sparse::omp::dispatch_stage(*app, 1); },
@@ -20,7 +20,7 @@ void run(const std::vector<AppDataPtr>& data, DispatcherT& disp) {
       false);
 
   std::thread t1(
-      worker<QueueT>,
+      worker<QueueT, AppDataT>,
       std::ref(q1),
       std::ref(q0),
       [&disp](AppDataT* app) { disp.dispatch_stage(*app, 2); },
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
   DispatcherT disp;
 
-  const std::vector<AppDataPtr> dataset = make_dataset(disp, 10);
+  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, 10);
 
   run(dataset, disp);
 

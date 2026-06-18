@@ -1,22 +1,23 @@
 #pragma once
 // ---------------------------------------------------------------------------
-// pipeline_test_runner -- the backend-agnostic gtest harness that drives the REAL
+// runtime/pipeline_runner -- the backend-agnostic gtest harness that drives the REAL
 // concurrent worker/SPSC ring (the same spawn-one-thread-per-chunk loop as
 // bt_gen_log::run_schedule(), pipe/bm_gen_log_common.hpp), then runs a per-item
-// correctness check after the ring drains.
+// correctness check after the ring drains. Was builtin-apps/pipeline/
+// pipeline_test_runner.hpp; moved into runtime/ and re-threaded onto AppTraits.
 //
-// The INCLUDER must have already defined the pipeline typedefs the shared
-// worker()/make_dataset() reference by name and pulled them in -- i.e. it must
-// have included a const.hpp-equivalent + pipe/pipeline_common.hpp BEFORE this
-// header (exactly the contract a per-cell const.hpp fulfills). run_pipeline() is
-// templated on the concrete types, so the OMP test instantiates it with the OMP
-// stub dispatcher and the vk/cu tests instantiate it with the real GPU dispatcher
-// + its UMA memory resource -- the one harness covers every backend.
+// run_pipeline() is templated on the concrete types (the OMP test instantiates it with
+// the OMP stub dispatcher; the vk/cu tests with the real GPU dispatcher + its UMA memory
+// resource -- one harness, every backend). run_runtime_test<Dispatcher>() is the thin
+// convenience that derives all of those from AppTraits<Dispatcher> (the compiler-checked
+// contract) so a cell's test TU shrinks to: build a Schedule, define a per-item check,
+// call run_runtime_test. The old pipeline_test_executor.hpp (which hardcoded
+// tree::SafeAppData) is gone; OmpStubDispatcher below is its generic replacement.
 //
 //   gpu_em  = the ExecutionModel that is "the GPU" for this binary (kVulkan for a
-//             vk test, kCuda for a cu test; pass an unused value for an OMP-only
-//             test). A chunk with that exec_model dispatches on the GPU dispatcher;
-//             any other chunk is kOMP and runs omp_dispatch pinned to its tier.
+//             vk test, kCuda for a cu test; an unused value for an OMP-only test). A
+//             chunk with that exec_model dispatches on the GPU dispatcher; any other
+//             chunk is kOMP and runs omp_dispatch pinned to its tier.
 // ---------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
@@ -27,15 +28,32 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include <memory_resource>
 #include <mutex>
 #include <set>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
 #include "builtin-apps/app.hpp"  // get_cores_by_type, ProcessorType
-#include "schedule.hpp"          // Schedule, ExecutionModel, get_processor_type_from_chunk_config
+#include "builtin-apps/pipeline/schedule.hpp"  // Schedule, ExecutionModel, get_processor_type_from_chunk_config
+#include "runtime/app_traits.hpp"  // AppTraits, BtRuntimeApp
+#include "runtime/pipeline.hpp"    // make_dataset, worker
 
 namespace bt_pipe_test {
+
+// Generic OMP "dispatcher": the only thing make_dataset()/the ring asks of a Dispatcher on
+// the OMP-only path is get_mr() (host memory -- every AppData is plain host memory on the
+// OMP path). dispatch_multi_stage() is never reached (an OMP-only schedule has no gpu_em
+// chunk) but must compile for the templated run_pipeline() GPU branch. Generic over AppData;
+// replaces the tree-hardcoded stub the deleted pipeline_test_executor.hpp used to provide.
+template <class AppData>
+struct OmpStubDispatcher {
+  static std::pmr::memory_resource* get_mr() { return std::pmr::new_delete_resource(); }
+  void dispatch_multi_stage(AppData&, int, int) {
+    throw std::logic_error("OmpStubDispatcher has no GPU dispatch path");
+  }
+};
 
 // Drive `n_items` through the real concurrent ring described by `sched`:
 //   - build a pool of `pool_size` AppData (each carries its own const golden, built
@@ -67,7 +85,7 @@ inline void run_pipeline(const Schedule& sched,
 
   const auto n_chunks = sched.n_chunks();
   DispatcherTArg disp;
-  const std::vector<std::unique_ptr<AppDataTArg>> dataset = make_dataset(disp, pool_size);
+  const std::vector<std::unique_ptr<AppDataTArg>> dataset = make_dataset<AppDataTArg>(disp, pool_size);
 
   std::vector<QueueTArg> queues(n_chunks);
   for (size_t i = 0; i < pool_size; ++i) {
@@ -109,7 +127,8 @@ inline void run_pipeline(const Schedule& sched,
         completed.push_back(app);
       };
     }
-    threads.emplace_back(worker, std::ref(q_in), std::ref(q_out), std::move(fn), n_items, is_last);
+    threads.emplace_back(worker<QueueTArg, AppDataTArg>, std::ref(q_in), std::ref(q_out),
+                         std::move(fn), n_items, is_last);
   }
 
   // Watchdog: the workers busy-yield on dequeue/enqueue with no timeout, so a stalled
@@ -145,6 +164,19 @@ inline void run_pipeline(const Schedule& sched,
     per_item_check(*item);
     if (::testing::Test::HasFatalFailure()) return;
   }
+}
+
+// Thin convenience: derive every type/constant from AppTraits<Dispatcher> (the
+// compiler-checked contract) and drive the ring. A cell's runtime-test TU specializes
+// AppTraits<its Dispatcher> + calls this; no magic-typedef preamble.
+template <class Dispatcher>
+  requires BtRuntimeApp<Dispatcher>
+inline void run_runtime_test(
+    const Schedule& sched,
+    const std::function<void(typename AppTraits<Dispatcher>::AppData&)>& per_item_check) {
+  using T = AppTraits<Dispatcher>;
+  run_pipeline<typename T::AppData, Dispatcher, typename T::Queue>(
+      sched, T::kPoolSize, T::kNumToProcess, T::kGpuExecModel, &T::omp_dispatch, per_item_check);
 }
 
 }  // namespace bt_pipe_test

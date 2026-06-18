@@ -22,4 +22,4 @@ using QueueT = SPSCQueue<AppDataT*, kPoolSize>;
 using LocalQueue = std::queue<AppDataT*>;
 
 // Shared worker / queue / dataset plumbing (was duplicated in all 6 cells).
-#include "../pipeline_common.hpp"
+#include "runtime/pipeline.hpp"

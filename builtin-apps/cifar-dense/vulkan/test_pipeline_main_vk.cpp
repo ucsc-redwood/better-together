@@ -21,26 +21,28 @@
 #include "../cifar_dense_diff_oracle.hpp"  // cifar_dense::testing::CheckFinalPipeline
 #include "../omp/dispatchers.hpp"
 #include "dispatchers.hpp"  // cifar_dense::vulkan::VulkanDispatcher
+#include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
 
-using DispatcherT = cifar_dense::vulkan::VulkanDispatcher;
-using AppDataT = cifar_dense::AppData;
-using AppDataPtr = std::unique_ptr<AppDataT>;
-constexpr size_t kNumStages = 9;
-constexpr size_t kPoolSize = 8;
-constexpr size_t kNumToProcess = 32;
-using QueueT = SPSCQueue<AppDataT*, 16>;  // pow2 >= kPoolSize(8) with a free slot
-using LocalQueue = std::queue<AppDataT*>;
-
-#include "../../../pipe/pipeline_common.hpp"
-#include "../../pipeline/pipeline_test_runner.hpp"
+// AppTraits for this (cifar_dense, Vulkan) runtime-test cell, keyed on its dispatcher.
+template <>
+struct AppTraits<cifar_dense::vulkan::VulkanDispatcher> {
+  using AppData = cifar_dense::AppData;
+  using Queue = SPSCQueue<cifar_dense::AppData*, 16>;
+  static constexpr int kNumStages = 9;
+  static constexpr std::size_t kPoolSize = 8;
+  static constexpr std::size_t kNumToProcess = 32;
+  static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kVulkan;
+  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start,
+                           int end) {
+    cifar_dense::omp::dispatch_multi_stage(cores, n, app, start, end);
+  }
+};
 
 namespace {
 
-using bt_pipe_test::run_pipeline;
-
-auto omp_dispatch = [](const std::vector<int>& cores, int n, AppDataT& app, int s, int e) {
-  cifar_dense::omp::dispatch_multi_stage(cores, n, app, s, e);
-};
+using bt_pipe_test::run_runtime_test;
+using AppDataT = AppTraits<cifar_dense::vulkan::VulkanDispatcher>::AppData;
+constexpr int kNumStages = AppTraits<cifar_dense::vulkan::VulkanDispatcher>::kNumStages;
 
 void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a); }
 
@@ -50,8 +52,7 @@ TEST(PipelineE2ECifarDenseVk, HybridOmpVulkan) {
   sched.chunks = {{ExecutionModel::kOMP, 1, 4, first_present_cpu_type()},
                   {ExecutionModel::kVulkan, 5, 9, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kVulkan, omp_dispatch, CheckItem);
+  run_runtime_test<cifar_dense::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
 TEST(PipelineE2ECifarDenseVk, AllVulkan) {
@@ -59,8 +60,7 @@ TEST(PipelineE2ECifarDenseVk, AllVulkan) {
   sched.uid = "cifar-dense-all-vk";
   sched.chunks = {{ExecutionModel::kVulkan, 1, 9, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kVulkan, omp_dispatch, CheckItem);
+  run_runtime_test<cifar_dense::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
 }  // namespace

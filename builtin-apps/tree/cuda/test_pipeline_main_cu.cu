@@ -28,32 +28,33 @@
 // per-stage oracle. Cross-built in bt-cross:6.1, run on the Jetson.
 // ----------------------------------------------------------------------------
 
-// Pipeline typedefs the shared worker()/make_dataset() reference by name (mirrors
-// pipe/tree-cu/const.hpp). The cu dispatcher's get_mr() is the pinned UMA resource.
-using DispatcherT = tree::cuda::CudaDispatcher;
-using AppDataT = tree::SafeAppData;
-using AppDataPtr = std::unique_ptr<AppDataT>;
-constexpr size_t kNumStages = 7;
-constexpr size_t kPoolSize = 32;
-constexpr size_t kNumToProcess = 100;
-using QueueT = SPSCQueue<AppDataT*, 64>;  // pow2 >= kPoolSize(32) with a free slot
-using LocalQueue = std::queue<AppDataT*>;
+#include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
 
-#include "../../../pipe/pipeline_common.hpp"        // make_dataset + worker
-#include "../../pipeline/pipeline_test_runner.hpp"  // run_pipeline (after the typedefs)
+// AppTraits for this (tree, Cuda) runtime-test cell, keyed on its dispatcher.
+template <>
+struct AppTraits<tree::cuda::CudaDispatcher> {
+  using AppData = tree::SafeAppData;
+  using Queue = SPSCQueue<tree::SafeAppData*, 64>;
+  static constexpr int kNumStages = 7;
+  static constexpr std::size_t kPoolSize = 32;
+  static constexpr std::size_t kNumToProcess = 100;
+  static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;
+  static void omp_dispatch(const std::vector<int>& cores, int n, tree::SafeAppData& app, int start,
+                           int end) {
+    tree::omp::dispatch_multi_stage(cores, n, app, start, end);
+  }
+};
 
 namespace {
 
-using bt_pipe_test::run_pipeline;
+using bt_pipe_test::run_runtime_test;
+using AppDataT = AppTraits<tree::cuda::CudaDispatcher>::AppData;
+constexpr int kNumStages = AppTraits<tree::cuda::CudaDispatcher>::kNumStages;
 
 bool CudaAvailable() {
   int n = 0;
   return cudaGetDeviceCount(&n) == cudaSuccess && n > 0;
 }
-
-auto omp_dispatch = [](const std::vector<int>& cores, int n, AppDataT& app, int start, int end) {
-  tree::omp::dispatch_multi_stage(cores, n, app, start, end);
-};
 
 void CheckItem(AppDataT& a) {
   tree::testing::CheckStage7(a);
@@ -80,8 +81,7 @@ TEST(PipelineE2ECu, HybridOmpCuda) {
       {ExecutionModel::kCuda, 4, 7, std::nullopt},
   };
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<tree::cuda::CudaDispatcher>(sched, CheckItem);
 }
 
 // All-CUDA through the ring: the GPU runtime path (dispatcher reuse + SPSC handoff +
@@ -92,8 +92,7 @@ TEST(PipelineE2ECu, AllCuda) {
   sched.uid = "e2e-all-cu";
   sched.chunks = {{ExecutionModel::kCuda, 1, 7, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
-  run_pipeline<AppDataT, DispatcherT, QueueT>(sched, kPoolSize, kNumToProcess,
-                                              ExecutionModel::kCuda, omp_dispatch, CheckItem);
+  run_runtime_test<tree::cuda::CudaDispatcher>(sched, CheckItem);
 }
 
 }  // namespace
