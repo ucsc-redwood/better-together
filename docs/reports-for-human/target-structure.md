@@ -262,11 +262,15 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       Verified: `ctest -L unit -N` → exactly `test-schedule-omp`; `-L omp` unchanged (8); vulkan
       `-L engine` → exactly `test-kiss-vk`. **Gate: G-omp.**
 
-- [ ] **P2 — Surface the optimizer (additive).** `git mv scripts/collect/{smt,*.py,results}` into
-      `optimizer/{smt,orchestrate,analysis,tests}`; add `pyproject.toml` + fix intra-package
-      imports; wire one CTest pytest wrapper under `LABEL "optimizer"`. Keep
-      `embed_device_specs.py` / `validate_devices.py` in `scripts/` (CMake-referenced). ~15 import
-      fixes + ~8 CMake lines. **Gate: G-omp + `pytest optimizer/tests`.**
+- [x] **P2 — Surface the optimizer (additive).** ✅ DONE (commit gated; pytest 6 passed,
+      C++ inventory `+test-optimizer` only). `git mv scripts/collect/*` into
+      `optimizer/{smt,orchestrate,analysis,tests}`; added `pyproject.toml` (pytest rootdir +
+      `pythonpath`); rewrote intra-package imports to absolute (`orchestrate.case`,
+      `smt.profiling_loader`, `analysis.results.*`); CTest `test-optimizer` under `LABEL
+      "optimizer"` (not in any backend gate). Kept `embed_device_specs.py`/`validate_devices.py`
+      in `scripts/`. **Observation (not fixed, behavior-preserving):** `smt.*` imports
+      `orchestrate.case` — the SMT layer depends *up* onto orchestrate; `case.py` is really a
+      shared model. Candidate for a later move. **Gate: G-omp + `pytest optimizer/tests`.**
 
 - [ ] **P3 — Break the cycle + kill the executor (the load-bearing C++ change, contained).** Move
       `pipe/pipeline_common.hpp` → `runtime/pipeline.hpp`, `pipe/mr_ptr.hpp` → `platform/mem/mr_ptr.hpp`.
