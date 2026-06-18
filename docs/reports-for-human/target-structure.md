@@ -285,10 +285,15 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       can't identify a cell (see [[safe-appdata-debt]]). **Gate: G-omp + G-gpu + G-runtime all
       green** — Jetson CUDA + rocky Vulkan, every differential AND pipeline-e2e test passed.
 
-- [ ] **P4 — Vocabulary codegen (additive, proven pattern).** Add `vocab.json` + `embed_vocab.py`
-      + `bt_codegen.cmake` (clone the device-spec `add_custom_command`). Replace the ~6 enum sites
-      with reads of `bt_vocab.{hpp,py}`. Fixes the super-core bug as a side effect. **Gate: G-omp +
-      `pytest`**, and verify `bt_vocab.py` matches `data_loader.py` core_types.
+- [x] **P4 — Vocabulary codegen (additive, proven pattern).** ✅ DONE (G-omp green + pytest 11
+      passed). Added `vocab.json` + `scripts/embed_vocab.py` + `cmake/bt_codegen.cmake`; codegen →
+      `builtin-apps/generated/bt_vocab.hpp` (ProcessorType/CoreTypeName/ParseCoreType, included by
+      `conf.hpp`) + `optimizer/smt/bt_vocab.py` (CPU_TIERS/CORE_TYPES/APP_STAGES, read by
+      `data_loader`/`baselines`). **Super-core bug NOT "fixed" — behavior-preserving:** `vocab.json`
+      encodes today's values verbatim (super stays out of the solver tier list; enum values
+      preserved), so z3's cost-matrix shape is unchanged. `test_vocab.py` guards drift across
+      vocab.json / data_loader / baselines / the schema enum. **← This is the off-ramp: P0–P4 deliver
+      every robustness/decoupling win except build-enforcement, all gated green.**
 
 - [ ] **P5 — The component split (the atomic rewrite; do last, as one mechanical pass).**
       `git mv builtin-apps/{pipeline→runtime, conf.*+app.*+affinity→platform/registry,
