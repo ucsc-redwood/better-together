@@ -22,6 +22,17 @@ set -euo pipefail
 serial=${1:?usage: run-on-android.sh <serial> [test-target ...]}; shift || true
 BUILD=${BT_ANDROID_BUILD:-build/android}
 DEST=/data/local/tmp/bt
+# Per-cell coverage markers (RAN/SKIP/FAIL) for scripts/check_fleet_coverage.py.
+# Map the adb serial -> the fleet-coverage hardware token (pixel/samsung); override
+# with BT_CELL_HW for a new phone. CELL_LOG defaults to fleet-coverage.log at the repo root.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$ROOT/scripts/lib-cell-marker.sh"
+case "$serial" in
+  3A021JEHN02756) CELL_HW=${BT_CELL_HW:-pixel} ;;
+  R5CY21Y3VEV)    CELL_HW=${BT_CELL_HW:-samsung} ;;
+  *)              CELL_HW=${BT_CELL_HW:-$serial} ;;
+esac
+CELL_LOG=${BT_CELL_LOG:-$ROOT/fleet-coverage.log}
 
 targets=("$@")
 [ ${#targets[@]} -gt 0 ] || targets=(test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp)
@@ -52,6 +63,11 @@ fail=0
 for t in "${targets[@]}"; do
   echo "== $t =="
   # </dev/null on EVERY adb shell, or it eats the loop's remaining iterations.
-  adb -s "$serial" shell "cd $DEST && chmod 755 $t && LD_LIBRARY_PATH=. ./$t --device $serial" </dev/null || fail=1
+  # Capture each binary's output so we can classify the cell (RAN/SKIP/FAIL).
+  out="$(adb -s "$serial" shell "cd $DEST && chmod 755 $t && LD_LIBRARY_PATH=. ./$t --device $serial" </dev/null 2>&1)"; rc=$?
+  printf '%s\n' "$out"
+  [ "$rc" -eq 0 ] || fail=1
+  bt_emit_marker "$t" "$CELL_HW" "$rc" "$out" | tee -a "$CELL_LOG"
 done
+echo ">> coverage markers appended to $CELL_LOG (check: scripts/check_fleet_coverage.py)"
 exit $fail

@@ -19,6 +19,11 @@ HOST=${BT_ROCKY_HOST:-rocky-ryzen}
 DEVICE=${BT_ROCKY_DEVICE:-minipc}
 BUILD=${BT_ROCKY_BUILD:-build/vulkan}
 DEST=/tmp/bt
+# Per-cell coverage markers (RAN/SKIP/FAIL) for scripts/check_fleet_coverage.py.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$ROOT/scripts/lib-cell-marker.sh"
+CELL_HW=${BT_CELL_HW:-minipc}
+CELL_LOG=${BT_CELL_LOG:-$ROOT/fleet-coverage.log}
 
 targets=("$@")
 [ ${#targets[@]} -gt 0 ] || targets=(test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk)
@@ -32,7 +37,12 @@ EOF
 scp "${paths[@]}" "$HOST:$DEST/"
 
 echo ">> running on $HOST (--device $DEVICE)"
-ssh "$HOST" bash -s "$DEVICE" "${targets[@]}" <<'EOF'
+# tee the remote output to a log so we can post-process per-cell coverage markers
+# locally; pipefail keeps the remote exit status (not tee's) as the gate result.
+runlog="$(mktemp)"
+set -o pipefail
+rc=0
+ssh "$HOST" bash -s "$DEVICE" "${targets[@]}" <<'EOF' | tee "$runlog"
 set -e
 device=$1; shift
 cd /tmp/bt
@@ -43,3 +53,9 @@ for t in "$@"; do
 done
 exit $fail
 EOF
+rc=$?
+
+bt_emit_markers_from_log "$runlog" "$CELL_HW" | tee -a "$CELL_LOG"
+echo ">> coverage markers appended to $CELL_LOG (check: scripts/check_fleet_coverage.py)"
+rm -f "$runlog"
+exit $rc
