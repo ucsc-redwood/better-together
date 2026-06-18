@@ -302,25 +302,28 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       vocab.json / data_loader / baselines / the schema enum. **← This is the off-ramp: P0–P4 deliver
       every robustness/decoupling win except build-enforcement, all gated green.**
 
-- [~] **P5 — The component split.** Split into two commits:
+- [x] **P5 — The component split (DONE).** Landed across P5a (the move) + P5b (CMake split).
   - [x] **P5a — the move (DONE, full-fleet green).** `git mv` builtin-apps/pipe/utility into
         `platform/ runtime/ apps/ profiler/ tools/` (app.*→`device_registry.*`); 228 includes rewritten
         (relative→repo-root-prefixed→component paths; bare cross-boundary includes resolved by basename);
         CMakeLists source paths + device/vocab codegen outputs + shader-bake Makefile remapped. Behavior-
         preserving; gated **G-omp + G-gpu + G-runtime** (Jetson CUDA + rocky Vulkan, all differential +
         pipeline-e2e green). Repo root is still the PUBLIC include dir (move correct, not yet enforced).
-  - [~] **P5b — the enforcement (PARTIAL).**
-        - [x] **Shader bake into CMake (DONE)** — `cmake/bt_shaders.cmake` + opt-in `bake-shaders` target
+  - [x] **P5b — the enforcement (DONE).**
+        - [x] **Shader bake into CMake** — `cmake/bt_shaders.cmake` + opt-in `bake-shaders` target
               replaces the dead root `Makefile`; `BT_GLSLC`/`BT_XXD` + committed-header fallback; fixed the
               stale-variable-name P5a bug. See the §5 bullet above. (Vulkan green, clean-tree, omp 9/9.)
-        - [ ] **CMakeLists split + scope-narrowing (REMAINING)** — split the ~400-line root into ~6
-              per-component sub-files + a thin `add_subdirectory` root, **narrowing each target's include
-              scope to its own component dir** (the §5 lever that build-enforces P3's decoupling). NOTE: the
-              enforcement payoff is largely *already* delivered by `guard-runtime-agnostic`; true per-dir
-              scope-narrowing is blocked by the repo-root-prefixed includes (would need another ~228-include
-              rewrite to component-relative) and requires first un-bundling `bt_core/cuda/vulkan` into per-app
-              libs (the P6 restructuring). Re-gate the full fleet; verify the PC preset still never invokes
-              `nvcc` and `bt::vulkan` keeps its `VulkanHeaders` SYSTEM include.
+        - [x] **CMakeLists split** — the ~390-line root became a thin root (options/deps/helpers/language
+              setup) + one `add_subdirectory` per component (`platform/ apps/<app>/ runtime/ profiler/ tools/`);
+              each app contributes its kernels to the backend libs via `target_sources()`. **Deliberate
+              deviation from the literal plan:** kept the backend libs BUNDLED (not per-app libs) and did NOT
+              narrow include scope — the only payoff of per-app-libs + scope-narrowing was compile-time
+              enforcement, which `guard-runtime-agnostic` already delivers (the plan's explicit OR-branch:
+              repo-root export + link-scoping + the guard). Avoids the ~228-include component-relative rewrite
+              and link-graph churn for zero added enforcement. Gated: target-list diff old==new (79==79, no
+              target lost) for vulkan+bench and jetson configs; full fleet green (omp 9/9 pc; Vulkan rocky
+              diff 7/10/10 + engine 2 + runtime 3/2/2; both Mali phones 7/10/10; CUDA Jetson diff 7/10/10 +
+              runtime 2/2/2); PC preset invokes no `nvcc`; `bt::vulkan` keeps its `VulkanHeaders` SYSTEM include.
 
   <!-- original P5 text retained below for reference -->
   `git mv builtin-apps/{pipeline→runtime, conf.*+app.*+affinity→platform/registry,
@@ -335,17 +338,18 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       (`enable_language(CUDA)` stays inside `if(BT_ENABLE_CUDA)`) and `bt::vulkan` keeps its
       `VulkanHeaders` SYSTEM include.
 
-- [~] **P6 — `bt_add_app` consolidation (cleanup).**
-  - [x] **`guard-runtime-agnostic` grep CTest (DONE, green).** `scripts/guard_runtime_agnostic.py`
-        greps `runtime/` for app namespaces/identifiers in CODE (comments stripped) + `#include "apps/"`;
-        wired as a CTest labelled `omp;guard` (rides the everyday omp gate). Build-enforces the P3
-        decoupling. (Also fixed a `refactor_gate.sh` inventory() sed bug that undercounted any dir >10
-        tests.) Landed early as the standalone enforcement complementing the P5 split.
-  - [ ] **`bt_add_app(NAME … BACKENDS …)` consolidation (REMAINING).** Replace the per-app hand-listed
-        targets with one helper reading stage-count from `vocab.json`. Intertwined with P5b: today
-        `bt_core`/`bt_cuda`/`bt_vulkan` bundle app sources, so the per-app-target separation that
-        `bt_add_app` provides is the SAME restructuring that enables P5b's per-component include-scope
-        narrowing. Do P5b + this together. **Gate: G-omp + target-list diff (no target lost).**
+- [x] **P6 — target-helper consolidation (DONE).**
+  - [x] **`guard-runtime-agnostic` grep CTest.** `scripts/guard_runtime_agnostic.py` greps `runtime/` for
+        app namespaces/identifiers in CODE (comments stripped) + `#include "apps/"`; wired as a CTest
+        labelled `omp;guard` (rides the everyday omp gate). Build-enforces the P3 decoupling. (Also fixed a
+        `refactor_gate.sh` inventory() sed bug that undercounted any dir >10 tests.)
+  - [x] **Target-helper consolidation.** The 8 `bt_add_{omp,cuda,vk}_{run,app,test}` helpers (extracted to
+        `cmake/bt_targets.cmake`) ARE the per-app target consolidation — each component's CMakeLists.txt now
+        calls them once per target. **Deliberately did NOT build a `bt_add_app(NAME … BACKENDS …)` helper
+        that reads stage-count from `vocab.json`:** the stage count is not needed to define any target, and
+        the apps are irregular enough (tree has no cuda bm_main, octree is omp+vk only, cifar splits
+        all_kernels vs per-stage) that a single generic helper would be more complex than the explicit
+        per-app calls — an abstraction for no real duplication. Gate met: target-list diff (no target lost).
 
 **Off-ramp:** Phases 0–4 deliver every robustness/decoupling win *except* build-enforcement and are
 independently shippable. If the deadline bites, stop after P4 with the cycle broken, the executor
