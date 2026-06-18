@@ -243,8 +243,16 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
 > the everyday gate). **G-gpu** = `-L cuda` on Jetson + `-L vulkan` on rocky-ryzen. **G-runtime**
 > = `-L runtime` on all three machines.
 
-- [ ] **P0 — Dead-code & cosmetics (near-zero risk).** Delete `cache.hpp` (0 refs), scratch
-      `tmp_*.comp`. Rename `utility/` probes `test_*` → `probe_*`. ~10 edits. **Gate: G-omp.**
+- [x] **P0 — Dead-code & cosmetics (near-zero risk).** ✅ DONE (commit `ac07ed9`, gate green).
+      Deleted `cache.hpp` (0 refs); renamed `utility/` probes `test_*` → `probe_*` (sources +
+      the 2 `add_executable` paths; target names `test-affinity`/`test-omp` kept for the P5
+      `utility/` → `tools/probes/` move). **Dropped the planned "scratch `tmp_*.comp`" deletion:**
+      `tmp_single_radixsort_warp{16,32,64}.comp` are NOT scratch — they are live entries in the
+      Vulkan shader registry (`all_shaders.hpp` `#include`s their baked `_spv.h` and registers
+      them via `SHADER_ENTRY`). Removing them mutates the shader table → a *semantic* change, out
+      of scope for this behavior-preserving refactor. If they are truly dead at runtime, excise
+      them in a standalone "remove dead experimental shaders" commit with a Vulkan T4 run, not
+      here. **Gate: G-omp.**
 
 - [ ] **P1 — CTest kind axis (additive, zero infra).** Change the 3 hardcoded `LABELS` lines
       (CMakeLists.txt ~313/348/367) to `"omp;unit"` / `"omp;differential"` / `"omp;runtime"` etc.;
