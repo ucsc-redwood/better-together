@@ -254,10 +254,13 @@ lands every cheap, separable win first; the one atomic rewrite is isolated to Ph
       them in a standalone "remove dead experimental shaders" commit with a Vulkan T4 run, not
       here. **Gate: G-omp.**
 
-- [ ] **P1 — CTest kind axis (additive, zero infra).** Change the 3 hardcoded `LABELS` lines
-      (CMakeLists.txt ~313/348/367) to `"omp;unit"` / `"omp;differential"` / `"omp;runtime"` etc.;
-      tag `test_schedule` as `unit`. ~6 edits. **Gate: G-omp**, and `ctest -L unit -N` lists
-      exactly the hardware-free test.
+- [x] **P1 — CTest kind axis (additive, zero infra).** ✅ DONE (commit `e229923`, gate green).
+      Added a SECOND label refining each test by purpose (`unit`/`differential`/`runtime`/`engine`)
+      while keeping the backend label so `ctest -L omp` stays the everyday gate. Implemented via
+      per-test-group `set_tests_properties` (not by mutating the helper `LABELS` lines as sketched
+      here — each helper builds tests of *multiple* kinds, so a helper-level kind would mislabel).
+      Verified: `ctest -L unit -N` → exactly `test-schedule-omp`; `-L omp` unchanged (8); vulkan
+      `-L engine` → exactly `test-kiss-vk`. **Gate: G-omp.**
 
 - [ ] **P2 — Surface the optimizer (additive).** `git mv scripts/collect/{smt,*.py,results}` into
       `optimizer/{smt,orchestrate,analysis,tests}`; add `pyproject.toml` + fix intra-package
