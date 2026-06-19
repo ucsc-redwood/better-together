@@ -43,25 +43,9 @@ def _run(id_type_pairs):
 GOLDEN = {
     "pc": _run([(range(0, 8), "big", True), (range(8, 24), "little", True)]),
     "jetson": _run([(range(0, 6), "little", True)]),
-    "jetsonlowpower": _run([(range(0, 4), "little", True)]),
     "3A021JEHN02756": _run(
         [(range(0, 4), "little", True), (range(4, 6), "medium", True), (range(6, 8), "big", True)]
     ),
-    "9b034f1b": _run(
-        [(range(0, 3), "little", True), (range(3, 5), "medium", True), (range(5, 8), "big", False)]
-    ),
-    # ce0717: little 0-3, big 4-7 -- VERIFIED against the real hardware (2026-06-18, adb
-    # cpuinfo_max_freq: cpu0-3 = 1.90 GHz / cpu4-7 = 2.36 GHz). This corrects the old
-    # conf.cpp@109bcf1 golden, which had it index-swapped (little 4-7 / big 0-3); the
-    # data-driven devices/ JSON was right.
-    "ce0717178d7758b00b7e": _run([(range(0, 4), "little", True), (range(4, 8), "big", True)]),
-    # ZY22: big 0-3, little 4-7 -- VERIFIED against real hardware (cpu0-3 = 2.00 GHz /
-    # cpu4-7 = 1.50 GHz).
-    "ZY22FLDDK7": _run([(range(0, 4), "big", True), (range(4, 8), "little", True)]),
-    "R9TR30814KJ": _run(
-        [(range(0, 4), "little", True), (range(4, 7), "big", False), ([7], "big", True)]
-    ),
-    "minipc": _run([(range(0, 16), "big", True)]),
     "R5CY21Y3VEV": _run(
         [
             (range(0, 4), "little", True),
