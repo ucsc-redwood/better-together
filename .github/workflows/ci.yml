@@ -55,7 +55,15 @@ jobs:
       - name: Build
         run: cmake --build --preset pc
       - name: Test (OMP-as-oracle differential)
-        run: ctest --test-dir build/pc -L omp --output-on-failure
+        # The pipeline-e2e + octree-sort tests pin worker threads to physical core
+        # IDs from the 'pc' device profile (24 cores: 8 big + 16 little). Hosted
+        # runners have ~4 cores, so they abort with "Failed to pin thread to cores".
+        # Those run on the real fleet via `just test`. CI covers the topology-
+        # independent set: the per-stage differential oracle (tree / cifar-dense /
+        # cifar-sparse), the schedule contract, the guards, and device validation.
+        run: |
+          echo "NOTE: excluding pipeline-e2e + test-sort-omp (need >=9-core topology; fleet-only)"
+          ctest --test-dir build/pc -L omp -E 'pipeline-e2e|test-sort-omp' --output-on-failure
 
   optimizer:
     name: optimizer pytest
