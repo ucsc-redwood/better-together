@@ -30,7 +30,7 @@ inline void conv2d_omp_batched(const float* __restrict__ input_data,
                                const int* __restrict__ weight_col_idx,
                                const int out_channels,  // equals number of rows in CSR matrix
                                const float* __restrict__ bias_data,  // may be nullptr if unused
-                               const int bias_size,     // usually equals out_channels
+                               const int bias_size,                  // usually equals out_channels
                                const int kernel_size,
                                const int stride,
                                const int padding,
@@ -116,34 +116,30 @@ inline void maxpool2d_omp_batched_clean(const float* __restrict__ input_data,
                                         const int stride,
                                         float* __restrict__ output_data) {
   // Calculate output spatial dimensions.
-  int out_height = (in_height - pool_size) / stride + 1;
-  int out_width = (in_width - pool_size) / stride + 1;
+  const int out_height = (in_height - pool_size) / stride + 1;
+  const int out_width = (in_width - pool_size) / stride + 1;
 
-// Parallelize over batch, channels and output height dimensions.
-// Using collapse helps combine loops into one large iteration space.
+// No-padding max pool: window [h_start,h_end) x [w_start,w_end), upper-clamped to
+// the input. Same contract as the dense OMP/CUDA kernels and MaxPool2dRef (-inf
+// init; the window is always in-bounds, so no per-element bounds branch is needed).
 #pragma omp for collapse(3) schedule(static)
   for (int b = 0; b < batch_size; ++b) {
     for (int c = 0; c < channels; ++c) {
       for (int oh = 0; oh < out_height; ++oh) {
+        const int h_start = oh * stride;
+        const int h_end = std::min(h_start + pool_size, in_height);
         for (int ow = 0; ow < out_width; ++ow) {
-          float max_val = -std::numeric_limits<float>::max();
+          const int w_start = ow * stride;
+          const int w_end = std::min(w_start + pool_size, in_width);
 
-          // Iterate over the pooling window.
-          for (int p = 0; p < pool_size * pool_size; ++p) {
-            int ph = p / pool_size;
-            int pw = p % pool_size;
-            int in_y = oh * stride + ph;
-            int in_x = ow * stride + pw;
-
-            // Check for in-bound coordinates.
-            if (in_y < in_height && in_x < in_width) {
-              int input_idx = ((b * channels + c) * in_height + in_y) * in_width + in_x;
-              max_val = std::max(max_val, input_data[input_idx]);
+          float max_val = -std::numeric_limits<float>::infinity();
+          for (int h = h_start; h < h_end; ++h) {
+            for (int w = w_start; w < w_end; ++w) {
+              const float val = input_data[((b * channels + c) * in_height + h) * in_width + w];
+              if (val > max_val) max_val = val;
             }
           }
-
-          int output_idx = ((b * channels + c) * out_height + oh) * out_width + ow;
-          output_data[output_idx] = max_val;
+          output_data[((b * channels + c) * out_height + oh) * out_width + ow] = max_val;
         }
       }
     }

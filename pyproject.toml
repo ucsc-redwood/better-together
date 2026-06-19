@@ -34,6 +34,8 @@ extend-exclude = [
     # Generated code — codegen re-emits it unformatted at build time.
     "**/generated/**",
     "optimizer/smt/bt_vocab.py",
+    # Untracked standalone analysis site (separate codebase, not the main project).
+    "dashboard",
 ]
 
 [tool.ruff.lint]
