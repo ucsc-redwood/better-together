@@ -4,4 +4,3 @@
 add_subdirectory(tree)
 add_subdirectory(cifar-dense)
 add_subdirectory(cifar-sparse)
-add_subdirectory(octree)
