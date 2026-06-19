@@ -31,6 +31,19 @@
       }
     },
     {
+      "name": "vulkan",
+      "displayName": "Vulkan native (x86_64) — scp to an integrated-GPU box (rocky-ryzen)",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build/vulkan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BT_ENABLE_CUDA": "OFF",
+        "BT_ENABLE_VULKAN": "ON",
+        "BT_TEST_DEVICE": "minipc",
+        "BT_BUILD_BENCHMARKS": "ON"
+      }
+    },
+    {
       "name": "android",
       "displayName": "Android arm64-v8a (Vulkan) — needs ANDROID_NDK_HOME",
       "generator": "Unix Makefiles",
@@ -50,6 +63,7 @@
   "buildPresets": [
     { "name": "pc", "configurePreset": "pc" },
     { "name": "jetson", "configurePreset": "jetson" },
+    { "name": "vulkan", "configurePreset": "vulkan" },
     { "name": "android", "configurePreset": "android" }
   ]
 }

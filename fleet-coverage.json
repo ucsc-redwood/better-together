@@ -3,6 +3,7 @@
   "_marker_format": "BT-CELL <app> <backend> <hardware> <RAN|SKIP|FAIL>",
   "hardware": {
     "jetson": "NVIDIA Jetson Orin Nano -- the only CUDA execution target (PC is build-only).",
+    "minipc": "rocky-ryzen Radeon 780M iGPU -- Vulkan (kiss-vk hard-selects eIntegratedGpu).",
     "pixel": "Google Pixel 7a (Mali, subgroup 16) -- Vulkan, serial 3A021JEHN02756.",
     "samsung": "Samsung Galaxy S24 (subgroup 32) -- Vulkan, serial R5CY21Y3VEV."
   },
@@ -10,6 +11,10 @@
     { "app": "tree", "backend": "cuda", "hardware": "jetson" },
     { "app": "cifar-dense", "backend": "cuda", "hardware": "jetson" },
     { "app": "cifar-sparse", "backend": "cuda", "hardware": "jetson" },
+
+    { "app": "tree", "backend": "vulkan", "hardware": "minipc" },
+    { "app": "cifar-dense", "backend": "vulkan", "hardware": "minipc" },
+    { "app": "cifar-sparse", "backend": "vulkan", "hardware": "minipc" },
 
     { "app": "tree", "backend": "vulkan", "hardware": "pixel" },
     { "app": "cifar-dense", "backend": "vulkan", "hardware": "pixel" },

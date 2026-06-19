@@ -4,10 +4,11 @@
 # justfile (profiling / schedule / benchmark recipes, many still on `xmake r`) is
 # archived as justfile.old.
 #
-# Three things this file does:
+# Four things this file does:
 #   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:6.1 docker image
-#   build-android   2. build arm64 Android — NDK toolchain
-#   test            3. run the unit tests across the HW x backend matrix
+#   build-x86       2. build x86 native (Vulkan + OpenMP)
+#   build-android   3. build arm64 Android — NDK toolchain
+#   test            4. run the unit tests across the HW x backend matrix
 #
 # The differential unit tests are OMP-as-oracle: each binary runs every stage of
 # an app on its backend and compares against the in-process OpenMP reference, so a
@@ -15,6 +16,7 @@
 #
 #   Target                build         runs on                    backends
 #   Jetson Orin (aarch64) build-jetson  ssh duck-naughty           OMP + CUDA + VK
+#   mini pc (x86 iGPU)    build-x86     ssh rocky-ryzen            OMP + VK
 #   Samsung (arm64)       build-android R5CY21Y3VEV via rocky adb  OMP + VK
 
 # --- config -----------------------------------------------------------------
@@ -37,17 +39,22 @@ build-jetson:
       -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc \
       'cmake --preset jetson && cmake --build --preset jetson --target {{jetson_bins}}'
 
-# 2. Build arm64 Android (Samsung) — NDK toolchain.
+# 2. Build x86 native (mini pc) — Vulkan + OpenMP.
+build-x86:
+    cmake --preset vulkan
+    cmake --build --preset vulkan --target {{omp_vk_bins}}
+
+# 3. Build arm64 Android (Samsung) — NDK toolchain.
 build-android:
     ANDROID_NDK_HOME={{ndk}} cmake --preset android
     cmake --build --preset android --target {{omp_vk_bins}}
 
-# Build all packages.
-build: build-jetson build-android
+# Build all three packages.
+build: build-jetson build-x86 build-android
 
 # 4. Run the unit tests across the whole matrix (build first with `just build`).
 # Fail-loud: any failing fleet test makes this go red (see the per-target notes).
-test: test-jetson test-samsung
+test: test-jetson test-minipc test-samsung
 
 # Fail if any expected GPU (app x backend x hardware) cell was never RAN on the
 # fleet. Diffs fleet-coverage.log (emitted by the run-on-*.sh deploy scripts as
@@ -55,6 +62,9 @@ test: test-jetson test-samsung
 # what the dev->main promotion gate should assert (see CONTRIBUTING.md).
 check-fleet:
     scripts/check_fleet_coverage.py
+
+# Deploy x86 build to the iGPU mini pc and run OMP + Vulkan.
+test-minipc: (_test-ssh minipc_host "minipc" "build/vulkan" omp_vk_bins)
 
 # Deploy aarch64 build to the Jetson and run OMP + CUDA + Vulkan.
 test-jetson: (_test-ssh jetson_host "jetson" "build/jetson" jetson_bins)

@@ -47,6 +47,10 @@ jobs:
         continue-on-error: true
         run: scripts/run-on-jetson.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
 
+      - name: Rocky iGPU — OMP + Vulkan
+        continue-on-error: true
+        run: scripts/run-on-rocky.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+
       - name: Android phones — OMP + Vulkan
         continue-on-error: true
         run: |

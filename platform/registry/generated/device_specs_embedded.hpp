@@ -65,6 +65,30 @@ inline const std::vector<std::string_view> kEmbedded = {
     "subgroup_size": 32
   }
 })DEVSPEC",
+    // minipc.json
+    R"DEVSPEC({
+  "id": "minipc",
+  "description": "16-core x86_64 mini PC, single tier.",
+  "cores": [
+    { "id": 0, "type": "big", "pinnable": true },
+    { "id": 1, "type": "big", "pinnable": true },
+    { "id": 2, "type": "big", "pinnable": true },
+    { "id": 3, "type": "big", "pinnable": true },
+    { "id": 4, "type": "big", "pinnable": true },
+    { "id": 5, "type": "big", "pinnable": true },
+    { "id": 6, "type": "big", "pinnable": true },
+    { "id": 7, "type": "big", "pinnable": true },
+    { "id": 8, "type": "big", "pinnable": true },
+    { "id": 9, "type": "big", "pinnable": true },
+    { "id": 10, "type": "big", "pinnable": true },
+    { "id": 11, "type": "big", "pinnable": true },
+    { "id": 12, "type": "big", "pinnable": true },
+    { "id": 13, "type": "big", "pinnable": true },
+    { "id": 14, "type": "big", "pinnable": true },
+    { "id": 15, "type": "big", "pinnable": true }
+  ],
+  "gpu": { "backend": "vulkan", "name": "AMD Radeon 780M", "subgroup_size": 64 }
+})DEVSPEC",
     // pc.json
     R"DEVSPEC({
   "id": "pc",
