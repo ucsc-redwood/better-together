@@ -92,3 +92,50 @@ test-samsung:
       adb -s {{samsung_serial}} shell "cd /data/local/tmp/bt && chmod 755 $b && LD_LIBRARY_PATH=. ./$b --device {{samsung_serial}} 2>&1" </dev/null | grep -E "tests ran|PASSED|FAILED|SKIPPED" | tail -8
     done'
     ssh {{minipc_host}} bash -s <<<"$script"
+
+# --- formatting -------------------------------------------------------------
+# Formatters: clang-format (C++), ruff (Python), gersemi (CMake), shfmt (shell),
+# prettier (JSON). The pip tools run via `uv run` and are version-pinned in
+# uv.lock (`uv sync --group dev` to install) — clang-format especially, whose
+# output drifts between releases. shfmt is a Go binary
+# (`go install mvdan.cc/sh/v3/cmd/shfmt@latest`); prettier runs via `bunx`.
+# File sets come from `git ls-files`, so untracked + build/ + _deps are skipped.
+# The C++ set deliberately omits the generated shader headers
+# (platform/engine/vulkan/shaders/h/*_spv.h — all .h are baked) and the .comp
+# GLSL sources.
+
+# Format the whole tree in place.
+fmt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{justfile_directory()}}"
+    echo "▸ clang-format (C++)"
+    git ls-files '*.cpp' '*.hpp' '*.cu' '*.cuh' | xargs -r uv run clang-format -i
+    echo "▸ ruff (Python)"
+    uv run ruff format .
+    uv run ruff check --fix .
+    echo "▸ gersemi (CMake)"
+    git ls-files '*CMakeLists.txt' '*.cmake' | xargs -r uv run gersemi -i
+    echo "▸ shfmt (shell)"
+    git ls-files '*.sh' | xargs -r shfmt -w -i 2 -ci
+    echo "▸ prettier (JSON)"
+    git ls-files '*.json' | xargs -r bunx prettier@3.8.4 --write --log-level warn
+
+# Verify formatting without writing (non-zero exit if anything is unformatted).
+fmt-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    cd "{{justfile_directory()}}"
+    rc=0
+    echo "▸ clang-format (C++)"
+    git ls-files '*.cpp' '*.hpp' '*.cu' '*.cuh' | xargs -r uv run clang-format --dry-run -Werror || rc=1
+    echo "▸ ruff (Python)"
+    uv run ruff format --check . || rc=1
+    uv run ruff check . || rc=1
+    echo "▸ gersemi (CMake)"
+    git ls-files '*CMakeLists.txt' '*.cmake' | xargs -r uv run gersemi --check || rc=1
+    echo "▸ shfmt (shell)"
+    git ls-files '*.sh' | xargs -r shfmt -d -i 2 -ci || rc=1
+    echo "▸ prettier (JSON)"
+    git ls-files '*.json' | xargs -r bunx prettier@3.8.4 --check --log-level warn || rc=1
+    exit $rc

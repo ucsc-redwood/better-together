@@ -11,3 +11,33 @@ dependencies = [
     "seaborn>=0.13.2",
     "z3-solver>=4.15.1.0",
 ]
+
+# Code-formatting toolchain (run via `just fmt` / `just fmt-check`). The
+# pip-installable formatters live here so uv.lock pins exact versions — in
+# particular clang-format, whose output drifts across releases. shfmt (Go) and
+# prettier (run via bunx, for JSON) are not pip packages; see the justfile.
+[dependency-groups]
+dev = [
+    "ruff>=0.15",
+    "gersemi>=0.27",
+    "clang-format>=20",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = [
+    "build",
+    ".venv-cifar",
+    "**/_deps",
+    "optimizer/bt_optimizer.egg-info",
+]
+
+[tool.ruff.lint]
+# Formatting-only: just import sorting (I), which is fully autofixable, so
+# `ruff format` + `ruff check --fix` leaves no residual findings. The formatter
+# owns everything else. Broaden `select` (e.g. "E", "F") later for real linting.
+select = ["I"]
+
+[tool.gersemi]
+line_length = 100
