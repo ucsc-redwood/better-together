@@ -31,6 +31,29 @@ targets=("$@")
 paths=()
 for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
 
+# Local mode: when this runs ON the Rocky box itself (BT_ROCKY_HOST=localhost, the
+# fleet runner), skip ssh/scp and run the binaries straight from $BUILD.
+# VK_LOADER_LAYERS_DISABLE keeps RADV's validation-layer stdout noise out of the
+# coverage-marker parsing (and off the measured path).
+if [ "$HOST" = localhost ] || [ "$HOST" = "$(hostname)" ]; then
+  echo ">> running locally (--device $DEVICE)"
+  runlog="$(mktemp)"
+  set -o pipefail
+  (
+    cd "$BUILD" && fail=0
+    for t in "${targets[@]}"; do
+      echo "== $t =="
+      VK_LOADER_LAYERS_DISABLE='~all~' LD_LIBRARY_PATH=. ./"$t" --device "$DEVICE" || fail=1
+    done
+    exit $fail
+  ) | tee "$runlog"
+  rc=${PIPESTATUS[0]}
+  bt_emit_markers_from_log "$runlog" "$CELL_HW" | tee -a "$CELL_LOG"
+  echo ">> coverage markers appended to $CELL_LOG"
+  rm -f "$runlog"
+  exit $rc
+fi
+
 echo ">> staging ${#targets[@]} binaries to $HOST:$DEST"
 ssh "$HOST" bash -s <<EOF
 mkdir -p $DEST
