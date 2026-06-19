@@ -150,7 +150,7 @@ fmt:
     echo "▸ shfmt (shell)"
     git ls-files '*.sh' | xargs -r shfmt -w -i 2 -ci
     echo "▸ prettier (JSON)"
-    git ls-files '*.json' | xargs -r bunx prettier@3.8.4 --write --log-level warn
+    git ls-files '*.json' ':(exclude)dashboard/*' | xargs -r bunx prettier@3.8.4 --write --log-level warn
 
 # Verify formatting without writing (non-zero exit if anything is unformatted).
 fmt-check:
@@ -168,5 +168,5 @@ fmt-check:
     echo "▸ shfmt (shell)"
     git ls-files '*.sh' | xargs -r shfmt -d -i 2 -ci || rc=1
     echo "▸ prettier (JSON)"
-    git ls-files '*.json' | xargs -r bunx prettier@3.8.4 --check --log-level warn || rc=1
+    git ls-files '*.json' ':(exclude)dashboard/*' | xargs -r bunx prettier@3.8.4 --check --log-level warn || rc=1
     exit $rc
