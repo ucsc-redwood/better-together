@@ -25,6 +25,9 @@ jetson_host    := "duck-naughty"
 minipc_host    := "rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
 ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var("ANDROID_HOME") / "ndk/29.0.14206865")
+# Container runtime for the Jetson cross-build: `docker` (build box) or `podman`
+# (the Rocky fleet runner — rootless + SELinux → --userns=keep-id + a :z volume).
+container      := env_var_or_default("BT_CONTAINER", "docker")
 
 # Per-app test binaries. OMP+VK builds (x86 / Android) ship six; Jetson adds CUDA.
 omp_vk_bins := "test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk"
@@ -33,11 +36,20 @@ jetson_bins := "test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tr
 _default:
     @just --list
 
-# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:6.1 docker image.
+# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:6.1 container.
+# Works with docker (build box) or podman (BT_CONTAINER=podman, the Rocky runner).
 build-jetson:
-    docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
-      -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc \
-      'cmake --preset jetson && cmake --build --preset jetson --target {{jetson_bins}}'
+    #!/usr/bin/env bash
+    set -euo pipefail
+    build='cmake --preset jetson && cmake --build --preset jetson --target {{jetson_bins}}'
+    if [ "{{container}}" = "podman" ]; then
+      # rootless podman: --userns=keep-id keeps file ownership; :z relabels for SELinux
+      podman run --rm --userns=keep-id -e HOME=/workspace/build \
+        -v "$PWD:/workspace:z" -w /workspace bt-cross:6.1 bash -lc "$build"
+    else
+      docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
+        -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc "$build"
+    fi
 
 # 2. Build x86 native (mini pc) — Vulkan + OpenMP.
 build-x86:

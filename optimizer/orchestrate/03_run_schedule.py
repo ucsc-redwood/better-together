@@ -48,7 +48,9 @@ def deploy_and_run_ssh(host, binary, schedule, device, dest, n_sched):
     # quoted heredoc-equivalent: fish login shell bypassed via `bash -s` over stdin
     script = (
         f"cd {dest}\n"
-        f"LD_LIBRARY_PATH=. ./{bname} --device {device} "
+        # VK_LOADER_LAYERS_DISABLE: keep Vulkan validation layers off so their per-call
+        # overhead doesn't inflate the measured schedule makespan (no-op where absent).
+        f"VK_LOADER_LAYERS_DISABLE='~all~' LD_LIBRARY_PATH=. ./{bname} --device {device} "
         f"--schedule-file {sname} --n-schedules-to-run {n_sched}\n"
     )
     # check=False: VK executors can segfault on TEARDOWN (Tegra, bugs-found §9) after
