@@ -100,9 +100,11 @@ test-samsung:
 # output drifts between releases. shfmt is a Go binary
 # (`go install mvdan.cc/sh/v3/cmd/shfmt@latest`); prettier runs via `bunx`.
 # File sets come from `git ls-files`, so untracked + build/ + _deps are skipped.
-# The C++ set deliberately omits the generated shader headers
-# (platform/engine/vulkan/shaders/h/*_spv.h — all .h are baked) and the .comp
-# GLSL sources.
+# Generated code is excluded — codegen re-emits it unformatted at build time, so
+# formatting it is futile and makes fmt-check non-deterministic: the */generated/
+# headers (device_specs_embedded.hpp, bt_vocab.hpp), the baked shader headers
+# (platform/engine/vulkan/shaders/h/*_spv.h — all .h), and the .comp GLSL. The
+# Python codegen output (optimizer/smt/bt_vocab.py) is excluded via pyproject.
 
 # Format the whole tree in place.
 fmt:
@@ -110,7 +112,7 @@ fmt:
     set -euo pipefail
     cd "{{justfile_directory()}}"
     echo "▸ clang-format (C++)"
-    git ls-files '*.cpp' '*.hpp' '*.cu' '*.cuh' | xargs -r uv run clang-format -i
+    git ls-files '*.cpp' '*.hpp' '*.cu' '*.cuh' ':(exclude)*/generated/*' | xargs -r uv run clang-format -i
     echo "▸ ruff (Python)"
     uv run ruff format .
     uv run ruff check --fix .
@@ -128,7 +130,7 @@ fmt-check:
     cd "{{justfile_directory()}}"
     rc=0
     echo "▸ clang-format (C++)"
-    git ls-files '*.cpp' '*.hpp' '*.cu' '*.cuh' | xargs -r uv run clang-format --dry-run -Werror || rc=1
+    git ls-files '*.cpp' '*.hpp' '*.cu' '*.cuh' ':(exclude)*/generated/*' | xargs -r uv run clang-format --dry-run -Werror || rc=1
     echo "▸ ruff (Python)"
     uv run ruff format --check . || rc=1
     uv run ruff check . || rc=1

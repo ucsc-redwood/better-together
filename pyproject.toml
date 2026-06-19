@@ -31,6 +31,9 @@ extend-exclude = [
     ".venv-cifar",
     "**/_deps",
     "optimizer/bt_optimizer.egg-info",
+    # Generated code — codegen re-emits it unformatted at build time.
+    "**/generated/**",
+    "optimizer/smt/bt_vocab.py",
 ]
 
 [tool.ruff.lint]
