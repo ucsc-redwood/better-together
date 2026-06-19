@@ -8,7 +8,7 @@
 
 ## The method — OMP-as-oracle, in-process differential
 
-Each **application** (`tree`, `cifar-dense`, `cifar-sparse`; `octree`) is a sequence
+Each **application** (`tree`, `cifar-dense`, `cifar-sparse`) is a sequence
 of **stages**; each stage has a kernel in up to **3 backends** — OMP (CPU), CUDA,
 Vulkan (GLSL compute). A correct test proves the three backends compute the *same
 correct answer*, not just "it ran without throwing".
@@ -18,7 +18,7 @@ target**. For each `(app, stage S, backend B≠omp)`, from the **same fixed seed
 (`mt19937 gen(114514)`), run stages `1..S` on OMP → `ref`, run `1..S` on B → `out`,
 and compare the stage-S output buffer **element-wise**:
 
-- **Integer / structural stages** (tree/octree: morton, sort, unique, radix-tree,
+- **Integer / structural stages** (tree: morton, sort, unique, radix-tree,
   edge-count, prefix-sum, octree-build) → **exact** (`bt::testing::ExactEqual`; for
   sort, `is_sorted` + permutation oracle).
 - **Float stages** (cifar conv / linear) → `bt::testing::NearEqual` with rel+abs
@@ -41,7 +41,7 @@ tests instead of aborting the binary.
 (application × backend × hardware) cell that the hardware actually supports**:
 
 ```
-for app A in {tree, cifar-dense, cifar-sparse}:       # (+ octree, structural, OMP+VK only)
+for app A in {tree, cifar-dense, cifar-sparse}:
   for backend B in {OMP, CUDA, Vulkan}:
     for hardware HW in {Samsung phone, Jetson, MiniPC}:
       if HW supports B:
@@ -66,8 +66,6 @@ Notes that make the gate precise on this fleet:
   the MiniPC iGPU, and the phones run it; the discrete-GPU build box does not. The two
   phones uniquely exercise the **subgroup-16 (Pixel/Mali) vs subgroup-32 (Samsung)** shader
   variants — the Jetson alone can't cover those.
-- **octree** is the structural 4th app (OMP + Vulkan kernels only — no CUDA backend
-  exists, so those cells are ∅ by design, not a gap).
 
 The richer matrix (per-stage counts, the Pixel 7a row, build-only cells, the T0–T4
 rollout) lives in [`../reports-for-human/testing-status.md`](../reports-for-human/testing-status.md).
