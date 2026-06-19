@@ -10,10 +10,14 @@ justfile.bak
 
 .venv-cifar/
 
-# Resources
+# Resources — regenerable data, not versioned (same model as data/).
+# CIFAR inputs/weights: scripts/data_prep/cifar_input.py + cifar_alex.py.
 resources.tar.gz
 resources/weights_npy/
 resources/octomap/
+resources/cifar/
+resources/cifar_batches_128/
+resources/cifar_batches_512/
 
 
 # resources/resources.zip
