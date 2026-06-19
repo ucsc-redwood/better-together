@@ -1,0 +1,62 @@
+name: Fleet (hardware-in-the-loop)
+
+# Tier-1 gate: runs the real CUDA/Vulkan/OMP differential tests on the physical
+# fleet (Jetson + Rocky iGPU + Android phones) and FAILS LOUD if any expected
+# (app x backend x hardware) cell did not run-and-pass. This is the verification
+# the dev->main promotion depends on (see CONTRIBUTING.md) — the hosted ci.yml
+# only covers OMP on x86 and gives no signal on the GPU backends.
+#
+# REQUIRES a self-hosted runner labelled [self-hosted, fleet] that can:
+#   - cross-build (docker bt-cross:6.1 for Jetson, NDK for Android),
+#   - ssh into the Jetson + Rocky boxes (over tailscale), and
+#   - adb into the Android phones (they are USB-tethered to the Rocky box, so the
+#     runner should live on / have adb access to that box).
+# Until such a runner is registered this workflow is inert (no hosted runner can
+# satisfy the label). Register: repo Settings -> Actions -> Runners -> New runner.
+#
+# Never triggered by pull_request: a self-hosted runner must not execute untrusted
+# fork code. Only manual dispatch + nightly + (optionally) push to main.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *" # nightly 08:00 UTC
+
+concurrency:
+  group: fleet # the devices are a shared mutex
+  cancel-in-progress: false # never cancel a half-deployed run
+
+jobs:
+  matrix:
+    runs-on: [self-hosted, fleet]
+    env:
+      BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cross-build every target
+        run: just build
+
+      - name: Start a fresh coverage log
+        run: rm -f "$BT_CELL_LOG"
+
+      # Each device step is continue-on-error so a single offline device does not
+      # mask which cells DID run; the single hard gate is `just check-fleet` below,
+      # which reds on any expected cell that is missing, SKIPped, or FAILed.
+      - name: Jetson — OMP + CUDA + Vulkan
+        continue-on-error: true
+        run: scripts/run-on-jetson.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+
+      - name: Rocky iGPU — OMP + Vulkan
+        continue-on-error: true
+        run: scripts/run-on-rocky.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+
+      - name: Android phones — OMP + Vulkan
+        continue-on-error: true
+        run: |
+          for serial in R5CY21Y3VEV 3A021JEHN02756; do
+            scripts/run-on-android.sh "$serial" test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk || true
+          done
+
+      - name: Assert full fleet coverage (the gate)
+        run: just check-fleet

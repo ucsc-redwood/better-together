@@ -53,7 +53,15 @@ build-android:
 build: build-jetson build-x86 build-android
 
 # 4. Run the unit tests across the whole matrix (build first with `just build`).
+# Fail-loud: any failing fleet test makes this go red (see the per-target notes).
 test: test-jetson test-minipc test-samsung
+
+# Fail if any expected GPU (app x backend x hardware) cell was never RAN on the
+# fleet. Diffs fleet-coverage.log (emitted by the run-on-*.sh deploy scripts as
+# BT-CELL markers) against fleet-coverage.json. Run after a fleet sweep; this is
+# what the dev->main promotion gate should assert (see CONTRIBUTING.md).
+check-fleet:
+    scripts/check_fleet_coverage.py
 
 # Deploy x86 build to the iGPU mini pc and run OMP + Vulkan.
 test-minipc: (_test-ssh minipc_host "minipc" "build/vulkan" omp_vk_bins)
@@ -71,7 +79,10 @@ _test-ssh host device builddir bins:
     echo "===== {{host}} ({{device}}) ====="
     ssh {{host}} 'mkdir -p /tmp/bt'
     scp -q $(for b in {{bins}}; do echo {{builddir}}/$b; done) {{host}}:/tmp/bt/
-    script='cd /tmp/bt; for b in {{bins}}; do echo "##### $b"; LD_LIBRARY_PATH=. ./$b --device {{device}} 2>&1 | grep -E "tests ran|PASSED|FAILED|SKIPPED" | tail -8; done'
+    # Fail-loud: capture each binary's exit code and scan for gtest's [  FAILED  ]
+    # marker so a failing fleet test makes the recipe (and `just test`) go red. The
+    # old `... | grep | tail` pipe discarded the exit code, so the gate could not fail.
+    script='cd /tmp/bt; rc=0; for b in {{bins}}; do echo "##### $b"; out=$(LD_LIBRARY_PATH=. ./$b --device {{device}} 2>&1) || rc=1; printf "%s\n" "$out" | grep -E "tests ran|PASSED|FAILED|SKIPPED" | tail -8; printf "%s" "$out" | grep -q "\[  FAILED  \]" && rc=1; done; exit $rc'
     ssh {{host}} bash -s <<<"$script"
 
 # NOTE: `adb shell` reads the script's stdin, so every adb call gets `</dev/null`
@@ -85,12 +96,18 @@ test-samsung:
     libcxx={{ndk}}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so
     ssh {{minipc_host}} 'mkdir -p /tmp/bt-and'
     scp -q $(for b in {{omp_vk_bins}}; do echo build/android/$b; done) "$libcxx" {{minipc_host}}:/tmp/bt-and/
-    script='adb -s {{samsung_serial}} shell "mkdir -p /data/local/tmp/bt" </dev/null
+    # Fail-loud (see test-ssh note): exit non-zero if any binary fails or prints
+    # gtest's [  FAILED  ] marker, so a bad Android run makes `just test` go red.
+    script='rc=0
+    adb -s {{samsung_serial}} shell "mkdir -p /data/local/tmp/bt" </dev/null
     adb -s {{samsung_serial}} push /tmp/bt-and/. /data/local/tmp/bt/ </dev/null >/dev/null
     for b in {{omp_vk_bins}}; do
       echo "##### $b"
-      adb -s {{samsung_serial}} shell "cd /data/local/tmp/bt && chmod 755 $b && LD_LIBRARY_PATH=. ./$b --device {{samsung_serial}} 2>&1" </dev/null | grep -E "tests ran|PASSED|FAILED|SKIPPED" | tail -8
-    done'
+      out=$(adb -s {{samsung_serial}} shell "cd /data/local/tmp/bt && chmod 755 $b && LD_LIBRARY_PATH=. ./$b --device {{samsung_serial}} 2>&1" </dev/null) || rc=1
+      printf "%s\n" "$out" | grep -E "tests ran|PASSED|FAILED|SKIPPED" | tail -8
+      printf "%s" "$out" | grep -q "\[  FAILED  \]" && rc=1
+    done
+    exit $rc'
     ssh {{minipc_host}} bash -s <<<"$script"
 
 # --- formatting -------------------------------------------------------------
