@@ -9,7 +9,7 @@ wide-CSV export shim was retired — Seam 1).
 ## Canonical JSONL profiling store
 
 The `bm-prof-<app>-<vk|cu>` binaries (one per app×backend cell, sources in
-`pipe/<app>-<vk|cu>/bm_prof.{cpp,cu}`, shared `pipe/bm_prof_common.hpp`) each
+`profiler/<app>-<vk|cu>/bm_prof.{cpp,cu}`, shared `profiler/bm_prof_common.hpp`) each
 measure the GPU PU **and** every present CPU tier in isolation, emitting one
 self-describing JSONL record per `(stage, pu)` with the full timing distribution
 (p50/p95/p99/cv/…) + measured provenance. Sampling is a **calibrated time budget**

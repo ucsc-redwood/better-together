@@ -8,7 +8,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+[![C++20](https://img.shields.io/badge/C++-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+[![CMake ≥ 3.25](https://img.shields.io/badge/CMake-%E2%89%A53.25-blue.svg)](https://cmake.org/)
 
 ### Supported Backends
 
@@ -77,29 +78,24 @@ Simply running everything on GPU or CPU leaves significant performance on the ta
 
 ### Project Statistics
 
+Source only (build artifacts, virtualenvs, and the regenerable `data/` store excluded;
+`tokei`):
+
 ```
 ===============================================================================
- Language            Files        Lines         Code     Comments       Blanks
+ Language              Files        Lines         Code     Comments       Blanks
 ===============================================================================
- C Header               22         6390         6390            0            0
- C++                    68        14853         9219         2525         3109
- C++ Header             61         8858         5967         1387         1504
- Fish                    1            3            3            0            0
- GLSL                   22         1775         1212          251          312
- JSON                   54       113267       113267            0            0
- Lua                    23         1712         1087          337          288
- Makefile                1           38           20            9            9
- Python                 33         5641         4020          773          848
- Shell                   2           96           65           22            9
- SVG                    10        24296        24019          277            0
- TOML                    1           12           12            0            0
--------------------------------------------------------------------------------
- Markdown                5          182            0          131           51
- |- BASH                 3            4            4            0            0
- |- Python               1           18           10            4            4
- (Total)                            204           14          135           55
-===============================================================================
- Total                 303       177123       165281         5712         6130
+ C++                      56         8649         5749         1365         1535
+ C++ Header               70         8192         5375         1663         1154
+ C Header                 29         9368         9368            0            0
+ CUDA                     40         3585         2196          800          589
+ GLSL (compute)           29         2418         1650          366          402
+ Python                   47         7026         5174          818         1034
+ CMake                    18          754          488          197           69
+ JSON / schemas           21          943          940            0            3
+ Shell / Just              9          613          360          190           63
+ Web (dashboard)           7         1872         1771           64           37
+ Markdown                 30         5196            0         4174         1022
 ===============================================================================
 ```
 
@@ -109,11 +105,17 @@ Simply running everything on GPU or CPU leaves significant performance on the ta
 
 BetterTogether has been evaluated on three computer vision workloads with varying computational characteristics:
 
-| Application | Description | Stages | Characteristics |
-|------------|-------------|--------|-----------------|
-| **CIFAR-Dense** | Dense AlexNet CNN inference on CIFAR-10 | 6 conv layers + 1 linear | Memory-intensive, high arithmetic intensity |
-| **CIFAR-Sparse** | Pruned AlexNet with 90% sparsity | 6 conv layers + 1 linear | Irregular memory access, lower arithmetic intensity |
-| **Tree** | 3D octree construction pipeline | 7 stages (sorting, radix tree, octree) | Diverse computational patterns, used in robotics/vision |
+| Application | Description | Stages | Backends | Compare mode |
+|------------|-------------|--------|----------|--------------|
+| **cifar-dense** | Dense AlexNet CNN inference on CIFAR-10 | 9 today → 11 canonical | OMP · CUDA · Vulkan | float (`NearEqual`) |
+| **cifar-sparse** | Pruned/sparse AlexNet (irregular memory access) | 9 today → 11 canonical | OMP · CUDA · Vulkan | float (`NearEqual`) |
+| **tree** | 3D octree construction (morton → sort → unique → radix-tree → edge-count → prefix-sum → octree-build) | 7 | OMP · CUDA · Vulkan | exact (integer/structural) |
+
+> Stage counts reflect the **currently implemented** kernels (`vocab.json` is the single
+> source of truth). The canonical `AlexNetCIFAR` spec
+> ([`docs/instruction-for-ai/04-alexnet-cifar-spec.md`](docs/instruction-for-ai/04-alexnet-cifar-spec.md))
+> is 11 stages; the C++ kernels still implement the 9-stage `SmallAlexNet` and are not yet
+> migrated to it.
 
 ### Workload Properties
 
@@ -174,59 +176,51 @@ cmake --preset pc && cmake --build --preset pc
 ctest --test-dir build/pc -L omp
 ```
 
-For NVIDIA Jetson (CUDA, cross-compiled in the container) and Android (ARM64):
+For Vulkan (x86 build, runs on an integrated-GPU box), NVIDIA Jetson (CUDA, cross-compiled
+in the container), and Android (ARM64):
 ```bash
+cmake --preset vulkan  && cmake --build --preset vulkan    # iGPU box (e.g. AMD Radeon, Intel)
 cmake --preset jetson  && cmake --build --preset jetson    # via bt-cross:6.1 container
 cmake --preset android && cmake --build --preset android   # needs ANDROID_NDK_HOME
 ```
 
-See [`docs/instruction-for-ai/02-building.md`](docs/instruction-for-ai/02-building.md)
-for the full preset/cross-build/deploy details.
+Convenience wrappers (`just build-x86`, `just build-jetson`, `just build-android`, then
+`just test`) build and run the unit-test matrix across the fleet. See
+[`docs/instruction-for-ai/02-building.md`](docs/instruction-for-ai/02-building.md) for the
+full preset/cross-build/deploy details.
 
-### 2. Profile Workloads
+### 2. Profile → Schedule → Run → Compare
 
-Collect profiling data for a specific device, application, and backend:
-
-```bash
-# Syntax: just collect <device> <app> <backend>
-just collect 3A021JEHN02756 cifar-sparse vk
-just collect 3A021JEHN02756 cifar-dense vk
-just collect 3A021JEHN02756 tree vk
-```
-
-Or collect all at once:
-```bash
-just collect-all-android
-```
-
-Profiling data will be stored in `data/bm_logs/<device>/`.
-
-### 3. Generate Optimal Schedules
-
-Use the SMT optimizer to generate execution schedules:
+The paper's "three tools talking through files" — BT-Profiler (C++) → JSONL store →
+BT-Optimizer (Python/z3) → schedule JSON → BT-Implementer (C++ runtime). The end-to-end
+procedure with every gotcha is in
+[`docs/instruction-for-ai/06-end-to-end-scheduling.md`](docs/instruction-for-ai/06-end-to-end-scheduling.md);
+the short version:
 
 ```bash
-# Syntax: just gen-schedule <device> <app> <backend> <table_type> <minimize_mode>
-just gen-schedule 3A021JEHN02756 cifar-sparse vk btpm gapness
+# 1. Profile: run the per-(app×backend) bm-prof binary on the device, capture stdout
+#    (pure JSONL) to the canonical store: data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl
+ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference \
+  ./bm-prof-cifar-sparse-vk --device 3A021JEHN02756 2>/dev/null' \
+  > data/profiling/3A021JEHN02756/cifar-sparse/vulkan/interference/run-001.jsonl
+
+# 2. Generate schedules: z3 reads the JSONL store directly (no CSV step) and emits candidates
+uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
+  --device 3A021JEHN02756 --app cifar-sparse --backend vk --table_type btpm \
+  --minimize_mode tmax --num_solutions 10 --output_folder data/schedules_btpm
+
+# 3. Run the schedule(s) on the device and capture per-task timing logs
+uv run optimizer/orchestrate/03_run_schedule.py --device 3A021JEHN02756 --app cifar-sparse \
+  --backend vk --table-type btpm --minimize-mode tmax --ssh-host <host> --build-dir build/vulkan \
+  --log-folder data/sched_logs/3A021JEHN02756_cifar-sparse_vk
+
+# 4. Parse / measure makespan vs the single-PU baseline → speedup
+uv run optimizer/orchestrate/04_parse_schedules.py data/sched_logs/3A021JEHN02756_cifar-sparse_vk
 ```
 
-Or generate all schedules:
-```bash
-just gen-schedules-all
-```
-
-Schedules will be saved in `data/schedules/<device>/`.
-
-### 4. Execute Schedules
-
-Run the optimized schedules and measure performance:
-
-```bash
-# Syntax: just run-schedule <device> <app> <backend> <table_type> <minimize_mode>
-just run-schedule 3A021JEHN02756 cifar-sparse vk btpm gapness
-```
-
-Execution logs will be stored in `data/exe_logs_<table_type>_<minimize_mode>/<device>/`.
+Everything under `data/` (the JSONL profiling store, generated schedules, run logs, CIFAR
+dataset, trained weights) is **regenerable and git-ignored** — it is the output of this
+pipeline, not source.
 
 ---
 
@@ -234,97 +228,92 @@ Execution logs will be stored in `data/exe_logs_<table_type>_<minimize_mode>/<de
 
 ### Device Configuration
 
-Devices are defined in `builtin-apps/conf.cpp` using their Android device IDs:
-
-```cpp
-// Google Pixel 7a (Device ID: 3A021JEHN02756)
-Device("3A021JEHN02756", {
-  {0, kLittleCore, true},  {1, kLittleCore, true},  // 4× Cortex-A55
-  {2, kLittleCore, true},  {3, kLittleCore, true},
-  {4, kMediumCore, true},  {5, kMediumCore, true},  // 2× Cortex-A78
-  {6, kBigCore, true},     {7, kBigCore, true},     // 2× Cortex-X1
-});
-
-// OnePlus 11 (Device ID: 9b034f1b)
-Device("9b034f1b", {
-  {0, kLittleCore, true},  {1, kLittleCore, true},  // 4× Cortex-A510
-  {2, kLittleCore, true},  {3, kLittleCore, true},
-  {4, kBigCore, true},     {5, kBigCore, true},     // 3× Cortex-A715
-  {6, kBigCore, true},
-  {7, kSuperCore, true},                            // 1× Cortex-X3
-});
-
-// Samsung Galaxy S23 (Device ID: R5CY21Y3VEV)
-Device("R5CY21Y3VEV", {
-  {0, kLittleCore, true},  {1, kLittleCore, true},  // 4× Cortex-A55
-  {2, kLittleCore, true},  {3, kLittleCore, true},
-  {4, kBigCore, true},     {5, kBigCore, true},     // 4× Cortex-A78
-  {6, kBigCore, true},     {7, kBigCore, true},
-  {8, kSuperCore, true},   {9, kSuperCore, true},   // 2× Cortex-X3
-});
-
-// NVIDIA Jetson Nano
-Device("jetson", {
-  {0, kBigCore, true},     {1, kBigCore, true},     // 4× Cortex-A57
-  {2, kBigCore, true},     {3, kBigCore, true},     // (homogeneous)
-});
-```
-
-**Note**: Find your device ID using `adb devices` command.
-
-### Schedule Format
-
-Schedules are stored as JSON files with the following structure:
+Devices are the framework's primary extension axis: **adding a device = dropping in a data
+file.** Each target is a schema-validated JSON in `devices/<id>.json`
+([`schemas/device-spec.schema.json`](schemas/device-spec.schema.json)) — the **source of
+truth**. At build time `scripts/embed_device_specs.py` codegens these into the C++ device
+registry (`platform/registry/generated/device_specs_embedded.hpp`); do **not** hand-edit
+`platform/registry/conf.cpp`.
 
 ```json
 {
-  "uid": "schedule_unique_id",
-  "chunks": [
-    {
-      "exec_model": "Vulkan",
-      "start_stage": 0,
-      "end_stage": 2
-    },
-    {
-      "exec_model": "OMP",
-      "cpu_proc_type": "Big",
-      "start_stage": 3,
-      "end_stage": 5
-    }
-  ]
+  "id": "3A021JEHN02756",
+  "description": "Google Pixel 7a (Tensor G2): 4 little + 2 medium + 2 big.",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 4, "type": "medium", "pinnable": true },
+    { "id": 6, "type": "big",    "pinnable": true }
+  ],
+  "gpu": { "backend": "vulkan", "name": "Mali-G710", "subgroup_size": 16 }
 }
 ```
+
+**Note**: Find a phone's device ID with `adb devices`. Core types are
+`little`/`medium`/`big` (the solver's CPU tiers); the GPU `backend` is `vulkan` or `cuda`.
+
+### Schedule Format
+
+Schedules are the cross-tool contract between BT-Optimizer (z3) and BT-Implementer (C++),
+validated against [`schemas/schedule.schema.json`](schemas/schedule.schema.json). A file is
+an **array of candidate schedules**; each partitions the application's stages into
+contiguous chunks across PUs. Stage numbering is **1-based and inclusive**, and the chunks
+must contiguously cover `[1, n_stages]`:
+
+```json
+[
+  {
+    "uid": "SCH-0001",
+    "solution_id": 1,
+    "chunks": [
+      { "core_type": "GPU", "start_stage": 1, "end_stage": 3, "hardware": "gpu_vulkan" },
+      { "core_type": "Big", "start_stage": 4, "end_stage": 7 }
+    ],
+    "metrics": { "max_time": 3.21 }
+  }
+]
+```
+
+`core_type` is one of `Little`/`Medium`/`Big`/`GPU`; a `GPU` chunk additionally requires
+`hardware` (`gpu_cuda` or `gpu_vulkan`). `metrics` is advisory — the runtime ignores it.
 
 ---
 
 ## Project Structure
 
+The tree is **component-first** (the old `builtin-apps/`, `pipe/`, `utility/` were dissolved
+into these components by the 2026-06 refactor):
+
 ```
 better-together/
-├── builtin-apps/          # Core applications and pipeline framework
-│   ├── cifar-dense/       # Dense CNN inference
-│   ├── cifar-sparse/      # Sparse CNN inference
-│   ├── tree/              # Tree-based algorithms
-│   ├── pipeline/          # Scheduling and execution framework
-│   └── common/            # Shared utilities (CUDA, Vulkan helpers)
-├── scripts/               # Python utilities
-│   ├── collect/           # Profiling and scheduling scripts
-│   │   ├── 02_gen_schedule_merged.py  # Schedule generator
-│   │   ├── 03_run_schedule.py         # Schedule executor
-│   │   └── smt/           # SMT solver implementation
-│   ├── paper_figures/     # Visualization and result analysis
-│   └── view/              # Schedule visualization tools
-├── data/                  # Profiling data and schedules
-│   ├── bm_logs/           # Profiling tables (CSV)
-│   ├── schedules/         # Generated schedules (JSON)
-│   └── exe_logs_*/        # Execution measurements
-├── resources/             # Model weights and test data
-│   ├── cifar/             # CIFAR-10 model parameters
-│   └── cifar_batches_*/   # Input batches
-├── devices/               # Per-device topology specs (*.json, source of truth)
+├── apps/                  # Per-application kernels: omp/ cuda/ vulkan/ + differential oracle
+│   ├── cifar-dense/       #   each app provides the same stages in up to 3 backends,
+│   ├── cifar-sparse/      #   plus appdata + a *_diff_oracle.hpp for OMP-as-oracle tests
+│   └── tree/
+├── platform/              # Backend-agnostic substrate
+│   ├── engine/            #   cuda/ + vulkan/ compute engines (kiss-vk, UMA buffers)
+│   ├── mem/               #   memory-resource helpers
+│   ├── registry/          #   device registry (generated/ from devices/*.json)
+│   ├── vocab/             #   generated/ vocabulary header (from vocab.json)
+│   └── util/              #   ndarray, npy loader, resource paths, debug logging
+├── runtime/               # BT-Implementer: app-agnostic pipeline engine
+│   │                      #   (SPSC queues, schedule/config readers, task dispatch)
+│   └── tests/
+├── profiler/              # BT-Profiler: bm-prof / bm-baseline / bm-gen-logs drivers
+│                          #   + per-(app×backend) sources (cifar-dense-vk/, tree-cu/, …)
+├── optimizer/             # BT-Optimizer (Python package): z3 SMT scheduler
+│   ├── smt/               #   solver, constraints, profiling loader, vocab
+│   ├── orchestrate/       #   02_gen_schedule / 03_run_schedule / 04_parse / 05_timeline
+│   └── analysis/          #   coverage + isolated-table rendering
+├── tools/                 # Standalone probes (affinity, cpuinfo, Vulkan version, stress)
+├── devices/               # Per-device topology specs (*.json, schema-validated, the SoT)
+├── schemas/               # JSON Schemas: device-spec, profiling-table, schedule (contracts)
+├── vocab.json             # Single source of truth for PU tiers / backends / stage counts
+├── cmake/                 # Toolchains, CPM, per-backend target helpers
+├── scripts/               # Build/deploy wrappers, codegen, device-spec validation, figures
+├── resources/             # Model weights / CIFAR params (regenerable; see scripts/data_prep)
+├── dashboard/             # Static offline analysis site (devices / apps / profiling / schedules)
 ├── docs/                  # instruction-for-ai/ (how-to) + reports-for-human/ (status)
-├── pipe/                  # Pipeline benchmarking utilities
-└── utility/               # System utilities and tests
+└── data/                  # Profiling store + schedules + run logs (git-ignored, regenerable)
 ```
 
 > **Working on the code (human or AI)?** Start with
@@ -338,18 +327,15 @@ better-together/
 
 ### Custom Devices
 
-To add a new device, edit `builtin-apps/conf.cpp` and define core topology:
+To add a new device, drop a schema-validated JSON into `devices/<id>.json` (no C++ edits) —
+the registry is codegenned from it at build time:
 
-```cpp
-devices_.emplace(
-    "my_device_id",
-    Device("my_device_id", {
-        {0, ProcessorType::kLittleCore, true},
-        {1, ProcessorType::kLittleCore, true},
-        {2, ProcessorType::kBigCore, true},
-        {3, ProcessorType::kBigCore, true},
-    })
-);
+```bash
+# 1. write devices/my_device_id.json (cores[] + gpu{}, per schemas/device-spec.schema.json)
+# 2. validate it
+uv run scripts/validate_devices.py
+# 3. rebuild — scripts/embed_device_specs.py regenerates the embedded registry
+cmake --build --preset pc
 ```
 
 ### Optimization Modes
@@ -365,24 +351,41 @@ BetterTogether supports multiple optimization strategies:
 
 ### Visualization
 
-Visualize schedules using the provided tools:
+Visualize a generated schedule:
 
 ```bash
-uv run scripts/view/view_schedule.py data/schedules/<device>/<app>/<backend>/schedules_btpm_gapness.json
+uv run scripts/view/view_schedule.py data/schedules_btpm/<device>/<app>/<backend>/schedules_btpm_tmax.json
 ```
 
-Generate performance comparison plots:
+Render an execution timeline from the run logs:
 
 ```bash
-just compare-schedules <device> <app> <backend> <num_schedules>
+uv run optimizer/orchestrate/05_timeline.py data/sched_logs/<device>_<app>_<backend>
 ```
+
+### Analysis Dashboard
+
+The repo ships a self-contained, **offline static dashboard** (`dashboard/`) that
+cross-references the whole project: the device fleet, the per-app stage breakdowns, the
+collected profiling tables, and a schedule explorer (z3 chunk assignments with measured
+speedup-over-baseline). It builds to a single bundle and can be served locally (e.g. over
+Tailscale) with no backend. See [`docs/reports-for-human/`](docs/reports-for-human/) for how
+to generate and serve it.
 
 ---
 
 ## Publications & Citation
 
+Presented at **IISWC 2025** (Xu et al., UCSC / Microsoft Research). The paper is included in
+this repo: [`IISWC_2025_BetterTogether_Yanwen.pdf`](IISWC_2025_BetterTogether_Yanwen.pdf).
+
 ```bibtex
-Just presented at IISWC 2025, the citation is coming soon
+@inproceedings{xu2025bettertogether,
+  title     = {BetterTogether: Profile-Guided Software Pipelining for Heterogeneous Edge SoCs},
+  author    = {Xu, Yanwen and others},
+  booktitle = {IEEE International Symposium on Workload Characterization (IISWC)},
+  year      = {2025}
+}
 ```
 
 ---
@@ -395,6 +398,6 @@ This project is licensed under the **MIT License** - see the LICENSE file for de
 
 <div align="center">
 
-**[Documentation](#) • [Issues](https://github.com/ucsc-redwood/better-together/issues) • [Paper (Coming Soon)](#)**
+**[Documentation](docs/instruction-for-ai/README.md) • [Issues](https://github.com/ucsc-redwood/better-together/issues) • [Paper](IISWC_2025_BetterTogether_Yanwen.pdf)**
 
 </div>
