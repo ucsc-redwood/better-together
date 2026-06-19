@@ -24,6 +24,21 @@ branch history (`refactor/component-structure`) — each fix commit names its fi
   drop a new kernel source) and D3 (`run_pipeline` empty core vector) — both cheap to harden
   defensively or to declare "by design"; not yet actioned.
 
+## Known issue surfaced during fleet verification (out of scope, pre-existing)
+
+**`tree`-on-Vulkan fails on the Adreno 540 (`ce0717178d7758b00b7e`).** This phone is NOT a
+documented test target (the matrix is Pixel-Mali-16 + Samsung-Mali-32), but running it
+revealed: `cifar-dense-vk` passes, while `tree-vk`'s radix-sort chain (stages 2/3/4/5/7)
+produces an all-zero sorted buffer (`ref=4441, out=0` at index 0). Root cause: the tree radix
+sort selects a fixed-subgroup shader variant `multi_radixsort_warp{16,32,64}` from the device
+JSON's declared `gpu.subgroup_size`, and these SPIR-V variants (validated on Mali) are
+incompatible with Adreno's wave semantics — Adreno runs wave64 internally even when subgroup=32
+is requested, unless pinned via `VK_EXT_subgroup_size_control`. Tested both 32 (morton+stage6
+pass, sort chain zeros) and 64 (all 7 stages fail) — neither works, so it is NOT a JSON value
+fix; it's a genuine Adreno GPU-porting task. **Not a regression** from this branch (the tree
+Vulkan kernels/shaders are byte-identical; this device was simply never tested). Deferred as a
+separate effort; only relevant if Adreno phones become a test target.
+
 ## TL;DR
 
 30 confirmed findings, 3 disputed. The only **reachable, manifesting correctness bugs**
