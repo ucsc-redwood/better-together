@@ -34,9 +34,9 @@ struct UniqueAgent {
 
   __device__ __forceinline__ UniqueAgent(const size_t n) : n(n) {}
 
-  __device__ __forceinline__ void Process_FindDups(TempStorage &temp_storage,
-                                                   const unsigned int *u_keys,
-                                                   int *u_flag_heads,
+  __device__ __forceinline__ void Process_FindDups(TempStorage& temp_storage,
+                                                   const unsigned int* u_keys,
+                                                   int* u_flag_heads,
                                                    const int n) {
     const auto num_tiles = cub::DivideAndRoundUp(n, tile_size);
 
@@ -63,11 +63,11 @@ struct UniqueAgent {
     }
   }
 
-  __device__ __forceinline__ void Process_MoveDups(const unsigned int *u_keys,
-                                                   const int *u_flag_heads_sums,
+  __device__ __forceinline__ void Process_MoveDups(const unsigned int* u_keys,
+                                                   const int* u_flag_heads_sums,
                                                    const int n,
-                                                   unsigned int *u_keys_out,
-                                                   int *n_unique_out = nullptr) {
+                                                   unsigned int* u_keys_out,
+                                                   int* n_unique_out = nullptr) {
     // 'tile' == 'block' in this kernel
     const auto num_tiles = cub::DivideAndRoundUp(n, blockDim.x);
 

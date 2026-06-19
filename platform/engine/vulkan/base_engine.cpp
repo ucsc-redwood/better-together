@@ -53,7 +53,7 @@ BaseEngine::~BaseEngine() {
     // waitIdle can throw (vulkan-hpp), which in a destructor would std::terminate.
     try {
       device_.waitIdle();
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
       spdlog::warn("BaseEngine teardown: device.waitIdle() failed: {}", e.what());
     }
   }
@@ -128,11 +128,11 @@ void BaseEngine::request_validation_layer() {
 
   // Debug: Print all detected layers
   spdlog::info("Available Vulkan Layers:");
-  for (const auto &layer : availableLayers) {
+  for (const auto& layer : availableLayers) {
     spdlog::info("- {}", layer.layerName.data());
   }
 
-  bool layerFound = std::ranges::any_of(availableLayers, [validationLayerName](const auto &layer) {
+  bool layerFound = std::ranges::any_of(availableLayers, [validationLayerName](const auto& layer) {
     return std::strcmp(layer.layerName.data(), validationLayerName) == 0;
   });
 
@@ -162,20 +162,22 @@ void BaseEngine::create_physical_device(vk::PhysicalDeviceType type) {
   }
 
   // Try to find an integrated GPU
-  const auto integrated_gpu = std::ranges::find_if(physicalDevices, [type](const auto &device) {
+  const auto integrated_gpu = std::ranges::find_if(physicalDevices, [type](const auto& device) {
     return device.getProperties().deviceType == type;
   });
 
   if (integrated_gpu == physicalDevices.end()) {
     // Surface WHAT was enumerated so the failure is diagnosable (the discrete-GPU
     // build box hits this) instead of an opaque message (review #13).
-    for (const auto &dev : physicalDevices) {
+    for (const auto& dev : physicalDevices) {
       const auto props = dev.getProperties();
-      spdlog::error("  available device: {} (type {})", props.deviceName.data(),
+      spdlog::error("  available device: {} (type {})",
+                    props.deviceName.data(),
                     vk::to_string(props.deviceType));
     }
-    throw std::runtime_error("No integrated GPU found (kiss-vk requires an iGPU; see the "
-                             "enumerated devices above)");
+    throw std::runtime_error(
+        "No integrated GPU found (kiss-vk requires an iGPU; see the "
+        "enumerated devices above)");
   }
 
   physical_device_ = *integrated_gpu;
@@ -203,7 +205,7 @@ bool has_integrated_gpu() noexcept {
 // ----------------------------------------------------------------------------
 
 [[nodiscard]] static vk::PhysicalDeviceVulkan12Features check_vulkan_12_features(
-    const vk::PhysicalDevice &physical_device) {
+    const vk::PhysicalDevice& physical_device) {
   // we want to query and check if uniformAndStorageBuffer8BitAccess is
   // supported before we can create this feature struct
 
@@ -255,7 +257,7 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       queueFamilyProperties.begin(),
       std::find_if(queueFamilyProperties.begin(),
                    queueFamilyProperties.end(),
-                   [queue_flags](const auto &qfp) { return qfp.queueFlags & queue_flags; }));
+                   [queue_flags](const auto& qfp) { return qfp.queueFlags & queue_flags; }));
 
   if (compute_queue_family_index_ == queueFamilyProperties.size()) {
     throw std::runtime_error("No queue family supports compute operations.");

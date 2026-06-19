@@ -9,5 +9,9 @@
     { "id": 4, "type": "little", "pinnable": true },
     { "id": 5, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "cuda", "name": "NVIDIA Tegra Orin (nvgpu)", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "cuda",
+    "name": "NVIDIA Tegra Orin (nvgpu)",
+    "subgroup_size": 32
+  }
 }

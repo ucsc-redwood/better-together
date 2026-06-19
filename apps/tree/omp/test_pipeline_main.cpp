@@ -11,11 +11,11 @@
 #include <utility>
 #include <vector>
 
-#include "platform/registry/device_registry.hpp"
-#include "runtime/spsc_queue.hpp"
 #include "apps/tree/tree_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/registry/device_registry.hpp"
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, OmpStubDispatcher, AppTraits
+#include "runtime/spsc_queue.hpp"
 
 // AppTraits for the OMP-only tree runtime-test cell (keyed on the OMP stub dispatcher:
 // host memory, no GPU chunk -- its dispatch_multi_stage is never reached here).
@@ -27,8 +27,8 @@ struct AppTraits<bt_pipe_test::OmpStubDispatcher<tree::SafeAppData>> {
   static constexpr std::size_t kPoolSize = 32;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;  // unused (OMP-only)
-  static void omp_dispatch(const std::vector<int>& cores, int n, tree::SafeAppData& app, int start,
-                           int end) {
+  static void omp_dispatch(
+      const std::vector<int>& cores, int n, tree::SafeAppData& app, int start, int end) {
     tree::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -226,7 +226,8 @@ TEST(PipelineE2EOmp, AffinityMaskReadback) {
     GTEST_SKIP() << "device has no pinnable CPU tier";
   }
   const std::vector<std::pair<bool, const std::vector<int>*>> tiers = {
-      {has_big_cores(), &g_big_cores}, {has_med_cores(), &g_med_cores},
+      {has_big_cores(), &g_big_cores},
+      {has_med_cores(), &g_med_cores},
       {has_lit_cores(), &g_lit_cores}};
   for (const auto& [present, cores] : tiers) {
     if (!present) continue;

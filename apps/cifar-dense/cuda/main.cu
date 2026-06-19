@@ -1,8 +1,8 @@
 #include <omp.h>
 
+#include "dispatchers.cuh"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/hex_dump.hpp"
-#include "dispatchers.cuh"
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

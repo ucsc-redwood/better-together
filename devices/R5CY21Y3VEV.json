@@ -13,5 +13,9 @@
     { "id": 8, "type": "big", "pinnable": true },
     { "id": 9, "type": "super", "pinnable": true }
   ],
-  "gpu": { "backend": "vulkan", "name": "Samsung Xclipse (Galaxy S24, SM-S926B)", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "vulkan",
+    "name": "Samsung Xclipse (Galaxy S24, SM-S926B)",
+    "subgroup_size": 32
+  }
 }

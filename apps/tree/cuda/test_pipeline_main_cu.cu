@@ -9,12 +9,12 @@
 #include <queue>
 #include <vector>
 
+#include "apps/tree/omp/dispatchers.hpp"
+#include "apps/tree/tree_diff_oracle.hpp"  // tree::testing::CheckStage7
+#include "dispatchers.cuh"                 // tree::cuda::CudaDispatcher
 #include "platform/registry/device_registry.hpp"
 #include "runtime/record.hpp"
 #include "runtime/spsc_queue.hpp"
-#include "apps/tree/omp/dispatchers.hpp"
-#include "apps/tree/tree_diff_oracle.hpp"  // tree::testing::CheckStage7
-#include "dispatchers.cuh"          // tree::cuda::CudaDispatcher
 
 // ----------------------------------------------------------------------------
 // Framework runtime test, CUDA: drive the tree app through the REAL concurrent
@@ -39,8 +39,8 @@ struct AppTraits<tree::cuda::CudaDispatcher> {
   static constexpr std::size_t kPoolSize = 32;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;
-  static void omp_dispatch(const std::vector<int>& cores, int n, tree::SafeAppData& app, int start,
-                           int end) {
+  static void omp_dispatch(
+      const std::vector<int>& cores, int n, tree::SafeAppData& app, int start, int end) {
     tree::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };

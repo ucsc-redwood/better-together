@@ -2,12 +2,12 @@
 
 #include <numeric>
 
-#include "platform/util/debug_logger.hpp"
 #include "func_brt.hpp"
 #include "func_edge.hpp"
 #include "func_morton.hpp"
 #include "func_octree.hpp"
 #include "func_sort.hpp"
+#include "platform/util/debug_logger.hpp"
 
 namespace tree::omp {
 
@@ -15,7 +15,7 @@ namespace tree::omp {
 // Stage 1 (xyz -> morton)
 // ----------------------------------------------------------------------------
 
-void run_stage_1(tree::SafeAppData &appdata) {
+void run_stage_1(tree::SafeAppData& appdata) {
   const int start = 0;
   const int end = appdata.get_n_input();
 
@@ -32,7 +32,7 @@ void run_stage_1(tree::SafeAppData &appdata) {
 // Stage 2 (morton -> sorted morton)
 // ----------------------------------------------------------------------------
 
-void run_stage_2(tree::SafeAppData &appdata) {
+void run_stage_2(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
 
   // ----------------------------------------------------------------------------
@@ -49,7 +49,7 @@ void run_stage_2(tree::SafeAppData &appdata) {
 // Stage 3 (sorted morton -> unique morton)
 // ----------------------------------------------------------------------------
 
-void run_stage_3(tree::SafeAppData &appdata) {
+void run_stage_3(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 3, &appdata);
 
   const auto from = appdata.u_morton_keys_sorted_s2.data();
@@ -66,7 +66,7 @@ void run_stage_3(tree::SafeAppData &appdata) {
 // Stage 4 (unique morton -> brt)
 // ----------------------------------------------------------------------------
 
-void run_stage_4(tree::SafeAppData &appdata) {
+void run_stage_4(tree::SafeAppData& appdata) {
   const int start = 0;
   // brt has n_brt_nodes (= n_unique - 1) internal nodes; iterating to n_unique
   // ran one extra node that reads codes[i+1] OOB and writes a non-existent slot.
@@ -92,7 +92,7 @@ void run_stage_4(tree::SafeAppData &appdata) {
 // Stage 5 (brt -> edge count)
 // ----------------------------------------------------------------------------
 
-void run_stage_5(tree::SafeAppData &appdata) {
+void run_stage_5(tree::SafeAppData& appdata) {
   const int start = 0;
   const int end = appdata.get_n_brt_nodes();
 
@@ -111,7 +111,7 @@ void run_stage_5(tree::SafeAppData &appdata) {
 // Stage 6 (edge count -> edge offset)
 // ----------------------------------------------------------------------------
 
-void run_stage_6(tree::SafeAppData &appdata) {
+void run_stage_6(tree::SafeAppData& appdata) {
   const int start = 0;
   const int end = appdata.get_n_brt_nodes();
 
@@ -131,7 +131,7 @@ void run_stage_6(tree::SafeAppData &appdata) {
 // Stage 7 (everything -> octree)
 // ----------------------------------------------------------------------------
 
-void run_stage_7(tree::SafeAppData &appdata) {
+void run_stage_7(tree::SafeAppData& appdata) {
   // brt node 0 now contributes the full-domain ROOT octree node (edge_count[0]
   // == 1), so it must be processed too -- start at 0, not 1.
   const int start = 0;
@@ -144,7 +144,7 @@ void run_stage_7(tree::SafeAppData &appdata) {
 #pragma omp for
   for (int i = start; i < end; ++i) {
     process_oct_node(i,
-                     reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
+                     reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7_out.data()),
                      appdata.u_oct_corner_s7_out.data(),
                      appdata.u_oct_cell_size_s7_out.data(),
                      appdata.u_oct_child_node_mask_s7_out.data(),
@@ -157,7 +157,7 @@ void run_stage_7(tree::SafeAppData &appdata) {
                      tree::kRange);
 
     process_link_leaf(i,
-                      reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
+                      reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7_out.data()),
                       appdata.u_oct_child_leaf_mask_s7_out.data(),
                       appdata.u_edge_offset_s6.data(),
                       appdata.u_edge_count_s5.data(),

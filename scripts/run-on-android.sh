@@ -19,7 +19,8 @@
 # Env:     BT_ANDROID_BUILD (default build/android), ANDROID_NDK_HOME / ANDROID_HOME
 set -euo pipefail
 
-serial=${1:?usage: run-on-android.sh <serial> [test-target ...]}; shift || true
+serial=${1:?usage: run-on-android.sh <serial> [test-target ...]}
+shift || true
 BUILD=${BT_ANDROID_BUILD:-build/android}
 DEST=/data/local/tmp/bt
 # Per-cell coverage markers (RAN/SKIP/FAIL) for scripts/check_fleet_coverage.py.
@@ -29,8 +30,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/lib-cell-marker.sh"
 case "$serial" in
   3A021JEHN02756) CELL_HW=${BT_CELL_HW:-pixel} ;;
-  R5CY21Y3VEV)    CELL_HW=${BT_CELL_HW:-samsung} ;;
-  *)              CELL_HW=${BT_CELL_HW:-$serial} ;;
+  R5CY21Y3VEV) CELL_HW=${BT_CELL_HW:-samsung} ;;
+  *) CELL_HW=${BT_CELL_HW:-$serial} ;;
 esac
 CELL_LOG=${BT_CELL_LOG:-$ROOT/fleet-coverage.log}
 
@@ -50,9 +51,13 @@ ndk=${ANDROID_NDK_HOME:-${ANDROID_HOME:-$HOME/Android/Sdk}/ndk/29.0.14206865}
 # arm-linux-androideabi for an armeabi-v7a (android32) build so the matching .so is shipped.
 libcxx_arch=${BT_ANDROID_LIBCXX_ARCH:-aarch64}
 libcxx=$(find "$ndk" -name libc++_shared.so -path "*${libcxx_arch}*" 2>/dev/null | head -1)
-[ -n "$libcxx" ] || { echo "error: libc++_shared.so not found under $ndk" >&2; exit 1; }
+[ -n "$libcxx" ] || {
+  echo "error: libc++_shared.so not found under $ndk" >&2
+  exit 1
+}
 
-paths=(); for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
+paths=()
+for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
 
 echo ">> staging ${#targets[@]} binaries + libc++_shared.so to $serial:$DEST"
 adb -s "$serial" shell "mkdir -p $DEST" </dev/null
@@ -64,7 +69,8 @@ for t in "${targets[@]}"; do
   echo "== $t =="
   # </dev/null on EVERY adb shell, or it eats the loop's remaining iterations.
   # Capture each binary's output so we can classify the cell (RAN/SKIP/FAIL).
-  out="$(adb -s "$serial" shell "cd $DEST && chmod 755 $t && LD_LIBRARY_PATH=. ./$t --device $serial" </dev/null 2>&1)"; rc=$?
+  out="$(adb -s "$serial" shell "cd $DEST && chmod 755 $t && LD_LIBRARY_PATH=. ./$t --device $serial" </dev/null 2>&1)"
+  rc=$?
   printf '%s\n' "$out"
   [ "$rc" -eq 0 ] || fail=1
   bt_emit_marker "$t" "$CELL_HW" "$rc" "$out" | tee -a "$CELL_LOG"

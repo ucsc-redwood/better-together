@@ -5,15 +5,15 @@
 
 namespace tree::omp {
 
-void run_stage_1(SafeAppData &appdata);
-void run_stage_2(SafeAppData &appdata);
-void run_stage_3(SafeAppData &appdata);
-void run_stage_4(SafeAppData &appdata);
-void run_stage_5(SafeAppData &appdata);
-void run_stage_6(SafeAppData &appdata);
-void run_stage_7(SafeAppData &appdata);
+void run_stage_1(SafeAppData& appdata);
+void run_stage_2(SafeAppData& appdata);
+void run_stage_3(SafeAppData& appdata);
+void run_stage_4(SafeAppData& appdata);
+void run_stage_5(SafeAppData& appdata);
+void run_stage_6(SafeAppData& appdata);
+void run_stage_7(SafeAppData& appdata);
 
-using DispatchFnBatch = void (*)(SafeAppData &);
+using DispatchFnBatch = void (*)(SafeAppData&);
 
 const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_1,
@@ -25,14 +25,16 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_7,
 };
 
-static inline void dispatch_stage(SafeAppData &appdata, const int stage) {
+static inline void dispatch_stage(SafeAppData& appdata, const int stage) {
   assert(stage >= 1 && stage <= 7);
 
 #pragma omp parallel
-  { dispatch_fns_batch[stage - 1](appdata); }
+  {
+    dispatch_fns_batch[stage - 1](appdata);
+  }
 }
 
-static inline void dispatch_multi_stage(SafeAppData &appdata,
+static inline void dispatch_multi_stage(SafeAppData& appdata,
                                         const int start_stage,
                                         const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 7);
@@ -45,9 +47,9 @@ static inline void dispatch_multi_stage(SafeAppData &appdata,
   }
 }
 
-static inline void dispatch_stage(const std::vector<int> &cores_to_use,
+static inline void dispatch_stage(const std::vector<int>& cores_to_use,
                                   const int num_threads,
-                                  SafeAppData &appdata,
+                                  SafeAppData& appdata,
                                   const int stage) {
   assert(stage >= 1 && stage <= 7);
 
@@ -59,9 +61,9 @@ static inline void dispatch_stage(const std::vector<int> &cores_to_use,
   }
 }
 
-static inline void dispatch_multi_stage(const std::vector<int> &cores_to_use,
+static inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                         const int num_threads,
-                                        SafeAppData &appdata,
+                                        SafeAppData& appdata,
                                         const int start_stage,
                                         const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 7);

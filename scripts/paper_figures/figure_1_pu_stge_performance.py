@@ -4,11 +4,12 @@ Output paths:
 - PNG: scripts/paper_figures/png/figure_1_pu_stge_performance.png
 """
 
-import pandas as pd
+import os
 from io import StringIO
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+import pandas as pd
 
 # Data definition
 data = """

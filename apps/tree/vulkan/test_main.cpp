@@ -2,9 +2,9 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/tree/tree_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/registry/device_registry.hpp"
 #include "vk_appdata.hpp"
 
 // ----------------------------------------------------------------------------

@@ -9,12 +9,17 @@
 // the app/backend identity, the CUDA timer policy, and the app's OMP token.
 // ---------------------------------------------------------------------------
 
-#include "profiler/bm_prof_cuda.cuh"
 #include "const.hpp"  // DispatcherT (CudaDispatcher), AppDataT, kNumStages; pulls in CheckCuda
+#include "profiler/bm_prof_cuda.cuh"
 
 int main(int argc, char** argv) {
   return bt_prof::run_bm_prof<DispatcherT, AppDataT>(
-      argc, argv, "cifar-sparse", "cuda", "cuda", static_cast<int>(kNumStages),
+      argc,
+      argv,
+      "cifar-sparse",
+      "cuda",
+      "cuda",
+      static_cast<int>(kNumStages),
       [](DispatcherT&) { return bt_prof::CudaTimer<DispatcherT, AppDataT>{}; },
       [](auto&& cores, size_t n, AppDataT& app, int a, int b) {
         cifar_sparse::omp::dispatch_multi_stage(cores, n, app, a, b);

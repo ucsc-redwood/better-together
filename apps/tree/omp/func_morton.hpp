@@ -28,7 +28,7 @@ constexpr auto morton_bits = 30;
          (morton3D_SplitBy3bits(z) << 2);
 }
 
-[[nodiscard]] constexpr uint32_t xyz_to_morton32(const glm::vec4 &xyz,
+[[nodiscard]] constexpr uint32_t xyz_to_morton32(const glm::vec4& xyz,
                                                  const float min_coord,
                                                  const float range) {
   constexpr auto bit_scale = 1024;
@@ -51,13 +51,13 @@ constexpr auto morton_bits = 30;
   return x;
 }
 
-inline void m3D_d_magicbits(const uint32_t m, uint32_t *xyz) {
+inline void m3D_d_magicbits(const uint32_t m, uint32_t* xyz) {
   xyz[0] = morton3D_GetThirdBits(m);
   xyz[1] = morton3D_GetThirdBits(m >> 1);
   xyz[2] = morton3D_GetThirdBits(m >> 2);
 }
 
-inline void morton32_to_xyz(glm::vec4 *ret,
+inline void morton32_to_xyz(glm::vec4* ret,
                             const uint32_t code,
                             const float min_coord,
                             const float range) {

@@ -4,11 +4,11 @@ Output paths:
 - PNG: scripts/paper_figures/png/figure_4_overall_speedup.png
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib.patches as mpatches
 import os
 
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Data updated with new baseline results (omp = CPU, cu/vk = GPU, tree = Octree)
 data = {
@@ -154,9 +154,7 @@ for app in apps:
 ax.set_xticks(x + width)
 ax.set_xticklabels([device_names.get(d, d) for d in devices])
 ax.set_ylabel("Speedup (x)")
-ax.set_ylim(
-    0, max([processed_data[device][app] for device in devices for app in apps]) * 1.2
-)
+ax.set_ylim(0, max([processed_data[device][app] for device in devices for app in apps]) * 1.2)
 
 # Add a grid for better readability
 ax.grid(axis="y", linestyle="--", alpha=0.3)
@@ -223,9 +221,7 @@ for device in devices:
             f"    CPU baseline: {cpu_baseline:.1f}ms, GPU baseline: {gpu_baseline:.1f}ms, Optimized: {optimized_time:.2f}ms"
         )
         print(f"    CPU speedup: {cpu_speedup:.1f}x, GPU speedup: {gpu_speedup:.1f}x")
-        print(
-            f"    Best baseline: {chosen_baseline}, Best speedup: {best_speedup:.1f}x"
-        )
+        print(f"    Best baseline: {chosen_baseline}, Best speedup: {best_speedup:.1f}x")
 
 # Calculate and print geometric means and maximums
 print("\nSpeedup Statistics:")

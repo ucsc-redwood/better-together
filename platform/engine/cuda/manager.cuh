@@ -15,7 +15,7 @@ template <typename MemResourceT>
   requires std::is_same_v<MemResourceT, CudaPinnedResource>
 class CudaManager {
  public:
-  [[nodiscard]] MemResourceT &get_mr() { return mr_; }
+  [[nodiscard]] MemResourceT& get_mr() { return mr_; }
 
  protected:
   MemResourceT mr_;

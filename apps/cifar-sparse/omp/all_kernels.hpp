@@ -19,23 +19,23 @@ namespace cifar_sparse::omp {
 //   - weight_row_ptr: row offsets for each output channel (length = out_channels + 1)
 //   - weight_col_idx: column indices (flat kernel index) for nonzero values
 // kernel parameters: kernel_size, stride, padding, and a flag for ReLU activation.
-inline void conv2d_omp_batched(const float *input_data,
+inline void conv2d_omp_batched(const float* input_data,
                                const int batch_size,
                                const int in_channels,
                                const int in_height,
                                const int in_width,
                                // Sparse weights for this convolution layer:
-                               const float *weight_vals,
-                               const int *weight_row_ptr,
-                               const int *weight_col_idx,
+                               const float* weight_vals,
+                               const int* weight_row_ptr,
+                               const int* weight_col_idx,
                                const int out_channels,  // equals number of rows in CSR matrix
-                               const float *bias_data,  // may be nullptr if no bias is used
+                               const float* bias_data,  // may be nullptr if no bias is used
                                const int bias_size,     // usually equals out_channels
                                const int kernel_size,
                                const int stride,
                                const int padding,
                                const bool relu,
-                               float *output_data)  // preallocated output array
+                               float* output_data)  // preallocated output array
 {
   // Compute spatial output dimensions.
   const int out_height = (in_height + 2 * padding - kernel_size) / stride + 1;
@@ -106,14 +106,14 @@ inline void conv2d_omp_batched(const float *input_data,
 // A cleaner batched max pooling kernel that processes the full range of outputs.
 // Input layout: (batch, channels, in_height, in_width)
 // Output layout: (batch, channels, out_height, out_width)
-inline void maxpool2d_omp_batched_clean(const float *input_data,
+inline void maxpool2d_omp_batched_clean(const float* input_data,
                                         const int batch_size,
                                         const int channels,
                                         const int in_height,
                                         const int in_width,
                                         const int pool_size,
                                         const int stride,
-                                        float *output_data) {
+                                        float* output_data) {
   // Calculate output spatial dimensions.
   int out_height = (in_height - pool_size) / stride + 1;
   int out_width = (in_width - pool_size) / stride + 1;
@@ -159,14 +159,14 @@ inline void maxpool2d_omp_batched_clean(const float *input_data,
 //   - weight matrix is in CSR format with dimensions (out_neurons x input_features)
 //   - output_data will be of shape (batch_size, out_neurons) (flattened)
 inline void linear_omp_batched(
-    const float *input_data,
+    const float* input_data,
     const int batch_size,
     const int input_features,  // needed for indexing in each sample's input
-    const float *weight_vals,
-    const int *weight_row_ptr,
-    const int *weight_col_idx,
-    const float *bias_data,
-    float *output_data,
+    const float* weight_vals,
+    const int* weight_row_ptr,
+    const int* weight_col_idx,
+    const float* bias_data,
+    float* output_data,
     const int out_neurons) {
 // The parallelization is over batch and the output neurons.
 // schedule(static) collapse(2)

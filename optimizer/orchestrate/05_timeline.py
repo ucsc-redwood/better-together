@@ -1,10 +1,11 @@
+import argparse
 import os
 import re
+import sys
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
 import numpy as np
-from collections import defaultdict
-import sys
-import argparse
 
 # =======================================================================================
 #  Given a log file (contains multiple schedules), plot the execution timeline for each
@@ -53,9 +54,7 @@ def parse_arguments():
 
 def extract_python_sections(content):
     """Extract all Python sections from the file."""
-    python_sections = re.findall(
-        r"### Python Begin ###(.*?)### Python End ###", content, re.DOTALL
-    )
+    python_sections = re.findall(r"### Python Begin ###(.*?)### Python End ###", content, re.DOTALL)
 
     if not python_sections:
         print("No Python sections found in the input file.")
@@ -162,7 +161,7 @@ def calculate_time_range(tasks, args, schedule_index):
 
         if not start_times:
             print(
-                f"WARNING: No valid start times found in Schedule {schedule_index+1}, skipping."
+                f"WARNING: No valid start times found in Schedule {schedule_index + 1}, skipping."
             )
             return None
 
@@ -194,9 +193,7 @@ def calculate_time_range(tasks, args, schedule_index):
         ]
 
         if not end_times:
-            print(
-                f"WARNING: No valid end times found in Schedule {schedule_index+1}, skipping."
-            )
+            print(f"WARNING: No valid end times found in Schedule {schedule_index + 1}, skipping.")
             return None
 
         max_time = max(end_times)
@@ -205,9 +202,7 @@ def calculate_time_range(tasks, args, schedule_index):
         time_span = max_time - min_time
 
         if time_span <= 0:
-            print(
-                f"WARNING: Invalid time span (<=0) in Schedule {schedule_index+1}, skipping."
-            )
+            print(f"WARNING: Invalid time span (<=0) in Schedule {schedule_index + 1}, skipping.")
             return None
 
         # Calculate the actual start and end times based on percentages
@@ -227,9 +222,7 @@ def calculate_time_range(tasks, args, schedule_index):
         }
 
     except Exception as e:
-        print(
-            f"ERROR: Failed to calculate time span for Schedule {schedule_index+1}: {e}"
-        )
+        print(f"ERROR: Failed to calculate time span for Schedule {schedule_index + 1}: {e}")
         return None
 
 
@@ -239,10 +232,7 @@ def normalize_task_times(tasks, min_time):
     all_start_times = []
     for task_id in tasks:
         for chunk_id in tasks[task_id]:
-            if (
-                "start" in tasks[task_id][chunk_id]
-                and tasks[task_id][chunk_id]["start"] > 0
-            ):
+            if "start" in tasks[task_id][chunk_id] and tasks[task_id][chunk_id]["start"] > 0:
                 all_start_times.append(tasks[task_id][chunk_id]["start"])
 
     # For debugging purposes, print out some stats
@@ -263,10 +253,7 @@ def normalize_task_times(tasks, min_time):
     # Now normalize all task times
     for task_id in tasks:
         for chunk_id in tasks[task_id]:
-            if (
-                "start" in tasks[task_id][chunk_id]
-                and "end" in tasks[task_id][chunk_id]
-            ):
+            if "start" in tasks[task_id][chunk_id] and "end" in tasks[task_id][chunk_id]:
                 # Calculate relative time from start (in cycles)
                 start_time = tasks[task_id][chunk_id]["start"]
                 end_time = tasks[task_id][chunk_id]["end"]
@@ -329,10 +316,8 @@ def collect_chunk_data(tasks, time_range, CYCLES_TO_MS, max_chunk_id):
                 chunks_data[chunk_id].append(
                     {
                         "task_id": task_id,
-                        "start_ms": (tasks[task_id][chunk_id]["start_norm"])
-                        * CYCLES_TO_MS,
-                        "duration_ms": tasks[task_id][chunk_id]["duration_cycles"]
-                        * CYCLES_TO_MS,
+                        "start_ms": (tasks[task_id][chunk_id]["start_norm"]) * CYCLES_TO_MS,
+                        "duration_ms": tasks[task_id][chunk_id]["duration_cycles"] * CYCLES_TO_MS,
                     }
                 )
 
@@ -387,26 +372,20 @@ def create_gantt_chart(
 ):
     """Create and save a Gantt chart visualization of the schedule execution."""
     # Get active chunks (those with data to display)
-    active_chunks = [
-        chunk_id for chunk_id in range(len(chunk_names)) if chunks_data[chunk_id]
-    ]
+    active_chunks = [chunk_id for chunk_id in range(len(chunk_names)) if chunks_data[chunk_id]]
     active_chunks.sort(reverse=True)  # Sort in reverse order for display
 
     # Check if there's any data to display
     if not active_chunks:
         print(
-            f"WARNING: No chunks with non-zero duration found in the selected time range for Schedule {schedule_index+1}."
+            f"WARNING: No chunks with non-zero duration found in the selected time range for Schedule {schedule_index + 1}."
         )
         print("No figure will be generated.")
         return False
 
     # Calculate display range in milliseconds
-    display_start_ms = (
-        time_range["filter_start_time"] - time_range["min_time"]
-    ) * CYCLES_TO_MS
-    display_end_ms = (
-        time_range["filter_end_time"] - time_range["min_time"]
-    ) * CYCLES_TO_MS
+    display_start_ms = (time_range["filter_start_time"] - time_range["min_time"]) * CYCLES_TO_MS
+    display_end_ms = (time_range["filter_end_time"] - time_range["min_time"]) * CYCLES_TO_MS
 
     # Create a wider Gantt chart
     fig, ax = plt.subplots(figsize=(30, 8))  # Increased width to 30 inches
@@ -493,11 +472,11 @@ def create_gantt_chart(
     ax.set_xlabel("Time (ms, converted from cycles)", fontsize=12)
 
     # Add schedule_uid to the title if available
-    title = f"Schedule {schedule_index+1}"
+    title = f"Schedule {schedule_index + 1}"
     if schedule_uid:
         title += f" [UID: {schedule_uid}]"
 
-    title += f" - Chunk Execution Timeline ({args.start_time*100:.0f}%-{args.end_time*100:.0f}% of execution)\n"
+    title += f" - Chunk Execution Timeline ({args.start_time * 100:.0f}%-{args.end_time * 100:.0f}% of execution)\n"
     title += f"Time range: {display_start_ms:.2f}ms - {display_end_ms:.2f}ms, {len(active_chunks)} active chunks"
 
     ax.set_title(title, fontsize=14)
@@ -507,7 +486,7 @@ def create_gantt_chart(
     ax.set_xlim(display_start_ms, display_end_ms)
 
     # Save the figure with specified output name
-    output_filename = f"schedule_{schedule_index+1}_timeline.png"
+    output_filename = f"schedule_{schedule_index + 1}_timeline.png"
     output_path = os.path.join(output_dir, output_filename)
 
     plt.tight_layout()
@@ -534,7 +513,7 @@ def print_analysis(
 ):
     """Print analysis of the schedule execution."""
     # 1. Print all tasks in the region
-    print(f"\n======= SCHEDULE {schedule_index+1} - TASKS IN SELECTED REGION =======")
+    print(f"\n======= SCHEDULE {schedule_index + 1} - TASKS IN SELECTED REGION =======")
     sorted_tasks = sorted(tasks_in_region)
     print(
         f"Found {len(sorted_tasks)} tasks in the region {args.start_time:.2f}-{args.end_time:.2f}"
@@ -542,9 +521,7 @@ def print_analysis(
     print(f"Tasks: {', '.join(map(str, sorted_tasks))}")
 
     # 2. Calculate and print average duration for each task in each chunk
-    print(
-        f"\n======= SCHEDULE {schedule_index+1} - AVERAGE TASK DURATIONS BY CHUNK ======="
-    )
+    print(f"\n======= SCHEDULE {schedule_index + 1} - AVERAGE TASK DURATIONS BY CHUNK =======")
     for chunk_id in range(max_chunk_id + 1):
         if chunk_id not in task_durations_by_chunk:
             continue
@@ -578,7 +555,7 @@ def print_analysis(
         print()
 
     # 3. Find the widest chunk (most execution time) in the region
-    print(f"\n======= SCHEDULE {schedule_index+1} - WIDEST CHUNK IN REGION =======")
+    print(f"\n======= SCHEDULE {schedule_index + 1} - WIDEST CHUNK IN REGION =======")
     if chunk_total_durations:
         widest_chunk_id = max(chunk_total_durations, key=chunk_total_durations.get)
         widest_chunk_duration_cycles = chunk_total_durations[widest_chunk_id]
@@ -631,13 +608,13 @@ def print_analysis(
                 )
     else:
         print(
-            f"No chunk execution data found in the selected region for Schedule {schedule_index+1}."
+            f"No chunk execution data found in the selected region for Schedule {schedule_index + 1}."
         )
 
 
 def process_schedule(section, schedule_index, args):
     """Process a single schedule section."""
-    print(f"\n=== Processing Schedule {schedule_index+1} ===")
+    print(f"\n=== Processing Schedule {schedule_index + 1} ===")
 
     # Parse the task data
     frequency = extract_frequency(section)
@@ -654,14 +631,12 @@ def process_schedule(section, schedule_index, args):
 
     tasks = parse_task_data(section)
     if not tasks:
-        print(f"No task data found in Schedule {schedule_index+1}, skipping.")
+        print(f"No task data found in Schedule {schedule_index + 1}, skipping.")
         return
 
     # Find the maximum chunk ID in the data
-    max_chunk_id = max(
-        [chunk_id for task_data in tasks.values() for chunk_id in task_data.keys()]
-    )
-    print(f"Detected {max_chunk_id + 1} chunks in Schedule {schedule_index+1}")
+    max_chunk_id = max([chunk_id for task_data in tasks.values() for chunk_id in task_data.keys()])
+    print(f"Detected {max_chunk_id + 1} chunks in Schedule {schedule_index + 1}")
 
     # Empty chunk_types for compatibility
     chunk_types = {}
@@ -683,9 +658,7 @@ def process_schedule(section, schedule_index, args):
     )
 
     # Calculate average durations
-    chunk_avg_durations_ms = calculate_average_durations(
-        task_durations_by_chunk, CYCLES_TO_MS
-    )
+    chunk_avg_durations_ms = calculate_average_durations(task_durations_by_chunk, CYCLES_TO_MS)
 
     # Sort chunk data by start time
     for chunk_id in chunks_data:

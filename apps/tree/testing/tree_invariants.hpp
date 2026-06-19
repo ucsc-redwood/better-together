@@ -77,9 +77,8 @@ namespace tree::testing {
   for (int i = 0; i < n_brt; ++i) {
     const int gamma = left_child[i];  // split position
     if (gamma < 0 || gamma + 1 >= n_unique) {
-      return ::testing::AssertionFailure()
-             << "node " << i << ": split index gamma=" << gamma << " out of range [0,"
-             << (n_unique - 1) << ")";
+      return ::testing::AssertionFailure() << "node " << i << ": split index gamma=" << gamma
+                                           << " out of range [0," << (n_unique - 1) << ")";
     }
 
     // The two children straddle the split: the left subtree's deepest boundary
@@ -89,9 +88,8 @@ namespace tree::testing {
     const int actual = CommonPrefixLen30(codes[gamma], codes[gamma + 1]);
     if (static_cast<int>(prefix_n[i]) != actual) {
       return ::testing::AssertionFailure()
-             << "node " << i << ": prefix_n=" << +prefix_n[i]
-             << " != common-prefix-len(codes[" << gamma << "], codes[" << (gamma + 1)
-             << "])=" << actual;
+             << "node " << i << ": prefix_n=" << +prefix_n[i] << " != common-prefix-len(codes["
+             << gamma << "], codes[" << (gamma + 1) << "])=" << actual;
     }
 
     // A non-leaf child is itself an internal node and must point back to i.
@@ -217,14 +215,13 @@ struct BrtNodeRef {
 // These need no second octree builder; they falsify a wrong cell geometry or a
 // mis-linked parent/child relationship.
 // ---------------------------------------------------------------------------
-[[nodiscard]] inline ::testing::AssertionResult OctreeGeometryInvariants(
-    const glm::vec4* corner,
-    const float* cell_size,
-    const int* child_node_mask,
-    const int (*children)[8],
-    int n_oct,
-    float min_coord,
-    float range) {
+[[nodiscard]] inline ::testing::AssertionResult OctreeGeometryInvariants(const glm::vec4* corner,
+                                                                         const float* cell_size,
+                                                                         const int* child_node_mask,
+                                                                         const int (*children)[8],
+                                                                         int n_oct,
+                                                                         float min_coord,
+                                                                         float range) {
   for (int v = 0; v < n_oct; ++v) {
     const float cs = cell_size[v];
     if (!(cs > 0.0f) || cs > range) {
@@ -264,9 +261,9 @@ struct BrtNodeRef {
       if (cv < 0 || cv >= n_oct) continue;  // may reference a leaf, not an octnode
       // child cell is half the parent's
       if (std::abs(cell_size[cv] * 2.0f - cell_size[v]) > 1e-3f * cell_size[v]) {
-        return ::testing::AssertionFailure()
-               << "octnode " << v << " child slot " << c << " (node " << cv
-               << "): child cell_size=" << cell_size[cv] << " != parent/2=" << (cell_size[v] / 2.0f);
+        return ::testing::AssertionFailure() << "octnode " << v << " child slot " << c << " (node "
+                                             << cv << "): child cell_size=" << cell_size[cv]
+                                             << " != parent/2=" << (cell_size[v] / 2.0f);
       }
       // child corner is contained in parent cell.
       for (int axis = 0; axis < 3; ++axis) {

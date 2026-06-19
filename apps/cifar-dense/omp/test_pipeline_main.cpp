@@ -15,14 +15,13 @@
 #include <stdexcept>
 #include <vector>
 
-#include "platform/registry/device_registry.hpp"
-#include "runtime/record.hpp"
-#include "runtime/spsc_queue.hpp"
 #include "apps/cifar-dense/appdata.hpp"
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"  // cifar_dense::testing::CheckFinalPipeline
 #include "apps/cifar-dense/omp/dispatchers.hpp"
-
+#include "platform/registry/device_registry.hpp"
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, OmpStubDispatcher, AppTraits
+#include "runtime/record.hpp"
+#include "runtime/spsc_queue.hpp"
 
 // AppTraits for this (cifar_dense, OMP) runtime-test cell, keyed on its dispatcher.
 template <>
@@ -33,8 +32,8 @@ struct AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>> {
   static constexpr std::size_t kPoolSize = 8;
   static constexpr std::size_t kNumToProcess = 32;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;  // unused (OMP-only)
-  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start,
-                           int end) {
+  static void omp_dispatch(
+      const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start, int end) {
     cifar_dense::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -43,7 +42,8 @@ namespace {
 
 using bt_pipe_test::run_runtime_test;
 using AppDataT = AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::AppData;
-constexpr int kNumStages = AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::kNumStages;
+constexpr int kNumStages =
+    AppTraits<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>::kNumStages;
 
 void CheckItem(AppDataT& a) {
   // Assert a couple of interior stages too (review #9): an intermediate buffer corrupted by

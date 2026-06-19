@@ -57,13 +57,14 @@ def validate(records):
     errors = []
     for i, r in enumerate(records):
         for e in validator.iter_errors(r):
-            errors.append(f"  record {i} ({r.get('pu', '?')}/stage{r.get('stage', '?')}): {e.message}")
+            errors.append(
+                f"  record {i} ({r.get('pu', '?')}/stage{r.get('stage', '?')}): {e.message}"
+            )
     if errors:
         raise ValueError("schema validation failed:\n" + "\n".join(errors))
 
 
-def load_profiling(root, device, app, backend, scenario,
-                   metric="p50", min_runs=1, max_cv=0.1):
+def load_profiling(root, device, app, backend, scenario, metric="p50", min_runs=1, max_cv=0.1):
     """Return (table, report).
 
     table: {(stage, pu): {"value", "n_runs", "count"}} -- aggregated metric.
@@ -86,9 +87,11 @@ def load_profiling(root, device, app, backend, scenario,
         # Drop measured-and-known-bad samples: explicit thermal throttle, or
         # noise above the CV gate. A field absent from provenance is never
         # assumed -- `throttled` missing means "not measured", not "False".
-        kept = [r for r in rs
-                if not r["provenance"].get("throttled", False)
-                and r["timing"]["cv"] <= max_cv]
+        kept = [
+            r
+            for r in rs
+            if not r["provenance"].get("throttled", False) and r["timing"]["cv"] <= max_cv
+        ]
         if len(kept) < len(rs):
             dropped.append((stage, pu, len(rs) - len(kept)))
         if len(kept) < min_runs:
@@ -99,9 +102,13 @@ def load_profiling(root, device, app, backend, scenario,
         table[(stage, pu)] = {"value": value, "n_runs": len(kept), "count": weight}
 
     report = {
-        "paths": paths, "n_records": len(records),
-        "metric": metric, "max_cv": max_cv, "min_runs": min_runs,
-        "dropped": dropped, "insufficient": insufficient,
+        "paths": paths,
+        "n_records": len(records),
+        "metric": metric,
+        "max_cv": max_cv,
+        "min_runs": min_runs,
+        "dropped": dropped,
+        "insufficient": insufficient,
     }
     return table, report
 
@@ -119,29 +126,40 @@ def main():
     args = ap.parse_args()
 
     table, rep = load_profiling(
-        args.root, args.device, args.app, args.backend, args.scenario,
-        metric=args.metric, min_runs=args.min_runs, max_cv=args.max_cv,
+        args.root,
+        args.device,
+        args.app,
+        args.backend,
+        args.scenario,
+        metric=args.metric,
+        min_runs=args.min_runs,
+        max_cv=args.max_cv,
     )
 
-    print(f"loaded {rep['n_records']} records from {len(rep['paths'])} run file(s)  "
-          f"(metric={rep['metric']}, max_cv={rep['max_cv']}, min_runs={rep['min_runs']})")
+    print(
+        f"loaded {rep['n_records']} records from {len(rep['paths'])} run file(s)  "
+        f"(metric={rep['metric']}, max_cv={rep['max_cv']}, min_runs={rep['min_runs']})"
+    )
 
     stages = sorted({s for s, _ in table})
     pus = sorted({p for _, p in table})
     print("stage " + " ".join(f"{p:>9}" for p in pus))
     for s in stages:
         cells = " ".join(
-            (f"{table[(s, p)]['value']:>9.4f}" if (s, p) in table else f"{'--':>9}")
-            for p in pus
+            (f"{table[(s, p)]['value']:>9.4f}" if (s, p) in table else f"{'--':>9}") for p in pus
         )
         print(f"{s:>5} {cells}")
 
     if rep["dropped"]:
-        print("\ndropped (cv>max_cv or throttled): "
-              + ", ".join(f"stage{s}/{p}x{n}" for s, p, n in rep["dropped"]))
+        print(
+            "\ndropped (cv>max_cv or throttled): "
+            + ", ".join(f"stage{s}/{p}x{n}" for s, p, n in rep["dropped"])
+        )
     if rep["insufficient"]:
-        print("INSUFFICIENT (< min_runs survived, omitted from table): "
-              + ", ".join(f"stage{s}/{p}({n})" for s, p, n in rep["insufficient"]))
+        print(
+            "INSUFFICIENT (< min_runs survived, omitted from table): "
+            + ", ".join(f"stage{s}/{p}({n})" for s, p, n in rep["insufficient"])
+        )
 
 
 if __name__ == "__main__":

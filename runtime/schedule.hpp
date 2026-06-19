@@ -133,16 +133,15 @@ inline void validate_schedule_coverage(const Schedule& schedule, const size_t n_
 
     if (c.start_stage != expected) {
       throw std::runtime_error(
-          "Schedule [" + schedule.uid + "] chunk " + std::to_string(i) +
-          ": expected start_stage " + std::to_string(expected) + " but got " +
-          std::to_string(c.start_stage) +
+          "Schedule [" + schedule.uid + "] chunk " + std::to_string(i) + ": expected start_stage " +
+          std::to_string(expected) + " but got " + std::to_string(c.start_stage) +
           " (gap, overlap, or dropped stage — chunks must contiguously cover [1, " +
           std::to_string(n) + "])");
     }
     if (c.end_stage < c.start_stage) {
       throw std::runtime_error("Schedule [" + schedule.uid + "] chunk " + std::to_string(i) +
-                               ": end_stage " + std::to_string(c.end_stage) +
-                               " < start_stage " + std::to_string(c.start_stage));
+                               ": end_stage " + std::to_string(c.end_stage) + " < start_stage " +
+                               std::to_string(c.start_stage));
     }
     expected = c.end_stage + 1;
   }

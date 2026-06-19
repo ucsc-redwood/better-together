@@ -11,13 +11,14 @@ Big-only MiniPC vs all-tiers phone tier selection.
 
     uv run python optimizer/tests/test_baselines.py
 """
+
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from orchestrate.case import Case  # noqa: E402
-from smt.profiling_loader import load_profiling  # noqa: E402
 from smt.baselines import get_baseline_for_config, get_num_stages_for_app  # noqa: E402
+from smt.profiling_loader import load_profiling  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 STORE = os.path.join(ROOT, "data", "profiling")
@@ -62,7 +63,9 @@ def check(device, app, backend, failures, *, expect_tiers):
 
     # ...and fastest == min(omp, gpu).
     if not approx(b["fastest"], min(omp_expected, sums[gpu_pu])):
-        failures.append(f"{device} fastest={b['fastest']} expected {min(omp_expected, sums[gpu_pu])}")
+        failures.append(
+            f"{device} fastest={b['fastest']} expected {min(omp_expected, sums[gpu_pu])}"
+        )
 
 
 def main():

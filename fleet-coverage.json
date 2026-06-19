@@ -8,20 +8,20 @@
     "samsung": "Samsung Galaxy S24 (subgroup 32) -- Vulkan, serial R5CY21Y3VEV."
   },
   "cells": [
-    { "app": "tree",        "backend": "cuda",   "hardware": "jetson"  },
-    { "app": "cifar-dense", "backend": "cuda",   "hardware": "jetson"  },
-    { "app": "cifar-sparse","backend": "cuda",   "hardware": "jetson"  },
+    { "app": "tree", "backend": "cuda", "hardware": "jetson" },
+    { "app": "cifar-dense", "backend": "cuda", "hardware": "jetson" },
+    { "app": "cifar-sparse", "backend": "cuda", "hardware": "jetson" },
 
-    { "app": "tree",        "backend": "vulkan", "hardware": "minipc"  },
-    { "app": "cifar-dense", "backend": "vulkan", "hardware": "minipc"  },
-    { "app": "cifar-sparse","backend": "vulkan", "hardware": "minipc"  },
+    { "app": "tree", "backend": "vulkan", "hardware": "minipc" },
+    { "app": "cifar-dense", "backend": "vulkan", "hardware": "minipc" },
+    { "app": "cifar-sparse", "backend": "vulkan", "hardware": "minipc" },
 
-    { "app": "tree",        "backend": "vulkan", "hardware": "pixel"   },
-    { "app": "cifar-dense", "backend": "vulkan", "hardware": "pixel"   },
-    { "app": "cifar-sparse","backend": "vulkan", "hardware": "pixel"   },
+    { "app": "tree", "backend": "vulkan", "hardware": "pixel" },
+    { "app": "cifar-dense", "backend": "vulkan", "hardware": "pixel" },
+    { "app": "cifar-sparse", "backend": "vulkan", "hardware": "pixel" },
 
-    { "app": "tree",        "backend": "vulkan", "hardware": "samsung" },
+    { "app": "tree", "backend": "vulkan", "hardware": "samsung" },
     { "app": "cifar-dense", "backend": "vulkan", "hardware": "samsung" },
-    { "app": "cifar-sparse","backend": "vulkan", "hardware": "samsung" }
+    { "app": "cifar-sparse", "backend": "vulkan", "hardware": "samsung" }
   ]
 }

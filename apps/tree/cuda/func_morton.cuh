@@ -22,7 +22,7 @@ __device__ __forceinline__ uint32_t m3D_e_magicbits(const uint32_t x,
          (morton3D_SplitBy3bits(z) << 2);
 }
 
-[[nodiscard]] __device__ __forceinline__ uint32_t xyz_to_morton32(const glm::vec4 &xyz,
+[[nodiscard]] __device__ __forceinline__ uint32_t xyz_to_morton32(const glm::vec4& xyz,
                                                                   const float min_coord,
                                                                   const float range) {
   constexpr auto bit_scale = 1024;
@@ -45,13 +45,13 @@ __device__ __forceinline__ uint32_t morton3D_GetThirdBits(const uint32_t m) {
   return x;
 }
 
-__device__ __forceinline__ void m3D_d_magicbits(const uint32_t m, uint32_t *xyz) {
+__device__ __forceinline__ void m3D_d_magicbits(const uint32_t m, uint32_t* xyz) {
   xyz[0] = morton3D_GetThirdBits(m);
   xyz[1] = morton3D_GetThirdBits(m >> 1);
   xyz[2] = morton3D_GetThirdBits(m >> 2);
 }
 
-__device__ __forceinline__ void morton32_to_xyz(glm::vec4 *ret,
+__device__ __forceinline__ void morton32_to_xyz(glm::vec4* ret,
                                                 const uint32_t code,
                                                 const float min_coord,
                                                 const float range) {

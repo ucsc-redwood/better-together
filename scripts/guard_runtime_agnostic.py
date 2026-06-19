@@ -7,6 +7,7 @@ or #include "apps/..."). Wired as a CTest (LABEL "guard").
 
 Run:  python3 scripts/guard_runtime_agnostic.py
 """
+
 import json
 import os
 import re
@@ -28,7 +29,7 @@ FORBID = re.compile("|".join(_app_ns + _extra) + r'|#\s*include\s*"apps/')
 
 
 def strip_comments(text):
-    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)   # block comments
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)  # block comments
     return "\n".join(line.split("//", 1)[0] for line in text.splitlines())
 
 

@@ -60,13 +60,17 @@ int parse_args_test(int argc, char** argv) {
   // core lists / absent accelerators instead of aborting the whole run.
   try {
     const Device& device = GlobalDeviceRegistry().getDevice(g_device_id);
-    for (const auto& core : device.getCores(ProcessorType::kLittleCore)) g_lit_cores.push_back(core.id);
-    for (const auto& core : device.getCores(ProcessorType::kMediumCore)) g_med_cores.push_back(core.id);
-    for (const auto& core : device.getCores(ProcessorType::kBigCore)) g_big_cores.push_back(core.id);
-    for (const auto& core : device.getCores(ProcessorType::kSuperCore)) g_sup_cores.push_back(core.id);
+    for (const auto& core : device.getCores(ProcessorType::kLittleCore))
+      g_lit_cores.push_back(core.id);
+    for (const auto& core : device.getCores(ProcessorType::kMediumCore))
+      g_med_cores.push_back(core.id);
+    for (const auto& core : device.getCores(ProcessorType::kBigCore))
+      g_big_cores.push_back(core.id);
+    for (const auto& core : device.getCores(ProcessorType::kSuperCore))
+      g_sup_cores.push_back(core.id);
   } catch (const std::exception& e) {
-    spdlog::warn("Unknown device '{}': {}. Hardware-specific tests will self-skip.", g_device_id,
-                 e.what());
+    spdlog::warn(
+        "Unknown device '{}': {}. Hardware-specific tests will self-skip.", g_device_id, e.what());
   }
   return 0;
 }

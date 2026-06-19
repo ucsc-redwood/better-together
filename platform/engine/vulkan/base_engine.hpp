@@ -21,9 +21,9 @@ class BaseEngine {
 
   ~BaseEngine();
 
-  [[nodiscard]] vk::Device &get_device() { return device_; }
-  [[nodiscard]] vk::PhysicalDevice &get_physical_device() { return physical_device_; }
-  [[nodiscard]] vk::Queue &get_compute_queue() { return compute_queue_; }
+  [[nodiscard]] vk::Device& get_device() { return device_; }
+  [[nodiscard]] vk::PhysicalDevice& get_physical_device() { return physical_device_; }
+  [[nodiscard]] vk::Queue& get_compute_queue() { return compute_queue_; }
   [[nodiscard]] uint32_t get_compute_queue_family_index() const {
     return compute_queue_family_index_;
   }
@@ -46,7 +46,7 @@ class BaseEngine {
 
  private:
   uint32_t compute_queue_family_index_;
-  std::vector<const char *> enabled_layers_;
+  std::vector<const char*> enabled_layers_;
 
   DynamicLoader dl_;
   DispatchLoaderDynamic dldi_;

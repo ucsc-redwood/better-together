@@ -2,10 +2,10 @@
 
 #include <memory_resource>
 
-#include "platform/registry/device_registry.hpp"
-#include "platform/engine/cuda/cu_bench_helper.cuh"
 #include "apps/cifar-sparse/appdata.hpp"
 #include "dispatchers.cuh"
+#include "platform/engine/cuda/cu_bench_helper.cuh"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------
 // Stage 1: Conv1
@@ -24,7 +24,10 @@ static void BM_Stage1(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage1)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage1");
+BENCHMARK(BM_Stage1)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage1");
 
 // ----------------------------------------------------------------
 // Stage 2: MaxPool1
@@ -46,7 +49,10 @@ static void BM_Stage2(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage2)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage2");
+BENCHMARK(BM_Stage2)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage2");
 
 // ----------------------------------------------------------------
 // Stage 3: Conv2
@@ -69,7 +75,10 @@ static void BM_Stage3(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage3)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage3");
+BENCHMARK(BM_Stage3)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage3");
 
 // ----------------------------------------------------------------
 // Stage 4: MaxPool2
@@ -93,7 +102,10 @@ static void BM_Stage4(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage4)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage4");
+BENCHMARK(BM_Stage4)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage4");
 
 // ----------------------------------------------------------------
 // Stage 5: Conv3
@@ -118,7 +130,10 @@ static void BM_Stage5(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage5)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage5");
+BENCHMARK(BM_Stage5)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage5");
 
 // ----------------------------------------------------------------
 // Stage 6: Conv4
@@ -144,7 +159,10 @@ static void BM_Stage6(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage6)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage6");
+BENCHMARK(BM_Stage6)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage6");
 
 // ----------------------------------------------------------------
 // Stage 7: Conv5
@@ -171,7 +189,10 @@ static void BM_Stage7(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage7)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage7");
+BENCHMARK(BM_Stage7)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage7");
 
 // ----------------------------------------------------------------
 // Stage 8: MaxPool3
@@ -199,7 +220,10 @@ static void BM_Stage8(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage8)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage8");
+BENCHMARK(BM_Stage8)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage8");
 
 // ----------------------------------------------------------------
 // Stage 9: Linear
@@ -228,7 +252,10 @@ static void BM_Stage9(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_Stage9)->Unit(benchmark::kMillisecond)->UseManualTime()->Name("CUDA/CIFAR-Sparse/Stage9");
+BENCHMARK(BM_Stage9)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("CUDA/CIFAR-Sparse/Stage9");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

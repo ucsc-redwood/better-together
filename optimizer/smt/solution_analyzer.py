@@ -42,9 +42,7 @@ def print_chunk_summary(m, x, num_stages, core_types, stage_timings):
                 elif c == current_core_type:
                     chunk_time += stage_timings[i][core_types.index(c)]
                 else:
-                    print(
-                        f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms"
-                    )
+                    print(f"chunk {current_chunk} ({current_core_type}): {chunk_time:.5f} ms")
                     chunk_times.append(chunk_time)
                     chunk_details.append((current_chunk, current_core_type, chunk_time))
                     current_chunk += 1
@@ -227,9 +225,7 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings, gpu_backe
     }
 
 
-def dump_solutions_as_json(
-    solutions, baseline_data, output_format="pretty", output_file=None
-):
+def dump_solutions_as_json(solutions, baseline_data, output_format="pretty", output_file=None):
     """
     Dump solutions in a format that can be easily parsed by Python.
 
@@ -252,18 +248,14 @@ def dump_solutions_as_json(
             if "max_time" in solution["metrics"]:
                 makespan = solution["metrics"]["max_time"]
                 if "omp" in baseline_data:
-                    solution["metrics"]["speedup_over_cpu"] = (
-                        baseline_data["omp"] / makespan
-                    )
+                    solution["metrics"]["speedup_over_cpu"] = baseline_data["omp"] / makespan
 
                 gpu_key = next(
                     (k for k in baseline_data.keys() if k not in ["omp", "fastest"]),
                     None,
                 )
                 if gpu_key:
-                    solution["metrics"]["speedup_over_gpu"] = (
-                        baseline_data[gpu_key] / makespan
-                    )
+                    solution["metrics"]["speedup_over_gpu"] = baseline_data[gpu_key] / makespan
 
     # Fail before writing if the produced schedules don't match the contract the
     # C++ consumer reads (schemas/schedule.schema.json).

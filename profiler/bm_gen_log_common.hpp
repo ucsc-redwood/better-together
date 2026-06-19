@@ -52,18 +52,24 @@ static void warmup(const Schedule& schedule,
 
     if (em == gpu_em) {
       threads.emplace_back(
-          worker<QueueT, AppDataT>, std::ref(q_in), std::ref(q_out),
+          worker<QueueT, AppDataT>,
+          std::ref(q_in),
+          std::ref(q_out),
           [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-          num_warmup_items, is_last);
+          num_warmup_items,
+          is_last);
     } else {  // kOMP (the warmup is constructed with only gpu_em + kOMP chunks)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
-          worker<QueueT, AppDataT>, std::ref(q_in), std::ref(q_out),
+          worker<QueueT, AppDataT>,
+          std::ref(q_in),
+          std::ref(q_out),
           [&omp_dispatch, cpu_pt, start, end](AppDataT* app) {
             auto& cores = get_cores_by_type(cpu_pt);
             omp_dispatch(cores, cores.size(), *app, start, end);
           },
-          num_warmup_items, is_last);
+          num_warmup_items,
+          is_last);
     }
   }
   for (auto& t : threads) t.join();
@@ -92,20 +98,28 @@ static void run_schedule(const Schedule& schedule,
 
     if (em == gpu_em) {
       threads.emplace_back(
-          worker_with_record<QueueT, AppDataT, kNumToProcess>, static_cast<int>(chunk_id), std::ref(logger), std::ref(q_in),
+          worker_with_record<QueueT, AppDataT, kNumToProcess>,
+          static_cast<int>(chunk_id),
+          std::ref(logger),
+          std::ref(q_in),
           std::ref(q_out),
           [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-          kNumToProcess, is_last);
+          kNumToProcess,
+          is_last);
     } else {  // kOMP (wrong-backend GPU chunks are filtered before we get here)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
-          worker_with_record<QueueT, AppDataT, kNumToProcess>, static_cast<int>(chunk_id), std::ref(logger), std::ref(q_in),
+          worker_with_record<QueueT, AppDataT, kNumToProcess>,
+          static_cast<int>(chunk_id),
+          std::ref(logger),
+          std::ref(q_in),
           std::ref(q_out),
           [&omp_dispatch, cpu_pt, start, end](AppDataT* app) {
             auto& cores = get_cores_by_type(cpu_pt);
             omp_dispatch(cores, cores.size(), *app, start, end);
           },
-          kNumToProcess, is_last);
+          kNumToProcess,
+          is_last);
     }
   }
   for (auto& t : threads) t.join();
@@ -139,14 +153,17 @@ static void run_schedule(const Schedule& schedule,
 }
 
 template <class OmpDispatch>
-inline int run(int argc, char** argv, const ExecutionModel gpu_em, const OmpDispatch& omp_dispatch) {
+inline int run(int argc,
+               char** argv,
+               const ExecutionModel gpu_em,
+               const OmpDispatch& omp_dispatch) {
   PARSE_ARGS_BEGIN
 
   std::string schedule_file;
   app.add_option("--schedule-file", schedule_file, "Schedule JSON file path");
   size_t n_schedules_to_run = 0;  // 0 means run all schedules
-  app.add_option("--n-schedules-to-run", n_schedules_to_run,
-                 "Number of schedules to run (0 means run all)");
+  app.add_option(
+      "--n-schedules-to-run", n_schedules_to_run, "Number of schedules to run (0 means run all)");
 
   PARSE_ARGS_END
 
@@ -206,8 +223,7 @@ inline int run(int argc, char** argv, const ExecutionModel gpu_em, const OmpDisp
       continue;
     }
     if (!backend_matches(schedules[i], gpu_em)) {
-      spdlog::warn("Skipping schedule {} [{}]: targets the other GPU backend", i,
-                   schedules[i].uid);
+      spdlog::warn("Skipping schedule {} [{}]: targets the other GPU backend", i, schedules[i].uid);
       continue;
     }
     std::cout << "\n--------------------------------" << std::endl;

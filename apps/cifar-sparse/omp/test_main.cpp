@@ -4,9 +4,9 @@
 #include <memory_resource>
 #include <numeric>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-sparse × OMP differential oracle. Each stage output is compared against
@@ -27,7 +27,9 @@ struct OmpRunner {
   static constexpr float kE2eAtol = 1e-3f;
   static constexpr bool Available() { return true; }
   static std::pmr::memory_resource* Mr() { return std::pmr::new_delete_resource(); }
-  void RunStage(cifar_sparse::AppData& a, int stage) { cifar_sparse::omp::dispatch_stage(a, stage); }
+  void RunStage(cifar_sparse::AppData& a, int stage) {
+    cifar_sparse::omp::dispatch_stage(a, stage);
+  }
 };
 }  // namespace
 

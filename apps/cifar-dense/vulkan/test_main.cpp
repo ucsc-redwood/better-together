@@ -3,9 +3,9 @@
 
 #include <memory_resource>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-dense × Vulkan differential oracle. Vulkan uses the same AppData as

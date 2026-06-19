@@ -1,8 +1,7 @@
 #include "sequence.hpp"
 
-#include <vulkan/vulkan.hpp>
-
 #include <array>
+#include <vulkan/vulkan.hpp>
 
 namespace kiss_vk {
 
@@ -134,9 +133,8 @@ double Sequence::get_last_gpu_time_ns() const {
   }
 
   // Mask off invalid high bits before subtracting.
-  const uint64_t mask = (timestamp_valid_bits_ >= 64)
-                            ? ~uint64_t{0}
-                            : ((uint64_t{1} << timestamp_valid_bits_) - 1);
+  const uint64_t mask =
+      (timestamp_valid_bits_ >= 64) ? ~uint64_t{0} : ((uint64_t{1} << timestamp_valid_bits_) - 1);
   const uint64_t t0 = timestamps[0] & mask;
   const uint64_t t1 = timestamps[1] & mask;
 

@@ -17,8 +17,8 @@
 #include <thread>
 #include <vector>
 
-#include "runtime/record.hpp"  // Logger (worker_with_record)
-#include "platform/mem/mr_ptr.hpp"           // bt_pipe::as_mr_ptr
+#include "platform/mem/mr_ptr.hpp"  // bt_pipe::as_mr_ptr
+#include "runtime/record.hpp"       // Logger (worker_with_record)
 
 // Build a pool of fresh AppData, each backed by the dispatcher's memory resource.
 template <class AppData, class Dispatcher>
@@ -116,18 +116,19 @@ inline void worker_with_record(const int chunk_id,
         func(app);
         logger.end_tick(processing_id, chunk_id);
       } catch (const std::exception& e) {
-        spdlog::error("worker_with_record: chunk {} item {} threw: {}", chunk_id, processing_id,
-                      e.what());
+        spdlog::error(
+            "worker_with_record: chunk {} item {} threw: {}", chunk_id, processing_id, e.what());
       } catch (...) {
-        spdlog::error("worker_with_record: chunk {} item {} threw unknown exception", chunk_id,
+        spdlog::error("worker_with_record: chunk {} item {} threw unknown exception",
+                      chunk_id,
                       processing_id);
       }
       if (is_last) {
         app->reset();
       }
     } else {
-      spdlog::error("worker_with_record: chunk {} item {} dequeued a null app", chunk_id,
-                    processing_id);
+      spdlog::error(
+          "worker_with_record: chunk {} item {} dequeued a null app", chunk_id, processing_id);
     }
     // ------------------------------------------------------------------------
 

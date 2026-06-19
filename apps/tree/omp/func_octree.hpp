@@ -70,7 +70,7 @@ inline void process_oct_node(const int i /*brt node index*/,
   if (i == 0) {
     const auto root_oct_idx = edge_offsets[0] - edge_counts[0];
     const auto root_prefix = morton_codes[0] >> (morton_bits - (3 * root_level))
-                                              << (morton_bits - (3 * root_level));
+                                                    << (morton_bits - (3 * root_level));
     morton32_to_xyz(&oct_corner[root_oct_idx], root_prefix, min_coord, range);
     oct_cell_size[root_oct_idx] = range;  // range / 2^(root_level - root_level)
     return;

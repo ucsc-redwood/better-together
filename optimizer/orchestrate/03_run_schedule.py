@@ -23,6 +23,7 @@ Examples:
   # Samsung (adb running on rocky)
   ... --device R5CY21Y3VEV --backend vk --adb-serial R5CY21Y3VEV --adb-host rocky-ryzen --build-dir build/android ...
 """
+
 import argparse
 import os
 import subprocess
@@ -52,7 +53,9 @@ def deploy_and_run_ssh(host, binary, schedule, device, dest, n_sched):
     )
     # check=False: VK executors can segfault on TEARDOWN (Tegra, bugs-found §9) after
     # the records are already on stdout -- keep the captured output regardless of exit.
-    p = run(["ssh", host, "bash", "-s"], input=script, text=True, stdout=subprocess.PIPE, check=False)
+    p = run(
+        ["ssh", host, "bash", "-s"], input=script, text=True, stdout=subprocess.PIPE, check=False
+    )
     return p.stdout
 
 
@@ -64,28 +67,45 @@ def deploy_and_run_adb(serial, adb_host, binary, schedule, device, n_sched):
     if adb_host:
         # binary/schedule live on THIS box -> stage to the adb host, then push
         run(["scp", binary, schedule, f"{adb_host}:/tmp/bt-android/"])
-        sh = (f"adb -s {serial} shell 'mkdir -p {dest}' </dev/null\n"
-              f"adb -s {serial} push /tmp/bt-android/{bname} /tmp/bt-android/{sname} {dest}/ </dev/null\n"
-              f"adb -s {serial} shell 'chmod 755 {dest}/{bname}' </dev/null\n"
-              f"adb -s {serial} shell \"cd {dest} && LD_LIBRARY_PATH=. ./{bname} "
-              f"--device {device} --schedule-file {sname} --n-schedules-to-run {n_sched}\" </dev/null\n")
-        p = run(["ssh", adb_host, "bash", "-s"], input=sh, text=True, stdout=subprocess.PIPE, check=False)
+        sh = (
+            f"adb -s {serial} shell 'mkdir -p {dest}' </dev/null\n"
+            f"adb -s {serial} push /tmp/bt-android/{bname} /tmp/bt-android/{sname} {dest}/ </dev/null\n"
+            f"adb -s {serial} shell 'chmod 755 {dest}/{bname}' </dev/null\n"
+            f'adb -s {serial} shell "cd {dest} && LD_LIBRARY_PATH=. ./{bname} '
+            f'--device {device} --schedule-file {sname} --n-schedules-to-run {n_sched}" </dev/null\n'
+        )
+        p = run(
+            ["ssh", adb_host, "bash", "-s"],
+            input=sh,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=False,
+        )
         return p.stdout.replace("\r", "")
 
     adb = ["adb", "-s", serial]
     run(adb + ["shell", f"mkdir -p {dest}"], stdin=subprocess.DEVNULL)
     run(adb + ["push", binary, schedule, dest + "/"], stdin=subprocess.DEVNULL)
     run(adb + ["shell", f"chmod 755 {dest}/{bname}"], stdin=subprocess.DEVNULL)
-    p = run(adb + ["shell",
-                   f"cd {dest} && LD_LIBRARY_PATH=. ./{bname} --device {device} "
-                   f"--schedule-file {sname} --n-schedules-to-run {n_sched}"],
-            stdin=subprocess.DEVNULL, text=True, stdout=subprocess.PIPE, check=False)
+    p = run(
+        adb
+        + [
+            "shell",
+            f"cd {dest} && LD_LIBRARY_PATH=. ./{bname} --device {device} "
+            f"--schedule-file {sname} --n-schedules-to-run {n_sched}",
+        ],
+        stdin=subprocess.DEVNULL,
+        text=True,
+        stdout=subprocess.PIPE,
+        check=False,
+    )
     return p.stdout.replace("\r", "")
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--device", required=True, help="value passed to the binary's --device")
     ap.add_argument("--app", required=True)
     ap.add_argument("--backend", required=True, choices=["vk", "cu"])
@@ -94,9 +114,13 @@ def main():
     ap.add_argument("--schedules-root", default="data/schedules_btpm")
     ap.add_argument("--schedule-file", help="explicit path; overrides schedules-root construction")
     ap.add_argument("--build-dir", help="dir holding bm-gen-logs-<app>-<be> (default by backend)")
-    ap.add_argument("--ssh-host", help="deploy+run over ssh/scp (jetson=duck-naughty, minipc=rocky-ryzen)")
+    ap.add_argument(
+        "--ssh-host", help="deploy+run over ssh/scp (jetson=duck-naughty, minipc=rocky-ryzen)"
+    )
     ap.add_argument("--adb-serial", help="deploy+run over adb (phones)")
-    ap.add_argument("--adb-host", help="run adb on this ssh host (both phones are attached to rocky-ryzen)")
+    ap.add_argument(
+        "--adb-host", help="run adb on this ssh host (both phones are attached to rocky-ryzen)"
+    )
     ap.add_argument("--log-folder", required=True)
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--n-schedules-to-run", type=int, default=0, help="0 = all")
@@ -107,9 +131,9 @@ def main():
 
     build_dir = args.build_dir or DEFAULT_BUILD[args.backend]
     binary = os.path.join(build_dir, f"bm-gen-logs-{args.app}-{args.backend}")
-    schedule = args.schedule_file or Case(
-        args.device, args.app, args.backend
-    ).schedule_path(args.schedules_root, args.table_type, args.minimize_mode)
+    schedule = args.schedule_file or Case(args.device, args.app, args.backend).schedule_path(
+        args.schedules_root, args.table_type, args.minimize_mode
+    )
     for p in (binary, schedule):
         if not os.path.exists(p):
             sys.exit(f"missing: {p}")
@@ -120,17 +144,26 @@ def main():
     for i in range(1, args.repeat + 1):
         print(f"=== run {i}/{args.repeat} ===")
         if args.adb_serial:
-            out = deploy_and_run_adb(args.adb_serial, args.adb_host, binary, schedule,
-                                     args.device, args.n_schedules_to_run)
+            out = deploy_and_run_adb(
+                args.adb_serial,
+                args.adb_host,
+                binary,
+                schedule,
+                args.device,
+                args.n_schedules_to_run,
+            )
         else:
-            out = deploy_and_run_ssh(args.ssh_host, binary, schedule, args.device,
-                                     "/tmp/bt", args.n_schedules_to_run)
+            out = deploy_and_run_ssh(
+                args.ssh_host, binary, schedule, args.device, "/tmp/bt", args.n_schedules_to_run
+            )
         log = os.path.join(args.log_folder, f"schedule_run_{i}.log")
         with open(log, "w") as f:
             f.write(out)
         print(f"  -> {log}  ({out.count('### Python Begin ###')} schedule record blocks)")
 
-    print(f"\ndone. parse with: uv run optimizer/orchestrate/04_parse_schedules.py {args.log_folder}")
+    print(
+        f"\ndone. parse with: uv run optimizer/orchestrate/04_parse_schedules.py {args.log_folder}"
+    )
 
 
 if __name__ == "__main__":

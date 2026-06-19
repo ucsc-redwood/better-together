@@ -5,6 +5,5 @@
 
 int main(int argc, char** argv) {
   return bt_demo::run_main<DispatcherT, AppDataT, AppDataPtr, QueueT>(
-      argc, argv, kNumToProcess,
-      [](AppDataT* app) { cifar_sparse::omp::dispatch_stage(*app, 1); });
+      argc, argv, kNumToProcess, [](AppDataT* app) { cifar_sparse::omp::dispatch_stage(*app, 1); });
 }

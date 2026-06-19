@@ -1,5 +1,5 @@
-import json
 import argparse
+import json
 
 import pandas as pd
 from pandasgui import show

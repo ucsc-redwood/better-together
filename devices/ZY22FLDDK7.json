@@ -11,5 +11,9 @@
     { "id": 6, "type": "little", "pinnable": true },
     { "id": 7, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "vulkan", "name": "PowerVR Rogue GE8320", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "vulkan",
+    "name": "PowerVR Rogue GE8320",
+    "subgroup_size": 32
+  }
 }

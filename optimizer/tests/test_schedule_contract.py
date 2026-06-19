@@ -17,13 +17,13 @@ If the producer drifts from the schema -> this reds. If the consumer drifts from
 the contract shape -> the C++ test reds. Run:
     uv run python optimizer/tests/test_schedule_contract.py
 """
+
 import json
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import jsonschema  # noqa: E402
-
 from smt.solution_analyzer import validate_against_schema  # noqa: E402
 from smt.solver import solve_optimization_problem  # noqa: E402
 
@@ -48,8 +48,7 @@ def test_live_producer_output_is_schema_valid():
     # output has both a GPU chunk (needs hardware) and a CPU chunk.
     HUGE = 1000.0
     stages = [
-        [HUGE, HUGE, (100.0 if s == 0 else 1.0), (100.0 if s == 8 else 1.0)]
-        for s in range(9)
+        [HUGE, HUGE, (100.0 if s == 0 else 1.0), (100.0 if s == 8 else 1.0)] for s in range(9)
     ]
     solutions = solve_optimization_problem(stages, 5, "cifar-dense", "max_time")
     assert solutions, "solver returned no solutions"

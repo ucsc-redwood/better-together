@@ -20,10 +20,21 @@
 namespace bt::testing::cnn {
 
 // Conv2d: out[n,oc,oh,ow] = bias[oc] + sum_{ic,kh,kw} in * w ; optional ReLU.
-inline std::vector<float> Conv2dRef(const float* in, const float* w, const float* b,
-                                    int N, int inC, int inH, int inW,
-                                    int outC, int kH, int kW, int outH, int outW,
-                                    int stride, int pad, bool relu) {
+inline std::vector<float> Conv2dRef(const float* in,
+                                    const float* w,
+                                    const float* b,
+                                    int N,
+                                    int inC,
+                                    int inH,
+                                    int inW,
+                                    int outC,
+                                    int kH,
+                                    int kW,
+                                    int outH,
+                                    int outW,
+                                    int stride,
+                                    int pad,
+                                    bool relu) {
   std::vector<float> out(static_cast<std::size_t>(N) * outC * outH * outW);
   for (int n = 0; n < N; ++n) {
     for (int oc = 0; oc < outC; ++oc) {
@@ -55,8 +66,15 @@ inline std::vector<float> Conv2dRef(const float* in, const float* w, const float
 }
 
 // MaxPool2d: window pool_size x pool_size, given stride; edge windows clamped.
-inline std::vector<float> MaxPool2dRef(const float* in, int N, int C, int inH, int inW,
-                                       int outH, int outW, int pool_size, int stride) {
+inline std::vector<float> MaxPool2dRef(const float* in,
+                                       int N,
+                                       int C,
+                                       int inH,
+                                       int inW,
+                                       int outH,
+                                       int outW,
+                                       int pool_size,
+                                       int stride) {
   std::vector<float> out(static_cast<std::size_t>(N) * C * outH * outW);
   for (int n = 0; n < N; ++n) {
     for (int c = 0; c < C; ++c) {
@@ -67,7 +85,8 @@ inline std::vector<float> MaxPool2dRef(const float* in, int N, int C, int inH, i
           float maxv = -std::numeric_limits<float>::infinity();
           for (int h = hs; h < he; ++h)
             for (int wi = ws; wi < we; ++wi)
-              maxv = std::max(maxv, in[((static_cast<std::size_t>(n) * C + c) * inH + h) * inW + wi]);
+              maxv =
+                  std::max(maxv, in[((static_cast<std::size_t>(n) * C + c) * inH + h) * inW + wi]);
           out[((static_cast<std::size_t>(n) * C + c) * outH + oh) * outW + ow] = maxv;
         }
       }
@@ -77,8 +96,8 @@ inline std::vector<float> MaxPool2dRef(const float* in, int N, int C, int inH, i
 }
 
 // Linear: out[n,of] = bias[of] + sum_inf in[n,inf] * w[of,inf]  (no activation).
-inline std::vector<float> LinearRef(const float* in, const float* w, const float* b,
-                                    int N, int in_features, int out_features) {
+inline std::vector<float> LinearRef(
+    const float* in, const float* w, const float* b, int N, int in_features, int out_features) {
   std::vector<float> out(static_cast<std::size_t>(N) * out_features);
   for (int n = 0; n < N; ++n) {
     for (int of = 0; of < out_features; ++of) {

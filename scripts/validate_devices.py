@@ -54,14 +54,10 @@ GOLDEN = {
     # cpuinfo_max_freq: cpu0-3 = 1.90 GHz / cpu4-7 = 2.36 GHz). This corrects the old
     # conf.cpp@109bcf1 golden, which had it index-swapped (little 4-7 / big 0-3); the
     # data-driven devices/ JSON was right.
-    "ce0717178d7758b00b7e": _run(
-        [(range(0, 4), "little", True), (range(4, 8), "big", True)]
-    ),
+    "ce0717178d7758b00b7e": _run([(range(0, 4), "little", True), (range(4, 8), "big", True)]),
     # ZY22: big 0-3, little 4-7 -- VERIFIED against real hardware (cpu0-3 = 2.00 GHz /
     # cpu4-7 = 1.50 GHz).
-    "ZY22FLDDK7": _run(
-        [(range(0, 4), "big", True), (range(4, 8), "little", True)]
-    ),
+    "ZY22FLDDK7": _run([(range(0, 4), "big", True), (range(4, 8), "little", True)]),
     "R9TR30814KJ": _run(
         [(range(0, 4), "little", True), (range(4, 7), "big", False), ([7], "big", True)]
     ),
@@ -96,7 +92,9 @@ def structural_errors(name: str, spec: object) -> list[str]:
     seen_ids = set()
     for i, core in enumerate(cores):
         if set(core) != {"id", "type", "pinnable"}:
-            errs.append(f"{name}: core[{i}] keys must be exactly id/type/pinnable, got {sorted(core)}")
+            errs.append(
+                f"{name}: core[{i}] keys must be exactly id/type/pinnable, got {sorted(core)}"
+            )
             continue
         if not isinstance(core["id"], int) or isinstance(core["id"], bool) or core["id"] < 0:
             errs.append(f"{name}: core[{i}].id must be a non-negative integer")
@@ -129,14 +127,18 @@ def golden_errors(name: str, spec: object) -> list[str]:
     if not isinstance(spec, dict) or not isinstance(spec.get("cores"), list):
         return []  # structural_errors already reported the problem
     if name not in GOLDEN:
-        return [f"{name}: no golden entry (new device) -- add it to GOLDEN in this script "
-                "after confirming the topology, so it is locked against regressions"]
+        return [
+            f"{name}: no golden entry (new device) -- add it to GOLDEN in this script "
+            "after confirming the topology, so it is locked against regressions"
+        ]
     got = [(c["id"], c["type"], c["pinnable"]) for c in spec["cores"]]
     want = GOLDEN[name]
     if got != want:
-        return [f"{name}: topology differs from published conf.cpp golden\n"
-                f"      golden: {want}\n"
-                f"      file:   {got}"]
+        return [
+            f"{name}: topology differs from published conf.cpp golden\n"
+            f"      golden: {want}\n"
+            f"      file:   {got}"
+        ]
     return []
 
 
@@ -164,7 +166,9 @@ def main() -> int:
         for c in cores:
             if isinstance(c, dict):
                 tally[c.get("type", "?")] = tally.get(c.get("type", "?"), 0) + 1
-        summary = " ".join(f"{t}:{tally[t]}" for t in ("little", "medium", "big", "super") if t in tally)
+        summary = " ".join(
+            f"{t}:{tally[t]}" for t in ("little", "medium", "big", "super") if t in tally
+        )
         rows.append((name, len(cores), summary, "OK" if not errs else "FAIL"))
 
     # Report any golden devices that have no file at all.

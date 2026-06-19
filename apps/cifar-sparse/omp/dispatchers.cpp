@@ -5,8 +5,8 @@
 
 #include <algorithm>
 
-#include "platform/util/debug_logger.hpp"
 #include "all_kernels.hpp"
+#include "platform/util/debug_logger.hpp"
 
 namespace cifar_sparse::omp {
 
@@ -21,7 +21,7 @@ namespace cifar_sparse::omp {
 
 // constexpr bool kRelu = true;
 
-void run_stage_1(AppData &appdata) {
+void run_stage_1(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 1, &appdata);
 
   const int batch_size = appdata.u_input.d0();   // Expected 128
@@ -49,7 +49,7 @@ void run_stage_1(AppData &appdata) {
                      appdata.u_conv1_out.data());
 }
 
-void run_stage_2(AppData &appdata) {
+void run_stage_2(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 2, &appdata);
 
   // Extract dimensions from the convolution output NDArray4D.
@@ -69,7 +69,7 @@ void run_stage_2(AppData &appdata) {
                               appdata.u_pool1_out.data());
 }
 
-void run_stage_3(AppData &appdata) {
+void run_stage_3(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 3, &appdata);
 
   // Extract dimensions from the pool1 output NDArray4D
@@ -98,7 +98,7 @@ void run_stage_3(AppData &appdata) {
                      appdata.u_conv2_out.data());
 }
 
-void run_stage_4(AppData &appdata) {
+void run_stage_4(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 4, &appdata);
 
   // Extract dimensions from the convolution output NDArray4D
@@ -118,7 +118,7 @@ void run_stage_4(AppData &appdata) {
                               appdata.u_pool2_out.data());
 }
 
-void run_stage_5(AppData &appdata) {
+void run_stage_5(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 5, &appdata);
 
   // Extract dimensions from the pool2 output NDArray4D
@@ -147,7 +147,7 @@ void run_stage_5(AppData &appdata) {
                      appdata.u_conv3_out.data());
 }
 
-void run_stage_6(AppData &appdata) {
+void run_stage_6(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 6, &appdata);
 
   // Extract dimensions from the conv3 output NDArray4D
@@ -176,7 +176,7 @@ void run_stage_6(AppData &appdata) {
                      appdata.u_conv4_out.data());
 }
 
-void run_stage_7(AppData &appdata) {
+void run_stage_7(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 7, &appdata);
 
   // Extract dimensions from the conv4 output NDArray4D
@@ -205,7 +205,7 @@ void run_stage_7(AppData &appdata) {
                      appdata.u_conv5_out.data());
 }
 
-void run_stage_8(AppData &appdata) {
+void run_stage_8(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 8, &appdata);
 
   // Extract dimensions from the conv5 output NDArray4D
@@ -225,7 +225,7 @@ void run_stage_8(AppData &appdata) {
                               appdata.u_pool3_out.data());
 }
 
-void run_stage_9(AppData &appdata) {
+void run_stage_9(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 9, &appdata);
 
   // The pooled output is (128, 64, 4, 4) which becomes a flattened input

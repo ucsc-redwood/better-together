@@ -27,5 +27,9 @@
     { "id": 22, "type": "little", "pinnable": true },
     { "id": 23, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "vulkan", "name": "Intel UHD Graphics 770", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "vulkan",
+    "name": "Intel UHD Graphics 770",
+    "subgroup_size": 32
+  }
 }

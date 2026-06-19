@@ -13,14 +13,14 @@
 #include <queue>
 #include <vector>
 
-#include "platform/registry/device_registry.hpp"
-#include "runtime/record.hpp"
-#include "runtime/spsc_queue.hpp"
 #include "apps/cifar-dense/appdata.hpp"
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"  // cifar_dense::testing::CheckFinalPipeline
 #include "apps/cifar-dense/omp/dispatchers.hpp"
 #include "dispatchers.cuh"  // cifar_dense::cuda::CudaDispatcher
+#include "platform/registry/device_registry.hpp"
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
+#include "runtime/record.hpp"
+#include "runtime/spsc_queue.hpp"
 
 // AppTraits for this (cifar_dense, Cuda) runtime-test cell, keyed on its dispatcher.
 template <>
@@ -31,8 +31,8 @@ struct AppTraits<cifar_dense::cuda::CudaDispatcher> {
   static constexpr std::size_t kPoolSize = 8;
   static constexpr std::size_t kNumToProcess = 32;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;
-  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start,
-                           int end) {
+  static void omp_dispatch(
+      const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start, int end) {
     cifar_dense::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -48,7 +48,9 @@ bool CudaAvailable() {
   return cudaGetDeviceCount(&n) == cudaSuccess && n > 0;
 }
 
-void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a, 1e-3f, 1e-3f); }  // OMP+CUDA: tight
+void CheckItem(AppDataT& a) {
+  cifar_dense::testing::CheckFinalPipeline(a, 1e-3f, 1e-3f);
+}  // OMP+CUDA: tight
 
 TEST(PipelineE2ECifarDenseCu, HybridOmpCuda) {
   if (!CudaAvailable()) GTEST_SKIP() << "no CUDA device";

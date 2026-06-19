@@ -3,11 +3,12 @@
 
 Run:  uv run python optimizer/tests/test_case.py
 """
+
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from orchestrate.case import Case, to_short_backend, table_to_scenario  # noqa: E402
+from orchestrate.case import Case, table_to_scenario, to_short_backend  # noqa: E402
 
 
 def test_short_long_backend():

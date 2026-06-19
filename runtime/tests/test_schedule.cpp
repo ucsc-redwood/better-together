@@ -6,13 +6,11 @@
 // double-+1 scheduler bug (commit 3c6de54).
 #include <gtest/gtest.h>
 
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <utility>
 #include <vector>
-
-#include <nlohmann/json.hpp>
-
-#include <fstream>
 
 #include "runtime/config_reader.hpp"  // readSchedulesFromJson (the schedule consumer)
 #include "runtime/record.hpp"
@@ -102,7 +100,7 @@ TEST(SchedulePUs, AllPresentReturnsNullopt) {
   // Big-only device: a Big chunk is fine.
   auto big_only = [](ProcessorType pt) { return pt == ProcessorType::kBigCore; };
   EXPECT_FALSE(first_unavailable_pu(
-      make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore}}), big_only)
+                   make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore}}), big_only)
                    .has_value());
 }
 
@@ -118,10 +116,10 @@ TEST(SchedulePUs, LittleChunkOnBigOnlyReported) {
 
 TEST(SchedulePUs, ReportsFirstOffendingChunk) {
   auto big_only = [](ProcessorType pt) { return pt == ProcessorType::kBigCore; };
-  const auto reason = first_unavailable_pu(
-      make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore},
-                        {ExecutionModel::kOMP, ProcessorType::kMediumCore}}),
-      big_only);
+  const auto reason =
+      first_unavailable_pu(make_pu_schedule({{ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                             {ExecutionModel::kOMP, ProcessorType::kMediumCore}}),
+                           big_only);
   ASSERT_TRUE(reason.has_value());
   EXPECT_NE(reason->find("chunk 1"), std::string::npos);
 }
@@ -130,7 +128,7 @@ TEST(SchedulePUs, GpuChunkPresenceFromPredicate) {
   // A predicate that lacks Vulkan flags a Vulkan chunk.
   auto cpu_only = [](ProcessorType pt) { return pt != ProcessorType::kVulkan; };
   EXPECT_TRUE(first_unavailable_pu(
-      make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan}}), cpu_only)
+                  make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan}}), cpu_only)
                   .has_value());
 }
 
@@ -164,11 +162,11 @@ TEST(ScheduleGpuReuse, TwoVulkanChunksRejected) {
 }
 
 TEST(ScheduleGpuReuse, TwoCudaChunksRejected) {
-  EXPECT_TRUE(first_concurrent_gpu_chunk(
-                  make_pu_schedule({{ExecutionModel::kCuda, ProcessorType::kCuda},
-                                    {ExecutionModel::kOMP, ProcessorType::kBigCore},
-                                    {ExecutionModel::kCuda, ProcessorType::kCuda}}))
-                  .has_value());
+  EXPECT_TRUE(
+      first_concurrent_gpu_chunk(make_pu_schedule({{ExecutionModel::kCuda, ProcessorType::kCuda},
+                                                   {ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                                   {ExecutionModel::kCuda, ProcessorType::kCuda}}))
+          .has_value());
 }
 
 // ---- Case 5.2: a >kMaxChunks schedule must throw a clean std::out_of_range from the

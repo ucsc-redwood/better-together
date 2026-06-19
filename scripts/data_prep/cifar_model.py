@@ -15,13 +15,14 @@ Saves:
 """
 
 import os
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import ToTensor
-from torch.utils.data import DataLoader
 
 
 class SmallAlexNet(nn.Module):
@@ -78,9 +79,7 @@ def main(
 
     # dataset & loader
     train_ds = CIFAR10(root=data_dir, train=True, download=True, transform=ToTensor())
-    train_loader = DataLoader(
-        train_ds, batch_size=batch_size, shuffle=True, num_workers=4
-    )
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=4)
 
     # model, loss, opt
     model = SmallAlexNet(num_classes=10).to(device)

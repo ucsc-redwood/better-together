@@ -57,7 +57,11 @@ inline const std::vector<std::string_view> kEmbedded = {
     { "id": 8, "type": "big", "pinnable": true },
     { "id": 9, "type": "super", "pinnable": true }
   ],
-  "gpu": { "backend": "vulkan", "name": "Samsung Xclipse (Galaxy S24, SM-S926B)", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "vulkan",
+    "name": "Samsung Xclipse (Galaxy S24, SM-S926B)",
+    "subgroup_size": 32
+  }
 })DEVSPEC",
     // R9TR30814KJ.json
     R"DEVSPEC({
@@ -89,7 +93,11 @@ inline const std::vector<std::string_view> kEmbedded = {
     { "id": 6, "type": "little", "pinnable": true },
     { "id": 7, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "vulkan", "name": "PowerVR Rogue GE8320", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "vulkan",
+    "name": "PowerVR Rogue GE8320",
+    "subgroup_size": 32
+  }
 })DEVSPEC",
     // ce0717178d7758b00b7e.json
     R"DEVSPEC({
@@ -119,7 +127,11 @@ inline const std::vector<std::string_view> kEmbedded = {
     { "id": 4, "type": "little", "pinnable": true },
     { "id": 5, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "cuda", "name": "NVIDIA Tegra Orin (nvgpu)", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "cuda",
+    "name": "NVIDIA Tegra Orin (nvgpu)",
+    "subgroup_size": 32
+  }
 })DEVSPEC",
     // jetsonlowpower.json
     R"DEVSPEC({
@@ -131,7 +143,11 @@ inline const std::vector<std::string_view> kEmbedded = {
     { "id": 2, "type": "little", "pinnable": true },
     { "id": 3, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "cuda", "name": "NVIDIA Tegra Orin (nvgpu)", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "cuda",
+    "name": "NVIDIA Tegra Orin (nvgpu)",
+    "subgroup_size": 32
+  }
 })DEVSPEC",
     // minipc.json
     R"DEVSPEC({
@@ -187,7 +203,11 @@ inline const std::vector<std::string_view> kEmbedded = {
     { "id": 22, "type": "little", "pinnable": true },
     { "id": 23, "type": "little", "pinnable": true }
   ],
-  "gpu": { "backend": "vulkan", "name": "Intel UHD Graphics 770", "subgroup_size": 32 }
+  "gpu": {
+    "backend": "vulkan",
+    "name": "Intel UHD Graphics 770",
+    "subgroup_size": 32
+  }
 })DEVSPEC",
 };
 

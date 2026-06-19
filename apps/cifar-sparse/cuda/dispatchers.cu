@@ -1,13 +1,13 @@
-#include "platform/util/debug_logger.hpp"
 #include "all_kernels.cuh"
 #include "dispatchers.cuh"
+#include "platform/util/debug_logger.hpp"
 
 namespace cifar_sparse::cuda {
 
 constexpr bool kSync = false;
 
 // Stage 1: Sparse conv1
-void CudaDispatcher::run_stage_1_async(AppData &appdata) {
+void CudaDispatcher::run_stage_1_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
   const int N = appdata.u_input.d0();
   const int inC = appdata.u_input.d1();
@@ -39,7 +39,7 @@ void CudaDispatcher::run_stage_1_async(AppData &appdata) {
 }
 
 // Stage 2: Pool1
-void CudaDispatcher::run_stage_2_async(AppData &appdata) {
+void CudaDispatcher::run_stage_2_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 2, &appdata);
   const int N = appdata.u_conv1_out.d0();
   const int C = appdata.u_conv1_out.d1();
@@ -66,7 +66,7 @@ void CudaDispatcher::run_stage_2_async(AppData &appdata) {
 }
 
 // Stage 3: Sparse conv2
-void CudaDispatcher::run_stage_3_async(AppData &appdata) {
+void CudaDispatcher::run_stage_3_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 3, &appdata);
   const int N = appdata.u_pool1_out.d0();
   const int inC = appdata.u_pool1_out.d1();
@@ -98,7 +98,7 @@ void CudaDispatcher::run_stage_3_async(AppData &appdata) {
 }
 
 // Stage 4: Pool2
-void CudaDispatcher::run_stage_4_async(AppData &appdata) {
+void CudaDispatcher::run_stage_4_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 4, &appdata);
   const int N = appdata.u_conv2_out.d0();
   const int C = appdata.u_conv2_out.d1();
@@ -125,7 +125,7 @@ void CudaDispatcher::run_stage_4_async(AppData &appdata) {
 }
 
 // Stage 5: Sparse conv3
-void CudaDispatcher::run_stage_5_async(AppData &appdata) {
+void CudaDispatcher::run_stage_5_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 5, &appdata);
   const int N = appdata.u_pool2_out.d0();
   const int inC = appdata.u_pool2_out.d1();
@@ -157,7 +157,7 @@ void CudaDispatcher::run_stage_5_async(AppData &appdata) {
 }
 
 // Stage 6: Sparse conv4
-void CudaDispatcher::run_stage_6_async(AppData &appdata) {
+void CudaDispatcher::run_stage_6_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 6, &appdata);
   const int N = appdata.u_conv3_out.d0();
   const int inC = appdata.u_conv3_out.d1();
@@ -189,7 +189,7 @@ void CudaDispatcher::run_stage_6_async(AppData &appdata) {
 }
 
 // Stage 7: Sparse conv5
-void CudaDispatcher::run_stage_7_async(AppData &appdata) {
+void CudaDispatcher::run_stage_7_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 7, &appdata);
   const int N = appdata.u_conv4_out.d0();
   const int inC = appdata.u_conv4_out.d1();
@@ -221,7 +221,7 @@ void CudaDispatcher::run_stage_7_async(AppData &appdata) {
 }
 
 // Stage 8: Pool3
-void CudaDispatcher::run_stage_8_async(AppData &appdata) {
+void CudaDispatcher::run_stage_8_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 8, &appdata);
   const int N = appdata.u_conv5_out.d0();
   const int C = appdata.u_conv5_out.d1();
@@ -248,7 +248,7 @@ void CudaDispatcher::run_stage_8_async(AppData &appdata) {
 }
 
 // Stage 9: Sparse linear
-void CudaDispatcher::run_stage_9_async(AppData &appdata) {
+void CudaDispatcher::run_stage_9_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 9, &appdata);
   const int N = appdata.u_pool3_out.d0();
   const int C = appdata.u_pool3_out.d1();

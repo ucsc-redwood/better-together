@@ -28,7 +28,8 @@ CELL_LOG=${BT_CELL_LOG:-$ROOT/fleet-coverage.log}
 targets=("$@")
 [ ${#targets[@]} -gt 0 ] || targets=(test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk)
 
-paths=(); for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
+paths=()
+for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
 
 echo ">> staging ${#targets[@]} binaries to $HOST:$DEST"
 ssh "$HOST" bash -s <<EOF

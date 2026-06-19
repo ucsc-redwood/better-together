@@ -14,14 +14,14 @@
 #include <queue>
 #include <vector>
 
-#include "platform/registry/device_registry.hpp"
-#include "runtime/record.hpp"
-#include "runtime/spsc_queue.hpp"
 #include "apps/cifar-dense/appdata.hpp"
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"  // cifar_dense::testing::CheckFinalPipeline
 #include "apps/cifar-dense/omp/dispatchers.hpp"
 #include "dispatchers.hpp"  // cifar_dense::vulkan::VulkanDispatcher
+#include "platform/registry/device_registry.hpp"
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
+#include "runtime/record.hpp"
+#include "runtime/spsc_queue.hpp"
 
 // AppTraits for this (cifar_dense, Vulkan) runtime-test cell, keyed on its dispatcher.
 template <>
@@ -32,8 +32,8 @@ struct AppTraits<cifar_dense::vulkan::VulkanDispatcher> {
   static constexpr std::size_t kPoolSize = 8;
   static constexpr std::size_t kNumToProcess = 32;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kVulkan;
-  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start,
-                           int end) {
+  static void omp_dispatch(
+      const std::vector<int>& cores, int n, cifar_dense::AppData& app, int start, int end) {
     cifar_dense::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -44,7 +44,9 @@ using bt_pipe_test::run_runtime_test;
 using AppDataT = AppTraits<cifar_dense::vulkan::VulkanDispatcher>::AppData;
 constexpr int kNumStages = AppTraits<cifar_dense::vulkan::VulkanDispatcher>::kNumStages;
 
-void CheckItem(AppDataT& a) { cifar_dense::testing::CheckFinalPipeline(a, 5e-3f, 5e-3f); }  // OMP+Vulkan: relaxed
+void CheckItem(AppDataT& a) {
+  cifar_dense::testing::CheckFinalPipeline(a, 5e-3f, 5e-3f);
+}  // OMP+Vulkan: relaxed
 
 TEST(PipelineE2ECifarDenseVk, HybridOmpVulkan) {
   Schedule sched;

@@ -6,6 +6,7 @@ cross-build -- nothing to push alongside the binary).
 Regenerate after changing any devices/*.json:
     uv run scripts/embed_device_specs.py   # or: python3 scripts/embed_device_specs.py
 """
+
 import pathlib
 import sys
 

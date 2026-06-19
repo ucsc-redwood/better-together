@@ -14,7 +14,7 @@ enum class LogKernelType {
 // ---------------------------------------------------------------------
 
 template <LogKernelType kernel_type>
-void log_kernel_console_impl(const int stage, const void *appdata_addr) {
+void log_kernel_console_impl(const int stage, const void* appdata_addr) {
   if constexpr (kernel_type == LogKernelType::kOMP) {
     spdlog::debug("[omp][Core: {}][Thread: {}/{}] [Stage: {}] [App: {:p}]",
                   (uint64_t)pthread_self(),

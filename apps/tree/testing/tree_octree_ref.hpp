@@ -60,7 +60,7 @@ struct OctRefNode {
   // the independent ground truth for leaf LINKING (which point hangs off which
   // octnode+octant), used to validate process_link_leaf.
   std::map<int, uint32_t> child_leaf;  // octant(0..7) -> leaf morton code
-  int n_occupied_octants = 0;              // distinct next-octants present
+  int n_occupied_octants = 0;          // distinct next-octants present
 };
 
 // Decode a left-aligned morton prefix to a corner using the repo's own decoder
@@ -95,7 +95,7 @@ inline std::vector<OctRefNode> BuildBruteForceOctree(const std::vector<uint32_t>
   // left-aligned prefix of `code` to `level` octants.
   auto prefix_at = [](uint32_t code, int level) -> uint32_t {
     if (level <= 0) return 0u;
-    const int keep = 3 * level;                       // top bits to keep
+    const int keep = 3 * level;  // top bits to keep
     const uint32_t mask = ~((1u << (kOctMortonBits - keep)) - 1u);
     return code & mask & ((1u << kOctMortonBits) - 1u);
   };

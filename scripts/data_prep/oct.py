@@ -10,9 +10,10 @@ and splits it into:
   - points:           an (N,3) array of measured 3D points
 """
 
-import numpy as np
 import argparse
 import os
+
+import numpy as np
 from tabulate import tabulate
 
 
@@ -54,9 +55,7 @@ def get_statistics(array):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Load and analyze scan_i_points.dat files."
-    )
+    parser = argparse.ArgumentParser(description="Load and analyze scan_i_points.dat files.")
     parser.add_argument(
         "--base_dir",
         default="resources/octomap/freiburgCampus360_3D",
@@ -72,9 +71,7 @@ def main():
         default="1-77",
         help="Range of scan files to process (e.g., 1-77 or 1,5,10-15)",
     )
-    parser.add_argument(
-        "--verbose", action="store_true", help="Print detailed statistics"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Print detailed statistics")
     parser.add_argument("--save", action="store_true", help="Save data as .npy files")
     args = parser.parse_args()
 
@@ -143,9 +140,7 @@ def main():
             )
 
             if args.verbose:
-                print(
-                    f"\n=== {scan_file} ({file_size_mb:.1f}MB, {len(sensors)} measurements) ==="
-                )
+                print(f"\n=== {scan_file} ({file_size_mb:.1f}MB, {len(sensors)} measurements) ===")
                 print("Sensor positions statistics:")
                 print(f"  Min:   {sensor_stats['min']}")
                 print(f"  Max:   {sensor_stats['max']}")

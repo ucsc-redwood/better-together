@@ -60,17 +60,17 @@ struct TmpStorage {
   ~TmpStorage() = default;
 
   // Disallow copy if needed
-  TmpStorage(const TmpStorage &) = delete;
-  TmpStorage &operator=(const TmpStorage &) = delete;
+  TmpStorage(const TmpStorage&) = delete;
+  TmpStorage& operator=(const TmpStorage&) = delete;
 
   // Allow move semantics
-  TmpStorage(TmpStorage &&) = default;
-  TmpStorage &operator=(TmpStorage &&) = default;
+  TmpStorage(TmpStorage&&) = default;
+  TmpStorage& operator=(TmpStorage&&) = default;
 
   // getters
-  [[nodiscard]] int *global_n_elem() { return h_global_n_elem.data(); }
-  [[nodiscard]] int *global_starting_position() { return h_global_starting_position.data(); }
-  [[nodiscard]] bucket *buckets() { return h_buckets.data(); }
+  [[nodiscard]] int* global_n_elem() { return h_global_n_elem.data(); }
+  [[nodiscard]] int* global_starting_position() { return h_global_starting_position.data(); }
+  [[nodiscard]] bucket* buckets() { return h_buckets.data(); }
 
   [[nodiscard]] bool is_allocated() const { return m_n_buckets > 0; }
 

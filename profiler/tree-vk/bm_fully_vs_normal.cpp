@@ -2,12 +2,15 @@
 // + main() live in ../bm_fully_common.hpp; this file supplies the cell types
 // (const.hpp, included first) and the OMP dispatch closure + GPU backend selection.
 #include "const.hpp"
-
 #include "profiler/bm_fully_common.hpp"
 
 int main(int argc, char** argv) {
   return bt_fully::run<bt_fully::WallTimer>(
-      argc, argv, ProcessorType::kVulkan, 3, "Vulkan",
+      argc,
+      argv,
+      ProcessorType::kVulkan,
+      3,
+      "Vulkan",
       [](const std::vector<int>& cores, size_t n, AppDataT& app, int lo, int hi) {
         tree::omp::dispatch_multi_stage(cores, n, app, lo, hi);
       });

@@ -12,14 +12,14 @@
 #include <queue>
 #include <vector>
 
-#include "platform/registry/device_registry.hpp"
-#include "runtime/record.hpp"
-#include "runtime/spsc_queue.hpp"
 #include "apps/cifar-sparse/appdata.hpp"
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"  // cifar_sparse::testing::CheckFinalPipeline
 #include "apps/cifar-sparse/omp/dispatchers.hpp"
 #include "dispatchers.hpp"  // cifar_sparse::vulkan::VulkanDispatcher
+#include "platform/registry/device_registry.hpp"
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
+#include "runtime/record.hpp"
+#include "runtime/spsc_queue.hpp"
 
 // AppTraits for this (cifar_sparse, Vulkan) runtime-test cell, keyed on its dispatcher.
 template <>
@@ -30,8 +30,8 @@ struct AppTraits<cifar_sparse::vulkan::VulkanDispatcher> {
   static constexpr std::size_t kPoolSize = 8;
   static constexpr std::size_t kNumToProcess = 32;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kVulkan;
-  static void omp_dispatch(const std::vector<int>& cores, int n, cifar_sparse::AppData& app, int start,
-                           int end) {
+  static void omp_dispatch(
+      const std::vector<int>& cores, int n, cifar_sparse::AppData& app, int start, int end) {
     cifar_sparse::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -42,7 +42,9 @@ using bt_pipe_test::run_runtime_test;
 using AppDataT = AppTraits<cifar_sparse::vulkan::VulkanDispatcher>::AppData;
 constexpr int kNumStages = AppTraits<cifar_sparse::vulkan::VulkanDispatcher>::kNumStages;
 
-void CheckItem(AppDataT& a) { cifar_sparse::testing::CheckFinalPipeline(a, 5e-3f, 5e-3f); }  // OMP+Vulkan: relaxed
+void CheckItem(AppDataT& a) {
+  cifar_sparse::testing::CheckFinalPipeline(a, 5e-3f, 5e-3f);
+}  // OMP+Vulkan: relaxed
 
 TEST(PipelineE2ECifarSparseVk, HybridOmpVulkan) {
   Schedule sched;

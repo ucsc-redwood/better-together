@@ -4,9 +4,9 @@
 
 #include "platform/registry/device_registry.hpp"
 #define BT_BM_VULKAN
-#include "platform/util/bm_manual_time.hpp"
 #include "apps/tree/tree_appdata.hpp"
 #include "dispatchers.hpp"
+#include "platform/util/bm_manual_time.hpp"
 #include "vk_appdata.hpp"
 
 // ----------------------------------------------------------------
