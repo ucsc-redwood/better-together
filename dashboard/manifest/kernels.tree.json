@@ -1,0 +1,124 @@
+{
+  "_comment": "Curated stage->kernel map for the tree (octree-construction) app. Source locators are sliced by generate.py: {path} = whole file, {path,symbol} = brace-matched function, {path,lines:[a,b]} = 1-based inclusive line slice. lang inferred from extension (.comp=glsl, else cpp). appdata rows are passed through verbatim (from tree_appdata.hpp buffer table). Vulkan stages 2/3/6 are multi-shader (encoded only in apps/tree/vulkan/dispatchers.cpp).",
+  "app": "tree",
+  "title": "Octree construction (tree)",
+  "input": "Point cloud — 640×480 ≈ 300k points",
+  "characteristic": "Integer / structural pipeline; regular early stages (DOALL), irregular pointer-chasing later stages.",
+  "stages": [
+    {
+      "stage": 1,
+      "op": "Morton encode",
+      "desc": "Map each xyz point to a 32-bit Morton (Z-order) code.",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_1" }, { "path": "apps/tree/omp/func_morton.hpp" }],
+        "cuda": [{ "path": "apps/tree/cuda/01_morton.cu" }, { "path": "apps/tree/cuda/01_morton.cuh" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/tree_morton.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_input_points_s0", "type": "glm::vec4", "alloc": "n_input", "used": "n_input" },
+        { "buffer": "u_morton_keys_s1", "type": "uint32_t", "alloc": "n_input", "used": "n_input" }
+      ]
+    },
+    {
+      "stage": 2,
+      "op": "Radix sort",
+      "desc": "Sort the Morton keys ascending (CPU parallel sort / CUB DeviceRadixSort / GPU multi-pass radix).",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_2" }, { "path": "apps/tree/omp/func_sort.hpp" }],
+        "cuda": [{ "path": "apps/tree/cuda/02_sort.cu" }, { "path": "apps/tree/cuda/02_sort.cuh" }],
+        "vulkan": [
+          { "path": "platform/engine/vulkan/shaders/comp/multi_radixsort_histograms.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/multi_radixsort_warp16.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/multi_radixsort_warp32.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/multi_radixsort_warp64.comp" }
+        ]
+      },
+      "appdata": [
+        { "buffer": "u_morton_keys_sorted_s2", "type": "uint32_t", "alloc": "n_input", "used": "n_input" }
+      ]
+    },
+    {
+      "stage": 3,
+      "op": "Unique / dedup",
+      "desc": "Remove duplicate Morton keys, leaving n_unique sorted unique codes.",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_3" }],
+        "cuda": [{ "path": "apps/tree/cuda/03_unique.cu" }, { "path": "apps/tree/cuda/03_unique.cuh" }],
+        "vulkan": [
+          { "path": "platform/engine/vulkan/shaders/comp/tree_find_dups.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/tree_scan_local.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/tree_scan_block_sums.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/tree_scan_add.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/tree_move_dups.comp" }
+        ]
+      },
+      "appdata": [
+        { "buffer": "u_morton_keys_unique_s3", "type": "uint32_t", "alloc": "n_input", "used": "n_unique" }
+      ]
+    },
+    {
+      "stage": 4,
+      "op": "Build radix tree (BRT)",
+      "desc": "Build the binary radix tree over the unique keys (n_brt_nodes = n_unique − 1).",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_4" }, { "path": "apps/tree/omp/func_brt.hpp" }],
+        "cuda": [{ "path": "apps/tree/cuda/04_radix_tree.cu" }, { "path": "apps/tree/cuda/04_radix_tree.cuh" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/tree_build_radix_tree.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_brt_prefix_n_s4", "type": "uint8_t", "alloc": "n_input", "used": "n_brt_nodes" },
+        { "buffer": "u_brt_has_leaf_left_s4", "type": "uint8_t", "alloc": "n_input", "used": "n_brt_nodes" },
+        { "buffer": "u_brt_has_leaf_right_s4", "type": "uint8_t", "alloc": "n_input", "used": "n_brt_nodes" },
+        { "buffer": "u_brt_left_child_s4", "type": "int32_t", "alloc": "n_input", "used": "n_brt_nodes" },
+        { "buffer": "u_brt_parents_s4", "type": "int32_t", "alloc": "n_input", "used": "n_brt_nodes" }
+      ]
+    },
+    {
+      "stage": 5,
+      "op": "Edge count",
+      "desc": "Count octree edges contributed by each BRT node.",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_5" }, { "path": "apps/tree/omp/func_edge.hpp" }],
+        "cuda": [{ "path": "apps/tree/cuda/05_edge_count.cu" }, { "path": "apps/tree/cuda/05_edge_count.cuh" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/tree_edge_count.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_edge_count_s5", "type": "int32_t", "alloc": "n_input", "used": "n_brt_nodes" }
+      ]
+    },
+    {
+      "stage": 6,
+      "op": "Edge offset (prefix sum)",
+      "desc": "Prefix-sum the edge counts into octree-node offsets; total = n_octree_nodes.",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_6" }],
+        "cuda": [{ "path": "apps/tree/cuda/06_prefix_sum.cu" }, { "path": "apps/tree/cuda/06_prefix_sum.cuh" }],
+        "vulkan": [
+          { "path": "platform/engine/vulkan/shaders/comp/tree_scan_local.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/tree_scan_block_sums.comp" },
+          { "path": "platform/engine/vulkan/shaders/comp/tree_scan_add.comp" }
+        ]
+      },
+      "appdata": [
+        { "buffer": "u_edge_offset_s6", "type": "int32_t", "alloc": "n_input", "used": "n_brt_nodes" }
+      ]
+    },
+    {
+      "stage": 7,
+      "op": "Build octree",
+      "desc": "Allocate and link octree nodes from the BRT and edge offsets.",
+      "sources": {
+        "omp": [{ "path": "apps/tree/omp/dispatchers.cpp", "symbol": "run_stage_7" }, { "path": "apps/tree/omp/func_octree.hpp" }],
+        "cuda": [{ "path": "apps/tree/cuda/07_octree.cu" }, { "path": "apps/tree/cuda/07_octree.cuh" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/tree_build_octree.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_oct_corner_s7", "type": "glm::vec4", "alloc": "n_input × 0.6", "used": "n_octree_nodes" },
+        { "buffer": "u_oct_cell_size_s7", "type": "float", "alloc": "n_input × 0.6", "used": "n_octree_nodes" },
+        { "buffer": "u_oct_child_node_mask_s7", "type": "int32_t", "alloc": "n_input × 0.6", "used": "n_octree_nodes" },
+        { "buffer": "u_oct_child_leaf_mask_s7", "type": "int32_t", "alloc": "n_input × 0.6", "used": "n_octree_nodes" },
+        { "buffer": "u_oct_children_s7", "type": "int32_t", "alloc": "8 × n_input × 0.6", "used": "8 × n_octree_nodes" }
+      ]
+    }
+  ]
+}

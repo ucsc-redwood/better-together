@@ -1,0 +1,129 @@
+{
+  "_comment": "Curated stage->kernel map for cifar-sparse (same 9-stage SmallAlexNet, CSR-pruned weights, ~75% sparsity). OMP kernels: conv2d_omp_batched / maxpool2d_omp_batched_clean / linear_omp_batched. CUDA kernels: conv2d_csr_batch_kernel / maxpool2d_batch_kernel / linear_csr_batch_kernel. Shapes are batch 512 (AppData::BATCH_SIZE; the header's // (128,...) comments are stale). Conv/Linear weights are CSRMatrix (rows × dense-cols).",
+  "app": "cifar-sparse",
+  "title": "AlexNet-sparse (cifar-sparse)",
+  "input": "Image batch — 512 × 3 × 32 × 32 (CIFAR-10)",
+  "characteristic": "Sparse linear algebra; CSR weights, irregular access, ~75% pruned.",
+  "stages": [
+    {
+      "stage": 1, "op": "Conv1 (CSR) + bias + ReLU", "desc": "3×3 sparse conv, 3→16 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "conv2d_omp_batched" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_1" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "conv2d_csr_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_1_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_input", "role": "input", "shape": "(512, 3, 32, 32)" },
+        { "buffer": "conv1_sparse", "role": "weight (CSR)", "shape": "(16, 27)" },
+        { "buffer": "u_conv1_b", "role": "bias", "shape": "(16)" },
+        { "buffer": "u_conv1_out", "role": "output", "shape": "(512, 16, 32, 32)" }
+      ]
+    },
+    {
+      "stage": 2, "op": "MaxPool1", "desc": "2×2 max pool, stride 2.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "maxpool2d_omp_batched_clean" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_2" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "maxpool2d_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_2_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_maxpool.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv1_out", "role": "input", "shape": "(512, 16, 32, 32)" },
+        { "buffer": "u_pool1_out", "role": "output", "shape": "(512, 16, 16, 16)" }
+      ]
+    },
+    {
+      "stage": 3, "op": "Conv2 (CSR) + bias + ReLU", "desc": "3×3 sparse conv, 16→32 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "conv2d_omp_batched" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_3" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "conv2d_csr_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_3_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_pool1_out", "role": "input", "shape": "(512, 16, 16, 16)" },
+        { "buffer": "conv2_sparse", "role": "weight (CSR)", "shape": "(32, 144)" },
+        { "buffer": "u_conv2_b", "role": "bias", "shape": "(32)" },
+        { "buffer": "u_conv2_out", "role": "output", "shape": "(512, 32, 16, 16)" }
+      ]
+    },
+    {
+      "stage": 4, "op": "MaxPool2", "desc": "2×2 max pool, stride 2.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "maxpool2d_omp_batched_clean" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_4" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "maxpool2d_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_4_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_maxpool.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv2_out", "role": "input", "shape": "(512, 32, 16, 16)" },
+        { "buffer": "u_pool2_out", "role": "output", "shape": "(512, 32, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 5, "op": "Conv3 (CSR) + bias + ReLU", "desc": "3×3 sparse conv, 32→64 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "conv2d_omp_batched" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_5" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "conv2d_csr_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_5_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_pool2_out", "role": "input", "shape": "(512, 32, 8, 8)" },
+        { "buffer": "conv3_sparse", "role": "weight (CSR)", "shape": "(64, 288)" },
+        { "buffer": "u_conv3_b", "role": "bias", "shape": "(64)" },
+        { "buffer": "u_conv3_out", "role": "output", "shape": "(512, 64, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 6, "op": "Conv4 (CSR) + bias + ReLU", "desc": "3×3 sparse conv, 64→64 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "conv2d_omp_batched" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_6" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "conv2d_csr_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_6_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv3_out", "role": "input", "shape": "(512, 64, 8, 8)" },
+        { "buffer": "conv4_sparse", "role": "weight (CSR)", "shape": "(64, 576)" },
+        { "buffer": "u_conv4_b", "role": "bias", "shape": "(64)" },
+        { "buffer": "u_conv4_out", "role": "output", "shape": "(512, 64, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 7, "op": "Conv5 (CSR) + bias + ReLU", "desc": "3×3 sparse conv, 64→64 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "conv2d_omp_batched" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_7" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "conv2d_csr_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_7_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv4_out", "role": "input", "shape": "(512, 64, 8, 8)" },
+        { "buffer": "conv5_sparse", "role": "weight (CSR)", "shape": "(64, 576)" },
+        { "buffer": "u_conv5_b", "role": "bias", "shape": "(64)" },
+        { "buffer": "u_conv5_out", "role": "output", "shape": "(512, 64, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 8, "op": "MaxPool3", "desc": "2×2 max pool, stride 2.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "maxpool2d_omp_batched_clean" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_8" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "maxpool2d_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_8_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_maxpool.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv5_out", "role": "input", "shape": "(512, 64, 8, 8)" },
+        { "buffer": "u_pool3_out", "role": "output", "shape": "(512, 64, 4, 4)" }
+      ]
+    },
+    {
+      "stage": 9, "op": "Linear (CSR FC)", "desc": "Fully connected sparse 1024→10 (flattened pool3).",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-sparse/omp/all_kernels.hpp", "symbol": "linear_omp_batched" }, { "path": "apps/cifar-sparse/omp/dispatchers.cpp", "symbol": "run_stage_9" }],
+        "cuda": [{ "path": "apps/cifar-sparse/cuda/all_kernels.cu", "symbol": "linear_csr_batch_kernel" }, { "path": "apps/cifar-sparse/cuda/dispatchers.cu", "symbol": "run_stage_9_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_sparse_linear.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_pool3_out", "role": "input", "shape": "(512, 64, 4, 4) → flatten (512, 1024)" },
+        { "buffer": "linear_sparse", "role": "weight (CSR)", "shape": "(10, 1024)" },
+        { "buffer": "u_linear_b", "role": "bias", "shape": "(10)" },
+        { "buffer": "u_linear_out", "role": "output", "shape": "(512, 10)" }
+      ]
+    }
+  ]
+}

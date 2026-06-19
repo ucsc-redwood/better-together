@@ -1,0 +1,27 @@
+name: Runner smoke
+
+# Manual health-check for the self-hosted rocky runner: confirms it picks up org
+# jobs, the toolchain resolves on PATH, and (crucially on SELinux-enforcing Rocky)
+# that jobs can actually exec the home-based tools. Prints the job's SELinux domain.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/runner-smoke.yml"] # runs only when this file changes
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, rocky]
+    steps:
+      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH" # durable uv PATH fix
+      - name: Identity + SELinux context
+        run: |
+          echo "host=$(hostname) user=$(whoami)"
+          id -Z 2>/dev/null || echo "(no SELinux context for this process)"
+          getenforce 2>/dev/null || true
+      - name: Toolchain execs (this is the SELinux home-exec test)
+        run: |
+          uv --version
+          just --version
+          cmake --version | head -1
+          podman --version
+          make --version | head -1

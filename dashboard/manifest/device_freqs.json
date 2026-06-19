@@ -1,0 +1,7 @@
+{
+  "_comment": "Optional per-device CPU/GPU frequency enrichment for Section 1 cards. devices/*.json carries only core tiers, not clocks; these come from the IISWC'25 paper Table III and only cover the four evaluated SoCs. Keyed by devices/<id>.json stem. Absent device -> card simply shows no freq line.",
+  "jetson": { "cpu": "6× Cortex-A78AE @ 1.7 GHz", "gpu": "Ampere GPU" },
+  "jetsonlowpower": { "cpu": "4× Cortex-A78AE @ ~0.85 GHz (2 cores off, 7W mode)", "gpu": "Ampere GPU" },
+  "3A021JEHN02756": { "cpu": "2× Cortex-X1 @ 2.85 GHz, 2× Cortex-A78 @ 2.35 GHz, 4× Cortex-A55 @ 1.80 GHz", "gpu": "Mali-G710 MP7" },
+  "9b034f1b": { "cpu": "1× Cortex-X3 @ 3.2 GHz, 2× Cortex-A715 @ 2.8 GHz, 2× Cortex-A710 @ 2.8 GHz, 3× Cortex-A510 @ 2.0 GHz", "gpu": "Adreno 740" }
+}

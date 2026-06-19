@@ -60,7 +60,7 @@ class AlexNetCIFAR(nn.Module):
     Spatial trace for a 32x32 input:
         conv1 -> 32 ; pool -> 16
         conv2 -> 16 ; pool ->  8
-        conv3 ->  8
+        conv3 ->  8b
         conv4 ->  8
         conv5 ->  8 ; pool ->  4
         flatten = 256 * 4 * 4 = 4096

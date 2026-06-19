@@ -1,0 +1,129 @@
+{
+  "_comment": "Curated stage->kernel map for cifar-dense (9-stage SmallAlexNet, dense weights). OMP shows the kernel (all_kernels.hpp) + the dispatcher wiring (dispatchers.cpp). CUDA shows the __global__ body (all_kernels.cu) + the async dispatcher (dispatchers.cu). Vulkan = the GLSL compute shader. Shapes are batch 128 (AppData::BATCH_SIZE).",
+  "app": "cifar-dense",
+  "title": "AlexNet-dense (cifar-dense)",
+  "input": "Image batch — 128 × 3 × 32 × 32 (CIFAR-10)",
+  "characteristic": "Dense linear algebra; convolution-dominated, regular access.",
+  "stages": [
+    {
+      "stage": 1, "op": "Conv1 + bias + ReLU", "desc": "3×3 conv, 3→16 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "conv2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_1" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "conv2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_1_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_input", "role": "input", "shape": "(128, 3, 32, 32)" },
+        { "buffer": "u_conv1_w", "role": "weight", "shape": "(16, 3, 3, 3)" },
+        { "buffer": "u_conv1_b", "role": "bias", "shape": "(16)" },
+        { "buffer": "u_conv1_out", "role": "output", "shape": "(128, 16, 32, 32)" }
+      ]
+    },
+    {
+      "stage": 2, "op": "MaxPool1", "desc": "2×2 max pool, stride 2.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "maxpool2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_2" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "maxpool2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_2_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_maxpool.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv1_out", "role": "input", "shape": "(128, 16, 32, 32)" },
+        { "buffer": "u_pool1_out", "role": "output", "shape": "(128, 16, 16, 16)" }
+      ]
+    },
+    {
+      "stage": 3, "op": "Conv2 + bias + ReLU", "desc": "3×3 conv, 16→32 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "conv2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_3" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "conv2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_3_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_pool1_out", "role": "input", "shape": "(128, 16, 16, 16)" },
+        { "buffer": "u_conv2_w", "role": "weight", "shape": "(32, 16, 3, 3)" },
+        { "buffer": "u_conv2_b", "role": "bias", "shape": "(32)" },
+        { "buffer": "u_conv2_out", "role": "output", "shape": "(128, 32, 16, 16)" }
+      ]
+    },
+    {
+      "stage": 4, "op": "MaxPool2", "desc": "2×2 max pool, stride 2.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "maxpool2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_4" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "maxpool2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_4_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_maxpool.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv2_out", "role": "input", "shape": "(128, 32, 16, 16)" },
+        { "buffer": "u_pool2_out", "role": "output", "shape": "(128, 32, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 5, "op": "Conv3 + bias + ReLU", "desc": "3×3 conv, 32→64 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "conv2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_5" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "conv2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_5_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_pool2_out", "role": "input", "shape": "(128, 32, 8, 8)" },
+        { "buffer": "u_conv3_w", "role": "weight", "shape": "(64, 32, 3, 3)" },
+        { "buffer": "u_conv3_b", "role": "bias", "shape": "(64)" },
+        { "buffer": "u_conv3_out", "role": "output", "shape": "(128, 64, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 6, "op": "Conv4 + bias + ReLU", "desc": "3×3 conv, 64→64 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "conv2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_6" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "conv2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_6_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv3_out", "role": "input", "shape": "(128, 64, 8, 8)" },
+        { "buffer": "u_conv4_w", "role": "weight", "shape": "(64, 64, 3, 3)" },
+        { "buffer": "u_conv4_b", "role": "bias", "shape": "(64)" },
+        { "buffer": "u_conv4_out", "role": "output", "shape": "(128, 64, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 7, "op": "Conv5 + bias + ReLU", "desc": "3×3 conv, 64→64 channels, stride 1, pad 1, ReLU.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "conv2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_7" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "conv2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_7_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_conv2d.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv4_out", "role": "input", "shape": "(128, 64, 8, 8)" },
+        { "buffer": "u_conv5_w", "role": "weight", "shape": "(64, 64, 3, 3)" },
+        { "buffer": "u_conv5_b", "role": "bias", "shape": "(64)" },
+        { "buffer": "u_conv5_out", "role": "output", "shape": "(128, 64, 8, 8)" }
+      ]
+    },
+    {
+      "stage": 8, "op": "MaxPool3", "desc": "2×2 max pool, stride 2.",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "maxpool2d_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_8" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "maxpool2d_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_8_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_maxpool.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_conv5_out", "role": "input", "shape": "(128, 64, 8, 8)" },
+        { "buffer": "u_pool3_out", "role": "output", "shape": "(128, 64, 4, 4)" }
+      ]
+    },
+    {
+      "stage": 9, "op": "Linear (FC)", "desc": "Fully connected 1024→10 (flattened pool3).",
+      "sources": {
+        "omp": [{ "path": "apps/cifar-dense/omp/all_kernels.hpp", "symbol": "linear_batch_u" }, { "path": "apps/cifar-dense/omp/dispatchers.cpp", "symbol": "run_stage_9" }],
+        "cuda": [{ "path": "apps/cifar-dense/cuda/all_kernels.cu", "symbol": "linear_batch_kernel" }, { "path": "apps/cifar-dense/cuda/dispatchers.cu", "symbol": "run_stage_9_async" }],
+        "vulkan": [{ "path": "platform/engine/vulkan/shaders/comp/new_cifar_dense_linear.comp" }]
+      },
+      "appdata": [
+        { "buffer": "u_pool3_out", "role": "input", "shape": "(128, 64, 4, 4) → flatten (128, 1024)" },
+        { "buffer": "u_linear_w", "role": "weight", "shape": "(10, 1024)" },
+        { "buffer": "u_linear_b", "role": "bias", "shape": "(10)" },
+        { "buffer": "u_linear_out", "role": "output", "shape": "(128, 10)" }
+      ]
+    }
+  ]
+}
