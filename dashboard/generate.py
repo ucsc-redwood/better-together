@@ -54,7 +54,12 @@ SCHED_BACKENDS = ["cu", "vk"]
 TABLE_TYPES = ["isolated", "btpm"]  # btpm == the interference profiling scenario
 MODES = ["gapness", "tmax"]
 # speedup-summary.md uses friendly device names; map them to devices/*.json ids.
-SUMMARY_DEVICE_ALIAS = {"jetson": "jetson", "minipc": "minipc", "samsung": "R5CY21Y3VEV"}
+SUMMARY_DEVICE_ALIAS = {
+    "jetson": "jetson",
+    "minipc": "minipc",
+    "samsung": "R5CY21Y3VEV",
+    "pixel": "3A021JEHN02756",
+}
 
 
 # --------------------------------------------------------------------------
@@ -416,6 +421,14 @@ def _schedule_validator():
     return Draft202012Validator(schema)
 
 
+def _sched_root(table_type):
+    """Resolve the schedule store root for a table_type. The current layout gives
+    each table_type its own top-level dir (data/schedules_<tt>); older data used a
+    single data/schedules root holding both. Prefer the per-table dir if present."""
+    per_table = os.path.join(REPO_ROOT, "data", f"schedules_{table_type}")
+    return per_table if os.path.isdir(per_table) else SCHED_ROOT
+
+
 def build_schedules(app_stages):
     """Walk data/schedules; per (device, app, backend) collect the z3 candidate
     schedules for each (table_type, mode), normalised across both formats, with
@@ -425,11 +438,13 @@ def build_schedules(app_stages):
     flagged (validated=False) + warned rather than aborting the whole build --
     the dashboard should still render every other cell that is fine."""
     cells, stats = [], {"files": 0, "new": 0, "old": 0, "invalid": 0}
-    if not os.path.isdir(SCHED_ROOT):
+    roots = {tt: _sched_root(tt) for tt in TABLE_TYPES}
+    existing = sorted({r for r in roots.values() if os.path.isdir(r)})
+    if not existing:
         return cells, stats
     validator = _schedule_validator()
     devices = sorted(
-        d for d in os.listdir(SCHED_ROOT) if os.path.isdir(os.path.join(SCHED_ROOT, d))
+        {d for r in existing for d in os.listdir(r) if os.path.isdir(os.path.join(r, d))}
     )
     for device in devices:
         for app in APPS:
@@ -438,7 +453,7 @@ def build_schedules(app_stages):
                 variants = []
                 for tt in TABLE_TYPES:
                     for mode in MODES:
-                        path = Case(device, app, backend).schedule_path(SCHED_ROOT, tt, mode)
+                        path = Case(device, app, backend).schedule_path(roots[tt], tt, mode)
                         if not os.path.isfile(path):
                             continue
                         stats["files"] += 1
