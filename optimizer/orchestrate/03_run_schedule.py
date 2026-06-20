@@ -25,83 +25,15 @@ Examples:
 """
 
 import argparse
+import glob
 import os
-import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from orchestrate.case import Case  # noqa: E402
+from orchestrate.transport import deploy_and_run_adb, deploy_and_run_ssh  # noqa: E402
 
 DEFAULT_BUILD = {"vk": "build/vulkan", "cu": "build/jetson"}
-
-
-def run(cmd, check=True, **kw):
-    print("  $", " ".join(cmd))
-    return subprocess.run(cmd, check=check, **kw)
-
-
-def deploy_and_run_ssh(host, binary, schedule, device, dest, n_sched):
-    """scp binary+schedule to host:dest, run the executor, return stdout text."""
-    run(["ssh", host, "bash", "-s"], input=f"mkdir -p {dest}\n", text=True)
-    run(["scp", binary, schedule, f"{host}:{dest}/"])
-    bname, sname = os.path.basename(binary), os.path.basename(schedule)
-    # quoted heredoc-equivalent: fish login shell bypassed via `bash -s` over stdin
-    script = (
-        f"cd {dest}\n"
-        # VK_LOADER_LAYERS_DISABLE: keep Vulkan validation layers off so their per-call
-        # overhead doesn't inflate the measured schedule makespan (no-op where absent).
-        f"VK_LOADER_LAYERS_DISABLE='~all~' LD_LIBRARY_PATH=. ./{bname} --device {device} "
-        f"--schedule-file {sname} --n-schedules-to-run {n_sched}\n"
-    )
-    # check=False: VK executors can segfault on TEARDOWN (Tegra, bugs-found §9) after
-    # the records are already on stdout -- keep the captured output regardless of exit.
-    p = run(
-        ["ssh", host, "bash", "-s"], input=script, text=True, stdout=subprocess.PIPE, check=False
-    )
-    return p.stdout
-
-
-def deploy_and_run_adb(serial, adb_host, binary, schedule, device, n_sched):
-    """adb push + run on the phone; adb itself may run on a remote host (--adb-host)."""
-    dest = "/data/local/tmp/bt"
-    bname, sname = os.path.basename(binary), os.path.basename(schedule)
-
-    if adb_host:
-        # binary/schedule live on THIS box -> stage to the adb host, then push
-        run(["scp", binary, schedule, f"{adb_host}:/tmp/bt-android/"])
-        sh = (
-            f"adb -s {serial} shell 'mkdir -p {dest}' </dev/null\n"
-            f"adb -s {serial} push /tmp/bt-android/{bname} /tmp/bt-android/{sname} {dest}/ </dev/null\n"
-            f"adb -s {serial} shell 'chmod 755 {dest}/{bname}' </dev/null\n"
-            f'adb -s {serial} shell "cd {dest} && LD_LIBRARY_PATH=. ./{bname} '
-            f'--device {device} --schedule-file {sname} --n-schedules-to-run {n_sched}" </dev/null\n'
-        )
-        p = run(
-            ["ssh", adb_host, "bash", "-s"],
-            input=sh,
-            text=True,
-            stdout=subprocess.PIPE,
-            check=False,
-        )
-        return p.stdout.replace("\r", "")
-
-    adb = ["adb", "-s", serial]
-    run(adb + ["shell", f"mkdir -p {dest}"], stdin=subprocess.DEVNULL)
-    run(adb + ["push", binary, schedule, dest + "/"], stdin=subprocess.DEVNULL)
-    run(adb + ["shell", f"chmod 755 {dest}/{bname}"], stdin=subprocess.DEVNULL)
-    p = run(
-        adb
-        + [
-            "shell",
-            f"cd {dest} && LD_LIBRARY_PATH=. ./{bname} --device {device} "
-            f"--schedule-file {sname} --n-schedules-to-run {n_sched}",
-        ],
-        stdin=subprocess.DEVNULL,
-        text=True,
-        stdout=subprocess.PIPE,
-        check=False,
-    )
-    return p.stdout.replace("\r", "")
 
 
 def main():
@@ -126,6 +58,13 @@ def main():
     ap.add_argument("--log-folder", required=True)
     ap.add_argument("--repeat", type=int, default=1)
     ap.add_argument("--n-schedules-to-run", type=int, default=0, help="0 = all")
+    ap.add_argument(
+        "--keep",
+        action="store_true",
+        help="keep existing schedule_run_*.log (additive); default wipes the log folder first so a "
+        "re-run cleanly REPLACES the previous one (04/measured_makespan average all run logs, so a "
+        "stale log from a prior --repeat/implementation would otherwise mix in)",
+    )
     args = ap.parse_args()
 
     if not args.ssh_host and not args.adb_serial:
@@ -141,6 +80,11 @@ def main():
             sys.exit(f"missing: {p}")
 
     os.makedirs(args.log_folder, exist_ok=True)
+    if not args.keep:
+        # clean replace: drop stale schedule_run_*.log (e.g. from a prior --repeat or a different
+        # implementation) so 04/measured_makespan don't average old runs into this one.
+        for stale in glob.glob(os.path.join(args.log_folder, "schedule_run_*.log")):
+            os.remove(stale)
     print(f"binary   {binary}\nschedule {schedule}\ntarget   {args.device}\n")
 
     for i in range(1, args.repeat + 1):
