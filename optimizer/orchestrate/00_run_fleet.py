@@ -201,6 +201,7 @@ def device_worker(name, dev, apps, phases, runs):
     online = device_on_line(name)
     logf = os.path.join(FLEET_LOG_DIR, f"{name}.log")
     open(logf, "w").close()
+    runs = dev.get("runs", runs)  # per-device override (e.g. noisy minipc -> more runs)
     cells = [(app, be) for app in apps for be in dev["backends"]]
     s["total"] = len(cells)
 
