@@ -119,7 +119,7 @@ inline void maxpool2d_batch_u(const float* __restrict__ u_input,
 }
 
 // ----------------------------------------------------------------------------
-// Linear Layer (Sparse, Batched)
+// Linear Layer (Dense, Batched)
 // ----------------------------------------------------------------------------
 // input:  (N, in_features)
 // weights: (out_features, in_features)
