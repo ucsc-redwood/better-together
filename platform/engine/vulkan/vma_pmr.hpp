@@ -50,6 +50,19 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
   void flush_all();
   void invalidate_all();
 
+  // Scoped cache maintenance: flush/invalidate ONLY the buffers touched (bound) since
+  // the last clear_touched(), instead of the whole allocation map. The allocation map
+  // holds every pooled AppData's buffers (the memory resource is shared across the
+  // pool), so flush_all() does pool_size x more cache maintenance than a single task
+  // needs -- a real cost on non-coherent Mali. get_buffer_from_pointer() records each
+  // bound buffer; the dispatch records a chunk's stages (binding exactly that task's
+  // buffers) between clear_touched() and submit, so the touched set == the buffers this
+  // chunk actually reads/writes. Conservative + correct: it is the union of inputs and
+  // outputs, so flushing it before submit and invalidating it after covers both.
+  void flush_touched();
+  void invalidate_touched();
+  void clear_touched();
+
   //   [[nodiscard]] vk::DescriptorBufferInfo make_descriptor_buffer_info(vk::Buffer buffer) const;
 
  protected:
@@ -67,6 +80,10 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
 
   mutable std::mutex mutex_;
   std::unordered_map<void*, VulkanAllocationRecord> allocations_;
+
+  // Buffers bound since the last clear_touched() (for scoped flush/invalidate). Only
+  // mutated by the single GPU-chunk worker thread during command-buffer recording.
+  std::vector<VmaAllocation> touched_;
 };
 
 }  // namespace kiss_vk

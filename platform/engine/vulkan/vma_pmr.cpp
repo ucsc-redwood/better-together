@@ -1,5 +1,7 @@
 #include "vma_pmr.hpp"
 
+#include <algorithm>
+
 namespace kiss_vk {
 
 void CHECK_VK_RESULT(VkResult result, const char* msg) {
@@ -34,6 +36,10 @@ vk::Buffer VulkanMemoryResource::get_buffer_from_pointer(void* p) {
     // Handle unknown pointer; possibly throw an exception or return a null handle
     throw std::runtime_error("Unknown pointer in get_buffer_from_pointer");
   }
+  // Record this buffer as touched so the next submit/wait flushes/invalidates only the
+  // buffers this chunk actually binds (scoped cache maintenance; see flush_touched()).
+  // This is the chunk's recording path: the dispatcher binds every buffer it uses here.
+  touched_.push_back(it->second.allocation);
   // Construct a vk::Buffer handle from the stored VkBuffer
   return {it->second.buffer};
 }
@@ -147,6 +153,30 @@ void VulkanMemoryResource::invalidate_all() {
   std::lock_guard lock(mutex_);
   for (auto& [ptr, record] : allocations_) {
     vmaInvalidateAllocation(g_vma_allocator, record.allocation, 0, VK_WHOLE_SIZE);
+  }
+}
+
+void VulkanMemoryResource::clear_touched() {
+  std::lock_guard lock(mutex_);
+  touched_.clear();
+}
+
+void VulkanMemoryResource::flush_touched() {
+  std::lock_guard lock(mutex_);
+  // Dedup: a buffer bound by several stages is touched more than once; flush each once.
+  std::sort(touched_.begin(), touched_.end());
+  touched_.erase(std::unique(touched_.begin(), touched_.end()), touched_.end());
+  for (VmaAllocation a : touched_) {
+    vmaFlushAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
+  }
+}
+
+void VulkanMemoryResource::invalidate_touched() {
+  std::lock_guard lock(mutex_);
+  std::sort(touched_.begin(), touched_.end());
+  touched_.erase(std::unique(touched_.begin(), touched_.end()), touched_.end());
+  for (VmaAllocation a : touched_) {
+    vmaInvalidateAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
   }
 }
 

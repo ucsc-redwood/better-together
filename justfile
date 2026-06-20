@@ -15,13 +15,13 @@
 # green run means "all stages compute the correct answer" on that target.
 #
 #   Target                build         runs on                    backends
-#   Jetson Orin (aarch64) build-jetson  ssh duck-naughty           OMP + CUDA + VK
+#   Jetson Orin (aarch64) build-jetson  ssh yanwen@duck-stable     OMP + CUDA + VK
 #   mini pc (x86 iGPU)    build-x86     ssh rocky-ryzen            OMP + VK
 #   Samsung (arm64)       build-android R5CY21Y3VEV via rocky adb  OMP + VK
 
 # --- config -----------------------------------------------------------------
 
-jetson_host    := "duck-naughty"
+jetson_host    := "yanwen@duck-stable"
 minipc_host    := "rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
 ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var("ANDROID_HOME") / "ndk/29.0.14206865")
@@ -32,6 +32,12 @@ container      := env_var_or_default("BT_CONTAINER", "docker")
 # Per-app test binaries. OMP+VK builds (x86 / Android) ship six; Jetson adds CUDA.
 omp_vk_bins := "test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk"
 jetson_bins := "test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk"
+
+# Benchmark drivers the fleet e2e (00_run_fleet.py) deploys: profiling (bm-prof) +
+# schedule runner (bm-gen-logs). These are the profiler/ targets, NOT the unit-test
+# binaries above. Vulkan-only for x86/Android; the Jetson CUDA+VK set is built by
+# scripts/build-bench-jetson.sh (on rocky).
+bench_vk_bins := "bm-prof-tree-vk bm-prof-cifar-dense-vk bm-prof-cifar-sparse-vk bm-gen-logs-tree-vk bm-gen-logs-cifar-dense-vk bm-gen-logs-cifar-sparse-vk"
 
 _default:
     @just --list
@@ -63,6 +69,38 @@ build-android:
 
 # Build all three packages.
 build: build-jetson build-x86 build-android
+
+# --- benchmark binaries (for the fleet e2e: 00_run_fleet.py) ----------------
+# bm-prof (profiling) + bm-gen-logs (schedule runner). 00_run_fleet.py's build phase
+# shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
+# bt-cross:6.1 podman image lives there, not on this box).
+
+build-bench-x86:
+    cmake --preset vulkan
+    cmake --build --preset vulkan --target {{bench_vk_bins}}
+
+build-bench-android:
+    ANDROID_NDK_HOME={{ndk}} cmake --preset android
+    cmake --build --preset android --target {{bench_vk_bins}}
+
+# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:6.1 podman
+# image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
+# rsync->podman->pull flow lives in a standalone script (cf. scripts/run-on-*.sh).
+build-bench-jetson:
+    BT_BENCH_JETSON_HOST={{minipc_host}} scripts/build-bench-jetson.sh
+
+# Run the whole fleet benchmark e2e concurrently with live progress (see
+# optimizer/orchestrate/00_run_fleet.py --help). Pass-through args, e.g.
+#   just fleet-bench --only jetson,samsung --phases profile,schedule,run,summary
+#   just fleet-bench --fresh     # start from scratch (wipe old results) after a code change
+fleet-bench *args:
+    uv run --project optimizer optimizer/orchestrate/00_run_fleet.py {{args}}
+
+# Delete ALL regenerable benchmark results (profiling + z3 schedules + run logs +
+# speedup-summary). Use after a kernel/runtime change to start clean; or run
+# `fleet-bench --fresh` to wipe + re-benchmark in one go.
+bench-clean:
+    rm -rf data/profiling data/schedules_btpm data/schedules_isolated data/sched_logs
 
 # 4. Run the unit tests across the whole matrix (build first with `just build`).
 # Fail-loud: any failing fleet test makes this go red (see the per-target notes).
