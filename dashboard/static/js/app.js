@@ -46,6 +46,10 @@
   const SCHED = D.schedules || { table_types: [], modes: [], cells: [], measured: { rows: [] } };
   const schedByKey = new Map();
   SCHED.cells.forEach(c => schedByKey.set(c.device + "|" + c.app + "|" + c.backend, c));
+  // measured pipeline Gantts (Section 4, "Pipeline timeline" sub-tab) — same key
+  const PIPE = (D.schedules && D.schedules.pipelines) || [];
+  const pipeByKey = new Map();
+  PIPE.forEach(c => pipeByKey.set(c.device + "|" + c.app + "|" + c.backend, c));
   // light-theme chart palette + shared figure styling (axis/grid greys, a
   // light->red sequential ramp, and one font family for every figure so the
   // ECharts views read like consistent paper figures).
@@ -688,6 +692,7 @@
   // The framework's payoff: the z3 stage->PU schedule + the measured speedup.
   let curSchedSub = "explorer";
   const ssel = { device: null, app: null, backend: null, table_type: "btpm", mode: "tmax" };
+  const psel = { device: null, app: null, backend: null, uid: null };  // pipeline-timeline selection
   let schedExpand = false;   // explorer: show only ★best until the user expands
   const schedApps = D.apps.filter(a => SCHED.cells.some(c => c.app === a.id));
   // own chart lifecycle (kept separate from the profiling tab's `charts`)
@@ -708,12 +713,14 @@
       + "speedup. Chunk widths/labels are the solver's predicted ms — the headline speedup is the measured "
       + "figure from speedup-summary.md; the per-schedule predicted speedup_over_* is bogus and not shown."));
     const sub = el("div", { class: "subtabs" });
-    [["explorer", "Schedule explorer"], ["speedup", "Measured speedup"]]
-      .forEach(o => sub.appendChild(el("button", { class: o[0] === curSchedSub ? "on" : "", onclick: () => { curSchedSub = o[0]; renderSchedule(root); } }, o[1])));
+    const subOpts = [["explorer", "Schedule explorer"], ["speedup", "Measured speedup"]];
+    if (PIPE.length) subOpts.push(["pipeline", "Pipeline timeline"]);
+    if (!subOpts.some(o => o[0] === curSchedSub)) curSchedSub = subOpts[0][0];
+    subOpts.forEach(o => sub.appendChild(el("button", { class: o[0] === curSchedSub ? "on" : "", onclick: () => { curSchedSub = o[0]; renderSchedule(root); } }, o[1])));
     root.appendChild(sub);
     const view = el("div", null); root.appendChild(view);
     disposeSchedCharts();
-    (curSchedSub === "speedup" ? viewScheduleSpeedup : viewScheduleExplorer)(view);
+    ({ explorer: viewScheduleExplorer, speedup: viewScheduleSpeedup, pipeline: viewPipeline }[curSchedSub])(view);
   }
   const resched = () => renderSchedule(byId("tab-schedule"));
 
@@ -882,6 +889,91 @@
       (M.caveats || []).forEach(t => d.appendChild(el("p", { class: "note" }, "⚠ " + t)));
       view.appendChild(d);
     }
+  }
+
+  // The "Pipeline" step of Profile->Solve->Pipeline->Measure: the MEASURED
+  // per-chunk execution overlap from data/sched_logs (03_run_schedule.py). Each
+  // lane is a PU; each bar is one task's chunk; bars of successive tasks stack
+  // across lanes = the software pipelining that turns the z3 chunking into speedup.
+  const pipeLaneLabel = c => c.core_type === "GPU" ? (c.hardware === "gpu_cuda" ? "CUDA" : "Vulkan") : c.core_type;
+  const pipeSpan = c => c.start_stage === c.end_stage ? "S" + c.start_stage : "S" + c.start_stage + "–S" + c.end_stage;
+
+  function viewPipeline(view) {
+    const pipeApps = D.apps.filter(a => PIPE.some(c => c.app === a.id));
+    // first open: land on the most illustrative pipeline (highest measured
+    // concurrency = the clearest CPU/GPU overlap), not the alphabetical first.
+    if (psel.app == null && psel.device == null) {
+      let pick = null, top = -1;
+      PIPE.forEach(c => {
+        const bs = c.schedules.find(s => s.uid === c.best_uid) || c.schedules[0];
+        const conc = bs ? bs.metrics.concurrency_pct : 0;
+        if (conc > top) { top = conc; pick = c; }
+      });
+      if (pick) { psel.app = pick.app; psel.device = pick.device; psel.backend = pick.backend; psel.uid = pick.best_uid; }
+    }
+    if (!psel.app || !pipeApps.some(a => a.id === psel.app)) psel.app = pipeApps[0].id;
+    const devs = [...new Set(PIPE.filter(c => c.app === psel.app).map(c => c.device))].sort();
+    if (!psel.device || devs.indexOf(psel.device) < 0) psel.device = devs[0];
+    const bes = PIPE.filter(c => c.device === psel.device && c.app === psel.app).map(c => c.backend);
+    if (bes.indexOf(psel.backend) < 0) psel.backend = bes[0];
+    const cell = pipeByKey.get(psel.device + "|" + psel.app + "|" + psel.backend);
+
+    const ctr = el("div", { class: "controls" });
+    ctr.appendChild(selectCtrl("Device", devs, psel.device, v => { psel.device = v; psel.uid = null; resched(); }));
+    ctr.appendChild(segCtrl("App", pipeApps.map(a => [a.id, a.title]), psel.app, v => { psel.app = v; psel.device = null; psel.uid = null; resched(); }));
+    ctr.appendChild(segCtrl("Backend", bes.map(b => [b, b.toUpperCase()]), psel.backend, v => { psel.backend = v; psel.uid = null; resched(); }));
+    if (!psel.uid || !cell.schedules.some(s => s.uid === psel.uid)) psel.uid = cell.best_uid || cell.schedules[0].uid;
+    ctr.appendChild(selectCtrl("Schedule", cell.schedules.map(s => s.uid), psel.uid, v => { psel.uid = v; resched(); }));
+    view.appendChild(ctr);
+
+    const s = cell.schedules.find(x => x.uid === psel.uid) || cell.schedules[0];
+    const m = s.metrics;
+    view.appendChild(el("p", { class: "hero" },
+      `${fmt(m.concurrency_pct, 0)}% concurrency`,
+      el("span", { class: "sub" },
+        ` · ${fmt(m.makespan_per_task_ms, 2)} ms/task measured · ${m.n_tasks} tasks`
+        + (s.uid === cell.best_uid ? " · ★ fastest measured here" : ""))));
+    view.appendChild(el("div", { class: "figtitle" },
+      `Measured pipeline timeline — ${appById[psel.app].title} · ${psel.device} · ${psel.backend.toUpperCase()} · ${s.uid}`));
+    view.appendChild(guide(
+      "the real overlap that turns z3's stage chunking into speedup: while one PU runs a task's chunk, another PU already runs the next task's chunk.",
+      `each lane = a PU (its stage range); each bar = one task's chunk; bars stacked across lanes at the same x = running at once. A ${fmt(s.window_ms, 0)} ms steady-state slice; concurrency = share of that window with ≥2 PUs busy.`));
+
+    if (!s.window.length) { view.appendChild(el("p", { class: "note" }, "No timeline samples for this candidate.")); return; }
+    const lanes = s.chunks.map(c => pipeLaneLabel(c) + " · " + pipeSpan(c));
+    const gdata = s.window.map(w => {
+      const c = s.chunks[w.chunk];
+      return { value: [w.chunk, w.t0, w.t1, w.task], itemStyle: { color: chunkColor(c.core_type, c.hardware, psel.backend), borderColor: "#fff", borderWidth: 1 } };
+    });
+    const xmax = s.window_ms || Math.max(...s.window.map(w => w.t1));
+    function renderItem(params, api) {
+      const lane = api.value(0);
+      const a = api.coord([api.value(1), lane]), b = api.coord([api.value(2), lane]);
+      const h = api.size([0, 1])[1] * 0.62;
+      const shape = echarts.graphic.clipRectByRect(
+        { x: a[0], y: a[1] - h / 2, width: Math.max(b[0] - a[0], 1.5), height: h },
+        { x: params.coordSys.x, y: params.coordSys.y, width: params.coordSys.width, height: params.coordSys.height });
+      return shape && { type: "rect", transition: ["shape"], shape, style: api.style() };
+    }
+    const div = el("div", { class: "chart", style: "height:" + (96 + lanes.length * 50) + "px" }); view.appendChild(div);
+    const chart = echarts.init(div);
+    chart.setOption({
+      backgroundColor: "transparent", textStyle: CHART.textStyle,
+      tooltip: Object.assign({
+        formatter: p => {
+          const c = s.chunks[p.value[0]];
+          return `task ${p.value[3]} · ${pipeLaneLabel(c)} (${pipeSpan(c)})<br/>${fmt(p.value[1], 2)}–${fmt(p.value[2], 2)} ms · <b>${fmt(p.value[2] - p.value[1], 2)} ms</b>`;
+        }
+      }, CHART.tooltip),
+      grid: { left: 124, right: 24, top: 12, bottom: 46 },
+      xAxis: { type: "value", name: "time (ms, steady state)", nameLocation: "middle", nameGap: 28, min: 0, max: +xmax.toFixed(2), nameTextStyle: CHART.nameStyle, axisLabel: CHART.axisLabel, splitLine: CHART.split, axisLine: { show: false }, axisTick: { show: false } },
+      yAxis: { type: "category", inverse: true, data: lanes, axisLabel: CHART.axisLabel, axisLine: CHART.axisLine, axisTick: { show: false } },
+      series: [{ type: "custom", renderItem, encode: { x: [1, 2], y: 0 }, data: gdata }],
+    });
+    schedCharts.push(chart); chart.resize();
+    view.appendChild(el("p", { class: "note" },
+      "This overlap is why the Measured-speedup bar clears 1×: the pipeline's per-task rate is set by the longest lane, not the sum of all chunks. "
+      + "Candidates are ranked by measured ms/task here, which can differ from z3's predicted pick (★ best in the explorer) — the measured-fastest split is not always the one z3 chose."));
   }
 
   // ---------- boot ----------

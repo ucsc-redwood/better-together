@@ -30,7 +30,8 @@ SITE_DIR = os.path.join(DASH_DIR, "site")
 MANIFEST_DIR = os.path.join(DASH_DIR, "manifest")
 PROF_ROOT = os.path.join(REPO_ROOT, "data", "profiling")
 SCHED_ROOT = os.path.join(REPO_ROOT, "data", "schedules")
-SCHED_SUMMARY = os.path.join(REPO_ROOT, "data", "sched_logs", "speedup-summary.md")
+SCHED_LOGS_ROOT = os.path.join(REPO_ROOT, "data", "sched_logs")
+SCHED_SUMMARY = os.path.join(SCHED_LOGS_ROOT, "speedup-summary.md")
 SCHEMA_DIR = os.path.join(REPO_ROOT, "schemas")
 
 # Reuse the optimizer's loaders (path-layout + JSONL reader/validator) verbatim.
@@ -585,6 +586,231 @@ def parse_speedup_summary():
 
 
 # --------------------------------------------------------------------------
+# pipeline timelines (Section 4: the MEASURED per-chunk execution overlap)
+# --------------------------------------------------------------------------
+# Each data/sched_logs/<dir>/*.log (03_run_schedule.py output) records, per
+# candidate schedule, the real execution interval of every pipeline chunk across
+# ~100 pumped tasks. We turn those into a Gantt: the actual software-pipelining
+# overlap (the CPU chunk of task N running concurrently with the GPU chunk of
+# task N-1) that turns the z3 chunking into the measured speedup.
+PIPE_WINDOW = 9  # Gantt window width, in task-periods of wall time (legible slice)
+PIPE_WARMUP = 5  # skip the first few tasks (cold caches / ramp-up)
+
+# friendly/abbreviated dir tokens -> canonical ids (devices/*.json + APPS)
+PIPE_DEVICE_ALIAS = {
+    "jetson": "jetson", "minipc": "minipc", "samsung": "R5CY21Y3VEV",
+    "R5CY21Y3VEV": "R5CY21Y3VEV", "3A021JEHN02756": "3A021JEHN02756",
+}
+PIPE_APP_ALIAS = {
+    "tree": "tree", "dense": "cifar-dense", "cifar-dense": "cifar-dense",
+    "sparse": "cifar-sparse", "cifar-sparse": "cifar-sparse",
+}
+# chunk bracket label -> (core_type, hardware), matching schedule.schema.json's
+# vocabulary so the JS can reuse chunkColor()/PU_COLOR verbatim.
+PIPE_CHUNK_LABEL = {
+    "CUDA": ("GPU", "gpu_cuda"),
+    "Vulkan": ("GPU", "gpu_vulkan"),
+    "OMP/Little": ("Little", None),
+    "OMP/Medium": ("Medium", None),
+    "OMP/Big": ("Big", None),
+    "OMP/Super": ("Super", None),
+}
+
+
+def _resolve_pipe_name(name):
+    """A log dir/file name -> (device_id, app, backend|None). Backend may be None
+    when the name omits it (e.g. 'samsung_tree'); inferred from the log later."""
+    toks = name.split("_")
+    dev = PIPE_DEVICE_ALIAS.get(toks[0])
+    app = next((PIPE_APP_ALIAS[t] for t in toks[1:] if t in PIPE_APP_ALIAS), None)
+    if not dev or not app:
+        return None
+    be = next((t for t in toks[1:] if t in ("cu", "vk")), None)
+    return dev, app, be
+
+
+def _parse_pipe_headers(text):
+    """UID -> ordered chunks [{core_type, hardware, start_stage, end_stage}]."""
+    heads, cur = {}, None
+    for ln in text.splitlines():
+        m = re.match(r"\s*Schedule \d+ \[UID:\s*([^\]]+)\]", ln)
+        if m:
+            cur = m.group(1).strip()
+            heads[cur] = []
+            continue
+        m = re.match(r"\s*Chunk \d+ \[([^\]]+)\]:\s*(.*)", ln)
+        if m and cur is not None:
+            ct, hw = PIPE_CHUNK_LABEL.get(m.group(1).strip(), (m.group(1).strip(), None))
+            stages = [int(x) for x in re.findall(r"\d+", m.group(2))]
+            heads[cur].append({
+                "core_type": ct, "hardware": hw,
+                "start_stage": min(stages) if stages else None,
+                "end_stage": max(stages) if stages else None,
+            })
+    return heads
+
+
+def _parse_pipe_timelines(text):
+    """UID -> {freq, rows:[(task, chunk, start_tick, end_tick)]}. Each block is
+    self-identifying (Schedule_UID=/Frequency= lines) so we never rely on order."""
+    blocks, cur = {}, None
+    for ln in text.splitlines():
+        if ln.startswith("Schedule_UID="):
+            cur = ln.split("=", 1)[1].strip()
+            blocks.setdefault(cur, {"freq": None, "rows": []})
+        elif ln.startswith("Frequency=") and cur:
+            m = re.search(r"Frequency=(\d+)", ln)
+            if m:
+                blocks[cur]["freq"] = int(m.group(1))
+        elif ln.startswith("Task=") and cur:
+            m = re.match(r"Task=(\d+) Chunk=(\d+) Start=(\d+) End=(\d+)", ln)
+            if m:
+                blocks[cur]["rows"].append(tuple(int(g) for g in m.groups()))
+    return blocks
+
+
+def _coverage_time(intervals, min_cover):
+    """Total wall-time during which >= min_cover of the intervals overlap."""
+    events = []
+    for a, b in intervals:
+        events += [(a, 1), (b, -1)]
+    events.sort()
+    total, cov, prev = 0.0, 0, None
+    for t, d in events:
+        if prev is not None and cov >= min_cover:
+            total += t - prev
+        cov, prev = cov + d, t
+    return total
+
+
+def _build_pipe_schedule(uid, chunks, block):
+    """One candidate's measured Gantt: a steady-state task window + metrics."""
+    freq, rows = block["freq"], block["rows"]
+    if not freq or not rows:
+        return None
+    t0 = min(r[2] for r in rows)  # global first start tick -> ms origin
+    ms = lambda tick: (tick - t0) * 1000.0 / freq  # noqa: E731
+    n_tasks = max(r[0] for r in rows) + 1
+
+    # makespan/task = total wall / n_tasks (== speedup-summary's "ms = wall/100")
+    span_all = ms(max(r[3] for r in rows)) - ms(min(r[2] for r in rows))
+    makespan_per_task = span_all / n_tasks if n_tasks else None
+
+    # visible window: a fixed TIME slice (~PIPE_WINDOW task-periods) of steady
+    # state, holding every chunk interval that overlaps it. Windowing by time
+    # (not by task index) keeps every lane back-to-back: a fast producer lane
+    # would otherwise look like it stops once it races ahead of the bottleneck.
+    lo = PIPE_WARMUP if n_tasks > 2 * PIPE_WARMUP else 0
+    base = min(ms(r[2]) for r in rows if r[0] == lo)
+    dur = (makespan_per_task or (span_all / n_tasks if n_tasks else 0)) * PIPE_WINDOW
+    win = [r for r in rows if ms(r[3]) > base and ms(r[2]) < base + dur]
+    window = [
+        {"task": r[0], "chunk": r[1],
+         "t0": round(ms(r[2]) - base, 3), "t1": round(ms(r[3]) - base, 3)}
+        for r in win
+    ]
+
+    # steady-state concurrency: over the shown window, the share of *busy* time
+    # during which >= 2 PU lanes run at once (intervals clipped to the window).
+    # Measured over the window (not the whole run) so it matches the Gantt: the
+    # unthrottled producer races ahead and idles during the queue-drain tail,
+    # which would otherwise dilute a full-run number below the visible overlap.
+    clip = [(max(ms(r[2]), base), min(ms(r[3]), base + dur)) for r in win]
+    clip = [(a, b) for a, b in clip if b > a]
+    active = _coverage_time(clip, 1)
+    concurrency = 100.0 * _coverage_time(clip, 2) / active if active > 0 else 0.0
+    return {
+        "uid": uid,
+        "chunks": chunks,
+        "window": window,
+        "window_ms": round(dur, 2),
+        "metrics": {
+            "makespan_per_task_ms": round(makespan_per_task, 3) if makespan_per_task else None,
+            "concurrency_pct": round(concurrency, 1),
+            "n_tasks": n_tasks,
+        },
+    }
+
+
+def build_pipelines():
+    """Walk data/sched_logs, parse each run log into measured per-chunk Gantts.
+
+    Returns (cells, stats). Dir names use two conventions (old + new) and some
+    cells have several dirs; we dedupe by (device, app, backend) keeping the
+    newest log file. Unresolvable dirs are warned and skipped, never fatal."""
+    cells, stats = [], {"dirs": 0, "skipped": 0}
+    if not os.path.isdir(SCHED_LOGS_ROOT):
+        return cells, stats
+
+    # candidate logs: <dir>/*.log (name = dir) and top-level *.log (name = stem)
+    candidates = {}  # (dev, app, be_hint) -> (mtime, path)
+    logs = glob.glob(os.path.join(SCHED_LOGS_ROOT, "*", "*.log"))
+    logs += glob.glob(os.path.join(SCHED_LOGS_ROOT, "*.log"))
+    for path in logs:
+        parent = os.path.dirname(path)
+        name = (
+            os.path.splitext(os.path.basename(path))[0]
+            if os.path.samefile(parent, SCHED_LOGS_ROOT)
+            else os.path.basename(parent)
+        )
+        resolved = _resolve_pipe_name(name)
+        if not resolved:
+            stats["skipped"] += 1
+            continue
+        mtime = os.path.getmtime(path)
+        if resolved not in candidates or mtime > candidates[resolved][0]:
+            candidates[resolved] = (mtime, path)
+
+    # collapse (dev, app, be|None) onto a concrete backend, newest log wins
+    chosen = {}  # (dev, app, be) -> (mtime, path, text)
+    for (dev, app, be), (mtime, path) in candidates.items():
+        text = read_text(path)
+        if be is None:  # infer from the GPU chunk label in this log
+            be = "cu" if "[CUDA" in text else "vk" if "[Vulkan" in text else None
+        if be is None:
+            stats["skipped"] += 1
+            continue
+        k = (dev, app, be)
+        if k not in chosen or mtime > chosen[k][0]:
+            chosen[k] = (mtime, path, text)
+
+    for (dev, app, be), (_, path, text) in sorted(chosen.items()):
+        stats["dirs"] += 1
+        heads = _parse_pipe_headers(text)
+        blocks = _parse_pipe_timelines(text)
+        scheds = []
+        for uid, block in blocks.items():
+            if uid not in heads:
+                continue
+            s = _build_pipe_schedule(uid, heads[uid], block)
+            if s:
+                scheds.append(s)
+        if not scheds:
+            stats["skipped"] += 1
+            continue
+        best = min(
+            (s for s in scheds if s["metrics"]["makespan_per_task_ms"] is not None),
+            key=lambda s: s["metrics"]["makespan_per_task_ms"],
+            default=None,
+        )
+        # best first, then ascending measured makespan (nulls last)
+        scheds.sort(key=lambda s: (
+            0 if best and s["uid"] == best["uid"] else 1,
+            s["metrics"]["makespan_per_task_ms"]
+            if s["metrics"]["makespan_per_task_ms"] is not None else float("inf"),
+        ))
+        cells.append({
+            "device": dev,
+            "app": app,
+            "backend": be,
+            "best_uid": best["uid"] if best else None,
+            "source": os.path.relpath(path, REPO_ROOT),
+            "schedules": scheds,
+        })
+    return cells, stats
+
+
+# --------------------------------------------------------------------------
 # assemble + write
 # --------------------------------------------------------------------------
 def main():
@@ -602,6 +828,7 @@ def main():
     apps = build_apps(vocab)
     sched_cells, sched_stats = build_schedules(vocab["app_stages"])
     measured = parse_speedup_summary()
+    pipe_cells, pipe_stats = build_pipelines()
 
     bundle = {
         "generated_by": "dashboard/generate.py",
@@ -625,6 +852,7 @@ def main():
             "modes": MODES,
             "cells": sched_cells,
             "measured": measured,
+            "pipelines": pipe_cells,
         },
     }
 
@@ -650,6 +878,11 @@ def main():
         f"schedules: {len(sched_cells)} cells, {sched_stats['files']} files "
         f"({sched_stats['new']} new/validated, {sched_stats['old']} old/flagged{invalid_note}), "
         f"{len(measured['rows'])} measured speedup rows"
+    )
+    n_pipe_sched = sum(len(c["schedules"]) for c in pipe_cells)
+    print(
+        f"pipelines: {len(pipe_cells)} measured Gantt cells from {pipe_stats['dirs']} logs "
+        f"({n_pipe_sched} candidate timelines, {pipe_stats['skipped']} skipped)"
     )
     print(f"bundle.js: {os.path.getsize(os.path.join(SITE_DIR, 'bundle.js')) / 1024:.0f} KiB")
     print(f"open: {os.path.join(SITE_DIR, 'index.html')}")
