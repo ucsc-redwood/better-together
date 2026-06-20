@@ -166,7 +166,7 @@ def cmd_02(dev, app, be, tt):
     ]
 
 
-def cmd_03(dev, app, be, tt, cap):
+def cmd_03(dev, app, be, tt, cap, repeat):
     return [
         PY,
         S03,
@@ -188,14 +188,14 @@ def cmd_03(dev, app, be, tt, cap):
         "--log-folder",
         f"data/sched_logs/{dev['device_id']}_{app}_{be}_{tt}",
         "--repeat",
-        "1",
+        str(repeat),
         "--n-schedules-to-run",
         str(cap),
     ]
 
 
 # -- workers ------------------------------------------------------------------
-def device_worker(name, dev, apps, phases, runs):
+def device_worker(name, dev, apps, phases, runs, repeat):
     s = state[name]
     s.update(status="running", t0=time.time())
     online = device_on_line(name)
@@ -219,7 +219,7 @@ def device_worker(name, dev, apps, phases, runs):
                 step(f"sched:{tt}", cmd_02(dev, app, be, tt), f"sched {app}/{be}/{tt}")
             if "run" in phases:
                 cap = dev.get("caps", {}).get(app, 0)
-                step(f"run:{tt}", cmd_03(dev, app, be, tt, cap), f"run {app}/{be}/{tt}")
+                step(f"run:{tt}", cmd_03(dev, app, be, tt, cap, repeat), f"run {app}/{be}/{tt}")
         s["done"] += 1
         if not TTY:
             print(f"[{name}] {app}/{be} done ({s['done']}/{s['total']})", flush=True)
@@ -327,6 +327,14 @@ def main():
     )
     ap.add_argument("--runs", type=int, default=3, help="profiling runs per scenario (step 01)")
     ap.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="run each schedule this many times (step 03); the makespan is averaged across "
+        "repeats. Use >1 to sample run-to-run variance of the chaotic environment (NOT to "
+        "control it -- repetition characterizes the distribution, it doesn't lock anything).",
+    )
+    ap.add_argument(
         "--fresh",
         action="store_true",
         help="START FROM SCRATCH: delete the selected devices' profiling/schedules/run-logs "
@@ -391,7 +399,8 @@ def main():
             }
         with ThreadPoolExecutor(max_workers=len(devices)) as ex:
             futs = {
-                ex.submit(device_worker, n, devices[n], apps, phases, args.runs): n for n in names
+                ex.submit(device_worker, n, devices[n], apps, phases, args.runs, args.repeat): n
+                for n in names
             }
             drive(list(futs), "Fleet benchmark", names, "device")
             for f in futs:

@@ -66,7 +66,7 @@ def load_stage_timings(
     max_cv=None,
     min_runs=None,
     verbose=False,
-    dvfs_floor=True,
+    dvfs_floor=False,
 ):
     """Build the z3 per-stage cost matrix directly from the canonical JSONL store.
 
@@ -79,10 +79,15 @@ def load_stage_timings(
     for this cell is ABSENT and encoded as ``UNAVAILABLE``; the GPU column is the
     REQUESTED backend (``cu``->cuda / ``vk``->vulkan), never sniffed from the data.
 
-    Interference-scenario guards (see SCENARIO_GATES + _apply_dvfs_floor): a stricter
-    CV/min-runs gate, and a DVFS floor that clamps a too-cheap-under-load GPU up to its
-    isolated value. ``max_cv``/``min_runs`` default to the scenario gate; pass them
-    explicitly to override. ``dvfs_floor=False`` disables the clamp (e.g. for tests).
+    Interference-scenario guards: a stricter CV/min-runs gate (SCENARIO_GATES), and an
+    OPT-IN DVFS floor (_apply_dvfs_floor, ``dvfs_floor=True``) that clamps a too-cheap-
+    under-load GPU up to its isolated value. The floor is **off by default** on purpose:
+    the project's thesis is to find the optimum in the REAL chaotic environment, and a
+    GPU that runs faster when the system is loaded (kept busy -> DVFS boost) is part of
+    that reality, not an artifact to sanitize -- clamping it would inject the unrealistic
+    idle/downclocked isolated cost back in. Enable the floor only as a conservative guard
+    if the interference bg-load is found to boost the GPU beyond what real deployment does.
+    ``max_cv``/``min_runs`` default to the scenario gate; pass them explicitly to override.
     """
     gates = SCENARIO_GATES.get(scenario, {"max_cv": 1.0, "min_runs": 1})
     eff_max_cv = gates["max_cv"] if max_cv is None else max_cv
