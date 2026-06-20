@@ -18,6 +18,13 @@ class Sequence {
   void cmd_begin() const;
   void cmd_end() const;
 
+  // Records a global COMPUTE->COMPUTE, shaderWrite->shaderRead memory barrier into the
+  // open command buffer. Use it between stages when several stages are recorded into a
+  // single command buffer (one submit per chunk) so each stage's shader writes are
+  // available/visible to the next stage's shader reads. Must be called between
+  // cmd_begin() and cmd_end().
+  void cmd_memory_barrier() const;
+
   void submit() const;
   void wait_for_fence() const;
   void reset_fence() const;

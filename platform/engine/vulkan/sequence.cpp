@@ -87,6 +87,11 @@ void Sequence::create_command_buffer() {
 void Sequence::cmd_begin() const {
   spdlog::trace("Sequence::cmd_begin()");
 
+  // Start a fresh touched-buffer set for this chunk; the stages recorded between here
+  // and submit() bind exactly the buffers this task uses, so submit/wait flush and
+  // invalidate only those (not the whole pooled allocation map). See flush_touched().
+  if (mr_) mr_->clear_touched();
+
   constexpr vk::CommandBufferBeginInfo begin_info{
       .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
   };
@@ -110,6 +115,22 @@ void Sequence::cmd_end() const {
   }
 
   handle_.end();
+}
+
+void Sequence::cmd_memory_barrier() const {
+  // Global memory barrier: previous compute-shader writes -> next compute-shader reads.
+  // The same barrier tree's multi-dispatch stages use; required for correct cross-stage
+  // visibility (esp. on non-coherent Mali) when stages share one command buffer.
+  const vk::MemoryBarrier mem_barrier{
+      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+      .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+  };
+  handle_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                          vk::PipelineStageFlagBits::eComputeShader,
+                          vk::DependencyFlags{},
+                          mem_barrier,
+                          nullptr,
+                          nullptr);
 }
 
 double Sequence::get_last_gpu_time_ns() const {
@@ -146,7 +167,8 @@ void Sequence::submit() const {
 
   // Make any pending host writes (inputs/weights) visible to the GPU before it
   // runs. No-op on coherent memory; required on HOST_CACHED (see do_allocate).
-  if (mr_) mr_->flush_all();
+  // Scoped to the buffers this chunk bound (flush_touched) -- not the whole pool.
+  if (mr_) mr_->flush_touched();
 
   const vk::SubmitInfo submit_info{
       .commandBufferCount = 1,
@@ -167,8 +189,9 @@ void Sequence::wait_for_fence() const {
 
   // GPU work is done: invalidate host caches so subsequent CPU reads see the
   // freshly written results. No-op on coherent memory; required on HOST_CACHED
-  // (this is the cache maintenance BUGS-FOUND.md §7 originally lacked).
-  if (mr_) mr_->invalidate_all();
+  // (this is the cache maintenance BUGS-FOUND.md §7 originally lacked). Scoped to the
+  // buffers this chunk bound (invalidate_touched) -- not the whole pool.
+  if (mr_) mr_->invalidate_touched();
 }
 
 void Sequence::reset_fence() const {

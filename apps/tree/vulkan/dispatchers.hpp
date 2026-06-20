@@ -20,6 +20,10 @@ class VulkanDispatcher final {
   // Sequence handle, used by benchmarks to read device-side GPU time per stage.
   kiss_vk::Sequence* get_seq() { return seq.get(); }
 
+  // Per-stage single-submit path (cmd_begin -> record -> submit -> wait_for_fence).
+  // Kept for the per-stage device-time benchmarks: bm_main.cpp calls these directly and
+  // reads get_seq()->get_last_gpu_time_ns() for that one stage. Thin wrappers around
+  // dispatch_multi_stage(k, k) so the [stage, stage] path stays byte-for-byte the same.
   void run_stage_1(VkAppData_Safe& appdata);
   void run_stage_2(VkAppData_Safe& appdata);
   void run_stage_3(VkAppData_Safe& appdata);
@@ -28,33 +32,58 @@ class VulkanDispatcher final {
   void run_stage_6(VkAppData_Safe& appdata);
   void run_stage_7(VkAppData_Safe& appdata);
 
-  using StageFn = void (VulkanDispatcher::*)(VkAppData_Safe&);
-
-  static constexpr std::array<StageFn, 7> stage_functions = {
-      &VulkanDispatcher::run_stage_1,
-      &VulkanDispatcher::run_stage_2,
-      &VulkanDispatcher::run_stage_3,
-      &VulkanDispatcher::run_stage_4,
-      &VulkanDispatcher::run_stage_5,
-      &VulkanDispatcher::run_stage_6,
-      &VulkanDispatcher::run_stage_7,
-  };
-
   void dispatch_stage(VkAppData_Safe& data, const int stage) {
-    assert(stage >= 1 && stage <= 7);
-
-    (this->*stage_functions[stage - 1])(data);
+    dispatch_multi_stage(data, stage, stage);
   }
 
+  // Record stages [start_stage, end_stage] into ONE command buffer with a
+  // shaderWrite->shaderRead barrier between consecutive stages, then run it with ONE
+  // submit + ONE fence wait. Collapses the per-stage CPU<->GPU round-trips of a chunk;
+  // host cache flush/invalidate happen once per chunk (inside submit/wait_for_fence).
+  // Safe across tree's data-dependent stages: VkAppData_Safe's counts (n_unique,
+  // n_brt_nodes) are const, fixed at construction -- they don't need a GPU read-back
+  // between stages, so a stage can be recorded before the prior stage executes.
   void dispatch_multi_stage(VkAppData_Safe& data, const int start_stage, const int end_stage) {
-    if (start_stage < 1 || end_stage > 7) throw std::out_of_range("Invalid stage");
+    if (start_stage < 1 || end_stage > 7 || start_stage > end_stage)
+      throw std::out_of_range("Invalid stage");
 
-    for (int stage = start_stage; stage <= end_stage; stage++) {
-      (this->*stage_functions[stage - 1])(data);
+    seq->cmd_begin();
+    for (int stage = start_stage; stage <= end_stage; ++stage) {
+      (this->*record_functions[stage - 1])(data, seq->get_handle());
+      if (stage != end_stage) seq->cmd_memory_barrier();
     }
+    seq->cmd_end();
+
+    seq->reset_fence();
+    seq->submit();
+    seq->wait_for_fence();
   }
 
  private:
+  // Record-only stage bodies: descriptor-set update(s) + bind + dispatch(es) into `cmd`
+  // (keeping each stage's own intra-stage barriers), no cmd_begin/submit/wait. The scan
+  // algos are shared by stage 3 and stage 6, so each binds a distinct scan descriptor-set
+  // index (stage 3 -> 0, stage 6 -> 1) to avoid clobbering when both are in one buffer.
+  void record_stage_1(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  void record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  void record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  void record_stage_4(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  void record_stage_5(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  void record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  void record_stage_7(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+
+  using RecordFn = void (VulkanDispatcher::*)(VkAppData_Safe&, vk::CommandBuffer);
+
+  static constexpr std::array<RecordFn, 7> record_functions = {
+      &VulkanDispatcher::record_stage_1,
+      &VulkanDispatcher::record_stage_2,
+      &VulkanDispatcher::record_stage_3,
+      &VulkanDispatcher::record_stage_4,
+      &VulkanDispatcher::record_stage_5,
+      &VulkanDispatcher::record_stage_6,
+      &VulkanDispatcher::record_stage_7,
+  };
+
   // Record a device-wide INCLUSIVE prefix scan of `src` (n uints) into `dst`,
   // using `block_sums` as scratch, into the already-open command buffer `cmd`.
   // Shared by stage 3 (flag scan) and stage 6 (edge-count scan).
