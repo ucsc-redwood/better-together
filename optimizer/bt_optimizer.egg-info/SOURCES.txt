@@ -3,6 +3,7 @@ pyproject.toml
 analysis/__init__.py
 analysis/coverage.py
 analysis/render_isolated_table.py
+analysis/speedup_summary.py
 analysis/results/__init__.py
 analysis/results/log_parser.py
 analysis/results/model_comparison.py
@@ -13,12 +14,15 @@ bt_optimizer.egg-info/SOURCES.txt
 bt_optimizer.egg-info/dependency_links.txt
 bt_optimizer.egg-info/requires.txt
 bt_optimizer.egg-info/top_level.txt
+orchestrate/00_run_fleet.py
+orchestrate/01_collect_profiling.py
 orchestrate/02_gen_schedule_merged.py
 orchestrate/03_run_schedule.py
 orchestrate/04_parse_schedules.py
 orchestrate/05_timeline.py
 orchestrate/__init__.py
 orchestrate/case.py
+orchestrate/transport.py
 smt/__init__.py
 smt/baselines.py
 smt/bt_vocab.py

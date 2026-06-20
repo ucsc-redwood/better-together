@@ -7,7 +7,7 @@ name = "bt-optimizer"
 version = "0.1.0"
 description = "BetterTogether BT-Optimizer: z3 SMT scheduler + orchestration + analysis"
 requires-python = ">=3.10"
-dependencies = ["z3-solver", "jsonschema", "numpy"]
+dependencies = ["z3-solver", "jsonschema", "numpy", "rich"]
 
 [project.optional-dependencies]
 test = ["pytest"]

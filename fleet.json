@@ -1,0 +1,49 @@
+{
+  "_comment": "Fleet benchmark transport/build config -- the single source of truth for HOW the orchestrator (optimizer/orchestrate/00_run_fleet.py) reaches each hardware target. The (app x backend x hardware) MATRIX lives in fleet-coverage.json; this file says, per friendly hardware name: the --device id passed to the binaries, the deploy transport (ssh host / adb serial+host), the local build/ dir holding its binaries, which GPU backends it runs, and optional per-app schedule-candidate caps. Replaces the transport details previously scattered across 03_run_schedule.py + scripts/run-on-*.sh + the justfile (and fixes the justfile's stale jetson host: it is yanwen@duck-stable, reachable directly from this box, NOT duck-naughty).",
+  "devices": {
+    "jetson": {
+      "device_id": "jetson",
+      "transport": { "kind": "ssh", "host": "yanwen@duck-stable" },
+      "build": "jetson",
+      "backends": ["cu", "vk"]
+    },
+    "minipc": {
+      "device_id": "minipc",
+      "transport": { "kind": "ssh", "host": "rocky-ryzen" },
+      "build": "vulkan",
+      "backends": ["vk"]
+    },
+    "samsung": {
+      "device_id": "R5CY21Y3VEV",
+      "transport": {
+        "kind": "adb",
+        "serial": "R5CY21Y3VEV",
+        "adb_host": "rocky-ryzen"
+      },
+      "build": "android",
+      "backends": ["vk"],
+      "caps": { "cifar-sparse": 1 }
+    },
+    "pixel": {
+      "device_id": "3A021JEHN02756",
+      "transport": {
+        "kind": "adb",
+        "serial": "3A021JEHN02756",
+        "adb_host": "rocky-ryzen"
+      },
+      "build": "android",
+      "backends": ["vk"],
+      "caps": { "cifar-sparse": 1 }
+    }
+  },
+  "build_artifacts": {
+    "vulkan": { "kind": "local", "preset": "vulkan" },
+    "android": { "kind": "local-ndk", "preset": "android" },
+    "jetson": {
+      "kind": "rocky-podman",
+      "preset": "jetson",
+      "src": "bt-src",
+      "image": "bt-cross:6.1"
+    }
+  }
+}

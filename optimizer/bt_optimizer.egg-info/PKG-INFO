@@ -6,6 +6,7 @@ Requires-Python: >=3.10
 Requires-Dist: z3-solver
 Requires-Dist: jsonschema
 Requires-Dist: numpy
+Requires-Dist: rich
 Provides-Extra: test
 Requires-Dist: pytest; extra == "test"
 Provides-Extra: plot
