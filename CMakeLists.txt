@@ -48,6 +48,23 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
+# ---- sanitizers (opt-in; drives the CI ASan/TSan gate) --------------------
+# BT_SANITIZER is a comma-separated sanitizer list, e.g. "address,undefined" or
+# "thread" (the pc-asan / pc-tsan presets set it). Applied globally and BEFORE the
+# CPM deps below so the instrumentation reaches across library boundaries (ASan
+# needs every TU built with -fsanitize to track allocations correctly). This is a
+# debug/CI build flavour only -- never ship a sanitized Release.
+set(BT_SANITIZER
+    ""
+    CACHE STRING
+    "Build with sanitizer(s): e.g. address, undefined, thread, or 'address,undefined'"
+)
+if(BT_SANITIZER)
+    message(STATUS "BetterTogether: building with -fsanitize=${BT_SANITIZER}")
+    add_compile_options(-fsanitize=${BT_SANITIZER} -fno-omit-frame-pointer -g)
+    add_link_options(-fsanitize=${BT_SANITIZER})
+endif()
+
 include(cmake/CPM.cmake)
 
 # OpenMP — abstracted as bt::openmp so Android (NDK) can use -fopenmp

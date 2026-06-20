@@ -15,6 +15,14 @@ class Sequence {
 
   ~Sequence();
 
+  // Owns a VkCommandPool/VkFence/VkQueryPool freed in ~Sequence; only ever held behind a
+  // shared_ptr (Engine::make_seq). Copying would double-free those handles and there is no
+  // move, so make every copy/move ill-formed.
+  Sequence(const Sequence&) = delete;
+  Sequence& operator=(const Sequence&) = delete;
+  Sequence(Sequence&&) = delete;
+  Sequence& operator=(Sequence&&) = delete;
+
   void cmd_begin() const;
   void cmd_end() const;
 

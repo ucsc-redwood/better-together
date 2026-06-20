@@ -78,3 +78,82 @@ jobs:
         run: |
           uv sync --extra test
           uv run pytest -q
+
+  sanitizers:
+    # Build the OMP surface with AddressSanitizer+UBSan / ThreadSanitizer and run the
+    # same topology-independent oracle subset as test-omp. ASan/UBSan catch heap and UB
+    # bugs the optimised build hides; TSan catches data races. Default toolchain (gcc),
+    # matching the build it instruments. pipeline-e2e is excluded for the same reason as
+    # test-omp (pins to physical cores absent on hosted runners) — TSan's prime target,
+    # the concurrent ring, runs on the fleet via `just tsan`.
+    name: ${{ matrix.san }} (build + ctest -L omp)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        san: [asan, tsan]
+    env:
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
+      ASAN_OPTIONS: abort_on_error=1:detect_leaks=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+      TSAN_OPTIONS: halt_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache CPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.cpm-cache
+          key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
+          restore-keys: cpm-${{ runner.os }}-
+      - name: Configure (pc-${{ matrix.san }} preset)
+        run: cmake --preset pc-${{ matrix.san }}
+      - name: Build
+        run: cmake --build --preset pc-${{ matrix.san }}
+      - name: Test (OMP-as-oracle differential, under ${{ matrix.san }})
+        run: ctest --test-dir build/pc-${{ matrix.san }} -L omp -E 'pipeline-e2e' --output-on-failure
+
+  clang-tidy:
+    # Static analysis (.clang-tidy) scoped to the lines changed in the PR, so the
+    # curated checks gate NEW code without the legacy tree's findings walling the gate.
+    # Configure-only: pc needs no build (the codegen headers are committed), just the
+    # compile_commands.json that `cmake --preset pc` writes.
+    name: clang-tidy (changed lines)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    env:
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need the PR base commit to diff against
+      - name: Cache CPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.cpm-cache
+          key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
+          restore-keys: cpm-${{ runner.os }}-
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+      - name: Configure (writes compile_commands.json)
+        run: cmake --preset pc
+      - name: Fetch clang-tidy-diff helper
+        run: |
+          curl -fsSL -o clang-tidy-diff.py \
+            https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/clang-tools-extra/clang-tidy/tool/clang-tidy-diff.py
+      - name: Lint changed lines
+        run: |
+          base='${{ github.event.pull_request.base.sha }}'
+          out=$(git diff -U0 "$base" -- '*.cpp' '*.hpp' '*.cu' '*.cuh' \
+            | python3 clang-tidy-diff.py -p1 -path build/pc -j"$(nproc)" 2>&1) || true
+          echo "$out"
+          # Fail only on first-party clang-tidy CHECK findings on changed lines.
+          # Ignore clang-diagnostic-* : a Vulkan/CUDA TU isn't built under the pc
+          # preset, so clang-tidy reports its backend headers as "file not found".
+          # That's the known hosted-coverage gap (the fleet build / `just tidy` lints
+          # those), not a code issue, and must not wall the gate.
+          findings=$(echo "$out" | grep -E ': (warning|error): ' | grep -vE '\[clang-diagnostic-' || true)
+          if [ -n "$findings" ]; then
+            echo "::error::clang-tidy reported issues on changed lines (see log above)"
+            exit 1
+          fi
+          echo "clang-tidy: no first-party findings on changed lines."

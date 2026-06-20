@@ -108,6 +108,14 @@ def parse_arguments():
         help="Verbose output",
         default=False,
     )
+    parser.add_argument(
+        "--dvfs-floor",
+        action="store_true",
+        default=False,
+        help="conservative guard: clamp a too-cheap-under-load GPU interference cell up to "
+        "its isolated value. OFF by default -- the chaotic real environment (incl. the GPU "
+        "boosting when kept busy) is what we want to capture, not sanitize.",
+    )
     return parser.parse_args()
 
 
@@ -157,7 +165,13 @@ def main():
 
     try:
         stage_timings, use_cuda = load_stage_timings(
-            args.profiling_root, device, app, backend, scenario, verbose=verbose
+            args.profiling_root,
+            device,
+            app,
+            backend,
+            scenario,
+            verbose=verbose,
+            dvfs_floor=args.dvfs_floor,
         )
 
         # Store which GPU backend was used

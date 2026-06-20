@@ -21,7 +21,7 @@ DEVICE=${BT_JETSON_DEVICE:-jetson}
 BUILD=${BT_JETSON_BUILD:-build/jetson}
 DEST=/tmp/bt
 # Per-cell coverage markers (RAN/SKIP/FAIL) for scripts/check_fleet_coverage.py.
-# BT_CELL_HW names this fleet host in fleet-coverage.json; BT_CELL_LOG is where the
+# BT_CELL_HW names this fleet host (the fleet.json device key); BT_CELL_LOG is where the
 # BT-CELL marker lines are appended (default fleet-coverage.log at the repo root).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/lib-cell-marker.sh"

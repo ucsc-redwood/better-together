@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -121,6 +122,39 @@ inline std::string read_governor() {
   return "unknown";
 }
 
+// Best-effort CURRENT GPU clock in MHz (-1 if unknown). The interference audit found the
+// BTPM GPU column corrupted by DVFS (the GPU clocks up under the bg load while isolated
+// runs at a low clock); recording the clock in provenance lets the loader / analysis see
+// and disentangle that. AMD RADV: the active ("*") line of pp_dpm_sclk; Tegra/Mali/Adreno:
+// a devfreq/kgsl cur_freq in Hz.
+inline int read_gpu_clock_mhz() {
+  for (const char* p :
+       {"/sys/class/drm/card0/device/pp_dpm_sclk", "/sys/class/drm/card1/device/pp_dpm_sclk"}) {
+    std::ifstream f(p);
+    std::string line;
+    while (f && std::getline(f, line)) {
+      if (line.find('*') == std::string::npos) continue;  // not the active state
+      auto u = line.find("Mhz");
+      if (u == std::string::npos) u = line.find("MHz");
+      if (u == std::string::npos) continue;
+      size_t e = u;
+      while (e > 0 && !std::isdigit(static_cast<unsigned char>(line[e - 1]))) --e;
+      size_t b = e;
+      while (b > 0 && std::isdigit(static_cast<unsigned char>(line[b - 1]))) --b;
+      if (b < e) return std::atoi(line.substr(b, e - b).c_str());
+    }
+  }
+  for (const char* p : {"/sys/class/kgsl/kgsl-3d0/gpuclk",
+                        "/sys/class/kgsl/kgsl-3d0/devfreq/cur_freq",
+                        "/sys/devices/platform/gpu/devfreq/gpu/cur_freq",
+                        "/sys/class/devfreq/gpu/cur_freq"}) {
+    std::ifstream f(p);
+    long hz = 0;
+    if (f && (f >> hz) && hz > 0) return static_cast<int>(hz / 1000000);
+  }
+  return -1;
+}
+
 inline std::string iso8601_utc_now() {
   const std::time_t tt = std::time(nullptr);
   std::tm tm{};
@@ -177,12 +211,14 @@ inline void emit_jsonl(const std::vector<Cell>& cells,
                        int run_id,
                        int warmup) {
   const std::string gov = read_governor();
+  const int gpu_mhz = read_gpu_clock_mhz();  // run-level snapshot; -1 if unknown
   const nlohmann::json base_provenance = {
       {"git_sha", BT_GIT_SHA},
       {"ts", iso8601_utc_now()},
       {"host", hostname()},
       {"freq_governor", gov},
       {"freq_locked", gov == "performance" || gov == "userspace"},
+      {"gpu_clock_mhz", gpu_mhz},  // DVFS state (audit): disentangle clock from contention
       {"warmup_iters", warmup},
       {"harness", "bt.prof/v0"},
   };
@@ -311,14 +347,22 @@ int run_bm_prof(int argc,
           // its OWN AppData (disjoint -> no cross-PU data race). At most one thread
           // ever touches the GPU dispatcher, matching the old BM_run_fully.
           std::atomic<bool> stop{false};
+          std::atomic<int> bg_ready{0};  // bumped once a bg thread has done >=1 unit of work
           std::vector<std::unique_ptr<App>> bg_apps;
           std::vector<std::thread> bg;
           if (interfere) {
             if (!is_gpu) {  // GPU contends only when the target is a CPU tier
               bg_apps.push_back(std::make_unique<App>(bt_pipe::as_mr_ptr(disp.get_mr())));
               App* a = bg_apps.back().get();
-              bg.emplace_back([&disp, a, s, &stop] {
-                while (!stop.load(std::memory_order_relaxed)) disp.dispatch_multi_stage(*a, s, s);
+              bg.emplace_back([&disp, a, s, &stop, &bg_ready] {
+                bool first = true;
+                while (!stop.load(std::memory_order_relaxed)) {
+                  disp.dispatch_multi_stage(*a, s, s);
+                  if (first) {
+                    bg_ready.fetch_add(1, std::memory_order_relaxed);
+                    first = false;
+                  }
+                }
               });
             }
             for (auto& [bname, bpt] : present_cpu_pus()) {
@@ -326,11 +370,40 @@ int run_bm_prof(int argc,
               bg_apps.push_back(std::make_unique<App>(bt_pipe::as_mr_ptr(disp.get_mr())));
               App* a = bg_apps.back().get();
               auto cores = get_cores_by_type(bpt);
-              bg.emplace_back([a, cores, s, &stop, &omp_dispatch] {
-                while (!stop.load(std::memory_order_relaxed))
+              bg.emplace_back([a, cores, s, &stop, &omp_dispatch, &bg_ready] {
+                bool first = true;
+                while (!stop.load(std::memory_order_relaxed)) {
                   omp_dispatch(cores, cores.size(), *a, s, s);
+                  if (first) {
+                    bg_ready.fetch_add(1, std::memory_order_relaxed);
+                    first = false;
+                  }
+                }
               });
             }
+            // Settle barrier (audit B3): don't start measuring until every bg contender has
+            // completed >=1 unit of work (the load is actually active), bounded by a deadline
+            // so a slow bg kernel can't hang the cell. Excludes the bg ramp from the samples.
+            const int settle_ms = env_int("BT_PROF_SETTLE_MS", 200);
+            const auto sdl =
+                std::chrono::steady_clock::now() + std::chrono::milliseconds(settle_ms);
+            while (bg_ready.load(std::memory_order_relaxed) < static_cast<int>(bg.size()) &&
+                   std::chrono::steady_clock::now() < sdl)
+              std::this_thread::yield();
+          }
+
+          // Warm the GPU before sampling (audit rec 2): run the kernel back-to-back for a
+          // short window so the GPU's DVFS clock ramps to a comparable operating point in
+          // BOTH scenarios -- isolated otherwise samples one-op-at-a-time off a cold/low
+          // clock, the root of the BTPM GPU artifact. No-op for CPU cells (or warm_ms=0).
+          // Full de-inversion still needs clock locking (scripts/lock-gpu-clocks.sh); this
+          // narrows the gap and the recorded gpu_clock_mhz lets the loader verify it.
+          if (is_gpu) {
+            const double warm_s = env_int("BT_PROF_GPU_WARM_MS", 150) / 1000.0;
+            const auto wdl = std::chrono::steady_clock::now() +
+                             std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                                 std::chrono::duration<double>(warm_s));
+            while (std::chrono::steady_clock::now() < wdl) time_once();
           }
 
           // Iterations(1): the calibrated helper owns warmup + adaptive sampling.

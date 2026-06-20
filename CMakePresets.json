@@ -15,6 +15,26 @@
       }
     },
     {
+      "name": "pc-asan",
+      "inherits": "pc",
+      "displayName": "PC native + AddressSanitizer/UBSan (OpenMP) — CI memory gate",
+      "binaryDir": "${sourceDir}/build/pc-asan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "BT_SANITIZER": "address,undefined"
+      }
+    },
+    {
+      "name": "pc-tsan",
+      "inherits": "pc",
+      "displayName": "PC native + ThreadSanitizer (OpenMP) — CI data-race gate",
+      "binaryDir": "${sourceDir}/build/pc-tsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "BT_SANITIZER": "thread"
+      }
+    },
+    {
       "name": "jetson",
       "displayName": "Jetson Orin (aarch64, CUDA sm_87 + Vulkan) — run inside Dockerfile.cross",
       "generator": "Unix Makefiles",
@@ -62,6 +82,8 @@
   ],
   "buildPresets": [
     { "name": "pc", "configurePreset": "pc" },
+    { "name": "pc-asan", "configurePreset": "pc-asan" },
+    { "name": "pc-tsan", "configurePreset": "pc-tsan" },
     { "name": "jetson", "configurePreset": "jetson" },
     { "name": "vulkan", "configurePreset": "vulkan" },
     { "name": "android", "configurePreset": "android" }

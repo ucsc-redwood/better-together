@@ -39,6 +39,14 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
 
   ~VulkanMemoryResource() override;
 
+  // Owns the VMA buffer allocations torn down in the dtor and is held behind a unique_ptr
+  // (Engine::mr_ptr_). A std::pmr::memory_resource is also identified by ADDRESS
+  // (do_is_equal), so it must never be copied or moved. Make both ill-formed.
+  VulkanMemoryResource(const VulkanMemoryResource&) = delete;
+  VulkanMemoryResource& operator=(const VulkanMemoryResource&) = delete;
+  VulkanMemoryResource(VulkanMemoryResource&&) = delete;
+  VulkanMemoryResource& operator=(VulkanMemoryResource&&) = delete;
+
   [[nodiscard]] vk::Device get_device() const { return device_; }
 
   [[nodiscard]] vk::Buffer get_buffer_from_pointer(void* p);

@@ -24,6 +24,14 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
 
   ~Algorithm() = default;
 
+  // Holds raw vk::Pipeline/ShaderModule/DescriptorPool handles and is only ever used
+  // through a shared_ptr (Engine::make_algo + enable_shared_from_this). A copy would
+  // alias those handles and break the shared_from_this identity, so forbid copy/move.
+  Algorithm(const Algorithm&) = delete;
+  Algorithm& operator=(const Algorithm&) = delete;
+  Algorithm(Algorithm&&) = delete;
+  Algorithm& operator=(Algorithm&&) = delete;
+
   // Builder pattern
   [[nodiscard]] std::shared_ptr<Algorithm> work_group_size(uint32_t x, uint32_t y, uint32_t z);
   [[nodiscard]] std::shared_ptr<Algorithm> num_buffers(size_t n);

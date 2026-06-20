@@ -1,16 +1,23 @@
 [project]
 name = "better-together"
 version = "0.1.0"
-description = "Add your description here"
+description = "Profile-guided software pipelining for heterogeneous edge SoCs"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "jsonschema>=4.0",
-    "matplotlib>=3.10.3",
-    "pandas>=2.2.3",
-    "seaborn>=0.13.2",
-    "z3-solver>=4.15.1.0",
-]
+# The Python side of the repo is one uv workspace (members below) resolved into a
+# single uv.lock. The only runtime dependency is the bt-optimizer member: it owns
+# the analysis/orchestration stack (z3, jsonschema, numpy, rich, + the plot extra
+# matplotlib/pandas), so the dashboard and the fleet orchestrator -- which import
+# `smt`/`orchestrate` -- run from this one venv via `uv run`. The duplicated root
+# copies of those deps (and an unused seaborn) were removed; they live in
+# optimizer/pyproject.toml, their true owner.
+dependencies = ["bt-optimizer[plot]"]
+
+[tool.uv.workspace]
+members = ["optimizer"]
+
+[tool.uv.sources]
+bt-optimizer = { workspace = true }
 
 # Code-formatting toolchain (run via `just fmt` / `just fmt-check`). The
 # pip-installable formatters live here so uv.lock pins exact versions — in

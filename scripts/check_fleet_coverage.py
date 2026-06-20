@@ -9,8 +9,12 @@ from a pass. The run-on-*.sh deploy scripts emit a machine-greppable marker per 
     BT-CELL <app> <backend> <hardware> <RAN|SKIP|FAIL>
 
 into a coverage log (fleet-coverage.log). This checker diffs the *latest* status of each
-cell in that log against the expected cells in fleet-coverage.json, so a silently-absent
-(never-marked) or SKIP/FAIL cell is a hard failure instead of reading as covered.
+cell in that log against the expected cells, so a silently-absent (never-marked) or
+SKIP/FAIL cell is a hard failure instead of reading as covered.
+
+The expected cells are DERIVED (no separate fleet-coverage.json to drift): per device in
+fleet.json, the gated backends are `coverage_backends` if present else all benchmark
+`backends` (mapped short->long via vocab.json), crossed with vocab.json `app_stages`.
 
 Usage:
     scripts/check_fleet_coverage.py [coverage.log]     # default: fleet-coverage.log
@@ -28,15 +32,30 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MANIFEST = ROOT / "fleet-coverage.json"
+FLEET = ROOT / "fleet.json"
+VOCAB = ROOT / "vocab.json"
 DEFAULT_LOG = Path(os.environ.get("BT_CELL_LOG", ROOT / "fleet-coverage.log"))
 
 import json
 
 
 def load_expected():
-    m = json.loads(MANIFEST.read_text(encoding="utf-8"))
-    return [(c["app"], c["backend"], c["hardware"]) for c in m["cells"]]
+    """Derive the expected (app, backend, hardware) cells from fleet.json + vocab.json.
+
+    apps come from vocab.json `app_stages`; per device, the gated backends are
+    `coverage_backends` if present else all benchmark `backends`, mapped from the short
+    name (cu/vk) to the long name (cuda/vulkan) used in the BT-CELL markers via vocab.json.
+    """
+    fleet = json.loads(FLEET.read_text(encoding="utf-8"))
+    vocab = json.loads(VOCAB.read_text(encoding="utf-8"))
+    long_name = {b["short"]: b["long"] for b in vocab["backends"]}
+    apps = list(vocab["app_stages"])
+    cells = []
+    for hardware, dev in fleet["devices"].items():
+        for short in dev.get("coverage_backends", dev["backends"]):
+            for app in apps:
+                cells.append((app, long_name[short], hardware))
+    return cells
 
 
 def load_observed(log_path: Path):

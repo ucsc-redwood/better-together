@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="better-together.png" alt="BetterTogether" width="100%"/>
+<img src=".github/assets/better-together.png" alt="BetterTogether" width="100%"/>
 
 # BetterTogether
 
@@ -120,8 +120,8 @@ interference-aware model predicts is fastest for that app on that chip:
 <div align="center">
 <table>
 <tr>
-<td width="50%"><img src="img/pipeline-cpu-gpu-overlap.png" alt="Two-lane CPU + integrated-GPU overlap"/></td>
-<td width="50%"><img src="img/pipeline-4lane.png" alt="Four-way heterogeneous pipeline split"/></td>
+<td width="50%"><img src=".github/assets/pipeline-cpu-gpu-overlap.png" alt="Two-lane CPU + integrated-GPU overlap"/></td>
+<td width="50%"><img src=".github/assets/pipeline-4lane.png" alt="Four-way heterogeneous pipeline split"/></td>
 </tr>
 <tr>
 <td align="center"><sub>2-lane CPU(S1–2) + GPU(S3–9) overlap — Jetson · cifar-dense · CUDA</sub></td>
@@ -356,7 +356,7 @@ backend. See [`docs/reports-for-human/`](docs/reports-for-human/) for how to gen
 it.
 
 <div align="center">
-<img src="img/dashboard-pipeline-timeline.png" alt="BetterTogether analysis dashboard — Profile, Solve, Pipeline, Measure" width="92%"/>
+<img src=".github/assets/dashboard-pipeline-timeline.png" alt="BetterTogether analysis dashboard — Profile, Solve, Pipeline, Measure" width="92%"/>
 <br/>
 <sub>The dashboard walks Profile → Solve → Pipeline → Measure, landing on a 4-lane pipeline running at 100% concurrency.</sub>
 </div>
@@ -375,7 +375,7 @@ uv run optimizer/orchestrate/05_timeline.py data/sched_logs/<device>_<app>_<back
 
 The research behind BetterTogether appeared at **IISWC 2025** (Xu et al., UC Santa Cruz /
 Microsoft Research). The paper is bundled in this repo:
-[`IISWC_2025_BetterTogether_Yanwen.pdf`](IISWC_2025_BetterTogether_Yanwen.pdf). If you build on
+[`IISWC_2025_BetterTogether_Yanwen.pdf`](.github/assets/IISWC_2025_BetterTogether_Yanwen.pdf). If you build on
 this framework, please cite:
 
 ```bibtex
@@ -405,6 +405,6 @@ Released under the **MIT License** — see [`LICENSE`](LICENSE) for details.
 
 <div align="center">
 
-**[Paper](IISWC_2025_BetterTogether_Yanwen.pdf) • [Documentation](docs/instruction-for-ai/README.md) • [Issues](https://github.com/ucsc-redwood/better-together/issues)**
+**[Paper](.github/assets/IISWC_2025_BetterTogether_Yanwen.pdf) • [Documentation](docs/instruction-for-ai/README.md) • [Issues](https://github.com/ucsc-redwood/better-together/issues)**
 
 </div>
