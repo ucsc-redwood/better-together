@@ -155,10 +155,12 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Device-wide inclusive scan (3 passes), used by stage 3 (flags) and stage 6
   // (edge counts). See tree_scan_*.comp. Each pass is its own algo; all three
   // are recorded into one command buffer with shaderWrite->shaderRead barriers
-  // between them.
+  // between them. num_sets(2): stage 3 and stage 6 can share one command buffer
+  // (a whole-pipeline chunk), so each scan uses its own descriptor-set index
+  // (stage 3 -> 0, stage 6 -> 1) to avoid clobbering the other's bindings.
   auto scan_local_algo = engine.make_algo("tree_scan_local")
                              ->work_group_size(256, 1, 1)
-                             ->num_sets(1)
+                             ->num_sets(2)
                              ->num_buffers(3)
                              ->push_constant<PrefixSumPushConstants>()
                              ->build();
@@ -167,7 +169,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto scan_block_sums_algo = engine.make_algo("tree_scan_block_sums")
                                   ->work_group_size(256, 1, 1)
-                                  ->num_sets(1)
+                                  ->num_sets(2)
                                   ->num_buffers(1)
                                   ->push_constant<GlobalPushConstants>()
                                   ->build();
@@ -176,7 +178,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto scan_add_algo = engine.make_algo("tree_scan_add")
                            ->work_group_size(256, 1, 1)
-                           ->num_sets(1)
+                           ->num_sets(2)
                            ->num_buffers(2)
                            ->push_constant<PrefixSumPushConstants>()
                            ->build();
@@ -221,10 +223,22 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 }
 
 // ----------------------------------------------------------------------------
+// run_stage_k: per-stage single-submit wrappers (bm_main per-stage device timing).
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::run_stage_1(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 1, 1); }
+void VulkanDispatcher::run_stage_2(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 2, 2); }
+void VulkanDispatcher::run_stage_3(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 3, 3); }
+void VulkanDispatcher::run_stage_4(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 4, 4); }
+void VulkanDispatcher::run_stage_5(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 5, 5); }
+void VulkanDispatcher::run_stage_6(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 6, 6); }
+void VulkanDispatcher::run_stage_7(VkAppData_Safe& appdata) { dispatch_multi_stage(appdata, 7, 7); }
+
+// ----------------------------------------------------------------------------
 // Stage 1 (Input -> Morton)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_1(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_1(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
 
   auto algo = cached_algorithms.at("morton").get();
@@ -241,24 +255,17 @@ void VulkanDispatcher::run_stage_1(VkAppData_Safe& appdata) {
       .range = tree::kRange,
   });
 
-  seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
-  algo->record_bind_push(seq->get_handle());
+  algo->record_bind_core(cmd, 0);
+  algo->record_bind_push(cmd);
   algo->record_dispatch(
-      seq->get_handle(),
-      {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
-  seq->cmd_end();
-
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 2 (Morton -> Sorted Morton)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_2(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
   // Device-wide multi-workgroup LSD radix sort (Mirco Werner / Embree). Each of
@@ -266,9 +273,9 @@ void VulkanDispatcher::run_stage_2(VkAppData_Safe& appdata) {
   // 256-bin counts) and a scatter pass (global offsets + reorder). Buffers
   // ping-pong so the result lands in u_morton_keys_sorted_s2_out after 4 passes:
   //   src/dst:  s1->tmp -> out -> tmp -> out  (final = out).
-  // kiss-vk exposes no inter-dispatch pipeline barrier, so each dispatch is its
-  // own submit+fence-wait; the fence wait is a full memory barrier between
-  // passes (histogram writes -> scatter reads, and pass i -> pass i+1).
+  // The 8 dispatches are recorded into the chunk's single command buffer with
+  // shaderWrite->shaderRead memory barriers between them; the fence wait is once
+  // per chunk, not per pass.
 
   auto* hist_algo = cached_algorithms.at("radix_histograms").get();
   auto* scatter_algo = cached_algorithms.at("radix_scatter").get();
@@ -296,27 +303,25 @@ void VulkanDispatcher::run_stage_2(VkAppData_Safe& appdata) {
       &appdata.u_morton_keys_sorted_s2_out,
   };
 
-  // All 4 passes (8 dispatches) are recorded into ONE command buffer / ONE
-  // submit. Between every dispatch we insert a shaderWrite->shaderRead memory
-  // barrier: histogram->scatter shares the histograms buffer, and pass i's
-  // scatter output is pass i+1's histogram/scatter input (ping-pong). A
-  // fence-wait between separate submits guarantees execution order but NOT
-  // memory availability/visibility across submits -- AMD/Xclipse are coherent
-  // and tolerate it, but Mali-G710 is not (the next stage saw a partially
-  // written buffer, non-deterministic ~65/256 workgroups, -> garbage). Doing it
-  // in one submit with explicit barriers makes the dependencies correct on all
-  // three backends. Each pass uses its own descriptor set (num_sets(4)).
+  // Between every dispatch we insert a shaderWrite->shaderRead memory barrier:
+  // histogram->scatter shares the histograms buffer, and pass i's scatter output
+  // is pass i+1's histogram/scatter input (ping-pong). A fence-wait between
+  // separate submits guarantees execution order but NOT memory availability/
+  // visibility across submits -- AMD/Xclipse are coherent and tolerate it, but
+  // Mali-G710 is not. Doing it in one submit with explicit barriers makes the
+  // dependencies correct on all three backends. Each pass uses its own
+  // descriptor set (num_sets(4)).
   const vk::MemoryBarrier mem_barrier{
       .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
       .dstAccessMask = vk::AccessFlagBits::eShaderRead,
   };
   auto record_barrier = [&] {
-    seq->get_handle().pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                                      vk::PipelineStageFlagBits::eComputeShader,
-                                      vk::DependencyFlags{},
-                                      mem_barrier,
-                                      nullptr,
-                                      nullptr);
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                        vk::PipelineStageFlagBits::eComputeShader,
+                        vk::DependencyFlags{},
+                        mem_barrier,
+                        nullptr,
+                        nullptr);
   };
 
   // Bind buffers up-front: each pass -> its own descriptor set index.
@@ -334,7 +339,6 @@ void VulkanDispatcher::run_stage_2(VkAppData_Safe& appdata) {
                                         });
   }
 
-  seq->cmd_begin();
   for (uint32_t pass = 0; pass < 4; ++pass) {
     const RadixSortPushConstants pc{
         .g_num_elements = n,
@@ -345,22 +349,18 @@ void VulkanDispatcher::run_stage_2(VkAppData_Safe& appdata) {
 
     // histogram pass (src -> histograms)
     hist_algo->update_push_constant(pc);
-    hist_algo->record_bind_core(seq->get_handle(), pass);
-    hist_algo->record_bind_push(seq->get_handle());
-    hist_algo->record_dispatch(seq->get_handle(), {num_workgroups, 1, 1});
+    hist_algo->record_bind_core(cmd, pass);
+    hist_algo->record_bind_push(cmd);
+    hist_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
     record_barrier();
 
     // scatter pass (src + histograms -> dst)
     scatter_algo->update_push_constant(pc);
-    scatter_algo->record_bind_core(seq->get_handle(), pass);
-    scatter_algo->record_bind_push(seq->get_handle());
-    scatter_algo->record_dispatch(seq->get_handle(), {num_workgroups, 1, 1});
+    scatter_algo->record_bind_core(cmd, pass);
+    scatter_algo->record_bind_push(cmd);
+    scatter_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
     if (pass != 3) record_barrier();
   }
-  seq->cmd_end();
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
 }
 
 // ----------------------------------------------------------------------------
@@ -424,7 +424,7 @@ void VulkanDispatcher::record_device_scan(vk::CommandBuffer cmd,
   add_algo->record_dispatch(cmd, {num_blocks, 1, 1});
 }
 
-void VulkanDispatcher::run_stage_3(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
   // Stream compaction on the GPU: find_dups (run-head flags) -> device-wide
@@ -458,24 +458,22 @@ void VulkanDispatcher::run_stage_3(VkAppData_Safe& appdata) {
       .dstAccessMask = vk::AccessFlagBits::eShaderRead,
   };
   auto barrier = [&] {
-    seq->get_handle().pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                                      vk::PipelineStageFlagBits::eComputeShader,
-                                      vk::DependencyFlags{},
-                                      mem_barrier,
-                                      nullptr,
-                                      nullptr);
+    cmd.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                        vk::PipelineStageFlagBits::eComputeShader,
+                        vk::DependencyFlags{},
+                        mem_barrier,
+                        nullptr,
+                        nullptr);
   };
 
-  seq->cmd_begin();
   // find_dups: flags into u_contributes.
-  find_algo->record_bind_core(seq->get_handle(), 0);
-  find_algo->record_bind_push(seq->get_handle());
-  find_algo->record_dispatch(seq->get_handle(),
-                             {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  find_algo->record_bind_core(cmd, 0);
+  find_algo->record_bind_push(cmd);
+  find_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
   barrier();
 
-  // device-wide inclusive scan of the flags -> u_out_idx.
-  record_device_scan(seq->get_handle(),
+  // device-wide inclusive scan of the flags -> u_out_idx (scan descriptor set 0).
+  record_device_scan(cmd,
                      engine.get_buffer_info(appdata.u_contributes),
                      engine.get_buffer_info(appdata.u_out_idx),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
@@ -484,22 +482,16 @@ void VulkanDispatcher::run_stage_3(VkAppData_Safe& appdata) {
   barrier();
 
   // move_dups: scatter kept keys to their compacted positions.
-  move_algo->record_bind_core(seq->get_handle(), 0);
-  move_algo->record_bind_push(seq->get_handle());
-  move_algo->record_dispatch(seq->get_handle(),
-                             {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
-  seq->cmd_end();
-
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+  move_algo->record_bind_core(cmd, 0);
+  move_algo->record_bind_push(cmd);
+  move_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 4 (Unique Sorted Morton -> BRT)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_4(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_4(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
 
   const int32_t n = appdata.get_n_unique();
@@ -519,23 +511,16 @@ void VulkanDispatcher::run_stage_4(VkAppData_Safe& appdata) {
       .n = n,
   });
 
-  seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
-  algo->record_bind_push(seq->get_handle());
-  algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
-  seq->cmd_end();
-
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+  algo->record_bind_core(cmd, 0);
+  algo->record_bind_push(cmd);
+  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 5 (BRT -> Edge Count)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_5(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_5(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
 
   auto algo = cached_algorithms.at("edge_count").get();
@@ -551,50 +536,39 @@ void VulkanDispatcher::run_stage_5(VkAppData_Safe& appdata) {
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
   });
 
-  seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
-  algo->record_bind_push(seq->get_handle());
+  algo->record_bind_core(cmd, 0);
+  algo->record_bind_push(cmd);
   algo->record_dispatch(
-      seq->get_handle(),
-      {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
-  seq->cmd_end();
-
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 6 (Edge Count -> Edge Offset, prefix sum)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_6(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
 
   // Device-wide INCLUSIVE prefix sum of the edge counts (matches std::partial_sum
   // / cub::DeviceScan::InclusiveSum), entirely on the GPU. The buffers are int32
   // but the values are non-negative edge counts, so a uint scan is bit-identical.
+  // Uses scan descriptor set 1 (stage 3's scan uses set 0) so both can share one
+  // command buffer when a chunk spans stages 3..6.
   const uint32_t n = appdata.get_n_brt_nodes();
 
-  seq->cmd_begin();
-  record_device_scan(seq->get_handle(),
+  record_device_scan(cmd,
                      engine.get_buffer_info(appdata.u_edge_count_s5),
                      engine.get_buffer_info(appdata.u_edge_offset_s6_out),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
                      n,
-                     0);
-  seq->cmd_end();
-
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+                     1);
 }
 
 //----------------------------------------------------------------------------
 // Stage 7 (Edge Offset -> Octree)
 //----------------------------------------------------------------------------
 
-void VulkanDispatcher::run_stage_7(VkAppData_Safe& appdata) {
+void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
 
   auto algo = cached_algorithms.at("build_octree").get();
@@ -623,19 +597,12 @@ void VulkanDispatcher::run_stage_7(VkAppData_Safe& appdata) {
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
   });
 
-  seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
-  algo->record_bind_push(seq->get_handle());
+  algo->record_bind_core(cmd, 0);
+  algo->record_bind_push(cmd);
   // The shader loops over brt node indices [1, n_brt_nodes); size the grid for
   // n_brt_nodes (the grid-stride loop covers the rest).
   algo->record_dispatch(
-      seq->get_handle(),
-      {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
-  seq->cmd_end();
-
-  seq->reset_fence();
-  seq->submit();
-  seq->wait_for_fence();
+      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
 }
 
 }  // namespace tree::vulkan
