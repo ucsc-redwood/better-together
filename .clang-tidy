@@ -1,0 +1,37 @@
+# BetterTogether — clang-tidy configuration.
+#
+# Curated, high-signal-low-noise set. The point is to catch the bug classes a
+# code review found by hand (resource classes missing rule-of-5 / rule-of-zero;
+# uninitialised members; slicing; const-correctness) and to keep them caught,
+# NOT to flag every modernize-* opinion across a 30k-line tree. Editors pick this
+# up automatically; CI runs it on the diff (see .github/workflows/ci.yml).
+#
+# Formatting is owned by clang-format (.clang-format), not clang-tidy.
+Checks: >
+  bugprone-*,
+  cppcoreguidelines-special-member-functions,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-narrowing-conversions,
+  performance-*,
+  misc-misplaced-const,
+  misc-redundant-expression,
+  misc-unused-using-decls,
+  misc-unused-alias-decls,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -performance-avoid-endl,
+
+# Advisory by default. The CI diff-lint promotes the rule-of-five / member-init
+# checks to errors on changed lines only, so legacy findings never wall the gate.
+WarningsAsErrors: ''
+
+# Diagnose our own first-party headers only. The positive match already excludes
+# the CPM-fetched deps (they live under build/**/_deps, which has no platform/…,
+# runtime/… etc. path segment) and system headers.
+HeaderFilterRegex: '.*/(platform|runtime|apps|profiler|tools)/.*\.(hpp|h|cuh)$'

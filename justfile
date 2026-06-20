@@ -208,3 +208,43 @@ fmt-check:
     echo "▸ prettier (JSON)"
     git ls-files '*.json' ':(exclude)dashboard/*' | xargs -r bunx prettier@3.8.4 --check --log-level warn || rc=1
     exit $rc
+
+# --- static analysis & sanitizers -------------------------------------------
+# These build the OpenMP surface only (no GPU needed), so they run anywhere.
+
+# Build + run the OMP tests under AddressSanitizer + UBSan. Catches heap
+# overflow / use-after-free / UB that the optimised oracle build hides. Runs the
+# full omp label locally (the fleet has the cores for pipeline-e2e); the hosted CI
+# job excludes pipeline-e2e (needs >=9 physical cores to pin).
+asan:
+    cmake --preset pc-asan
+    cmake --build --preset pc-asan
+    ASAN_OPTIONS=abort_on_error=1:detect_leaks=1 \
+    UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+    ctest --test-dir build/pc-asan -L omp --output-on-failure
+
+# Build + run the OMP tests under ThreadSanitizer. Most valuable on the concurrent
+# pipeline ring (pipeline-e2e), so run the full label on a machine with the cores.
+tsan:
+    cmake --preset pc-tsan
+    cmake --build --preset pc-tsan
+    TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
+    ctest --test-dir build/pc-tsan -L omp --output-on-failure
+
+# Lint only the lines changed vs a base ref (default: origin/main) so legacy
+# findings never wall the gate -- the same gate CI runs. `build` is the compile-db
+# dir: build/pc lints the OMP surface anywhere; pass build/vulkan (or build/jetson)
+# on a box that has them to also lint the GPU engine TUs. Fails on first-party check
+# findings; ignores clang-diagnostic-* (a backend TU absent from `build`).
+tidy base="origin/main" build="build/pc":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{justfile_directory()}}"
+    test -f "{{build}}/compile_commands.json" || cmake --preset pc
+    script=$(command -v clang-tidy-diff.py 2>/dev/null \
+      || ls /usr/bin/clang-tidy-diff*.py /usr/lib/llvm-*/share/clang/clang-tidy-diff.py 2>/dev/null | head -1)
+    out=$(git diff -U0 "{{base}}" -- '*.cpp' '*.hpp' '*.cu' '*.cuh' \
+      | python3 "$script" -p1 -path "{{build}}" -j"$(nproc)" 2>&1) || true
+    echo "$out"
+    findings=$(echo "$out" | grep -E ': (warning|error): ' | grep -vE '\[clang-diagnostic-' || true)
+    [ -z "$findings" ] && echo "clang-tidy: clean" || { echo "clang-tidy: findings above"; exit 1; }
