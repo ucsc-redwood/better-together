@@ -13,12 +13,14 @@ Per device, per (app x backend in fleet.json):
   [03 run schedule]  -> (after all devices) speedup_summary.py.
 
 Config:
-  fleet.json           -- transport/build/caps per device (the source of truth for HOW
-                          to reach each target). The (app x backend x hw) gate matrix is
-                          fleet-coverage.json; what we BENCHMARK is app x device.backends.
+  fleet.json           -- transport/build/caps + per-device benchmark `backends` (the
+                          source of truth for HOW to reach each target and WHAT to run).
+                          What we BENCHMARK is app x device.backends; apps come from
+                          vocab.json (app_stages). The differential-coverage gate matrix
+                          is derived from this same file by scripts/check_fleet_coverage.py.
 
 Examples:
-  uv run --project optimizer optimizer/orchestrate/00_run_fleet.py            # full fleet, all phases
+  uv run optimizer/orchestrate/00_run_fleet.py            # full fleet, all phases
   ... --only jetson,samsung                                                   # subset of devices
   ... --phases summary                                                        # just recompute the table
   ... --only jetson --phases profile --runs 3                                 # re-collect jetson profiling
@@ -42,7 +44,7 @@ S02 = os.path.join(ORCH, "02_gen_schedule_merged.py")
 S03 = os.path.join(ORCH, "03_run_schedule.py")
 SUMMARY = os.path.join(REPO, "optimizer", "analysis", "speedup_summary.py")
 FLEET_JSON = os.path.join(REPO, "fleet.json")
-COVERAGE = os.path.join(REPO, "fleet-coverage.json")
+VOCAB_JSON = os.path.join(REPO, "vocab.json")
 FLEET_LOG_DIR = os.path.join(REPO, "data", "sched_logs", "_fleet")
 PY = sys.executable
 TABLES = ["btpm", "isolated"]
@@ -66,10 +68,7 @@ bstate = {}  # build artifact -> status dict
 
 # -- helpers ------------------------------------------------------------------
 def load_apps():
-    cov = json.load(open(COVERAGE))
-    return sorted(
-        {c["app"] for c in cov["cells"]}, key=["tree", "cifar-dense", "cifar-sparse"].index
-    )
+    return list(json.load(open(VOCAB_JSON))["app_stages"])
 
 
 def transport_args(dev):

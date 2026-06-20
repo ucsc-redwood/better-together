@@ -94,7 +94,7 @@ build-bench-jetson:
 #   just fleet-bench --only jetson,samsung --phases profile,schedule,run,summary
 #   just fleet-bench --fresh     # start from scratch (wipe old results) after a code change
 fleet-bench *args:
-    uv run --project optimizer optimizer/orchestrate/00_run_fleet.py {{args}}
+    uv run optimizer/orchestrate/00_run_fleet.py {{args}}
 
 # Delete ALL regenerable benchmark results (profiling + z3 schedules + run logs +
 # speedup-summary). Use after a kernel/runtime change to start clean; or run
@@ -108,7 +108,7 @@ test: test-jetson test-minipc test-samsung
 
 # Fail if any expected GPU (app x backend x hardware) cell was never RAN on the
 # fleet. Diffs fleet-coverage.log (emitted by the run-on-*.sh deploy scripts as
-# BT-CELL markers) against fleet-coverage.json. Run after a fleet sweep; this is
+# BT-CELL markers) against the matrix derived from fleet.json. Run after a fleet sweep; this is
 # what the dev->main promotion gate should assert (see CONTRIBUTING.md).
 check-fleet:
     scripts/check_fleet_coverage.py

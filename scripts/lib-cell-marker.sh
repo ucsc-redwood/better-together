@@ -6,7 +6,7 @@
 # CUDA/Vulkan differential tests GTEST_SKIP off-fleet -- a never-run cell is exit-0,
 # indistinguishable from a pass. These helpers turn each fleet run into an explicit
 # RAN/SKIP/FAIL marker line so scripts/check_fleet_coverage.py can fail a silently-absent
-# cell against fleet-coverage.json. See docs/reports-for-human/code-review-2026-06-18.md #8.
+# cell against the matrix derived from fleet.json. See docs/reports-for-human/code-review-2026-06-18.md #8.
 #
 # Marker format (one line per binary):  BT-CELL <app> <backend> <hardware> <RAN|SKIP|FAIL>
 
