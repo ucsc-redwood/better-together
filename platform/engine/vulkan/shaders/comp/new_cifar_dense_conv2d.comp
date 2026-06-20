@@ -37,23 +37,22 @@ layout(push_constant) uniform Params {
 params;
 
 void main() {
-  // Map Vulkan's workgroup IDs to CUDA's blockIdx
-  int n = int(gl_WorkGroupID.z);  // batch index
-  int k = int(gl_WorkGroupID.y);  // output channel
-
-  // Compute a 1D global thread index for the spatial positions (p, q)
-  int globalIndex = int(gl_WorkGroupID.x * gl_WorkGroupSize.x + gl_LocalInvocationID.x);
-
   // Compute output spatial dimensions:
   int P = (params.H + 2 * params.padding - params.R) / params.stride + 1;
   int Q = (params.W + 2 * params.padding - params.S) / params.stride + 1;
 
-  // If the global thread index exceeds the total number of spatial positions, exit.
-  if (globalIndex >= P * Q) return;
+  // Flat 1D grid over every output element -- one invocation per (n, k, p, q), so
+  // no work-group lanes sit idle on small feature maps (P*Q < work-group size).
+  int total = params.N * params.K * P * Q;
+  int idx = int(gl_GlobalInvocationID.x);
+  if (idx >= total) return;
 
-  // Map the 1D index to 2D coordinates (p, q)
-  int p = globalIndex / Q;
-  int q = globalIndex % Q;
+  int q = idx % Q;
+  idx /= Q;
+  int p = idx % P;
+  idx /= P;
+  int k = idx % params.K;  // output channel
+  int n = idx / params.K;  // batch index
 
   // Start with the bias for the current output channel
   float sum = bias_data[k];
