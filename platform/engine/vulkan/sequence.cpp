@@ -112,6 +112,22 @@ void Sequence::cmd_end() const {
   handle_.end();
 }
 
+void Sequence::cmd_memory_barrier() const {
+  // Global memory barrier: previous compute-shader writes -> next compute-shader reads.
+  // The same barrier tree's multi-dispatch stages use; required for correct cross-stage
+  // visibility (esp. on non-coherent Mali) when stages share one command buffer.
+  const vk::MemoryBarrier mem_barrier{
+      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+      .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+  };
+  handle_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                          vk::PipelineStageFlagBits::eComputeShader,
+                          vk::DependencyFlags{},
+                          mem_barrier,
+                          nullptr,
+                          nullptr);
+}
+
 double Sequence::get_last_gpu_time_ns() const {
   if (timestamp_valid_bits_ == 0) {
     return 0.0;
