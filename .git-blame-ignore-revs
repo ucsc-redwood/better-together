@@ -1,0 +1,7 @@
+# Commits that are pure formatting/whitespace churn. `git blame` skips these so
+# they don't obscure real authorship. Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub applies this file automatically in its blame view.
+
+# style: apply project formatters across the tree (clang-format/ruff/gersemi/shfmt/prettier), 2026-06-19
+1118e122d8a78aabb24f8b1fc3f04a23b00ca5c2

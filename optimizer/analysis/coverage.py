@@ -14,6 +14,7 @@ A cell is one of:
     uv run python optimizer/analysis/coverage.py            # default data/profiling
     uv run python optimizer/analysis/coverage.py --min-runs 3   # flag < 3 runs as low
 """
+
 import argparse
 import glob
 import json
@@ -55,18 +56,21 @@ def scan(root, scenario, dev, app, be):
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--root", default="data/profiling")
     ap.add_argument("--scenario", default="isolated")
-    ap.add_argument("--min-runs", type=int, default=1,
-                    help="cells with fewer collected runs are flagged LOW")
+    ap.add_argument(
+        "--min-runs", type=int, default=1, help="cells with fewer collected runs are flagged LOW"
+    )
     args = ap.parse_args()
 
-    print(f"coverage of {args.root}/*/*/*/{args.scenario} (permutation: "
-          f"{len(APPS)} apps x fleet)")
-    print("legend:  OK=collected (runs)   --=n/a (hw lacks backend)   "
-          "MISSING=gap   ab=cells early-abandoned\n")
+    print(f"coverage of {args.root}/*/*/*/{args.scenario} (permutation: {len(APPS)} apps x fleet)")
+    print(
+        "legend:  OK=collected (runs)   --=n/a (hw lacks backend)   "
+        "MISSING=gap   ab=cells early-abandoned\n"
+    )
 
     total = collected = missing = 0
     gaps = []
@@ -92,13 +96,11 @@ def main():
                 cols[be] = f"{tag} {runs}run" + (f"/ab{ab}" if ab else "")
                 omp_tiers |= tiers
                 omp_runs = max(omp_runs, runs)
-            omp = (f"OK {omp_runs}run [{','.join(sorted(omp_tiers))}]"
-                   if omp_tiers else "MISSING")
+            omp = f"OK {omp_runs}run [{','.join(sorted(omp_tiers))}]" if omp_tiers else "MISSING"
             print(f"{name:<8} {omp:<26} {cols['cuda']:<16} {cols['vulkan']:<16}")
         print()
 
-    print(f"summary: {collected}/{total} supported GPU-binary cells collected, "
-          f"{missing} missing")
+    print(f"summary: {collected}/{total} supported GPU-binary cells collected, {missing} missing")
     if gaps:
         print("gaps: " + ", ".join(gaps))
 

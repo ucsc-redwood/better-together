@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/engine/vulkan/engine.hpp"
 #include "apps/cifar-dense/appdata.hpp"
+#include "platform/engine/vulkan/engine.hpp"
 
 namespace cifar_dense::vulkan {
 

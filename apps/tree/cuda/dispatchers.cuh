@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/engine/cuda/manager.cuh"
 #include "apps/tree/safe_tree_appdata.hpp"
+#include "platform/engine/cuda/manager.cuh"
 
 namespace tree::cuda {
 
@@ -9,22 +9,22 @@ class CudaDispatcher {
  public:
   CudaDispatcher() = default;
 
-  CudaDispatcher(const CudaDispatcher &) = delete;
-  CudaDispatcher &operator=(const CudaDispatcher &) = delete;
-  CudaDispatcher(CudaDispatcher &&) = delete;
-  CudaDispatcher &operator=(CudaDispatcher &&) = delete;
+  CudaDispatcher(const CudaDispatcher&) = delete;
+  CudaDispatcher& operator=(const CudaDispatcher&) = delete;
+  CudaDispatcher(CudaDispatcher&&) = delete;
+  CudaDispatcher& operator=(CudaDispatcher&&) = delete;
 
-  ::cuda::CudaPinnedResource &get_mr() { return mgr_.get_mr(); }
+  ::cuda::CudaPinnedResource& get_mr() { return mgr_.get_mr(); }
 
-  void run_stage_1_async(tree::SafeAppData &appdata);
-  void run_stage_2_async(tree::SafeAppData &appdata);
-  void run_stage_3_async(tree::SafeAppData &appdata);
-  void run_stage_4_async(tree::SafeAppData &appdata);
-  void run_stage_5_async(tree::SafeAppData &appdata);
-  void run_stage_6_async(tree::SafeAppData &appdata);
-  void run_stage_7_async(tree::SafeAppData &appdata);
+  void run_stage_1_async(tree::SafeAppData& appdata);
+  void run_stage_2_async(tree::SafeAppData& appdata);
+  void run_stage_3_async(tree::SafeAppData& appdata);
+  void run_stage_4_async(tree::SafeAppData& appdata);
+  void run_stage_5_async(tree::SafeAppData& appdata);
+  void run_stage_6_async(tree::SafeAppData& appdata);
+  void run_stage_7_async(tree::SafeAppData& appdata);
 
-  using StageFn = void (CudaDispatcher::*)(tree::SafeAppData &);
+  using StageFn = void (CudaDispatcher::*)(tree::SafeAppData&);
 
   static constexpr std::array<StageFn, 7> stage_functions = {
       &CudaDispatcher::run_stage_1_async,
@@ -36,7 +36,7 @@ class CudaDispatcher {
       &CudaDispatcher::run_stage_7_async,
   };
 
-  void dispatch_stage(tree::SafeAppData &appdata, const int stage) {
+  void dispatch_stage(tree::SafeAppData& appdata, const int stage) {
     assert(stage >= 1 && stage <= 7);
 
     (this->*stage_functions[stage - 1])(appdata);
@@ -45,7 +45,7 @@ class CudaDispatcher {
     CheckCuda(cudaDeviceSynchronize());
   }
 
-  void dispatch_multi_stage(tree::SafeAppData &appdata,
+  void dispatch_multi_stage(tree::SafeAppData& appdata,
                             const int start_stage,
                             const int end_stage) {
     assert(start_stage >= 1 && end_stage <= 7);

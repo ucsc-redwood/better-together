@@ -15,13 +15,13 @@
 # Recognized diff targets: test-<app>-<cu|vk>  (app in tree|cifar-dense|cifar-sparse).
 bt_cell_of() {
   case "$1" in
-    test-tree-cu)         echo "tree cuda" ;;
-    test-cifar-dense-cu)  echo "cifar-dense cuda" ;;
+    test-tree-cu) echo "tree cuda" ;;
+    test-cifar-dense-cu) echo "cifar-dense cuda" ;;
     test-cifar-sparse-cu) echo "cifar-sparse cuda" ;;
-    test-tree-vk)         echo "tree vulkan" ;;
-    test-cifar-dense-vk)  echo "cifar-dense vulkan" ;;
+    test-tree-vk) echo "tree vulkan" ;;
+    test-cifar-dense-vk) echo "cifar-dense vulkan" ;;
     test-cifar-sparse-vk) echo "cifar-sparse vulkan" ;;
-    *) echo "" ;;  # not a tracked cell
+    *) echo "" ;; # not a tracked cell
   esac
 }
 
@@ -44,7 +44,8 @@ bt_classify_run() {
 # Prints "BT-CELL <app> <backend> <hardware> <status>" to stdout for tracked cells.
 bt_emit_marker() {
   local target="$1" hardware="$2" rc="$3" out="$4"
-  local cell; cell="$(bt_cell_of "$target")"
+  local cell
+  cell="$(bt_cell_of "$target")"
   [ -n "$cell" ] || return 0
   echo "BT-CELL $cell $hardware $(bt_classify_run "$rc" "$out")"
 }

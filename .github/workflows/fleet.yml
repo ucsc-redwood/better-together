@@ -1,0 +1,67 @@
+name: Fleet (hardware-in-the-loop)
+
+# Tier-1 gate: runs the real CUDA/Vulkan/OMP differential tests on the physical fleet
+# and FAILS LOUD if any expected (app x backend x hardware) cell didn't run-and-pass.
+# This is the verification dev->main promotion depends on (CONTRIBUTING.md); the hosted
+# ci.yml only covers OMP on x86 and gives no signal on the GPU backends.
+#
+# Runs on ONE self-hosted runner on the Rocky box (label: rocky), which co-locates the
+# whole OMP+Vulkan surface — its own iGPU (minipc, local) and both phones (local adb) —
+# and cross-builds the Jetson CUDA target via rootless podman, then ssh-deploys to it
+# (option b). A single job keeps one fleet-coverage.log for the check-fleet gate.
+#
+# Never triggered by pull_request: a self-hosted runner must not execute untrusted fork
+# code. Manual dispatch + nightly only.
+#
+# Runner prereqs on Rocky: podman + bt-cross:6.1 image, Android NDK, uv (~/.local/bin),
+# rocky->Jetson ssh, and adb to both phones. See docs / the runner setup.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *" # nightly 08:00 UTC
+
+concurrency:
+  group: fleet # the devices are a shared mutex
+  cancel-in-progress: false # never cancel a half-deployed run
+
+jobs:
+  fleet:
+    runs-on: [self-hosted, rocky]
+    env:
+      BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
+      BT_CONTAINER: podman # Jetson cross-build via rootless podman on Rocky
+      BT_ROCKY_HOST: localhost # minipc iGPU is THIS box -> run locally, no ssh
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tool env (uv is in ~/.local/bin; NDK for the Android build)
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_NDK_HOME=$HOME/android-ndk-r29" >> "$GITHUB_ENV"
+
+      - name: Build — x86 Vulkan+OMP (minipc) + Android (NDK) + Jetson (podman cross)
+        run: just build # build-x86 + build-android + build-jetson (BT_CONTAINER=podman)
+
+      - name: Start a fresh coverage log
+        run: rm -f "$BT_CELL_LOG"
+
+      # Each device step is continue-on-error so one offline device doesn't mask which
+      # cells DID run; the single hard gate is `just check-fleet` below.
+      - name: Rocky / minipc — OMP + Vulkan (local)
+        continue-on-error: true
+        run: scripts/run-on-rocky.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+
+      - name: Android phones — OMP + Vulkan (local adb)
+        continue-on-error: true
+        run: |
+          for serial in R5CY21Y3VEV 3A021JEHN02756; do
+            scripts/run-on-android.sh "$serial" test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk || true
+          done
+
+      - name: Jetson — OMP + CUDA + Vulkan (cross-built here, run via ssh)
+        continue-on-error: true
+        run: scripts/run-on-jetson.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+
+      - name: Assert full fleet coverage (the gate)
+        run: just check-fleet

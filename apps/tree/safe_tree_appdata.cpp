@@ -168,7 +168,7 @@ void HostTreeManager::initialize() {
 #pragma omp parallel for
     for (int i = start; i < end; ++i) {
       tree::omp::process_oct_node(i,
-                                  reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7.data()),
+                                  reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
                                   appdata.u_oct_corner_s7.data(),
                                   appdata.u_oct_cell_size_s7.data(),
                                   appdata.u_oct_child_node_mask_s7.data(),
@@ -185,7 +185,7 @@ void HostTreeManager::initialize() {
       // link-leaf was "completed" untrue). Run it so the golden matches the
       // full pipeline the dispatcher (run_stage_7) executes.
       tree::omp::process_link_leaf(i,
-                                   reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7.data()),
+                                   reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
                                    appdata.u_oct_child_leaf_mask_s7.data(),
                                    appdata.u_edge_offset_s6.data(),
                                    appdata.u_edge_count_s5.data(),

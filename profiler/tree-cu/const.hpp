@@ -2,10 +2,10 @@
 
 #include <queue>
 
-#include "runtime/record.hpp"
-#include "runtime/spsc_queue.hpp"
 #include "apps/tree/cuda/dispatchers.cuh"
 #include "apps/tree/omp/dispatchers.hpp"
+#include "runtime/record.hpp"
+#include "runtime/spsc_queue.hpp"
 
 // Application-specific constants
 constexpr size_t kNumStages = 7;

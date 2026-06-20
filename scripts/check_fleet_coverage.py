@@ -77,7 +77,11 @@ def main() -> int:
     if failures:
         print(f"COVERAGE RED -- {len(failures)} expected cell(s) not RAN:")
         for (app, backend, hardware), status in failures:
-            hint = "never ran (run the fleet deploy script)" if status == "MISSING" else f"last status {status}"
+            hint = (
+                "never ran (run the fleet deploy script)"
+                if status == "MISSING"
+                else f"last status {status}"
+            )
             print(f"  - {app} {backend} {hardware}: {hint}")
         print("Run scripts/run-on-{jetson,rocky,android}.sh on the fleet to populate the log.")
         return 1

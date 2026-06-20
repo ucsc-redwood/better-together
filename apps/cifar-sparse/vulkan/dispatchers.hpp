@@ -1,7 +1,7 @@
 #pragma once
 
-#include "platform/engine/vulkan/engine.hpp"
 #include "apps/cifar-sparse/appdata.hpp"
+#include "platform/engine/vulkan/engine.hpp"
 
 namespace cifar_sparse::vulkan {
 

@@ -1,6 +1,6 @@
 """SMT constraints and optimization setup for schedule optimization."""
 
-from z3 import Optimize, Bool, Real, Sum, Or, Not, RealVal, Implies, And
+from z3 import And, Bool, Implies, Not, Optimize, Or, Real, RealVal, Sum
 
 
 def create_decision_variables(num_stages, core_types):
@@ -60,10 +60,7 @@ def add_chunk_time_constraint(
 
                 # Compute the sum over the segment.
                 seg_sum = Sum(
-                    [
-                        RealVal(stage_timings[k][core_types.index(c)])
-                        for k in range(i, j + 1)
-                    ]
+                    [RealVal(stage_timings[k][core_types.index(c)]) for k in range(i, j + 1)]
                 )
 
                 # Add the implication: if the segment is uniformly assigned c, then seg_sum <= T_max.

@@ -3,24 +3,27 @@
 from z3 import sat
 
 from .constraints import (
-    create_decision_variables,
     add_assignment_constraints,
     add_availability_constraints,
     add_chunk_time_constraint,
     add_contiguity_constraints,
     block_solution,
+    create_decision_variables,
     create_optimizer,
 )
-from .data_loader import define_data, UNAVAILABLE
+from .data_loader import UNAVAILABLE, define_data
 from .solution_analyzer import (
-    get_solution_representation,
     get_detailed_solution,
+    get_solution_representation,
 )
 
 
 # baseline_data,
 def solve_optimization_problem(
-    stage_timings, num_solutions=30, app_name=None, minimize_mode="gapness",
+    stage_timings,
+    num_solutions=30,
+    app_name=None,
+    minimize_mode="gapness",
     gpu_backend=None,
 ):
     """Solve the optimization problem and return the solutions.
@@ -88,9 +91,7 @@ def solve_optimization_problem(
         # Store solution (carry the uid in the tuple so a re-sorted summary reads the
         # uid of the RIGHT solution, not detailed_solutions[i] in discovery order -- #33).
         solution_repr = get_solution_representation(m, x, num_stages, core_types)
-        top_solutions.append(
-            (gapness_value, max_time, solution_repr, detailed_solution["uid"])
-        )
+        top_solutions.append((gapness_value, max_time, solution_repr, detailed_solution["uid"]))
 
         # Block this solution to find the next one
         block_solution(opt, x, num_stages, core_types, m)

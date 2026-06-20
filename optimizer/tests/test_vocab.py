@@ -2,12 +2,13 @@
 the sites that used to hand-duplicate the vocabulary (data_loader, baselines, the schema).
 Run:  pytest optimizer/tests/test_vocab.py
 """
+
 import json
 import pathlib
 
-from smt.bt_vocab import CPU_TIERS, CORE_TYPES, APP_STAGES
-from smt.data_loader import define_data
 from smt.baselines import get_num_stages_for_app
+from smt.bt_vocab import APP_STAGES, CORE_TYPES, CPU_TIERS
+from smt.data_loader import define_data
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
@@ -16,7 +17,9 @@ def test_bt_vocab_matches_vocab_json():
     v = json.loads((ROOT / "vocab.json").read_text())
     assert list(CORE_TYPES) == v["solver_core_types"]
     assert list(CPU_TIERS) == [p["name"] for p in v["processor_types"] if p.get("solver_cpu_tier")]
-    assert APP_STAGES == v["app_stages"], "committed bt_vocab.py is stale vs vocab.json -- regenerate"
+    assert APP_STAGES == v["app_stages"], (
+        "committed bt_vocab.py is stale vs vocab.json -- regenerate"
+    )
 
 
 def test_core_types_match_data_loader():
@@ -49,5 +52,6 @@ def _enums(obj):
 
 def test_schema_core_type_enum_matches_vocab():
     schema = json.loads((ROOT / "schemas" / "schedule.schema.json").read_text())
-    assert list(CORE_TYPES) in _enums(schema), \
+    assert list(CORE_TYPES) in _enums(schema), (
         "schedule.schema.json core_type enum drifted from vocab.json CORE_TYPES"
+    )

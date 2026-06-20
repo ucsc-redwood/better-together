@@ -6,8 +6,8 @@
 #include <cstring>
 #include <filesystem>
 
-#include "platform/util/resources_path.hpp"
 #include "ndarray.hpp"
+#include "platform/util/resources_path.hpp"
 
 namespace fs = std::filesystem;
 

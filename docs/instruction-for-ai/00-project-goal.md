@@ -19,7 +19,7 @@ to three backends — **OMP** (CPU), **CUDA** (NVIDIA), **Vulkan** (cross-platfo
 GLSL compute). The pipeline is really three tools passing files:
 
 ```
-BT-Profiler  ──(profiling table CSV)──▶  BT-Optimizer (Python / z3 SMT)
+BT-Profiler  ──(JSONL profiling store)──▶  BT-Optimizer (Python / z3 SMT)
                                                 │
                                           (schedule JSON)
                                                 ▼
@@ -37,7 +37,6 @@ The primary extension axis is **devices**: "add a device = drop in a data file"
 | **cifar-dense** | AlexNet inference on CIFAR-10 | 9 today → 11 canonical | float (`NearEqual`) |
 | **cifar-sparse** | Pruned/sparse AlexNet (irregular memory) | 9 → 11 | float (`NearEqual`) |
 | **tree** | 3D octree construction (morton → sort → unique → radix-tree → edge-count → prefix-sum → octree-build) | 7 | exact (integer/structural) |
-| **octree** | octree variant (OMP + Vulkan only, no CUDA) | 7 | exact |
 
 The canonical AlexNet shapes are load-bearing for kernel work — see
 [`04-alexnet-cifar-spec.md`](04-alexnet-cifar-spec.md).

@@ -1,0 +1,80 @@
+name: CI
+
+# What runs on GitHub-hosted runners: formatting, the OMP-as-oracle unit tests
+# (the everyday gate), and the optimizer pytest. The CUDA / Vulkan / Android
+# targets need the physical fleet (Jetson, iGPU box, phones) and are verified
+# out-of-band via the run-on-*.sh scripts / `just test` — they cannot run here.
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: format (fmt-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: extractions/setup-just@v2
+      - uses: oven-sh/setup-bun@v2
+      - name: Install shfmt
+        run: |
+          sudo curl -fsSL \
+            https://github.com/mvdan/sh/releases/download/v3.13.1/shfmt_v3.13.1_linux_amd64 \
+            -o /usr/local/bin/shfmt
+          sudo chmod +x /usr/local/bin/shfmt
+      - name: Install pinned formatters (clang-format, ruff, gersemi)
+        run: uv sync --group dev
+      - name: just fmt-check
+        run: just fmt-check
+
+  test-omp:
+    name: build + ctest -L omp
+    runs-on: ubuntu-latest
+    env:
+      CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache CPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.cpm-cache
+          key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
+          restore-keys: cpm-${{ runner.os }}-
+      - name: Configure (pc preset — OpenMP only)
+        run: cmake --preset pc
+      - name: Build
+        run: cmake --build --preset pc
+      - name: Test (OMP-as-oracle differential)
+        # The pipeline-e2e tests pin worker threads to physical core IDs from the
+        # 'pc' device profile (24 cores: 8 big + 16 little). Hosted runners have ~4
+        # cores, so they abort with "Failed to pin thread to cores". Those run on
+        # the real fleet via `just test`. CI covers the topology-independent set:
+        # the per-stage differential oracle (tree / cifar-dense / cifar-sparse),
+        # the schedule contract, the guards, and device validation.
+        run: |
+          echo "NOTE: excluding pipeline-e2e (needs >=9-core topology; fleet-only)"
+          ctest --test-dir build/pc -L omp -E 'pipeline-e2e' --output-on-failure
+
+  optimizer:
+    name: optimizer pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Test
+        working-directory: optimizer
+        run: |
+          uv sync --extra test
+          uv run pytest -q

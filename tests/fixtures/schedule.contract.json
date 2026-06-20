@@ -3,7 +3,14 @@
     "uid": "contract-all-gpu-cuda",
     "solution_id": 1,
     "chunks": [
-      { "id": 0, "core_type": "GPU", "start_stage": 1, "end_stage": 9, "time": 10.0, "hardware": "gpu_cuda" }
+      {
+        "id": 0,
+        "core_type": "GPU",
+        "start_stage": 1,
+        "end_stage": 9,
+        "time": 10.0,
+        "hardware": "gpu_cuda"
+      }
     ],
     "metrics": { "max_time": 10.0 }
   },
@@ -11,8 +18,21 @@
     "uid": "contract-hybrid-big-gpu-vulkan",
     "solution_id": 2,
     "chunks": [
-      { "id": 0, "core_type": "Big", "start_stage": 1, "end_stage": 4, "time": 5.0 },
-      { "id": 1, "core_type": "GPU", "start_stage": 5, "end_stage": 9, "time": 6.0, "hardware": "gpu_vulkan" }
+      {
+        "id": 0,
+        "core_type": "Big",
+        "start_stage": 1,
+        "end_stage": 4,
+        "time": 5.0
+      },
+      {
+        "id": 1,
+        "core_type": "GPU",
+        "start_stage": 5,
+        "end_stage": 9,
+        "time": 6.0,
+        "hardware": "gpu_vulkan"
+      }
     ],
     "metrics": { "max_time": 6.0 }
   }

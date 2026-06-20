@@ -10,6 +10,7 @@ Backend naming: the canonical-JSONL profiling store keys the GPU by its long nam
 uses the short name (`cu`/`vk`). `Case.backend` is the short name; the profiling helpers
 translate.
 """
+
 import os
 from dataclasses import dataclass
 
@@ -54,7 +55,10 @@ class Case:
     # --- z3 schedule JSON (short backend name) ---
     def schedule_path(self, root: str, table_type: str, minimize_mode: str) -> str:
         return os.path.join(
-            root, self.device, self.app, self.backend,
+            root,
+            self.device,
+            self.app,
+            self.backend,
             f"schedules_{table_type}_{minimize_mode}.json",
         )
 

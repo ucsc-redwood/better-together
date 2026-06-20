@@ -32,7 +32,7 @@ constexpr size_t div_up(const size_t a, const size_t b) { return (a + b - 1) / b
 // cheap (no sync). In debug builds we also synchronize to surface in-kernel execution
 // errors at the same site.
 namespace cuda {
-inline void check_cuda_launch(const char *name, const char *file, int line) {
+inline void check_cuda_launch(const char* name, const char* file, int line) {
   cudaError_t err = cudaGetLastError();
 #ifndef NDEBUG
   if (err == cudaSuccess) err = cudaDeviceSynchronize();

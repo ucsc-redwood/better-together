@@ -9,12 +9,17 @@
 // the app/backend identity, the Vulkan timer policy, and the app's OMP token.
 // ---------------------------------------------------------------------------
 
-#include "profiler/bm_prof_vulkan.hpp"
 #include "const.hpp"  // DispatcherT (VulkanDispatcher), AppDataT, kNumStages
+#include "profiler/bm_prof_vulkan.hpp"
 
 int main(int argc, char** argv) {
   return bt_prof::run_bm_prof<DispatcherT, AppDataT>(
-      argc, argv, "cifar-dense", "vulkan", "vulkan", static_cast<int>(kNumStages),
+      argc,
+      argv,
+      "cifar-dense",
+      "vulkan",
+      "vulkan",
+      static_cast<int>(kNumStages),
       [](DispatcherT& disp) { return bt_prof::VulkanTimer<DispatcherT, AppDataT>{disp}; },
       [](auto&& cores, size_t n, AppDataT& app, int a, int b) {
         cifar_dense::omp::dispatch_multi_stage(cores, n, app, a, b);

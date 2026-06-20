@@ -2,8 +2,8 @@
 
 #include "runtime/task.hpp"
 // #include "../omp/dispatchers.hpp"
-#include "platform/registry/device_registry.hpp"
 #include "dispatchers.hpp"
+#include "platform/registry/device_registry.hpp"
 #include "spdlog/spdlog.h"
 
 using MyTask = Task<tree::vulkan::VkAppData_Safe>;

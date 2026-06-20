@@ -1,9 +1,9 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/hex_dump.hpp"
-#include "dispatchers.hpp"
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

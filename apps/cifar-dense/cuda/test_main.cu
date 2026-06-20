@@ -2,9 +2,9 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.cuh"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-dense × CUDA differential oracle. Each stage output is checked against

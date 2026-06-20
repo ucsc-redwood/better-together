@@ -5,9 +5,10 @@ in channel-first (C, H, W) format.
 """
 
 import os
+
 import numpy as np
-from torchvision.datasets import CIFAR10
 from torchvision import transforms
+from torchvision.datasets import CIFAR10
 
 
 def main(output_dir: str = "cifar_batches"):

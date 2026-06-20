@@ -28,16 +28,18 @@ namespace {
 // actually asked for (alignof of the app data types) is far under that. Reject a
 // larger request loudly rather than silently handing back under-aligned memory.
 constexpr std::size_t kCudaGuaranteedAlign = 256;
-void check_alignment(std::size_t alignment, const char *who) {
+void check_alignment(std::size_t alignment, const char* who) {
   if (alignment > kCudaGuaranteedAlign) {
-    throw std::runtime_error(fmt::format(
-        "{}: requested alignment {} exceeds CUDA's guaranteed {} bytes", who, alignment,
-        kCudaGuaranteedAlign));
+    throw std::runtime_error(
+        fmt::format("{}: requested alignment {} exceeds CUDA's guaranteed {} bytes",
+                    who,
+                    alignment,
+                    kCudaGuaranteedAlign));
   }
 }
 
 // Surface the actual CUDA error text (it used to be discarded by a bare bad_alloc).
-[[noreturn]] void fail_alloc(const char *call, std::size_t bytes, cudaError_t err) {
+[[noreturn]] void fail_alloc(const char* call, std::size_t bytes, cudaError_t err) {
   spdlog::error("{}({} bytes) failed: {}", call, bytes, cudaGetErrorString(err));
   throw std::bad_alloc();
 }
@@ -48,15 +50,15 @@ void check_alignment(std::size_t alignment, const char *who) {
 // and not a cudaMallocManaged resource, is the §1-safe choice on Tegra).
 // ----------------------------------------------------------------------------
 
-void *CudaPinnedResource::do_allocate(std::size_t bytes, std::size_t alignment) {
+void* CudaPinnedResource::do_allocate(std::size_t bytes, std::size_t alignment) {
   check_alignment(alignment, "CudaPinnedResource::do_allocate");
-  void *h_ptr = nullptr;
+  void* h_ptr = nullptr;
   cudaError_t err = cudaHostAlloc(&h_ptr, bytes, cudaHostAllocMapped);
   if (err != cudaSuccess) {
     fail_alloc("cudaHostAlloc", bytes, err);
   }
 
-  void *d_ptr = nullptr;
+  void* d_ptr = nullptr;
   err = cudaHostGetDevicePointer(&d_ptr, h_ptr, 0);
   if (err != cudaSuccess) {
     cudaFreeHost(h_ptr);  // the host alloc succeeded; don't leak it on this failure
@@ -75,17 +77,17 @@ void *CudaPinnedResource::do_allocate(std::size_t bytes, std::size_t alignment) 
   }
 
   spdlog::trace(
-      "CudaPinnedResource::do_allocate: {}, {}", static_cast<void *>(d_ptr), format_bytes(bytes));
+      "CudaPinnedResource::do_allocate: {}, {}", static_cast<void*>(d_ptr), format_bytes(bytes));
 
   return d_ptr;
 }
 
-void CudaPinnedResource::do_deallocate(void *p, std::size_t /*bytes*/, std::size_t /*alignment*/) {
-  spdlog::trace("CudaPinnedResource::do_deallocate: {}", static_cast<void *>(p));
+void CudaPinnedResource::do_deallocate(void* p, std::size_t /*bytes*/, std::size_t /*alignment*/) {
+  spdlog::trace("CudaPinnedResource::do_deallocate: {}", static_cast<void*>(p));
   CheckCuda(cudaFreeHost(p));
 }
 
-bool CudaPinnedResource::do_is_equal(const std::pmr::memory_resource &other) const noexcept {
+bool CudaPinnedResource::do_is_equal(const std::pmr::memory_resource& other) const noexcept {
   return this == &other;
 }
 

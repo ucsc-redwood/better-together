@@ -146,18 +146,18 @@ struct AppData final : public BaseAppData {
   }
 
   // Input and intermediate outputs
-  Ndarray4D u_input;      // (128, 3, 32, 32)
-  Ndarray4D u_conv1_out;  // (128, 16, 32, 32)
-  Ndarray4D u_pool1_out;  // (128, 16, 16, 16)
-  Ndarray4D u_conv2_out;  // (128, 32, 16, 16)
-  Ndarray4D u_pool2_out;  // (128, 32, 8, 8)
-  Ndarray4D u_conv3_out;  // (128, 64, 8, 8)
-  Ndarray4D u_conv4_out;  // (128, 64, 8, 8)
-  Ndarray4D u_conv5_out;  // (128, 64, 8, 8)
-  Ndarray4D u_pool3_out;  // (128, 64, 4, 4)
+  Ndarray4D u_input;      // (512, 3, 32, 32)
+  Ndarray4D u_conv1_out;  // (512, 16, 32, 32)
+  Ndarray4D u_pool1_out;  // (512, 16, 16, 16)
+  Ndarray4D u_conv2_out;  // (512, 32, 16, 16)
+  Ndarray4D u_pool2_out;  // (512, 32, 8, 8)
+  Ndarray4D u_conv3_out;  // (512, 64, 8, 8)
+  Ndarray4D u_conv4_out;  // (512, 64, 8, 8)
+  Ndarray4D u_conv5_out;  // (512, 64, 8, 8)
+  Ndarray4D u_pool3_out;  // (512, 64, 4, 4)
 
-  // Flatten would be (128, 1024), stored or created on-the-fly
-  Ndarray2D u_linear_out;  // shape = (128, 10) for final classification
+  // Flatten would be (512, 1024), stored or created on-the-fly
+  Ndarray2D u_linear_out;  // shape = (512, 10) for final classification
 
   // Model parameters
   Ndarray1D u_conv1_b;

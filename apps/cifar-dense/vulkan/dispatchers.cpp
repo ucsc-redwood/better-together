@@ -33,14 +33,13 @@ struct Conv2dPushConstants_v2 {
 
 // Push constants for the maxpool shader
 struct MaxpoolPushConstants_v2 {
-  int32_t N;        // Batch size
-  int32_t C;        // Number of channels
-  int32_t H;        // Input height
-  int32_t W;        // Input width
-  int32_t pool_h;   // Pooling kernel height
-  int32_t pool_w;   // Pooling kernel width
-  int32_t stride;   // Pooling stride
-  int32_t padding;  // Pooling padding
+  int32_t N;       // Batch size
+  int32_t C;       // Number of channels
+  int32_t H;       // Input height
+  int32_t W;       // Input width
+  int32_t pool_h;  // Pooling kernel height
+  int32_t pool_w;  // Pooling kernel width
+  int32_t stride;  // Pooling stride
 };
 
 // Push constants for the linear shader
@@ -105,7 +104,7 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
                                   engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_input.d0();   // Expected 512
+  const int batch_size = appdata.u_input.d0();   // Expected 128
   const int in_channels = appdata.u_input.d1();  // Expected 3 (RGB)
   const int in_height = appdata.u_input.d2();    // Expected 32
   const int in_width = appdata.u_input.d3();     // Expected 32
@@ -133,9 +132,7 @@ void VulkanDispatcher::run_stage_1(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(out_channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -159,7 +156,7 @@ void VulkanDispatcher::run_stage_2(AppData& appdata) {
                               });
 
   // Extract dimensions from the convolution output NDArray4D
-  const int batch_size = appdata.u_conv1_out.d0();  // Expected: 512
+  const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
   const int channels = appdata.u_conv1_out.d1();    // Expected: 16
   const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
   const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
@@ -177,16 +174,13 @@ void VulkanDispatcher::run_stage_2(AppData& appdata) {
       .pool_h = kPoolSize,
       .pool_w = kPoolSize,
       .stride = kPoolStride,
-      .padding = 0,  // No padding in MaxPool
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=C, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -211,7 +205,7 @@ void VulkanDispatcher::run_stage_3(AppData& appdata) {
                                   engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_pool1_out.d0();   // Expected: 512
+  const int batch_size = appdata.u_pool1_out.d0();   // Expected: 128
   const int in_channels = appdata.u_pool1_out.d1();  // Expected: 16
   const int in_height = appdata.u_pool1_out.d2();    // Expected: 16
   const int in_width = appdata.u_pool1_out.d3();     // Expected: 16
@@ -239,9 +233,7 @@ void VulkanDispatcher::run_stage_3(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(out_channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -265,7 +257,7 @@ void VulkanDispatcher::run_stage_4(AppData& appdata) {
                               });
 
   // Extract dimensions from the convolution output NDArray4D
-  const int batch_size = appdata.u_conv2_out.d0();  // Expected: 512
+  const int batch_size = appdata.u_conv2_out.d0();  // Expected: 128
   const int channels = appdata.u_conv2_out.d1();    // Expected: 32
   const int in_height = appdata.u_conv2_out.d2();   // Expected: 16
   const int in_width = appdata.u_conv2_out.d3();    // Expected: 16
@@ -283,16 +275,13 @@ void VulkanDispatcher::run_stage_4(AppData& appdata) {
       .pool_h = kPoolSize,
       .pool_w = kPoolSize,
       .stride = kPoolStride,
-      .padding = 0,  // No padding in MaxPool
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=C, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -317,7 +306,7 @@ void VulkanDispatcher::run_stage_5(AppData& appdata) {
                                   engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_pool2_out.d0();   // Expected: 512
+  const int batch_size = appdata.u_pool2_out.d0();   // Expected: 128
   const int in_channels = appdata.u_pool2_out.d1();  // Expected: 32
   const int in_height = appdata.u_pool2_out.d2();    // Expected: 8
   const int in_width = appdata.u_pool2_out.d3();     // Expected: 8
@@ -345,9 +334,7 @@ void VulkanDispatcher::run_stage_5(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(out_channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -372,7 +359,7 @@ void VulkanDispatcher::run_stage_6(AppData& appdata) {
                                   engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_conv3_out.d0();   // Expected: 512
+  const int batch_size = appdata.u_conv3_out.d0();   // Expected: 128
   const int in_channels = appdata.u_conv3_out.d1();  // Expected: 64
   const int in_height = appdata.u_conv3_out.d2();    // Expected: 8
   const int in_width = appdata.u_conv3_out.d3();     // Expected: 8
@@ -400,9 +387,7 @@ void VulkanDispatcher::run_stage_6(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(out_channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -427,7 +412,7 @@ void VulkanDispatcher::run_stage_7(AppData& appdata) {
                                   engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_conv4_out.d0();   // Expected: 512
+  const int batch_size = appdata.u_conv4_out.d0();   // Expected: 128
   const int in_channels = appdata.u_conv4_out.d1();  // Expected: 64
   const int in_height = appdata.u_conv4_out.d2();    // Expected: 8
   const int in_width = appdata.u_conv4_out.d3();     // Expected: 8
@@ -455,9 +440,7 @@ void VulkanDispatcher::run_stage_7(AppData& appdata) {
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(out_channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=K, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -481,7 +464,7 @@ void VulkanDispatcher::run_stage_8(AppData& appdata) {
                               });
 
   // Extract dimensions from the convolution output NDArray4D
-  const int batch_size = appdata.u_conv5_out.d0();  // Expected: 512
+  const int batch_size = appdata.u_conv5_out.d0();  // Expected: 128
   const int channels = appdata.u_conv5_out.d1();    // Expected: 64
   const int in_height = appdata.u_conv5_out.d2();   // Expected: 8
   const int in_width = appdata.u_conv5_out.d3();    // Expected: 8
@@ -499,16 +482,13 @@ void VulkanDispatcher::run_stage_8(AppData& appdata) {
       .pool_h = kPoolSize,
       .pool_w = kPoolSize,
       .stride = kPoolStride,
-      .padding = 0,  // No padding in MaxPool
   });
 
   seq->cmd_begin();
   algo->record_bind_core(seq->get_handle(), 0);
   algo->record_bind_push(seq->get_handle());
   algo->record_dispatch(seq->get_handle(),
-                        {static_cast<uint32_t>(kiss_vk::div_ceil(out_height * out_width, 256)),
-                         static_cast<uint32_t>(channels),
-                         static_cast<uint32_t>(batch_size)});  // 3D grid: x=spatial, y=C, z=N
+                        {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
   seq->cmd_end();
 
   seq->submit();
@@ -534,7 +514,7 @@ void VulkanDispatcher::run_stage_9(AppData& appdata) {
                               });
 
   // Calculate flattened input size (total number of features per sample)
-  const int batch_size = appdata.u_pool3_out.d0();       // Expected: 512
+  const int batch_size = appdata.u_pool3_out.d0();       // Expected: 128
   const int channels = appdata.u_pool3_out.d1();         // Expected: 64
   const int height = appdata.u_pool3_out.d2();           // Expected: 4
   const int width = appdata.u_pool3_out.d3();            // Expected: 4

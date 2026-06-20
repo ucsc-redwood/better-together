@@ -8,6 +8,7 @@ generated outputs are the fallback, regenerated at build time by the CMake bt_vo
 Regenerate after editing vocab.json:
     python3 scripts/embed_vocab.py
 """
+
 import json
 import pathlib
 import sys
@@ -29,6 +30,8 @@ def _write_if_changed(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists() or path.read_text(encoding="utf-8") != content:
         path.write_text(content, encoding="utf-8")
+
+
 pus = v["processor_types"]
 named = [p for p in pus if p.get("name")]  # CoreTypeName/parse handle the named tiers
 cpu_tiers = [p["name"] for p in pus if p.get("solver_cpu_tier")]

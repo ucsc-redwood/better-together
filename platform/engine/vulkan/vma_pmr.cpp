@@ -2,7 +2,7 @@
 
 namespace kiss_vk {
 
-void CHECK_VK_RESULT(VkResult result, const char *msg) {
+void CHECK_VK_RESULT(VkResult result, const char* msg) {
   if (result != VK_SUCCESS) {
     spdlog::error("Vulkan error: {} - {}", vk::to_string(static_cast<vk::Result>(result)), msg);
     throw std::runtime_error("Vulkan Error");
@@ -27,7 +27,7 @@ VulkanMemoryResource::VulkanMemoryResource(const vk::Device device,
 
 VulkanMemoryResource::~VulkanMemoryResource() { spdlog::debug("VulkanMemoryResource destroyed"); }
 
-vk::Buffer VulkanMemoryResource::get_buffer_from_pointer(void *p) {
+vk::Buffer VulkanMemoryResource::get_buffer_from_pointer(void* p) {
   std::lock_guard lock(mutex_);
   const auto it = allocations_.find(p);
   if (it == allocations_.end()) {
@@ -49,7 +49,7 @@ vk::Buffer VulkanMemoryResource::get_buffer_from_pointer(void *p) {
 //       .buffer = buffer, .offset = 0, .range = mem_reqs.memoryRequirements.size};
 // }
 
-void *VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std::size_t alignment) {
+void* VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std::size_t alignment) {
   spdlog::trace("VulkanMemoryResource::do_allocate({}, {})", bytes, alignment);
 
   const vk::BufferCreateInfo buffer_create_info{
@@ -79,7 +79,7 @@ void *VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std:
   VmaAllocationInfo allocInfo{};
 
   VkResult res = vmaCreateBuffer(g_vma_allocator,
-                                 reinterpret_cast<const VkBufferCreateInfo *>(&buffer_create_info),
+                                 reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
                                  &allocCreateInfo,
                                  &buffer,
                                  &allocation,
@@ -89,7 +89,7 @@ void *VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std:
 
   // The memory should already be mapped due to the
   // VMA_ALLOCATION_CREATE_MAPPED_BIT flag.
-  void *mappedPtr = allocInfo.pMappedData;
+  void* mappedPtr = allocInfo.pMappedData;
   if (!mappedPtr) {
     // If it's not mapped for some reason, we can attempt to map it.
     // According to the flags, it should be mapped already, but just in case:
@@ -106,7 +106,7 @@ void *VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std:
 }
 
 // Deallocate the buffer by looking up our record.
-void VulkanMemoryResource::do_deallocate(void *p,
+void VulkanMemoryResource::do_deallocate(void* p,
                                          [[maybe_unused]] std::size_t bytes,
                                          [[maybe_unused]] std::size_t alignment) {
   spdlog::trace("VulkanMemoryResource::do_deallocate({}, {}, {})", p, bytes, alignment);
@@ -129,8 +129,8 @@ void VulkanMemoryResource::do_deallocate(void *p,
   vmaDestroyBuffer(g_vma_allocator, record.buffer, record.allocation);
 }
 
-bool VulkanMemoryResource::do_is_equal(const std::pmr::memory_resource &other) const noexcept {
-  return dynamic_cast<const VulkanMemoryResource *>(&other) != nullptr;
+bool VulkanMemoryResource::do_is_equal(const std::pmr::memory_resource& other) const noexcept {
+  return dynamic_cast<const VulkanMemoryResource*>(&other) != nullptr;
 }
 
 // Cache maintenance for NON-coherent (HOST_CACHED) memory. vmaFlush/Invalidate
@@ -138,14 +138,14 @@ bool VulkanMemoryResource::do_is_equal(const std::pmr::memory_resource &other) c
 // (and cheap) to call unconditionally regardless of the heap VMA chose.
 void VulkanMemoryResource::flush_all() {
   std::lock_guard lock(mutex_);
-  for (auto &[ptr, record] : allocations_) {
+  for (auto& [ptr, record] : allocations_) {
     vmaFlushAllocation(g_vma_allocator, record.allocation, 0, VK_WHOLE_SIZE);
   }
 }
 
 void VulkanMemoryResource::invalidate_all() {
   std::lock_guard lock(mutex_);
-  for (auto &[ptr, record] : allocations_) {
+  for (auto& [ptr, record] : allocations_) {
     vmaInvalidateAllocation(g_vma_allocator, record.allocation, 0, VK_WHOLE_SIZE);
   }
 }

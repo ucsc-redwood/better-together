@@ -9,7 +9,7 @@ namespace bm = benchmark;
 
 class CudaEventTimer {
  public:
-  explicit CudaEventTimer(bm::State &state,
+  explicit CudaEventTimer(bm::State& state,
                           const bool flush_l2_cache = false,
                           const cudaStream_t stream = nullptr)
       : stream_(stream), p_state_(&state) {
@@ -23,8 +23,8 @@ class CudaEventTimer {
 
       if (l2_cache_bytes > 0) {
         const int memset_value = 0;
-        int *l2_cache_buffer = nullptr;
-        CheckCuda(cudaMalloc(reinterpret_cast<void **>(&l2_cache_buffer), l2_cache_bytes));
+        int* l2_cache_buffer = nullptr;
+        CheckCuda(cudaMalloc(reinterpret_cast<void**>(&l2_cache_buffer), l2_cache_bytes));
         CheckCuda(cudaMemsetAsync(l2_cache_buffer, memset_value, l2_cache_bytes, stream_));
         CheckCuda(cudaFree(l2_cache_buffer));
       }
@@ -55,5 +55,5 @@ class CudaEventTimer {
   cudaEvent_t start_;
   cudaEvent_t stop_;
   cudaStream_t stream_;
-  bm::State *p_state_;
+  bm::State* p_state_;
 };

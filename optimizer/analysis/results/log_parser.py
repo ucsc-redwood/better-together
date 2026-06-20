@@ -8,7 +8,7 @@ task data, and timing metrics.
 
 import os
 import re
-from typing import List, Dict, Any, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 def find_log_files(input_path: str) -> List[str]:
@@ -23,9 +23,7 @@ def find_log_files(input_path: str) -> List[str]:
             log_files.append(input_path)
             print(f"Using log file: {input_path}")
         else:
-            print(
-                f"Warning: File {input_path} doesn't match expected pattern for log files"
-            )
+            print(f"Warning: File {input_path} doesn't match expected pattern for log files")
             log_files.append(input_path)  # Include it anyway
     elif os.path.isdir(input_path):
         # It's a directory, search for matching files
@@ -48,9 +46,7 @@ def find_log_files(input_path: str) -> List[str]:
 
 def extract_python_sections(content: str) -> List[str]:
     """Extract all Python sections between '### Python Begin ###' and '### Python End ###'."""
-    python_sections = re.findall(
-        r"### Python Begin ###(.*?)### Python End ###", content, re.DOTALL
-    )
+    python_sections = re.findall(r"### Python Begin ###(.*?)### Python End ###", content, re.DOTALL)
     return python_sections
 
 
@@ -99,9 +95,7 @@ def process_log_file(
     log_file: str, time_window: Tuple[float, float] = (0.0, 1.0)
 ) -> List[Dict[str, Any]]:
     """Process a single log file and extract all schedule data."""
-    print(
-        f"Processing {log_file}... (time window: {time_window[0]:.2f}-{time_window[1]:.2f})"
-    )
+    print(f"Processing {log_file}... (time window: {time_window[0]:.2f}-{time_window[1]:.2f})")
     schedules_data = []
 
     try:
@@ -130,7 +124,7 @@ def process_log_file(
         # Extract schedule information
         schedule_uid = extract_schedule_uid(section)
         if not schedule_uid:
-            print(f"Warning: Could not find Schedule_UID in section {section_idx+1}")
+            print(f"Warning: Could not find Schedule_UID in section {section_idx + 1}")
             continue
 
         frequency = extract_frequency(section)
@@ -141,7 +135,7 @@ def process_log_file(
         if frequency <= 0:
             print(
                 f"Warning: non-positive frequency ({frequency} Hz) in section "
-                f"{section_idx+1} ({schedule_uid}); skipping."
+                f"{section_idx + 1} ({schedule_uid}); skipping."
             )
             continue
 
@@ -215,9 +209,7 @@ def process_log_file(
         # Calculate average duration per chunk
         for chunk_id, metrics in chunk_metrics.items():
             if metrics["task_count"] > 0:
-                metrics["avg_duration"] = (
-                    metrics["total_duration"] / metrics["task_count"]
-                )
+                metrics["avg_duration"] = metrics["total_duration"] / metrics["task_count"]
             else:
                 metrics["avg_duration"] = 0
 

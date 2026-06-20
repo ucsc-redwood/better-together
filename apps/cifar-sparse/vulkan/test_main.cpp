@@ -3,9 +3,9 @@
 
 #include <memory_resource>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-sparse × Vulkan differential oracle. Vulkan uses the same AppData as

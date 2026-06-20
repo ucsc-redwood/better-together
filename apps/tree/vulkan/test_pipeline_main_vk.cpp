@@ -8,13 +8,13 @@
 #include <queue>
 #include <vector>
 
+#include "apps/tree/omp/dispatchers.hpp"
+#include "apps/tree/tree_diff_oracle.hpp"  // tree::testing::CheckStage7
+#include "dispatchers.hpp"                 // tree::vulkan::VulkanDispatcher
 #include "platform/registry/device_registry.hpp"
 #include "runtime/record.hpp"
 #include "runtime/spsc_queue.hpp"
-#include "apps/tree/omp/dispatchers.hpp"
-#include "apps/tree/tree_diff_oracle.hpp"  // tree::testing::CheckStage7
-#include "dispatchers.hpp"          // tree::vulkan::VulkanDispatcher
-#include "vk_appdata.hpp"           // tree::vulkan::VkAppData_Safe
+#include "vk_appdata.hpp"  // tree::vulkan::VkAppData_Safe
 
 // ----------------------------------------------------------------------------
 // Framework runtime test, VULKAN: drive the tree app through the REAL concurrent
@@ -120,9 +120,11 @@ TEST(PipelineE2EVk, RejectsMultiGpuChunkSchedule) {
   EXPECT_TRUE(first_concurrent_gpu_chunk(sched).has_value())
       << "a schedule with 3 Vulkan chunks must be rejected (shared command-buffer race)";
   // The single-GPU-chunk schedules the real tests use must NOT be rejected.
-  EXPECT_FALSE(first_concurrent_gpu_chunk(Schedule{"ok-hybrid",
-      {{ExecutionModel::kOMP, 1, 3, ProcessorType::kBigCore},
-       {ExecutionModel::kVulkan, 4, 7, std::nullopt}}}).has_value());
+  EXPECT_FALSE(
+      first_concurrent_gpu_chunk(Schedule{"ok-hybrid",
+                                          {{ExecutionModel::kOMP, 1, 3, ProcessorType::kBigCore},
+                                           {ExecutionModel::kVulkan, 4, 7, std::nullopt}}})
+          .has_value());
 }
 
 }  // namespace

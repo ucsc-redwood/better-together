@@ -1,12 +1,12 @@
-#include "platform/util/debug_logger.hpp"
 #include "all_kernels.cuh"
 #include "dispatchers.cuh"
+#include "platform/util/debug_logger.hpp"
 
 namespace cifar_dense::cuda {
 
 constexpr bool kSync = false;
 
-void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_1_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
 
   const int N = appdata.u_input.d0();
@@ -40,7 +40,7 @@ void CudaDispatcher::run_stage_1_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_2_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_2_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 2, &appdata);
 
   const int N = appdata.u_conv1_out.d0();     // 128
@@ -67,7 +67,7 @@ void CudaDispatcher::run_stage_2_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_3_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_3_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 3, &appdata);
 
   const int N = appdata.u_pool1_out.d0();     // 128
@@ -101,7 +101,7 @@ void CudaDispatcher::run_stage_3_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_4_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_4_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 4, &appdata);
 
   const int N = appdata.u_conv2_out.d0();     // 128
@@ -128,7 +128,7 @@ void CudaDispatcher::run_stage_4_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_5_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_5_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 5, &appdata);
 
   const int N = appdata.u_pool2_out.d0();     // 128
@@ -162,7 +162,7 @@ void CudaDispatcher::run_stage_5_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_6_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_6_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 6, &appdata);
 
   const int N = appdata.u_conv3_out.d0();     // 128
@@ -196,7 +196,7 @@ void CudaDispatcher::run_stage_6_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_7_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_7_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 7, &appdata);
 
   const int N = appdata.u_conv4_out.d0();     // 128
@@ -230,7 +230,7 @@ void CudaDispatcher::run_stage_7_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_8_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_8_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 8, &appdata);
 
   const int N = appdata.u_conv5_out.d0();     // 128
@@ -257,7 +257,7 @@ void CudaDispatcher::run_stage_8_async(cifar_dense::AppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_9_async(cifar_dense::AppData &appdata) {
+void CudaDispatcher::run_stage_9_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 9, &appdata);
 
   const int N = appdata.u_pool3_out.d0();    // 128

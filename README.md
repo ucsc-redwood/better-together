@@ -1,400 +1,410 @@
-# BetterTogether
-
 <div align="center">
 
-![BetterTogether](better-together.png)
+<img src="better-together.png" alt="BetterTogether" width="100%"/>
 
-**Profile-Guided Software Pipelining for Heterogeneous Edge SoCs**
+# BetterTogether
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+**Profile-guided software pipelining for _integrated_ heterogeneous edge SoCs** — pipeline an
+app's stages across the CPU cores **and the integrated GPU/accelerator** that share the chip.
 
-### Supported Backends
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Vulkan-AC162C?style=for-the-badge&logo=vulkan&logoColor=white" alt="Vulkan"/>
-  <img src="https://img.shields.io/badge/CUDA-76B900?style=for-the-badge&logo=nvidia&logoColor=white" alt="CUDA"/>
-  <img src="https://img.shields.io/badge/OpenMP-0071C5?style=for-the-badge&logo=openmp&logoColor=white" alt="OpenMP"/>
+<p>
+  <img src="https://img.shields.io/badge/Vulkan-AC162C?style=flat-square&logo=vulkan&logoColor=white" alt="Vulkan"/>
+  <img src="https://img.shields.io/badge/CUDA-76B900?style=flat-square&logo=nvidia&logoColor=white" alt="CUDA"/>
+  <img src="https://img.shields.io/badge/OpenMP-0071C5?style=flat-square&logo=openmp&logoColor=white" alt="OpenMP"/>
+  <img src="https://img.shields.io/badge/C++-20-blue?style=flat-square&logo=cplusplus" alt="C++20"/>
+  <img src="https://img.shields.io/badge/Python-3.13+-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.13+"/>
+  <img src="https://img.shields.io/badge/CMake-%E2%89%A53.25-064F8C?style=flat-square&logo=cmake&logoColor=white" alt="CMake"/>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License: MIT"/></a>
 </p>
-
-**Keywords**: Edge Computing • Heterogeneous Computing • GPU Computing • Pipeline Parallelism • Performance Modeling • Scheduling Algorithms
 
 </div>
 
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Evaluated Applications](#evaluated-applications)
-- [Requirements](#requirements)
-- [Quick Start](#quick-start)
-- [Configuration Files](#configuration-files)
-- [Advanced Usage](#advanced-usage)
-- [Publications & Citation](#publications--citation)
+> **TL;DR** — BetterTogether is a framework for **integrated** SoCs, where the CPU cores and the
+> **integrated GPU/accelerator share one pool of memory and bandwidth**. That sharing is the whole
+> point: data passes between processing units zero-copy (no PCIe transfer), but running them
+> together makes them *interfere*, so naive offloading mispredicts latency. BetterTogether
+> profiles each application stage **under representative interference**, solves stage→PU
+> assignment with a **z3 SMT** solver, and runs the stages as a real software pipeline across the
+> chip.
 
 ---
 
 ## Overview
 
-**BetterTogether** is a flexible scheduling framework that enables fine-grained software pipelining on heterogeneous edge SoCs. While large-scale data processing typically occurs in the cloud, modern mobile and edge devices are increasingly capable—offering benefits like lower latency, reduced energy consumption, and offline availability. However, efficiently utilizing edge SoCs is challenging: they integrate diverse processing units (PUs) such as big.LITTLE CPU architectures, GPUs, and AI accelerators, each with distinct performance characteristics. Furthermore, execution on one PU can interfere with others, complicating performance modeling.
+Modern edge SoCs (phones, Jetson, mini-PCs) are **integrated**: big/medium/little CPU cores and
+the GPU (or other accelerators) sit on one die and **share the same memory and memory bandwidth**.
+This changes the offloading problem in two ways that discrete-GPU frameworks don't have to model:
 
-BetterTogether addresses these challenges through **profile-guided performance modeling** that captures intra-application interference, enabling accurate schedule prediction across diverse edge devices. Applications are provided as a sequence of stages (each with CPU and GPU implementations), which are then pipelined across the SoC's processing units.
+- **No transfer cost** — buffers are unified (UMA), so handing data from a CPU stage to a GPU
+  stage is zero-copy. Fine-grained stage-by-stage pipelining becomes practical.
+- **Interference** — because the units share memory and bandwidth, running them at the same time
+  makes each *slower* than it looks in isolation. Per-unit performance is not composable, so a
+  schedule built from isolated measurements mispredicts real latency.
 
-### Key Highlights
+BetterTogether is a framework that turns this into throughput. You provide an application as a
+sequence of **stages**, each with a kernel in up to three backends — **OMP** (CPU), **CUDA**
+(NVIDIA integrated GPU), **Vulkan** (cross-vendor integrated GPU). The framework profiles every
+stage on every processing unit **under representative interference**, hands that model to a **z3
+SMT** solver to assign each stage to a unit, and executes the result as a real software pipeline.
+Its integrated-GPU focus is baked in: the Vulkan engine deliberately selects the *integrated* GPU
+(a discrete card is rejected with "No integrated GPU found").
 
-- 🎯 **Accurate Performance Modeling**: Novel profiling technique that accounts for intra-application interference on integrated SoCs
-- ⚡ **Pipeline Parallelism**: Maps application stages to the most efficient processing units (CPU big/medium/little cores, GPU, TPU)
-- 🧠 **SMT-Based Optimization**: Uses constraint solving (Z3) to generate optimal static pipeline schedules
-- 🚀 **Proven Performance**: Achieves **2.14× geomean speedup** (up to **7.59×**) over homogeneous GPU baselines
-- 📱 **Cross-Vendor Portability**: Evaluated on Google Pixel 7a (Arm Mali), OnePlus 11 (Qualcomm Adreno), and NVIDIA Jetson Nano
-- 🔧 **Multi-Backend Support**: OpenMP (CPU), CUDA (NVIDIA), and Vulkan (cross-platform GPU)
-- 🤖 **Extensible**: Demonstrated integration with Google EdgeTPU for AI acceleration
-
-### Motivation
-
-**Why Edge Computing?**
-- ⚡ **Lower Latency**: Process data locally without cloud round-trip
-- 🔋 **Energy Efficiency**: Reduced data transmission and optimized on-device compute
-- 🔒 **Privacy**: Sensitive data stays on device
-- 📶 **Offline Operation**: Works without internet connectivity
-
-**The Challenge**:
-Modern edge SoCs integrate diverse processing units (big.LITTLE CPUs, GPUs, AI accelerators), but efficiently utilizing them is difficult:
-1. **Performance heterogeneity**: Different stages run best on different PUs (see example below)
-2. **Interference effects**: Execution on one PU affects others on integrated SoCs
-3. **Device diversity**: Optimal schedules differ across devices (ARM, Qualcomm, NVIDIA)
-
-**Example - 3D Octree Construction on Google Pixel 7a**:
-- **Sorting** runs fastest on big/medium CPU cores (~3ms)
-- **Radix tree building** runs fastest on GPU (~2ms)
-- **Octree construction** performs similarly on big cores and GPU (~4ms)
-
-Simply running everything on GPU or CPU leaves significant performance on the table. BetterTogether's pipeline approach achieves **3.5× speedup** over GPU-only for this workload by intelligently mapping stages to optimal PUs.
+This repository is the **actively-developed framework** — it has grown over years well beyond the
+research that first described it (see [Citation](#citation)). It is not a frozen paper artifact.
 
 ---
 
-### Project Statistics
+## Highlights
+
+- 🎯 **Built for integrated accelerators** — assumes a shared-memory SoC: zero-copy UMA buffers
+  between stages, and a model of the cross-unit *interference* that only integrated chips have.
+- 🧪 **Interference-aware performance modeling** — profiles stages under representative
+  intra-application background load, predicting real pipeline latency far better than isolated
+  profiling.
+- 🧠 **SMT-based scheduling** — a z3 solver maps each application stage to the most efficient
+  processing unit (big/medium/little CPU cores or the integrated GPU) and emits a static schedule.
+- ⚡ **Fine-grained software pipelining** — stages stream across PUs concurrently, overlapping
+  CPU and integrated-GPU work the way a single-unit baseline cannot.
+- 📱 **Cross-vendor integrated GPUs** — runs on Arm Mali and Qualcomm Adreno phones, NVIDIA
+  Jetson, and AMD/Intel iGPU mini-PCs; "add a device = drop in a JSON file".
+- 🔧 **Multi-backend & extensible** — OpenMP (CPU), CUDA, and Vulkan compute today; designed to
+  extend to other integrated accelerators.
+
+---
+
+## Motivation — why one unit is not enough
+
+Within a single application, different stages favor different processing units, and the best
+mapping shifts from device to device. In a 3D octree pipeline, for instance, the sorting stage
+tends to run fastest on the big/medium CPU cores, building the radix tree favors the GPU, and
+octree construction is roughly a tie — so running *everything* on the GPU (or everything on the
+CPU) leaves throughput on the table.
+
+On an **integrated** SoC there is a second twist: the units share memory and bandwidth, so their
+times measured *in isolation* don't add up once they run concurrently — they interfere. A
+schedule built from isolated profiling therefore mispredicts. BetterTogether profiles stages
+under realistic interference, assigns each to its best unit, and overlaps them in a pipeline —
+turning heterogeneity into throughput instead of a scheduling headache.
+
+---
+
+## How it works — three tools talking through files
+
+An application is a sequence of **stages**; each stage has a kernel in up to three backends
+(**OMP** CPU, **CUDA**, **Vulkan**). The framework is three tools passing files:
 
 ```
-===============================================================================
- Language            Files        Lines         Code     Comments       Blanks
-===============================================================================
- C Header               22         6390         6390            0            0
- C++                    68        14853         9219         2525         3109
- C++ Header             61         8858         5967         1387         1504
- Fish                    1            3            3            0            0
- GLSL                   22         1775         1212          251          312
- JSON                   54       113267       113267            0            0
- Lua                    23         1712         1087          337          288
- Makefile                1           38           20            9            9
- Python                 33         5641         4020          773          848
- Shell                   2           96           65           22            9
- SVG                    10        24296        24019          277            0
- TOML                    1           12           12            0            0
--------------------------------------------------------------------------------
- Markdown                5          182            0          131           51
- |- BASH                 3            4            4            0            0
- |- Python               1           18           10            4            4
- (Total)                            204           14          135           55
-===============================================================================
- Total                 303       177123       165281         5712         6130
-===============================================================================
+  BT-Profiler  ──▶  JSONL profiling store  ──▶  BT-Optimizer (Python / z3 SMT)
+   (C++)            data/profiling/…                      │
+   measures each                                   schedule JSON
+   stage×PU under                                         ▼
+   interference                          BT-Implementer (C++ runtime:
+                                         SPSC-queue dispatchers + UMA buffers)
 ```
 
+1. **BT-Profiler** runs each `(stage × PU)` cell on the device, in isolation *and* under
+   interference, emitting a schema-validated JSONL profiling table.
+2. **BT-Optimizer** (Python/z3) reads that table and solves stage→PU assignment, emitting an
+   array of candidate schedules (the cross-tool contract).
+3. **BT-Implementer** (the C++ runtime) executes a schedule as a real software pipeline, handing
+   data between stages through **zero-copy UMA buffers** — cheap precisely because the GPU is
+   integrated and shares the CPU's memory.
+
+The primary extension axis is **devices**: *add a device = drop in a `devices/<id>.json` data
+file.*
+
+The solver decides how many stages run where. A schedule can be a simple **CPU + GPU overlap**,
+or a fully **heterogeneous split** across multiple CPU tiers and the integrated GPU — whatever the
+interference-aware model predicts is fastest for that app on that chip:
+
+<div align="center">
+<table>
+<tr>
+<td width="50%"><img src="img/pipeline-cpu-gpu-overlap.png" alt="Two-lane CPU + integrated-GPU overlap"/></td>
+<td width="50%"><img src="img/pipeline-4lane.png" alt="Four-way heterogeneous pipeline split"/></td>
+</tr>
+<tr>
+<td align="center"><sub>2-lane CPU(S1–2) + GPU(S3–9) overlap — Jetson · cifar-dense · CUDA</sub></td>
+<td align="center"><sub>4-way split (Medium / Little / Vulkan / Big) — Samsung · cifar-dense · Vulkan</sub></td>
+</tr>
+</table>
+</div>
+
 ---
 
-## Evaluated Applications
+## Applications
 
-BetterTogether has been evaluated on three computer vision workloads with varying computational characteristics:
+The framework ships four reference applications. Each is a sequence of stages with per-backend
+kernels and an OMP-as-oracle differential test:
 
-| Application | Description | Stages | Characteristics |
-|------------|-------------|--------|-----------------|
-| **CIFAR-Dense** | Dense AlexNet CNN inference on CIFAR-10 | 6 conv layers + 1 linear | Memory-intensive, high arithmetic intensity |
-| **CIFAR-Sparse** | Pruned AlexNet with 90% sparsity | 6 conv layers + 1 linear | Irregular memory access, lower arithmetic intensity |
-| **Tree** | 3D octree construction pipeline | 7 stages (sorting, radix tree, octree) | Diverse computational patterns, used in robotics/vision |
+| Application | Description | Stages | Backends | Compare mode |
+|------------|-------------|--------|----------|--------------|
+| **cifar-dense** | Dense AlexNet CNN inference on CIFAR-10 | 9 today → 11 canonical | OMP · CUDA · Vulkan | float (`NearEqual`) |
+| **cifar-sparse** | Pruned/sparse AlexNet (irregular memory access) | 9 today → 11 canonical | OMP · CUDA · Vulkan | float (`NearEqual`) |
+| **tree** | 3D octree construction (morton → sort → unique → radix-tree → edge-count → prefix-sum → octree-build) | 7 | OMP · CUDA · Vulkan | exact (integer/structural) |
+| **octree** | octree-construction variant | 7 | OMP · Vulkan | exact |
 
-### Workload Properties
+These workloads suit pipeline parallelism: they decompose into distinct stages, process
+streaming inputs (e.g. image frames), and exhibit per-stage PU heterogeneity. Bring your own app
+by implementing its stages against the same backend interfaces.
 
-These applications are well-suited for pipeline parallelism because they:
-
-1. **Decompose into stages**: Each application consists of distinct computational phases
-2. **Process streaming input**: Operate on independent inputs (e.g., image frames) that arrive continuously
-3. **Exhibit heterogeneity**: Different stages have different optimal PUs (as shown in the paper's Figure 1)
-
-### Backends
-
-Each application stage has multiple implementations:
-- **OpenMP (CPU)**: Executes on big/medium/little CPU cores with thread affinity
-- **CUDA**: For NVIDIA GPUs (Jetson Nano)
-- **Vulkan Compute**: Cross-platform GPU compute (Arm Mali, Qualcomm Adreno)
-
-Each application is divided into stages that can be independently scheduled across different processors, enabling BetterTogether to find the optimal mapping for each workload-platform combination.
+> Stage counts reflect the **currently implemented** kernels (`vocab.json` is the single source
+> of truth). The canonical `AlexNetCIFAR` spec
+> ([`docs/instruction-for-ai/04-alexnet-cifar-spec.md`](docs/instruction-for-ai/04-alexnet-cifar-spec.md))
+> is 11 stages; the C++ kernels still implement the 9-stage `SmallAlexNet` and are not yet
+> migrated to it.
 
 ---
 
-## Requirements
+## Getting Started
 
-### Core Dependencies
+### Requirements
 
-- **[CMake](https://cmake.org/) ≥ 3.25** - Build system (presets-based; deps auto-fetched via CPM)
-- **[uv](https://astral.sh/uv)** - Fast Python package manager
-- **[just](https://github.com/casey/just)** - Command runner (Rust-based)
-- **Python 3.13+** - For scheduling and analysis scripts
-
-### Optional Dependencies
-
-- **CUDA Toolkit** - For NVIDIA GPU support
-- **Vulkan SDK** - For cross-platform GPU compute
-- **Android NDK** - For Android device support
-- **ADB** - For Android device deployment
-
-### Installation
+| | Tool | Notes |
+|---|---|---|
+| **Required** | [CMake](https://cmake.org/) ≥ 3.25 | presets-based; C/C++ deps auto-fetched via CPM |
+| | C++20 compiler | gcc 11+ / clang 14+ |
+| | [uv](https://astral.sh/uv) | Python package manager (Python 3.13+) |
+| | [just](https://github.com/casey/just) | command runner for the build/test matrix |
+| **Optional** | CUDA Toolkit · Vulkan SDK · Android NDK + ADB | for the CUDA / Vulkan / Android targets |
 
 ```bash
-# Install uv (Python package manager)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install just (command runner)
-cargo install just
-
-# CMake ≥ 3.25 (build system) — via your package manager, e.g. apt/brew/pip
+curl -LsSf https://astral.sh/uv/install.sh | sh   # uv (Python)
+cargo install just                                # just (command runner)
+# CMake ≥ 3.25 via your package manager (apt/brew/pip)
 ```
 
----
+### Build & test
 
-## Quick Start
-
-### 1. Build the Project
-
-For x86_64 PC (CPU/OpenMP — the everyday build & test):
 ```bash
+# x86_64 PC — CPU/OpenMP, the everyday build & test gate
 cmake --preset pc && cmake --build --preset pc
-ctest --test-dir build/pc -L omp
+ctest --test-dir build/pc -L omp --output-on-failure
 ```
 
-For NVIDIA Jetson (CUDA, cross-compiled in the container) and Android (ARM64):
+Other targets (Vulkan on an integrated-GPU box, NVIDIA Jetson via the cross container, Android
+arm64):
+
 ```bash
+cmake --preset vulkan  && cmake --build --preset vulkan    # iGPU box (e.g. AMD Radeon, Intel)
 cmake --preset jetson  && cmake --build --preset jetson    # via bt-cross:6.1 container
 cmake --preset android && cmake --build --preset android   # needs ANDROID_NDK_HOME
 ```
 
-See [`docs/instruction-for-ai/02-building.md`](docs/instruction-for-ai/02-building.md)
-for the full preset/cross-build/deploy details.
+Convenience wrappers (`just build-x86` / `build-jetson` / `build-android`, then `just test`)
+build and run the unit-test matrix across the fleet. Testing is **OMP-as-oracle differential**:
+each backend's stages are compared against the in-process OpenMP reference. Full
+preset/cross-build/deploy details: [`docs/instruction-for-ai/02-building.md`](docs/instruction-for-ai/02-building.md).
 
-### 2. Profile Workloads
+### Run the full pipeline (profile → schedule → run → compare)
 
-Collect profiling data for a specific device, application, and backend:
-
-```bash
-# Syntax: just collect <device> <app> <backend>
-just collect 3A021JEHN02756 cifar-sparse vk
-just collect 3A021JEHN02756 cifar-dense vk
-just collect 3A021JEHN02756 tree vk
-```
-
-Or collect all at once:
-```bash
-just collect-all-android
-```
-
-Profiling data will be stored in `data/bm_logs/<device>/`.
-
-### 3. Generate Optimal Schedules
-
-Use the SMT optimizer to generate execution schedules:
+The end-to-end procedure with every gotcha is in
+[`docs/instruction-for-ai/06-end-to-end-scheduling.md`](docs/instruction-for-ai/06-end-to-end-scheduling.md);
+the short version:
 
 ```bash
-# Syntax: just gen-schedule <device> <app> <backend> <table_type> <minimize_mode>
-just gen-schedule 3A021JEHN02756 cifar-sparse vk btpm gapness
+# 1. Profile: run the per-(app×backend) bm-prof binary on the device, capture stdout (pure JSONL)
+ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference \
+  ./bm-prof-cifar-sparse-vk --device 3A021JEHN02756 2>/dev/null' \
+  > data/profiling/3A021JEHN02756/cifar-sparse/vulkan/interference/run-001.jsonl
+
+# 2. Generate schedules: z3 reads the JSONL store directly (no CSV step) and emits candidates
+uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
+  --device 3A021JEHN02756 --app cifar-sparse --backend vk --table_type btpm \
+  --minimize_mode tmax --num_solutions 10 --output_folder data/schedules_btpm
+
+# 3. Run the schedule(s) on the device and capture per-task timing logs
+uv run optimizer/orchestrate/03_run_schedule.py --device 3A021JEHN02756 --app cifar-sparse \
+  --backend vk --table-type btpm --minimize-mode tmax --ssh-host <host> --build-dir build/vulkan \
+  --log-folder data/sched_logs/3A021JEHN02756_cifar-sparse_vk
+
+# 4. Parse / measure makespan vs the single-PU baseline → speedup
+uv run optimizer/orchestrate/04_parse_schedules.py data/sched_logs/3A021JEHN02756_cifar-sparse_vk
 ```
 
-Or generate all schedules:
-```bash
-just gen-schedules-all
-```
+Everything under `data/` (the JSONL profiling store, generated schedules, run logs, the CIFAR
+dataset, trained weights) is **regenerable and git-ignored** — it is pipeline *output*, not
+source.
 
-Schedules will be saved in `data/schedules/<device>/`.
+#### Optimization modes
 
-### 4. Execute Schedules
+The optimizer takes a profiling table (`btpm` = interference-aware, `isolated` = standalone) and
+an objective (`gapness` = minimize scheduling gaps, `tmax` = minimize the max chunk time):
 
-Run the optimized schedules and measure performance:
+| Mode | Description |
+|------|-------------|
+| `btpm + tmax` | interference-aware model, minimize max chunk time |
+| `btpm + gapness` | interference-aware model, minimize scheduling gaps |
+| `isolated + tmax` | isolated model, minimize max chunk time |
+| `isolated + gapness` | isolated model, minimize gaps |
 
-```bash
-# Syntax: just run-schedule <device> <app> <backend> <table_type> <minimize_mode>
-just run-schedule 3A021JEHN02756 cifar-sparse vk btpm gapness
-```
-
-Execution logs will be stored in `data/exe_logs_<table_type>_<minimize_mode>/<device>/`.
+> Use the **isolated** table when scheduling a single app running alone; the BTPM table inflates
+> shared-memory iGPU time and over-splits onto the CPU (see the end-to-end doc's gotchas).
 
 ---
 
-## Configuration Files
+## Repository Structure
 
-### Device Configuration
+The tree is **component-first** (the old `builtin-apps/`, `pipe/`, `utility/` were dissolved into
+these components by the 2026-06 refactor):
 
-Devices are defined in `builtin-apps/conf.cpp` using their Android device IDs:
-
-```cpp
-// Google Pixel 7a (Device ID: 3A021JEHN02756)
-Device("3A021JEHN02756", {
-  {0, kLittleCore, true},  {1, kLittleCore, true},  // 4× Cortex-A55
-  {2, kLittleCore, true},  {3, kLittleCore, true},
-  {4, kMediumCore, true},  {5, kMediumCore, true},  // 2× Cortex-A78
-  {6, kBigCore, true},     {7, kBigCore, true},     // 2× Cortex-X1
-});
-
-// OnePlus 11 (Device ID: 9b034f1b)
-Device("9b034f1b", {
-  {0, kLittleCore, true},  {1, kLittleCore, true},  // 4× Cortex-A510
-  {2, kLittleCore, true},  {3, kLittleCore, true},
-  {4, kBigCore, true},     {5, kBigCore, true},     // 3× Cortex-A715
-  {6, kBigCore, true},
-  {7, kSuperCore, true},                            // 1× Cortex-X3
-});
-
-// Samsung Galaxy S23 (Device ID: R5CY21Y3VEV)
-Device("R5CY21Y3VEV", {
-  {0, kLittleCore, true},  {1, kLittleCore, true},  // 4× Cortex-A55
-  {2, kLittleCore, true},  {3, kLittleCore, true},
-  {4, kBigCore, true},     {5, kBigCore, true},     // 4× Cortex-A78
-  {6, kBigCore, true},     {7, kBigCore, true},
-  {8, kSuperCore, true},   {9, kSuperCore, true},   // 2× Cortex-X3
-});
-
-// NVIDIA Jetson Nano
-Device("jetson", {
-  {0, kBigCore, true},     {1, kBigCore, true},     // 4× Cortex-A57
-  {2, kBigCore, true},     {3, kBigCore, true},     // (homogeneous)
-});
+```
+better-together/
+├── apps/                  # Per-application kernels: omp/ cuda/ vulkan/ + differential oracle
+│   ├── cifar-dense/       #   each app provides the same stages in up to 3 backends,
+│   ├── cifar-sparse/      #   plus appdata + a *_diff_oracle.hpp for OMP-as-oracle tests
+│   ├── tree/
+│   └── octree/            #   (OMP + Vulkan only)
+├── platform/              # Backend-agnostic substrate
+│   ├── engine/            #   cuda/ + vulkan/ compute engines (kiss-vk, UMA buffers)
+│   ├── mem/               #   memory-resource helpers
+│   ├── registry/          #   device registry (generated/ from devices/*.json)
+│   ├── vocab/             #   generated/ vocabulary header (from vocab.json)
+│   └── util/              #   ndarray, npy loader, resource paths, debug logging
+├── runtime/               # BT-Implementer: app-agnostic pipeline engine
+│   │                      #   (SPSC queues, schedule/config readers, task dispatch)
+│   └── tests/
+├── profiler/              # BT-Profiler: bm-prof / bm-baseline / bm-gen-logs drivers
+│                          #   + per-(app×backend) sources (cifar-dense-vk/, tree-cu/, …)
+├── optimizer/             # BT-Optimizer (Python package): z3 SMT scheduler
+│   ├── smt/               #   solver, constraints, profiling loader, vocab
+│   ├── orchestrate/       #   02_gen_schedule / 03_run_schedule / 04_parse / 05_timeline
+│   └── analysis/          #   coverage + isolated-table rendering
+├── tools/                 # Standalone probes (affinity, cpuinfo, Vulkan version, stress)
+├── devices/               # Per-device topology specs (*.json, schema-validated, the SoT)
+├── schemas/               # JSON Schemas: device-spec, profiling-table, schedule (contracts)
+├── vocab.json             # Single source of truth for PU tiers / backends / stage counts
+├── cmake/                 # Toolchains, CPM, per-backend target helpers
+├── scripts/               # Build/deploy wrappers, codegen, device-spec validation, figures
+├── resources/             # Model weights / CIFAR params (regenerable; see scripts/data_prep)
+├── dashboard/             # Static offline analysis site (devices / apps / profiling / schedules)
+├── docs/                  # instruction-for-ai/ (how-to) + reports-for-human/ (status)
+└── data/                  # Profiling store + schedules + run logs (git-ignored, regenerable)
 ```
 
-**Note**: Find your device ID using `adb devices` command.
+> **Working on the code (human or AI)?** Start with
+> [`docs/instruction-for-ai/README.md`](docs/instruction-for-ai/README.md) — project goal,
+> hardware & access, build, test, and the canonical model spec. Status, audits, and roadmaps are
+> in [`docs/reports-for-human/`](docs/reports-for-human/).
 
-### Schedule Format
+---
 
-Schedules are stored as JSON files with the following structure:
+## Data Formats & Contracts
+
+<details>
+<summary><b>Device specification</b> — <code>devices/&lt;id&gt;.json</code> (the framework's extension axis)</summary>
+
+Adding a device = dropping in a schema-validated JSON
+([`schemas/device-spec.schema.json`](schemas/device-spec.schema.json)) — the **source of
+truth**. At build time `scripts/embed_device_specs.py` codegens these into the C++ device
+registry (`platform/registry/generated/`); do **not** hand-edit `platform/registry/conf.cpp`.
 
 ```json
 {
-  "uid": "schedule_unique_id",
-  "chunks": [
-    {
-      "exec_model": "Vulkan",
-      "start_stage": 0,
-      "end_stage": 2
-    },
-    {
-      "exec_model": "OMP",
-      "cpu_proc_type": "Big",
-      "start_stage": 3,
-      "end_stage": 5
-    }
-  ]
+  "id": "3A021JEHN02756",
+  "description": "Google Pixel 7a (Tensor G2): 4 little + 2 medium + 2 big.",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 4, "type": "medium", "pinnable": true },
+    { "id": 6, "type": "big",    "pinnable": true }
+  ],
+  "gpu": { "backend": "vulkan", "name": "Mali-G710", "subgroup_size": 16 }
+}
+```
+
+Find a phone's device ID with `adb devices`; validate a new spec with
+`uv run scripts/validate_devices.py` and rebuild to regenerate the registry.
+
+</details>
+
+<details>
+<summary><b>Schedule</b> — the BT-Optimizer → BT-Implementer contract</summary>
+
+A schedule file ([`schemas/schedule.schema.json`](schemas/schedule.schema.json)) is an **array
+of candidate schedules**; each partitions the application's stages into contiguous chunks across
+PUs. Stage numbering is **1-based and inclusive**, and chunks must contiguously cover
+`[1, n_stages]`:
+
+```json
+[
+  {
+    "uid": "SCH-0001",
+    "solution_id": 1,
+    "chunks": [
+      { "core_type": "GPU", "start_stage": 1, "end_stage": 3, "hardware": "gpu_vulkan" },
+      { "core_type": "Big", "start_stage": 4, "end_stage": 7 }
+    ],
+    "metrics": { "max_time": 3.21 }
+  }
+]
+```
+
+`core_type` is one of `Little`/`Medium`/`Big`/`GPU`; a `GPU` chunk additionally requires
+`hardware` (`gpu_cuda` or `gpu_vulkan`). `metrics` is advisory — the runtime ignores it.
+
+</details>
+
+---
+
+## Analysis Dashboard
+
+The repo ships a self-contained, **offline static dashboard** (`dashboard/`) that
+cross-references the whole project: the device fleet, per-app stage breakdowns, the collected
+profiling tables, and a schedule explorer (z3 chunk assignments with measured speedup-over-
+baseline). It builds to a single bundle and can be served locally (e.g. over Tailscale) with no
+backend. See [`docs/reports-for-human/`](docs/reports-for-human/) for how to generate and serve
+it.
+
+<div align="center">
+<img src="img/dashboard-pipeline-timeline.png" alt="BetterTogether analysis dashboard — Profile, Solve, Pipeline, Measure" width="92%"/>
+<br/>
+<sub>The dashboard walks Profile → Solve → Pipeline → Measure, landing on a 4-lane pipeline running at 100% concurrency.</sub>
+</div>
+
+To visualize a single generated schedule or run, the `optimizer/` and `scripts/` tools also
+work standalone:
+
+```bash
+uv run scripts/view/view_schedule.py data/schedules_btpm/<device>/<app>/<backend>/schedules_btpm_tmax.json
+uv run optimizer/orchestrate/05_timeline.py data/sched_logs/<device>_<app>_<backend>
+```
+
+---
+
+## Citation
+
+The research behind BetterTogether appeared at **IISWC 2025** (Xu et al., UC Santa Cruz /
+Microsoft Research). The paper is bundled in this repo:
+[`IISWC_2025_BetterTogether_Yanwen.pdf`](IISWC_2025_BetterTogether_Yanwen.pdf). If you build on
+this framework, please cite:
+
+```bibtex
+@inproceedings{xu2025bettertogether,
+  title     = {BetterTogether: An Interference-Aware Framework for Fine-grained
+               Software Pipelining on Heterogeneous SoCs},
+  author    = {Xu, Yanwen and Sharma, Rithik and Chen, Zheyuan and
+               Mistry, Shaan and Sorensen, Tyler},
+  booktitle = {IEEE International Symposium on Workload Characterization (IISWC)},
+  year      = {2025}
 }
 ```
 
 ---
 
-## Project Structure
+## Acknowledgements
 
-```
-better-together/
-├── builtin-apps/          # Core applications and pipeline framework
-│   ├── cifar-dense/       # Dense CNN inference
-│   ├── cifar-sparse/      # Sparse CNN inference
-│   ├── tree/              # Tree-based algorithms
-│   ├── pipeline/          # Scheduling and execution framework
-│   └── common/            # Shared utilities (CUDA, Vulkan helpers)
-├── scripts/               # Python utilities
-│   ├── collect/           # Profiling and scheduling scripts
-│   │   ├── 02_gen_schedule_merged.py  # Schedule generator
-│   │   ├── 03_run_schedule.py         # Schedule executor
-│   │   └── smt/           # SMT solver implementation
-│   ├── paper_figures/     # Visualization and result analysis
-│   └── view/              # Schedule visualization tools
-├── data/                  # Profiling data and schedules
-│   ├── bm_logs/           # Profiling tables (CSV)
-│   ├── schedules/         # Generated schedules (JSON)
-│   └── exe_logs_*/        # Execution measurements
-├── resources/             # Model weights and test data
-│   ├── cifar/             # CIFAR-10 model parameters
-│   └── cifar_batches_*/   # Input batches
-├── devices/               # Per-device topology specs (*.json, source of truth)
-├── docs/                  # instruction-for-ai/ (how-to) + reports-for-human/ (status)
-├── pipe/                  # Pipeline benchmarking utilities
-└── utility/               # System utilities and tests
-```
-
-> **Working on the code (human or AI)?** Start with
-> [`docs/instruction-for-ai/README.md`](docs/instruction-for-ai/README.md) —
-> project goal, hardware & access, build, test, and the canonical model spec.
-> Status, audits, and roadmaps are in [`docs/reports-for-human/`](docs/reports-for-human/).
-
----
-
-## Advanced Usage
-
-### Custom Devices
-
-To add a new device, edit `builtin-apps/conf.cpp` and define core topology:
-
-```cpp
-devices_.emplace(
-    "my_device_id",
-    Device("my_device_id", {
-        {0, ProcessorType::kLittleCore, true},
-        {1, ProcessorType::kLittleCore, true},
-        {2, ProcessorType::kBigCore, true},
-        {3, ProcessorType::kBigCore, true},
-    })
-);
-```
-
-### Optimization Modes
-
-BetterTogether supports multiple optimization strategies:
-
-| Mode | Description |
-|------|-------------|
-| `btpm + gapness` | Better-Together Profiling Model, minimize scheduling gaps |
-| `btpm + tmax` | Better-Together Profiling Model, minimize maximum chunk time |
-| `isolated + gapness` | Isolated execution model, minimize gaps |
-| `isolated + tmax` | Isolated execution model, minimize max time |
-
-### Visualization
-
-Visualize schedules using the provided tools:
-
-```bash
-uv run scripts/view/view_schedule.py data/schedules/<device>/<app>/<backend>/schedules_btpm_gapness.json
-```
-
-Generate performance comparison plots:
-
-```bash
-just compare-schedules <device> <app> <backend> <num_schedules>
-```
-
----
-
-## Publications & Citation
-
-```bibtex
-Just presented at IISWC 2025, the citation is coming soon
-```
-
----
+This material is based upon work supported by the National Science Foundation under Award No.
+2239400. Any opinions, findings, and conclusions or recommendations expressed in this material
+are those of the authors and do not necessarily reflect the views of the funding agencies.
 
 ## License
 
-This project is licensed under the **MIT License** - see the LICENSE file for details.
+Released under the **MIT License** — see [`LICENSE`](LICENSE) for details.
 
 ---
 
 <div align="center">
 
-**[Documentation](#) • [Issues](https://github.com/ucsc-redwood/better-together/issues) • [Paper (Coming Soon)](#)**
+**[Paper](IISWC_2025_BetterTogether_Yanwen.pdf) • [Documentation](docs/instruction-for-ai/README.md) • [Issues](https://github.com/ucsc-redwood/better-together/issues)**
 
 </div>

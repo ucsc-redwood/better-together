@@ -4,10 +4,11 @@ Output paths:
 - PNG: scripts/paper_figures/png/figure_6_correlation_heatmap_all.png
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 
 # Data definition
 devices = ["OnePlus", "Google", "Jetson", "Jetson (LP)"]

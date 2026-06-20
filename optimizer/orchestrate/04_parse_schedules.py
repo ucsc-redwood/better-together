@@ -6,9 +6,9 @@ This script coordinates the parsing of log files, calculation of statistics,
 model comparison, and visualization generation using modular components.
 """
 
-import sys
-import os
 import argparse
+import os
+import sys
 from typing import Tuple
 
 # Put the optimizer package root on sys.path (direct-run; pytest uses pyproject pythonpath)
@@ -16,17 +16,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 # Import our modular components
 from analysis.results.log_parser import find_log_files, process_log_file
+from analysis.results.model_comparison import (
+    load_model_predictions,
+    perform_statistical_analysis,
+    print_comparison_results,
+)
 from analysis.results.statistics import (
-    print_individual_statistics,
     calculate_aggregated_statistics,
     extract_widest_chunks,
     print_aggregated_statistics,
+    print_individual_statistics,
     print_widest_chunk_summary,
-)
-from analysis.results.model_comparison import (
-    load_model_predictions,
-    print_comparison_results,
-    perform_statistical_analysis,
 )
 from analysis.results.visualization import create_comparison_visualization
 
@@ -130,9 +130,7 @@ def main():
     # Apply max-schedules limit if specified
     if args.max_schedules is not None:
         # Get all unique schedule UIDs and sort them for consistency
-        unique_uids = sorted(
-            list(set(schedule["schedule_uid"] for schedule in all_schedules))
-        )
+        unique_uids = sorted(list(set(schedule["schedule_uid"] for schedule in all_schedules)))
 
         print(f"Found {len(unique_uids)} unique schedule UIDs")
         print(f"Limiting analysis to first {args.max_schedules} schedules")
@@ -142,9 +140,7 @@ def main():
 
         # Filter all_schedules to only include schedules with these UIDs
         all_schedules = [
-            schedule
-            for schedule in all_schedules
-            if schedule["schedule_uid"] in limited_uids
+            schedule for schedule in all_schedules if schedule["schedule_uid"] in limited_uids
         ]
 
         print(
@@ -183,9 +179,7 @@ def main():
                 widest_chunks, model_predictions, args.output, raw_data_by_uid
             )
         else:
-            print(
-                "\nSkipping visualization generation because no output directory was specified."
-            )
+            print("\nSkipping visualization generation because no output directory was specified.")
             print("Use --output/-o to specify an output directory for visualizations.")
 
     print(

@@ -193,12 +193,12 @@ inline void run_fully(BmTable<kNumStages>& table,
     }
   };
 
-  if (has_lit_cores()) threads.emplace_back(cpu_thread, std::ref(q_0), std::ref(g_lit_cores),
-                                            std::ref(lit_processed));
-  if (has_med_cores()) threads.emplace_back(cpu_thread, std::ref(q_1), std::ref(g_med_cores),
-                                            std::ref(med_processed));
-  if (has_big_cores()) threads.emplace_back(cpu_thread, std::ref(q_2), std::ref(g_big_cores),
-                                            std::ref(big_processed));
+  if (has_lit_cores())
+    threads.emplace_back(cpu_thread, std::ref(q_0), std::ref(g_lit_cores), std::ref(lit_processed));
+  if (has_med_cores())
+    threads.emplace_back(cpu_thread, std::ref(q_1), std::ref(g_med_cores), std::ref(med_processed));
+  if (has_big_cores())
+    threads.emplace_back(cpu_thread, std::ref(q_2), std::ref(g_big_cores), std::ref(big_processed));
 
   // Always create the GPU thread.
   threads.emplace_back([&]() {
@@ -273,14 +273,29 @@ inline int run(int argc,
   spdlog::info("Running normal benchmark (one processor at a time)...");
   for (int stage = start_stage; stage <= end_stage; stage++) {
     if (has_lit_cores())
-      run_normal<Timer>(table, gpu_pt, omp_dispatch, ProcessorType::kLittleCore, stage,
-                        seconds_to_run, print_progress);
+      run_normal<Timer>(table,
+                        gpu_pt,
+                        omp_dispatch,
+                        ProcessorType::kLittleCore,
+                        stage,
+                        seconds_to_run,
+                        print_progress);
     if (has_med_cores())
-      run_normal<Timer>(table, gpu_pt, omp_dispatch, ProcessorType::kMediumCore, stage,
-                        seconds_to_run, print_progress);
+      run_normal<Timer>(table,
+                        gpu_pt,
+                        omp_dispatch,
+                        ProcessorType::kMediumCore,
+                        stage,
+                        seconds_to_run,
+                        print_progress);
     if (has_big_cores())
-      run_normal<Timer>(table, gpu_pt, omp_dispatch, ProcessorType::kBigCore, stage,
-                        seconds_to_run, print_progress);
+      run_normal<Timer>(table,
+                        gpu_pt,
+                        omp_dispatch,
+                        ProcessorType::kBigCore,
+                        stage,
+                        seconds_to_run,
+                        print_progress);
     run_normal<Timer>(table, gpu_pt, omp_dispatch, gpu_pt, stage, seconds_to_run, print_progress);
   }
 

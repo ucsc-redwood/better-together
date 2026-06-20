@@ -28,6 +28,11 @@ three backends compute the *same correct* answer".
 
 ### Inventory
 
+> Paths below are as of this audit (2026-06-15, pre-refactor). The component-structure
+> refactor later moved these from `builtin-apps/<app>/<be>/` to `apps/<app>/<be>/`, and
+> `builtin-apps/common/` into `platform/`; the test files and assertion styles are
+> otherwise unchanged.
+
 | File | App × Backend | #TEST | Assertion style |
 |---|---|---|---|
 | `builtin-apps/cifar-dense/omp/test_main.cpp` | cifar-dense × OMP | 12 | dims + no-throw + is_different |

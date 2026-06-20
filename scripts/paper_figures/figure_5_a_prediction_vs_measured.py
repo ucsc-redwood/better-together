@@ -4,17 +4,16 @@ Output paths:
 - PNG: scripts/paper_figures/png/figure_5_a_prediction_vs_measured.png
 """
 
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 
 # Constants
 NUM_TASKS_TO_DISPLAY = 20  # Number of tasks to display
 Y_AXIS_MIN = 0  # Minimum value for Y-axis
 Y_AXIS_MAX = 45  # Maximum value for Y-axis
-BIAS = (
-    -2
-)  # Bias to add/subtract from predicted data only (positive = add, negative = subtract)
+BIAS = -2  # Bias to add/subtract from predicted data only (positive = add, negative = subtract)
 
 labels = [str(i) for i in range(1, NUM_TASKS_TO_DISPLAY + 1)]
 

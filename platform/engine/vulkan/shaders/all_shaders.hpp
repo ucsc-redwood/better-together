@@ -29,13 +29,13 @@ namespace shaders {
 // #include "h/tmp_local_inclusive_scan_v2_16_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_32_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_64_spv.h"
-#include "h/tmp_single_radixsort_warp16_spv.h"
-#include "h/tmp_single_radixsort_warp32_spv.h"
-#include "h/tmp_single_radixsort_warp64_spv.h"
 #include "h/multi_radixsort_histograms_spv.h"
 #include "h/multi_radixsort_warp16_spv.h"
 #include "h/multi_radixsort_warp32_spv.h"
 #include "h/multi_radixsort_warp64_spv.h"
+#include "h/tmp_single_radixsort_warp16_spv.h"
+#include "h/tmp_single_radixsort_warp32_spv.h"
+#include "h/tmp_single_radixsort_warp64_spv.h"
 #include "h/tree_build_octree_spv.h"
 #include "h/tree_build_radix_tree_spv.h"
 #include "h/tree_edge_count_spv.h"
@@ -44,9 +44,9 @@ namespace shaders {
 #include "h/tree_morton_spv.h"
 #include "h/tree_move_dups_spv.h"
 #include "h/tree_naive_prefix_sum_spv.h"
-#include "h/tree_scan_local_spv.h"
-#include "h/tree_scan_block_sums_spv.h"
 #include "h/tree_scan_add_spv.h"
+#include "h/tree_scan_block_sums_spv.h"
+#include "h/tree_scan_local_spv.h"
 // new shaders
 #include "h/new_cifar_dense_conv2d_spv.h"
 #include "h/new_cifar_dense_linear_spv.h"
@@ -54,8 +54,8 @@ namespace shaders {
 #include "h/new_cifar_sparse_conv2d_spv.h"
 #include "h/new_cifar_sparse_linear_spv.h"
 #include "h/new_cifar_sparse_maxpool_spv.h"
-#include "h/octree_build_radix_tree_spv.h"
 #include "h/octree_build_octree_nodes_spv.h"
+#include "h/octree_build_radix_tree_spv.h"
 #include "h/octree_edge_count_spv.h"
 #include "h/octree_morton_spv.h"
 
@@ -66,11 +66,9 @@ namespace shaders {
 // The baked-header variable name is the bare .spv basename (xxd -i run from the
 // spv/ dir), so it is independent of the source-tree path -- relocating the
 // shaders dir (as the P5a component move did) no longer breaks these references.
-#define SHADER_ENTRY(name)       \
-  {                              \
-    #name, {                     \
-      name##_spv, name##_spv_len \
-    }                            \
+#define SHADER_ENTRY(name)                \
+  {                                       \
+    #name, { name##_spv, name##_spv_len } \
   }
 
 // Map of shader names to their binary data and size

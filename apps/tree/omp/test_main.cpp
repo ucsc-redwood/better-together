@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <memory_resource>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/tree/testing/tree_invariants.hpp"
 #include "apps/tree/testing/tree_octree_ref.hpp"
 #include "apps/tree/testing/tree_ref.hpp"
@@ -14,6 +13,7 @@
 #include "func_brt.hpp"
 #include "func_edge.hpp"
 #include "func_octree.hpp"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // Tree × OMP differential oracle. OMP is the reference, so this run is a
@@ -135,7 +135,7 @@ TEST(TreeAnchorOmp, Stage7_OctreeInvariants) {
       a.u_oct_corner_s7.data(),
       a.u_oct_cell_size_s7.data(),
       a.u_oct_child_node_mask_s7.data(),
-      reinterpret_cast<const int(*)[8]>(a.u_oct_children_s7.data()),
+      reinterpret_cast<const int (*)[8]>(a.u_oct_children_s7.data()),
       n_oct,
       tree::kMinCoord,
       tree::kRange));
@@ -161,11 +161,11 @@ TEST(TreeAnchorOmp, Stage7_OctreeInvariants) {
 // the produced octree arrays.
 struct TinyOct {
   int n_oct = 0;
-  std::vector<int> children;          // n_oct*8
-  std::vector<glm::vec4> corner;      // n_oct
-  std::vector<float> cell_size;       // n_oct
-  std::vector<int> child_node_mask;   // n_oct
-  std::vector<int> child_leaf_mask;   // n_oct (all-ones init; set_leaf CLEARS a bit)
+  std::vector<int> children;         // n_oct*8
+  std::vector<glm::vec4> corner;     // n_oct
+  std::vector<float> cell_size;      // n_oct
+  std::vector<int> child_node_mask;  // n_oct
+  std::vector<int> child_leaf_mask;  // n_oct (all-ones init; set_leaf CLEARS a bit)
 };
 
 TinyOct RunRepoOctreeTiny(const std::vector<uint32_t>& codes) {
@@ -177,9 +177,14 @@ TinyOct RunRepoOctreeTiny(const std::vector<uint32_t>& codes) {
 
   // Stage 4 (single-threaded, deterministic, exactly as the golden).
   for (int i = 0; i < n_brt; ++i) {
-    tree::omp::v1::process_radix_tree_i(
-        i, n_brt, codes.data(), prefix_n.data(), hll.data(), hlr.data(),
-        left_child.data(), parents.data());
+    tree::omp::v1::process_radix_tree_i(i,
+                                        n_brt,
+                                        codes.data(),
+                                        prefix_n.data(),
+                                        hll.data(),
+                                        hlr.data(),
+                                        left_child.data(),
+                                        parents.data());
   }
 
   // Stage 5.
@@ -210,33 +215,31 @@ TinyOct RunRepoOctreeTiny(const std::vector<uint32_t>& codes) {
   // golden -- start at 0), single-threaded. Run process_oct_node (node topology)
   // then process_link_leaf (leaf topology), exactly as run_stage_7 does.
   for (int i = 0; i < n_brt; ++i) {
-    tree::omp::process_oct_node(
-        i,
-        reinterpret_cast<int(*)[8]>(out.children.data()),
-        out.corner.data(),
-        out.cell_size.data(),
-        out.child_node_mask.data(),
-        edge_offset.data(),
-        edge_count.data(),
-        codes.data(),
-        prefix_n.data(),
-        parents.data(),
-        tree::kMinCoord,
-        tree::kRange);
+    tree::omp::process_oct_node(i,
+                                reinterpret_cast<int (*)[8]>(out.children.data()),
+                                out.corner.data(),
+                                out.cell_size.data(),
+                                out.child_node_mask.data(),
+                                edge_offset.data(),
+                                edge_count.data(),
+                                codes.data(),
+                                prefix_n.data(),
+                                parents.data(),
+                                tree::kMinCoord,
+                                tree::kRange);
   }
   for (int i = 0; i < n_brt; ++i) {
-    tree::omp::process_link_leaf(
-        i,
-        reinterpret_cast<int(*)[8]>(out.children.data()),
-        out.child_leaf_mask.data(),
-        edge_offset.data(),
-        edge_count.data(),
-        codes.data(),
-        hll.data(),
-        hlr.data(),
-        prefix_n.data(),
-        parents.data(),
-        left_child.data());
+    tree::omp::process_link_leaf(i,
+                                 reinterpret_cast<int (*)[8]>(out.children.data()),
+                                 out.child_leaf_mask.data(),
+                                 edge_offset.data(),
+                                 edge_count.data(),
+                                 codes.data(),
+                                 hll.data(),
+                                 hlr.data(),
+                                 prefix_n.data(),
+                                 parents.data(),
+                                 left_child.data());
   }
   return out;
 }
@@ -246,8 +249,7 @@ TinyOct RunRepoOctreeTiny(const std::vector<uint32_t>& codes) {
 int FindRepoNode(const TinyOct& o, float cx, float cy, float cz, float cell, float eps = 1e-2f) {
   for (int v = 0; v < o.n_oct; ++v) {
     if (std::abs(o.corner[v].x - cx) < eps && std::abs(o.corner[v].y - cy) < eps &&
-        std::abs(o.corner[v].z - cz) < eps &&
-        std::abs(o.cell_size[v] - cell) < 1e-3f * cell) {
+        std::abs(o.corner[v].z - cz) < eps && std::abs(o.cell_size[v] - cell) < 1e-3f * cell) {
       return v;
     }
   }
@@ -300,10 +302,19 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
       const float ccell = o.cell_size[cv];
       if (std::abs(ccell * 2.0f - pcell) > 1e-3f * pcell) {
         ++linking_violations;
-        fprintf(stderr,
-                "[TINY] VIOLATION: repo node %d (corner=(%g,%g,%g) cell=%g) child slot %d -> node %d"
-                " has cell=%g (NOT parent/2=%g) -- backwards/wrong link\n",
-                v, o.corner[v].x, o.corner[v].y, o.corner[v].z, pcell, c, cv, ccell, pcell / 2);
+        fprintf(
+            stderr,
+            "[TINY] VIOLATION: repo node %d (corner=(%g,%g,%g) cell=%g) child slot %d -> node %d"
+            " has cell=%g (NOT parent/2=%g) -- backwards/wrong link\n",
+            v,
+            o.corner[v].x,
+            o.corner[v].y,
+            o.corner[v].z,
+            pcell,
+            c,
+            cv,
+            ccell,
+            pcell / 2);
       }
     }
   }
@@ -331,21 +342,28 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
           if (cv < 0 || cv >= o.n_oct) continue;
           if (std::abs(o.corner[cv].x - ccorner[0]) < 1e-2f &&
               std::abs(o.corner[cv].y - ccorner[1]) < 1e-2f &&
-              std::abs(o.corner[cv].z - ccorner[2]) < 1e-2f &&
-              o.cell_size[cv] < rn.cell_size) {
+              std::abs(o.corner[cv].z - ccorner[2]) < 1e-2f && o.cell_size[cv] < rn.cell_size) {
             present = true;
             break;
           }
         }
       }
-      if (present) ++gt_edges_present;
+      if (present)
+        ++gt_edges_present;
       else
         fprintf(stderr,
                 "[TINY] MISSING EDGE: ground-truth parent (corner=(%g,%g,%g) cell=%g) -> child "
                 "octant %d (corner=(%g,%g,%g)) is NOT present as a valid downward link in repo "
                 "(repo parent node idx=%d)\n",
-                rn.corner[0], rn.corner[1], rn.corner[2], rn.cell_size, oct, ccorner[0], ccorner[1],
-                ccorner[2], pv);
+                rn.corner[0],
+                rn.corner[1],
+                rn.corner[2],
+                rn.cell_size,
+                oct,
+                ccorner[0],
+                ccorner[1],
+                ccorner[2],
+                pv);
     }
   }
 
@@ -365,14 +383,23 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
       const int want_idx = code_index(leaf_code);
       const bool present = pv >= 0 && (o.child_leaf_mask[pv] & (1 << oct)) == 0 &&
                            o.children[pv * 8 + oct] == want_idx;
-      if (present) ++gt_leaves_present;
+      if (present)
+        ++gt_leaves_present;
       else
-        fprintf(stderr,
-                "[TINY] MISSING/WRONG LEAF: ground-truth owner (corner=(%g,%g,%g) cell=%g) octant %d"
-                " should hold leaf code 0x%08x (idx %d); repo node %d slot value=%d leaf_bit=%d\n",
-                rn.corner[0], rn.corner[1], rn.corner[2], rn.cell_size, oct, leaf_code, want_idx, pv,
-                pv >= 0 ? o.children[pv * 8 + oct] : -999,
-                pv >= 0 ? ((o.child_leaf_mask[pv] >> oct) & 1) : -1);
+        fprintf(
+            stderr,
+            "[TINY] MISSING/WRONG LEAF: ground-truth owner (corner=(%g,%g,%g) cell=%g) octant %d"
+            " should hold leaf code 0x%08x (idx %d); repo node %d slot value=%d leaf_bit=%d\n",
+            rn.corner[0],
+            rn.corner[1],
+            rn.corner[2],
+            rn.cell_size,
+            oct,
+            leaf_code,
+            want_idx,
+            pv,
+            pv >= 0 ? o.children[pv * 8 + oct] : -999,
+            pv >= 0 ? ((o.child_leaf_mask[pv] >> oct) & 1) : -1);
     }
   }
 
@@ -382,8 +409,9 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
       if ((o.child_leaf_mask[v] & (1 << c)) != 0) continue;  // bit set -> not a leaf
       ++repo_leaves;
       const int leaf_idx = o.children[v * 8 + c];
-      const uint32_t leaf_code =
-          (leaf_idx >= 0 && leaf_idx < static_cast<int>(codes.size())) ? codes[leaf_idx] : 0xFFFFFFFFu;
+      const uint32_t leaf_code = (leaf_idx >= 0 && leaf_idx < static_cast<int>(codes.size()))
+                                     ? codes[leaf_idx]
+                                     : 0xFFFFFFFFu;
       // find a ground-truth node matching this repo node's geometry that declares
       // exactly this leaf code at this octant.
       bool matched = false;
@@ -399,13 +427,21 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
           break;
         }
       }
-      if (matched) ++repo_leaves_matched;
+      if (matched)
+        ++repo_leaves_matched;
       else
-        fprintf(stderr,
-                "[TINY] SPURIOUS LEAF: repo node %d (corner=(%g,%g,%g) cell=%g) octant %d holds leaf"
-                " idx %d (code 0x%08x) with no matching ground-truth leaf\n",
-                v, o.corner[v].x, o.corner[v].y, o.corner[v].z, o.cell_size[v], c, leaf_idx,
-                leaf_code);
+        fprintf(
+            stderr,
+            "[TINY] SPURIOUS LEAF: repo node %d (corner=(%g,%g,%g) cell=%g) octant %d holds leaf"
+            " idx %d (code 0x%08x) with no matching ground-truth leaf\n",
+            v,
+            o.corner[v].x,
+            o.corner[v].y,
+            o.corner[v].z,
+            o.cell_size[v],
+            c,
+            leaf_idx,
+            leaf_code);
     }
   }
 
@@ -415,16 +451,27 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
     // Dump both trees only on failure (keeps passing CI logs clean -- CLAUDE.md §3).
     fprintf(stderr, "\n[TINY] repo octree: n_oct=%d\n", o.n_oct);
     for (int v = 0; v < o.n_oct; ++v) {
-      fprintf(stderr, "  repo oct %d: corner=(%g,%g,%g) cell=%g node_mask=%d leaf_mask=%d children=[",
-              v, o.corner[v].x, o.corner[v].y, o.corner[v].z, o.cell_size[v],
-              o.child_node_mask[v], o.child_leaf_mask[v]);
+      fprintf(stderr,
+              "  repo oct %d: corner=(%g,%g,%g) cell=%g node_mask=%d leaf_mask=%d children=[",
+              v,
+              o.corner[v].x,
+              o.corner[v].y,
+              o.corner[v].z,
+              o.cell_size[v],
+              o.child_node_mask[v],
+              o.child_leaf_mask[v]);
       for (int c = 0; c < 8; ++c) fprintf(stderr, "%d%s", o.children[v * 8 + c], c < 7 ? "," : "");
       fprintf(stderr, "]\n");
     }
     fprintf(stderr, "[TINY] brute-force octree (ground truth): %zu internal nodes\n", ref.size());
     for (const auto& rn : ref) {
-      fprintf(stderr, "  ref node lvl=%d corner=(%g,%g,%g) cell=%g  node-edges:", rn.level,
-              rn.corner[0], rn.corner[1], rn.corner[2], rn.cell_size);
+      fprintf(stderr,
+              "  ref node lvl=%d corner=(%g,%g,%g) cell=%g  node-edges:",
+              rn.level,
+              rn.corner[0],
+              rn.corner[1],
+              rn.corner[2],
+              rn.cell_size);
       for (auto& [oct, cp] : rn.child_internal) fprintf(stderr, " oct%d", oct);
       fprintf(stderr, "  leaf-edges:");
       for (auto& [oct, lc] : rn.child_leaf) fprintf(stderr, " oct%d=0x%08x", oct, lc);
@@ -433,8 +480,14 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
     fprintf(stderr,
             "[TINY] repo_links=%d linking_violations=%d | gt_node_edges=%d present=%d | "
             "gt_leaves=%d present=%d | repo_leaves=%d matched=%d\n",
-            repo_links, linking_violations, gt_edges, gt_edges_present, gt_leaves,
-            gt_leaves_present, repo_leaves, repo_leaves_matched);
+            repo_links,
+            linking_violations,
+            gt_edges,
+            gt_edges_present,
+            gt_leaves,
+            gt_leaves_present,
+            repo_leaves,
+            repo_leaves_matched);
   }
 
   EXPECT_EQ(linking_violations, 0)

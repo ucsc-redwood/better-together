@@ -7,11 +7,11 @@
 #include <cub/util_math.cuh>
 // clang-format on
 
-#include "platform/engine/cuda/helpers.cuh"
 #include "01_morton.cuh"
 #include "04_radix_tree.cuh"
 #include "05_edge_count.cuh"
 #include "07_octree.cuh"
+#include "platform/engine/cuda/helpers.cuh"
 
 namespace tree::cuda {
 
@@ -19,7 +19,7 @@ cub::CachingDeviceAllocator g_allocator(true);  // Caching allocator for device 
 
 constexpr bool kSync = false;
 
-void CudaDispatcher::run_stage_1_async(tree::SafeAppData &appdata) {
+void CudaDispatcher::run_stage_1_async(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);
 
   const auto total_iterations = appdata.get_n_input();
@@ -39,17 +39,17 @@ void CudaDispatcher::run_stage_1_async(tree::SafeAppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_2_async(tree::SafeAppData &appdata) {
+void CudaDispatcher::run_stage_2_async(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 2, &appdata);
 
-  const uint32_t *d_keys_in = appdata.u_morton_keys_s1.data();
-  uint32_t *d_keys_out = appdata.u_morton_keys_sorted_s2_out.data();
+  const uint32_t* d_keys_in = appdata.u_morton_keys_s1.data();
+  uint32_t* d_keys_out = appdata.u_morton_keys_sorted_s2_out.data();
   uint32_t num_items = appdata.get_n_input();
 
   // Get temporary storage size
   // assert(appdata.cuda_temp_storage.has_value());
 
-  void *d_temp_storage = nullptr;
+  void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
 
   cub::DeviceRadixSort::SortKeys(
@@ -76,9 +76,9 @@ void CudaDispatcher::run_stage_2_async(tree::SafeAppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_3_async(tree::SafeAppData &appdata) {
-  const uint32_t *d_in = appdata.u_morton_keys_sorted_s2.data();
-  uint32_t *d_out = appdata.u_morton_keys_unique_s3_out.data();
+void CudaDispatcher::run_stage_3_async(tree::SafeAppData& appdata) {
+  const uint32_t* d_in = appdata.u_morton_keys_sorted_s2.data();
+  uint32_t* d_out = appdata.u_morton_keys_unique_s3_out.data();
   uint32_t num_items = appdata.get_n_input();
 
   LOG_KERNEL(LogKernelType::kCUDA, 3, &appdata);
@@ -86,7 +86,7 @@ void CudaDispatcher::run_stage_3_async(tree::SafeAppData &appdata) {
   // Allocate temporary storage
   // assert(appdata.cuda_temp_storage.has_value());
 
-  void *d_temp_storage = nullptr;
+  void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
 
   CubDebugExit(cub::DeviceSelect::Unique(d_temp_storage,
@@ -122,7 +122,7 @@ void CudaDispatcher::run_stage_3_async(tree::SafeAppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_4_async(tree::SafeAppData &appdata) {
+void CudaDispatcher::run_stage_4_async(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 4, &appdata);
 
   const auto total_iterations = appdata.get_n_unique();
@@ -144,7 +144,7 @@ void CudaDispatcher::run_stage_4_async(tree::SafeAppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_5_async(tree::SafeAppData &appdata) {
+void CudaDispatcher::run_stage_5_async(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 5, &appdata);
 
   const auto total_iterations = appdata.get_n_brt_nodes();
@@ -163,10 +163,10 @@ void CudaDispatcher::run_stage_5_async(tree::SafeAppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_6_async(tree::SafeAppData &appdata) {
+void CudaDispatcher::run_stage_6_async(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 6, &appdata);
 
-  void *d_temp_storage = nullptr;
+  void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
 
   cub::DeviceScan::InclusiveSum(d_temp_storage,
@@ -198,7 +198,7 @@ void CudaDispatcher::run_stage_6_async(tree::SafeAppData &appdata) {
   }
 }
 
-void CudaDispatcher::run_stage_7_async(tree::SafeAppData &appdata) {
+void CudaDispatcher::run_stage_7_async(tree::SafeAppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 7, &appdata);
 
   const auto total_iterations = appdata.get_n_brt_nodes();
@@ -206,7 +206,7 @@ void CudaDispatcher::run_stage_7_async(tree::SafeAppData &appdata) {
 
   // First kernel: Create the octree structure
   ::cuda::kernels::k_MakeOctNodes<<<grid_dim, block_dim, shared_mem>>>(
-      reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
+      reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7_out.data()),
       appdata.u_oct_corner_s7_out.data(),
       appdata.u_oct_cell_size_s7_out.data(),
       appdata.u_oct_child_node_mask_s7_out.data(),
@@ -224,7 +224,7 @@ void CudaDispatcher::run_stage_7_async(tree::SafeAppData &appdata) {
 
   // Second kernel: Link leaf nodes
   ::cuda::kernels::k_LinkLeafNodes<<<grid_dim, block_dim, shared_mem>>>(
-      reinterpret_cast<int(*)[8]>(appdata.u_oct_children_s7_out.data()),
+      reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7_out.data()),
       appdata.u_oct_child_leaf_mask_s7_out.data(),
       appdata.u_edge_offset_s6.data(),
       appdata.u_edge_count_s5.data(),

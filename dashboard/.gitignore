@@ -1,0 +1,3 @@
+# Generated dashboard build (copy of static/ + bundle.js derived from gitignored data/).
+# Regenerate with: uv run --project optimizer python dashboard/generate.py
+site/

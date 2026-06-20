@@ -3,9 +3,9 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/tree/tree_diff_oracle.hpp"
 #include "dispatchers.cuh"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // Tree × CUDA differential oracle. CUDA dispatches each stage into the same

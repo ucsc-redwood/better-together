@@ -64,9 +64,7 @@ inline void run_omp_stage_timed(benchmark::State& state, StageFn&& stage) {
 // Run `stage()` and report the device GPU time of the last submitted command
 // buffer. Falls back to wall-clock when timestamps are unsupported.
 template <typename StageFn>
-inline void run_vk_stage_timed(benchmark::State& state,
-                               kiss_vk::Sequence* seq,
-                               StageFn&& stage) {
+inline void run_vk_stage_timed(benchmark::State& state, kiss_vk::Sequence* seq, StageFn&& stage) {
   if (seq->gpu_timestamps_supported()) {
     stage();
     const double gpu_ns = seq->get_last_gpu_time_ns();

@@ -4,7 +4,7 @@ Profile-guided software-pipelining framework for heterogeneous edge SoCs. An app
 sequence of **stages**; each stage has a kernel in up to three backends (**OMP** CPU,
 **CUDA**, **Vulkan**). Stages are profiled under interference, assigned to processing
 units by a z3 SMT solver, and pipelined. It's really three tools talking through files:
-**BT-Profiler → CSV → BT-Optimizer (Python/z3) → schedule JSON → BT-Implementer (C++)**.
+**BT-Profiler → JSONL profiling store → BT-Optimizer (Python/z3) → schedule JSON → BT-Implementer (C++)**.
 
 ## Start here
 
@@ -38,7 +38,7 @@ Status, audits, decision logs, and roadmaps (the *why* and *where we are*) are i
 - **Remote shell gotcha:** `rocky-ryzen`'s login shell is **fish** → wrap remote commands
   in `bash -lc '…'`. Hosts/serials/access: [`01-hardware.md`](docs/instruction-for-ai/01-hardware.md).
 - **Testing = OMP-as-oracle differential**, fixed seed `114514`: exact compare for
-  integer/structural stages (tree/octree), `NearEqual` for float (cifar). `ctest -L omp`
+  integer/structural stages (tree), `NearEqual` for float (cifar). `ctest -L omp`
   is the everyday gate; a `GTEST_SKIP` counts as a pass.
 - **Canonical model not yet migrated:** [`04-alexnet-cifar-spec.md`](docs/instruction-for-ai/04-alexnet-cifar-spec.md)
   makes `AlexNetCIFAR` (11 stages) canonical, but the C++ kernels still implement the old

@@ -68,18 +68,25 @@ inline void CheckStage3(const tree::SafeAppData& a) {
   // Guard the count: a 0-length ExactEqual passes vacuously, masking a stage that
   // produced nothing -- make that a failure, not a silent green (review #25).
   ASSERT_GT(a.get_n_unique(), 0u) << "tree s3: zero unique keys (compare would be vacuous)";
-  EXPECT_TRUE(bt::testing::ExactEqual(
-      a.u_morton_keys_unique_s3, a.u_morton_keys_unique_s3_out, "tree s3 unique", a.get_n_unique()));
+  EXPECT_TRUE(bt::testing::ExactEqual(a.u_morton_keys_unique_s3,
+                                      a.u_morton_keys_unique_s3_out,
+                                      "tree s3 unique",
+                                      a.get_n_unique()));
 }
 
 inline void CheckStage4(const tree::SafeAppData& a) {
   const std::size_t n = a.get_n_brt_nodes();
   ASSERT_GT(n, 0u) << "tree s4: zero BRT nodes (compare would be vacuous)";
-  EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_prefix_n_s4, a.u_brt_prefix_n_s4_out, "tree s4 prefix_n", n));
-  EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_has_leaf_left_s4, a.u_brt_has_leaf_left_s4_out, "tree s4 leaf_left", n));
-  EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_has_leaf_right_s4, a.u_brt_has_leaf_right_s4_out, "tree s4 leaf_right", n));
-  EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_left_child_s4, a.u_brt_left_child_s4_out, "tree s4 left_child", n));
-  EXPECT_TRUE(bt::testing::ExactEqual(a.u_brt_parents_s4, a.u_brt_parents_s4_out, "tree s4 parents", n));
+  EXPECT_TRUE(
+      bt::testing::ExactEqual(a.u_brt_prefix_n_s4, a.u_brt_prefix_n_s4_out, "tree s4 prefix_n", n));
+  EXPECT_TRUE(bt::testing::ExactEqual(
+      a.u_brt_has_leaf_left_s4, a.u_brt_has_leaf_left_s4_out, "tree s4 leaf_left", n));
+  EXPECT_TRUE(bt::testing::ExactEqual(
+      a.u_brt_has_leaf_right_s4, a.u_brt_has_leaf_right_s4_out, "tree s4 leaf_right", n));
+  EXPECT_TRUE(bt::testing::ExactEqual(
+      a.u_brt_left_child_s4, a.u_brt_left_child_s4_out, "tree s4 left_child", n));
+  EXPECT_TRUE(
+      bt::testing::ExactEqual(a.u_brt_parents_s4, a.u_brt_parents_s4_out, "tree s4 parents", n));
 }
 
 inline void CheckStage5(const tree::SafeAppData& a) {
@@ -120,7 +127,7 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
 [[nodiscard]] inline std::vector<OctEdge> OctreeEdgeSet(
     std::span<const glm::vec4> corner,
     std::span<const float> cell,
-    std::span<const std::int32_t> children,   // n*8
+    std::span<const std::int32_t> children,  // n*8
     std::span<const std::int32_t> node_mask,
     std::span<const std::int32_t> leaf_mask,
     std::size_t n) {
@@ -140,7 +147,9 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
       OctEdge e{kind, pcx, pcy, pcz, pcell, 0, 0, 0, 0, c};
       if (kind == 0 && t >= 0 && static_cast<std::size_t>(t) < n) {
         // internal child: identify it by its OWN geometry (index-independent).
-        e[5] = q(corner[t].x); e[6] = q(corner[t].y); e[7] = q(corner[t].z);
+        e[5] = q(corner[t].x);
+        e[6] = q(corner[t].y);
+        e[7] = q(corner[t].z);
         e[8] = q(cell[t]);
       } else {
         // leaf: the value is a point index, not an octree node; carry the raw
@@ -158,14 +167,20 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
 [[nodiscard]] inline ::testing::AssertionResult CheckStage7Topology(const tree::SafeAppData& a,
                                                                     std::size_t n) {
   std::span<const std::int32_t> ch_ref(a.u_oct_children_s7.data(), a.u_oct_children_s7.size());
-  std::span<const std::int32_t> ch_out(a.u_oct_children_s7_out.data(), a.u_oct_children_s7_out.size());
-  std::span<const std::int32_t> nm_ref(a.u_oct_child_node_mask_s7.data(), a.u_oct_child_node_mask_s7.size());
-  std::span<const std::int32_t> nm_out(a.u_oct_child_node_mask_s7_out.data(), a.u_oct_child_node_mask_s7_out.size());
-  std::span<const std::int32_t> lm_ref(a.u_oct_child_leaf_mask_s7.data(), a.u_oct_child_leaf_mask_s7.size());
-  std::span<const std::int32_t> lm_out(a.u_oct_child_leaf_mask_s7_out.data(), a.u_oct_child_leaf_mask_s7_out.size());
+  std::span<const std::int32_t> ch_out(a.u_oct_children_s7_out.data(),
+                                       a.u_oct_children_s7_out.size());
+  std::span<const std::int32_t> nm_ref(a.u_oct_child_node_mask_s7.data(),
+                                       a.u_oct_child_node_mask_s7.size());
+  std::span<const std::int32_t> nm_out(a.u_oct_child_node_mask_s7_out.data(),
+                                       a.u_oct_child_node_mask_s7_out.size());
+  std::span<const std::int32_t> lm_ref(a.u_oct_child_leaf_mask_s7.data(),
+                                       a.u_oct_child_leaf_mask_s7.size());
+  std::span<const std::int32_t> lm_out(a.u_oct_child_leaf_mask_s7_out.data(),
+                                       a.u_oct_child_leaf_mask_s7_out.size());
 
   auto ref = OctreeEdgeSet(a.u_oct_corner_s7, a.u_oct_cell_size_s7, ch_ref, nm_ref, lm_ref, n);
-  auto out = OctreeEdgeSet(a.u_oct_corner_s7_out, a.u_oct_cell_size_s7_out, ch_out, nm_out, lm_out, n);
+  auto out =
+      OctreeEdgeSet(a.u_oct_corner_s7_out, a.u_oct_cell_size_s7_out, ch_out, nm_out, lm_out, n);
   if (ref == out) return ::testing::AssertionSuccess();
 
   // Break the difference down by edge kind. INTERNAL (kind 0) parent->child edges
@@ -175,7 +190,8 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
   // them separately and only fail on an internal-topology divergence.
   auto split = [](const std::vector<OctEdge>& e, long kind) {
     std::vector<OctEdge> r;
-    for (const auto& x : e) if (x[0] == kind) r.push_back(x);
+    for (const auto& x : e)
+      if (x[0] == kind) r.push_back(x);
     return r;  // already sorted (subsequence of a sorted vector)
   };
   const auto ref_int = split(ref, 0), out_int = split(out, 0);
@@ -245,7 +261,8 @@ inline void CheckStage7(const tree::SafeAppData& a) {
   // the same octree node's mask. With atomicOr in the shader (matching the
   // commutative |= the reference intends) the mask is order-INDEPENDENT and is a
   // stable differential target.
-  EXPECT_TRUE(bt::testing::ExactEqual(a.u_oct_child_node_mask_s7, a.u_oct_child_node_mask_s7_out, "tree s7 node_mask", n));
+  EXPECT_TRUE(bt::testing::ExactEqual(
+      a.u_oct_child_node_mask_s7, a.u_oct_child_node_mask_s7_out, "tree s7 node_mask", n));
   // Geometry IS now a deterministic oracle target. The octree builder used the
   // INCLUSIVE edge_offset prefix sum as each brt node's range START, which shifted
   // every range +edge_count[i] -> the root (node 0) had no writer and adjacent
@@ -254,8 +271,14 @@ inline void CheckStage7(const tree::SafeAppData& a) {
   // in process_oct_node / process_link_leaf on all three backends; a diagnostic
   // confirmed 0 holes and 0 multi-writer collisions afterward, so each octree
   // node now has exactly one geometry writer and the values are order-independent.
-  EXPECT_TRUE(bt::testing::NearEqual(a.u_oct_cell_size_s7, a.u_oct_cell_size_s7_out, 1e-5f, 1e-6f, "tree s7 cell_size", n));
-  EXPECT_TRUE(bt::testing::NearEqual(AsFloats(a.u_oct_corner_s7), AsFloats(a.u_oct_corner_s7_out), 1e-5f, 1e-6f, "tree s7 corner", n * 4));
+  EXPECT_TRUE(bt::testing::NearEqual(
+      a.u_oct_cell_size_s7, a.u_oct_cell_size_s7_out, 1e-5f, 1e-6f, "tree s7 cell_size", n));
+  EXPECT_TRUE(bt::testing::NearEqual(AsFloats(a.u_oct_corner_s7),
+                                     AsFloats(a.u_oct_corner_s7_out),
+                                     1e-5f,
+                                     1e-6f,
+                                     "tree s7 corner",
+                                     n * 4));
 
   // Order-INDEPENDENT children/leaf topology comparison. Octree node indices are
   // identical across backends (the per-index geometry above matches), but child
@@ -279,25 +302,40 @@ inline void RunAndCheckStage(int s) {
   for (int i = 1; i <= s; ++i) runner.RunStage(a, i);
   const tree::SafeAppData& base = a;  // checks read the inherited golden / _out
   switch (s) {
-    case 1: CheckStage1(base); break;
-    case 2: CheckStage2(base); break;
-    case 3: CheckStage3(base); break;
-    case 4: CheckStage4(base); break;
-    case 5: CheckStage5(base); break;
-    case 6: CheckStage6(base); break;
-    case 7: CheckStage7(base); break;
-    default: FAIL() << "no such tree stage: " << s;
+    case 1:
+      CheckStage1(base);
+      break;
+    case 2:
+      CheckStage2(base);
+      break;
+    case 3:
+      CheckStage3(base);
+      break;
+    case 4:
+      CheckStage4(base);
+      break;
+    case 5:
+      CheckStage5(base);
+      break;
+    case 6:
+      CheckStage6(base);
+      break;
+    case 7:
+      CheckStage7(base);
+      break;
+    default:
+      FAIL() << "no such tree stage: " << s;
   }
 }
 
 }  // namespace tree::testing
 
 // Expand the 7 per-stage differential tests for a given backend Runner.
-#define BT_DECLARE_TREE_DIFF_TESTS(SUITE, RUNNER)                                    \
-  TEST(SUITE, Stage1_Morton)     { tree::testing::RunAndCheckStage<RUNNER>(1); }     \
-  TEST(SUITE, Stage2_Sort)       { tree::testing::RunAndCheckStage<RUNNER>(2); }     \
-  TEST(SUITE, Stage3_Unique)     { tree::testing::RunAndCheckStage<RUNNER>(3); }     \
-  TEST(SUITE, Stage4_RadixTree)  { tree::testing::RunAndCheckStage<RUNNER>(4); }     \
-  TEST(SUITE, Stage5_EdgeCount)  { tree::testing::RunAndCheckStage<RUNNER>(5); }     \
-  TEST(SUITE, Stage6_EdgeOffset) { tree::testing::RunAndCheckStage<RUNNER>(6); }     \
-  TEST(SUITE, Stage7_Octree)     { tree::testing::RunAndCheckStage<RUNNER>(7); }
+#define BT_DECLARE_TREE_DIFF_TESTS(SUITE, RUNNER)                                \
+  TEST(SUITE, Stage1_Morton) { tree::testing::RunAndCheckStage<RUNNER>(1); }     \
+  TEST(SUITE, Stage2_Sort) { tree::testing::RunAndCheckStage<RUNNER>(2); }       \
+  TEST(SUITE, Stage3_Unique) { tree::testing::RunAndCheckStage<RUNNER>(3); }     \
+  TEST(SUITE, Stage4_RadixTree) { tree::testing::RunAndCheckStage<RUNNER>(4); }  \
+  TEST(SUITE, Stage5_EdgeCount) { tree::testing::RunAndCheckStage<RUNNER>(5); }  \
+  TEST(SUITE, Stage6_EdgeOffset) { tree::testing::RunAndCheckStage<RUNNER>(6); } \
+  TEST(SUITE, Stage7_Octree) { tree::testing::RunAndCheckStage<RUNNER>(7); }

@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 
+#include "platform/mem/mr_ptr.hpp"                // bt_pipe::as_mr_ptr
 #include "platform/registry/device_registry.hpp"  // parse_args, ProcessorType, get_cores_by_type, has_*_cores
-#include "platform/mem/mr_ptr.hpp"            // bt_pipe::as_mr_ptr
 
 namespace bt_baseline {
 
@@ -27,31 +27,35 @@ namespace bt_baseline {
 // omp_tier(cores, n, app, lo, hi)    : all stages pinned to one CPU tier
 // gpu(disp, app, lo, hi)             : all stages on the GPU (Vulkan/CUDA)
 template <class AppDataT, class DispatcherT, class OmpDefault, class OmpTier, class Gpu>
-inline int run(int argc, char** argv, int n_stages, const std::string& app_label,
-               const std::string& gpu_label, OmpDefault omp_default, OmpTier omp_tier, Gpu gpu) {
+inline int run(int argc,
+               char** argv,
+               int n_stages,
+               const std::string& app_label,
+               const std::string& gpu_label,
+               OmpDefault omp_default,
+               OmpTier omp_tier,
+               Gpu gpu) {
   parse_args(argc, argv);
   spdlog::set_level(spdlog::level::off);
 
   // GPU baseline.
-  benchmark::RegisterBenchmark(
-      (gpu_label + "/" + app_label + "/Baseline").c_str(),
-      [=](benchmark::State& state) {
-        DispatcherT disp;
-        AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
-        gpu(disp, app, 1, n_stages);  // warmup
-        for (auto _ : state) gpu(disp, app, 1, n_stages);
-      })
+  benchmark::RegisterBenchmark((gpu_label + "/" + app_label + "/Baseline").c_str(),
+                               [=](benchmark::State& state) {
+                                 DispatcherT disp;
+                                 AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
+                                 gpu(disp, app, 1, n_stages);  // warmup
+                                 for (auto _ : state) gpu(disp, app, 1, n_stages);
+                               })
       ->Unit(benchmark::kMillisecond);
 
   // Default-OMP baseline (whatever cores OpenMP picks).
-  benchmark::RegisterBenchmark(
-      ("OMP/" + app_label + "/Baseline").c_str(),
-      [=](benchmark::State& state) {
-        DispatcherT disp;
-        AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
-        omp_default(app, 1, n_stages);  // warmup
-        for (auto _ : state) omp_default(app, 1, n_stages);
-      })
+  benchmark::RegisterBenchmark(("OMP/" + app_label + "/Baseline").c_str(),
+                               [=](benchmark::State& state) {
+                                 DispatcherT disp;
+                                 AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
+                                 omp_default(app, 1, n_stages);  // warmup
+                                 for (auto _ : state) omp_default(app, 1, n_stages);
+                               })
       ->Unit(benchmark::kMillisecond);
 
   // One baseline per CPU tier the device ACTUALLY has.
@@ -68,15 +72,15 @@ inline int run(int argc, char** argv, int n_stages, const std::string& app_label
   for (const auto& t : tiers) {
     if (!t.present) continue;
     const ProcessorType pt = t.pt;
-    benchmark::RegisterBenchmark(
-        ("OMP/" + app_label + "/Baseline/" + t.name).c_str(),
-        [=](benchmark::State& state) {
-          DispatcherT disp;
-          AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
-          std::vector<int>& cores = get_cores_by_type(pt);
-          omp_tier(cores, cores.size(), app, 1, n_stages);  // warmup
-          for (auto _ : state) omp_tier(cores, cores.size(), app, 1, n_stages);
-        })
+    benchmark::RegisterBenchmark(("OMP/" + app_label + "/Baseline/" + t.name).c_str(),
+                                 [=](benchmark::State& state) {
+                                   DispatcherT disp;
+                                   AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
+                                   std::vector<int>& cores = get_cores_by_type(pt);
+                                   omp_tier(cores, cores.size(), app, 1, n_stages);  // warmup
+                                   for (auto _ : state)
+                                     omp_tier(cores, cores.size(), app, 1, n_stages);
+                                 })
         ->Unit(benchmark::kMillisecond);
   }
 

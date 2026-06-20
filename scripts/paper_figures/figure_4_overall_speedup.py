@@ -4,11 +4,11 @@ Output paths:
 - PNG: scripts/paper_figures/png/figure_4_overall_speedup.png
 """
 
-import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib.patches as mpatches
 import os
 
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Data updated with new baseline results (omp = CPU, cu/vk = GPU, tree = Octree)
 data = {
@@ -17,20 +17,10 @@ data = {
         "CIFAR-sparse": {"CPU baseline": 45.8, "GPU baseline": 44.9},
         "Octree": {"CPU baseline": 14.2, "GPU baseline": 58.7},
     },
-    "9b034f1b": {
-        "CIFAR-dense": {"CPU baseline": 730, "GPU baseline": 12.1},
-        "CIFAR-sparse": {"CPU baseline": 53.2, "GPU baseline": 27.9},
-        "Octree": {"CPU baseline": 12.7, "GPU baseline": 47.2},
-    },
     "jetson": {
         "CIFAR-dense": {"CPU baseline": 23.5, "GPU baseline": 5.48},
         "CIFAR-sparse": {"CPU baseline": 486, "GPU baseline": 27.2},
         "Octree": {"CPU baseline": 16.2, "GPU baseline": 5.42},
-    },
-    "jetsonlowpower": {
-        "CIFAR-dense": {"CPU baseline": 58.5, "GPU baseline": 23.6},
-        "CIFAR-sparse": {"CPU baseline": 1042, "GPU baseline": 101},
-        "Octree": {"CPU baseline": 39.7, "GPU baseline": 7.28},
     },
 }
 
@@ -40,13 +30,7 @@ measured_data = {
         "CIFAR-sparse": 6.21,
         "Octree": 1.87,
     },
-    "9b034f1b": {
-        "CIFAR-dense": 6.74,
-        "CIFAR-sparse": 6.68,
-        "Octree": 2.03,
-    },
     "jetson": {"CIFAR-dense": 5.27, "CIFAR-sparse": 23.86, "Octree": 5.02},
-    "jetsonlowpower": {"CIFAR-dense": 21.85, "CIFAR-sparse": 56.74, "Octree": 9.84},
 }
 
 # Process data to calculate actual speedups (baseline_time / optimized_time)
@@ -78,9 +62,7 @@ devices = list(processed_data.keys())
 apps = ["CIFAR-dense", "CIFAR-sparse", "Octree"]
 device_names = {
     "3A021JEHN02756": "Google Pixel",
-    "9b034f1b": "OnePlus",
     "jetson": "Jetson",
-    "jetsonlowpower": "Jetson (Low Power)",
 }
 
 # Define colors for academic papers - colorblind-friendly palette
@@ -154,9 +136,7 @@ for app in apps:
 ax.set_xticks(x + width)
 ax.set_xticklabels([device_names.get(d, d) for d in devices])
 ax.set_ylabel("Speedup (x)")
-ax.set_ylim(
-    0, max([processed_data[device][app] for device in devices for app in apps]) * 1.2
-)
+ax.set_ylim(0, max([processed_data[device][app] for device in devices for app in apps]) * 1.2)
 
 # Add a grid for better readability
 ax.grid(axis="y", linestyle="--", alpha=0.3)
@@ -223,9 +203,7 @@ for device in devices:
             f"    CPU baseline: {cpu_baseline:.1f}ms, GPU baseline: {gpu_baseline:.1f}ms, Optimized: {optimized_time:.2f}ms"
         )
         print(f"    CPU speedup: {cpu_speedup:.1f}x, GPU speedup: {gpu_speedup:.1f}x")
-        print(
-            f"    Best baseline: {chosen_baseline}, Best speedup: {best_speedup:.1f}x"
-        )
+        print(f"    Best baseline: {chosen_baseline}, Best speedup: {best_speedup:.1f}x")
 
 # Calculate and print geometric means and maximums
 print("\nSpeedup Statistics:")

@@ -6,10 +6,11 @@ This module handles loading model predictions and comparing them
 with measured schedule execution times.
 """
 
-import os
 import json
+import os
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
-from typing import Dict, Any, List, Tuple
 
 
 def load_model_predictions(json_file_path: str) -> Dict[str, float]:
@@ -28,11 +29,7 @@ def load_model_predictions(json_file_path: str) -> Dict[str, float]:
     # Create a dictionary mapping schedule UIDs to their predicted times
     predictions = {}
     for schedule in model_data:
-        if (
-            "uid" in schedule
-            and "metrics" in schedule
-            and "max_time" in schedule["metrics"]
-        ):
+        if "uid" in schedule and "metrics" in schedule and "max_time" in schedule["metrics"]:
             uid = schedule["uid"]
             predicted_time = schedule["metrics"]["max_time"]
             predictions[uid] = predicted_time
@@ -49,9 +46,7 @@ def print_comparison_results(
         return
 
     print("\n===== MEASURED VS PREDICTED TIMES =====")
-    print(
-        "Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  "
-    )
+    print("Schedule UID                    : Measured (ms)  Predicted (ms)  Difference (%)  ")
     print("-" * 80)
 
     # Count matches and total comparisons
@@ -79,9 +74,7 @@ def print_comparison_results(
     # Print sorted comparison data
     for schedule_uid, measured_time, predicted_time in comparison_data:
         difference = measured_time - predicted_time
-        diff_percent = (
-            (difference / predicted_time) * 100 if predicted_time != 0 else float("inf")
-        )
+        diff_percent = (difference / predicted_time) * 100 if predicted_time != 0 else float("inf")
 
         print(
             f"{schedule_uid:30} : {measured_time:12.2f}  {predicted_time:14.2f}  {diff_percent:+14.2f}%"
@@ -114,13 +107,13 @@ def print_comparison_results(
         print("\nComparison Statistics:")
         print(f"Total comparisons: {total_comparisons}")
         print(
-            f"Within 5% margin: {within_5_percent} ({within_5_percent/total_comparisons*100:.2f}%)"
+            f"Within 5% margin: {within_5_percent} ({within_5_percent / total_comparisons * 100:.2f}%)"
         )
         print(
-            f"Within 10% margin: {within_10_percent} ({within_10_percent/total_comparisons*100:.2f}%)"
+            f"Within 10% margin: {within_10_percent} ({within_10_percent / total_comparisons * 100:.2f}%)"
         )
         print(
-            f"Within 20% margin: {within_20_percent} ({within_20_percent/total_comparisons*100:.2f}%)"
+            f"Within 20% margin: {within_20_percent} ({within_20_percent / total_comparisons * 100:.2f}%)"
         )
         print(f"Root Mean Square Error (RMSE): {rmse:.4f} ms")
         print(f"Mean Absolute Error (MAE): {mae:.4f} ms")
@@ -180,16 +173,13 @@ def perform_statistical_analysis(
 
     # Check for under/over prediction bias
     under_predictions = sum(
-        measured > predicted
-        for measured, predicted in zip(measured_times, predicted_times)
+        measured > predicted for measured, predicted in zip(measured_times, predicted_times)
     )
     over_predictions = sum(
-        measured < predicted
-        for measured, predicted in zip(measured_times, predicted_times)
+        measured < predicted for measured, predicted in zip(measured_times, predicted_times)
     )
     exact_matches = sum(
-        measured == predicted
-        for measured, predicted in zip(measured_times, predicted_times)
+        measured == predicted for measured, predicted in zip(measured_times, predicted_times)
     )
 
     # Count predictions within error margins
@@ -214,33 +204,29 @@ def perform_statistical_analysis(
     if len(rel_differences_pct) > 0:
         print(f"Mean percentage error: {np.mean(rel_differences_pct):.2f}%")
         print(f"Median percentage error: {np.median(rel_differences_pct):.2f}%")
-        print(
-            f"Standard deviation of percentage error: {np.std(rel_differences_pct):.2f}%"
-        )
+        print(f"Standard deviation of percentage error: {np.std(rel_differences_pct):.2f}%")
         print(f"Min percentage error: {np.min(rel_differences_pct):.2f}%")
         print(f"Max percentage error: {np.max(rel_differences_pct):.2f}%")
 
     print("\nPrediction Accuracy:")
     print(
-        f"Within 5% margin: {within_5_pct} ({within_5_pct/len(rel_differences_pct)*100:.2f}% of valid comparisons)"
+        f"Within 5% margin: {within_5_pct} ({within_5_pct / len(rel_differences_pct) * 100:.2f}% of valid comparisons)"
     )
     print(
-        f"Within 10% margin: {within_10_pct} ({within_10_pct/len(rel_differences_pct)*100:.2f}% of valid comparisons)"
+        f"Within 10% margin: {within_10_pct} ({within_10_pct / len(rel_differences_pct) * 100:.2f}% of valid comparisons)"
     )
     print(
-        f"Within 20% margin: {within_20_pct} ({within_20_pct/len(rel_differences_pct)*100:.2f}% of valid comparisons)"
+        f"Within 20% margin: {within_20_pct} ({within_20_pct / len(rel_differences_pct) * 100:.2f}% of valid comparisons)"
     )
 
     print("\nPrediction Bias:")
     print(
-        f"Under-predictions (measured > predicted): {under_predictions} ({under_predictions/len(matching_uids)*100:.2f}%)"
+        f"Under-predictions (measured > predicted): {under_predictions} ({under_predictions / len(matching_uids) * 100:.2f}%)"
     )
     print(
-        f"Over-predictions (measured < predicted): {over_predictions} ({over_predictions/len(matching_uids)*100:.2f}%)"
+        f"Over-predictions (measured < predicted): {over_predictions} ({over_predictions / len(matching_uids) * 100:.2f}%)"
     )
-    print(
-        f"Exact matches: {exact_matches} ({exact_matches/len(matching_uids)*100:.2f}%)"
-    )
+    print(f"Exact matches: {exact_matches} ({exact_matches / len(matching_uids) * 100:.2f}%)")
 
     # Return the metrics for potential further use
     return {

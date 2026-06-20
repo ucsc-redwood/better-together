@@ -33,8 +33,8 @@
 #include <utility>
 #include <vector>
 
+#include "platform/mem/mr_ptr.hpp"                // bt_pipe::as_mr_ptr (cu get_mr()=ref, vk=ptr)
 #include "platform/registry/device_registry.hpp"  // ProcessorType, g_device_id, has_*_cores
-#include "platform/mem/mr_ptr.hpp"                 // bt_pipe::as_mr_ptr (cu get_mr()=ref, vk=ptr)
 
 // Build-time provenance: the bt_git_sha CMake target regenerates bt_git_sha.h each
 // build and puts it on the bm-prof include path. Falls back to "unknown" when the
@@ -170,8 +170,12 @@ inline std::vector<Cell> make_cells(int n_stages, const std::string& gpu_pu) {
 
 // Emit one self-describing JSONL record per non-empty cell to stdout. stdout is
 // reserved for data -- callers route logs to stderr.
-inline void emit_jsonl(const std::vector<Cell>& cells, const char* app,
-                       const char* backend, const char* scenario, int run_id, int warmup) {
+inline void emit_jsonl(const std::vector<Cell>& cells,
+                       const char* app,
+                       const char* backend,
+                       const char* scenario,
+                       int run_id,
+                       int warmup) {
   const std::string gov = read_governor();
   const nlohmann::json base_provenance = {
       {"git_sha", BT_GIT_SHA},
@@ -251,8 +255,13 @@ struct NullReporter : benchmark::BenchmarkReporter {
 // `Disp::get_mr()` differs (cu returns a reference, vk a pointer); AppData is
 // constructed from whatever `disp.get_mr()` yields, so both work unchanged.
 template <class Disp, class App, class MakeTimer, class OmpDispatch>
-int run_bm_prof(int argc, char** argv, const char* app_name, const char* backend,
-                const char* gpu_pu, int n_stages, MakeTimer make_timer,
+int run_bm_prof(int argc,
+                char** argv,
+                const char* app_name,
+                const char* backend,
+                const char* gpu_pu,
+                int n_stages,
+                MakeTimer make_timer,
                 OmpDispatch omp_dispatch) {
   // stdout is reserved for JSONL records -- send every log line to stderr.
   spdlog::set_default_logger(spdlog::stderr_color_mt("bt_prof"));
@@ -293,8 +302,8 @@ int run_bm_prof(int argc, char** argv, const char* app_name, const char* backend
             if (is_gpu)
               timer.dispatch_sync(disp, app, s);
             else
-              omp_dispatch(get_cores_by_type(c->cpu_pt), get_cores_by_type(c->cpu_pt).size(),
-                           app, s, s);
+              omp_dispatch(
+                  get_cores_by_type(c->cpu_pt), get_cores_by_type(c->cpu_pt).size(), app, s, s);
             return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
           };
 

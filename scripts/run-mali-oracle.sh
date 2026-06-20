@@ -27,9 +27,13 @@ targets=("$@")
 ndk=${ANDROID_NDK_HOME:-${ANDROID_HOME:-$HOME/Android/Sdk}/ndk/29.0.14206865}
 libcxx_arch=${BT_ANDROID_LIBCXX_ARCH:-aarch64}
 libcxx=$(find "$ndk" -name libc++_shared.so -path "*${libcxx_arch}*" 2>/dev/null | head -1)
-[ -n "$libcxx" ] || { echo "error: libc++_shared.so not found under $ndk" >&2; exit 1; }
+[ -n "$libcxx" ] || {
+  echo "error: libc++_shared.so not found under $ndk" >&2
+  exit 1
+}
 
-paths=(); for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
+paths=()
+for t in "${targets[@]}"; do paths+=("$BUILD/$t"); done
 
 echo ">> staging ${#targets[@]} binaries + libc++_shared.so to $HOST:$STAGE"
 ssh "$HOST" "mkdir -p $STAGE" </dev/null

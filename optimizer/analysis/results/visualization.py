@@ -7,9 +7,10 @@ measured vs predicted execution times.
 """
 
 import os
-import numpy as np
+from typing import Any, Dict, List, Tuple
+
 import matplotlib.pyplot as plt
-from typing import Dict, Any, List, Tuple
+import numpy as np
 
 
 def create_comparison_visualization(
@@ -71,12 +72,8 @@ def create_comparison_visualization(
     width = 0.35
 
     # Plot bars
-    measured_bars = plt.bar(
-        x - width / 2, measured_times, width, label="Measured", alpha=0.7
-    )
-    predicted_bars = plt.bar(
-        x + width / 2, predicted_times, width, label="Predicted", alpha=0.7
-    )
+    measured_bars = plt.bar(x - width / 2, measured_times, width, label="Measured", alpha=0.7)
+    predicted_bars = plt.bar(x + width / 2, predicted_times, width, label="Predicted", alpha=0.7)
 
     # Add error bars to measured data
     plt.errorbar(
@@ -223,9 +220,7 @@ def create_line_comparison_chart(
     plt.grid(True, linestyle="--", alpha=0.7, which="both")
 
     # Create legend with larger font and better position
-    plt.legend(
-        fontsize=20, loc="upper left", markerscale=1.5
-    )  # Increased font size from 18 to 20
+    plt.legend(fontsize=20, loc="upper left", markerscale=1.5)  # Increased font size from 18 to 20
 
     # Set y-axis to start at 0
     # Calculate a good maximum y value that leaves room for highest point plus error bar
@@ -264,9 +259,7 @@ def create_correlation_plots(
 
     # Main correlation plot (standard)
     plt.figure(figsize=(10, 8))
-    plt.scatter(
-        predicted_times, measured_times, alpha=0.7, s=80
-    )  # Increased point size
+    plt.scatter(predicted_times, measured_times, alpha=0.7, s=80)  # Increased point size
 
     # Add diagonal line (perfect prediction)
     max_val = max(np.max(predicted_times), np.max(measured_times)) * 1.1
@@ -307,9 +300,7 @@ def create_correlation_plots(
 
     # Save standard scatter plot
     plt.savefig(os.path.join(output_dir, "correlation_plot.png"), dpi=300)
-    print(
-        f"Correlation plot saved to {os.path.join(output_dir, 'correlation_plot.png')}"
-    )
+    print(f"Correlation plot saved to {os.path.join(output_dir, 'correlation_plot.png')}")
 
     # 1. Create log-scale plot for better distribution visualization
     plt.figure(figsize=(10, 8))
@@ -338,9 +329,7 @@ def create_correlation_plots(
         plt.yscale("log")
         plt.xlabel("Predicted Time (ms) - Log Scale", fontsize=14)
         plt.ylabel("Measured Time (ms) - Log Scale", fontsize=14)
-        plt.title(
-            "Log-Scale Correlation between Predicted and Measured Times", fontsize=16
-        )
+        plt.title("Log-Scale Correlation between Predicted and Measured Times", fontsize=16)
         plt.xticks(fontsize=12)
         plt.yticks(fontsize=12)
 
@@ -426,9 +415,7 @@ def create_correlation_plots(
     non_outlier_idxs = np.where(non_outlier_indices)[0]
 
     if len(non_outlier_indices) > 0:
-        plt.scatter(
-            non_outlier_pred, non_outlier_meas, alpha=0.7, s=80
-        )  # Increased point size
+        plt.scatter(non_outlier_pred, non_outlier_meas, alpha=0.7, s=80)  # Increased point size
 
         # Add perfect prediction line
         min_val = min(np.min(non_outlier_pred), np.min(non_outlier_meas)) * 0.9
@@ -460,9 +447,7 @@ def create_correlation_plots(
 
         # Calculate correlation coefficient for non-outliers
         if len(non_outlier_pred) > 1:  # Need at least 2 points for correlation
-            non_outlier_correlation = np.corrcoef(non_outlier_pred, non_outlier_meas)[
-                0, 1
-            ]
+            non_outlier_correlation = np.corrcoef(non_outlier_pred, non_outlier_meas)[0, 1]
             plt.text(
                 0.05,
                 0.95,
@@ -477,9 +462,7 @@ def create_correlation_plots(
         plt.tight_layout()
 
         # Save non-outlier plot
-        plt.savefig(
-            os.path.join(output_dir, "correlation_plot_no_outliers.png"), dpi=300
-        )
+        plt.savefig(os.path.join(output_dir, "correlation_plot_no_outliers.png"), dpi=300)
         print(
             f"Correlation plot (excl. outliers) saved to {os.path.join(output_dir, 'correlation_plot_no_outliers.png')}"
         )

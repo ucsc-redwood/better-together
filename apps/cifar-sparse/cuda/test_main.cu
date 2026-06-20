@@ -2,9 +2,9 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "platform/registry/device_registry.hpp"
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.cuh"
+#include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-sparse × CUDA differential oracle. Each stage output is checked against

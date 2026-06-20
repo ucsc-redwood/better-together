@@ -24,9 +24,7 @@ class Device {
   // Construct a device with a name, a list of cores, and (optionally) the GPU
   // subgroup/warp size (0 = unknown / no GPU spec).
   Device(std::string name, std::vector<Core> cores, int gpu_subgroup_size = 0)
-      : name_(std::move(name)),
-        cores_(std::move(cores)),
-        gpu_subgroup_size_(gpu_subgroup_size) {}
+      : name_(std::move(name)), cores_(std::move(cores)), gpu_subgroup_size_(gpu_subgroup_size) {}
 
   // GPU subgroup (warp) size from the device spec; 0 if unspecified.
   [[nodiscard]] int gpu_subgroup_size() const { return gpu_subgroup_size_; }

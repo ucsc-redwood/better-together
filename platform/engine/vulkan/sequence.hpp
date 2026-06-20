@@ -48,7 +48,7 @@ class Sequence {
 
   // Device-side timestamp query (2 entries: top-of-pipe, bottom-of-pipe).
   vk::QueryPool query_pool_;
-  float timestamp_period_ns_;     // nanoseconds per timestamp tick
+  float timestamp_period_ns_;      // nanoseconds per timestamp tick
   uint32_t timestamp_valid_bits_;  // 0 => timestamps unsupported on this queue
 
   // Optional: the engine's memory resource, for host<->device cache maintenance

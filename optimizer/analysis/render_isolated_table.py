@@ -10,6 +10,7 @@ metric in ms.
 
     uv run python optimizer/analysis/render_isolated_table.py --metric p50 --max-cv 0.5
 """
+
 import argparse
 import glob
 import os
@@ -54,8 +55,14 @@ def main():
         grid, columns, stages, notes = {}, set(), set(), []
         for device, backend in apps[app]:
             table, rep = load_profiling(
-                args.root, device, app, backend, args.scenario,
-                metric=args.metric, min_runs=args.min_runs, max_cv=args.max_cv,
+                args.root,
+                device,
+                app,
+                backend,
+                args.scenario,
+                metric=args.metric,
+                min_runs=args.min_runs,
+                max_cv=args.max_cv,
             )
             for (stage, pu), cell in table.items():
                 grid[(stage, (device, pu))] = cell["value"]
@@ -73,8 +80,7 @@ def main():
         print(f"{'stage':>5} " + " ".join(f"{h:>{w}}" for h in hdr))
         for s in sorted(stages):
             row = " ".join(
-                (f"{grid[(s, c)]:>{w}.4f}" if (s, c) in grid else f"{'--':>{w}}")
-                for c in cols
+                (f"{grid[(s, c)]:>{w}.4f}" if (s, c) in grid else f"{'--':>{w}}") for c in cols
             )
             print(f"{s:>5} {row}")
         for note in notes:

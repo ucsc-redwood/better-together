@@ -9,16 +9,17 @@
 #              OUTPUTS ${CMAKE_SOURCE_DIR}/builtin-apps/generated/bt_vocab.hpp ...)
 # Adds an add_custom_target(${TARGET}) and makes bt_core depend on it.
 function(bt_codegen)
-  cmake_parse_arguments(ARG "" "TARGET;SCRIPT" "DEPENDS;OUTPUTS" ${ARGN})
-  if(NOT BT_PYTHON)
-    return()  # no python -> use the committed generated files as-is
-  endif()
-  add_custom_command(
-    OUTPUT ${ARG_OUTPUTS}
-    COMMAND ${BT_PYTHON} ${ARG_SCRIPT}
-    DEPENDS ${ARG_DEPENDS} ${ARG_SCRIPT}
-    COMMENT "Codegen (${ARG_TARGET}): ${ARG_SCRIPT}"
-    VERBATIM)
-  add_custom_target(${ARG_TARGET} DEPENDS ${ARG_OUTPUTS})
-  add_dependencies(bt_core ${ARG_TARGET})
+    cmake_parse_arguments(ARG "" "TARGET;SCRIPT" "DEPENDS;OUTPUTS" ${ARGN})
+    if(NOT BT_PYTHON)
+        return() # no python -> use the committed generated files as-is
+    endif()
+    add_custom_command(
+        OUTPUT ${ARG_OUTPUTS}
+        COMMAND ${BT_PYTHON} ${ARG_SCRIPT}
+        DEPENDS ${ARG_DEPENDS} ${ARG_SCRIPT}
+        COMMENT "Codegen (${ARG_TARGET}): ${ARG_SCRIPT}"
+        VERBATIM
+    )
+    add_custom_target(${ARG_TARGET} DEPENDS ${ARG_OUTPUTS})
+    add_dependencies(bt_core ${ARG_TARGET})
 endfunction()

@@ -36,9 +36,9 @@
 #include <vector>
 
 #include "platform/registry/device_registry.hpp"  // get_cores_by_type, ProcessorType
+#include "runtime/app_traits.hpp"                 // AppTraits, BtRuntimeApp
+#include "runtime/pipeline.hpp"                   // make_dataset, worker
 #include "runtime/schedule.hpp"  // Schedule, ExecutionModel, get_processor_type_from_chunk_config
-#include "runtime/app_traits.hpp"  // AppTraits, BtRuntimeApp
-#include "runtime/pipeline.hpp"    // make_dataset, worker
 
 namespace bt_pipe_test {
 
@@ -85,7 +85,8 @@ inline void run_pipeline(const Schedule& sched,
 
   const auto n_chunks = sched.n_chunks();
   DispatcherTArg disp;
-  const std::vector<std::unique_ptr<AppDataTArg>> dataset = make_dataset<AppDataTArg>(disp, pool_size);
+  const std::vector<std::unique_ptr<AppDataTArg>> dataset =
+      make_dataset<AppDataTArg>(disp, pool_size);
 
   std::vector<QueueTArg> queues(n_chunks);
   for (size_t i = 0; i < pool_size; ++i) {
@@ -127,8 +128,12 @@ inline void run_pipeline(const Schedule& sched,
         completed.push_back(app);
       };
     }
-    threads.emplace_back(worker<QueueTArg, AppDataTArg>, std::ref(q_in), std::ref(q_out),
-                         std::move(fn), n_items, is_last);
+    threads.emplace_back(worker<QueueTArg, AppDataTArg>,
+                         std::ref(q_in),
+                         std::ref(q_out),
+                         std::move(fn),
+                         n_items,
+                         is_last);
   }
 
   // Watchdog: the workers busy-yield on dequeue/enqueue with no timeout, so a stalled
@@ -138,12 +143,13 @@ inline void run_pipeline(const Schedule& sched,
   // infinite hang into a fast, informative failure. The bound is generous (slow
   // devices: cifar-sparse on Mali takes minutes) -- only a true deadlock trips it.
   constexpr auto kWatchdog = std::chrono::seconds(300);
-  std::future<void> joined =
-      std::async(std::launch::async, [&threads]() { for (auto& t : threads) t.join(); });
+  std::future<void> joined = std::async(std::launch::async, [&threads]() {
+    for (auto& t : threads) t.join();
+  });
   if (joined.wait_for(kWatchdog) != std::future_status::ready) {
     std::cerr << "\nFATAL: pipeline ring did not drain within " << kWatchdog.count()
-              << "s -- deadlock (SPSC handoff stalled); last chunk completed "
-              << completed.size() << "/" << n_items << " items. Aborting.\n";
+              << "s -- deadlock (SPSC handoff stalled); last chunk completed " << completed.size()
+              << "/" << n_items << " items. Aborting.\n";
     std::abort();
   }
   joined.get();

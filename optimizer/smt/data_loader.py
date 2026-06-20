@@ -1,9 +1,12 @@
 """Data loading and processing utilities for schedule optimization."""
 
 from orchestrate.case import Case
+
 from smt.profiling_loader import load_profiling
+
 from .baselines import get_num_stages_for_app
-from .bt_vocab import CPU_TIERS as _CPU_TIERS, CORE_TYPES  # generated from vocab.json
+from .bt_vocab import CORE_TYPES
+from .bt_vocab import CPU_TIERS as _CPU_TIERS  # generated from vocab.json
 
 # A CPU tier the device physically lacks -- encode as a huge cost so z3 never assigns a
 # stage to hardware that does not exist (0.0 would look infinitely fast in a minimization
@@ -12,8 +15,9 @@ from .bt_vocab import CPU_TIERS as _CPU_TIERS, CORE_TYPES  # generated from voca
 UNAVAILABLE = 1e9
 
 
-def load_stage_timings(root, device, app, backend, scenario,
-                       metric="p50", max_cv=1.0, verbose=False):
+def load_stage_timings(
+    root, device, app, backend, scenario, metric="p50", max_cv=1.0, verbose=False
+):
     """Build the z3 per-stage cost matrix directly from the canonical JSONL store.
 
     Reads ``<root>/<device>/<app>/<backend_long>/<scenario>/run-*.jsonl`` via
@@ -27,13 +31,15 @@ def load_stage_timings(root, device, app, backend, scenario,
     """
     case = Case(device, app, backend)
     gpu_pu = case.backend_long  # "cuda" | "vulkan"
-    table, report = load_profiling(root, device, app, gpu_pu, scenario,
-                                   metric=metric, max_cv=max_cv)
+    table, report = load_profiling(
+        root, device, app, gpu_pu, scenario, metric=metric, max_cv=max_cv
+    )
     num_stages = get_num_stages_for_app(app) if app else 9
 
     # A CPU tier is present iff it has at least one measured stage in this cell.
-    tier_present = {pu: any((s, pu) in table for s in range(1, num_stages + 1))
-                    for pu in _CPU_TIERS}
+    tier_present = {
+        pu: any((s, pu) in table for s in range(1, num_stages + 1)) for pu in _CPU_TIERS
+    }
     if verbose:
         absent = [pu for pu, ok in tier_present.items() if not ok]
         print(f"loaded {report['n_records']} records from {len(report['paths'])} run file(s)")

@@ -8,7 +8,7 @@ widest chunk analysis, and statistical reporting.
 
 import os
 from collections import defaultdict
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 def print_individual_statistics(schedules_data: List[Dict[str, Any]]) -> None:
@@ -26,7 +26,7 @@ def print_individual_statistics(schedules_data: List[Dict[str, Any]]) -> None:
         for task_id, task_data in schedule["tasks"].items():
             total_time_ms += task_data["total_duration_ms"]
 
-        print(f"\nSchedule {i+1}: {schedule_uid} (from {log_file})")
+        print(f"\nSchedule {i + 1}: {schedule_uid} (from {log_file})")
         print(f"Device: {device}, Application: {application}")
         print(f"Total time: {total_time_ms:.2f} ms")
 
@@ -102,10 +102,8 @@ def print_aggregated_statistics(aggregated_stats: Dict[str, Any]) -> None:
     print("\n===== AGGREGATED STATISTICS BY SCHEDULE =====")
 
     for i, (schedule_uid, stats) in enumerate(sorted(aggregated_stats.items())):
-        print(f"\nSchedule {i+1}: {schedule_uid}")
-        print(
-            f"Samples: {stats['num_samples']} (from {len(stats['log_files'])} log files)"
-        )
+        print(f"\nSchedule {i + 1}: {schedule_uid}")
+        print(f"Samples: {stats['num_samples']} (from {len(stats['log_files'])} log files)")
         print(f"Devices: {', '.join(stats['devices'])}")
         print(f"Applications: {', '.join(stats['applications'])}")
 

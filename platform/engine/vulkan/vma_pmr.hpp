@@ -41,7 +41,7 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
 
   [[nodiscard]] vk::Device get_device() const { return device_; }
 
-  [[nodiscard]] vk::Buffer get_buffer_from_pointer(void *p);
+  [[nodiscard]] vk::Buffer get_buffer_from_pointer(void* p);
 
   // Host<->device cache maintenance for NON-coherent (HOST_CACHED) memory; no-ops
   // on coherent memory. flush_all() makes host writes visible to the GPU (call
@@ -53,11 +53,11 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
   //   [[nodiscard]] vk::DescriptorBufferInfo make_descriptor_buffer_info(vk::Buffer buffer) const;
 
  protected:
-  void *do_allocate(std::size_t bytes, std::size_t alignment) override;
+  void* do_allocate(std::size_t bytes, std::size_t alignment) override;
 
-  void do_deallocate(void *p, std::size_t bytes, std::size_t alignment) override;
+  void do_deallocate(void* p, std::size_t bytes, std::size_t alignment) override;
 
-  bool do_is_equal(const std::pmr::memory_resource &other) const noexcept override;
+  bool do_is_equal(const std::pmr::memory_resource& other) const noexcept override;
 
  private:
   vk::Device device_;
@@ -66,7 +66,7 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
   VmaAllocationCreateFlags allocationFlags_;
 
   mutable std::mutex mutex_;
-  std::unordered_map<void *, VulkanAllocationRecord> allocations_;
+  std::unordered_map<void*, VulkanAllocationRecord> allocations_;
 };
 
 }  // namespace kiss_vk

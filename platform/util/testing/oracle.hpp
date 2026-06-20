@@ -34,10 +34,11 @@ namespace bt::testing {
 // `count` elements are compared (stages such as unique/radix-tree fill a valid
 // prefix of an over-allocated buffer); pass count = ref.size() for full buffers.
 template <class T>
-[[nodiscard]] ::testing::AssertionResult ExactEqual(std::span<const T> ref,
-                                                    std::span<const T> out,
-                                                    std::string_view label = "",
-                                                    std::size_t count = static_cast<std::size_t>(-1)) {
+[[nodiscard]] ::testing::AssertionResult ExactEqual(
+    std::span<const T> ref,
+    std::span<const T> out,
+    std::string_view label = "",
+    std::size_t count = static_cast<std::size_t>(-1)) {
   const std::size_t n = (count == static_cast<std::size_t>(-1)) ? ref.size() : count;
   if (ref.size() < n || out.size() < n) {
     return ::testing::AssertionFailure()
@@ -47,7 +48,8 @@ template <class T>
   for (std::size_t i = 0; i < n; ++i) {
     if (!(ref[i] == out[i])) {
       return ::testing::AssertionFailure()
-             << label << ": element mismatch at index " << i << " of " << n
+             << label << ": element mismatch at index " << i << " of "
+             << n
              // unary + promotes (u)int8_t to a printable integer instead of a char
              << " (ref=" << +ref[i] << ", out=" << +out[i] << ")";
     }
@@ -58,12 +60,13 @@ template <class T>
 // Tolerant comparison for float stages: passes iff for every element
 // |out - ref| <= atol + rtol * |ref|. NaN/Inf mismatches always fail. Reports
 // the worst element (largest absolute difference) for debuggability.
-[[nodiscard]] inline ::testing::AssertionResult NearEqual(std::span<const float> ref,
-                                                          std::span<const float> out,
-                                                          float rtol = 1e-4f,
-                                                          float atol = 1e-5f,
-                                                          std::string_view label = "",
-                                                          std::size_t count = static_cast<std::size_t>(-1)) {
+[[nodiscard]] inline ::testing::AssertionResult NearEqual(
+    std::span<const float> ref,
+    std::span<const float> out,
+    float rtol = 1e-4f,
+    float atol = 1e-5f,
+    std::string_view label = "",
+    std::size_t count = static_cast<std::size_t>(-1)) {
   const std::size_t n = (count == static_cast<std::size_t>(-1)) ? ref.size() : count;
   if (ref.size() < n || out.size() < n) {
     return ::testing::AssertionFailure()
@@ -87,9 +90,9 @@ template <class T>
   }
   if (ok) return ::testing::AssertionSuccess();
   return ::testing::AssertionFailure()
-         << label << ": exceeds tolerance (rtol=" << rtol << ", atol=" << atol << "); max|diff|="
-         << max_abs_diff << " at index " << worst << " of " << n << " (ref=" << ref[worst]
-         << ", out=" << out[worst] << ")";
+         << label << ": exceeds tolerance (rtol=" << rtol << ", atol=" << atol
+         << "); max|diff|=" << max_abs_diff << " at index " << worst << " of " << n
+         << " (ref=" << ref[worst] << ", out=" << out[worst] << ")";
 }
 
 // ---- contiguous-range overloads --------------------------------------------
@@ -97,23 +100,32 @@ template <class T>
 // std::vector (e.g. a sorted copy) without converting either side.
 
 template <std::ranges::contiguous_range R1, std::ranges::contiguous_range R2>
-[[nodiscard]] auto ExactEqual(const R1& ref, const R2& out, std::string_view label = "",
+[[nodiscard]] auto ExactEqual(const R1& ref,
+                              const R2& out,
+                              std::string_view label = "",
                               std::size_t count = static_cast<std::size_t>(-1)) {
   using T = std::ranges::range_value_t<R1>;
   static_assert(std::is_same_v<T, std::ranges::range_value_t<R2>>,
                 "ExactEqual: ref and out must hold the same element type");
   return ExactEqual<T>(std::span<const T>(std::ranges::data(ref), std::ranges::size(ref)),
-                       std::span<const T>(std::ranges::data(out), std::ranges::size(out)), label,
+                       std::span<const T>(std::ranges::data(out), std::ranges::size(out)),
+                       label,
                        count);
 }
 
 template <std::ranges::contiguous_range R1, std::ranges::contiguous_range R2>
-[[nodiscard]] auto NearEqual(const R1& ref, const R2& out, float rtol = 1e-4f, float atol = 1e-5f,
+[[nodiscard]] auto NearEqual(const R1& ref,
+                             const R2& out,
+                             float rtol = 1e-4f,
+                             float atol = 1e-5f,
                              std::string_view label = "",
                              std::size_t count = static_cast<std::size_t>(-1)) {
   return NearEqual(std::span<const float>(std::ranges::data(ref), std::ranges::size(ref)),
-                   std::span<const float>(std::ranges::data(out), std::ranges::size(out)), rtol,
-                   atol, label, count);
+                   std::span<const float>(std::ranges::data(out), std::ranges::size(out)),
+                   rtol,
+                   atol,
+                   label,
+                   count);
 }
 
 }  // namespace bt::testing

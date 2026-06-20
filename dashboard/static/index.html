@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BetterTogether · Dashboard</title>
+  <link rel="stylesheet" href="vendor/github-light.min.css">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header>
+    <h1>BetterTogether <span class="sub">interference-aware pipelining · heterogeneous edge SoCs</span></h1>
+    <div id="meta" class="meta"></div>
+    <p class="thesis">
+      No single processor is best for a whole app, and the units <b>interfere</b>. BetterTogether profiles each stage
+      <b>under contention</b>, lets a z3 SMT solver assign stages→PU as contiguous chunks, and pipelines them:
+      <span class="arc">Profile → Solve → Pipeline → Measure</span>. Paper: <span class="stat">2.14× geomean, up to 7.59×</span>
+      over GPU-only (IISWC'25); this fleet measures 0.78–1.80× vs the fastest single PU — read the four tabs left→right.
+    </p>
+    <nav class="tabs" role="tablist" aria-label="dashboard sections">
+      <button class="tab active" data-tab="devices" role="tab" aria-selected="true" aria-controls="tab-devices">Devices</button>
+      <button class="tab" data-tab="apps" role="tab" aria-selected="false" aria-controls="tab-apps">Applications</button>
+      <button class="tab" data-tab="profiling" role="tab" aria-selected="false" aria-controls="tab-profiling">Profiling</button>
+      <button class="tab" data-tab="schedule" role="tab" aria-selected="false" aria-controls="tab-schedule">Schedule</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-devices" class="panel active" role="tabpanel"></section>
+    <section id="tab-apps" class="panel" role="tabpanel"></section>
+    <section id="tab-profiling" class="panel" role="tabpanel"></section>
+    <section id="tab-schedule" class="panel" role="tabpanel"></section>
+  </main>
+
+  <!-- data first (window.BT_DATA), then libs, then app -->
+  <script src="bundle.js"></script>
+  <script src="vendor/echarts.min.js"></script>
+  <script src="vendor/highlight.min.js"></script>
+  <script src="vendor/glsl.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

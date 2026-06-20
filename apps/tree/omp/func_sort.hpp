@@ -18,8 +18,8 @@ namespace tree::omp {
 // ----------------------------------------------------------------------------
 
 // Helper function to merge sorted segments
-inline void merge_segments(const std::pmr::vector<uint32_t> &input,
-                           std::pmr::vector<uint32_t> &output,
+inline void merge_segments(const std::pmr::vector<uint32_t>& input,
+                           std::pmr::vector<uint32_t>& output,
                            size_t start1,
                            size_t end1,
                            size_t start2,
@@ -36,8 +36,8 @@ inline void merge_segments(const std::pmr::vector<uint32_t> &input,
   while (j < end2) output[k++] = input[j++];
 }
 
-inline void parallel_sort(std::pmr::vector<uint32_t> &buffer_input,
-                          std::pmr::vector<uint32_t> &buffer_output,
+inline void parallel_sort(std::pmr::vector<uint32_t>& buffer_input,
+                          std::pmr::vector<uint32_t>& buffer_output,
                           int thread_id,
                           int num_threads) {
   const size_t N = buffer_input.size();
@@ -55,8 +55,8 @@ inline void parallel_sort(std::pmr::vector<uint32_t> &buffer_input,
 
   // Step 2: Iterative merging performed by a single thread after sorting
   if (thread_id == 0) {
-    std::pmr::vector<uint32_t> *src = &buffer_input;
-    std::pmr::vector<uint32_t> *dst = &buffer_output;
+    std::pmr::vector<uint32_t>* src = &buffer_input;
+    std::pmr::vector<uint32_t>* dst = &buffer_output;
 
     for (size_t width = segment_size; width < N; width *= 2) {
 #pragma omp parallel for schedule(static)
@@ -85,9 +85,9 @@ inline void parallel_sort(std::pmr::vector<uint32_t> &buffer_input,
 
 // Parallel Radix Sort for unsigned integer types
 template <typename T>
-void parallel_radix_sort(const std::pmr::vector<T> &input,
-                         std::pmr::vector<T> &output,
-                         RadixSortTemp<T> &temp) {
+void parallel_radix_sort(const std::pmr::vector<T>& input,
+                         std::pmr::vector<T>& output,
+                         RadixSortTemp<T>& temp) {
   static_assert(std::is_unsigned<T>::value, "Radix sort requires unsigned integer type");
 
   const size_t n = input.size();
@@ -187,19 +187,19 @@ void parallel_radix_sort(const std::pmr::vector<T> &input,
 //   int start;  // starting point in B array
 // };
 
-[[deprecated("Use bucket_sort_v2 instead")]] inline int cmpfunc(const void *a, const void *b) {
-  return (*(uint32_t *)a - *(uint32_t *)b);
+[[deprecated("Use bucket_sort_v2 instead")]] inline int cmpfunc(const void* a, const void* b) {
+  return (*(uint32_t*)a - *(uint32_t*)b);
 }
 
 [[deprecated("Use bucket_sort_v2 instead")]] inline void bucket_sort(
 
-    uint32_t *A,
-    uint32_t *B,  // for temporary storage
+    uint32_t* A,
+    uint32_t* B,  // for temporary storage
 
-    int *global_n_elem,
-    int *global_starting_position,
+    int* global_n_elem,
+    int* global_starting_position,
 
-    struct bucket *buckets,
+    struct bucket* buckets,
 
     const int dim,
     const int n_buckets,

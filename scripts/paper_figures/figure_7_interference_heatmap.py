@@ -5,11 +5,12 @@ Output paths:
 """
 
 #!/usr/bin/env python3
-import pandas as pd
-import seaborn as sns
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
-import os
+import pandas as pd
+import seaborn as sns
 
 # Data definition
 data = {
