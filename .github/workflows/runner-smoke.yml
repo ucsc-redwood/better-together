@@ -6,7 +6,7 @@ name: Runner smoke
 on:
   workflow_dispatch:
   push:
-    paths: [".github/workflows/runner-smoke.yml"] # runs only when this file changes
+    paths: [".github/workflows/runner-smoke.yml"] # runs only when this file changes (retrigger)
 
 jobs:
   smoke:
