@@ -61,8 +61,6 @@ Testing/
 # refactor behavior-preservation baseline (scripts/refactor_gate.sh)
 .refactor-gate/
 
-# optimizer pytest venv (z3-solver etc.)
-.venv-optimizer/
 optimizer/**/__pycache__/
 .pytest_cache/
 

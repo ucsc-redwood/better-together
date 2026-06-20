@@ -11,8 +11,8 @@ static site under dashboard/site/:
 The data is INLINED as bundle.js (not fetched) so the site opens offline by
 double-clicking site/index.html -- browsers block fetch() of local files.
 
-Run with the optimizer venv (it carries jsonschema and the reused loaders):
-    uv run --project optimizer python dashboard/generate.py
+Run from the repo's uv environment (it carries jsonschema and the reused loaders):
+    uv run python dashboard/generate.py
 """
 
 import glob

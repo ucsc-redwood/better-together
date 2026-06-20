@@ -13,7 +13,7 @@ This is the empirical check the interference audit asked for: if BTPM's ratios a
 closer to 1 than isolated's, the contended table isn't earning its keep (and given the
 known DVFS corruption of the BTPM GPU column, expect isolated to often predict better).
 
-Usage: uv run --project optimizer python optimizer/analysis/validate_btpm.py
+Usage: uv run python optimizer/analysis/validate_btpm.py
 """
 
 import argparse
@@ -25,9 +25,10 @@ import statistics
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from orchestrate.case import Case  # noqa: E402
+
 from analysis.results.log_parser import find_log_files, process_log_file  # noqa: E402
 from analysis.results.statistics import calculate_aggregated_statistics  # noqa: E402
-from orchestrate.case import Case  # noqa: E402
 
 TABLES = ["btpm", "isolated"]
 BE_LABEL = {"vk": "VK", "cu": "CUDA"}
