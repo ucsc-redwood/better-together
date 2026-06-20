@@ -113,6 +113,23 @@ An application is a sequence of **stages**; each stage has a kernel in up to thr
 The primary extension axis is **devices**: *add a device = drop in a `devices/<id>.json` data
 file.*
 
+The solver decides how many stages run where. A schedule can be a simple **CPU + GPU overlap**,
+or a fully **heterogeneous split** across multiple CPU tiers and the integrated GPU — whatever the
+interference-aware model predicts is fastest for that app on that chip:
+
+<div align="center">
+<table>
+<tr>
+<td width="50%"><img src="img/pipeline-cpu-gpu-overlap.png" alt="Two-lane CPU + integrated-GPU overlap"/></td>
+<td width="50%"><img src="img/pipeline-4lane.png" alt="Four-way heterogeneous pipeline split"/></td>
+</tr>
+<tr>
+<td align="center"><sub>2-lane CPU(S1–2) + GPU(S3–9) overlap — Jetson · cifar-dense · CUDA</sub></td>
+<td align="center"><sub>4-way split (Medium / Little / Vulkan / Big) — Samsung · cifar-dense · Vulkan</sub></td>
+</tr>
+</table>
+</div>
+
 ---
 
 ## Applications
@@ -337,6 +354,12 @@ profiling tables, and a schedule explorer (z3 chunk assignments with measured sp
 baseline). It builds to a single bundle and can be served locally (e.g. over Tailscale) with no
 backend. See [`docs/reports-for-human/`](docs/reports-for-human/) for how to generate and serve
 it.
+
+<div align="center">
+<img src="img/dashboard-pipeline-timeline.png" alt="BetterTogether analysis dashboard — Profile, Solve, Pipeline, Measure" width="92%"/>
+<br/>
+<sub>The dashboard walks Profile → Solve → Pipeline → Measure, landing on a 4-lane pipeline running at 100% concurrency.</sub>
+</div>
 
 To visualize a single generated schedule or run, the `optimizer/` and `scripts/` tools also
 work standalone:
