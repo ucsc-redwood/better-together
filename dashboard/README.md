@@ -8,8 +8,8 @@ site opens by double-clicking.
 ## Generate & open
 
 ```bash
-# needs the optimizer venv (jsonschema + the reused loaders)
-uv run --project optimizer python dashboard/generate.py
+# uses the repo's uv environment (jsonschema + the reused loaders)
+uv run python dashboard/generate.py
 # then open the generated site (no server needed):
 xdg-open dashboard/site/index.html        # or just double-click it
 ```

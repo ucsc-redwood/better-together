@@ -13,12 +13,14 @@ Per device, per (app x backend in fleet.json):
   [03 run schedule]  -> (after all devices) speedup_summary.py.
 
 Config:
-  fleet.json           -- transport/build/caps per device (the source of truth for HOW
-                          to reach each target). The (app x backend x hw) gate matrix is
-                          fleet-coverage.json; what we BENCHMARK is app x device.backends.
+  fleet.json           -- transport/build/caps + per-device benchmark `backends` (the
+                          source of truth for HOW to reach each target and WHAT to run).
+                          What we BENCHMARK is app x device.backends; apps come from
+                          vocab.json (app_stages). The differential-coverage gate matrix
+                          is derived from this same file by scripts/check_fleet_coverage.py.
 
 Examples:
-  uv run --project optimizer optimizer/orchestrate/00_run_fleet.py            # full fleet, all phases
+  uv run optimizer/orchestrate/00_run_fleet.py            # full fleet, all phases
   ... --only jetson,samsung                                                   # subset of devices
   ... --phases summary                                                        # just recompute the table
   ... --only jetson --phases profile --runs 3                                 # re-collect jetson profiling
@@ -42,7 +44,7 @@ S02 = os.path.join(ORCH, "02_gen_schedule_merged.py")
 S03 = os.path.join(ORCH, "03_run_schedule.py")
 SUMMARY = os.path.join(REPO, "optimizer", "analysis", "speedup_summary.py")
 FLEET_JSON = os.path.join(REPO, "fleet.json")
-COVERAGE = os.path.join(REPO, "fleet-coverage.json")
+VOCAB_JSON = os.path.join(REPO, "vocab.json")
 FLEET_LOG_DIR = os.path.join(REPO, "data", "sched_logs", "_fleet")
 PY = sys.executable
 TABLES = ["btpm", "isolated"]
@@ -66,10 +68,7 @@ bstate = {}  # build artifact -> status dict
 
 # -- helpers ------------------------------------------------------------------
 def load_apps():
-    cov = json.load(open(COVERAGE))
-    return sorted(
-        {c["app"] for c in cov["cells"]}, key=["tree", "cifar-dense", "cifar-sparse"].index
-    )
+    return list(json.load(open(VOCAB_JSON))["app_stages"])
 
 
 def transport_args(dev):
@@ -166,7 +165,7 @@ def cmd_02(dev, app, be, tt):
     ]
 
 
-def cmd_03(dev, app, be, tt, cap):
+def cmd_03(dev, app, be, tt, cap, repeat):
     return [
         PY,
         S03,
@@ -188,19 +187,20 @@ def cmd_03(dev, app, be, tt, cap):
         "--log-folder",
         f"data/sched_logs/{dev['device_id']}_{app}_{be}_{tt}",
         "--repeat",
-        "1",
+        str(repeat),
         "--n-schedules-to-run",
         str(cap),
     ]
 
 
 # -- workers ------------------------------------------------------------------
-def device_worker(name, dev, apps, phases, runs):
+def device_worker(name, dev, apps, phases, runs, repeat):
     s = state[name]
     s.update(status="running", t0=time.time())
     online = device_on_line(name)
     logf = os.path.join(FLEET_LOG_DIR, f"{name}.log")
     open(logf, "w").close()
+    runs = dev.get("runs", runs)  # per-device override (e.g. noisy minipc -> more runs)
     cells = [(app, be) for app in apps for be in dev["backends"]]
     s["total"] = len(cells)
 
@@ -218,7 +218,7 @@ def device_worker(name, dev, apps, phases, runs):
                 step(f"sched:{tt}", cmd_02(dev, app, be, tt), f"sched {app}/{be}/{tt}")
             if "run" in phases:
                 cap = dev.get("caps", {}).get(app, 0)
-                step(f"run:{tt}", cmd_03(dev, app, be, tt, cap), f"run {app}/{be}/{tt}")
+                step(f"run:{tt}", cmd_03(dev, app, be, tt, cap, repeat), f"run {app}/{be}/{tt}")
         s["done"] += 1
         if not TTY:
             print(f"[{name}] {app}/{be} done ({s['done']}/{s['total']})", flush=True)
@@ -326,6 +326,14 @@ def main():
     )
     ap.add_argument("--runs", type=int, default=3, help="profiling runs per scenario (step 01)")
     ap.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="run each schedule this many times (step 03); the makespan is averaged across "
+        "repeats. Use >1 to sample run-to-run variance of the chaotic environment (NOT to "
+        "control it -- repetition characterizes the distribution, it doesn't lock anything).",
+    )
+    ap.add_argument(
         "--fresh",
         action="store_true",
         help="START FROM SCRATCH: delete the selected devices' profiling/schedules/run-logs "
@@ -390,7 +398,8 @@ def main():
             }
         with ThreadPoolExecutor(max_workers=len(devices)) as ex:
             futs = {
-                ex.submit(device_worker, n, devices[n], apps, phases, args.runs): n for n in names
+                ex.submit(device_worker, n, devices[n], apps, phases, args.runs, args.repeat): n
+                for n in names
             }
             drive(list(futs), "Fleet benchmark", names, "device")
             for f in futs:

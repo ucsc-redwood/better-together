@@ -114,16 +114,48 @@ ms/task; comparing steady-state throughput, which is what the pipeline targets).
 
 ---
 
+## What BTPM (interference) actually measures (operative definition)
+
+The paper's formal BTPM definition is not checked into this repo; this is the **operative
+definition the code implements** (`profiler/bm_prof_common.hpp`, the `interfere` branch):
+
+> While timing the *target* PU running stage `s`, **every other present PU is saturated
+> with the *same* stage `s`** in a busy loop on disjoint app data (one bg thread keeps the
+> GPU busy when the target is a CPU tier; one bg thread per other CPU tier; never two GPU
+> users). The per-(stage, PU) timing measured under that load is the BTPM/"interference"
+> cost; z3 uses it as a **static, per-cell replacement** for the isolated cost — there is
+> no co-execution/overlap term (`optimizer/smt/constraints.py`).
+
+Known limits (interference audit, 2026-06-20 — see the audit memory):
+- **Same-stage proxy ≠ real pipeline mix.** A real pipeline runs *different* stages on
+  different PUs concurrently; same-stage-everywhere is a worst-case memory-bandwidth proxy,
+  not the true co-execution mix, and the static cost model can't represent which stages
+  actually co-run.
+- **DVFS confound** corrupts the GPU column on clock-scaling devices (see the gotcha
+  below) — mitigated in the loader by the DVFS floor + `min_runs>=2`, and in the harness
+  by warming the GPU identically in both scenarios + a settle barrier + a saturating bg
+  load.
+- **Validate, don't assume:** the paper's central claim is that the contended (BTPM)
+  table predicts the real pipeline makespan better than the isolated table. Check it with
+  `optimizer/analysis/validate_btpm.py` (predicted z3 `max_time` vs measured makespan from
+  `data/sched_logs/`, btpm vs isolated) before trusting BTPM over isolated on a device.
+
 ## Gotchas that cost time here (read before re-running)
 
 - **scp multiple sources into one destination makes a *directory* on the target.**
   `scp a b c host:/tmp/x.json` creates `/tmp/x.json/` containing a,b,c → the executor
   fails with `load_schedule_json … "Is a directory"`. scp one file per dest.
-- **Feed z3 the table matching the deployment.** BTPM (interference) is correct when
-  apps actually contend. For a single app running ALONE, the BTPM table inflates the
-  shared-memory iGPU's GPU time, so z3 over-splits onto the CPU and a tiny GPU-bound
-  app (tree) can run *slower* than pure GPU. Use the **isolated** table for
-  single-app-alone scheduling.
+- **Feed z3 the table matching the deployment, and distrust the BTPM GPU column.** BTPM
+  (interference) is meant for when apps actually contend; use the **isolated** table for
+  a single app running alone. CRUCIAL CORRECTION (interference audit, 2026-06-20): on
+  clock-scaling GPUs the BTPM GPU column is corrupted by **DVFS, not contention** — the
+  background GPU load keeps the iGPU/GPU *boosted*, while the isolated measurement runs
+  gappy at a low clock, so the GPU measures *faster* under load (physically impossible
+  for true contention) and z3 sees a too-**cheap** GPU. (This is the opposite sign from
+  what an earlier note claimed about "inflating" GPU time.) The loader now clamps any GPU
+  cell measuring below its isolated value up to that floor (`data_loader.py` DVFS floor)
+  and requires `min_runs>=2`; until the harness controls/records GPU clocks, BTPM GPU
+  numbers remain suspect.
 - **Running every candidate schedule can be impractical.** On phones, sparse
   candidates that land heavy stages on little/medium cores take minutes each (100
   tasks × multi-second stages). Run only the best-predicted schedule (filter the JSON
