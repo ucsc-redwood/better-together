@@ -13,9 +13,15 @@
 # NO 7.x tag of this cross image (NGC tags end at 6.1 -- checked 2026-07-01), so this
 # CUDA 12.6 image remains the cross-build path. VERIFIED 2026-07-02: its binaries are
 # CORRECT on the JetPack 7.2 stack -- all three test-*-cu differential suites pass on
-# both ducks (and bm-prof-tree-cu incl. CUB kernels runs cleanly). A 13.2-matching
-# build (native on-device, or a DIY cross image) is blocked on porting apps/tree/cuda
-# off the CUB APIs that CUDA 13 removed.
+# both ducks (and bm-prof-tree-cu incl. CUB kernels runs cleanly).
+#
+# Path to a 13.2-matching cross image (2026-07-02): JetPack 7 is SBSA-aligned, and the
+# official cross toolchain IS public as apt debs -- `cuda-cross-sbsa-13-2` in
+# https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/cross-linux-sbsa/
+# (same thing SDK Manager installs as the "CUDA Cross Compile (SBSA)" host component).
+# A DIY image = ubuntu:24.04 + cuda-toolkit-13-2 (x86 nvcc) + cuda-cross-sbsa-13-2 +
+# g++-aarch64-linux-gnu. Still blocked on porting apps/tree/cuda off the CUB APIs that
+# CUDA 13 removed -- port that first, then build the image.
 FROM nvcr.io/nvidia/jetpack-linux-aarch64-crosscompile-x86:6.1
 
 ARG CMAKE_VERSION=3.31.6

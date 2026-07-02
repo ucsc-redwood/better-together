@@ -61,13 +61,14 @@ NVIDIA's official cross container (CUDA 12.6, JetPack-6-era), then copy the
 aarch64 binaries to the device.
 
 > ⚠️ **Toolchain vs fleet version skew (2026-07-01):** both Jetsons now run
-> **JetPack 7.2 (CUDA 13.2)**, but NVIDIA publishes **no 7.x cross image** (NGC tags
-> end at 6.1), so the CUDA 12.6 container remains the cross path. **Verified
-> 2026-07-02:** its binaries run correctly on the JetPack 7.2 stack (`bm-prof-tree-cu`
-> incl. CUB kernels, clean run on duck-stable) — the differential-correctness sweep is
-> still pending. A 13.2-matching build (native on-device, or a DIY cross image from
-> the CUDA-13 unified-Arm toolkit) is blocked until `apps/tree/cuda`'s `cub::` usage
-> is ported (CUDA 13 removed bundled CUB).
+> **JetPack 7.2 (CUDA 13.2)**, but NVIDIA publishes **no 7.x cross container** (NGC
+> tags end at 6.1), so the CUDA 12.6 container remains the cross path — its binaries
+> are **correctness-verified on the 7.2 stack** (all `test-*-cu` suites green on both
+> ducks, 2026-07-02). A 13.2-matching cross build is feasible: the official cross
+> toolchain is public as `cuda-cross-sbsa-13-2` apt debs (ubuntu2404
+> `cross-linux-sbsa` repo — JetPack 7 is SBSA-aligned), so a DIY image is just
+> ubuntu:24.04 + `cuda-toolkit-13-2` + `cuda-cross-sbsa-13-2` + aarch64 g++. Blocked
+> until `apps/tree/cuda`'s `cub::` usage is ported (CUDA 13 removed bundled CUB).
 
 ```bash
 # one-time: build the cross image (adds a current CMake to NVIDIA's base image)
