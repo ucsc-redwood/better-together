@@ -46,10 +46,10 @@ source of truth for core tiers and pinning. This doc is the human/agent-readable
 
 | Target | `--device` id | Backends it runs | Access | Role |
 |---|---|---|---|---|
-| Build/dev box | `pc` | OMP (CUDA/Vulkan **build-only**) | local | OMP oracle, CI, cross-build host |
+| Old build/dev box | `pc` | OMP (CUDA/Vulkan **build-only**) | (retired from workflow) | no longer needed — rocky builds everything |
 | Jetson Orin #1 | `duck-stable` | OMP + CUDA + Vulkan | `ssh doremy@duck-stable` | primary CUDA target, coverage-gated |
 | Jetson Orin #2 | `duck-naughty` | OMP + CUDA + Vulkan | `ssh doremy@duck-naughty` | twin devkit, benchmark-only |
-| Rocky MiniPC | `minipc` | OMP + Vulkan | `ssh doremy@rocky-ryzen` | Vulkan (iGPU) runner; **adb host for both phones** |
+| Rocky MiniPC | `minipc` | OMP + Vulkan | `ssh doremy@rocky-ryzen` | **the build host** (x86 Vulkan native + Jetson cross via podman); Vulkan (iGPU) runner; **adb host for both phones** |
 | Pixel 7a | `3A021JEHN02756` | OMP + Vulkan (**subgroup 16**) | adb on `rocky-ryzen` (`adb -s`) | Mali subgroup-16 shader variant |
 | Samsung Galaxy | `R5CY21Y3VEV` | OMP + Vulkan (**subgroup 32**) | adb on `rocky-ryzen` (`adb -s`) | subgroup-32 shader variant |
 
@@ -59,17 +59,27 @@ found", which is why the build box's RTX 4070 Ti never runs Vulkan.
 
 ---
 
-## Build / dev box (local, x86_64)
+## Where builds happen (2026-07-02): rocky-ryzen for everything
 
-- **CPU** i9-14900K (24 physical / 32 logical; `pc` spec = 8 big + 16 little).
-- **GPU** RTX 4070 Ti SUPER — **discrete**, sm_89. CUDA build **breaks on CUDA-13
-  CUB removal**, so the PC is **build-only** for CUDA (cross-compile via the CUDA 12.6
-  container, run on a Jetson). NOTE the reflashed Jetsons are now CUDA 13.2 themselves,
-  so the same CUB port is what unblocks native Jetson builds too. Vulkan **rejected** —
-  kiss-vk needs an iGPU.
-- **OS** Ubuntu 26.04, glibc 2.43, CUDA 13.3, clang 21, Docker (no sudo).
-- **Role** runs the OMP oracle (`ctest -L omp`) and hosts the Jetson cross-build
-  container. **No phone is attached here anymore** — both moved to rocky-ryzen.
+The old i9/RTX build box is **no longer part of the workflow**. All builds run on
+**rocky-ryzen** (or wherever convenient — nothing is machine-specific anymore):
+
+- **x86 Vulkan** (`vulkan` preset): builds **natively on rocky** (gcc 14 + cmake,
+  verified 2026-07-02) — then runs right there (it *is* the minipc target).
+- **Jetson CUDA** (`jetson` preset): cross-compiles on rocky inside the
+  `bt-cross:6.1` **podman** image (`just build-jetson` with `BT_CONTAINER=podman`,
+  or `scripts/build-bench-jetson.sh`).
+- **Android** (`android` preset): needs NDK **29.0.14206865** on the building
+  machine (currently a laptop); binaries are then copied to rocky and deployed via
+  its adb (`scripts/run-on-android.sh` there — `ANDROID_NDK_HOME=$HOME/ndk-libcxx`
+  on rocky supplies just `libc++_shared.so`, no full NDK install needed).
+- **OMP oracle / CI**: `ctest -L omp` runs in hosted GitHub CI; any dev machine
+  can run it locally with the `pc` preset.
+
+Historical note: the retired build box was an i9-14900K + RTX 4070 Ti S (`pc`
+device spec, 8 big + 16 little). Its RTX never ran Vulkan (kiss-vk hard-selects
+iGPUs) and CUDA 13 broke its CUDA build via the CUB removal — the same CUB port
+that now blocks native CUDA 13.2 builds on the Jetsons.
 
 ## Jetson Orin ×2 — `doremy@duck-stable` (`duck-stable`) + `doremy@duck-naughty` (`duck-naughty`)
 
