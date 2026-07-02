@@ -229,15 +229,15 @@ def main():
             for sol in plain:
                 if signature(sol) not in seen:
                     seen.add(signature(sol))
-                    solutions.append(
-                        reprice_solution(sol, CORE_TYPES, stage_timings, overhead)
-                    )
+                    solutions.append(reprice_solution(sol, CORE_TYPES, stage_timings, overhead))
                     added += 1
             solutions.sort(key=lambda s: s["metrics"].get("max_time", float("inf")))
             for i, sol in enumerate(solutions):
                 sol["solution_id"] = i + 1
-            print(f"Union sweep: +{added} plain-model candidates (re-priced), "
-                  f"{len(solutions)} total, sorted by predicted makespan")
+            print(
+                f"Union sweep: +{added} plain-model candidates (re-priced), "
+                f"{len(solutions)} total, sorted by predicted makespan"
+            )
 
         # Output the solutions
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)

@@ -228,10 +228,20 @@ asan:
 
 # Build + run the OMP tests under ThreadSanitizer. Most valuable on the concurrent
 # pipeline ring (pipeline-e2e), so run the full label on a machine with the cores.
+# MUST use clang + LLVM libomp + Archer: gcc/libgomp is not TSan-instrumented, so
+# every parallel-region-end barrier is invisible and the AppData destructors report
+# bogus races (see .github/tsan-suppressions.txt for the libomp-internals entry).
+# The build dir is wiped so a previous gcc configure can't pin the wrong compiler.
 tsan:
-    cmake --preset pc-tsan
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf build/pc-tsan
+    CC=clang CXX=clang++ cmake --preset pc-tsan
     cmake --build --preset pc-tsan
-    TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
+    archer=$(find /usr/lib /usr/lib64 -name 'libarcher.so*' 2>/dev/null | head -1)
+    [ -n "$archer" ] || { echo "libarcher.so not found (install LLVM openmp/libomp)"; exit 1; }
+    OMP_TOOL_LIBRARIES="$archer" \
+    TSAN_OPTIONS="halt_on_error=1:second_deadlock_stack=1:suppressions=$PWD/.github/tsan-suppressions.txt" \
     ctest --test-dir build/pc-tsan -L omp --output-on-failure
 
 # Lint only the lines changed vs a base ref (default: origin/main) so legacy

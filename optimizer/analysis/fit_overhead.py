@@ -126,11 +126,7 @@ def collect_samples(args):
                 if stage_sum >= UNAVAILABLE:
                     continue
                 n = chunk["end_stage"] - chunk["start_stage"] + 1
-                cls = (
-                    chunk.get("hardware", GPU_CLASS[be])
-                    if chunk["core_type"] == "GPU"
-                    else "cpu"
-                )
+                cls = chunk.get("hardware", GPU_CLASS[be]) if chunk["core_type"] == "GPU" else "cpu"
                 samples.append((device, cls, n, meas - stage_sum))
     return samples
 
@@ -199,7 +195,9 @@ def main():
     fits = fit(samples)
 
     print(f"\n{len(samples)} chunk samples across {len(fits)} device(s)\n")
-    print(f"{'device':14s} {'class':11s} {'n':>4s} {'chunk ms':>9s} {'stage ms':>9s} {'|r| before':>11s} {'after':>7s}")
+    print(
+        f"{'device':14s} {'class':11s} {'n':>4s} {'chunk ms':>9s} {'stage ms':>9s} {'|r| before':>11s} {'after':>7s}"
+    )
     for device, classes in fits.items():
         for cls, e in classes.items():
             print(

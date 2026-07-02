@@ -119,6 +119,7 @@ def get_detailed_solution(
     def chunk_cost(core_type, kernel_sum, n_stages):
         oh_chunk, oh_stage = (overhead or {}).get(core_type, (0.0, 0.0))
         return kernel_sum + oh_chunk + n_stages * oh_stage
+
     # Get assignment of stages to core types
     stage_assignments = {}
     for i in range(num_stages):

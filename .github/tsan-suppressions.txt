@@ -1,0 +1,11 @@
+# ThreadSanitizer suppressions for the OpenMP oracle tests.
+#
+# LLVM's libomp runtime is not TSan-instrumented, so its INTERNAL mutex pool
+# (pthread_mutex_init in one worker vs pthread_mutex_lock in another, both frames
+# inside libomp.so) trips the tool. This entry silences only accesses whose racy
+# frames are inside libomp.so -- races in user code (both stacks instrumented)
+# still report. OpenMP happens-before semantics (parallel-region barriers etc.)
+# are made visible to TSan via the Archer OMPT tool (OMP_TOOL_LIBRARIES points at
+# libarcher.so); without Archer, gcc/libgomp region-end barriers are invisible and
+# every AppData destructor after a parallel kernel reports a bogus race.
+called_from_lib:libomp.so

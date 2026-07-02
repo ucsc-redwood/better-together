@@ -26,8 +26,12 @@ STAGES = [[HUGE, HUGE, 2.0, 1.0] for _ in range(9)]
 
 def _best(overhead):
     sols = solve_optimization_problem(
-        STAGES, num_solutions=1, app_name="cifar-dense", minimize_mode="max_time",
-        gpu_backend="gpu_vulkan", overhead=overhead,
+        STAGES,
+        num_solutions=1,
+        app_name="cifar-dense",
+        minimize_mode="max_time",
+        gpu_backend="gpu_vulkan",
+        overhead=overhead,
     )
     return sols[0]
 
@@ -41,9 +45,7 @@ def test_overhead_shifts_the_optimum():
 
     taxed = _best({"Little": (0, 0), "Medium": (0, 0), "Big": (0, 0), "GPU": (5.0, 5.0)})
     gpu_stages = sum(
-        c["end_stage"] - c["start_stage"] + 1
-        for c in taxed["chunks"]
-        if c["core_type"] == "GPU"
+        c["end_stage"] - c["start_stage"] + 1 for c in taxed["chunks"] if c["core_type"] == "GPU"
     )
     assert gpu_stages < 9, "solver kept the all-GPU schedule despite the dispatch tax"
 
