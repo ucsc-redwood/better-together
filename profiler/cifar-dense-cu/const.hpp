@@ -15,9 +15,10 @@ using AppDataT = cifar_dense::AppData;
 using AppDataPtr = std::unique_ptr<AppDataT>;
 
 // Pipeline-specific constants
-// AlexNetCIFAR AppData is ~250 MB (two 4096x4096 FC weights); pool x 250 MB must fit a
-// 7.4 GB Jetson alongside the OS.
-constexpr size_t kPoolSize = 6;
+// AlexNetCIFAR AppData is dominated by the two 4096x4096 FC weights; the pool must
+// fit a 7.4 GB Jetson alongside the OS, and SPSCQueue needs a power-of-2 size (6
+// never compiled). 4 in-flight tasks are plenty for 2-3 chunk pipelines.
+constexpr size_t kPoolSize = 4;
 constexpr size_t kNumToProcess = 100;
 
 using QueueT = SPSCQueue<AppDataT*, kPoolSize>;
