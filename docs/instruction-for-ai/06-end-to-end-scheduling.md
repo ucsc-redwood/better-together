@@ -78,6 +78,24 @@ uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/pro
 #    (array of {uid, chunks:[{core_type,start_stage,end_stage,hardware?}], metrics})
 ```
 
+**Framework-overhead term (2026-07-02).** If `data/profiling/<dev>/overhead.json`
+exists, `02` prices every chunk as `Σ stage times + per_chunk_ms(PU) +
+n_stages·per_stage_ms(PU)` — the fitted per-chunk SPSC/dispatch + per-stage GPU
+submit/fence tax that the kernel-sum model misses (it made z3 pick pipelines that
+LOSE on tiny apps; fixing it took samsung cifar-dense from 0.75x to 1.50x).
+Fit/refresh the constants **after any measured sweep** with
+
+```bash
+uv run optimizer/analysis/fit_overhead.py        # reads data/sched_logs -> writes overhead.json per device
+```
+
+(model-selected per PU class — classes whose residuals a constant can't explain fall
+back to zero; see the script docstring). `02` also runs a **union sweep**: it solves
+under both cost models, re-prices the plain-model extras under the overhead model,
+and emits the union sorted by predicted makespan — the measured top-K sweep in step 3
+then picks the true winner, hedging either model's blind spots. `--no-overhead`
+opts out entirely.
+
 ## Step 3 — run the schedule(s) on the device
 
 ```bash

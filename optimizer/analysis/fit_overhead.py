@@ -33,12 +33,12 @@ from datetime import datetime, timezone
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from orchestrate.case import table_to_scenario  # noqa: E402
 from smt.bt_vocab import CORE_TYPES  # noqa: E402
 from smt.data_loader import UNAVAILABLE, load_stage_timings  # noqa: E402
 
 from analysis.results.log_parser import find_log_files, process_log_file  # noqa: E402
 from analysis.results.statistics import calculate_aggregated_statistics  # noqa: E402
-from orchestrate.case import table_to_scenario  # noqa: E402
 
 TABLES = ["btpm", "isolated"]
 BACKENDS = ["cu", "vk"]

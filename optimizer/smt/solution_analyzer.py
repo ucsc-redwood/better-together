@@ -184,7 +184,15 @@ def get_detailed_solution(
             chunk["hardware"] = gpu_backend
         chunks.append(chunk)
 
-    # Calculate load balancing metrics
+    # stage_assignments stays a local (it builds chunks above) but is NOT exported:
+    # it was a dead field on the consumer side (zero C++ readers) that duplicated and
+    # drifted from chunks. The schedule contract is chunks alone.
+    return finalize_solution(chunks)
+
+
+def finalize_solution(chunks):
+    """Metrics + readable UID for a chunk list (shared by the solver path and
+    reprice_solution, so re-priced candidates stay indistinguishable in shape)."""
     chunk_times = [chunk["time"] for chunk in chunks]
     if chunk_times:
         max_time = max(chunk_times)
@@ -225,14 +233,31 @@ def get_detailed_solution(
     unique_hash = hashlib.md5(str(chunks).encode()).hexdigest()[:4]
     uid = f"SCH-{cores_summary}-G{gapness_str}-{unique_hash}"
 
-    # stage_assignments stays a local (it builds chunks above) but is NOT exported:
-    # it was a dead field on the consumer side (zero C++ readers) that duplicated and
-    # drifted from chunks. The schedule contract is chunks alone.
     return {
         "uid": uid,
         "chunks": chunks,
         "metrics": metrics,
     }
+
+
+def reprice_solution(solution, core_types, stage_timings, overhead):
+    """Re-express a solution under the overhead cost model: rebuild every chunk's
+    predicted "time" from the stage timings + overhead constants, then regenerate
+    metrics and uid to match. Used by the union-candidate sweep in
+    02_gen_schedule_merged so candidates discovered by the PLAIN model carry the
+    same prediction semantics as the overhead-model candidates in the same file."""
+    new_chunks = []
+    for chunk in solution["chunks"]:
+        col = core_types.index(chunk["core_type"])
+        n = chunk["end_stage"] - chunk["start_stage"] + 1
+        kernel = sum(
+            stage_timings[k][col] for k in range(chunk["start_stage"] - 1, chunk["end_stage"])
+        )
+        oh_chunk, oh_stage = (overhead or {}).get(chunk["core_type"], (0.0, 0.0))
+        new_chunk = dict(chunk)
+        new_chunk["time"] = kernel + oh_chunk + n * oh_stage
+        new_chunks.append(new_chunk)
+    return finalize_solution(new_chunks)
 
 
 def dump_solutions_as_json(solutions, baseline_data, output_format="pretty", output_file=None):

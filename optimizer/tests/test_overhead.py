@@ -14,6 +14,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from smt.overhead import resolve_for_solver  # noqa: E402
+from smt.solution_analyzer import reprice_solution  # noqa: E402
 from smt.solver import solve_optimization_problem  # noqa: E402
 
 CORE_TYPES = ["Little", "Medium", "Big", "GPU"]
@@ -57,6 +58,26 @@ def test_predicted_chunk_time_includes_overhead():
         kernel = {"Big": 2.0, "GPU": 1.0}[c["core_type"]] * n
         oh_chunk, oh_stage = oh[c["core_type"]]
         assert abs(c["time"] - (kernel + oh_chunk + n * oh_stage)) < 1e-6
+
+
+def test_reprice_matches_overhead_model():
+    """A plain-model candidate re-priced under the overhead model must carry the same
+    chunk times the solver itself would have predicted (union-sweep consistency)."""
+    oh = {"Little": (0, 0), "Medium": (0, 0), "Big": (0, 0), "GPU": (3.0, 0.5)}
+    plain = _best(None)  # all-GPU under the plain model
+    repriced = reprice_solution(plain, CORE_TYPES, STAGES, oh)
+    for c in repriced["chunks"]:
+        n = c["end_stage"] - c["start_stage"] + 1
+        kernel = {"Big": 2.0, "GPU": 1.0}[c["core_type"]] * n
+        oh_chunk, oh_stage = oh[c["core_type"]]
+        assert abs(c["time"] - (kernel + oh_chunk + n * oh_stage)) < 1e-6
+    # Metrics and uid regenerate to match the new pricing.
+    assert repriced["metrics"]["max_time"] > plain["metrics"]["max_time"]
+    assert repriced["uid"] != plain["uid"]
+    # The assignment itself is untouched.
+    assert [(c["core_type"], c["start_stage"], c["end_stage"]) for c in repriced["chunks"]] == [
+        (c["core_type"], c["start_stage"], c["end_stage"]) for c in plain["chunks"]
+    ]
 
 
 def test_resolver_maps_classes_and_defaults_to_zero():

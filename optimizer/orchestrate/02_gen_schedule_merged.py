@@ -18,7 +18,7 @@ from smt.baselines import get_baseline_for_config
 from smt.bt_vocab import CORE_TYPES
 from smt.data_loader import load_stage_timings
 from smt.overhead import load_overhead, resolve_for_solver
-from smt.solution_analyzer import dump_solutions_as_json
+from smt.solution_analyzer import dump_solutions_as_json, reprice_solution
 from smt.solver import solve_optimization_problem
 
 from orchestrate.case import Case, table_to_scenario
@@ -207,6 +207,37 @@ def main():
         solutions = solve_optimization_problem(
             stage_timings, args.num_solutions, app, solver_mode, gpu_backend, overhead
         )
+
+        # Union-candidate hedge: ALSO solve with the plain kernel-sum model and append
+        # any assignments the overhead model didn't propose, re-priced under the
+        # overhead model so the file carries one consistent prediction semantics. The
+        # measured top-K sweep (03) then picks the true winner -- robustness against
+        # either model's blind spots (the fitted constants come mostly from large
+        # chunks and can over-penalize tiny ones, e.g. phone x tree).
+        if overhead is not None:
+
+            def signature(sol):
+                return tuple(
+                    (c["core_type"], c["start_stage"], c["end_stage"]) for c in sol["chunks"]
+                )
+
+            seen = {signature(s) for s in solutions}
+            plain = solve_optimization_problem(
+                stage_timings, args.num_solutions, app, solver_mode, gpu_backend, None
+            )
+            added = 0
+            for sol in plain:
+                if signature(sol) not in seen:
+                    seen.add(signature(sol))
+                    solutions.append(
+                        reprice_solution(sol, CORE_TYPES, stage_timings, overhead)
+                    )
+                    added += 1
+            solutions.sort(key=lambda s: s["metrics"].get("max_time", float("inf")))
+            for i, sol in enumerate(solutions):
+                sol["solution_id"] = i + 1
+            print(f"Union sweep: +{added} plain-model candidates (re-priced), "
+                  f"{len(solutions)} total, sorted by predicted makespan")
 
         # Output the solutions
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)
