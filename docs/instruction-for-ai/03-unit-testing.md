@@ -55,7 +55,7 @@ honest — a missing backend is a **skip, not a pass** (see hardware gating abov
 | Hardware | OMP | CUDA | Vulkan |
 |---|---|---|---|
 | **Samsung phone** (`R5CY21Y3VEV`, subgroup 32) | ✅ | — no NVIDIA GPU | ✅ |
-| **Jetson Orin** (`jetson`, sm_87) | ✅ | ✅ | ✅ |
+| **Jetson Orin** (`duck-stable`, sm_87; twin `duck-naughty` is benchmark-only) | ✅ | ✅ | ✅ |
 | **Rocky MiniPC** (`minipc`, Radeon iGPU) | ✅ | — no NVIDIA GPU | ✅ |
 
 Notes that make the gate precise on this fleet:
@@ -77,7 +77,7 @@ The per-stage differential tests use the `bt::testing` oracle (one harness per a
 `LABELS` so CTest can select them: `-L omp` / `-L cuda` / `-L vulkan`.
 
 Build with the matching preset, then **deploy+run with the `scripts/run-on-*.sh`
-helper** — the scripts handle the tmp staging, the fish login shells (Jetson + rocky),
+helper** — the scripts handle the tmp staging, rocky's fish login shell,
 and the adb-stdin gotcha. Full deploy/exec details + error lookup: [`01-hardware.md`](01-hardware.md).
 
 **Local — OMP (the everyday command, no GPU/devices):**
@@ -89,7 +89,7 @@ ctest --test-dir build/pc -L omp --output-on-failure        # success: "100% tes
 ./build/pc/test-tree-omp --gtest_list_tests
 ```
 
-**CUDA — Jetson Orin (`duck-naughty`):** cross-build in the container, then run.
+**CUDA — Jetson Orin (`doremy@duck-stable`):** cross-build in the container, then run.
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
   -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc \
@@ -99,7 +99,11 @@ scripts/run-on-jetson.sh                 # deploy to /tmp/bt + run all *-cu
 ```
 (Green as of 2026-06-16 — the `cuda-managed-mem` visibility defect was fixed with
 zero-copy pinned memory; see [`../reports-for-human/bugs-found.md`](../reports-for-human/bugs-found.md) §1.
-Reverified 2026-06-18: tree-cu 7 / cifar-dense-cu 10 / cifar-sparse-cu 10.)
+Reverified 2026-06-18: tree-cu 7 / cifar-dense-cu 10 / cifar-sparse-cu 10.
+The Jetsons were **reflashed to JetPack 7.2 / CUDA 13.2 on 2026-07-01** and
+re-verified on 2026-07-02: all three `test-*-cu` suites (7/10/10) **pass on both
+ducks** using the CUDA 12.6 cross binaries — the 12.6-binary-on-7.2-stack path is
+correctness-verified (see [`02-building.md`](02-building.md)).)
 
 **Vulkan — rocky-ryzen iGPU (x86, easiest):** build natively, then run.
 ```bash

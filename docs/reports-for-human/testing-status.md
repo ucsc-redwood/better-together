@@ -142,10 +142,11 @@ Stages per app and compare mode: **tree** 7 (exact), **octree** 7 (exact),
 **cifar-dense** / **cifar-sparse** 9 today → **11** under the canonical model
 (see §E), float/`near`.
 
-Targets of record: **PC** (i9 + RTX 4070 Ti S, dGPU, CUDA 13), **Jetson Orin**
-(sm_87, CUDA 12.6 + Vulkan), **Android-A = Pixel 7a** (Mali-G710, subgroup **16**),
-**Android-B = Samsung `R5CY21Y3VEV`** (subgroup **32**). Optional CI helper: the
-**rocky-ryzen iGPU** box (Vulkan, subgroup 64).
+Targets of record: **PC** (i9 + RTX 4070 Ti S, dGPU, CUDA 13), **Jetson Orin ×2**
+(`duck-stable`/`duck-naughty`, sm_87 — reflashed 2026-07-01 to JetPack 7.2 /
+CUDA 13.2, see the 2026-07-01 update below), **Android-A = Pixel 7a** (Mali-G710,
+subgroup **16**), **Android-B = Samsung `R5CY21Y3VEV`** (subgroup **32**). Optional
+CI helper: the **rocky-ryzen iGPU** box (Vulkan, subgroup 64).
 
 | app·backend | PC (dGPU, CUDA13) | Jetson Orin | Pixel 7a (Mali/16) | Samsung (/32) |
 |---|---|---|---|---|
@@ -178,6 +179,24 @@ uniquely exercise the subgroup-16 (Mali) vs subgroup-32 shader variants**
 > and asserted by `PipelineE2EVk.RejectsMultiGpuChunkSchedule` + `ScheduleGpuReuse.*`
 > (see [`bugs-found.md`](bugs-found.md) §10). Remaining runtime-plan depth (GPU-bottleneck
 > visibility stress, TSan, DVFS timing) is tracked separately.
+
+> **Update 2026-07-01 — FRESH START: all previous results archived, fleet-wide.**
+> Both Orin Nano Super devkits were reflashed to JetPack 7.2 (L4T R39.2.0, CUDA 13.2,
+> Ubuntu 24.04, MAXN_SUPER, user `doremy`) and re-registered as **new devices**
+> `duck-stable` (coverage-gated) and `duck-naughty` (benchmark-only twin). The
+> JetPack-6 device id `jetson` is retired. Policy decision: rather than mixing eras,
+> **every pre-2026-07 result across the whole fleet is archived** — test-run logs in
+> [`perf-results/test-runs/archive-pre-2026-07/`](perf-results/test-runs/archive-pre-2026-07/),
+> the profiling-store snapshot at commit `8d45084^` — and all cells (Jetson AND
+> minipc/phones) get re-collected from scratch. **Full matrix re-verified GREEN (2026-07-02):**
+> `check_fleet_coverage.py` reports **12/12 expected cells RAN** — CUDA differential
+> suites (7/10/10) pass on BOTH ducks (via `bt-cross:6.1` CUDA 12.6 binaries, so the
+> 12.6-on-JetPack-7.2 path is correctness-verified), and the Vulkan suites (7/10/10)
+> pass on minipc, pixel (subgroup 16), and samsung (subgroup 32). Logs:
+> [`perf-results/test-runs/`](perf-results/test-runs/). Jetson Vulkan remains
+> benchmark-only (not coverage-gated). Notes: (1) no official JetPack-7.x cross image
+> exists (NGC tags end at 6.1); (2) native CUDA 13.2 builds still hit the CUDA-13 CUB
+> removal in `apps/tree/cuda`.
 
 ### B. The harness — one parametrized differential test, not 32×3 hand-written
 

@@ -55,7 +55,8 @@ TABLE_TYPES = ["isolated", "btpm"]  # btpm == the interference profiling scenari
 MODES = ["gapness", "tmax"]
 # speedup-summary.md uses friendly device names; map them to devices/*.json ids.
 SUMMARY_DEVICE_ALIAS = {
-    "jetson": "jetson",
+    "duck-stable": "duck-stable",
+    "duck-naughty": "duck-naughty",
     "minipc": "minipc",
     "samsung": "R5CY21Y3VEV",
     "pixel": "3A021JEHN02756",
@@ -518,12 +519,10 @@ def _last_num(text):
     return float(nums[-1]) if nums else None
 
 
-def _row_caveat(device_id, app, backend):
+def _row_caveat(device_id, app, _backend):
     """Match a measured row to the prose caveats in speedup-summary.md so the
     UI can flag it inline (keeps the matching in one place, not duplicated in JS)."""
-    if device_id == "jetson" and backend == "cu":
-        return "timing-only (Jetson managed-mem correctness bug)"
-    if app == "tree" and ((device_id == "jetson" and backend == "vk") or device_id == "minipc"):
+    if app == "tree" and device_id == "minipc":
         return "z3 solved on BTPM/interference but the baseline ran isolated; tree is tiny so pure-GPU wins — not a framework defect"
     if device_id == "R5CY21Y3VEV" and app == "cifar-sparse":
         return "only the best-predicted schedule was run (CPU-only candidates too slow to sweep)"
@@ -613,7 +612,8 @@ PIPE_WARMUP = 5  # skip the first few tasks (cold caches / ramp-up)
 
 # friendly/abbreviated dir tokens -> canonical ids (devices/*.json + APPS)
 PIPE_DEVICE_ALIAS = {
-    "jetson": "jetson", "minipc": "minipc", "samsung": "R5CY21Y3VEV",
+    "duck-stable": "duck-stable", "duck-naughty": "duck-naughty",
+    "minipc": "minipc", "samsung": "R5CY21Y3VEV",
     "R5CY21Y3VEV": "R5CY21Y3VEV", "3A021JEHN02756": "3A021JEHN02756",
 }
 PIPE_APP_ALIAS = {

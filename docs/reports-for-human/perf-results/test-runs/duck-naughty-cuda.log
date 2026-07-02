@@ -1,0 +1,87 @@
+>> staging 3 binaries to doremy@duck-naughty:/tmp/bt
+>> running on doremy@duck-naughty (--device duck-naughty)
+== test-tree-cu ==
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffCuda
+[ RUN      ] TreeDiffCuda.Stage1_Morton
+[       OK ] TreeDiffCuda.Stage1_Morton (176 ms)
+[ RUN      ] TreeDiffCuda.Stage2_Sort
+[       OK ] TreeDiffCuda.Stage2_Sort (26 ms)
+[ RUN      ] TreeDiffCuda.Stage3_Unique
+[       OK ] TreeDiffCuda.Stage3_Unique (25 ms)
+[ RUN      ] TreeDiffCuda.Stage4_RadixTree
+[       OK ] TreeDiffCuda.Stage4_RadixTree (26 ms)
+[ RUN      ] TreeDiffCuda.Stage5_EdgeCount
+[       OK ] TreeDiffCuda.Stage5_EdgeCount (25 ms)
+[ RUN      ] TreeDiffCuda.Stage6_EdgeOffset
+[       OK ] TreeDiffCuda.Stage6_EdgeOffset (26 ms)
+[ RUN      ] TreeDiffCuda.Stage7_Octree
+[       OK ] TreeDiffCuda.Stage7_Octree (835 ms)
+[----------] 7 tests from TreeDiffCuda (1143 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (1143 ms total)
+[  PASSED  ] 7 tests.
+== test-cifar-dense-cu ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffCuda
+[ RUN      ] CifarDenseDiffCuda.Stage1_Conv1
+[       OK ] CifarDenseDiffCuda.Stage1_Conv1 (239 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage2_Pool1
+[       OK ] CifarDenseDiffCuda.Stage2_Pool1 (32 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage3_Conv2
+[       OK ] CifarDenseDiffCuda.Stage3_Conv2 (382 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage4_Pool2
+[       OK ] CifarDenseDiffCuda.Stage4_Pool2 (27 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage5_Conv3
+[       OK ] CifarDenseDiffCuda.Stage5_Conv3 (365 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage6_Conv4
+[       OK ] CifarDenseDiffCuda.Stage6_Conv4 (702 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage7_Conv5
+[       OK ] CifarDenseDiffCuda.Stage7_Conv5 (710 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage8_Pool3
+[       OK ] CifarDenseDiffCuda.Stage8_Pool3 (40 ms)
+[ RUN      ] CifarDenseDiffCuda.Stage9_Linear
+[       OK ] CifarDenseDiffCuda.Stage9_Linear (41 ms)
+[ RUN      ] CifarDenseDiffCuda.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffCuda.EndToEnd_FinalLogits (1796 ms)
+[----------] 10 tests from CifarDenseDiffCuda (4338 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (4338 ms total)
+[  PASSED  ] 10 tests.
+== test-cifar-sparse-cu ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffCuda
+[ RUN      ] CifarSparseDiffCuda.Stage1_Conv1
+[       OK ] CifarSparseDiffCuda.Stage1_Conv1 (482 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage2_Pool1
+[       OK ] CifarSparseDiffCuda.Stage2_Pool1 (119 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage3_Conv2
+[       OK ] CifarSparseDiffCuda.Stage3_Conv2 (790 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage4_Pool2
+[       OK ] CifarSparseDiffCuda.Stage4_Pool2 (123 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage5_Conv3
+[       OK ] CifarSparseDiffCuda.Stage5_Conv3 (752 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage6_Conv4
+[       OK ] CifarSparseDiffCuda.Stage6_Conv4 (1409 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage7_Conv5
+[       OK ] CifarSparseDiffCuda.Stage7_Conv5 (1475 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage8_Pool3
+[       OK ] CifarSparseDiffCuda.Stage8_Pool3 (280 ms)
+[ RUN      ] CifarSparseDiffCuda.Stage9_Linear
+[       OK ] CifarSparseDiffCuda.Stage9_Linear (273 ms)
+[ RUN      ] CifarSparseDiffCuda.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffCuda.EndToEnd_FinalLogits (4337 ms)
+[----------] 10 tests from CifarSparseDiffCuda (10043 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (10043 ms total)
+[  PASSED  ] 10 tests.
+BT-CELL tree cuda duck-naughty RAN
+BT-CELL cifar-dense cuda duck-naughty RAN
+BT-CELL cifar-sparse cuda duck-naughty RAN
+>> coverage markers appended to /Users/yanwenxu/Desktop/ucsc/better-together/fleet-coverage.log (check: scripts/check_fleet_coverage.py)

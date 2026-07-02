@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
-# Deploy & run BetterTogether test binaries on the Jetson Orin (CUDA + Vulkan).
+# Deploy & run BetterTogether test binaries on a Jetson Orin (CUDA + Vulkan).
+# Defaults to duck-stable (doremy@duck-stable); for the twin set
+#   BT_JETSON_HOST=doremy@duck-naughty BT_JETSON_DEVICE=duck-naughty BT_CELL_HW=duck-naughty
 #
-# Why this script exists (gotcha it handles for you):
-#   duck-naughty's LOGIN SHELL IS FISH. An inline
-#     ssh duck-naughty '... for t in ...; do ...; done'
-#   fails with a fish parse error ("Missing end to balance this for loop").
-#   We pipe a real bash script over stdin via `ssh HOST bash -s` instead, which
-#   bypasses the login shell entirely.
+# We pipe a real bash script over stdin via `ssh HOST bash -s`, which bypasses the
+# login shell entirely. (The reflashed Jetsons use bash, but the pattern stays —
+# it is shell-agnostic and rocky-ryzen's fish taught us not to trust login shells.)
 #
 # Deploy goes to the target's /tmp (never the home dir): /tmp/bt.
 #
 # Usage:   scripts/run-on-jetson.sh [test-target ...]
 #          default targets: the three CUDA test binaries
-# Env:     BT_JETSON_HOST (default duck-naughty), BT_JETSON_DEVICE (jetson),
-#          BT_JETSON_BUILD (build/jetson)
+# Env:     BT_JETSON_HOST (default doremy@duck-stable),
+#          BT_JETSON_DEVICE (duck-stable), BT_JETSON_BUILD (build/jetson)
 set -euo pipefail
 
-HOST=${BT_JETSON_HOST:-duck-naughty}
-DEVICE=${BT_JETSON_DEVICE:-jetson}
+HOST=${BT_JETSON_HOST:-doremy@duck-stable}
+DEVICE=${BT_JETSON_DEVICE:-duck-stable}
 BUILD=${BT_JETSON_BUILD:-build/jetson}
 DEST=/tmp/bt
 # Per-cell coverage markers (RAN/SKIP/FAIL) for scripts/check_fleet_coverage.py.
@@ -25,7 +24,7 @@ DEST=/tmp/bt
 # BT-CELL marker lines are appended (default fleet-coverage.log at the repo root).
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/lib-cell-marker.sh"
-CELL_HW=${BT_CELL_HW:-jetson}
+CELL_HW=${BT_CELL_HW:-duck-stable}
 CELL_LOG=${BT_CELL_LOG:-$ROOT/fleet-coverage.log}
 
 targets=("$@")

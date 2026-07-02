@@ -33,7 +33,8 @@ from analysis.results.statistics import calculate_aggregated_statistics  # noqa:
 TABLES = ["btpm", "isolated"]
 BE_LABEL = {"vk": "VK", "cu": "CUDA"}
 DEVICE_LABEL = {
-    "jetson": "jetson",
+    "duck-stable": "duck-stable",
+    "duck-naughty": "duck-naughty",
     "minipc": "minipc",
     "R5CY21Y3VEV": "samsung",
     "3A021JEHN02756": "pixel",

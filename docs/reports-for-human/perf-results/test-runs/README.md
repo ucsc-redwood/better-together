@@ -1,27 +1,23 @@
-# Full-matrix test run logs — 2026-06-17
+# Test-run logs
 
-Real-HW runs of the per-stage differential suite **and** the runtime hetero-pipeline
-suite (`test-pipeline-e2e-*`) across the whole fleet, captured while completing the
-test matrix (apps × backends × HW). Every file is the verbatim stdout of the
-`scripts/run-on-*.sh` / `run-mali-oracle.sh` helper; each exits non-zero on any
-non-skip failure. All green.
+Verbatim stdout of the `scripts/run-on-*.sh` deploy helpers, one log per fleet
+sweep; each helper exits non-zero on any non-skip failure.
+
+> **Fresh start 2026-07-01:** every log collected before this date — the whole
+> 2026-06-17 full-matrix sweep, including the retired JetPack-6 `jetson` device —
+> is archived in [`archive-pre-2026-07/`](archive-pre-2026-07/) (see its README for
+> what each log covered and why the Jetson numbers are not comparable). New sweeps
+> on the current fleet (`duck-stable`, `duck-naughty`, `minipc`, `pixel`, `samsung`)
+> land directly in this folder.
 
 | log | host | backend | what ran |
 |---|---|---|---|
-| `jetson-cuda.log` | Jetson Orin | CUDA | per-stage (tree/dense/sparse) + pipeline-e2e ×3 |
-| `jetson-vulkan-perstage.log` | Jetson Orin | Vulkan | per-stage ×3 (newly run) |
-| `jetson-vulkan-pipeline.log` | Jetson Orin | Vulkan | pipeline-e2e ×3 (newly cross-built) |
-| `jetson-omp.log` | Jetson Orin | OMP | per-stage ×3 |
-| `rocky-vulkan.log` | rocky-ryzen (RADV) | Vulkan | per-stage ×3 + pipeline-e2e ×3 |
-| `mali-vulkan.log` | Pixel 7a + Samsung | Vulkan | per-stage ×3 + pipeline-e2e ×3 (incl. cifar-sparse on Mali) |
-| `mali-omp.log` | Pixel 7a + Samsung | OMP | per-stage ×3 |
-| `mali-omp-pipeline.log` | Pixel 7a + Samsung | OMP | pipeline-e2e incl. big\|medium\|little medium-tier case |
+| `duck-stable-cuda.log` | duck-stable (JetPack 7.2) | CUDA | per-stage differential ×3 apps (tree 7 / dense 10 / sparse 10) — all green, 2026-07-02, `bt-cross:6.1` binaries |
+| `duck-naughty-cuda.log` | duck-naughty (JetPack 7.2) | CUDA | same — all green, 2026-07-02 |
+| `minipc-vulkan.log` | rocky-ryzen (RADV) | Vulkan | per-stage differential ×3 apps (7/10/10) — all green, 2026-07-02, built natively on rocky |
+| `pixel-vulkan.log` | Pixel 7a (Mali, subgroup 16) | Vulkan | per-stage differential ×3 apps (7/10/10) — all green, 2026-07-02 |
+| `samsung-vulkan.log` | Samsung (subgroup 32) | Vulkan | per-stage differential ×3 apps (7/10/10) — all green, 2026-07-02 |
 
-pc OMP (the everyday `ctest -L omp` gate, 8/8) is verified locally and not captured here.
-
-Notes:
-- The ex-`DISABLED_AlternatingBoundary` crash was diagnosed here (GPU-assisted
-  validation on rocky) as a concurrent shared-command-buffer race, not octree
-  re-entry — see [`../../bugs-found.md`](../../bugs-found.md) §10.
-- `DISABLED` lines in the older logs are the pre-fix state; the test is now
-  `PipelineE2EVk.RejectsMultiGpuChunkSchedule`.
+With these five logs plus the duck runs, `scripts/check_fleet_coverage.py` reports
+**COVERAGE GREEN — 12/12 expected cells RAN** (2026-07-02), i.e. the full
+post-fresh-start differential matrix is re-verified on the new fleet.

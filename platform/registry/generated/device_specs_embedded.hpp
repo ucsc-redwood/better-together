@@ -47,10 +47,28 @@ inline const std::vector<std::string_view> kEmbedded = {
     "subgroup_size": 32
   }
 })DEVSPEC",
-    // jetson.json
+    // duck-naughty.json
     R"DEVSPEC({
-  "id": "jetson",
-  "description": "NVIDIA Jetson Orin Nano (normal power mode): 6 cores, single tier.",
+  "id": "duck-naughty",
+  "description": "NVIDIA Jetson Orin Nano Devkit Super, host duck-naughty (JetPack 7.2 / L4T R39.2.0, CUDA 13.2, Ubuntu 24.04, MAXN_SUPER): 6 cores, single tier. Same hardware/software as duck-stable; separate id so per-unit profiling stores never mix. Replaces the retired JetPack-6 device id 'jetson' (reflashed 2026-07-01).",
+  "cores": [
+    { "id": 0, "type": "little", "pinnable": true },
+    { "id": 1, "type": "little", "pinnable": true },
+    { "id": 2, "type": "little", "pinnable": true },
+    { "id": 3, "type": "little", "pinnable": true },
+    { "id": 4, "type": "little", "pinnable": true },
+    { "id": 5, "type": "little", "pinnable": true }
+  ],
+  "gpu": {
+    "backend": "cuda",
+    "name": "NVIDIA Tegra Orin (nvgpu)",
+    "subgroup_size": 32
+  }
+})DEVSPEC",
+    // duck-stable.json
+    R"DEVSPEC({
+  "id": "duck-stable",
+  "description": "NVIDIA Jetson Orin Nano Devkit Super, host duck-stable (JetPack 7.2 / L4T R39.2.0, CUDA 13.2, Ubuntu 24.04, MAXN_SUPER): 6 cores, single tier. Replaces the retired JetPack-6 device id 'jetson' (reflashed 2026-07-01).",
   "cores": [
     { "id": 0, "type": "little", "pinnable": true },
     { "id": 1, "type": "little", "pinnable": true },

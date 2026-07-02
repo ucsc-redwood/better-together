@@ -48,7 +48,7 @@ JSONL; logs go to stderr) to the store path. Knobs: `BT_PROF_SCENARIO=isolated|i
 `BT_PROF_RUN=N`, plus the calibrated-sampling knobs (see 05-profiling.md).
 
 ```bash
-# ssh device (jetson=duck-naughty, minipc=rocky-ryzen) — fish login shell ⇒ bash -s
+# ssh device (jetsons=doremy@duck-{stable,naughty}, minipc=rocky-ryzen) — rocky's login shell is fish ⇒ bash -s
 ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference BT_PROF_RUN=1 \
   ./bm-prof-<app>-<be> --device <dev> 2>/dev/null' > data/profiling/<dev>/<app>/<bedir>/interference/run-001.jsonl
 # android (adb on rocky for BOTH phones; adb -s <serial>) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
@@ -166,5 +166,6 @@ Known limits (interference audit, 2026-06-20 — see the audit memory):
 - **Jetson VK teardown segfault (bugs §1/§9):** records are valid (flushed before the
   crash); CUDA outputs are partially wrong (managed-mem) but timings hold. `03`
   tolerates the non-zero exit.
-- **fish login shells** (jetson, rocky) → `ssh host bash -s`; **adb eats stdin** →
-  suffix `</dev/null`; **adb adds CR** → `tr -d '\r'`. Samsung's adb runs on rocky.
+- **fish login shell** (rocky; the reflashed Jetsons are bash) → `ssh host bash -s`
+  for every ssh target; **adb eats stdin** → suffix `</dev/null`; **adb adds CR** →
+  `tr -d '\r'`. Samsung's adb runs on rocky.

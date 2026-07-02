@@ -1,12 +1,19 @@
 {
-  "_comment": "Fleet config -- the single source of truth for HOW the orchestrator (optimizer/orchestrate/00_run_fleet.py) reaches each hardware target AND for the (app x backend x hardware) differential-coverage gate matrix (formerly the separate fleet-coverage.json, now removed). The gate matrix is DERIVED: per device, `coverage_backends` if present else all `backends`, mapped short->long via vocab.json, crossed with vocab.json app_stages -- see scripts/check_fleet_coverage.py. Per friendly hardware name this file gives: the --device id passed to the binaries, the deploy transport (ssh host / adb serial+host), the local build/ dir holding its binaries, which GPU backends it runs (`backends`), an optional `coverage_backends` subset that MUST run as differential-test cells (defaults to all `backends`; jetson uses [cu] because Vulkan correctness is gated on minipc/pixel/samsung, so jetson Vulkan is benchmarked but not a required coverage cell), optional per-app schedule-candidate caps, and an optional per-device `runs` override (profiling-run count; bump it on targets whose interference timings are noisy, e.g. minipc big cores on tiny kernels -> CV occasionally exceeds the loader's max_cv and drops the btpm table). Replaces the transport details previously scattered across 03_run_schedule.py + scripts/run-on-*.sh + the justfile (and fixes the justfile's stale jetson host: it is yanwen@duck-stable, reachable directly from this box, NOT duck-naughty).",
+  "_comment": "Fleet config -- the single source of truth for HOW the orchestrator (optimizer/orchestrate/00_run_fleet.py) reaches each hardware target AND for the (app x backend x hardware) differential-coverage gate matrix (formerly the separate fleet-coverage.json, now removed). The gate matrix is DERIVED: per device, `coverage_backends` if present else all `backends`, mapped short->long via vocab.json, crossed with vocab.json app_stages -- see scripts/check_fleet_coverage.py. Per friendly hardware name this file gives: the --device id passed to the binaries, the deploy transport (ssh host / adb serial+host), the local build/ dir holding its binaries, which GPU backends it runs (`backends`), an optional `coverage_backends` subset that MUST run as differential-test cells (defaults to all `backends`; duck-stable uses [cu] because Vulkan correctness is gated on minipc/pixel/samsung, so its Vulkan is benchmarked but not a required coverage cell; duck-naughty uses [] -- benchmark-only twin, no required cells), optional per-app schedule-candidate caps, and an optional per-device `runs` override (profiling-run count; bump it on targets whose interference timings are noisy, e.g. minipc big cores on tiny kernels -> CV occasionally exceeds the loader's max_cv and drops the btpm table). Replaces the transport details previously scattered across 03_run_schedule.py + scripts/run-on-*.sh + the justfile. Jetson note: both Orin Nano devkits were reflashed to JetPack 7.2 (CUDA 13.2, user doremy) on 2026-07-01; the old JetPack-6 device id 'jetson' (yanwen@duck-stable) is retired and its results archived under docs/reports-for-human/perf-results/test-runs/archive-pre-2026-07/. The bt-cross:6.1 image still targets CUDA 12.6 (no official 7.x cross image on NGC as of 2026-07-01), but its binaries are correctness-verified on the JetPack 7.2 stack: all three test-*-cu differential suites passed on both ducks on 2026-07-02.",
   "devices": {
-    "jetson": {
-      "device_id": "jetson",
-      "transport": { "kind": "ssh", "host": "yanwen@duck-stable" },
+    "duck-stable": {
+      "device_id": "duck-stable",
+      "transport": { "kind": "ssh", "host": "doremy@duck-stable" },
       "build": "jetson",
       "backends": ["cu", "vk"],
       "coverage_backends": ["cu"]
+    },
+    "duck-naughty": {
+      "device_id": "duck-naughty",
+      "transport": { "kind": "ssh", "host": "doremy@duck-naughty" },
+      "build": "jetson",
+      "backends": ["cu", "vk"],
+      "coverage_backends": []
     },
     "minipc": {
       "device_id": "minipc",

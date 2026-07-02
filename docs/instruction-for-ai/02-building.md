@@ -57,8 +57,17 @@ ctest --test-dir build/pc --output-on-failure
 ## `jetson` — CUDA (+ Vulkan), cross-compiled
 
 The Jetson Orin Nano is slow to build on, so we cross-compile on x86 inside
-NVIDIA's official cross container (CUDA 12.6, matching JetPack 6.x), then copy the
+NVIDIA's official cross container (CUDA 12.6, JetPack-6-era), then copy the
 aarch64 binaries to the device.
+
+> ⚠️ **Toolchain vs fleet version skew (2026-07-01):** both Jetsons now run
+> **JetPack 7.2 (CUDA 13.2)**, but NVIDIA publishes **no 7.x cross image** (NGC tags
+> end at 6.1), so the CUDA 12.6 container remains the cross path. **Verified
+> 2026-07-02:** its binaries run correctly on the JetPack 7.2 stack (`bm-prof-tree-cu`
+> incl. CUB kernels, clean run on duck-stable) — the differential-correctness sweep is
+> still pending. A 13.2-matching build (native on-device, or a DIY cross image from
+> the CUDA-13 unified-Arm toolkit) is blocked until `apps/tree/cuda`'s `cub::` usage
+> is ported (CUDA 13 removed bundled CUB).
 
 ```bash
 # one-time: build the cross image (adds a current CMake to NVIDIA's base image)
@@ -67,17 +76,17 @@ docker build -t bt-cross:6.1 -f Dockerfile.cross .
 # build everything for the Jetson (native x86 speed, no emulation)
 scripts/cross-build-jetson.sh         # == cmake --preset jetson && cmake --build --preset jetson
 
-# deploy to /tmp and run (handles the fish login shell for you)
-scripts/run-on-jetson.sh              # all CUDA tests; or pass targets: ... test-tree-cu
+# deploy to /tmp and run
+scripts/run-on-jetson.sh              # all CUDA tests → doremy@duck-stable; or pass targets: ... test-tree-cu
 ```
 
-> Prefer the script. The manual equivalent must pipe bash over stdin because
-> `duck-naughty`'s login shell is fish — `ssh duck-naughty bash -s <<'EOF' …` — an
-> inline `ssh duck-naughty '… for …'` fails to parse. Hosts/serials: [`01-hardware.md`](01-hardware.md).
+> Prefer the script. It pipes bash over stdin (`ssh HOST bash -s <<'EOF' …`) — needed
+> on fish hosts like rocky and harmless on the (bash) Jetsons.
+> Hosts/serials: [`01-hardware.md`](01-hardware.md).
 
 nvcc statically links the CUDA runtime, so the binary needs no extra libraries on
 the Jetson. The toolchain finds nvcc from `$CUDACXX`, else the container's
-`/usr/local/cuda-12.6`, else `PATH`.
+`/usr/local/cuda-12.6`, else the on-device `/usr/local/cuda-13.2`, else `PATH`.
 
 ## `vulkan` — Vulkan on an integrated-GPU box
 
