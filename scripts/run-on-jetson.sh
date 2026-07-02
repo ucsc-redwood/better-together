@@ -50,6 +50,9 @@ ssh "$HOST" bash -s "$DEVICE" "${targets[@]}" <<'EOF' | tee "$runlog"
 set -e
 device=$1; shift
 cd /tmp/bt
+# Deployed real weights (scripts/deploy-weights.sh jetson) are picked up
+# automatically; without a deploy the apps keep their synthetic seeded init.
+[ -d /tmp/bt/weights/dense ] && export BT_WEIGHTS_DIR=/tmp/bt/weights
 fail=0
 for t in "$@"; do
   echo "== $t =="

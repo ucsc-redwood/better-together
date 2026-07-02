@@ -1,12 +1,16 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdlib>
 #include <memory_resource>
 #include <random>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "platform/util/base_appdata.hpp"
 #include "platform/util/ndarray.hpp"
+#include "platform/util/npy_loader.hpp"
 
 namespace cifar_sparse {
 
@@ -124,6 +128,14 @@ struct AppData final : public BaseAppData {
         conv3_sparse(384, 1728, mr),
         conv4_sparse(256, 3456, mr),
         conv5_sparse(256, 2304, mr) {
+    // BT_WEIGHTS_DIR set -> the real magnitude-pruned CSR export + real test
+    // batch, fail-loud on any problem. Unset -> the synthetic seeded init
+    // below, byte-identical to the hermetic-test behavior.
+    if (const char* dir = std::getenv("BT_WEIGHTS_DIR")) {
+      load_real_weights(dir);
+      return;
+    }
+
     std::mt19937 gen(114514);
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
     std::ranges::generate(u_input.pmr_vec(), [&]() { return dis(gen); });
@@ -160,6 +172,58 @@ struct AppData final : public BaseAppData {
     std::ranges::fill(u_fc1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc2_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc3_b.pmr_vec(), 0.0f);
+  }
+
+  // Load the real pruned weights ($BT_WEIGHTS_DIR/sparse/): per-conv CSR over
+  // (out_ch, in_ch*3*3) loaded directly into the CSRMatrix (no
+  // build_from_dense), plus the dense biases / FC head and the real normalized
+  // test batch (which must match BATCH_SIZE). Any missing file, shape mismatch
+  // or inconsistent CSR throws -- never a silent fallback. See
+  // docs/instruction-for-ai/04-alexnet-cifar-spec.md §7.
+  void load_real_weights(const std::string& dir) {
+    const auto f1 = [](const std::string& p, Ndarray1D& a) {
+      bt::npy::load(p, "<f4", {static_cast<size_t>(a.d0())}, a.data());
+    };
+    const auto f2 = [](const std::string& p, Ndarray2D& a) {
+      bt::npy::load(p, "<f4", {static_cast<size_t>(a.d0()), static_cast<size_t>(a.d1())}, a.data());
+    };
+    const auto csr = [](const std::string& stem, CSRMatrix& m) {
+      // row_ptr has a known size (rows+1, sized so by the ctor); it fixes nnz,
+      // which the values/col_idx loads are then shape-checked against.
+      bt::npy::load(
+          stem + "_csr_row_ptr.npy", "<i4", {static_cast<size_t>(m.rows) + 1}, m.row_ptr.data());
+      const int nnz = m.row_ptr.back();
+      if (nnz < 0 || nnz > m.rows * m.cols) {
+        throw std::runtime_error(stem + "_csr_row_ptr.npy: nnz " + std::to_string(nnz) +
+                                 " out of range for " + std::to_string(m.rows) + "x" +
+                                 std::to_string(m.cols));
+      }
+      bt::npy::load(stem + "_csr_values.npy", "<f4", {static_cast<size_t>(nnz)}, m.values.data());
+      bt::npy::load(stem + "_csr_col_idx.npy", "<i4", {static_cast<size_t>(nnz)}, m.col_idx.data());
+      m.nnz = nnz;
+    };
+
+    const std::string d = dir + "/sparse/";
+    csr(d + "conv1", conv1_sparse);
+    f1(d + "conv1_b.npy", u_conv1_b);
+    csr(d + "conv2", conv2_sparse);
+    f1(d + "conv2_b.npy", u_conv2_b);
+    csr(d + "conv3", conv3_sparse);
+    f1(d + "conv3_b.npy", u_conv3_b);
+    csr(d + "conv4", conv4_sparse);
+    f1(d + "conv4_b.npy", u_conv4_b);
+    csr(d + "conv5", conv5_sparse);
+    f1(d + "conv5_b.npy", u_conv5_b);
+    f2(d + "fc1_w.npy", u_fc1_w);
+    f1(d + "fc1_b.npy", u_fc1_b);
+    f2(d + "fc2_w.npy", u_fc2_w);
+    f1(d + "fc2_b.npy", u_fc2_b);
+    f2(d + "fc3_w.npy", u_fc3_w);
+    f1(d + "fc3_b.npy", u_fc3_b);
+
+    // u_input is (BATCH_SIZE, 3, 32, 32) -> the shape check rejects a
+    // test_batch.npy whose batch dimension differs from BATCH_SIZE.
+    bt::npy::load(dir + "/test_batch.npy", "<f4", {BATCH_SIZE, 3, 32, 32}, u_input.data());
   }
 
   // Input and intermediate outputs

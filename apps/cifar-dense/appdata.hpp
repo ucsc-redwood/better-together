@@ -1,12 +1,14 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdlib>
 #include <memory_resource>
 #include <random>
+#include <string>
 
 #include "platform/util/base_appdata.hpp"
-// #include "../load_npy.hpp"
 #include "platform/util/ndarray.hpp"
+#include "platform/util/npy_loader.hpp"
 
 namespace cifar_dense {
 
@@ -65,6 +67,14 @@ struct AppData final : public BaseAppData {
         u_fc2_b(4096, mr),
         u_fc3_w(10, 4096, mr),
         u_fc3_b(10, mr) {
+    // BT_WEIGHTS_DIR set -> the real trained AlexNetCIFAR export + real test
+    // batch, fail-loud on any problem. Unset -> the synthetic seeded init
+    // below, byte-identical to the hermetic-test behavior.
+    if (const char* dir = std::getenv("BT_WEIGHTS_DIR")) {
+      load_real_weights(dir);
+      return;
+    }
+
     std::mt19937 gen(114514);
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
     std::ranges::generate(u_input.pmr_vec(), [&]() { return dis(gen); });
@@ -92,23 +102,51 @@ struct AppData final : public BaseAppData {
     std::ranges::fill(u_fc1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc2_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc3_b.pmr_vec(), 0.0f);
+  }
 
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv1_w.npy", u_conv1_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv1_b.npy", u_conv1_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv2_w.npy", u_conv2_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv2_b.npy", u_conv2_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv3_w.npy", u_conv3_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv3_b.npy", u_conv3_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv4_w.npy", u_conv4_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv4_b.npy", u_conv4_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv5_w.npy", u_conv5_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_conv5_b.npy", u_conv5_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_fc1_w.npy", u_fc1_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_fc1_b.npy", u_fc1_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_fc2_w.npy", u_fc2_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_fc2_b.npy", u_fc2_b));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_fc3_w.npy", u_fc3_w));
-    // assert(npy_loader::load_npy_to_ndarray("cifar/u_fc3_b.npy", u_fc3_b));
+  // Load the real BN-folded weights ($BT_WEIGHTS_DIR/dense/, PyTorch OIHW /
+  // (out,in) row-major) and the real normalized CIFAR-10 test batch
+  // ($BT_WEIGHTS_DIR/test_batch.npy, which must match BATCH_SIZE). Any missing
+  // file or shape mismatch throws (bt::npy::load) -- never a silent fallback.
+  // See docs/instruction-for-ai/04-alexnet-cifar-spec.md §7.
+  void load_real_weights(const std::string& dir) {
+    const auto f1 = [](const std::string& p, Ndarray1D& a) {
+      bt::npy::load(p, "<f4", {static_cast<size_t>(a.d0())}, a.data());
+    };
+    const auto f2 = [](const std::string& p, Ndarray2D& a) {
+      bt::npy::load(p, "<f4", {static_cast<size_t>(a.d0()), static_cast<size_t>(a.d1())}, a.data());
+    };
+    const auto f4 = [](const std::string& p, Ndarray4D& a) {
+      bt::npy::load(p,
+                    "<f4",
+                    {static_cast<size_t>(a.d0()),
+                     static_cast<size_t>(a.d1()),
+                     static_cast<size_t>(a.d2()),
+                     static_cast<size_t>(a.d3())},
+                    a.data());
+    };
+
+    const std::string d = dir + "/dense/";
+    f4(d + "conv1_w.npy", u_conv1_w);
+    f1(d + "conv1_b.npy", u_conv1_b);
+    f4(d + "conv2_w.npy", u_conv2_w);
+    f1(d + "conv2_b.npy", u_conv2_b);
+    f4(d + "conv3_w.npy", u_conv3_w);
+    f1(d + "conv3_b.npy", u_conv3_b);
+    f4(d + "conv4_w.npy", u_conv4_w);
+    f1(d + "conv4_b.npy", u_conv4_b);
+    f4(d + "conv5_w.npy", u_conv5_w);
+    f1(d + "conv5_b.npy", u_conv5_b);
+    f2(d + "fc1_w.npy", u_fc1_w);
+    f1(d + "fc1_b.npy", u_fc1_b);
+    f2(d + "fc2_w.npy", u_fc2_w);
+    f1(d + "fc2_b.npy", u_fc2_b);
+    f2(d + "fc3_w.npy", u_fc3_w);
+    f1(d + "fc3_b.npy", u_fc3_b);
+
+    // u_input is (BATCH_SIZE, 3, 32, 32) -> the shape check rejects a
+    // test_batch.npy whose batch dimension differs from BATCH_SIZE.
+    f4(dir + "/test_batch.npy", u_input);
   }
 
   // Input and intermediate outputs

@@ -1,11 +1,16 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <memory_resource>
+#include <vector>
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/npy_loader.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-dense × OMP differential oracle. Each stage output is compared against
@@ -32,6 +37,38 @@ struct OmpRunner {
 }  // namespace
 
 BT_DECLARE_CIFAR_DENSE_DIFF_TESTS(CifarDenseDiffOmp, OmpRunner)
+
+// End-task accuracy on the REAL trained weights + real normalized CIFAR-10 test
+// batch (04-alexnet-cifar-spec.md §7). Skips unless BT_WEIGHTS_DIR is set, so
+// hermetic runs are unaffected. The PyTorch dense reference hits 90.48% on this
+// batch; assert a safe >= 85%.
+TEST(CifarDenseAppData, RealWeights_EndTaskAccuracy) {
+  const char* dir = std::getenv("BT_WEIGHTS_DIR");
+  if (dir == nullptr) {
+    GTEST_SKIP() << "BT_WEIGHTS_DIR not set (deploy via scripts/deploy-weights.sh)";
+  }
+  cifar_dense::AppData a(std::pmr::new_delete_resource());  // ctor loads real weights + batch
+  for (int s = 1; s <= 11; ++s) cifar_dense::omp::dispatch_stage(a, s);
+
+  const int n = a.u_fc3_out.d0();
+  const int k = a.u_fc3_out.d1();
+  std::vector<int32_t> labels(n);
+  bt::npy::load(
+      std::string(dir) + "/test_labels.npy", "<i4", {static_cast<size_t>(n)}, labels.data());
+
+  int correct = 0;
+  for (int i = 0; i < n; ++i) {
+    const float* row = a.u_fc3_out.data() + static_cast<size_t>(i) * k;
+    int argmax = 0;
+    for (int j = 1; j < k; ++j) {
+      if (row[j] > row[argmax]) argmax = j;
+    }
+    if (argmax == labels[i]) ++correct;
+  }
+  const double acc = static_cast<double>(correct) / n;
+  std::printf("cifar-dense real-weight accuracy: %.4f (%d/%d)\n", acc, correct, n);
+  EXPECT_GE(acc, 0.85) << "end-task accuracy regressed on the real weights";
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

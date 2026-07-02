@@ -128,3 +128,34 @@ uv run scripts/data_prep/alexnet_cifar10.py --export-npy         # dump per-laye
 SGD (momentum 0.9, nesterov, weight-decay 5e-4), cosine LR from 0.1, label
 smoothing 0.1, AMP on CUDA. 45k/5k train/val split + held-out 10k test.
 Best-val checkpoint saved to `saved_params/alexnet_cifar10_best.pt`.
+
+---
+
+## 7. Deploying the real weights
+
+`scripts/data_prep/prune_alexnet_cifar10.py` leaves the trained export in
+`saved_params/export/`: `dense/conv{1..5}_{w,b}.npy` + `fc{1..3}_{w,b}.npy`
+(BN-folded, f32, OIHW / `(out,in)` row-major), `sparse/conv{i}_csr_{values,col_idx,row_ptr}.npy`
+(CSR over `(out_ch, in_ch*3*3)`, plus biases and the dense FC head), and a
+normalized `test_batch.npy` `(128,3,32,32)` + `test_labels.npy` `(128,)`. Both
+cifar `AppData`s honor **`BT_WEIGHTS_DIR`**: unset → the synthetic seeded init
+(hermetic tests, byte-identical to before); set → the real weights and real
+test batch are loaded and **any missing file or shape mismatch throws** —
+asking for real weights never silently falls back. Deploy with
+
+```bash
+scripts/deploy-weights.sh jetson              # -> doremy@duck-stable:/tmp/bt/weights
+scripts/deploy-weights.sh rocky               # -> rocky-ryzen:/tmp/bt/weights
+scripts/deploy-weights.sh android R5CY21Y3VEV # -> /data/local/tmp/bt/weights
+```
+
+after which the `run-on-{jetson,rocky,android}.sh` scripts export
+`BT_WEIGHTS_DIR` automatically when the deployed dir exists. The end-to-end
+check is `RealWeights_EndTaskAccuracy` in the two OMP test binaries (skips
+without `BT_WEIGHTS_DIR`; asserts test-batch accuracy ≥ 0.85 — dense measures
+~0.90, sparse ~0.90):
+
+```bash
+BT_WEIGHTS_DIR=$PWD/saved_params/export \
+    ./build/pc/test-cifar-dense-omp --gtest_filter='*RealWeights*'
+```
