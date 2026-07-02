@@ -141,7 +141,16 @@ normalized `test_batch.npy` `(128,3,32,32)` + `test_labels.npy` `(128,)`. Both
 cifar `AppData`s honor **`BT_WEIGHTS_DIR`**: unset → the synthetic seeded init
 (hermetic tests, byte-identical to before); set → the real weights and real
 test batch are loaded and **any missing file or shape mismatch throws** —
-asking for real weights never silently falls back. Deploy with
+asking for real weights never silently falls back.
+
+**Runtime batch is a framework knob, not part of this spec.** `AppData::BATCH_SIZE`
+is **16 for cifar-dense** (the 11-stage model is ~27× heavier per image than the
+old SmallAlexNet; at 128 a dense task cost ~700 ms on the Jetson GPU) and **128
+for cifar-sparse** (per-image cost is far lower — same reasoning as the paper,
+which ran dense at 1 image/task and sparse at 128). When `BATCH_SIZE` is smaller
+than the exported 128-image test batch, the loader takes the first `BATCH_SIZE`
+rows (`bt::npy::load_prefix`); trailing dims are still checked strictly. Deploy
+with
 
 ```bash
 scripts/deploy-weights.sh jetson              # -> doremy@duck-stable:/tmp/bt/weights
@@ -152,8 +161,9 @@ scripts/deploy-weights.sh android R5CY21Y3VEV # -> /data/local/tmp/bt/weights
 after which the `run-on-{jetson,rocky,android}.sh` scripts export
 `BT_WEIGHTS_DIR` automatically when the deployed dir exists. The end-to-end
 check is `RealWeights_EndTaskAccuracy` in the two OMP test binaries (skips
-without `BT_WEIGHTS_DIR`; asserts test-batch accuracy ≥ 0.85 — dense measures
-~0.90, sparse ~0.90):
+without `BT_WEIGHTS_DIR`; sparse asserts ≥ 0.85 over its 128 images and measures
+~0.90; dense asserts ≥ 0.75 over its 16-image prefix — small-sample binomial
+slack — and measures ~0.94):
 
 ```bash
 BT_WEIGHTS_DIR=$PWD/saved_params/export \

@@ -6,6 +6,7 @@
 // naming the file and the reason -- callers rely on this to fail loud instead
 // of silently falling back to synthetic data.
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <fstream>
@@ -39,6 +40,14 @@ inline std::string quoted_value(const std::string& hdr, const char* key, const s
 
 }  // namespace detail
 
+namespace detail {
+// Open `path`, validate magic/dtype/order, position the stream at the payload,
+// and return the file's shape. Shared by load() and load_prefix().
+inline std::vector<size_t> open_payload(std::ifstream& f,
+                                        const std::string& path,
+                                        const std::string& descr);
+}  // namespace detail
+
 // Load the payload of a .npy file into `dst`. `descr` is the required numpy
 // dtype string ("<f4" or "<i4"); `expected` is the required shape. `dst` must
 // hold product(expected) elements of 4 bytes. Throws std::runtime_error (with
@@ -48,6 +57,44 @@ inline void load(const std::string& path,
                  const std::vector<size_t>& expected,
                  void* dst) {
   std::ifstream f(path, std::ios::binary);
+  const std::vector<size_t> shape = detail::open_payload(f, path, descr);
+  if (shape != expected)
+    detail::fail(
+        path, "shape is " + detail::shape_str(shape) + ", expected " + detail::shape_str(expected));
+
+  size_t count = 1;
+  for (const size_t d : expected) count *= d;
+  if (!f.read(static_cast<char*>(dst), static_cast<std::streamsize>(count * 4)))
+    detail::fail(path, "truncated payload (expected " + std::to_string(count * 4) + " bytes)");
+}
+
+// Load only the FIRST expected[0] rows: the file's trailing dims must equal
+// expected[1:] exactly and its leading dim must be >= expected[0]. Lets a
+// smaller AppData batch (e.g. dense BATCH_SIZE 16) consume a prefix of the
+// exported 128-image test batch / labels without re-exporting.
+inline void load_prefix(const std::string& path,
+                        const std::string& descr,
+                        const std::vector<size_t>& expected,
+                        void* dst) {
+  std::ifstream f(path, std::ios::binary);
+  const std::vector<size_t> shape = detail::open_payload(f, path, descr);
+  const bool tail_ok = shape.size() == expected.size() &&
+                       std::equal(shape.begin() + 1, shape.end(), expected.begin() + 1);
+  if (!tail_ok || shape.empty() || shape[0] < expected[0])
+    detail::fail(path,
+                 "shape is " + detail::shape_str(shape) + ", need a prefix of " +
+                     detail::shape_str(expected));
+
+  size_t count = 1;
+  for (const size_t d : expected) count *= d;
+  if (!f.read(static_cast<char*>(dst), static_cast<std::streamsize>(count * 4)))
+    detail::fail(path, "truncated payload (expected " + std::to_string(count * 4) + " bytes)");
+}
+
+namespace detail {
+inline std::vector<size_t> open_payload(std::ifstream& f,
+                                        const std::string& path,
+                                        const std::string& descr) {
   if (!f) detail::fail(path, "cannot open file");
 
   unsigned char pre[8];  // \x93NUMPY + major + minor
@@ -96,14 +143,8 @@ inline void load(const std::string& path,
       ++pos;
     }
   }
-  if (shape != expected)
-    detail::fail(
-        path, "shape is " + detail::shape_str(shape) + ", expected " + detail::shape_str(expected));
-
-  size_t count = 1;
-  for (const size_t d : expected) count *= d;
-  if (!f.read(static_cast<char*>(dst), static_cast<std::streamsize>(count * 4)))
-    detail::fail(path, "truncated payload (expected " + std::to_string(count * 4) + " bytes)");
+  return shape;
 }
+}  // namespace detail
 
 }  // namespace bt::npy

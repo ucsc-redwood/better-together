@@ -24,9 +24,13 @@ constexpr int kPoolStride = 2;
 constexpr bool kRelu = true;
 
 struct AppData final : public BaseAppData {
-  // static constexpr size_t BATCH_SIZE = 1;
-  // static constexpr size_t BATCH_SIZE = 32;
-  static constexpr size_t BATCH_SIZE = 128;
+  // Batch is a FRAMEWORK workload knob, not a model property. The 11-stage
+  // AlexNetCIFAR is ~27x heavier per image than the old SmallAlexNet; at batch
+  // 128 a dense task took ~700 ms on the Jetson GPU and the pipeline-e2e suite
+  // ran 12+ minutes. 16 keeps per-task cost in the old model's ballpark while
+  // the 4096-wide FC GEMMs still see reasonable GPU utilization. (The paper ran
+  // dense at 1 image/task; sparse keeps 128 -- its per-image cost is far lower.)
+  static constexpr size_t BATCH_SIZE = 16;
 
   // conv1: 64 output channels, 3×3×3 kernel = 27 inputs
   // conv2: 192 output channels, 64×3×3 kernel = 576 inputs
@@ -105,9 +109,9 @@ struct AppData final : public BaseAppData {
   }
 
   // Load the real BN-folded weights ($BT_WEIGHTS_DIR/dense/, PyTorch OIHW /
-  // (out,in) row-major) and the real normalized CIFAR-10 test batch
-  // ($BT_WEIGHTS_DIR/test_batch.npy, which must match BATCH_SIZE). Any missing
-  // file or shape mismatch throws (bt::npy::load) -- never a silent fallback.
+  // (out,in) row-major) and the first BATCH_SIZE images of the real normalized
+  // CIFAR-10 test batch. Any missing file or shape mismatch throws
+  // (bt::npy::load) -- never a silent fallback.
   // See docs/instruction-for-ai/04-alexnet-cifar-spec.md §7.
   void load_real_weights(const std::string& dir) {
     const auto f1 = [](const std::string& p, Ndarray1D& a) {
@@ -144,26 +148,29 @@ struct AppData final : public BaseAppData {
     f2(d + "fc3_w.npy", u_fc3_w);
     f1(d + "fc3_b.npy", u_fc3_b);
 
-    // u_input is (BATCH_SIZE, 3, 32, 32) -> the shape check rejects a
-    // test_batch.npy whose batch dimension differs from BATCH_SIZE.
-    f4(dir + "/test_batch.npy", u_input);
+    // u_input is (BATCH_SIZE, 3, 32, 32); the exported test batch holds 128
+    // images -- take its first BATCH_SIZE rows (trailing dims still checked).
+    bt::npy::load_prefix(dir + "/test_batch.npy",
+                         "<f4",
+                         {BATCH_SIZE, 3, 32, 32},
+                         u_input.data());
   }
 
   // Input and intermediate outputs
-  Ndarray4D u_input;      // (128, 3, 32, 32)
-  Ndarray4D u_conv1_out;  // (128, 64, 32, 32)
-  Ndarray4D u_pool1_out;  // (128, 64, 16, 16)
-  Ndarray4D u_conv2_out;  // (128, 192, 16, 16)
-  Ndarray4D u_pool2_out;  // (128, 192, 8, 8)
-  Ndarray4D u_conv3_out;  // (128, 384, 8, 8)
-  Ndarray4D u_conv4_out;  // (128, 256, 8, 8)
-  Ndarray4D u_conv5_out;  // (128, 256, 8, 8)
-  Ndarray4D u_pool3_out;  // (128, 256, 4, 4)
+  Ndarray4D u_input;      // (N=16, 3, 32, 32)
+  Ndarray4D u_conv1_out;  // (N=16, 64, 32, 32)
+  Ndarray4D u_pool1_out;  // (N=16, 64, 16, 16)
+  Ndarray4D u_conv2_out;  // (N=16, 192, 16, 16)
+  Ndarray4D u_pool2_out;  // (N=16, 192, 8, 8)
+  Ndarray4D u_conv3_out;  // (N=16, 384, 8, 8)
+  Ndarray4D u_conv4_out;  // (N=16, 256, 8, 8)
+  Ndarray4D u_conv5_out;  // (N=16, 256, 8, 8)
+  Ndarray4D u_pool3_out;  // (N=16, 256, 4, 4)
 
-  // Flatten would be (128, 4096), stored or created on-the-fly
-  Ndarray2D u_fc1_out;  // (128, 4096)
-  Ndarray2D u_fc2_out;  // (128, 4096)
-  Ndarray2D u_fc3_out;  // shape = (128, 10) for final classification
+  // Flatten would be (N, 4096), stored or created on-the-fly
+  Ndarray2D u_fc1_out;  // (N=16, 4096)
+  Ndarray2D u_fc2_out;  // (N=16, 4096)
+  Ndarray2D u_fc3_out;  // shape = (N=16, 10) for final classification
 
   // Model parameters
   Ndarray4D u_conv1_w;  // (64, 3, 3, 3)
