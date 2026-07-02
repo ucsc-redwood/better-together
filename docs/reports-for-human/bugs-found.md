@@ -116,7 +116,7 @@ key to float and corrupting any future value comparison. Changed to `uint32_t`
 
 ---
 
-## 5. cifar-sparse computes all zeros as shipped (empty CSR) — **DOCUMENTED, worked around in tests**
+## 5. cifar-sparse computes all zeros as shipped (empty CSR) — **RESOLVED (commit 2540be6)**
 
 **File:** `builtin-apps/cifar-sparse/appdata.hpp` (`CSRMatrix`)
 
@@ -125,13 +125,20 @@ key to float and corrupting any future value comparison. Changed to `uint32_t`
 iterates an empty row range (`row_ptr[oc] == row_ptr[oc+1] == 0`) → output =
 bias = 0. Verified at runtime: conv1 output is 0 non-zero of 8.4M elements.
 
-`nnz` is `const int = 0`, so it cannot be corrected in place. The differential
-tests build a deterministic valid CSR **in-test** (so the kernel exercises real
-sparse conv) and a `GTEST_SKIP` guard test
-`CifarSparseAppData.ShippedCsrIndicesAreEmpty_KnownIssue` surfaces the defect.
-**Not yet fixed in shipped code** — the AppData should build the CSR (or load real
-sparse `.npy` weights, RFC C1; both cifar AppDatas have commented-out
-`load_npy_to_ndarray`).
+**Resolution (commit 2540be6):** the shipped `AppData` now builds a real CSR in
+its constructor — `CSRMatrix::build_from_dense()` compacts the seeded dense
+weights in place with a deterministic keep pattern (~3/4 of entries per row), and
+`nnz` is no longer `const`. The differential oracle checks every stage against a
+double-precision reference computed from the SAME (densified) CSR, and a
+regression guard in each `test_main` asserts the shipped CSR is non-empty.
+Verified green across the whole fleet on 2026-07-02 (CUDA on both ducks, Vulkan
+on minipc/pixel/samsung — 10/10 each).
+
+Remaining nice-to-haves (not defects): load real pruned `.npy` weights (RFC C1;
+both cifar AppDatas still have commented-out `load_npy_to_ndarray`), and consider
+a more realistic sparsity level — the current keep pattern is 75% dense, which is
+high for a "pruned" network and makes sparse-vs-dense timing comparisons
+pessimistic for sparse.
 
 ---
 

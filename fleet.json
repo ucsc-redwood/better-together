@@ -17,7 +17,7 @@
     },
     "minipc": {
       "device_id": "minipc",
-      "transport": { "kind": "ssh", "host": "rocky-ryzen" },
+      "transport": { "kind": "ssh", "host": "doremy@rocky-ryzen" },
       "build": "vulkan",
       "backends": ["vk"],
       "runs": 5
@@ -27,7 +27,7 @@
       "transport": {
         "kind": "adb",
         "serial": "R5CY21Y3VEV",
-        "adb_host": "rocky-ryzen"
+        "adb_host": "doremy@rocky-ryzen"
       },
       "build": "android",
       "backends": ["vk"],
@@ -38,7 +38,7 @@
       "transport": {
         "kind": "adb",
         "serial": "3A021JEHN02756",
-        "adb_host": "rocky-ryzen"
+        "adb_host": "doremy@rocky-ryzen"
       },
       "build": "android",
       "backends": ["vk"],

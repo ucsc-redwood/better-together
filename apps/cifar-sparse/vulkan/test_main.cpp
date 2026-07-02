@@ -9,7 +9,8 @@
 
 // ----------------------------------------------------------------------------
 // cifar-sparse × Vulkan differential oracle. Vulkan uses the same AppData as
-// OMP/CUDA; a valid CSR is built in-test (the shipped AppData leaves it empty).
+// OMP/CUDA; the shipped AppData builds a real CSR in its ctor
+// (CSRMatrix::build_from_dense).
 // Each stage is checked against the densified-CSR double-precision reference.
 // Run on an integrated-GPU box / Jetson / phone.
 // ----------------------------------------------------------------------------

@@ -11,9 +11,9 @@
 // ----------------------------------------------------------------------------
 // cifar-sparse × OMP differential oracle. Each stage output is compared against
 // an independent double-precision reference computed from the densified CSR, so
-// this is real numerical correctness, not a "buffer changed" smoke test. A valid
-// CSR is built in-test (the shipped AppData leaves it empty — see the guard test
-// below). CUDA/Vulkan adopt the same BT_DECLARE expansion with their own Runner.
+// this is real numerical correctness, not a "buffer changed" smoke test. The
+// shipped AppData builds a real CSR in its ctor (see the regression guard below).
+// CUDA/Vulkan adopt the same BT_DECLARE expansion with their own Runner.
 // ----------------------------------------------------------------------------
 
 namespace {
