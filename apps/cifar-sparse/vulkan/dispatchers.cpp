@@ -73,18 +73,21 @@ struct MaxpoolPushConstants {
   int32_t stride;
 };
 
-// // Push constants for kernel parameters.
+// // Push constants for kernel parameters (dense FC head; only the convs are
+// // pruned -- same contract as new_cifar_dense_linear).
 // layout(push_constant) uniform Params {
-//   int batch_size;      // Number of samples in the batch.
-//   int input_features;  // Number of features in each input sample.
-//   int out_neurons;     // Number of output neurons (rows in the weight matrix).
+//   int N;             // Batch size
+//   int in_features;   // Number of input features
+//   int out_features;  // Number of output features
+//   int apply_relu;    // 1 to apply ReLU, 0 otherwise
 // }
 // params;
 
 struct LinearPushConstants {
-  int32_t batch_size;
-  int32_t input_features;
-  int32_t out_neurons;
+  int32_t N;             // Batch size
+  int32_t in_features;   // Number of input features
+  int32_t out_features;  // Number of output features
+  int32_t apply_relu;    // 1 to apply ReLU, 0 otherwise
 };
 
 // ----------------------------------------------------------------------------
@@ -118,8 +121,8 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto linear_algo = engine.make_algo("new_cifar_sparse_linear")
                          ->work_group_size(256, 1, 1)
-                         ->num_sets(1)  // stage 9
-                         ->num_buffers(6)
+                         ->num_sets(3)     // stages 9,10,11
+                         ->num_buffers(4)  // Input, Weight, Bias, Output
                          ->push_constant<LinearPushConstants>()
                          ->build();
 
@@ -157,6 +160,12 @@ void VulkanDispatcher::run_stage_8(cifar_sparse::AppData& appdata) {
 void VulkanDispatcher::run_stage_9(cifar_sparse::AppData& appdata) {
   dispatch_multi_stage(appdata, 9, 9);
 }
+void VulkanDispatcher::run_stage_10(cifar_sparse::AppData& appdata) {
+  dispatch_multi_stage(appdata, 10, 10);
+}
+void VulkanDispatcher::run_stage_11(cifar_sparse::AppData& appdata) {
+  dispatch_multi_stage(appdata, 11, 11);
+}
 
 // ----------------------------------------------------------------------------
 // Stage 1 (v2)  (conv2d descriptor set 0)
@@ -182,7 +191,7 @@ void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, vk::Comman
   const int in_height = appdata.u_input.d2();    // Expected 32
   const int in_width = appdata.u_input.d3();     // Expected 32
 
-  const int out_channels = appdata.conv1_sparse.rows;  // Expected 16
+  const int out_channels = appdata.conv1_sparse.rows;  // Expected 64
 
   const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
@@ -226,7 +235,7 @@ void VulkanDispatcher::record_stage_2(cifar_sparse::AppData& appdata, vk::Comman
 
   // Extract dimensions from the convolution output NDArray4D.
   const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
-  const int channels = appdata.u_conv1_out.d1();    // Expected: 16
+  const int channels = appdata.u_conv1_out.d1();    // Expected: 64
   const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
   const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
 
@@ -540,7 +549,7 @@ void VulkanDispatcher::record_stage_8(cifar_sparse::AppData& appdata, vk::Comman
 }
 
 // ----------------------------------------------------------------------------
-// Stage 9 (v2)  (linear descriptor set 0)
+// Stage 9 (v2) - FC1  (linear descriptor set 0)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -551,32 +560,105 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
   algo->update_descriptor_set(0,
                               {
                                   engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_linear_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.linear_sparse.values_pmr_vec()),
-                                  engine.get_buffer_info(appdata.linear_sparse.row_ptr_pmr_vec()),
-                                  engine.get_buffer_info(appdata.linear_sparse.col_idx_pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_linear_b.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
                               });
 
   // Calculate flattened input size (total number of features per sample)
-  const int batch_size = appdata.u_pool3_out.d0();
-  const int channels = appdata.u_pool3_out.d1();
-  const int height = appdata.u_pool3_out.d2();
-  const int width = appdata.u_pool3_out.d3();
-  const int input_features = channels * height * width;
+  const int batch_size = appdata.u_pool3_out.d0();       // Expected: 128
+  const int channels = appdata.u_pool3_out.d1();         // Expected: 256
+  const int height = appdata.u_pool3_out.d2();           // Expected: 4
+  const int width = appdata.u_pool3_out.d3();            // Expected: 4
+  const int input_features = channels * height * width;  // 256 * 4 * 4 = 4096
 
-  // Number of output neurons is the number of rows in the weight matrix
-  const int out_neurons = appdata.linear_sparse.rows;
+  // Number of output features from the fc1 layer
+  const int out_features = appdata.u_fc1_w.d0();  // Expected: 4096
 
-  const int total_output = batch_size * out_neurons;
+  const int total_output = batch_size * out_features;
 
   algo->update_push_constant(LinearPushConstants{
-      .batch_size = batch_size,
-      .input_features = input_features,
-      .out_neurons = out_neurons,
+      .N = batch_size,
+      .in_features = input_features,
+      .out_features = out_features,
+      .apply_relu = kRelu ? 1 : 0,
   });
 
   algo->record_bind_core(cmd, 0);
+  algo->record_bind_push(cmd);
+  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+}
+
+// ----------------------------------------------------------------------------
+// Stage 10 (v2) - FC2  (linear descriptor set 1)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
+  auto algo = cached_algorithms.at("linear").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 10, &appdata);
+
+  algo->update_descriptor_set(1,
+                              {
+                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
+                              });
+
+  const int batch_size = appdata.u_fc1_out.d0();      // Expected: 128
+  const int input_features = appdata.u_fc1_out.d1();  // Expected: 4096
+
+  // Number of output features from the fc2 layer
+  const int out_features = appdata.u_fc2_w.d0();  // Expected: 4096
+
+  const int total_output = batch_size * out_features;
+
+  algo->update_push_constant(LinearPushConstants{
+      .N = batch_size,
+      .in_features = input_features,
+      .out_features = out_features,
+      .apply_relu = kRelu ? 1 : 0,
+  });
+
+  algo->record_bind_core(cmd, 1);
+  algo->record_bind_push(cmd);
+  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+}
+
+// ----------------------------------------------------------------------------
+// Stage 11 (v2) - FC3  (linear descriptor set 2)
+// ----------------------------------------------------------------------------
+
+void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
+  auto algo = cached_algorithms.at("linear").get();
+
+  LOG_KERNEL(LogKernelType::kVK, 11, &appdata);
+
+  algo->update_descriptor_set(2,
+                              {
+                                  engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc3_w.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc3_b.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
+                              });
+
+  const int batch_size = appdata.u_fc2_out.d0();      // Expected: 128
+  const int input_features = appdata.u_fc2_out.d1();  // Expected: 4096
+
+  // Number of output features from the fc3 layer
+  const int out_features = appdata.u_fc3_w.d0();  // Expected: 10
+
+  const int total_output = batch_size * out_features;
+
+  algo->update_push_constant(LinearPushConstants{
+      .N = batch_size,
+      .in_features = input_features,
+      .out_features = out_features,
+      .apply_relu = 0,  // FC3 emits raw logits: no ReLU
+  });
+
+  algo->record_bind_core(cmd, 2);
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }

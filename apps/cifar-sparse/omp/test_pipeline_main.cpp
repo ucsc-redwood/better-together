@@ -1,6 +1,6 @@
 // Framework runtime test, cifar-sparse × OMP: the CPU-only hetero-pipeline path for the
 // sparse app. A big|little 2-chunk schedule through the REAL concurrent worker/SPSC ring
-// -- OMP stages 1-5 on the big tier ∥ OMP stages 6-9 on the little tier. Completes the
+// -- OMP stages 1-5 on the big tier ∥ OMP stages 6-11 on the little tier. Completes the
 // OMP column of the hetero-pipeline matrix. per-item check = the end-to-end
 // CheckFinalPipeline (NearEqual on the final logits). Locally verifiable on pc.
 #include <gtest/gtest.h>
@@ -59,7 +59,7 @@ TEST(PipelineE2ECifarSparseOmp, TwoChunkBigLittle) {
   Schedule sched;
   sched.uid = "cifar-sparse-big-little";
   sched.chunks = {{ExecutionModel::kOMP, 1, 5, ProcessorType::kBigCore},
-                  {ExecutionModel::kOMP, 6, 9, ProcessorType::kLittleCore}};
+                  {ExecutionModel::kOMP, 6, 11, ProcessorType::kLittleCore}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<bt_pipe_test::OmpStubDispatcher<cifar_sparse::AppData>>(sched, CheckItem);
 }

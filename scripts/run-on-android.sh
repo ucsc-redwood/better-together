@@ -67,12 +67,19 @@ adb -s "$serial" shell "mkdir -p $DEST" </dev/null
 adb -s "$serial" push "${paths[@]}" "$libcxx" "$DEST/" </dev/null
 
 echo ">> running on $serial (--device $serial)"
+# Deployed real weights (scripts/deploy-weights.sh android <serial>) are picked up
+# automatically; without a deploy the apps keep their synthetic seeded init.
+WEIGHTS=/data/local/tmp/bt/weights
+envp=""
+if adb -s "$serial" shell "[ -d $WEIGHTS/dense ]" </dev/null; then
+  envp="BT_WEIGHTS_DIR=$WEIGHTS "
+fi
 fail=0
 for t in "${targets[@]}"; do
   echo "== $t =="
   # </dev/null on EVERY adb shell, or it eats the loop's remaining iterations.
   # Capture each binary's output so we can classify the cell (RAN/SKIP/FAIL).
-  out="$(adb -s "$serial" shell "cd $DEST && chmod 755 $t && LD_LIBRARY_PATH=. ./$t --device $serial" </dev/null 2>&1)"
+  out="$(adb -s "$serial" shell "cd $DEST && chmod 755 $t && ${envp}LD_LIBRARY_PATH=. ./$t --device $serial" </dev/null 2>&1)"
   rc=$?
   printf '%s\n' "$out"
   [ "$rc" -eq 0 ] || fail=1

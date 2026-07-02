@@ -1,5 +1,5 @@
 // Framework runtime test, cifar-dense × CUDA: hybrid OMP|CUDA through the REAL
-// concurrent ring -- OMP stages 1-4 ∥ CUDA stages 5-9 on zero-copy pinned UMA. cifar
+// concurrent ring -- OMP stages 1-4 ∥ CUDA stages 5-11 on zero-copy pinned UMA. cifar
 // is feed-forward (no data-dependent counts). per-item check = CheckFinalPipeline
 // (NearEqual on the final logits). Cross-built in bt-cross:6.1, run on the Jetson.
 #include <cuda_runtime.h>
@@ -57,7 +57,7 @@ TEST(PipelineE2ECifarDenseCu, HybridOmpCuda) {
   Schedule sched;
   sched.uid = "cifar-dense-omp-cu";
   sched.chunks = {{ExecutionModel::kOMP, 1, 4, first_present_cpu_type()},
-                  {ExecutionModel::kCuda, 5, 9, std::nullopt}};
+                  {ExecutionModel::kCuda, 5, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_dense::cuda::CudaDispatcher>(sched, CheckItem);
 }
@@ -66,7 +66,7 @@ TEST(PipelineE2ECifarDenseCu, AllCuda) {
   if (!CudaAvailable()) GTEST_SKIP() << "no CUDA device";
   Schedule sched;
   sched.uid = "cifar-dense-all-cu";
-  sched.chunks = {{ExecutionModel::kCuda, 1, 9, std::nullopt}};
+  sched.chunks = {{ExecutionModel::kCuda, 1, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_dense::cuda::CudaDispatcher>(sched, CheckItem);
 }

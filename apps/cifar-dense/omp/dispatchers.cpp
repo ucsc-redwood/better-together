@@ -29,7 +29,7 @@ void run_stage_1(AppData& appdata) {
   const int in_height = appdata.u_input.d2();    // Expected 32
   const int in_width = appdata.u_input.d3();     // Expected 32
 
-  const int out_channels = appdata.u_conv1_w.d0();  // Expected 16
+  const int out_channels = appdata.u_conv1_w.d0();  // Expected 64
   const int out_height = appdata.u_conv1_out.d2();  // Expected 32`
   const int out_width = appdata.u_conv1_out.d3();   // Expected 32
 
@@ -41,7 +41,7 @@ void run_stage_1(AppData& appdata) {
                  in_channels,   // 3
                  in_height,     // 32
                  in_width,      // 32
-                 out_channels,  // 16
+                 out_channels,  // 64
                  kKernelSize,   // 3
                  kKernelSize,   // 3
                  out_height,    // 32
@@ -56,7 +56,7 @@ void run_stage_2(AppData& appdata) {
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
-  const int channels = appdata.u_conv1_out.d1();    // Expected: 16
+  const int channels = appdata.u_conv1_out.d1();    // Expected: 64
   const int in_height = appdata.u_conv1_out.d2();   // Expected: 32
   const int in_width = appdata.u_conv1_out.d3();    // Expected: 32
 
@@ -81,11 +81,11 @@ void run_stage_3(AppData& appdata) {
 
   // Extract dimensions from the pool1 output NDArray4D
   const int batch_size = appdata.u_pool1_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_pool1_out.d1();  // Expected: 16
+  const int in_channels = appdata.u_pool1_out.d1();  // Expected: 64
   const int in_height = appdata.u_pool1_out.d2();    // Expected: 16
   const int in_width = appdata.u_pool1_out.d3();     // Expected: 16
 
-  const int out_channels = appdata.u_conv2_w.d0();  // Expected: 32
+  const int out_channels = appdata.u_conv2_w.d0();  // Expected: 192
   const int out_height = appdata.u_conv2_out.d2();  // Expected: 16
   const int out_width = appdata.u_conv2_out.d3();   // Expected: 16
 
@@ -94,10 +94,10 @@ void run_stage_3(AppData& appdata) {
                  appdata.u_conv2_b.data(),
                  appdata.u_conv2_out.data(),
                  batch_size,    // 128
-                 in_channels,   // 16
+                 in_channels,   // 64
                  in_height,     // 16
                  in_width,      // 16
-                 out_channels,  // 32
+                 out_channels,  // 192
                  kKernelSize,   // 3
                  kKernelSize,   // 3
                  out_height,    // 16
@@ -112,7 +112,7 @@ void run_stage_4(AppData& appdata) {
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv2_out.d0();  // Expected: 128
-  const int channels = appdata.u_conv2_out.d1();    // Expected: 32
+  const int channels = appdata.u_conv2_out.d1();    // Expected: 192
   const int in_height = appdata.u_conv2_out.d2();   // Expected: 16
   const int in_width = appdata.u_conv2_out.d3();    // Expected: 16
 
@@ -137,11 +137,11 @@ void run_stage_5(AppData& appdata) {
 
   // Extract dimensions from the pool2 output NDArray4D
   const int batch_size = appdata.u_pool2_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_pool2_out.d1();  // Expected: 32
+  const int in_channels = appdata.u_pool2_out.d1();  // Expected: 192
   const int in_height = appdata.u_pool2_out.d2();    // Expected: 8
   const int in_width = appdata.u_pool2_out.d3();     // Expected: 8
 
-  const int out_channels = appdata.u_conv3_w.d0();  // Expected: 64
+  const int out_channels = appdata.u_conv3_w.d0();  // Expected: 384
   const int out_height = appdata.u_conv3_out.d2();  // Expected: 8
   const int out_width = appdata.u_conv3_out.d3();   // Expected: 8
 
@@ -150,10 +150,10 @@ void run_stage_5(AppData& appdata) {
                  appdata.u_conv3_b.data(),
                  appdata.u_conv3_out.data(),
                  batch_size,    // 128
-                 in_channels,   // 32
+                 in_channels,   // 192
                  in_height,     // 8
                  in_width,      // 8
-                 out_channels,  // 64
+                 out_channels,  // 384
                  kKernelSize,   // 3
                  kKernelSize,   // 3
                  out_height,    // 8
@@ -168,11 +168,11 @@ void run_stage_6(AppData& appdata) {
 
   // Extract dimensions from the conv3 output NDArray4D
   const int batch_size = appdata.u_conv3_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_conv3_out.d1();  // Expected: 64
+  const int in_channels = appdata.u_conv3_out.d1();  // Expected: 384
   const int in_height = appdata.u_conv3_out.d2();    // Expected: 8
   const int in_width = appdata.u_conv3_out.d3();     // Expected: 8
 
-  const int out_channels = appdata.u_conv4_w.d0();  // Expected: 64
+  const int out_channels = appdata.u_conv4_w.d0();  // Expected: 256
   const int out_height = appdata.u_conv4_out.d2();  // Expected: 8
   const int out_width = appdata.u_conv4_out.d3();   // Expected: 8
 
@@ -181,10 +181,10 @@ void run_stage_6(AppData& appdata) {
                  appdata.u_conv4_b.data(),
                  appdata.u_conv4_out.data(),
                  batch_size,    // 128
-                 in_channels,   // 64
+                 in_channels,   // 384
                  in_height,     // 8
                  in_width,      // 8
-                 out_channels,  // 64
+                 out_channels,  // 256
                  kKernelSize,   // 3
                  kKernelSize,   // 3
                  out_height,    // 8
@@ -199,11 +199,11 @@ void run_stage_7(AppData& appdata) {
 
   // Extract dimensions from the conv4 output NDArray4D
   const int batch_size = appdata.u_conv4_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_conv4_out.d1();  // Expected: 64
+  const int in_channels = appdata.u_conv4_out.d1();  // Expected: 256
   const int in_height = appdata.u_conv4_out.d2();    // Expected: 8
   const int in_width = appdata.u_conv4_out.d3();     // Expected: 8
 
-  const int out_channels = appdata.u_conv5_w.d0();  // Expected: 64
+  const int out_channels = appdata.u_conv5_w.d0();  // Expected: 256
   const int out_height = appdata.u_conv5_out.d2();  // Expected: 8
   const int out_width = appdata.u_conv5_out.d3();   // Expected: 8
 
@@ -212,10 +212,10 @@ void run_stage_7(AppData& appdata) {
                  appdata.u_conv5_b.data(),
                  appdata.u_conv5_out.data(),
                  batch_size,    // 128
-                 in_channels,   // 64
+                 in_channels,   // 256
                  in_height,     // 8
                  in_width,      // 8
-                 out_channels,  // 64
+                 out_channels,  // 256
                  kKernelSize,   // 3
                  kKernelSize,   // 3
                  out_height,    // 8
@@ -230,7 +230,7 @@ void run_stage_8(AppData& appdata) {
 
   // Extract dimensions from the conv5 output NDArray4D
   const int batch_size = appdata.u_conv5_out.d0();  // Expected: 128
-  const int channels = appdata.u_conv5_out.d1();    // Expected: 64
+  const int channels = appdata.u_conv5_out.d1();    // Expected: 256
   const int in_height = appdata.u_conv5_out.d2();   // Expected: 8
   const int in_width = appdata.u_conv5_out.d3();    // Expected: 8
 
@@ -253,16 +253,16 @@ void run_stage_8(AppData& appdata) {
 void run_stage_9(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kOMP, 9, &appdata);
 
-  // The pooled output is (128, 64, 4, 4) which becomes a flattened input
-  // of (128, 1024) for the linear layer
+  // The pooled output is (128, 256, 4, 4) which becomes a flattened input
+  // of (128, 4096) for the fc1 layer
   const int batch_size = appdata.u_pool3_out.d0();   // Expected: 128
-  const int channels = appdata.u_pool3_out.d1();     // Expected: 64
+  const int channels = appdata.u_pool3_out.d1();     // Expected: 256
   const int pool_height = appdata.u_pool3_out.d2();  // Expected: 4
   const int pool_width = appdata.u_pool3_out.d3();   // Expected: 4
 
   // Total features per image = channels * height * width
-  const int input_features = channels * pool_height * pool_width;  // 64 * 4 * 4 = 1024
-  const int out_features = appdata.u_linear_w.d0();                // Expected: 10
+  const int input_features = channels * pool_height * pool_width;  // 256 * 4 * 4 = 4096
+  const int out_features = appdata.u_fc1_w.d0();                   // Expected: 4096
 
   // Since the linear_batch_u function expects a flattened input, we need to ensure
   // that the data is correctly laid out. The pool3_out is already in the right layout,
@@ -270,12 +270,47 @@ void run_stage_9(AppData& appdata) {
 
   // Use the batched dense linear layer kernel
   linear_batch_u(appdata.u_pool3_out.data(),  // Input data (flattened 4D->2D)
-                 appdata.u_linear_w.data(),
-                 appdata.u_linear_b.data(),
-                 appdata.u_linear_out.data(),
+                 appdata.u_fc1_w.data(),
+                 appdata.u_fc1_b.data(),
+                 appdata.u_fc1_out.data(),
                  batch_size,      // 128
-                 input_features,  // 1024
-                 out_features);   // 10
+                 input_features,  // 4096
+                 out_features,    // 4096
+                 kRelu);
+}
+
+void run_stage_10(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kOMP, 10, &appdata);
+
+  const int batch_size = appdata.u_fc1_out.d0();      // Expected: 128
+  const int input_features = appdata.u_fc1_out.d1();  // Expected: 4096
+  const int out_features = appdata.u_fc2_w.d0();      // Expected: 4096
+
+  linear_batch_u(appdata.u_fc1_out.data(),
+                 appdata.u_fc2_w.data(),
+                 appdata.u_fc2_b.data(),
+                 appdata.u_fc2_out.data(),
+                 batch_size,      // 128
+                 input_features,  // 4096
+                 out_features,    // 4096
+                 kRelu);
+}
+
+void run_stage_11(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kOMP, 11, &appdata);
+
+  const int batch_size = appdata.u_fc2_out.d0();      // Expected: 128
+  const int input_features = appdata.u_fc2_out.d1();  // Expected: 4096
+  const int out_features = appdata.u_fc3_w.d0();      // Expected: 10
+
+  linear_batch_u(appdata.u_fc2_out.data(),
+                 appdata.u_fc3_w.data(),
+                 appdata.u_fc3_b.data(),
+                 appdata.u_fc3_out.data(),
+                 batch_size,      // 128
+                 input_features,  // 4096
+                 out_features,    // 10
+                 false);          // FC3 emits raw logits: no ReLU
 }
 
 }  // namespace cifar_dense::omp

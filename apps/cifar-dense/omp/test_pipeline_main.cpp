@@ -1,6 +1,6 @@
 // Framework runtime test, cifar-dense × OMP: tree's harness applied to cifar on the
 // CPU-only path. A big|little 2-chunk schedule through the REAL concurrent worker/SPSC
-// ring -- OMP stages 1-5 on the big tier ∥ OMP stages 6-9 on the little tier, handing
+// ring -- OMP stages 1-5 on the big tier ∥ OMP stages 6-11 on the little tier, handing
 // AppData across the SPSC handoff. Completes the OMP column of the hetero-pipeline
 // matrix (the vk/cu variants cover the GPU columns). per-item check = the end-to-end
 // CheckFinalPipeline (NearEqual on the final logits). Locally verifiable on pc; the
@@ -61,7 +61,7 @@ TEST(PipelineE2ECifarDenseOmp, TwoChunkBigLittle) {
   Schedule sched;
   sched.uid = "cifar-dense-big-little";
   sched.chunks = {{ExecutionModel::kOMP, 1, 5, ProcessorType::kBigCore},
-                  {ExecutionModel::kOMP, 6, 9, ProcessorType::kLittleCore}};
+                  {ExecutionModel::kOMP, 6, 11, ProcessorType::kLittleCore}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<bt_pipe_test::OmpStubDispatcher<cifar_dense::AppData>>(sched, CheckItem);
 }

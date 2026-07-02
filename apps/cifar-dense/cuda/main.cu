@@ -45,10 +45,16 @@ int main(int argc, char** argv) {
   dumpCompressed(appdata.u_conv5_out.pmr_vec());
 
   disp.dispatch_stage(appdata, 8);
-  dumpCompressed(appdata.u_conv5_out.pmr_vec());
+  dumpCompressed(appdata.u_pool3_out.pmr_vec());
 
   disp.dispatch_stage(appdata, 9);
-  dumpCompressed(appdata.u_conv5_out.pmr_vec());
+  dumpCompressed(appdata.u_fc1_out.pmr_vec());
+
+  disp.dispatch_stage(appdata, 10);
+  dumpCompressed(appdata.u_fc2_out.pmr_vec());
+
+  disp.dispatch_stage(appdata, 11);
+  dumpCompressed(appdata.u_fc3_out.pmr_vec());
 
   return 0;
 }

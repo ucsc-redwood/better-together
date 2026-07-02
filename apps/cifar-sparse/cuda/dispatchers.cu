@@ -247,7 +247,7 @@ void CudaDispatcher::run_stage_8_async(AppData& appdata) {
   }
 }
 
-// Stage 9: Sparse linear
+// Stage 9: Dense FC1 (the FC head is dense; only the convs are pruned)
 void CudaDispatcher::run_stage_9_async(AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 9, &appdata);
   const int N = appdata.u_pool3_out.d0();
@@ -255,17 +255,60 @@ void CudaDispatcher::run_stage_9_async(AppData& appdata) {
   const int H = appdata.u_pool3_out.d2();
   const int W = appdata.u_pool3_out.d3();
   const int inF = C * H * W;
-  const int outF = appdata.linear_sparse.rows;
+  const int outF = appdata.u_fc1_w.d0();
 
-  linear_csr_batch_cuda(appdata.u_pool3_out.data(),
-                        N,
-                        inF,
-                        appdata.linear_sparse.values_data(),
-                        appdata.linear_sparse.row_ptr_data(),
-                        appdata.linear_sparse.col_idx_data(),
-                        appdata.u_linear_b.data(),
-                        outF,
-                        appdata.u_linear_out.data());
+  linear_batch_cuda(appdata.u_pool3_out.data(),
+                    appdata.u_fc1_w.data(),
+                    appdata.u_fc1_b.data(),
+                    appdata.u_fc1_out.data(),
+                    N,
+                    inF,
+                    outF,
+                    kRelu);
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
+}
+
+// Stage 10: Dense FC2
+void CudaDispatcher::run_stage_10_async(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 10, &appdata);
+  const int N = appdata.u_fc1_out.d0();
+  const int inF = appdata.u_fc1_out.d1();
+  const int outF = appdata.u_fc2_w.d0();
+
+  linear_batch_cuda(appdata.u_fc1_out.data(),
+                    appdata.u_fc2_w.data(),
+                    appdata.u_fc2_b.data(),
+                    appdata.u_fc2_out.data(),
+                    N,
+                    inF,
+                    outF,
+                    kRelu);
+
+  if constexpr (kSync) {
+    CheckCuda(cudaGetLastError());
+    CheckCuda(cudaDeviceSynchronize());
+  }
+}
+
+// Stage 11: Dense FC3
+void CudaDispatcher::run_stage_11_async(AppData& appdata) {
+  LOG_KERNEL(LogKernelType::kCUDA, 11, &appdata);
+  const int N = appdata.u_fc2_out.d0();
+  const int inF = appdata.u_fc2_out.d1();
+  const int outF = appdata.u_fc3_w.d0();
+
+  linear_batch_cuda(appdata.u_fc2_out.data(),
+                    appdata.u_fc3_w.data(),
+                    appdata.u_fc3_b.data(),
+                    appdata.u_fc3_out.data(),
+                    N,
+                    inF,
+                    outF,
+                    false);  // FC3 emits raw logits: no ReLU
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());

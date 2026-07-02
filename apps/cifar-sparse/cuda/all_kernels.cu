@@ -107,33 +107,31 @@ __global__ void maxpool2d_batch_kernel(const float* __restrict__ input_data,
   output_data[out_idx] = maxv;
 }
 
-__global__ void linear_csr_batch_kernel(const float* __restrict__ input_data,
-                                        int batch_size,
-                                        int input_features,
-                                        const float* __restrict__ weight_vals,
-                                        const int* __restrict__ weight_row_ptr,
-                                        const int* __restrict__ weight_col_idx,
-                                        const float* __restrict__ bias_data,
-                                        int out_neurons,
-                                        float* __restrict__ output_data) {
+__global__ void linear_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inF,
+                                    int outF,
+                                    bool relu) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int total = batch_size * out_neurons;
+  int total = N * outF;
   if (idx >= total) return;
 
-  int of = idx % out_neurons;
-  int b = idx / out_neurons;
+  int of = idx % outF;
+  int n = idx / outF;
 
-  float sum = 0.0f;
-  int start = weight_row_ptr[of];
-  int end = weight_row_ptr[of + 1];
-
-  for (int nz = start; nz < end; ++nz) {
-    int col = weight_col_idx[nz];
-    int in_idx = b * input_features + col;
-    sum += input_data[in_idx] * weight_vals[nz];
+  float sum = bias[of];
+  const float* in_row = input + n * inF;
+  const float* w_row = weights + of * inF;
+  for (int i = 0; i < inF; ++i) {
+    sum += in_row[i] * w_row[i];
   }
-  sum += bias_data[of];  // assume bias_data != nullptr
-  output_data[idx] = sum;
+
+  if (relu && sum < 0.f) sum = 0.f;
+
+  output[n * outF + of] = sum;
 }
 
 }  // namespace cifar_sparse::cuda
