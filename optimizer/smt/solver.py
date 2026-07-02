@@ -25,6 +25,7 @@ def solve_optimization_problem(
     app_name=None,
     minimize_mode="gapness",
     gpu_backend=None,
+    overhead=None,
 ):
     """Solve the optimization problem and return the solutions.
 
@@ -34,6 +35,10 @@ def solve_optimization_problem(
 
     gpu_backend: GPU backend token ("gpu_cuda"/"gpu_vulkan") stamped onto GPU chunks as
     the schema-required "hardware" field. Default None keeps the legacy shape.
+
+    overhead: optional {core_type: (per_chunk_ms, per_stage_ms)} framework-overhead
+    constants (smt.overhead.resolve_for_solver); applied both inside the z3 cost
+    function and to the predicted chunk "time" fields of the emitted schedules.
     """
     # Initialize data
     num_stages, core_types, stage_timings_data = define_data(stage_timings, app_name)
@@ -55,7 +60,7 @@ def solve_optimization_problem(
     add_availability_constraints(opt, x, core_types, num_stages, stage_timings_data, UNAVAILABLE)
 
     T_max, T_min, Gapness = add_chunk_time_constraint(
-        opt, x, core_types, num_stages, stage_timings_data, minimize_mode
+        opt, x, core_types, num_stages, stage_timings_data, minimize_mode, overhead
     )
 
     add_contiguity_constraints(opt, x, core_types, num_stages)
@@ -79,7 +84,7 @@ def solve_optimization_problem(
 
         # Get detailed solution for JSON output
         detailed_solution = get_detailed_solution(
-            m, x, num_stages, core_types, stage_timings_data, gpu_backend
+            m, x, num_stages, core_types, stage_timings_data, gpu_backend, overhead
         )
         detailed_solution["solution_id"] = solution_count + 1
         detailed_solution["metrics"]["max_time"] = max_time

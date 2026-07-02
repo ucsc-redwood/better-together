@@ -92,7 +92,7 @@ ctest --test-dir build/pc -L omp --output-on-failure        # success: "100% tes
 **CUDA — Jetson Orin (`doremy@duck-stable`):** cross-build in the container, then run.
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
-  -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc \
+  -v "$PWD:/workspace" -w /workspace bt-cross:7.2 bash -lc \
   'cmake --preset jetson && cmake --build --preset jetson --target \
      test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu'
 scripts/run-on-jetson.sh                 # deploy to /tmp/bt + run all *-cu

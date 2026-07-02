@@ -5,7 +5,7 @@
 # archived as justfile.old.
 #
 # Four things this file does:
-#   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:6.1 docker image
+#   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:7.2 docker image
 #   build-x86       2. build x86 native (Vulkan + OpenMP)
 #   build-android   3. build arm64 Android — NDK toolchain
 #   test            4. run the unit tests across the HW x backend matrix
@@ -44,7 +44,7 @@ bench_vk_bins := "bm-prof-tree-vk bm-prof-cifar-dense-vk bm-prof-cifar-sparse-vk
 _default:
     @just --list
 
-# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:6.1 container.
+# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:7.2 container.
 # Works with docker (build box) or podman (BT_CONTAINER=podman, the Rocky runner).
 build-jetson:
     #!/usr/bin/env bash
@@ -53,10 +53,10 @@ build-jetson:
     if [ "{{container}}" = "podman" ]; then
       # rootless podman: --userns=keep-id keeps file ownership; :z relabels for SELinux
       podman run --rm --userns=keep-id -e HOME=/workspace/build \
-        -v "$PWD:/workspace:z" -w /workspace bt-cross:6.1 bash -lc "$build"
+        -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2 bash -lc "$build"
     else
       docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
-        -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc "$build"
+        -v "$PWD:/workspace" -w /workspace bt-cross:7.2 bash -lc "$build"
     fi
 
 # 2. Build x86 native (mini pc) — Vulkan + OpenMP.
@@ -75,7 +75,7 @@ build: build-jetson build-x86 build-android
 # --- benchmark binaries (for the fleet e2e: 00_run_fleet.py) ----------------
 # bm-prof (profiling) + bm-gen-logs (schedule runner). 00_run_fleet.py's build phase
 # shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
-# bt-cross:6.1 podman image lives there, not on this box).
+# bt-cross:7.2 podman image lives there, not on this box).
 
 build-bench-x86:
     cmake --preset vulkan
@@ -85,7 +85,7 @@ build-bench-android:
     ANDROID_NDK_HOME={{ndk}} cmake --preset android
     cmake --build --preset android --target {{bench_vk_bins}}
 
-# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:6.1 podman
+# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2 podman
 # image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
 # rsync->podman->pull flow lives in a standalone script (cf. scripts/run-on-*.sh).
 build-bench-jetson:

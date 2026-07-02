@@ -56,26 +56,24 @@ ctest --test-dir build/pc --output-on-failure
 
 ## `jetson` — CUDA (+ Vulkan), cross-compiled
 
-The Jetson Orin Nano is slow to build on, so we cross-compile on x86 inside
-NVIDIA's official cross container (CUDA 12.6, JetPack-6-era), then copy the
+The Jetson Orin Nano is slow to build on, so we cross-compile on x86 and copy the
 aarch64 binaries to the device.
 
-> **Two working cross paths since 2026-07-02** (the CUB port landed — CUDA-13-removed
-> APIs are gone from `apps/tree/cuda`):
-> 1. **`bt-cross:6.1`** (CUDA 12.6, [`Dockerfile.cross`](../../Dockerfile.cross)) —
->    the default: builds **CUDA + Vulkan** together, and its binaries are
->    correctness-verified on the JetPack 7.2 stack (all `test-*-cu` green on both
->    ducks). NVIDIA publishes no 7.x tag of the official cross container.
-> 2. **`bt-cross:7.2`** (CUDA **13.2**, matching the fleet —
->    [`Dockerfile.cross-7.2`](../../Dockerfile.cross-7.2)): NVIDIA's official public
->    SBSA cross toolchain (`cuda-cross-sbsa-13-2` debs). **CUDA-only for now**
->    (configure with `-DBT_ENABLE_VULKAN=OFF` into `build/jetson72`); validated
->    2026-07-02, all three `test-*-cu` suites green on duck-stable. Adding aarch64
->    Vulkan libs to the image is the remaining step before it can replace 6.1.
+> **Default since 2026-07-02: `bt-cross:7.2`**
+> ([`Dockerfile.cross-7.2`](../../Dockerfile.cross-7.2)) — CUDA **13.2 matching the
+> JetPack 7.2 fleet**, via NVIDIA's official public SBSA cross toolchain
+> (`cuda-cross-sbsa-13-2` debs) + arm64 multiarch libvulkan. Fully validated: CUDA +
+> Vulkan cross-builds, all six `test-*-{cu,vk}` suites green on duck-stable.
+> **Legacy: `bt-cross:6.1`** ([`Dockerfile.cross`](../../Dockerfile.cross)) — CUDA
+> 12.6, JetPack-6-era (NVIDIA never published a 7.x tag of its official cross
+> container). Keep it for JetPack-6 targets; its binaries are also verified to run
+> on the 7.2 stack. Select with `BT_CROSS_IMAGE=bt-cross:6.1`.
+> (Both work because the CUB port removed the CUDA-13-removed APIs from
+> `apps/tree/cuda`.)
 
 ```bash
-# one-time: build the cross image (adds a current CMake to NVIDIA's base image)
-docker build -t bt-cross:6.1 -f Dockerfile.cross .
+# one-time: build the cross image
+docker build -t bt-cross:7.2 -f Dockerfile.cross-7.2 .
 
 # build everything for the Jetson (native x86 speed, no emulation)
 scripts/cross-build-jetson.sh         # == cmake --preset jetson && cmake --build --preset jetson
@@ -89,8 +87,9 @@ scripts/run-on-jetson.sh              # all CUDA tests → doremy@duck-stable; o
 > Hosts/serials: [`01-hardware.md`](01-hardware.md).
 
 nvcc statically links the CUDA runtime, so the binary needs no extra libraries on
-the Jetson. The toolchain finds nvcc from `$CUDACXX`, else the container's
-`/usr/local/cuda-12.6`, else the on-device `/usr/local/cuda-13.2`, else `PATH`.
+the Jetson. The toolchain finds nvcc from `$CUDACXX`, else the 6.1 container's
+`/usr/local/cuda-12.6`, else `/usr/local/cuda-13.2` (the 7.2 container and the
+devices themselves), else `PATH`.
 
 ## `vulkan` — Vulkan on an integrated-GPU box
 

@@ -1,20 +1,24 @@
 #!/usr/bin/env bash
-# Cross-compile the CUDA backend for the Jetson Orin inside the NVIDIA cross
-# container, using the `jetson` CMake preset. One command; native x86 speed.
+# Cross-compile the CUDA backend for the Jetson Orin inside the cross container,
+# using the `jetson` CMake preset. One command; native x86 speed.
 #
 #   scripts/cross-build-jetson.sh                 # configure + build everything
-#   BT_CROSS_IMAGE=bt-cross:6.1 scripts/cross-build-jetson.sh
+#   BT_CROSS_IMAGE=bt-cross:6.1 scripts/cross-build-jetson.sh   # legacy JetPack-6 image
 #
+# Default image is bt-cross:7.2 (CUDA 13.2, matches the JetPack 7.2 fleet). Keep
+# bt-cross:6.1 (Dockerfile.cross) for JetPack-6-era targets.
 # Output: build/jetson/test-*-cu (aarch64). scp to a Jetson and run with
 #         --device duck-stable (or duck-naughty).
 set -euo pipefail
 
-IMAGE="${BT_CROSS_IMAGE:-bt-cross:6.1}"
+IMAGE="${BT_CROSS_IMAGE:-bt-cross:7.2}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  echo ">> building $IMAGE from Dockerfile.cross"
-  docker build -t "$IMAGE" -f "$ROOT/Dockerfile.cross" "$(mktemp -d)"
+  dockerfile=Dockerfile.cross
+  [ "$IMAGE" = "bt-cross:7.2" ] && dockerfile=Dockerfile.cross-7.2
+  echo ">> building $IMAGE from $dockerfile"
+  docker build -t "$IMAGE" -f "$ROOT/$dockerfile" "$ROOT"
 fi
 
 # Run as the current user so build artifacts in build/ are not root-owned.

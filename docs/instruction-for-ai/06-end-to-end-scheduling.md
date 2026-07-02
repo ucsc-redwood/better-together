@@ -30,7 +30,7 @@ Three presets, three architectures. Build only the targets a step needs.
 ```bash
 cmake --preset vulkan && cmake --build --preset vulkan --target bm-prof-<app>-vk bm-gen-logs-<app>-vk bm-baseline-<app>-vk   # x86 iGPU (minipc)
 # Jetson (arm64, CUDA+Vulkan): cross container — see 02-building.md
-docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace bt-cross:6.1 \
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace bt-cross:7.2 \
   bash -lc 'cmake --build --preset jetson --target bm-prof-<app>-<cu|vk> bm-gen-logs-<app>-<cu|vk> bm-baseline-<app>-<cu|vk>'
 # Android (arm64, Vulkan): NDK
 export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865

@@ -16,17 +16,24 @@
 # host-side compiler is Ubuntu's g++-aarch64-linux-gnu (gcc 13, glibc 2.39 -- matches
 # the JetPack 7.2 Ubuntu 24.04 userspace).
 #
-# STATUS: VALIDATED 2026-07-02 -- CUDA-only cross-build (BT_ENABLE_VULKAN=OFF) of all
-# three test-*-cu suites compiles clean and passes the differential tests on
-# duck-stable (tree 7/7, cifar-dense 10/10, cifar-sparse 10/10). nvcc auto-selects
-# the sbsa target dir from the aarch64 -ccbin; no -target-dir flag needed.
-# Vulkan targets still need aarch64 libvulkan (multiarch arm64 packages) -- until
-# then the fleet's CUDA+VK builds stay on bt-cross:6.1 (also verified on JetPack 7.2).
+# STATUS: DEFAULT since 2026-07-02, fully validated -- CUDA + Vulkan cross-builds
+# (the arm64 multiarch libvulkan below) compile clean and ALL SIX test-*-{cu,vk}
+# suites pass on duck-stable (tree 7/7, cifar-dense 10/10, cifar-sparse 10/10 each
+# backend). nvcc auto-selects the sbsa target dir from the aarch64 -ccbin; no
+# -target-dir flag needed. bt-cross:6.1 (Dockerfile.cross) stays as the legacy
+# image for JetPack-6-era targets.
 FROM ubuntu:24.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# arm64 multiarch (ports.ubuntu.com) supplies the aarch64 Vulkan loader the VK
+# targets link against -- the one piece the SBSA cross debs don't cover.
+RUN dpkg --add-architecture arm64 \
+ && sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64/' /etc/apt/sources.list.d/ubuntu.sources \
+ && printf 'Types: deb\nURIs: http://ports.ubuntu.com/ubuntu-ports\nSuites: noble noble-updates\nComponents: main universe\nArchitectures: arm64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n' \
+      > /etc/apt/sources.list.d/ubuntu-ports-arm64.sources \
+ && apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates wget gnupg git make cmake \
       g++ g++-aarch64-linux-gnu \
+      libvulkan-dev:arm64 \
  && wget -qO /tmp/cuda-keyring.deb \
       "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb" \
  && dpkg -i /tmp/cuda-keyring.deb && rm /tmp/cuda-keyring.deb \

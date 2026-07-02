@@ -2,7 +2,7 @@
 # Cross-build the Jetson BENCHMARK binaries (bm-prof-* + bm-gen-logs-*, CUDA+Vulkan)
 # ON rocky-ryzen and pull them back into build/jetson/.
 #
-# Why on rocky: the bt-cross:6.1 podman image lives there, not on this (x86) box. We
+# Why on rocky: the bt-cross:7.2 podman image lives there, not on this (x86) box. We
 # rsync the source tree to rocky:~/bt-src (incl. .git so bm-prof's git-sha provenance
 # is correct), cross-compile in the container, then rsync the binaries back.
 #
@@ -27,13 +27,13 @@ rsync -az --delete \
   --exclude='*.zip' --exclude='*.tar.gz' --exclude=Testing/ --exclude=dashboard/manifest/ \
   ./ "$HOST:$SRC/"
 
-echo ">> podman cross-build on $HOST (bt-cross:6.1)"
+echo ">> podman cross-build on $HOST (bt-cross:7.2)"
 # fish login shell on rocky -> feed bash a script over stdin (never `ssh host '...'`).
 ssh "$HOST" bash -s <<EOF
 set -euo pipefail
 cd ~/$SRC
 podman run --rm --userns=keep-id -e HOME=/workspace/build \\
-  -v "\$HOME/$SRC:/workspace:z" -w /workspace bt-cross:6.1 \\
+  -v "\$HOME/$SRC:/workspace:z" -w /workspace bt-cross:7.2 \\
   bash -lc 'cmake --preset jetson && cmake --build --preset jetson --target $TARGETS -j'
 EOF
 

@@ -99,7 +99,9 @@ def get_solution_representation(m, x, num_stages, core_types):
     return solution
 
 
-def get_detailed_solution(m, x, num_stages, core_types, stage_timings, gpu_backend=None):
+def get_detailed_solution(
+    m, x, num_stages, core_types, stage_timings, gpu_backend=None, overhead=None
+):
     """
     Extract a detailed representation of the solution including stage assignments,
     core types, and timing information.
@@ -108,7 +110,15 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings, gpu_backe
     backends[].hardware) to stamp onto GPU chunks as the schema-required "hardware"
     field. Default None keeps the legacy shape (no "hardware" key) for callers that
     patch it downstream.
+
+    overhead: optional {core_type: (per_chunk_ms, per_stage_ms)} framework-overhead
+    constants. When given, each chunk's predicted "time" includes them, matching the
+    cost the solver optimized (so predicted-vs-measured comparisons stay honest).
     """
+
+    def chunk_cost(core_type, kernel_sum, n_stages):
+        oh_chunk, oh_stage = (overhead or {}).get(core_type, (0.0, 0.0))
+        return kernel_sum + oh_chunk + n_stages * oh_stage
     # Get assignment of stages to core types
     stage_assignments = {}
     for i in range(num_stages):
@@ -150,7 +160,7 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings, gpu_backe
                 # 0-based and contiguous (z3 contiguity constraint), so +1 once here.
                 "start_stage": chunk_stages[0] + 1,
                 "end_stage": chunk_stages[-1] + 1,
-                "time": chunk_time,
+                "time": chunk_cost(current_core_type, chunk_time, len(chunk_stages)),
             }
             # GPU chunks need the schema-required "hardware" token; CPU chunks omit it.
             if current_core_type == "GPU" and gpu_backend is not None:
@@ -168,7 +178,7 @@ def get_detailed_solution(m, x, num_stages, core_types, stage_timings, gpu_backe
             "core_type": current_core_type,
             "start_stage": chunk_stages[0] + 1,
             "end_stage": chunk_stages[-1] + 1,
-            "time": chunk_time,
+            "time": chunk_cost(current_core_type, chunk_time, len(chunk_stages)),
         }
         if current_core_type == "GPU" and gpu_backend is not None:
             chunk["hardware"] = gpu_backend

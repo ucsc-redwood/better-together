@@ -66,9 +66,10 @@ The old i9/RTX build box is **no longer part of the workflow**. All builds run o
 
 - **x86 Vulkan** (`vulkan` preset): builds **natively on rocky** (gcc 14 + cmake,
   verified 2026-07-02) — then runs right there (it *is* the minipc target).
-- **Jetson CUDA** (`jetson` preset): cross-compiles on rocky inside the
-  `bt-cross:6.1` **podman** image (`just build-jetson` with `BT_CONTAINER=podman`,
-  or `scripts/build-bench-jetson.sh`).
+- **Jetson CUDA+Vulkan** (`jetson` preset): cross-compiles on rocky inside the
+  `bt-cross:7.2` **podman** image (`just build-jetson` with `BT_CONTAINER=podman`,
+  or `scripts/build-bench-jetson.sh`); `bt-cross:6.1` remains the legacy image for
+  JetPack-6 targets.
 - **Android** (`android` preset): needs NDK **29.0.14206865** on the building
   machine (currently a laptop); binaries are then copied to rocky and deployed via
   its adb (`scripts/run-on-android.sh` there — `ANDROID_NDK_HOME=$HOME/ndk-libcxx`
@@ -95,13 +96,13 @@ pre-2026-07 Jetson numbers are from that old software stack and are **not compar
 - **Access** `ssh doremy@duck-stable` / `ssh doremy@duck-naughty`. Login shell is
   **bash** (the old fish gotcha no longer applies here — it still does on rocky).
   Passwordless sudo is available (`nvpmodel`, clock locking).
-- **Build** **cross-compile** in the `bt-cross:6.1` container, then `scp` aarch64
-  binaries over ([`02-building.md`](02-building.md)). That image is CUDA 12.6 /
-  JetPack-6-era — NVIDIA publishes **no 7.x cross image** (NGC checked 2026-07-01) —
-  but its binaries are **correctness-verified on JetPack 7.2** (2026-07-02: all three
-  `test-*-cu` differential suites pass on both ducks; `bm-prof-tree-cu` incl. CUB
-  kernels runs cleanly). Native on-device builds (CUDA 13.2) fail until the `cub::`
-  usage in `apps/tree/cuda` is ported (CUDA 13 removed bundled CUB).
+- **Build** **cross-compile** in the `bt-cross:7.2` container (CUDA 13.2, matching
+  the fleet — official SBSA cross toolchain, default since 2026-07-02; all six
+  `test-*-{cu,vk}` suites green on duck-stable from it), then `scp` aarch64 binaries
+  over ([`02-building.md`](02-building.md)). Legacy `bt-cross:6.1` (CUDA 12.6) also
+  produces binaries verified on 7.2. The CUB port (2026-07-02) means native
+  on-device CUDA 13.2 builds should work too (compiler-equivalent to the 7.2 cross;
+  not yet exercised).
 - **Run** `scripts/run-on-jetson.sh` (deploy + run CUDA tests on `/tmp/bt`); env
   overrides select the twin (see the script header).
 - **Role** the only targets that run **CUDA**; also run Vulkan. `duck-stable` is the
@@ -167,7 +168,7 @@ backend bugs are in [`../reports-for-human/bugs-found.md`](../reports-for-human/
 | `No integrated GPU found` (Vulkan throws at startup) | `kiss-vk` hard-selects `eIntegratedGpu`; you ran on a **discrete**-GPU box (the build box's RTX) | Run Vulkan on Jetson, rocky-ryzen, or a phone — never the build box. |
 | `fish: Missing end to balance this for loop` (or syntax errors over ssh) | rocky's **login shell is fish**; you sent bash syntax inline | `ssh HOST bash -s <<'EOF' … EOF`, or use the `run-on-*.sh` scripts. |
 | `adb` run exits 0 but produces **empty output**; later commands skipped | `adb shell` **ate the heredoc stdin** | Suffix every `adb` call with `</dev/null` (the scripts already do). |
-| CUDA build fails with CUB / `cub::` errors | **CUDA 13** removed bundled CUB; hits the PC (13.3) **and native builds on the JetPack 7.2 Jetsons (13.2)** | Cross-compile in `bt-cross:6.1` (CUDA 12.6) for now; porting `apps/tree/cuda` off removed-CUB APIs is the real fix. |
+| CUDA build fails with CUB / `cub::` errors | **CUDA 13** removed bundled CUB APIs; the repo's usage was ported 2026-07-02 | Rebuild from current `dev` (CUDA 12.6 **and** 13.2 both compile); if it recurs, the new code reintroduced a removed `cub::` API. |
 | `*-cu` tests **red on Jetson** (wrong/zero output) | was the managed-memory visibility defect | **Fixed** (zero-copy pinned, 2026-06-16); see `bugs-found.md` §1. If you still see it, rebuild from current `dev`. |
 | `--device <id>` self-skips core-pinning tests | unknown/missing device id (non-fatal by design) | Pass a real id from `devices/*.json`; `adb devices` for a phone serial. |
 | Vulkan on Mali was very slow / wrong before a rebuild | old kiss-vk host-coherency defect | Already fixed (HOST_CACHED + flush/invalidate); rebuild from current `dev`. |

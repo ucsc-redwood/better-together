@@ -1,8 +1,11 @@
-# Reproducible cross-compile environment for the Jetson Orin CUDA backend.
+# LEGACY cross-compile environment (JetPack-6-era, CUDA 12.6) for the Jetson Orin
+# CUDA backend. Since 2026-07-02 the DEFAULT is bt-cross:7.2 (Dockerfile.cross-7.2,
+# CUDA 13.2 matching the reflashed fleet); keep this image for JetPack-6 targets or
+# users still on L4T r36.
 #
 #   docker build -t bt-cross:6.1 -f Dockerfile.cross .
 #   # then: cmake --preset jetson && cmake --build --preset jetson   (inside the image)
-#   # or just run scripts/cross-build-jetson.sh
+#   # or: BT_CROSS_IMAGE=bt-cross:6.1 scripts/cross-build-jetson.sh
 #
 # Base = NVIDIA's x86 cross-compile image: native nvcc 12.6 + aarch64-linux-gnu-g++-11
 # + a JetPack sysroot, matching JetPack 6.x (Ubuntu 22.04, glibc 2.35, sm_87).
