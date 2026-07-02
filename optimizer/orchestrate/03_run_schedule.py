@@ -15,8 +15,8 @@ Replaces the retired xmake + HTTP-schedule-server path. The executor
 
 Examples:
   # Jetson (ssh), btpm table, tmax mode
-  uv run optimizer/orchestrate/03_run_schedule.py --device jetson --app cifar-dense \
-    --backend vk --ssh-host duck-naughty --build-dir build/jetson \
+  uv run optimizer/orchestrate/03_run_schedule.py --device duck-stable --app cifar-dense \
+    --backend vk --ssh-host doremy@duck-stable --build-dir build/jetson \
     --table-type btpm --minimize-mode tmax --log-folder data/sched_logs --repeat 1
   # MiniPC (ssh)
   ... --device minipc --backend vk --ssh-host rocky-ryzen --build-dir build/vulkan ...
@@ -49,7 +49,8 @@ def main():
     ap.add_argument("--schedule-file", help="explicit path; overrides schedules-root construction")
     ap.add_argument("--build-dir", help="dir holding bm-gen-logs-<app>-<be> (default by backend)")
     ap.add_argument(
-        "--ssh-host", help="deploy+run over ssh/scp (jetson=duck-naughty, minipc=rocky-ryzen)"
+        "--ssh-host",
+        help="deploy+run over ssh/scp (jetsons=doremy@duck-{stable,naughty}, minipc=rocky-ryzen)",
     )
     ap.add_argument("--adb-serial", help="deploy+run over adb (phones)")
     ap.add_argument(

@@ -1,6 +1,6 @@
 {
-  "id": "jetson",
-  "description": "NVIDIA Jetson Orin Nano (normal power mode): 6 cores, single tier.",
+  "id": "duck-stable",
+  "description": "NVIDIA Jetson Orin Nano Devkit Super, host duck-stable (JetPack 7.2 / L4T R39.2.0, CUDA 13.2, Ubuntu 24.04, MAXN_SUPER): 6 cores, single tier. Replaces the retired JetPack-6 device id 'jetson' (reflashed 2026-07-01).",
   "cores": [
     { "id": 0, "type": "little", "pinnable": true },
     { "id": 1, "type": "little", "pinnable": true },

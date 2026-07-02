@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smt.profiling_loader import load_profiling  # noqa: E402
 
 # Stable column ordering: devices in fleet order, PUs GPU-first then big->little.
-DEVICE_ORDER = ["jetson", "minipc", "R5CY21Y3VEV", "3A021JEHN02756"]
+DEVICE_ORDER = ["duck-stable", "duck-naughty", "minipc", "R5CY21Y3VEV", "3A021JEHN02756"]
 PU_ORDER = ["cuda", "vulkan", "big", "medium", "little"]
 
 

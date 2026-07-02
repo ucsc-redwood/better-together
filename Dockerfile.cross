@@ -7,6 +7,15 @@
 # Base = NVIDIA's x86 cross-compile image: native nvcc 12.6 + aarch64-linux-gnu-g++-11
 # + a JetPack sysroot, matching JetPack 6.x (Ubuntu 22.04, glibc 2.35, sm_87).
 # We only add a current CMake (the base ships 3.22.1, too old for CUDA_STANDARD 20).
+#
+# !! TOOLCHAIN/FLEET VERSION SKEW (2026-07-01): both Jetsons (duck-stable/duck-naughty)
+# were reflashed to JetPack 7.2 (L4T R39.2.0, CUDA 13.2, Ubuntu 24.04). NVIDIA publishes
+# NO 7.x tag of this cross image (NGC tags end at 6.1 -- checked 2026-07-01), so this
+# CUDA 12.6 image remains the cross-build path. VERIFIED 2026-07-02: its binaries RUN
+# correctly on the JetPack 7.2 stack (bm-prof-tree-cu incl. CUB kernels, clean run on
+# duck-stable); the differential-correctness sweep is still pending. A 13.2-matching
+# build (native on-device, or a DIY cross image) is blocked on porting apps/tree/cuda
+# off the CUB APIs that CUDA 13 removed.
 FROM nvcr.io/nvidia/jetpack-linux-aarch64-crosscompile-x86:6.1
 
 ARG CMAKE_VERSION=3.31.6

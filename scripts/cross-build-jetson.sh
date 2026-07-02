@@ -5,8 +5,8 @@
 #   scripts/cross-build-jetson.sh                 # configure + build everything
 #   BT_CROSS_IMAGE=bt-cross:6.1 scripts/cross-build-jetson.sh
 #
-# Output: build/jetson/test-*-cu (aarch64). scp to the Jetson and run with
-#         --device jetson.
+# Output: build/jetson/test-*-cu (aarch64). scp to a Jetson and run with
+#         --device duck-stable (or duck-naughty).
 set -euo pipefail
 
 IMAGE="${BT_CROSS_IMAGE:-bt-cross:6.1}"

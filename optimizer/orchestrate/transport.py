@@ -4,8 +4,9 @@
 One place for the subtle gotchas that 01_collect_profiling.py and 03_run_schedule.py
 both depend on:
 
-  - rocky-ryzen AND the Jetson login shell is **fish** -> we pipe a bash script over
-    stdin via `ssh HOST bash -s` (never `ssh HOST '...'`, which fish re-parses).
+  - rocky-ryzen's login shell is **fish** (the reflashed Jetsons are bash) -> we pipe a
+    bash script over stdin via `ssh HOST bash -s` for every ssh target (never
+    `ssh HOST '...'`, which fish re-parses).
   - `adb shell` reads the script's stdin, so every adb call gets `</dev/null`.
   - both phones are attached to rocky-ryzen, so adb runs on a remote `adb_host`.
   - `VK_LOADER_LAYERS_DISABLE='~all~'` keeps the desktop Vulkan validation layers off

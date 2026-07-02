@@ -66,7 +66,7 @@ per-stage GPU time is available on the phones via the same JSON.
 | off-CPU (the sync tax) | `bpftrace` one-liner / BCC `offcputime` | histogram text | **finds `waitForFences` / queue-empty blocking** |
 | TMA top-down | `perf stat --topdown` or `toplev -lN --csv` | CSV | top-down beats roofline for the dispatch path |
 
-### Jetson — CUDA (`ssh duck-naughty`; login shell is fish → `ssh … bash -s` for multi-line)
+### Jetson — CUDA (`ssh doremy@duck-stable`, or `doremy@duck-naughty` for the twin; login shell is bash)
 
 `nsys`/`ncu` are **not deprecated** — they replaced `nvprof`/`nvvp`. Both have headless
 CLI export. For *this* runtime, the valuable signal is the **gap between the CPU submit
@@ -74,16 +74,16 @@ thread and GPU execution** = dispatch overhead + driver launch latency + sync bl
 
 ```bash
 # capture (osrt = OS runtime/thread blocking; nvtx projects your stage ranges)
-ssh duck-naughty 'cd <bindir> && nsys profile \
+ssh doremy@duck-stable 'cd <bindir> && nsys profile \
   --trace=cuda,nvtx,osrt --cpuctxsw=process-tree --sample=none \
   --capture-range=cudaProfilerApi --force-overwrite=true -o /tmp/bt ./bm_tree_cu'
 
 # export to CSV the agent can parse
-ssh duck-naughty 'nsys stats --format csv \
+ssh doremy@duck-stable 'nsys stats --format csv \
   --report cuda_gpu_kern_sum,cuda_api_sum,cuda_gpu_mem_time_sum,nvtx_pushpop_sum /tmp/bt.nsys-rep'
 
 # custom "submit→execute gap" analysis: export sqlite and run SQL
-ssh duck-naughty 'nsys export --type sqlite -o /tmp/bt.sqlite /tmp/bt.nsys-rep'
+ssh doremy@duck-stable 'nsys export --type sqlite -o /tmp/bt.sqlite /tmp/bt.nsys-rep'
 ```
 
 Read for the runtime: `cuda_api_sum` → `cudaStreamSynchronize`/`cudaDeviceSynchronize`

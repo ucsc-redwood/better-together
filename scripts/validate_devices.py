@@ -42,7 +42,10 @@ def _run(id_type_pairs):
 
 GOLDEN = {
     "pc": _run([(range(0, 8), "big", True), (range(8, 24), "little", True)]),
-    "jetson": _run([(range(0, 6), "little", True)]),
+    # The two reflashed Orin Nano Super devkits (JetPack 7.2, 2026-07-01); same
+    # topology the retired JetPack-6 id "jetson" had.
+    "duck-stable": _run([(range(0, 6), "little", True)]),
+    "duck-naughty": _run([(range(0, 6), "little", True)]),
     "minipc": _run([(range(0, 16), "big", True)]),
     "3A021JEHN02756": _run(
         [(range(0, 4), "little", True), (range(4, 6), "medium", True), (range(6, 8), "big", True)]

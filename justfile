@@ -15,13 +15,15 @@
 # green run means "all stages compute the correct answer" on that target.
 #
 #   Target                build         runs on                    backends
-#   Jetson Orin (aarch64) build-jetson  ssh yanwen@duck-stable     OMP + CUDA + VK
+#   Jetson Orin (aarch64) build-jetson  ssh doremy@duck-stable     OMP + CUDA + VK
+#     (twin devkit:                     ssh doremy@duck-naughty — same build)
 #   mini pc (x86 iGPU)    build-x86     ssh rocky-ryzen            OMP + VK
 #   Samsung (arm64)       build-android R5CY21Y3VEV via rocky adb  OMP + VK
 
 # --- config -----------------------------------------------------------------
 
-jetson_host    := "yanwen@duck-stable"
+jetson_host         := "doremy@duck-stable"
+jetson_naughty_host := "doremy@duck-naughty"
 minipc_host    := "rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
 ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var("ANDROID_HOME") / "ndk/29.0.14206865")
@@ -116,13 +118,14 @@ check-fleet:
 # Deploy x86 build to the iGPU mini pc and run OMP + Vulkan.
 test-minipc: (_test-ssh minipc_host "minipc" "build/vulkan" omp_vk_bins)
 
-# Deploy aarch64 build to the Jetson and run OMP + CUDA + Vulkan.
-test-jetson: (_test-ssh jetson_host "jetson" "build/jetson" jetson_bins)
+# Deploy aarch64 build to the Jetsons and run OMP + CUDA + Vulkan.
+test-jetson: (_test-ssh jetson_host "duck-stable" "build/jetson" jetson_bins)
+test-duck-naughty: (_test-ssh jetson_naughty_host "duck-naughty" "build/jetson" jetson_bins)
 
 # Deploy + run on a Linux SSH target (internal helper).
-# NOTE: duck-naughty AND rocky-ryzen both use fish as the login shell, so
+# NOTE: rocky-ryzen's login shell is fish (the reflashed Jetsons are bash), so
 # `ssh host bash -s` forces bash for the loop; a bare `ssh host 'for ...'` fails
-# with "Missing end to balance this for loop".
+# with "Missing end to balance this for loop" on fish hosts.
 _test-ssh host device builddir bins:
     #!/usr/bin/env bash
     set -euo pipefail

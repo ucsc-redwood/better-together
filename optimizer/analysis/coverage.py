@@ -26,7 +26,8 @@ APPS = ["tree", "cifar-dense", "cifar-sparse"]
 # everywhere and is measured inside every GPU-binary run. See
 # docs/instruction-for-ai/01-hardware.md / 03-unit-testing.md for the source of truth.
 FLEET = {
-    "jetson": ("Jetson", ["cuda", "vulkan"]),
+    "duck-stable": ("Jetson (stable)", ["cuda", "vulkan"]),
+    "duck-naughty": ("Jetson (naughty)", ["cuda", "vulkan"]),
     "minipc": ("MiniPC", ["vulkan"]),
     "R5CY21Y3VEV": ("Samsung", ["vulkan"]),
 }
