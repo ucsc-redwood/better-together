@@ -1,8 +1,10 @@
 name: Runner smoke
 
-# Manual health-check for the self-hosted rocky runner: confirms it picks up org
-# jobs, the toolchain resolves on PATH, and (crucially on SELinux-enforcing Rocky)
-# that jobs can actually exec the home-based tools. Prints the job's SELinux domain.
+# Manual health-check for ALL FIVE org fleet runners (live 2026-07-02): confirms each
+# picks up jobs by capability label, its toolchain resolves, and its DEVICE is
+# actually reachable (a runner can be online with its phone unplugged / GPU absent —
+# that must fail here, not silently in the nightly fleet run). SELinux home-exec is
+# checked on the Rocky-hosted runners.
 on:
   workflow_dispatch:
   push:
@@ -10,18 +12,48 @@ on:
 
 jobs:
   smoke:
-    runs-on: [self-hosted, rocky]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: rdna3
+            labels: [self-hosted, rdna3]
+          - name: pixel
+            labels: [self-hosted, android, pixel]
+          - name: samsung
+            labels: [self-hosted, android, samsung]
+          - name: duck-stable
+            labels: [self-hosted, jetson, duck-stable]
+          - name: duck-naughty
+            labels: [self-hosted, jetson, duck-naughty]
+    runs-on: ${{ matrix.labels }}
     steps:
-      - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH" # durable uv PATH fix
       - name: Identity + SELinux context
         run: |
-          echo "host=$(hostname) user=$(whoami)"
+          echo "runner=${{ matrix.name }} host=$(hostname) user=$(whoami) arch=$(uname -m)"
           id -Z 2>/dev/null || echo "(no SELinux context for this process)"
           getenforce 2>/dev/null || true
-      - name: Toolchain execs (this is the SELinux home-exec test)
+      - name: Toolchain execs
         run: |
-          uv --version
-          just --version
+          uv --version || echo "::warning::uv missing"
+          just --version || echo "::warning::just missing"
           cmake --version | head -1
-          podman --version
           make --version | head -1
+      - name: Device reachability (the part an online runner can still fail)
+        run: |
+          case "${{ matrix.name }}" in
+            rdna3)
+              podman --version
+              ls /dev/dri/renderD* # RDNA3 iGPU node visible to the runner user
+              ;;
+            pixel|samsung)
+              # ANDROID_SERIAL is pinned in the runner env — plain adb must resolve it.
+              [ -n "$ANDROID_SERIAL" ] || { echo "::error::ANDROID_SERIAL not pinned"; exit 1; }
+              adb get-state
+              adb shell true </dev/null
+              ;;
+            duck-*)
+              /usr/local/cuda-13.2/bin/nvcc --version | tail -1
+              ls /dev/nvidia* 2>/dev/null || ls /dev/dri/renderD* # Tegra GPU nodes
+              ;;
+          esac

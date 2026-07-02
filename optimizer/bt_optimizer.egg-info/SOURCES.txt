@@ -2,8 +2,10 @@ README.md
 pyproject.toml
 analysis/__init__.py
 analysis/coverage.py
+analysis/fit_overhead.py
 analysis/render_isolated_table.py
 analysis/speedup_summary.py
+analysis/validate_btpm.py
 analysis/results/__init__.py
 analysis/results/log_parser.py
 analysis/results/model_comparison.py
@@ -28,11 +30,13 @@ smt/baselines.py
 smt/bt_vocab.py
 smt/constraints.py
 smt/data_loader.py
+smt/overhead.py
 smt/profiling_loader.py
 smt/solution_analyzer.py
 smt/solver.py
 tests/test_baselines.py
 tests/test_case.py
 tests/test_minimize_mode.py
+tests/test_overhead.py
 tests/test_schedule_contract.py
 tests/test_vocab.py

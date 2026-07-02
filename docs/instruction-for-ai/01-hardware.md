@@ -42,6 +42,20 @@ source of truth for core tiers and pinning. This doc is the human/agent-readable
 **access + role** layer on top of it. To add a device, see
 [`../../devices/README.md`](../../devices/README.md).
 
+## CI runners on this fleet (org-level, live 2026-07-02)
+
+Every machine above doubles as a GitHub Actions self-hosted runner for the
+`ucsc-redwood` org, selected by **capability label, never by name**:
+`[self-hosted, rdna3]` (Rocky box: iGPU Vulkan, podman, adb host),
+`[self-hosted, android, pixel|samsung]` (each phone is its own runner with
+`ANDROID_SERIAL` pinned — plain `adb` works, jobs per phone serialize),
+`[self-hosted, jetson, cuda]` (+ `duck-stable`/`duck-naughty` to pin a box;
+arm64 — build natively, x86 binaries will not run). Runners are persistent and
+the runner user has **no sudo** — missing system deps go to the fleet owner's
+Ansible role, never into workflows. Fork PRs must never target these runners.
+The health check is `.github/workflows/runner-smoke.yml`; the nightly
+hardware-in-the-loop gate is `.github/workflows/fleet.yml`.
+
 ## Target matrix at a glance
 
 | Target | `--device` id | Backends it runs | Access | Role |
