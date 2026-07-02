@@ -14,3 +14,10 @@ sweep; each helper exits non-zero on any non-skip failure.
 |---|---|---|---|
 | `duck-stable-cuda.log` | duck-stable (JetPack 7.2) | CUDA | per-stage differential ×3 apps (tree 7 / dense 10 / sparse 10) — all green, 2026-07-02, `bt-cross:6.1` binaries |
 | `duck-naughty-cuda.log` | duck-naughty (JetPack 7.2) | CUDA | same — all green, 2026-07-02 |
+| `minipc-vulkan.log` | rocky-ryzen (RADV) | Vulkan | per-stage differential ×3 apps (7/10/10) — all green, 2026-07-02, built natively on rocky |
+| `pixel-vulkan.log` | Pixel 7a (Mali, subgroup 16) | Vulkan | per-stage differential ×3 apps (7/10/10) — all green, 2026-07-02 |
+| `samsung-vulkan.log` | Samsung (subgroup 32) | Vulkan | per-stage differential ×3 apps (7/10/10) — all green, 2026-07-02 |
+
+With these five logs plus the duck runs, `scripts/check_fleet_coverage.py` reports
+**COVERAGE GREEN — 12/12 expected cells RAN** (2026-07-02), i.e. the full
+post-fresh-start differential matrix is re-verified on the new fleet.
