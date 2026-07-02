@@ -15,7 +15,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smt.baselines import get_baseline_for_config
+from smt.bt_vocab import CORE_TYPES
 from smt.data_loader import load_stage_timings
+from smt.overhead import load_overhead, resolve_for_solver
 from smt.solution_analyzer import dump_solutions_as_json
 from smt.solver import solve_optimization_problem
 
@@ -116,6 +118,14 @@ def parse_arguments():
         "its isolated value. OFF by default -- the chaotic real environment (incl. the GPU "
         "boosting when kept busy) is what we want to capture, not sanitize.",
     )
+    parser.add_argument(
+        "--no-overhead",
+        action="store_true",
+        default=False,
+        help="solve WITHOUT the fitted per-chunk framework-overhead constants "
+        "(<profiling_root>/<device>/overhead.json, fitted by analysis/fit_overhead.py). "
+        "Default applies them when the file exists.",
+    )
     return parser.parse_args()
 
 
@@ -177,13 +187,25 @@ def main():
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
+        # Fitted per-chunk framework-overhead constants (see smt/overhead.py). Missing
+        # file (never fitted) or --no-overhead -> the plain kernel-sum cost model.
+        overhead = None
+        if not args.no_overhead:
+            raw_overhead = load_overhead(args.profiling_root, device)
+            if raw_overhead:
+                overhead = resolve_for_solver(raw_overhead, CORE_TYPES, gpu_backend)
+                print(
+                    "Applying framework-overhead constants (per-chunk, per-stage ms): "
+                    + ", ".join(f"{c}=({v[0]:.3f},{v[1]:.3f})" for c, v in overhead.items())
+                )
+
         # Solve the optimization problem. Map the CLI token "tmax" to the solver's
         # "max_time" (constraints.py uses the latter); "gapness" passes through.
         solver_mode = "max_time" if minimize_mode == "tmax" else minimize_mode
         # GPU chunks get their schema-required "hardware" stamped inside the solver
         # (threaded through to get_detailed_solution), so the dump is self-validating.
         solutions = solve_optimization_problem(
-            stage_timings, args.num_solutions, app, solver_mode, gpu_backend
+            stage_timings, args.num_solutions, app, solver_mode, gpu_backend, overhead
         )
 
         # Output the solutions
