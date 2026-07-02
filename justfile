@@ -26,7 +26,9 @@ jetson_host         := "doremy@duck-stable"
 jetson_naughty_host := "doremy@duck-naughty"
 minipc_host    := "rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
-ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var("ANDROID_HOME") / "ndk/29.0.14206865")
+# Nested defaults: must never hard-fail at parse time on a machine without Android
+# env (an eager env_var() here used to kill EVERY recipe, incl. fmt and non-android builds).
+ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var_or_default("ANDROID_HOME", "/opt/android-sdk") / "ndk/29.0.14206865")
 # Container runtime for the Jetson cross-build: `docker` (build box) or `podman`
 # (the Rocky fleet runner — rootless + SELinux → --userns=keep-id + a :z volume).
 container      := env_var_or_default("BT_CONTAINER", "docker")
