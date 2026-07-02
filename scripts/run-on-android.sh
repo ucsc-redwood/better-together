@@ -50,9 +50,12 @@ ndk=${ANDROID_NDK_HOME:-${ANDROID_HOME:-$HOME/Android/Sdk}/ndk/29.0.14206865}
 # libc++ ABI dir under the NDK: aarch64 for the arm64 preset; set BT_ANDROID_LIBCXX_ARCH=
 # arm-linux-androideabi for an armeabi-v7a (android32) build so the matching .so is shipped.
 libcxx_arch=${BT_ANDROID_LIBCXX_ARCH:-aarch64}
-libcxx=$(find "$ndk" -name libc++_shared.so -path "*${libcxx_arch}*" 2>/dev/null | head -1)
+# `|| true` matters: with set -euo pipefail, `find` on a missing $ndk exits 1 with
+# its stderr discarded and pipefail kills the whole script SILENTLY (instant exit-1
+# with zero output — cost three CI rounds to diagnose). Let the loud check below fail.
+libcxx=$(find "$ndk" -name libc++_shared.so -path "*${libcxx_arch}*" 2>/dev/null | head -1 || true)
 [ -n "$libcxx" ] || {
-  echo "error: libc++_shared.so not found under $ndk" >&2
+  echo "error: libc++_shared.so not found under $ndk (set ANDROID_NDK_HOME)" >&2
   exit 1
 }
 

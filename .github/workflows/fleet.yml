@@ -96,8 +96,12 @@ jobs:
       BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
     steps:
       - uses: actions/checkout@v4
-      # adb lives in /usr/local/bin, which the runner service PATH lacks.
-      - run: echo "/usr/local/bin" >> "$GITHUB_PATH"
+      # adb lives in /usr/local/bin, which the runner service PATH lacks; the NDK
+      # (for the libc++_shared.so that rides along with every binary) is the
+      # fleet-owner-provisioned ~/android-ndk-r29, not the script's SDK default.
+      - run: |
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
+          echo "ANDROID_NDK_HOME=$HOME/android-ndk-r29" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         with:
           name: android-test-bins
