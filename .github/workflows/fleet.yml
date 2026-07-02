@@ -108,9 +108,6 @@ jobs:
           path: build/android
       - name: Run differential suites on the phone (ANDROID_SERIAL is runner-pinned)
         run: |
-          set -x
-          echo "serial='${ANDROID_SERIAL:-<unset>}' adb=$(command -v adb || echo MISSING) pwd=$PWD"
-          ls build/android/ | head -8
           rm -f "$BT_CELL_LOG"
           chmod +x build/android/test-*
           scripts/run-on-android.sh "$ANDROID_SERIAL" $OMP_VK_BINS
