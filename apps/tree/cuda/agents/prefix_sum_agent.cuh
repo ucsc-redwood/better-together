@@ -8,6 +8,9 @@ namespace cuda {
 
 namespace agents {
 
+// Local equivalent of cub::DivideAndRoundUp, which CUDA 13 / CCCL 3 removed.
+__host__ __device__ constexpr size_t div_round_up(size_t a, size_t b) { return (a + b - 1) / b; }
+
 // ----------------------------------------------------------------------------
 // Agent class
 // ----------------------------------------------------------------------------
@@ -59,7 +62,7 @@ struct PrefixSumAgent {
                                                           const T* u_input,
                                                           T* u_local_sums,
                                                           volatile T* u_auxiliary = nullptr) {
-    const auto num_tiles = cub::DivideAndRoundUp(n, tile_size);
+    const auto num_tiles = div_round_up(n, tile_size);
 
     // Process full tiles (num_tiles - 1)
     for (auto tile_idx = blockIdx.x; tile_idx < num_tiles; tile_idx += gridDim.x) {
@@ -123,7 +126,7 @@ struct PrefixSumAgent {
                                                           const T* u_local_sums,
                                                           const T* u_auxiliary_summed,
                                                           T* u_global_sums) {
-    const auto num_tiles = cub::DivideAndRoundUp(n, tile_size);
+    const auto num_tiles = div_round_up(n, tile_size);
 
     for (auto tile_idx = blockIdx.x; tile_idx < num_tiles; tile_idx += gridDim.x) {
       T thread_data[items_per_thread];

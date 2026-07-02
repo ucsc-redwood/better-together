@@ -1,0 +1,40 @@
+# Cross-compile environment MATCHING the JetPack 7.2 fleet: CUDA 13.2 aarch64 via
+# NVIDIA's official (public) SBSA cross toolchain. Candidate replacement for the
+# JetPack-6-era bt-cross:6.1 (Dockerfile.cross).
+#
+#   podman build -t bt-cross:7.2 -f Dockerfile.cross-7.2 .        # (or docker)
+#   # CUDA-only validation build (no aarch64 Vulkan libs in this image yet):
+#   podman run --rm --userns=keep-id -e HOME=/workspace/build \
+#     -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2 bash -lc \
+#     'cmake --preset jetson -B build/jetson72 -DBT_ENABLE_VULKAN=OFF &&
+#      cmake --build build/jetson72 --target test-tree-cu -j'
+#
+# Why this exists: NGC's jetpack-linux-aarch64-crosscompile-x86 has no 7.x tag, but
+# JetPack 7 is SBSA-aligned and the official cross toolchain is public as apt debs --
+# `cuda-cross-sbsa-13-2` (the same "CUDA Cross Compile (SBSA)" component SDK Manager
+# installs). x86 nvcc emits aarch64 code against targets/sbsa-linux; the aarch64
+# host-side compiler is Ubuntu's g++-aarch64-linux-gnu (gcc 13, glibc 2.39 -- matches
+# the JetPack 7.2 Ubuntu 24.04 userspace).
+#
+# STATUS: UNVALIDATED until the CUB port (apps/tree/cuda) builds and its binaries pass
+# test-*-cu on a duck. If nvcc does not auto-select the sbsa target dir from the
+# aarch64 -ccbin, add `-target-dir sbsa-linux` to CMAKE_CUDA_FLAGS.
+# Vulkan targets need aarch64 libvulkan (multiarch arm64 packages) -- future work.
+FROM ubuntu:24.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates wget gnupg git make cmake \
+      g++ g++-aarch64-linux-gnu \
+ && wget -qO /tmp/cuda-keyring.deb \
+      "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb" \
+ && dpkg -i /tmp/cuda-keyring.deb && rm /tmp/cuda-keyring.deb \
+ && echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/cross-linux-sbsa/ /" \
+      > /etc/apt/sources.list.d/cuda-cross-sbsa.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends cuda-nvcc-13-2 cuda-cross-sbsa-13-2 \
+ && rm -rf /var/lib/apt/lists/*
+
+# nvcc on PATH (ptxas/cicc resolve); the jetson toolchain file falls back to
+# /usr/local/cuda-13.2/bin/nvcc when the 6.1 container's 12.6 is absent.
+ENV PATH=/usr/local/cuda-13.2/bin:${PATH}
+WORKDIR /workspace
