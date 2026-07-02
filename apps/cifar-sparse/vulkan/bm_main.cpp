@@ -235,7 +235,7 @@ BENCHMARK(BM_Stage8)
     ->Name("Vulkan/CIFAR-Sparse/Stage8");
 
 // ----------------------------------------------------------------
-// Stage 9: Linear
+// Stage 9: FC1
 // ----------------------------------------------------------------
 
 static void BM_Stage9(benchmark::State& state) {
@@ -266,6 +266,75 @@ BENCHMARK(BM_Stage9)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Name("Vulkan/CIFAR-Sparse/Stage9");
+
+// ----------------------------------------------------------------
+// Stage 10: FC2
+// ----------------------------------------------------------------
+
+static void BM_Stage10(benchmark::State& state) {
+  auto vk_dispatcher = std::make_unique<cifar_sparse::vulkan::VulkanDispatcher>();
+  auto mr = vk_dispatcher->get_mr();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages
+  vk_dispatcher->run_stage_1(appdata);
+  vk_dispatcher->run_stage_2(appdata);
+  vk_dispatcher->run_stage_3(appdata);
+  vk_dispatcher->run_stage_4(appdata);
+  vk_dispatcher->run_stage_5(appdata);
+  vk_dispatcher->run_stage_6(appdata);
+  vk_dispatcher->run_stage_7(appdata);
+  vk_dispatcher->run_stage_8(appdata);
+  vk_dispatcher->run_stage_9(appdata);
+
+  // warm up
+  vk_dispatcher->run_stage_10(appdata);
+
+  for (auto _ : state) {
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_10(appdata); });
+  }
+}
+
+BENCHMARK(BM_Stage10)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("Vulkan/CIFAR-Sparse/Stage10");
+
+// ----------------------------------------------------------------
+// Stage 11: FC3
+// ----------------------------------------------------------------
+
+static void BM_Stage11(benchmark::State& state) {
+  auto vk_dispatcher = std::make_unique<cifar_sparse::vulkan::VulkanDispatcher>();
+  auto mr = vk_dispatcher->get_mr();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages
+  vk_dispatcher->run_stage_1(appdata);
+  vk_dispatcher->run_stage_2(appdata);
+  vk_dispatcher->run_stage_3(appdata);
+  vk_dispatcher->run_stage_4(appdata);
+  vk_dispatcher->run_stage_5(appdata);
+  vk_dispatcher->run_stage_6(appdata);
+  vk_dispatcher->run_stage_7(appdata);
+  vk_dispatcher->run_stage_8(appdata);
+  vk_dispatcher->run_stage_9(appdata);
+  vk_dispatcher->run_stage_10(appdata);
+
+  // warm up
+  vk_dispatcher->run_stage_11(appdata);
+
+  for (auto _ : state) {
+    bt_bm::run_vk_stage_timed(
+        state, vk_dispatcher->get_seq(), [&] { vk_dispatcher->run_stage_11(appdata); });
+  }
+}
+
+BENCHMARK(BM_Stage11)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("Vulkan/CIFAR-Sparse/Stage11");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

@@ -173,7 +173,7 @@ BENCHMARK(BM_Stage8)
     ->Name("OMP/CIFAR-sparse/Stage8");
 
 // ----------------------------------------------------------------
-// Stage 9: Linear
+// Stage 9: FC1
 // ----------------------------------------------------------------
 
 static void BM_Stage9(benchmark::State& state) {
@@ -192,6 +192,48 @@ BENCHMARK(BM_Stage9)
     ->Unit(benchmark::kMillisecond)
     ->UseManualTime()
     ->Name("OMP/CIFAR-sparse/Stage9");
+
+// ----------------------------------------------------------------
+// Stage 10: FC2
+// ----------------------------------------------------------------
+
+static void BM_Stage10(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 9);
+
+  for (auto _ : state) {
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_sparse::omp::dispatch_stage(appdata, 10); });
+  }
+}
+
+BENCHMARK(BM_Stage10)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("OMP/CIFAR-sparse/Stage10");
+
+// ----------------------------------------------------------------
+// Stage 11: FC3
+// ----------------------------------------------------------------
+
+static void BM_Stage11(benchmark::State& state) {
+  auto mr = std::pmr::new_delete_resource();
+  cifar_sparse::AppData appdata(mr);
+
+  // Run all previous stages before benchmarking
+  cifar_sparse::omp::dispatch_multi_stage(appdata, 1, 10);
+
+  for (auto _ : state) {
+    bt_bm::run_omp_stage_timed(state, [&] { cifar_sparse::omp::dispatch_stage(appdata, 11); });
+  }
+}
+
+BENCHMARK(BM_Stage11)
+    ->Unit(benchmark::kMillisecond)
+    ->UseManualTime()
+    ->Name("OMP/CIFAR-sparse/Stage11");
 
 int main(int argc, char** argv) {
   parse_args(argc, argv);

@@ -139,8 +139,8 @@ kernels and an OMP-as-oracle differential test:
 
 | Application | Description | Stages | Backends | Compare mode |
 |------------|-------------|--------|----------|--------------|
-| **cifar-dense** | Dense AlexNet CNN inference on CIFAR-10 | 9 today → 11 canonical | OMP · CUDA · Vulkan | float (`NearEqual`) |
-| **cifar-sparse** | Pruned/sparse AlexNet (irregular memory access) | 9 today → 11 canonical | OMP · CUDA · Vulkan | float (`NearEqual`) |
+| **cifar-dense** | Dense AlexNet CNN inference on CIFAR-10 | 11 | OMP · CUDA · Vulkan | float (`NearEqual`) |
+| **cifar-sparse** | Pruned/sparse AlexNet (irregular memory access) | 11 | OMP · CUDA · Vulkan | float (`NearEqual`) |
 | **tree** | 3D octree construction (morton → sort → unique → radix-tree → edge-count → prefix-sum → octree-build) | 7 | OMP · CUDA · Vulkan | exact (integer/structural) |
 | **octree** | octree-construction variant | 7 | OMP · Vulkan | exact |
 
@@ -149,10 +149,10 @@ streaming inputs (e.g. image frames), and exhibit per-stage PU heterogeneity. Br
 by implementing its stages against the same backend interfaces.
 
 > Stage counts reflect the **currently implemented** kernels (`vocab.json` is the single source
-> of truth). The canonical `AlexNetCIFAR` spec
+> of truth). Both cifar apps implement the canonical 11-stage `AlexNetCIFAR`
 > ([`docs/instruction-for-ai/04-alexnet-cifar-spec.md`](docs/instruction-for-ai/04-alexnet-cifar-spec.md))
-> is 11 stages; the C++ kernels still implement the 9-stage `SmallAlexNet` and are not yet
-> migrated to it.
+> as of 2026-07-02; real trained weights (dense 90.48% / pruned-sparse 90.58% test acc)
+> are produced by `scripts/data_prep/{alexnet_cifar10,prune_alexnet_cifar10}.py`.
 
 ---
 

@@ -34,7 +34,7 @@ The primary extension axis is **devices**: "add a device = drop in a data file"
 
 | App | What it is | Stages | Compare mode |
 |---|---|---|---|
-| **cifar-dense** | AlexNet inference on CIFAR-10 | 9 today → 11 canonical | float (`NearEqual`) |
+| **cifar-dense** | AlexNet inference on CIFAR-10 | 11 | float (`NearEqual`) |
 | **cifar-sparse** | Pruned/sparse AlexNet (irregular memory) | 9 → 11 | float (`NearEqual`) |
 | **tree** | 3D octree construction (morton → sort → unique → radix-tree → edge-count → prefix-sum → octree-build) | 7 | exact (integer/structural) |
 

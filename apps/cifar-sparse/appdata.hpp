@@ -43,8 +43,9 @@ struct CSRMatrix {
   // Build a valid CSR in place from the dense (rows*cols, row-major) weights that
   // were seeded into `values`. Without this the matrix ships with row_ptr/col_idx
   // all-zero (nnz=0) and the sparse kernels iterate empty rows -> the whole
-  // pipeline computes zeros. Keeps a deterministic ~3/4 subset of entries per row
-  // so rows have varying, non-trivial nnz that exercises the kernel's CSR decode,
+  // pipeline computes zeros. Keeps a deterministic ~1/4 subset of entries per row
+  // (matching the real magnitude-pruned AlexNetCIFAR weights' 0.25 density) so
+  // rows have varying, non-trivial nnz that exercises the kernel's CSR decode,
   // compacting the kept weights into values[0..nnz) with matching col_idx/row_ptr.
   // Must be called exactly once, right after the dense values are written (it
   // overwrites the values layout in place).
@@ -55,7 +56,7 @@ struct CSRMatrix {
     row_ptr[0] = 0;
     for (int r = 0; r < rows; ++r) {
       for (int c = 0; c < cols; ++c) {
-        if (((r * 131 + c * 17) % 4) != 0) {  // deterministic keep pattern
+        if (((r * 131 + c * 17) % 4) == 0) {  // deterministic keep pattern (~25% density)
           col_idx[nz] = c;
           kept.push_back(values[r * cols + c]);
           ++nz;
@@ -80,52 +81,67 @@ struct CSRMatrix {
 };
 
 struct AppData final : public BaseAppData {
-  // static constexpr size_t BATCH_SIZE = 128;
-  static constexpr size_t BATCH_SIZE = 512;
+  // static constexpr size_t BATCH_SIZE = 512;  // sized for the old SmallAlexNet
+  static constexpr size_t BATCH_SIZE = 128;
 
-  // conv1: 16 output channels, 3×3×3 kernel = 27 inputs
-  // conv2: 32 output channels, 16×3×3 kernel = 144 inputs
-  // conv3: 64 output channels, 32×3×3 kernel = 288 inputs
-  // conv4: 64 output channels, 64×3×3 kernel = 576 inputs
-  // conv5: 64 output channels, 64×3×3 kernel = 576 inputs
-  // linear: 10 output channels, 1024 inputs
+  // conv1: 64 output channels, 3×3×3 kernel = 27 inputs
+  // conv2: 192 output channels, 64×3×3 kernel = 576 inputs
+  // conv3: 384 output channels, 192×3×3 kernel = 1728 inputs
+  // conv4: 256 output channels, 384×3×3 kernel = 3456 inputs
+  // conv5: 256 output channels, 256×3×3 kernel = 2304 inputs
+  // fc1: 4096 output channels, 4096 inputs (dense)
+  // fc2: 4096 output channels, 4096 inputs (dense)
+  // fc3: 10 output channels, 4096 inputs (dense)
 
   explicit AppData(std::pmr::memory_resource* mr)
       : BaseAppData(),
         u_input(BATCH_SIZE, 3, 32, 32, mr),
-        u_conv1_out(BATCH_SIZE, 16, 32, 32, mr),
-        u_pool1_out(BATCH_SIZE, 16, 16, 16, mr),
-        u_conv2_out(BATCH_SIZE, 32, 16, 16, mr),
-        u_pool2_out(BATCH_SIZE, 32, 8, 8, mr),
-        u_conv3_out(BATCH_SIZE, 64, 8, 8, mr),
-        u_conv4_out(BATCH_SIZE, 64, 8, 8, mr),
-        u_conv5_out(BATCH_SIZE, 64, 8, 8, mr),
-        u_pool3_out(BATCH_SIZE, 64, 4, 4, mr),
-        u_linear_out(BATCH_SIZE, 10, mr),
-        u_conv1_b(16, mr),
-        u_conv2_b(32, mr),
-        u_conv3_b(64, mr),
-        u_conv4_b(64, mr),
-        u_conv5_b(64, mr),
-        u_linear_b(10, mr),
+        u_conv1_out(BATCH_SIZE, 64, 32, 32, mr),
+        u_pool1_out(BATCH_SIZE, 64, 16, 16, mr),
+        u_conv2_out(BATCH_SIZE, 192, 16, 16, mr),
+        u_pool2_out(BATCH_SIZE, 192, 8, 8, mr),
+        u_conv3_out(BATCH_SIZE, 384, 8, 8, mr),
+        u_conv4_out(BATCH_SIZE, 256, 8, 8, mr),
+        u_conv5_out(BATCH_SIZE, 256, 8, 8, mr),
+        u_pool3_out(BATCH_SIZE, 256, 4, 4, mr),
+        u_fc1_out(BATCH_SIZE, 4096, mr),
+        u_fc2_out(BATCH_SIZE, 4096, mr),
+        u_fc3_out(BATCH_SIZE, 10, mr),
+        u_conv1_b(64, mr),
+        u_conv2_b(192, mr),
+        u_conv3_b(384, mr),
+        u_conv4_b(256, mr),
+        u_conv5_b(256, mr),
+        u_fc1_w(4096, 4096, mr),
+        u_fc1_b(4096, mr),
+        u_fc2_w(4096, 4096, mr),
+        u_fc2_b(4096, mr),
+        u_fc3_w(10, 4096, mr),
+        u_fc3_b(10, mr),
         // Initialize CSR matrices
-        conv1_sparse(16, 27, mr),
-        conv2_sparse(32, 144, mr),  // 16*3*3*192
-        conv3_sparse(64, 288, mr),
-        conv4_sparse(64, 576, mr),
-        conv5_sparse(64, 576, mr),
-        linear_sparse(10, 1024, mr) {
+        conv1_sparse(64, 27, mr),
+        conv2_sparse(192, 576, mr),
+        conv3_sparse(384, 1728, mr),
+        conv4_sparse(256, 3456, mr),
+        conv5_sparse(256, 2304, mr) {
     std::mt19937 gen(114514);
     std::uniform_real_distribution<float> dis(0.0f, 1.0f);
     std::ranges::generate(u_input.pmr_vec(), [&]() { return dis(gen); });
 
-    std::uniform_real_distribution<float> weight_dis(-0.1f, 0.1f);
-    std::ranges::generate(conv1_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(conv2_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(conv3_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(conv4_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(conv5_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
-    std::ranges::generate(linear_sparse.values_pmr_vec(), [&]() { return weight_dis(gen); });
+    // Keep the synthetic weights small so 11 chained stages stay well inside float
+    // range: convs ±0.05, the 4096-wide FCs ±0.02 (same regime as cifar-dense).
+    // Biases are 0.0f (folded-BN convention).
+    std::uniform_real_distribution<float> conv_weight_dis(-0.05f, 0.05f);
+    std::ranges::generate(conv1_sparse.values_pmr_vec(), [&]() { return conv_weight_dis(gen); });
+    std::ranges::generate(conv2_sparse.values_pmr_vec(), [&]() { return conv_weight_dis(gen); });
+    std::ranges::generate(conv3_sparse.values_pmr_vec(), [&]() { return conv_weight_dis(gen); });
+    std::ranges::generate(conv4_sparse.values_pmr_vec(), [&]() { return conv_weight_dis(gen); });
+    std::ranges::generate(conv5_sparse.values_pmr_vec(), [&]() { return conv_weight_dis(gen); });
+
+    std::uniform_real_distribution<float> fc_weight_dis(-0.02f, 0.02f);
+    std::ranges::generate(u_fc1_w.pmr_vec(), [&]() { return fc_weight_dis(gen); });
+    std::ranges::generate(u_fc2_w.pmr_vec(), [&]() { return fc_weight_dis(gen); });
+    std::ranges::generate(u_fc3_w.pmr_vec(), [&]() { return fc_weight_dis(gen); });
 
     // Turn the dense seeded weights into a real CSR so the shipped sparse
     // pipeline computes actual convolutions instead of zeros (was a latent defect
@@ -135,45 +151,52 @@ struct AppData final : public BaseAppData {
     conv3_sparse.build_from_dense();
     conv4_sparse.build_from_dense();
     conv5_sparse.build_from_dense();
-    linear_sparse.build_from_dense();
 
     std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_conv2_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_conv3_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_conv4_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_conv5_b.pmr_vec(), 0.0f);
-    std::ranges::fill(u_linear_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_fc1_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_fc2_b.pmr_vec(), 0.0f);
+    std::ranges::fill(u_fc3_b.pmr_vec(), 0.0f);
   }
 
   // Input and intermediate outputs
-  Ndarray4D u_input;      // (512, 3, 32, 32)
-  Ndarray4D u_conv1_out;  // (512, 16, 32, 32)
-  Ndarray4D u_pool1_out;  // (512, 16, 16, 16)
-  Ndarray4D u_conv2_out;  // (512, 32, 16, 16)
-  Ndarray4D u_pool2_out;  // (512, 32, 8, 8)
-  Ndarray4D u_conv3_out;  // (512, 64, 8, 8)
-  Ndarray4D u_conv4_out;  // (512, 64, 8, 8)
-  Ndarray4D u_conv5_out;  // (512, 64, 8, 8)
-  Ndarray4D u_pool3_out;  // (512, 64, 4, 4)
+  Ndarray4D u_input;      // (128, 3, 32, 32)
+  Ndarray4D u_conv1_out;  // (128, 64, 32, 32)
+  Ndarray4D u_pool1_out;  // (128, 64, 16, 16)
+  Ndarray4D u_conv2_out;  // (128, 192, 16, 16)
+  Ndarray4D u_pool2_out;  // (128, 192, 8, 8)
+  Ndarray4D u_conv3_out;  // (128, 384, 8, 8)
+  Ndarray4D u_conv4_out;  // (128, 256, 8, 8)
+  Ndarray4D u_conv5_out;  // (128, 256, 8, 8)
+  Ndarray4D u_pool3_out;  // (128, 256, 4, 4)
 
-  // Flatten would be (512, 1024), stored or created on-the-fly
-  Ndarray2D u_linear_out;  // shape = (512, 10) for final classification
+  // Flatten would be (128, 4096), stored or created on-the-fly
+  Ndarray2D u_fc1_out;  // (128, 4096)
+  Ndarray2D u_fc2_out;  // (128, 4096)
+  Ndarray2D u_fc3_out;  // shape = (128, 10) for final classification
 
-  // Model parameters
-  Ndarray1D u_conv1_b;
-  Ndarray1D u_conv2_b;
-  Ndarray1D u_conv3_b;
-  Ndarray1D u_conv4_b;
-  Ndarray1D u_conv5_b;
-  Ndarray1D u_linear_b;  // (10)
+  // Model parameters (the FC head is dense, as in cifar-dense)
+  Ndarray1D u_conv1_b;  // (64)
+  Ndarray1D u_conv2_b;  // (192)
+  Ndarray1D u_conv3_b;  // (384)
+  Ndarray1D u_conv4_b;  // (256)
+  Ndarray1D u_conv5_b;  // (256)
+  Ndarray2D u_fc1_w;    // (4096, 4096)
+  Ndarray1D u_fc1_b;    // (4096)
+  Ndarray2D u_fc2_w;    // (4096, 4096)
+  Ndarray1D u_fc2_b;    // (4096)
+  Ndarray2D u_fc3_w;    // (10, 4096)
+  Ndarray1D u_fc3_b;    // (10)
 
   // Sparse matrices
-  CSRMatrix conv1_sparse;   // (16, 27)
-  CSRMatrix conv2_sparse;   // (32, 144)
-  CSRMatrix conv3_sparse;   // (64, 288)
-  CSRMatrix conv4_sparse;   // (64, 576)
-  CSRMatrix conv5_sparse;   // (64, 576)
-  CSRMatrix linear_sparse;  // (10, 1024)
+  CSRMatrix conv1_sparse;  // (64, 27)
+  CSRMatrix conv2_sparse;  // (192, 576)
+  CSRMatrix conv3_sparse;  // (384, 1728)
+  CSRMatrix conv4_sparse;  // (256, 3456)
+  CSRMatrix conv5_sparse;  // (256, 2304)
 };
 
 }  // namespace cifar_sparse

@@ -32,7 +32,7 @@ namespace ref = bt::testing::cnn;
 // kE2eRtol/kE2eAtol end-to-end) and threaded through these Check* helpers. The
 // reference accumulates in double, so OMP/CUDA (IEEE fp32) are held tight while
 // Vulkan (relaxed-precision shaders) needs a looser bound; e2e is looser still
-// because error accumulates across all 9 stages.
+// because error accumulates across all 11 stages.
 
 // Densify a CSR into a row-major (rows x cols) dense matrix.
 inline std::vector<float> Densify(const cifar_sparse::CSRMatrix& m) {
@@ -86,16 +86,30 @@ inline void CheckPool(
   EXPECT_TRUE(bt::testing::NearEqual(r, out.pmr_vec(), rtol, atol, name));
 }
 
+// The FC head is dense (only the convs are pruned), so these check against the
+// plain dense-weight reference, exactly as in the cifar-dense oracle.
 inline void CheckLinear(const char* name,
                         const Ndarray4D& in,
-                        const cifar_sparse::CSRMatrix& w,
+                        const Ndarray2D& w,
                         const Ndarray1D& b,
                         const Ndarray2D& out,
+                        bool relu,
                         float rtol,
                         float atol) {
-  const int in_features = in.d1() * in.d2() * in.d3();
-  const auto dense_w = Densify(w);  // (out_neurons, in_features)
-  const auto r = ref::LinearRef(in.data(), dense_w.data(), b.data(), in.d0(), in_features, w.rows);
+  const int in_features = in.d1() * in.d2() * in.d3();  // flatten (N,C,H,W) -> (N, C*H*W)
+  const auto r = ref::LinearRef(in.data(), w.data(), b.data(), in.d0(), in_features, w.d0(), relu);
+  EXPECT_TRUE(bt::testing::NearEqual(r, out.pmr_vec(), rtol, atol, name));
+}
+
+inline void CheckLinear(const char* name,
+                        const Ndarray2D& in,
+                        const Ndarray2D& w,
+                        const Ndarray1D& b,
+                        const Ndarray2D& out,
+                        bool relu,
+                        float rtol,
+                        float atol) {
+  const auto r = ref::LinearRef(in.data(), w.data(), b.data(), in.d0(), in.d1(), w.d0(), relu);
   EXPECT_TRUE(bt::testing::NearEqual(r, out.pmr_vec(), rtol, atol, name));
 }
 
@@ -151,11 +165,20 @@ inline void CheckStage(const AppData& a, int s, float rtol, float atol) {
       CheckPool("cifar-sparse pool3", a.u_conv5_out, a.u_pool3_out, rtol, atol);
       break;
     case 9:
-      CheckLinear("cifar-sparse linear",
-                  a.u_pool3_out,
-                  a.linear_sparse,
-                  a.u_linear_b,
-                  a.u_linear_out,
+      CheckLinear(
+          "cifar-sparse fc1", a.u_pool3_out, a.u_fc1_w, a.u_fc1_b, a.u_fc1_out, kRelu, rtol, atol);
+      break;
+    case 10:
+      CheckLinear(
+          "cifar-sparse fc2", a.u_fc1_out, a.u_fc2_w, a.u_fc2_b, a.u_fc2_out, kRelu, rtol, atol);
+      break;
+    case 11:
+      CheckLinear("cifar-sparse fc3 (logits)",
+                  a.u_fc2_out,
+                  a.u_fc3_w,
+                  a.u_fc3_b,
+                  a.u_fc3_out,
+                  /*relu=*/false,
                   rtol,
                   atol);
       break;
@@ -175,8 +198,9 @@ inline void RunAndCheckStage(int s) {
   CheckStage(a, s, Runner::kRtol, Runner::kAtol);
 }
 
-// L2a end-to-end: run all 9 stages on the backend, compare FINAL logits against a
-// full double-precision reference chained from the seed (densified CSR weights).
+// L2a end-to-end: run all 11 stages on the backend, compare FINAL logits against a
+// full double-precision reference chained from the seed (densified CSR conv
+// weights + the dense FC head).
 inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
   const int N = a.u_input.d0();
   const auto w1 = Densify(a.conv1_sparse);
@@ -286,12 +310,20 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                               a.u_pool3_out.d3(),
                               kPoolSize,
                               kPoolStride);
-  const auto wl = Densify(a.linear_sparse);
   const int in_features = a.u_pool3_out.d1() * a.u_pool3_out.d2() * a.u_pool3_out.d3();
-  auto logits = ref::LinearRef(
-      p3.data(), wl.data(), a.u_linear_b.data(), N, in_features, a.u_linear_out.d1());
+  auto f1 = ref::LinearRef(
+      p3.data(), a.u_fc1_w.data(), a.u_fc1_b.data(), N, in_features, a.u_fc1_w.d0(), kRelu);
+  auto f2 = ref::LinearRef(
+      f1.data(), a.u_fc2_w.data(), a.u_fc2_b.data(), N, a.u_fc1_w.d0(), a.u_fc2_w.d0(), kRelu);
+  auto logits = ref::LinearRef(f2.data(),
+                               a.u_fc3_w.data(),
+                               a.u_fc3_b.data(),
+                               N,
+                               a.u_fc2_w.d0(),
+                               a.u_fc3_w.d0(),
+                               /*relu=*/false);
   EXPECT_TRUE(bt::testing::NearEqual(
-      logits, a.u_linear_out.pmr_vec(), rtol, atol, "cifar-sparse end-to-end logits"));
+      logits, a.u_fc3_out.pmr_vec(), rtol, atol, "cifar-sparse end-to-end logits"));
 }
 
 template <class Runner>
@@ -301,20 +333,22 @@ inline void RunFullAndCheckFinal() {
   }
   Runner runner;
   AppData a(runner.Mr());  // ctor builds a real CSR (CSRMatrix::build_from_dense)
-  for (int i = 1; i <= 9; ++i) runner.RunStage(a, i);
+  for (int i = 1; i <= 11; ++i) runner.RunStage(a, i);
   CheckFinalPipeline(a, Runner::kE2eRtol, Runner::kE2eAtol);
 }
 
 }  // namespace cifar_sparse::testing
 
-#define BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(SUITE, RUNNER)                            \
-  TEST(SUITE, Stage1_Conv1) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(1); }  \
-  TEST(SUITE, Stage2_Pool1) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(2); }  \
-  TEST(SUITE, Stage3_Conv2) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(3); }  \
-  TEST(SUITE, Stage4_Pool2) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(4); }  \
-  TEST(SUITE, Stage5_Conv3) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(5); }  \
-  TEST(SUITE, Stage6_Conv4) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(6); }  \
-  TEST(SUITE, Stage7_Conv5) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(7); }  \
-  TEST(SUITE, Stage8_Pool3) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(8); }  \
-  TEST(SUITE, Stage9_Linear) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(9); } \
+#define BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(SUITE, RUNNER)                           \
+  TEST(SUITE, Stage1_Conv1) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(1); } \
+  TEST(SUITE, Stage2_Pool1) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(2); } \
+  TEST(SUITE, Stage3_Conv2) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(3); } \
+  TEST(SUITE, Stage4_Pool2) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(4); } \
+  TEST(SUITE, Stage5_Conv3) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(5); } \
+  TEST(SUITE, Stage6_Conv4) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(6); } \
+  TEST(SUITE, Stage7_Conv5) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(7); } \
+  TEST(SUITE, Stage8_Pool3) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(8); } \
+  TEST(SUITE, Stage9_FC1) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(9); }   \
+  TEST(SUITE, Stage10_FC2) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(10); } \
+  TEST(SUITE, Stage11_FC3) { cifar_sparse::testing::RunAndCheckStage<RUNNER>(11); } \
   TEST(SUITE, EndToEnd_FinalLogits) { cifar_sparse::testing::RunFullAndCheckFinal<RUNNER>(); }

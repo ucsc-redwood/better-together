@@ -99,7 +99,8 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
                                     float* __restrict__ output,
                                     int N,
                                     int inF,
-                                    int outF);
+                                    int outF,
+                                    bool relu);
 
 inline void linear_batch_cuda(const float* input,
                               const float* weights,
@@ -107,12 +108,13 @@ inline void linear_batch_cuda(const float* input,
                               float* output,
                               int N,
                               int inF,
-                              int outF) {
+                              int outF,
+                              bool relu) {
   int total = N * outF;
   const int TPB = 256;
   int blocks = (total + TPB - 1) / TPB;
 
-  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF);
+  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF, relu);
   CheckCudaLaunch("linear_batch_kernel");
 }
 

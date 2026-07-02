@@ -124,15 +124,15 @@ inline void maxpool2d_batch_u(const float* __restrict__ u_input,
 // input:  (N, in_features)
 // weights: (out_features, in_features)
 // bias:   (out_features)
-// output: (N, out_features)
+// output: (N, out_features), optional ReLU
 inline void linear_batch_u(const float* __restrict__ u_input,
                            const float* __restrict__ u_weights,
                            const float* __restrict__ u_bias,
                            float* __restrict__ u_output,
-                           const int N,            // in_shape[0]
-                           const int in_features,  // in_shape[1]
-                           const int out_features  // w_shape[0]
-) {
+                           const int N,             // in_shape[0]
+                           const int in_features,   // in_shape[1]
+                           const int out_features,  // w_shape[0]
+                           const bool relu) {
   // Parallelize over (N, out_features); vectorize the per-output dot product.
 #pragma omp for collapse(2)
   for (int n = 0; n < N; n++) {
@@ -144,6 +144,7 @@ inline void linear_batch_u(const float* __restrict__ u_input,
       for (int inf = 0; inf < in_features; inf++) {
         sum += in_row[inf] * w_row[inf];
       }
+      if (relu) sum = std::max(sum, 0.0f);
       u_output[n * (out_features) + of] = sum;
     }
   }

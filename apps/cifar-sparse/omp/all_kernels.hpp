@@ -147,40 +147,35 @@ inline void maxpool2d_omp_batched_clean(const float* __restrict__ input_data,
 }
 
 // ----------------------------------------------------------------------------
-// Linear Layer (Sparse, Batched)
+// Linear Layer (Dense FC head, Batched)
 // ----------------------------------------------------------------------------
-
-// Batched sparse linear (dense) layer kernel.
-// Assumptions:
-//   - input_data is of shape (batch_size, input_features) (flattened)
-//   - weight matrix is in CSR format with dimensions (out_neurons x input_features)
-//   - output_data will be of shape (batch_size, out_neurons) (flattened)
-inline void linear_omp_batched(
-    const float* __restrict__ input_data,
-    const int batch_size,
-    const int input_features,  // needed for indexing in each sample's input
-    const float* __restrict__ weight_vals,
-    const int* __restrict__ weight_row_ptr,
-    const int* __restrict__ weight_col_idx,
-    const float* __restrict__ bias_data,
-    float* __restrict__ output_data,
-    const int out_neurons) {
-// The parallelization is over batch and the output neurons.
-// schedule(static) collapse(2)
-#pragma omp for schedule(static) collapse(2)
-  for (int b = 0; b < batch_size; b++) {
-    for (int i = 0; i < out_neurons; i++) {
-      float sum = 0.0f;
-      // Loop over the nonzero entries in the i-th row of the weight matrix.
-      for (int idx = weight_row_ptr[i]; idx < weight_row_ptr[i + 1]; ++idx) {
-        int col = weight_col_idx[idx];
-        // Compute the index in the current batch sample's input vector.
-        int input_idx = b * input_features + col;
-        sum += input_data[input_idx] * weight_vals[idx];
+// The AlexNetCIFAR FC head is dense (only the convs are pruned), so this is the
+// same dense linear kernel as cifar-dense's.
+// input:  (N, in_features)
+// weights: (out_features, in_features)
+// bias:   (out_features)
+// output: (N, out_features), optional ReLU
+inline void linear_batch_u(const float* __restrict__ u_input,
+                           const float* __restrict__ u_weights,
+                           const float* __restrict__ u_bias,
+                           float* __restrict__ u_output,
+                           const int N,             // in_shape[0]
+                           const int in_features,   // in_shape[1]
+                           const int out_features,  // w_shape[0]
+                           const bool relu) {
+  // Parallelize over (N, out_features); vectorize the per-output dot product.
+#pragma omp for collapse(2)
+  for (int n = 0; n < N; n++) {
+    for (int of = 0; of < out_features; of++) {
+      const float* __restrict__ in_row = u_input + n * in_features;
+      const float* __restrict__ w_row = u_weights + of * in_features;
+      float sum = u_bias[of];
+#pragma omp simd reduction(+ : sum)
+      for (int inf = 0; inf < in_features; inf++) {
+        sum += in_row[inf] * w_row[inf];
       }
-      // Compute the index in the flattened output array:
-      int output_idx = b * out_neurons + i;
-      output_data[output_idx] = sum + bias_data[i];
+      if (relu) sum = std::max(sum, 0.0f);
+      u_output[n * (out_features) + of] = sum;
     }
   }
 }

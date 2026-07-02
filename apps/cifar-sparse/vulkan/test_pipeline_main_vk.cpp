@@ -1,5 +1,5 @@
 // Framework runtime test, cifar-sparse × VULKAN: hybrid OMP|Vulkan through the REAL
-// concurrent ring -- OMP stages 1-4 ∥ Vulkan stages 5-9 over the shared UMA pool (the
+// concurrent ring -- OMP stages 1-4 ∥ Vulkan stages 5-11 over the shared UMA pool (the
 // concurrent CPU+GPU visibility path). per-item check = CheckFinalPipeline. Runs on
 // rocky / Mali.
 #include <gtest/gtest.h>
@@ -50,7 +50,7 @@ TEST(PipelineE2ECifarSparseVk, HybridOmpVulkan) {
   Schedule sched;
   sched.uid = "cifar-sparse-omp-vk";
   sched.chunks = {{ExecutionModel::kOMP, 1, 4, first_present_cpu_type()},
-                  {ExecutionModel::kVulkan, 5, 9, std::nullopt}};
+                  {ExecutionModel::kVulkan, 5, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_sparse::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
@@ -58,7 +58,7 @@ TEST(PipelineE2ECifarSparseVk, HybridOmpVulkan) {
 TEST(PipelineE2ECifarSparseVk, AllVulkan) {
   Schedule sched;
   sched.uid = "cifar-sparse-all-vk";
-  sched.chunks = {{ExecutionModel::kVulkan, 1, 9, std::nullopt}};
+  sched.chunks = {{ExecutionModel::kVulkan, 1, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_sparse::vulkan::VulkanDispatcher>(sched, CheckItem);
 }

@@ -19,7 +19,7 @@
 namespace {
 struct OmpRunner {
   // IEEE fp32 against a double-precision reference: hold tight. The e2e bound is
-  // looser than per-stage because float error accumulates across all 9 stages,
+  // looser than per-stage because float error accumulates across all 11 stages,
   // but still far tighter than Vulkan's.
   static constexpr float kRtol = 1e-5f;
   static constexpr float kAtol = 1e-4f;

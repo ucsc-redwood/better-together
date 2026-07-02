@@ -113,7 +113,8 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
                                     float* __restrict__ output,
                                     int N,
                                     int inF,
-                                    int outF) {
+                                    int outF,
+                                    bool relu) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int total = N * outF;
   if (idx >= total) return;
@@ -127,6 +128,8 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
   for (int i = 0; i < inF; ++i) {
     sum += in_row[i] * w_row[i];
   }
+
+  if (relu && sum < 0.f) sum = 0.f;
 
   output[n * outF + of] = sum;
 }

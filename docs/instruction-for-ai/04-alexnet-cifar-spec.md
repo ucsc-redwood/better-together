@@ -93,9 +93,11 @@ shape `(out_ch,)` — fold these into the conv weight/bias for an inference kern
 Total ≈ **52.6M** parameters (the two 4096×4096 FC layers dominate — this is why
 the checkpoint is ~137 MB and is a deliberate AlexNet trait, not a bug).
 
-> Note: these names/shapes differ from the C++ `appdata.hpp` (`u_conv1_w` …
-> `u_linear_w`, the old `SmallAlexNet` shapes). Adopting this model means the C++
-> `AppData` and all `run_stage_*` kernels must be re-shaped to the table above.
+> Migrated 2026-07-02: both cifar apps' `AppData` and `run_stage_*` kernels now
+> implement exactly the table above (`u_conv1_w` … `u_fc3_w`), verified on all
+> three backends on real hardware. `scripts/data_prep/prune_alexnet_cifar10.py`
+> exports the BN-folded dense weights and the magnitude-pruned (25%-density)
+> sparse CSR variant the sparse app mirrors.
 
 ---
 

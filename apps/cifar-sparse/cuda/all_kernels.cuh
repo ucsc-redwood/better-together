@@ -101,39 +101,31 @@ inline void maxpool2d_batch_cuda(const float* input_data,
   CheckCudaLaunch("maxpool2d_batch_kernel");
 }
 
-__global__ void linear_csr_batch_kernel(const float* __restrict__ input_data,
-                                        int batch_size,
-                                        int input_features,
-                                        const float* __restrict__ weight_vals,
-                                        const int* __restrict__ weight_row_ptr,
-                                        const int* __restrict__ weight_col_idx,
-                                        const float* __restrict__ bias_data,
-                                        int out_neurons,
-                                        float* __restrict__ output_data);
+// Dense linear for the FC head (only the convs are pruned) -- same kernel as
+// cifar-dense's.
+__global__ void linear_batch_kernel(const float* __restrict__ input,
+                                    const float* __restrict__ weights,
+                                    const float* __restrict__ bias,
+                                    float* __restrict__ output,
+                                    int N,
+                                    int inF,
+                                    int outF,
+                                    bool relu);
 
-inline void linear_csr_batch_cuda(const float* input_data,
-                                  int batch_size,
-                                  int input_features,
-                                  const float* weight_vals,
-                                  const int* weight_row_ptr,
-                                  const int* weight_col_idx,
-                                  const float* bias_data,
-                                  int out_neurons,
-                                  float* output_data) {
-  int total = batch_size * out_neurons;
+inline void linear_batch_cuda(const float* input,
+                              const float* weights,
+                              const float* bias,
+                              float* output,
+                              int N,
+                              int inF,
+                              int outF,
+                              bool relu) {
+  int total = N * outF;
   const int TPB = 256;
   int blocks = (total + TPB - 1) / TPB;
 
-  linear_csr_batch_kernel<<<blocks, TPB>>>(input_data,
-                                           batch_size,
-                                           input_features,
-                                           weight_vals,
-                                           weight_row_ptr,
-                                           weight_col_idx,
-                                           bias_data,
-                                           out_neurons,
-                                           output_data);
-  CheckCudaLaunch("linear_csr_batch_kernel");
+  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF, relu);
+  CheckCudaLaunch("linear_batch_kernel");
 }
 
 }  // namespace cifar_sparse::cuda
