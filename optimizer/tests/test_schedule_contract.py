@@ -44,11 +44,11 @@ def test_committed_fixture_is_schema_valid():
 def test_live_producer_output_is_schema_valid():
     """A real solver run, post GPU-hardware injection (exactly as 02 does), must be
     schema-valid -- so the producer can never emit a schedule the consumer rejects."""
-    # 9-stage fixture whose makespan-optimal answer SPLITS across GPU + Big -> the
+    # 11-stage fixture whose makespan-optimal answer SPLITS across GPU + Big -> the
     # output has both a GPU chunk (needs hardware) and a CPU chunk.
     HUGE = 1000.0
     stages = [
-        [HUGE, HUGE, (100.0 if s == 0 else 1.0), (100.0 if s == 8 else 1.0)] for s in range(9)
+        [HUGE, HUGE, (100.0 if s == 0 else 1.0), (100.0 if s == 10 else 1.0)] for s in range(11)
     ]
     solutions = solve_optimization_problem(stages, 5, "cifar-dense", "max_time")
     assert solutions, "solver returned no solutions"

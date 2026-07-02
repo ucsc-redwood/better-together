@@ -150,10 +150,7 @@ struct AppData final : public BaseAppData {
 
     // u_input is (BATCH_SIZE, 3, 32, 32); the exported test batch holds 128
     // images -- take its first BATCH_SIZE rows (trailing dims still checked).
-    bt::npy::load_prefix(dir + "/test_batch.npy",
-                         "<f4",
-                         {BATCH_SIZE, 3, 32, 32},
-                         u_input.data());
+    bt::npy::load_prefix(dir + "/test_batch.npy", "<f4", {BATCH_SIZE, 3, 32, 32}, u_input.data());
   }
 
   // Input and intermediate outputs

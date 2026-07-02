@@ -20,8 +20,8 @@ from smt.solver import solve_optimization_problem  # noqa: E402
 CORE_TYPES = ["Little", "Medium", "Big", "GPU"]
 HUGE = 1000.0
 
-# 9 stages (app="cifar-dense"): GPU kernels are 1 ms, Big is 2 ms, others absent-ish.
-STAGES = [[HUGE, HUGE, 2.0, 1.0] for _ in range(9)]
+# 11 stages (app="cifar-dense"): GPU kernels are 1 ms, Big is 2 ms, others absent-ish.
+STAGES = [[HUGE, HUGE, 2.0, 1.0] for _ in range(11)]
 
 
 def _best(overhead):
@@ -38,16 +38,16 @@ def _best(overhead):
 
 def test_overhead_shifts_the_optimum():
     """A large per-stage GPU dispatch tax must push work OFF the GPU: with zero
-    overhead the all-GPU schedule wins (9 ms); with a 5 ms/stage GPU tax an all-GPU
-    chunk costs 9 + 5*9 = 54 ms, so the optimum must abandon GPU-only."""
+    overhead the all-GPU schedule wins (11 ms); with a 5 ms/stage GPU tax an all-GPU
+    chunk costs 11 + 5*11 = 66 ms, so the optimum must abandon GPU-only."""
     free = _best(None)
-    assert free["metrics"]["max_time"] <= 9.001  # all-GPU, kernel sums only
+    assert free["metrics"]["max_time"] <= 11.001  # all-GPU, kernel sums only
 
     taxed = _best({"Little": (0, 0), "Medium": (0, 0), "Big": (0, 0), "GPU": (5.0, 5.0)})
     gpu_stages = sum(
         c["end_stage"] - c["start_stage"] + 1 for c in taxed["chunks"] if c["core_type"] == "GPU"
     )
-    assert gpu_stages < 9, "solver kept the all-GPU schedule despite the dispatch tax"
+    assert gpu_stages < 11, "solver kept the all-GPU schedule despite the dispatch tax"
 
 
 def test_predicted_chunk_time_includes_overhead():
