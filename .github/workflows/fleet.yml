@@ -96,6 +96,8 @@ jobs:
       BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
     steps:
       - uses: actions/checkout@v4
+      # adb lives in /usr/local/bin, which the runner service PATH lacks.
+      - run: echo "/usr/local/bin" >> "$GITHUB_PATH"
       - uses: actions/download-artifact@v4
         with:
           name: android-test-bins
