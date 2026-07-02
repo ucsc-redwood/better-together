@@ -24,7 +24,7 @@
 
 jetson_host         := "doremy@duck-stable"
 jetson_naughty_host := "doremy@duck-naughty"
-minipc_host    := "rocky-ryzen"
+minipc_host    := "doremy@rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
 # Nested defaults: must never hard-fail at parse time on a machine without Android
 # env (an eager env_var() here used to kill EVERY recipe, incl. fmt and non-android builds).
@@ -79,13 +79,13 @@ build: build-jetson build-x86 build-android
 # shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
 # bt-cross:7.2 podman image lives there, not on this box).
 
+# Both build ON rocky (the build host for everything since the old box retired)
+# and pull the binaries back; see scripts/build-bench-on-rocky.sh.
 build-bench-x86:
-    cmake --preset vulkan
-    cmake --build --preset vulkan --target {{bench_vk_bins}}
+    scripts/build-bench-on-rocky.sh vulkan
 
 build-bench-android:
-    ANDROID_NDK_HOME={{ndk}} cmake --preset android
-    cmake --build --preset android --target {{bench_vk_bins}}
+    scripts/build-bench-on-rocky.sh android
 
 # Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2 podman
 # image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
