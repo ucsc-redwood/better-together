@@ -5,7 +5,7 @@
 # archived as justfile.old.
 #
 # Four things this file does:
-#   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:6.1 docker image
+#   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:7.2 docker image
 #   build-x86       2. build x86 native (Vulkan + OpenMP)
 #   build-android   3. build arm64 Android — NDK toolchain
 #   test            4. run the unit tests across the HW x backend matrix
@@ -15,13 +15,15 @@
 # green run means "all stages compute the correct answer" on that target.
 #
 #   Target                build         runs on                    backends
-#   Jetson Orin (aarch64) build-jetson  ssh yanwen@duck-stable     OMP + CUDA + VK
+#   Jetson Orin (aarch64) build-jetson  ssh doremy@duck-stable     OMP + CUDA + VK
+#     (twin devkit:                     ssh doremy@duck-naughty — same build)
 #   mini pc (x86 iGPU)    build-x86     ssh rocky-ryzen            OMP + VK
 #   Samsung (arm64)       build-android R5CY21Y3VEV via rocky adb  OMP + VK
 
 # --- config -----------------------------------------------------------------
 
-jetson_host    := "yanwen@duck-stable"
+jetson_host         := "doremy@duck-stable"
+jetson_naughty_host := "doremy@duck-naughty"
 minipc_host    := "rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
 ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var("ANDROID_HOME") / "ndk/29.0.14206865")
@@ -42,7 +44,7 @@ bench_vk_bins := "bm-prof-tree-vk bm-prof-cifar-dense-vk bm-prof-cifar-sparse-vk
 _default:
     @just --list
 
-# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:6.1 container.
+# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:7.2 container.
 # Works with docker (build box) or podman (BT_CONTAINER=podman, the Rocky runner).
 build-jetson:
     #!/usr/bin/env bash
@@ -51,10 +53,10 @@ build-jetson:
     if [ "{{container}}" = "podman" ]; then
       # rootless podman: --userns=keep-id keeps file ownership; :z relabels for SELinux
       podman run --rm --userns=keep-id -e HOME=/workspace/build \
-        -v "$PWD:/workspace:z" -w /workspace bt-cross:6.1 bash -lc "$build"
+        -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2 bash -lc "$build"
     else
       docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
-        -v "$PWD:/workspace" -w /workspace bt-cross:6.1 bash -lc "$build"
+        -v "$PWD:/workspace" -w /workspace bt-cross:7.2 bash -lc "$build"
     fi
 
 # 2. Build x86 native (mini pc) — Vulkan + OpenMP.
@@ -73,7 +75,7 @@ build: build-jetson build-x86 build-android
 # --- benchmark binaries (for the fleet e2e: 00_run_fleet.py) ----------------
 # bm-prof (profiling) + bm-gen-logs (schedule runner). 00_run_fleet.py's build phase
 # shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
-# bt-cross:6.1 podman image lives there, not on this box).
+# bt-cross:7.2 podman image lives there, not on this box).
 
 build-bench-x86:
     cmake --preset vulkan
@@ -83,7 +85,7 @@ build-bench-android:
     ANDROID_NDK_HOME={{ndk}} cmake --preset android
     cmake --build --preset android --target {{bench_vk_bins}}
 
-# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:6.1 podman
+# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2 podman
 # image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
 # rsync->podman->pull flow lives in a standalone script (cf. scripts/run-on-*.sh).
 build-bench-jetson:
@@ -116,13 +118,14 @@ check-fleet:
 # Deploy x86 build to the iGPU mini pc and run OMP + Vulkan.
 test-minipc: (_test-ssh minipc_host "minipc" "build/vulkan" omp_vk_bins)
 
-# Deploy aarch64 build to the Jetson and run OMP + CUDA + Vulkan.
-test-jetson: (_test-ssh jetson_host "jetson" "build/jetson" jetson_bins)
+# Deploy aarch64 build to the Jetsons and run OMP + CUDA + Vulkan.
+test-jetson: (_test-ssh jetson_host "duck-stable" "build/jetson" jetson_bins)
+test-duck-naughty: (_test-ssh jetson_naughty_host "duck-naughty" "build/jetson" jetson_bins)
 
 # Deploy + run on a Linux SSH target (internal helper).
-# NOTE: duck-naughty AND rocky-ryzen both use fish as the login shell, so
+# NOTE: rocky-ryzen's login shell is fish (the reflashed Jetsons are bash), so
 # `ssh host bash -s` forces bash for the loop; a bare `ssh host 'for ...'` fails
-# with "Missing end to balance this for loop".
+# with "Missing end to balance this for loop" on fish hosts.
 _test-ssh host device builddir bins:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -225,10 +228,20 @@ asan:
 
 # Build + run the OMP tests under ThreadSanitizer. Most valuable on the concurrent
 # pipeline ring (pipeline-e2e), so run the full label on a machine with the cores.
+# MUST use clang + LLVM libomp + Archer: gcc/libgomp is not TSan-instrumented, so
+# every parallel-region-end barrier is invisible and the AppData destructors report
+# bogus races (see .github/tsan-suppressions.txt for the libomp-internals entry).
+# The build dir is wiped so a previous gcc configure can't pin the wrong compiler.
 tsan:
-    cmake --preset pc-tsan
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rm -rf build/pc-tsan
+    CC=clang CXX=clang++ cmake --preset pc-tsan
     cmake --build --preset pc-tsan
-    TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
+    archer=$(find /usr/lib /usr/lib64 -name 'libarcher.so*' 2>/dev/null | head -1)
+    [ -n "$archer" ] || { echo "libarcher.so not found (install LLVM openmp/libomp)"; exit 1; }
+    OMP_TOOL_LIBRARIES="$archer" \
+    TSAN_OPTIONS="halt_on_error=1:second_deadlock_stack=1:suppressions=$PWD/.github/tsan-suppressions.txt" \
     ctest --test-dir build/pc-tsan -L omp --output-on-failure
 
 # Lint only the lines changed vs a base ref (default: origin/main) so legacy

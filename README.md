@@ -187,7 +187,7 @@ arm64):
 
 ```bash
 cmake --preset vulkan  && cmake --build --preset vulkan    # iGPU box (e.g. AMD Radeon, Intel)
-cmake --preset jetson  && cmake --build --preset jetson    # via bt-cross:6.1 container
+cmake --preset jetson  && cmake --build --preset jetson    # via bt-cross:7.2 container
 cmake --preset android && cmake --build --preset android   # needs ANDROID_NDK_HOME
 ```
 

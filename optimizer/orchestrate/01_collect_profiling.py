@@ -13,8 +13,8 @@ BT_PROF_WARMUP). Same deploy channels (ssh / adb-on-host) as 03_run_schedule.py.
 
 Examples:
   # Jetson (ssh), CUDA, 3 runs of both scenarios
-  uv run optimizer/orchestrate/01_collect_profiling.py --device jetson --app tree \
-    --backend cu --ssh-host yanwen@duck-stable --build-dir build/jetson
+  uv run optimizer/orchestrate/01_collect_profiling.py --device duck-stable --app tree \
+    --backend cu --ssh-host doremy@duck-stable --build-dir build/jetson
   # Samsung (adb on rocky), Vulkan
   ... --device R5CY21Y3VEV --backend vk --adb-serial R5CY21Y3VEV --adb-host rocky-ryzen \
       --build-dir build/android
@@ -54,7 +54,8 @@ def main():
     ap.add_argument("--backend", required=True, choices=["vk", "cu"])
     ap.add_argument("--build-dir", help="dir holding bm-prof-<app>-<be> (default by backend)")
     ap.add_argument(
-        "--ssh-host", help="deploy+run over ssh (jetson=yanwen@duck-stable, minipc=rocky-ryzen)"
+        "--ssh-host",
+        help="deploy+run over ssh (jetsons=doremy@duck-{stable,naughty}, minipc=rocky-ryzen)",
     )
     ap.add_argument("--adb-serial", help="deploy+run over adb (phones)")
     ap.add_argument("--adb-host", help="run adb on this ssh host (phones attached to rocky-ryzen)")

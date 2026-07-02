@@ -1,0 +1,92 @@
+>> staging 3 binaries + libc++_shared.so to 3A021JEHN02756:/data/local/tmp/bt
+build/android/test-tree-vk: 1 file pushed, 0 skipped. 260.1 MB/s (23613568 bytes in 0.087s)
+build/android/test-cifar-dense-vk: 1 file pushed, 0 skipped. 131.9 MB/s (21778552 bytes in 0.158s)
+build/android/test-cifar-sparse-vk: 1 file pushed, 0 skipped. 132.6 MB/s (21863280 bytes in 0.157s)
+/home/doremy/ndk-libcxx/aarch64-linux-android/libc++_shared.so: 1 file pushed, 0 skipped. 99.6 MB/s (9290184 bytes in 0.089s)
+4 files pushed, 0 skipped. 119.8 MB/s (76545584 bytes in 0.610s)
+>> running on 3A021JEHN02756 (--device 3A021JEHN02756)
+== test-tree-vk ==
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from TreeDiffVulkan
+[ RUN      ] TreeDiffVulkan.Stage1_Morton
+[       OK ] TreeDiffVulkan.Stage1_Morton (526 ms)
+[ RUN      ] TreeDiffVulkan.Stage2_Sort
+[       OK ] TreeDiffVulkan.Stage2_Sort (191 ms)
+[ RUN      ] TreeDiffVulkan.Stage3_Unique
+[       OK ] TreeDiffVulkan.Stage3_Unique (197 ms)
+[ RUN      ] TreeDiffVulkan.Stage4_RadixTree
+[       OK ] TreeDiffVulkan.Stage4_RadixTree (204 ms)
+[ RUN      ] TreeDiffVulkan.Stage5_EdgeCount
+[       OK ] TreeDiffVulkan.Stage5_EdgeCount (200 ms)
+[ RUN      ] TreeDiffVulkan.Stage6_EdgeOffset
+[       OK ] TreeDiffVulkan.Stage6_EdgeOffset (208 ms)
+[ RUN      ] TreeDiffVulkan.Stage7_Octree
+[       OK ] TreeDiffVulkan.Stage7_Octree (1082 ms)
+[----------] 7 tests from TreeDiffVulkan (2612 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (2612 ms total)
+[  PASSED  ] 7 tests.
+BT-CELL tree vulkan pixel RAN
+== test-cifar-dense-vk ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarDenseDiffVulkan
+[ RUN      ] CifarDenseDiffVulkan.Stage1_Conv1
+[       OK ] CifarDenseDiffVulkan.Stage1_Conv1 (286 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage2_Pool1
+[       OK ] CifarDenseDiffVulkan.Stage2_Pool1 (78 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage3_Conv2
+[       OK ] CifarDenseDiffVulkan.Stage3_Conv2 (360 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage4_Pool2
+[       OK ] CifarDenseDiffVulkan.Stage4_Pool2 (94 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage5_Conv3
+[       OK ] CifarDenseDiffVulkan.Stage5_Conv3 (384 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage6_Conv4
+[       OK ] CifarDenseDiffVulkan.Stage6_Conv4 (619 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage7_Conv5
+[       OK ] CifarDenseDiffVulkan.Stage7_Conv5 (627 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage8_Pool3
+[       OK ] CifarDenseDiffVulkan.Stage8_Pool3 (200 ms)
+[ RUN      ] CifarDenseDiffVulkan.Stage9_Linear
+[       OK ] CifarDenseDiffVulkan.Stage9_Linear (232 ms)
+[ RUN      ] CifarDenseDiffVulkan.EndToEnd_FinalLogits
+[       OK ] CifarDenseDiffVulkan.EndToEnd_FinalLogits (1629 ms)
+[----------] 10 tests from CifarDenseDiffVulkan (4514 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (4515 ms total)
+[  PASSED  ] 10 tests.
+BT-CELL cifar-dense vulkan pixel RAN
+== test-cifar-sparse-vk ==
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from CifarSparseDiffVulkan
+[ RUN      ] CifarSparseDiffVulkan.Stage1_Conv1
+[       OK ] CifarSparseDiffVulkan.Stage1_Conv1 (556 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage2_Pool1
+[       OK ] CifarSparseDiffVulkan.Stage2_Pool1 (148 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage3_Conv2
+[       OK ] CifarSparseDiffVulkan.Stage3_Conv2 (1131 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage4_Pool2
+[       OK ] CifarSparseDiffVulkan.Stage4_Pool2 (232 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage5_Conv3
+[       OK ] CifarSparseDiffVulkan.Stage5_Conv3 (1232 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage6_Conv4
+[       OK ] CifarSparseDiffVulkan.Stage6_Conv4 (2225 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage7_Conv5
+[       OK ] CifarSparseDiffVulkan.Stage7_Conv5 (2375 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage8_Pool3
+[       OK ] CifarSparseDiffVulkan.Stage8_Pool3 (612 ms)
+[ RUN      ] CifarSparseDiffVulkan.Stage9_Linear
+[       OK ] CifarSparseDiffVulkan.Stage9_Linear (667 ms)
+[ RUN      ] CifarSparseDiffVulkan.EndToEnd_FinalLogits
+[       OK ] CifarSparseDiffVulkan.EndToEnd_FinalLogits (6426 ms)
+[----------] 10 tests from CifarSparseDiffVulkan (15612 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (15612 ms total)
+[  PASSED  ] 10 tests.
+BT-CELL cifar-sparse vulkan pixel RAN
+>> coverage markers appended to /home/doremy/bt-src/fleet-coverage.log (check: scripts/check_fleet_coverage.py)

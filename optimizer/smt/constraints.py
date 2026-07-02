@@ -39,9 +39,17 @@ def add_availability_constraints(opt, x, core_types, num_stages, stage_timings, 
 
 
 def add_chunk_time_constraint(
-    opt, x, core_types, num_stages, stage_timings, minimize_mode="gapness"
+    opt, x, core_types, num_stages, stage_timings, minimize_mode="gapness", overhead=None
 ):
-    """Add constraints for the chunk times and optimize for minimal gap between max and min chunk times."""
+    """Add constraints for the chunk times and optimize for minimal gap between max and min chunk times.
+
+    overhead: optional {core_type: (per_chunk_ms, per_stage_ms)} framework-overhead
+    constants (smt.overhead). A chunk's cost is then
+        sum(stage kernel times) + per_chunk_ms + n_stages * per_stage_ms.
+    Adding the constants to EVERY segment (not just maximal chunks) is sound for the
+    <= T_max side: a sub-segment costs no more than its enclosing chunk (stage times
+    and the constants are >= 0), so the binding constraint is still the maximal chunk.
+    """
     # Define the maximum and minimum chunk time variables
     T_max = Real("T_max")
     T_min = Real("T_min")
@@ -53,14 +61,17 @@ def add_chunk_time_constraint(
     # For each PU and every contiguous segment of stages, if the entire segment is handled by PU c,
     # then the sum of timings for that segment must be <= T_max and >= T_min (if it's assigned).
     for c in core_types:
+        oh_chunk, oh_stage = (overhead or {}).get(c, (0.0, 0.0))
         for i in range(num_stages):
             for j in range(i, num_stages):
                 # Build the condition: all stages k in [i, j] are assigned PU c.
                 segment_assigned = And([x[(k, c)] for k in range(i, j + 1)])
 
-                # Compute the sum over the segment.
+                # Segment cost = kernel sums + the framework-overhead terms.
+                n_seg = j - i + 1
                 seg_sum = Sum(
                     [RealVal(stage_timings[k][core_types.index(c)]) for k in range(i, j + 1)]
+                    + [RealVal(oh_chunk + n_seg * oh_stage)]
                 )
 
                 # Add the implication: if the segment is uniformly assigned c, then seg_sum <= T_max.

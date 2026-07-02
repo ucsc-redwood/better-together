@@ -30,7 +30,7 @@ Three presets, three architectures. Build only the targets a step needs.
 ```bash
 cmake --preset vulkan && cmake --build --preset vulkan --target bm-prof-<app>-vk bm-gen-logs-<app>-vk bm-baseline-<app>-vk   # x86 iGPU (minipc)
 # Jetson (arm64, CUDA+Vulkan): cross container — see 02-building.md
-docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace bt-cross:6.1 \
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace bt-cross:7.2 \
   bash -lc 'cmake --build --preset jetson --target bm-prof-<app>-<cu|vk> bm-gen-logs-<app>-<cu|vk> bm-baseline-<app>-<cu|vk>'
 # Android (arm64, Vulkan): NDK
 export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865
@@ -48,7 +48,7 @@ JSONL; logs go to stderr) to the store path. Knobs: `BT_PROF_SCENARIO=isolated|i
 `BT_PROF_RUN=N`, plus the calibrated-sampling knobs (see 05-profiling.md).
 
 ```bash
-# ssh device (jetson=duck-naughty, minipc=rocky-ryzen) — fish login shell ⇒ bash -s
+# ssh device (jetsons=doremy@duck-{stable,naughty}, minipc=rocky-ryzen) — rocky's login shell is fish ⇒ bash -s
 ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference BT_PROF_RUN=1 \
   ./bm-prof-<app>-<be> --device <dev> 2>/dev/null' > data/profiling/<dev>/<app>/<bedir>/interference/run-001.jsonl
 # android (adb on rocky for BOTH phones; adb -s <serial>) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
@@ -77,6 +77,24 @@ uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/pro
 # -> data/schedules_btpm/<dev>/<app>/<be>/schedules_btpm_tmax.json
 #    (array of {uid, chunks:[{core_type,start_stage,end_stage,hardware?}], metrics})
 ```
+
+**Framework-overhead term (2026-07-02).** If `data/profiling/<dev>/overhead.json`
+exists, `02` prices every chunk as `Σ stage times + per_chunk_ms(PU) +
+n_stages·per_stage_ms(PU)` — the fitted per-chunk SPSC/dispatch + per-stage GPU
+submit/fence tax that the kernel-sum model misses (it made z3 pick pipelines that
+LOSE on tiny apps; fixing it took samsung cifar-dense from 0.75x to 1.50x).
+Fit/refresh the constants **after any measured sweep** with
+
+```bash
+uv run optimizer/analysis/fit_overhead.py        # reads data/sched_logs -> writes overhead.json per device
+```
+
+(model-selected per PU class — classes whose residuals a constant can't explain fall
+back to zero; see the script docstring). `02` also runs a **union sweep**: it solves
+under both cost models, re-prices the plain-model extras under the overhead model,
+and emits the union sorted by predicted makespan — the measured top-K sweep in step 3
+then picks the true winner, hedging either model's blind spots. `--no-overhead`
+opts out entirely.
 
 ## Step 3 — run the schedule(s) on the device
 
@@ -166,5 +184,6 @@ Known limits (interference audit, 2026-06-20 — see the audit memory):
 - **Jetson VK teardown segfault (bugs §1/§9):** records are valid (flushed before the
   crash); CUDA outputs are partially wrong (managed-mem) but timings hold. `03`
   tolerates the non-zero exit.
-- **fish login shells** (jetson, rocky) → `ssh host bash -s`; **adb eats stdin** →
-  suffix `</dev/null`; **adb adds CR** → `tr -d '\r'`. Samsung's adb runs on rocky.
+- **fish login shell** (rocky; the reflashed Jetsons are bash) → `ssh host bash -s`
+  for every ssh target; **adb eats stdin** → suffix `</dev/null`; **adb adds CR** →
+  `tr -d '\r'`. Samsung's adb runs on rocky.

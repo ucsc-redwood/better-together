@@ -30,12 +30,13 @@ from analysis.results.statistics import calculate_aggregated_statistics  # noqa:
 # device id (== the --device token / sched_log dir prefix) -> friendly summary label.
 # dashboard/generate.py SUMMARY_DEVICE_ALIAS maps these labels back to ids.
 DEVICE_LABEL = {
-    "jetson": "jetson",
+    "duck-stable": "duck-stable",
+    "duck-naughty": "duck-naughty",
     "minipc": "minipc",
     "R5CY21Y3VEV": "samsung",
     "3A021JEHN02756": "pixel",
 }
-DEVICE_ORDER = ["jetson", "samsung", "minipc", "pixel"]
+DEVICE_ORDER = ["duck-stable", "duck-naughty", "samsung", "minipc", "pixel"]
 APP_ORDER = ["tree", "cifar-dense", "cifar-sparse"]
 BE_LABEL = {"vk": "VK", "cu": "CUDA"}
 TABLES = ["btpm", "isolated"]
@@ -158,8 +159,6 @@ def render_markdown(rows):
         "(speedup < 1). This is a framework-overhead property of a tiny workload, not a kernel bug.",
         "",
         "## Caveats",
-        "- Jetson CUDA rows are timing-only (the managed-memory path had a correctness caveat; "
-        "the differential unit tests are green, so timings are reported as measured).",
         "- Phone (samsung/pixel) cifar-sparse: only the best-predicted schedule(s) were swept "
         "where CPU-only candidates were too slow to run all ten.",
     ]

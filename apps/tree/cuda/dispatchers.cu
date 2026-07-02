@@ -4,7 +4,6 @@
 #include "dispatchers.cuh"
 
 #include <cub/cub.cuh>
-#include <cub/util_math.cuh>
 // clang-format on
 
 #include "01_morton.cuh"
@@ -15,7 +14,24 @@
 
 namespace tree::cuda {
 
-cub::CachingDeviceAllocator g_allocator(true);  // Caching allocator for device memory
+// Grow-only device scratch for the cub temp-storage calls (stages 2/3/6). Replaces
+// cub::CachingDeviceAllocator, which CUDA 13 / CCCL 3 removed. Reuse is safe: at most
+// one CUDA chunk dispatches at a time (the runtime rejects concurrent GPU chunks and
+// the profiler never runs two GPU users), and reuse by the next cub call on the same
+// stream is stream-ordered. Never freed -- a few MB held for the process lifetime,
+// same as the old allocator's cache.
+namespace {
+void* ensure_temp_storage(size_t bytes) {
+  static void* ptr = nullptr;
+  static size_t capacity = 0;
+  if (bytes > capacity) {
+    if (ptr != nullptr) CheckCuda(cudaFree(ptr));
+    CheckCuda(cudaMalloc(&ptr, bytes));
+    capacity = bytes;
+  }
+  return ptr;
+}
+}  // namespace
 
 constexpr bool kSync = false;
 
@@ -55,20 +71,15 @@ void CudaDispatcher::run_stage_2_async(tree::SafeAppData& appdata) {
   cub::DeviceRadixSort::SortKeys(
       d_temp_storage, temp_storage_bytes, d_keys_in, d_keys_out, num_items);
 
-  CubDebugExit(g_allocator.DeviceAllocate(&d_temp_storage, temp_storage_bytes));
+  d_temp_storage = ensure_temp_storage(temp_storage_bytes);
 
   // Sort data
   cub::DeviceRadixSort::SortKeys(
       d_temp_storage, temp_storage_bytes, d_keys_in, d_keys_out, num_items);
 
-  CubDebugExit(cudaDeviceSynchronize());
-
-  // Return the temp storage to g_allocator's cache (it was obtained via
-  // DeviceAllocate). The old code cudaFree'd it directly, which both defeated the
-  // caching allocator (every call paid a real cudaMalloc/cudaFree) and left the block
-  // marked live -- a latent double-free when g_allocator is torn down at exit. The
-  // sync above is required first: the cub op uses d_temp_storage asynchronously.
-  CubDebugExit(g_allocator.DeviceFree(d_temp_storage));
+  // Keep the stage synchronous on completion (host-side readers and the profiler
+  // rely on it; the scratch itself needs no sync -- reuse is stream-ordered).
+  CheckCuda(cudaDeviceSynchronize());
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -89,32 +100,30 @@ void CudaDispatcher::run_stage_3_async(tree::SafeAppData& appdata) {
   void* d_temp_storage = nullptr;
   size_t temp_storage_bytes = 0;
 
-  CubDebugExit(cub::DeviceSelect::Unique(d_temp_storage,
-                                         temp_storage_bytes,
-                                         d_in,
-                                         d_out,
-                                         appdata.u_num_selected_out.data(),
-                                         num_items));
+  CheckCuda(cub::DeviceSelect::Unique(d_temp_storage,
+                                      temp_storage_bytes,
+                                      d_in,
+                                      d_out,
+                                      appdata.u_num_selected_out.data(),
+                                      num_items));
 
-  CubDebugExit(g_allocator.DeviceAllocate(&d_temp_storage, temp_storage_bytes));
+  d_temp_storage = ensure_temp_storage(temp_storage_bytes);
 
   // Run
-  CubDebugExit(cub::DeviceSelect::Unique(d_temp_storage,
-                                         temp_storage_bytes,
-                                         d_in,
-                                         d_out,
-                                         appdata.u_num_selected_out.data(),
-                                         num_items));
+  CheckCuda(cub::DeviceSelect::Unique(d_temp_storage,
+                                      temp_storage_bytes,
+                                      d_in,
+                                      d_out,
+                                      appdata.u_num_selected_out.data(),
+                                      num_items));
 
-  CubDebugExit(cudaDeviceSynchronize());
+  CheckCuda(cudaDeviceSynchronize());
 
   // -------- host --------------
   const auto n_unique = appdata.u_num_selected_out[0];
   appdata.set_n_unique(n_unique);
   appdata.set_n_brt_nodes(n_unique - 1);
   // ----------------------------
-
-  CubDebugExit(g_allocator.DeviceFree(d_temp_storage));
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -175,7 +184,7 @@ void CudaDispatcher::run_stage_6_async(tree::SafeAppData& appdata) {
                                 appdata.u_edge_offset_s6_out.data(),
                                 appdata.get_n_brt_nodes());
 
-  CubDebugExit(g_allocator.DeviceAllocate(&d_temp_storage, temp_storage_bytes));
+  d_temp_storage = ensure_temp_storage(temp_storage_bytes);
 
   // Perform prefix sum (inclusive scan)
   cub::DeviceScan::InclusiveSum(d_temp_storage,
@@ -184,13 +193,11 @@ void CudaDispatcher::run_stage_6_async(tree::SafeAppData& appdata) {
                                 appdata.u_edge_offset_s6_out.data(),
                                 appdata.get_n_brt_nodes());
 
-  CubDebugExit(cudaDeviceSynchronize());
+  CheckCuda(cudaDeviceSynchronize());
 
   // -------- host --------------
   appdata.set_n_octree_nodes(appdata.u_edge_offset_s6_out[appdata.get_n_brt_nodes() - 1]);
   // ----------------------------
-
-  CubDebugExit(g_allocator.DeviceFree(d_temp_storage));
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());

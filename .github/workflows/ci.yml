@@ -82,10 +82,15 @@ jobs:
   sanitizers:
     # Build the OMP surface with AddressSanitizer+UBSan / ThreadSanitizer and run the
     # same topology-independent oracle subset as test-omp. ASan/UBSan catch heap and UB
-    # bugs the optimised build hides; TSan catches data races. Default toolchain (gcc),
-    # matching the build it instruments. pipeline-e2e is excluded for the same reason as
+    # bugs the optimised build hides; TSan catches data races. asan uses the default
+    # toolchain (gcc). tsan MUST use clang + LLVM libomp + the Archer OMPT tool:
+    # gcc/libgomp is not TSan-instrumented, so the implicit barrier ending every
+    # parallel region is invisible and each AppData destructor after an OMP kernel
+    # reported a bogus race (the perpetually-red tsan job). Archer restores the
+    # OpenMP happens-before; .github/tsan-suppressions.txt silences libomp's own
+    # uninstrumented internals only. pipeline-e2e is excluded for the same reason as
     # test-omp (pins to physical cores absent on hosted runners) — TSan's prime target,
-    # the concurrent ring, runs on the fleet via `just tsan`.
+    # the concurrent ring, runs on the fleet via `just tsan` (same recipe).
     name: ${{ matrix.san }} (build + ctest -L omp)
     runs-on: ubuntu-latest
     strategy:
@@ -96,7 +101,6 @@ jobs:
       CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
       ASAN_OPTIONS: abort_on_error=1:detect_leaks=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
-      TSAN_OPTIONS: halt_on_error=1
     steps:
       - uses: actions/checkout@v4
       - name: Cache CPM dependencies
@@ -105,6 +109,16 @@ jobs:
           path: ${{ github.workspace }}/.cpm-cache
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
           restore-keys: cpm-${{ runner.os }}-
+      - name: TSan toolchain — clang + libomp + Archer (libgomp is not TSan-instrumented)
+        if: matrix.san == 'tsan'
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q clang libomp-dev
+          echo "CC=clang"    >> "$GITHUB_ENV"
+          echo "CXX=clang++" >> "$GITHUB_ENV"
+          archer=$(find /usr/lib -name 'libarcher.so*' 2>/dev/null | head -1)
+          [ -n "$archer" ] || { echo "libarcher.so not found (needed for OMP happens-before under TSan)"; exit 1; }
+          echo "OMP_TOOL_LIBRARIES=$archer" >> "$GITHUB_ENV"
+          echo "TSAN_OPTIONS=halt_on_error=1:suppressions=$GITHUB_WORKSPACE/.github/tsan-suppressions.txt" >> "$GITHUB_ENV"
       - name: Configure (pc-${{ matrix.san }} preset)
         run: cmake --preset pc-${{ matrix.san }}
       - name: Build

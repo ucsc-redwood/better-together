@@ -31,8 +31,13 @@ Status, audits, decision logs, and roadmaps (the *why* and *where we are*) are i
   volk diagnostics + NNAPI targets were removed as dead code 2026-06-18 — recover from
   git history if ever needed.)
 - **Where each backend runs:** OMP runs **anywhere** and is the **reference oracle**.
-  CUDA is **cross-compiled to the Jetson** (the PC is build-only — CUDA 13 breaks the
-  build via CUB removal). Vulkan needs an **integrated GPU** — `kiss-vk` hard-selects
+  CUDA is **cross-compiled to the Jetsons** — two Orin Nano Super devkits,
+  `duck-stable`/`duck-naughty` (`ssh doremy@duck-{stable,naughty}`), **reflashed to
+  JetPack 7.2 / CUDA 13.2 on 2026-07-01**; pre-reflash results are archived and not
+  comparable. Default cross image: `bt-cross:7.2` (CUDA 13.2, official SBSA cross
+  toolchain + arm64 Vulkan — matches the fleet; validated 2026-07-02).
+  `bt-cross:6.1` (CUDA 12.6) is the legacy image for JetPack-6 targets.
+  Vulkan needs an **integrated GPU** — `kiss-vk` hard-selects
   `eIntegratedGpu`, so the discrete RTX throws "No integrated GPU found"; run Vulkan on
   `rocky-ryzen` or the phones.
 - **Remote shell gotcha:** `rocky-ryzen`'s login shell is **fish** → wrap remote commands

@@ -15,8 +15,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smt.baselines import get_baseline_for_config
+from smt.bt_vocab import CORE_TYPES
 from smt.data_loader import load_stage_timings
-from smt.solution_analyzer import dump_solutions_as_json
+from smt.overhead import load_overhead, resolve_for_solver
+from smt.solution_analyzer import dump_solutions_as_json, reprice_solution
 from smt.solver import solve_optimization_problem
 
 from orchestrate.case import Case, table_to_scenario
@@ -116,6 +118,14 @@ def parse_arguments():
         "its isolated value. OFF by default -- the chaotic real environment (incl. the GPU "
         "boosting when kept busy) is what we want to capture, not sanitize.",
     )
+    parser.add_argument(
+        "--no-overhead",
+        action="store_true",
+        default=False,
+        help="solve WITHOUT the fitted per-chunk framework-overhead constants "
+        "(<profiling_root>/<device>/overhead.json, fitted by analysis/fit_overhead.py). "
+        "Default applies them when the file exists.",
+    )
     return parser.parse_args()
 
 
@@ -177,14 +187,57 @@ def main():
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
+        # Fitted per-chunk framework-overhead constants (see smt/overhead.py). Missing
+        # file (never fitted) or --no-overhead -> the plain kernel-sum cost model.
+        overhead = None
+        if not args.no_overhead:
+            raw_overhead = load_overhead(args.profiling_root, device)
+            if raw_overhead:
+                overhead = resolve_for_solver(raw_overhead, CORE_TYPES, gpu_backend)
+                print(
+                    "Applying framework-overhead constants (per-chunk, per-stage ms): "
+                    + ", ".join(f"{c}=({v[0]:.3f},{v[1]:.3f})" for c, v in overhead.items())
+                )
+
         # Solve the optimization problem. Map the CLI token "tmax" to the solver's
         # "max_time" (constraints.py uses the latter); "gapness" passes through.
         solver_mode = "max_time" if minimize_mode == "tmax" else minimize_mode
         # GPU chunks get their schema-required "hardware" stamped inside the solver
         # (threaded through to get_detailed_solution), so the dump is self-validating.
         solutions = solve_optimization_problem(
-            stage_timings, args.num_solutions, app, solver_mode, gpu_backend
+            stage_timings, args.num_solutions, app, solver_mode, gpu_backend, overhead
         )
+
+        # Union-candidate hedge: ALSO solve with the plain kernel-sum model and append
+        # any assignments the overhead model didn't propose, re-priced under the
+        # overhead model so the file carries one consistent prediction semantics. The
+        # measured top-K sweep (03) then picks the true winner -- robustness against
+        # either model's blind spots (the fitted constants come mostly from large
+        # chunks and can over-penalize tiny ones, e.g. phone x tree).
+        if overhead is not None:
+
+            def signature(sol):
+                return tuple(
+                    (c["core_type"], c["start_stage"], c["end_stage"]) for c in sol["chunks"]
+                )
+
+            seen = {signature(s) for s in solutions}
+            plain = solve_optimization_problem(
+                stage_timings, args.num_solutions, app, solver_mode, gpu_backend, None
+            )
+            added = 0
+            for sol in plain:
+                if signature(sol) not in seen:
+                    seen.add(signature(sol))
+                    solutions.append(reprice_solution(sol, CORE_TYPES, stage_timings, overhead))
+                    added += 1
+            solutions.sort(key=lambda s: s["metrics"].get("max_time", float("inf")))
+            for i, sol in enumerate(solutions):
+                sol["solution_id"] = i + 1
+            print(
+                f"Union sweep: +{added} plain-model candidates (re-priced), "
+                f"{len(solutions)} total, sorted by predicted makespan"
+            )
 
         # Output the solutions
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)

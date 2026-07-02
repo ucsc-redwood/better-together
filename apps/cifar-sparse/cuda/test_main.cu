@@ -9,8 +9,8 @@
 // ----------------------------------------------------------------------------
 // cifar-sparse × CUDA differential oracle. Each stage output is checked against
 // the densified-CSR double-precision reference (same harness as the OMP suite,
-// CudaRunner instead of OmpRunner). A valid CSR is built in-test (the shipped
-// AppData leaves it empty). GTEST_SKIPs when no CUDA device is present.
+// CudaRunner instead of OmpRunner). The shipped AppData builds a real CSR in its
+// ctor (CSRMatrix::build_from_dense). GTEST_SKIPs when no CUDA device is present.
 // ----------------------------------------------------------------------------
 
 namespace {

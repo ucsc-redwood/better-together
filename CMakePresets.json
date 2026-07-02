@@ -45,7 +45,7 @@
         "BT_ENABLE_CUDA": "ON",
         "BT_ENABLE_VULKAN": "ON",
         "BT_CUDA_ARCH": "87",
-        "BT_TEST_DEVICE": "jetson",
+        "BT_TEST_DEVICE": "duck-stable",
         "BT_BUILD_BENCHMARKS": "ON",
         "CPM_SOURCE_CACHE": "${sourceDir}/build/.cpm-cache"
       }
