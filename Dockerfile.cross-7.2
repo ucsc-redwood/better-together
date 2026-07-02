@@ -16,10 +16,12 @@
 # host-side compiler is Ubuntu's g++-aarch64-linux-gnu (gcc 13, glibc 2.39 -- matches
 # the JetPack 7.2 Ubuntu 24.04 userspace).
 #
-# STATUS: UNVALIDATED until the CUB port (apps/tree/cuda) builds and its binaries pass
-# test-*-cu on a duck. If nvcc does not auto-select the sbsa target dir from the
-# aarch64 -ccbin, add `-target-dir sbsa-linux` to CMAKE_CUDA_FLAGS.
-# Vulkan targets need aarch64 libvulkan (multiarch arm64 packages) -- future work.
+# STATUS: VALIDATED 2026-07-02 -- CUDA-only cross-build (BT_ENABLE_VULKAN=OFF) of all
+# three test-*-cu suites compiles clean and passes the differential tests on
+# duck-stable (tree 7/7, cifar-dense 10/10, cifar-sparse 10/10). nvcc auto-selects
+# the sbsa target dir from the aarch64 -ccbin; no -target-dir flag needed.
+# Vulkan targets still need aarch64 libvulkan (multiarch arm64 packages) -- until
+# then the fleet's CUDA+VK builds stay on bt-cross:6.1 (also verified on JetPack 7.2).
 FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

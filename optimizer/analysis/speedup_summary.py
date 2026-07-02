@@ -159,8 +159,6 @@ def render_markdown(rows):
         "(speedup < 1). This is a framework-overhead property of a tiny workload, not a kernel bug.",
         "",
         "## Caveats",
-        "- Jetson CUDA rows are timing-only (the managed-memory path had a correctness caveat; "
-        "the differential unit tests are green, so timings are reported as measured).",
         "- Phone (samsung/pixel) cifar-sparse: only the best-predicted schedule(s) were swept "
         "where CPU-only candidates were too slow to run all ten.",
     ]

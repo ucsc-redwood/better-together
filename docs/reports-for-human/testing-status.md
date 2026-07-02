@@ -195,8 +195,9 @@ uniquely exercise the subgroup-16 (Mali) vs subgroup-32 shader variants**
 > pass on minipc, pixel (subgroup 16), and samsung (subgroup 32). Logs:
 > [`perf-results/test-runs/`](perf-results/test-runs/). Jetson Vulkan remains
 > benchmark-only (not coverage-gated). Notes: (1) no official JetPack-7.x cross image
-> exists (NGC tags end at 6.1); (2) native CUDA 13.2 builds still hit the CUDA-13 CUB
-> removal in `apps/tree/cuda`.
+> exists (NGC tags end at 6.1); (2) RESOLVED 2026-07-02 -- the CUB port landed and
+> `bt-cross:7.2` (official SBSA cross toolchain, CUDA 13.2, CUDA-only) is validated:
+> all three `test-*-cu` suites green on duck-stable from that build.
 
 ### B. The harness — one parametrized differential test, not 32×3 hand-written
 

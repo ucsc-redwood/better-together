@@ -60,15 +60,18 @@ The Jetson Orin Nano is slow to build on, so we cross-compile on x86 inside
 NVIDIA's official cross container (CUDA 12.6, JetPack-6-era), then copy the
 aarch64 binaries to the device.
 
-> ⚠️ **Toolchain vs fleet version skew (2026-07-01):** both Jetsons now run
-> **JetPack 7.2 (CUDA 13.2)**, but NVIDIA publishes **no 7.x cross container** (NGC
-> tags end at 6.1), so the CUDA 12.6 container remains the cross path — its binaries
-> are **correctness-verified on the 7.2 stack** (all `test-*-cu` suites green on both
-> ducks, 2026-07-02). A 13.2-matching cross build is feasible: the official cross
-> toolchain is public as `cuda-cross-sbsa-13-2` apt debs (ubuntu2404
-> `cross-linux-sbsa` repo — JetPack 7 is SBSA-aligned), so a DIY image is just
-> ubuntu:24.04 + `cuda-toolkit-13-2` + `cuda-cross-sbsa-13-2` + aarch64 g++. Blocked
-> until `apps/tree/cuda`'s `cub::` usage is ported (CUDA 13 removed bundled CUB).
+> **Two working cross paths since 2026-07-02** (the CUB port landed — CUDA-13-removed
+> APIs are gone from `apps/tree/cuda`):
+> 1. **`bt-cross:6.1`** (CUDA 12.6, [`Dockerfile.cross`](../../Dockerfile.cross)) —
+>    the default: builds **CUDA + Vulkan** together, and its binaries are
+>    correctness-verified on the JetPack 7.2 stack (all `test-*-cu` green on both
+>    ducks). NVIDIA publishes no 7.x tag of the official cross container.
+> 2. **`bt-cross:7.2`** (CUDA **13.2**, matching the fleet —
+>    [`Dockerfile.cross-7.2`](../../Dockerfile.cross-7.2)): NVIDIA's official public
+>    SBSA cross toolchain (`cuda-cross-sbsa-13-2` debs). **CUDA-only for now**
+>    (configure with `-DBT_ENABLE_VULKAN=OFF` into `build/jetson72`); validated
+>    2026-07-02, all three `test-*-cu` suites green on duck-stable. Adding aarch64
+>    Vulkan libs to the image is the remaining step before it can replace 6.1.
 
 ```bash
 # one-time: build the cross image (adds a current CMake to NVIDIA's base image)
