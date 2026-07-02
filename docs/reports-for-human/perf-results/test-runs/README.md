@@ -10,4 +10,7 @@ sweep; each helper exits non-zero on any non-skip failure.
 > on the current fleet (`duck-stable`, `duck-naughty`, `minipc`, `pixel`, `samsung`)
 > land directly in this folder.
 
-No post-fresh-start sweep has been captured yet.
+| log | host | backend | what ran |
+|---|---|---|---|
+| `duck-stable-cuda.log` | duck-stable (JetPack 7.2) | CUDA | per-stage differential ×3 apps (tree 7 / dense 10 / sparse 10) — all green, 2026-07-02, `bt-cross:6.1` binaries |
+| `duck-naughty-cuda.log` | duck-naughty (JetPack 7.2) | CUDA | same — all green, 2026-07-02 |

@@ -88,10 +88,10 @@ pre-2026-07 Jetson numbers are from that old software stack and are **not compar
 - **Build** **cross-compile** in the `bt-cross:6.1` container, then `scp` aarch64
   binaries over ([`02-building.md`](02-building.md)). That image is CUDA 12.6 /
   JetPack-6-era — NVIDIA publishes **no 7.x cross image** (NGC checked 2026-07-01) —
-  but its binaries were **smoke-verified on JetPack 7.2** (2026-07-02:
-  `bm-prof-tree-cu` incl. CUB kernels ran cleanly on duck-stable); the differential
-  correctness sweep is still pending. Native on-device builds (CUDA 13.2) fail until
-  the `cub::` usage in `apps/tree/cuda` is ported (CUDA 13 removed bundled CUB).
+  but its binaries are **correctness-verified on JetPack 7.2** (2026-07-02: all three
+  `test-*-cu` differential suites pass on both ducks; `bm-prof-tree-cu` incl. CUB
+  kernels runs cleanly). Native on-device builds (CUDA 13.2) fail until the `cub::`
+  usage in `apps/tree/cuda` is ported (CUDA 13 removed bundled CUB).
 - **Run** `scripts/run-on-jetson.sh` (deploy + run CUDA tests on `/tmp/bt`); env
   overrides select the twin (see the script header).
 - **Role** the only targets that run **CUDA**; also run Vulkan. `duck-stable` is the

@@ -188,12 +188,14 @@ uniquely exercise the subgroup-16 (Mali) vs subgroup-32 shader variants**
 > **every pre-2026-07 result across the whole fleet is archived** — test-run logs in
 > [`perf-results/test-runs/archive-pre-2026-07/`](perf-results/test-runs/archive-pre-2026-07/),
 > the profiling-store snapshot at commit `8d45084^` — and all cells (Jetson AND
-> minipc/phones) get re-collected from scratch. **No cell has been re-verified since
-> the fresh start.** Jetson-column notes: (1) no official
-> JetPack-7.x cross image exists, but the CUDA 12.6 `bt-cross:6.1` binaries were
-> smoke-verified on the 7.2 stack (2026-07-02, `bm-prof-tree-cu` incl. CUB kernels on
-> duck-stable) — the differential sweep itself is still to run; (2) native CUDA 13.2
-> builds hit the CUDA-13 CUB removal in `apps/tree/cuda`.
+> minipc/phones) get re-collected from scratch. **First post-fresh-start cells green (2026-07-02):**
+> the CUDA differential suite (tree 7 / cifar-dense 10 / cifar-sparse 10) **passed on
+> BOTH ducks**, run from `bt-cross:6.1` (CUDA 12.6) cross binaries — the
+> 12.6-on-JetPack-7.2 path is verified for correctness, not just smoke. Still to
+> re-run: Jetson Vulkan (benchmark-only, not coverage-gated) and the 9
+> minipc/pixel/samsung Vulkan cells. Notes: (1) no official JetPack-7.x cross image
+> exists (NGC tags end at 6.1); (2) native CUDA 13.2 builds still hit the CUDA-13 CUB
+> removal in `apps/tree/cuda`.
 
 ### B. The harness — one parametrized differential test, not 32×3 hand-written
 

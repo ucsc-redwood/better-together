@@ -100,10 +100,10 @@ scripts/run-on-jetson.sh                 # deploy to /tmp/bt + run all *-cu
 (Green as of 2026-06-16 — the `cuda-managed-mem` visibility defect was fixed with
 zero-copy pinned memory; see [`../reports-for-human/bugs-found.md`](../reports-for-human/bugs-found.md) §1.
 Reverified 2026-06-18: tree-cu 7 / cifar-dense-cu 10 / cifar-sparse-cu 10.
-⚠️ Those greens were on the **JetPack 6** stack; the Jetsons were **reflashed to
-JetPack 7.2 / CUDA 13.2 on 2026-07-01** — no cell has been re-verified on the new
-stack yet, and the CUDA 12.6 cross binaries may not even run there
-(see [`02-building.md`](02-building.md)).)
+The Jetsons were **reflashed to JetPack 7.2 / CUDA 13.2 on 2026-07-01** and
+re-verified on 2026-07-02: all three `test-*-cu` suites (7/10/10) **pass on both
+ducks** using the CUDA 12.6 cross binaries — the 12.6-binary-on-7.2-stack path is
+correctness-verified (see [`02-building.md`](02-building.md)).)
 
 **Vulkan — rocky-ryzen iGPU (x86, easiest):** build natively, then run.
 ```bash
