@@ -1,0 +1,117 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// Batch-tiled fully-connected kernel (port of the CUDA linear_batch_bt win).
+//
+// The generic linear shader is thread-per-(n, of): every lane scans a DIFFERENT
+// 16 KB weight row (each cache line serves one 4-byte float) and the whole
+// weight matrix is re-streamed once PER IMAGE (67 MB x 16 = 1.07 GB at fc1) --
+// DRAM-ceiling bound. Here a 16-lane "row" of the workgroup owns ONE output
+// feature: the lanes stride that weight row together (coalesced) and each lane
+// accumulates ALL images of the batch while the row is streamed ONCE. Input
+// columns are staged chunk-by-chunk in shared memory and shared by all 16 rows
+// of the workgroup, so weight traffic drops N-fold and input traffic
+// (rows-per-workgroup)-fold.
+//
+// Dispatcher contract (falls back to the generic shader otherwise):
+//   N <= MAX_N (16), in_features % 4 == 0.
+//   grid.x = ceil(out_features / ROWS)
+//
+// Portable GLSL: shared-memory reduction only (no subgroup ops), 12 KB shared
+// (<= the 16 KB Vulkan minimum), fixed local_size 256.
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  vec4 input_data4[];  // [N, in_features/4]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  vec4 weight_data4[];  // [out_features, in_features/4]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [out_features]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, out_features]
+};
+
+layout(push_constant) uniform Params {
+  int N;             // Batch size (<= MAX_N)
+  int in_features;   // Number of input features (% 4 == 0)
+  int out_features;  // Number of output features
+  int apply_relu;    // 1 to apply ReLU, 0 otherwise
+}
+params;
+
+const int ROW_W = 16;    // lanes per output-feature row
+const int ROWS = 16;     // rows per workgroup (256 / ROW_W)
+const int CHUNK4 = 32;   // vec4s of input staged per image per iteration (128 floats)
+const int MAX_N = 16;    // accumulator registers per lane; loops over it unroll
+
+shared vec4 sh_in[MAX_N * CHUNK4];  // staged input columns, 8 KB
+shared vec4 sh_red[256];            // cross-lane reduction scratch, 4 KB
+
+void main() {
+  const int tid = int(gl_LocalInvocationID.x);
+  const int lane = tid % ROW_W;
+  const int row = tid / ROW_W;
+  const int of = int(gl_WorkGroupID.x) * ROWS + row;
+  const bool live = of < params.out_features;
+
+  const int in_f4 = params.in_features / 4;
+  // Inactive rows still walk the loop (uniform barriers); clamp their row base.
+  const int w_base = (live ? of : 0) * in_f4;
+
+  // Accumulate MAX_N images unconditionally so the n-loops have constant bounds
+  // (fully unrolled -> acc[] stays in registers); images >= N are staged as 0.
+  float acc[MAX_N];
+  for (int n = 0; n < MAX_N; ++n) acc[n] = 0.0;
+
+  for (int c4 = 0; c4 < in_f4; c4 += CHUNK4) {
+    // Cooperative staging of input columns [c4, c4+CHUNK4) for all images.
+    for (int i = tid; i < MAX_N * CHUNK4; i += 256) {
+      const int n = i / CHUNK4;
+      const int j = i % CHUNK4;
+      sh_in[i] = (n < params.N && c4 + j < in_f4) ? input_data4[n * in_f4 + c4 + j]
+                                                  : vec4(0.0);
+    }
+    barrier();
+
+    if (live) {
+      for (int k = lane; k < CHUNK4; k += ROW_W) {
+        if (c4 + k < in_f4) {
+          const vec4 w = weight_data4[w_base + c4 + k];
+          for (int n = 0; n < MAX_N; ++n) {
+            acc[n] += dot(w, sh_in[n * CHUNK4 + k]);
+          }
+        }
+      }
+    }
+    barrier();
+  }
+
+  // Reduce the ROW_W lane partials of each row, four images per pass (vec4-packed).
+  for (int n0 = 0; n0 < MAX_N; n0 += 4) {
+    if (n0 >= params.N) break;  // uniform (params.N): all invocations exit together
+    sh_red[tid] = vec4(acc[n0], acc[n0 + 1], acc[n0 + 2], acc[n0 + 3]);
+    barrier();
+    if (live && lane == 0) {
+      vec4 s = sh_red[row * ROW_W];
+      for (int i = 1; i < ROW_W; ++i) s += sh_red[row * ROW_W + i];
+      const float b = bias_data[of];
+      for (int m = 0; m < 4; ++m) {
+        if (n0 + m < params.N) {
+          float v = s[m] + b;
+          if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+          output_data[(n0 + m) * params.out_features + of] = v;
+        }
+      }
+    }
+    barrier();
+  }
+}
