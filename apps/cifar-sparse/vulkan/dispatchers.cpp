@@ -110,6 +110,19 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
 
+  // 3x3/s1/p1 CSR specialization (every pruned conv in the model): literal-9
+  // decode -- the generic shader pays a runtime div/mod per nonzero -- plus two
+  // interleaved accumulators to break the serial FMA chain (CUDA-win port).
+  // Selected per stage when kernel_size==3, stride==1, padding==1.
+  auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
+                                ->work_group_size(256, 1, 1)
+                                ->num_sets(5)  // stages 1,3,5,6,7
+                                ->num_buffers(6)
+                                ->push_constant<Conv2dPushConstants>()
+                                ->build();
+
+  cached_algorithms.try_emplace("conv2d_k3s1p1", std::move(conv2d_k3s1p1_algo));
+
   auto maxpool_algo = engine.make_algo("new_cifar_sparse_maxpool")
                           ->work_group_size(256, 1, 1)
                           ->num_sets(3)  // stages 2,4,8
@@ -127,6 +140,22 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
                          ->build();
 
   cached_algorithms.try_emplace("linear", std::move(linear_algo));
+
+  // Batch-tiled linear, shared with cifar-dense (the FC head is dense; identical
+  // descriptor layout): a 16-lane workgroup row owns ONE output feature, strides its
+  // weight row coalesced, and accumulates a 16-image batch tile while the row is
+  // streamed ONCE -- the generic thread-per-(n,of) shader re-streams the whole weight
+  // matrix once per image and each lane scans a different 16 KB row (uncoalesced).
+  // grid.y tiles sparse's N=128 batch in groups of 16 (weights read 8x, not 128x).
+  // Selected per stage when in_features % 4 == 0.
+  auto linear_bt_algo = engine.make_algo("new_cifar_dense_linear_bt")
+                            ->work_group_size(256, 1, 1)
+                            ->num_sets(3)     // stages 9,10,11
+                            ->num_buffers(4)  // Input, Weight, Bias, Output
+                            ->push_constant<LinearPushConstants>()
+                            ->build();
+
+  cached_algorithms.try_emplace("linear_bt", std::move(linear_bt_algo));
 }
 
 // ----------------------------------------------------------------------------
@@ -172,9 +201,11 @@ void VulkanDispatcher::run_stage_11(cifar_sparse::AppData& appdata) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(0,
                               {
@@ -265,9 +296,11 @@ void VulkanDispatcher::record_stage_2(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_3(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(1,
                               {
@@ -358,9 +391,11 @@ void VulkanDispatcher::record_stage_4(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(2,
                               {
@@ -409,9 +444,11 @@ void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(3,
                               {
@@ -460,9 +497,11 @@ void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_7(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(4,
                               {
@@ -553,17 +592,7 @@ void VulkanDispatcher::record_stage_8(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("linear").get();
-
   LOG_KERNEL(LogKernelType::kVK, 9, &appdata);
-
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                              });
 
   // Calculate flattened input size (total number of features per sample)
   const int batch_size = appdata.u_pool3_out.d0();       // Expected: 128
@@ -575,7 +604,24 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
   // Number of output features from the fc1 layer
   const int out_features = appdata.u_fc1_w.d0();  // Expected: 4096
 
-  const int total_output = batch_size * out_features;
+  // Batch-tiled shader (vec4 weight loads); generic fallback.
+  const bool bt = input_features % 4 == 0;
+  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
+
+  algo->update_descriptor_set(0,
+                              {
+                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
+                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
+                              });
+
+  // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
+  // the batch in 16-image tiles.
+  const uint32_t gx =
+      static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
+                               : kiss_vk::div_ceil(batch_size * out_features, 256));
+  const uint32_t gy = bt ? static_cast<uint32_t>(kiss_vk::div_ceil(batch_size, 16)) : 1u;
 
   algo->update_push_constant(LinearPushConstants{
       .N = batch_size,
@@ -586,7 +632,7 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
 
   algo->record_bind_core(cmd, 0);
   algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_dispatch(cmd, {gx, gy, 1});
 }
 
 // ----------------------------------------------------------------------------
@@ -594,9 +640,17 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("linear").get();
-
   LOG_KERNEL(LogKernelType::kVK, 10, &appdata);
+
+  const int batch_size = appdata.u_fc1_out.d0();      // Expected: 128
+  const int input_features = appdata.u_fc1_out.d1();  // Expected: 4096
+
+  // Number of output features from the fc2 layer
+  const int out_features = appdata.u_fc2_w.d0();  // Expected: 4096
+
+  // Batch-tiled shader (vec4 weight loads); generic fallback.
+  const bool bt = input_features % 4 == 0;
+  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
   algo->update_descriptor_set(1,
                               {
@@ -606,13 +660,12 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::Comma
                                   engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_fc1_out.d0();      // Expected: 128
-  const int input_features = appdata.u_fc1_out.d1();  // Expected: 4096
-
-  // Number of output features from the fc2 layer
-  const int out_features = appdata.u_fc2_w.d0();  // Expected: 4096
-
-  const int total_output = batch_size * out_features;
+  // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
+  // the batch in 16-image tiles.
+  const uint32_t gx =
+      static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
+                               : kiss_vk::div_ceil(batch_size * out_features, 256));
+  const uint32_t gy = bt ? static_cast<uint32_t>(kiss_vk::div_ceil(batch_size, 16)) : 1u;
 
   algo->update_push_constant(LinearPushConstants{
       .N = batch_size,
@@ -623,7 +676,7 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::Comma
 
   algo->record_bind_core(cmd, 1);
   algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_dispatch(cmd, {gx, gy, 1});
 }
 
 // ----------------------------------------------------------------------------
@@ -631,9 +684,17 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::Comma
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("linear").get();
-
   LOG_KERNEL(LogKernelType::kVK, 11, &appdata);
+
+  const int batch_size = appdata.u_fc2_out.d0();      // Expected: 128
+  const int input_features = appdata.u_fc2_out.d1();  // Expected: 4096
+
+  // Number of output features from the fc3 layer
+  const int out_features = appdata.u_fc3_w.d0();  // Expected: 10
+
+  // Batch-tiled shader (vec4 weight loads); generic fallback.
+  const bool bt = input_features % 4 == 0;
+  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
   algo->update_descriptor_set(2,
                               {
@@ -643,13 +704,12 @@ void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::Comma
                                   engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_fc2_out.d0();      // Expected: 128
-  const int input_features = appdata.u_fc2_out.d1();  // Expected: 4096
-
-  // Number of output features from the fc3 layer
-  const int out_features = appdata.u_fc3_w.d0();  // Expected: 10
-
-  const int total_output = batch_size * out_features;
+  // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
+  // the batch in 16-image tiles.
+  const uint32_t gx =
+      static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
+                               : kiss_vk::div_ceil(batch_size * out_features, 256));
+  const uint32_t gy = bt ? static_cast<uint32_t>(kiss_vk::div_ceil(batch_size, 16)) : 1u;
 
   algo->update_push_constant(LinearPushConstants{
       .N = batch_size,
@@ -660,7 +720,7 @@ void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::Comma
 
   algo->record_bind_core(cmd, 2);
   algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_dispatch(cmd, {gx, gy, 1});
 }
 
 }  // namespace cifar_sparse::vulkan

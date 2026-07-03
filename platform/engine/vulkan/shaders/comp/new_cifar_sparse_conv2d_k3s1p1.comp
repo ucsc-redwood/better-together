@@ -1,0 +1,108 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// 3x3 / stride-1 / pad-1 CSR specialization (port of the CUDA win) -- every
+// pruned conv in the model is this shape. The generic shader drags one FMA
+// chain through the whole CSR row with a runtime `/ kernel_area` +
+// `% kernel_size` per nonzero; with the literal 9/3 the compiler
+// strength-reduces the decode, and two interleaved accumulators break the
+// serial dependency.
+//
+// Same descriptor layout and push constants as new_cifar_sparse_conv2d.
+// Dispatcher contract (falls back to the generic shader otherwise):
+//   kernel_size == 3, stride == 1, padding == 1.
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // Input layout: [batch, in_channels, in_height, in_width]
+};
+
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer {
+  float output_data[];  // Output layout: [batch, out_channels, out_height, out_width]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer {
+  float weight_vals[];  // Nonzero weight values.
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer {
+  int weight_row_ptr[];  // Row pointers: length = out_channels + 1.
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer WeightColIdxBuffer {
+  int weight_col_idx[];  // Column indices (flat kernel index).
+};
+
+layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+// Same layout as the generic shader; kernel_size/stride/padding are implied 3/1/1.
+layout(push_constant) uniform Params {
+  int batch_size;    // Number of batches.
+  int in_channels;   // Input channels.
+  int in_height;     // Input height.
+  int in_width;      // Input width.
+  int out_channels;  // Output channels.
+  int out_height;    // Output height (== in_height).
+  int out_width;     // Output width (== in_width).
+  int kernel_size;   // Kernel size (== 3).
+  int stride;        // Convolution stride (== 1).
+  int padding;       // Padding (== 1).
+  int relu;          // Flag for ReLU activation (nonzero true).
+  int bias_size;     // Bias vector size (0 if bias is not used).
+}
+params;
+
+// One nonzero's contribution: literal-constant decode of the flat kernel index,
+// 0.0 for taps that land in the padded border.
+float tap(int nz, int in_base, int oh, int ow) {
+  const int flat_k = weight_col_idx[nz];
+  const int in_c = flat_k / 9;
+  const int rem = flat_k - in_c * 9;
+  const int ky = rem / 3;
+  const int kx = rem - ky * 3;
+  const int in_y = oh + ky - 1;
+  const int in_x = ow + kx - 1;
+  if (in_y < 0 || in_y >= params.in_height || in_x < 0 || in_x >= params.in_width) return 0.0;
+  return input_data[in_base + in_c * (params.in_height * params.in_width) +
+                    in_y * params.in_width + in_x] *
+         weight_vals[nz];
+}
+
+void main() {
+  const int total =
+      params.batch_size * params.out_channels * params.out_height * params.out_width;
+  int idx = int(gl_GlobalInvocationID.x);
+  if (idx >= total) return;
+
+  const int ow = idx % params.out_width;
+  idx /= params.out_width;
+  const int oh = idx % params.out_height;
+  idx /= params.out_height;
+  const int out_c = idx % params.out_channels;
+  const int b = idx / params.out_channels;
+
+  const int row_start = weight_row_ptr[out_c];
+  const int row_end = weight_row_ptr[out_c + 1];
+  const int in_base = b * params.in_channels * params.in_height * params.in_width;
+
+  // Two interleaved accumulators break the serial FMA chain over the CSR row.
+  float s0 = 0.0;
+  float s1 = 0.0;
+  int nz = row_start;
+  for (; nz + 1 < row_end; nz += 2) {
+    s0 += tap(nz, in_base, oh, ow);
+    s1 += tap(nz + 1, in_base, oh, ow);
+  }
+  if (nz < row_end) s0 += tap(nz, in_base, oh, ow);
+
+  float sum = s0 + s1;
+  if (params.bias_size > 0 && out_c < params.bias_size) sum += bias_data[out_c];
+  if (params.relu != 0 && sum < 0.0) sum = 0.0;
+
+  const int out_index =
+      ((b * params.out_channels + out_c) * params.out_height + oh) * params.out_width + ow;
+  output_data[out_index] = sum;
+}

@@ -163,10 +163,14 @@ inline void linear_batch_u(const float* __restrict__ u_input,
                            const int in_features,   // in_shape[1]
                            const int out_features,  // w_shape[0]
                            const bool relu) {
-  // Parallelize over (N, out_features); vectorize the per-output dot product.
+  // Parallelize over (out_features, N); vectorize the per-output dot product.
+  // of-major: a thread's contiguous chunk of the collapse space visits each
+  // weight row N consecutive times (L1-resident), so the (out x in) weight
+  // matrix -- 64 MB for the 4096-wide FCs -- streams from DRAM once per task
+  // instead of once per image. Each (n, of) dot product is unchanged.
 #pragma omp for collapse(2)
-  for (int n = 0; n < N; n++) {
-    for (int of = 0; of < out_features; of++) {
+  for (int of = 0; of < out_features; of++) {
+    for (int n = 0; n < N; n++) {
       const float* __restrict__ in_row = u_input + n * in_features;
       const float* __restrict__ w_row = u_weights + of * in_features;
       float sum = u_bias[of];
