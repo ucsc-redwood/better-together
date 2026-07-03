@@ -205,8 +205,8 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
 #pragma unroll
   for (int n = 0; n < kMaxBatch; ++n) acc[n] = 0.f;
 
-  const float4* w4 = reinterpret_cast<const float4*>(
-      weights + static_cast<size_t>(of < outF ? of : 0) * inF);
+  const float4* w4 =
+      reinterpret_cast<const float4*>(weights + static_cast<size_t>(of < outF ? of : 0) * inF);
   float4* sh4 = reinterpret_cast<float4*>(sh);
 
   for (int c = 0; c < inF; c += kChunk) {
@@ -247,7 +247,6 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // 3) linear_batch
 //    Warp-per-(n, of). The old thread-per-output kernel had each lane of a warp
@@ -284,39 +283,37 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
   constexpr int kOutsPerWarp = 4;
   const int of0 = (blockIdx.x * warps_per_block + warp) * kOutsPerWarp;
   for (int of = of0; of < of0 + kOutsPerWarp && of < outF; ++of) {
-
-  const float* w_row = weights + static_cast<size_t>(of) * inF;
-  float sum = 0.f;
-  if ((inF & 3) == 0) {
-    // float4 loads + two independent accumulators: 4x fewer load instructions and
-    // a split FMA chain (the scalar loop was latency-bound, ~5.7 GB/s).
-    const float4* w4 = reinterpret_cast<const float4*>(w_row);
-    const float4* i4 = reinterpret_cast<const float4*>(sh_in);
-    const int n4 = inF >> 2;
-    float acc0 = 0.f, acc1 = 0.f;
-    for (int k = lane; k < n4; k += 32) {
-      const float4 w = w4[k];
-      const float4 x = i4[k];
-      acc0 += w.x * x.x + w.y * x.y;
-      acc1 += w.z * x.z + w.w * x.w;
+    const float* w_row = weights + static_cast<size_t>(of) * inF;
+    float sum = 0.f;
+    if ((inF & 3) == 0) {
+      // float4 loads + two independent accumulators: 4x fewer load instructions and
+      // a split FMA chain (the scalar loop was latency-bound, ~5.7 GB/s).
+      const float4* w4 = reinterpret_cast<const float4*>(w_row);
+      const float4* i4 = reinterpret_cast<const float4*>(sh_in);
+      const int n4 = inF >> 2;
+      float acc0 = 0.f, acc1 = 0.f;
+      for (int k = lane; k < n4; k += 32) {
+        const float4 w = w4[k];
+        const float4 x = i4[k];
+        acc0 += w.x * x.x + w.y * x.y;
+        acc1 += w.z * x.z + w.w * x.w;
+      }
+      sum = acc0 + acc1;
+    } else {
+      for (int k = lane; k < inF; k += 32) {
+        sum += sh_in[k] * w_row[k];
+      }
     }
-    sum = acc0 + acc1;
-  } else {
-    for (int k = lane; k < inF; k += 32) {
-      sum += sh_in[k] * w_row[k];
+    for (int off = 16; off > 0; off >>= 1) {
+      sum += __shfl_down_sync(0xffffffffu, sum, off);
     }
-  }
-  for (int off = 16; off > 0; off >>= 1) {
-    sum += __shfl_down_sync(0xffffffffu, sum, off);
-  }
 
-  if (lane == 0) {
-    float v = sum + bias[of];
-    if (relu && v < 0.f) v = 0.f;
-    output[n * outF + of] = v;
-  }
+    if (lane == 0) {
+      float v = sum + bias[of];
+      if (relu && v < 0.f) v = 0.f;
+      output[n * outF + of] = v;
+    }
   }  // for of
 }
-
 
 }  // namespace cifar_sparse::cuda

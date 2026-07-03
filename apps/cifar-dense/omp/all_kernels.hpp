@@ -61,8 +61,7 @@ inline void conv3x3s1p1_batch(const float* __restrict__ u_input,
 
             float wk[OCB][3];
             for (int j = 0; j < OCB; j++) {
-              const float* __restrict__ w =
-                  u_weights + (((oc0 + j) * inC + ic) * 3 + kh) * 3;
+              const float* __restrict__ w = u_weights + (((oc0 + j) * inC + ic) * 3 + kh) * 3;
               wk[j][0] = w[0];
               wk[j][1] = w[1];
               wk[j][2] = w[2];

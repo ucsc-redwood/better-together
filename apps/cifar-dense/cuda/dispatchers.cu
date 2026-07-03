@@ -28,9 +28,7 @@ const DeviceWeights& CudaDispatcher::dev_weights(const cifar_dense::AppData& a) 
   auto it = devw_.find(&a);
   if (it != devw_.end()) return it->second;
 
-  auto sz4 = [](const auto& t) {
-    return static_cast<size_t>(t.d0()) * t.d1() * t.d2() * t.d3();
-  };
+  auto sz4 = [](const auto& t) { return static_cast<size_t>(t.d0()) * t.d1() * t.d2() * t.d3(); };
   auto sz2 = [](const auto& t) { return static_cast<size_t>(t.d0()) * t.d1(); };
   auto sz1 = [](const auto& t) { return static_cast<size_t>(t.d0()); };
 
@@ -53,7 +51,6 @@ const DeviceWeights& CudaDispatcher::dev_weights(const cifar_dense::AppData& a) 
   w.f_b[2] = upload(a.u_fc3_b.data(), sz1(a.u_fc3_b));
   return devw_.emplace(&a, w).first->second;
 }
-
 
 void CudaDispatcher::run_stage_1_async(cifar_dense::AppData& appdata) {
   LOG_KERNEL(LogKernelType::kCUDA, 1, &appdata);

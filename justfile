@@ -216,6 +216,11 @@ fmt-check:
     git ls-files '*.json' ':(exclude)dashboard/*' | xargs -r bunx prettier@3.8.4 --check --log-level warn || rc=1
     exit $rc
 
+# Install the versioned git hooks (pre-commit fmt-check gate). Run once per clone.
+setup-hooks:
+    git config core.hooksPath scripts/git-hooks
+    @echo "hooks installed: commits now run fmt-check (bypass: git commit --no-verify)"
+
 # --- static analysis & sanitizers -------------------------------------------
 # These build the OpenMP surface only (no GPU needed), so they run anywhere.
 

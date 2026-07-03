@@ -618,9 +618,8 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
 
   // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
   // the batch in 16-image tiles.
-  const uint32_t gx =
-      static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256));
+  const uint32_t gx = static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
+                                               : kiss_vk::div_ceil(batch_size * out_features, 256));
   const uint32_t gy = bt ? static_cast<uint32_t>(kiss_vk::div_ceil(batch_size, 16)) : 1u;
 
   algo->update_push_constant(LinearPushConstants{
@@ -662,9 +661,8 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::Comma
 
   // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
   // the batch in 16-image tiles.
-  const uint32_t gx =
-      static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256));
+  const uint32_t gx = static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
+                                               : kiss_vk::div_ceil(batch_size * out_features, 256));
   const uint32_t gy = bt ? static_cast<uint32_t>(kiss_vk::div_ceil(batch_size, 16)) : 1u;
 
   algo->update_push_constant(LinearPushConstants{
@@ -706,9 +704,8 @@ void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::Comma
 
   // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
   // the batch in 16-image tiles.
-  const uint32_t gx =
-      static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256));
+  const uint32_t gx = static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
+                                               : kiss_vk::div_ceil(batch_size * out_features, 256));
   const uint32_t gy = bt ? static_cast<uint32_t>(kiss_vk::div_ceil(batch_size, 16)) : 1u;
 
   algo->update_push_constant(LinearPushConstants{

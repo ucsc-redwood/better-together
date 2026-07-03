@@ -112,7 +112,9 @@ int main(int argc, char** argv) {
     // 4 threads on the 6 little cores: with w0 + main also alive, a SPINNING sync
     // in w0 visibly inflates c1_busy (core contention) while a sleeping one doesn't.
 #pragma omp parallel num_threads(4)
-    { spin_us(kCpuWorkUs); }
+    {
+      spin_us(kCpuWorkUs);
+    }
     t->c1_end = now_ns();
   };
 

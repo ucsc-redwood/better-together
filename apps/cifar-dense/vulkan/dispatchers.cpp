@@ -537,8 +537,8 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, vk::CommandBuffer cmd) {
                               });
 
   // bt: one 16-lane row per output feature, 16 rows per workgroup.
-  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, 16)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256);
+  const size_t num_groups =
+      bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   algo->update_push_constant(LinearPushConstants_v2{
       .N = batch_size,
@@ -578,8 +578,8 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, vk::CommandBuffer cmd) 
                               });
 
   // bt: one 16-lane row per output feature, 16 rows per workgroup.
-  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, 16)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256);
+  const size_t num_groups =
+      bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   algo->update_push_constant(LinearPushConstants_v2{
       .N = batch_size,
@@ -619,8 +619,8 @@ void VulkanDispatcher::record_stage_11(AppData& appdata, vk::CommandBuffer cmd) 
                               });
 
   // bt: one 16-lane row per output feature, 16 rows per workgroup.
-  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, 16)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256);
+  const size_t num_groups =
+      bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   algo->update_push_constant(LinearPushConstants_v2{
       .N = batch_size,

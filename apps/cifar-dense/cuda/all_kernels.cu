@@ -103,7 +103,6 @@ __global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
   output[out_idx] = maxv;
 }
 
-
 // 3x3 / stride-1 / pad-1 specialization (every conv in AlexNetCIFAR). The generic
 // kernel is latency-bound: one accumulator dragging a serial FMA chain through
 // inC*9 iterations with per-tap bounds checks. Here the 3x3 taps are fully
@@ -153,9 +152,9 @@ __global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
   const float* ic_ptr = in_n + (oh - 1) * inW + (ow - 1);
 
   for (int ic = 0; ic < inC; ++ic) {
-    const float* p0 = ic_ptr + ic * hw;            // row oh-1, col ow-1
-    const float* p1 = p0 + inW;                    // row oh
-    const float* p2 = p1 + inW;                    // row oh+1
+    const float* p0 = ic_ptr + ic * hw;  // row oh-1, col ow-1
+    const float* p1 = p0 + inW;          // row oh
+    const float* p2 = p1 + inW;          // row oh+1
 
     // 9 taps into registers, zero-masked at the edges.
     const float x0 = (t && l) ? p0[0] : 0.f;
@@ -182,8 +181,7 @@ __global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
             x6 * wd[6] + x7 * wd[7] + x8 * wd[8];
   }
 
-  const size_t out_base =
-      ((static_cast<size_t>(n) * outC + oc) * outH + oh) * outW + ow;
+  const size_t out_base = ((static_cast<size_t>(n) * outC + oc) * outH + oh) * outW + ow;
   const size_t px = static_cast<size_t>(outH) * outW;
   float v0 = bias[oc] + acc0, v1 = bias[oc + 1] + acc1;
   float v2 = bias[oc + 2] + acc2, v3 = bias[oc + 3] + acc3;
@@ -198,7 +196,6 @@ __global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
   output[out_base + 2 * px] = v2;
   output[out_base + 3 * px] = v3;
 }
-
 
 // Batch-tiled FC (N <= kFcMaxBatch, inF % 4 == 0). The warp-per-(n, of) kernel
 // above re-streams every 16 KB weight row once PER IMAGE (67 MB x 16 = 1.07 GB
@@ -233,8 +230,8 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
 #pragma unroll
   for (int n = 0; n < kMaxBatch; ++n) acc[n] = 0.f;
 
-  const float4* w4 = reinterpret_cast<const float4*>(
-      weights + static_cast<size_t>(of < outF ? of : 0) * inF);
+  const float4* w4 =
+      reinterpret_cast<const float4*>(weights + static_cast<size_t>(of < outF ? of : 0) * inF);
   float4* sh4 = reinterpret_cast<float4*>(sh);
 
   for (int c = 0; c < inF; c += kChunk) {
@@ -311,37 +308,36 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
   constexpr int kOutsPerWarp = 4;
   const int of0 = (blockIdx.x * warps_per_block + warp) * kOutsPerWarp;
   for (int of = of0; of < of0 + kOutsPerWarp && of < outF; ++of) {
-
-  const float* w_row = weights + static_cast<size_t>(of) * inF;
-  float sum = 0.f;
-  if ((inF & 3) == 0) {
-    // float4 loads + two independent accumulators: 4x fewer load instructions and
-    // a split FMA chain (the scalar loop was latency-bound, ~5.7 GB/s).
-    const float4* w4 = reinterpret_cast<const float4*>(w_row);
-    const float4* i4 = reinterpret_cast<const float4*>(sh_in);
-    const int n4 = inF >> 2;
-    float acc0 = 0.f, acc1 = 0.f;
-    for (int k = lane; k < n4; k += 32) {
-      const float4 w = w4[k];
-      const float4 x = i4[k];
-      acc0 += w.x * x.x + w.y * x.y;
-      acc1 += w.z * x.z + w.w * x.w;
+    const float* w_row = weights + static_cast<size_t>(of) * inF;
+    float sum = 0.f;
+    if ((inF & 3) == 0) {
+      // float4 loads + two independent accumulators: 4x fewer load instructions and
+      // a split FMA chain (the scalar loop was latency-bound, ~5.7 GB/s).
+      const float4* w4 = reinterpret_cast<const float4*>(w_row);
+      const float4* i4 = reinterpret_cast<const float4*>(sh_in);
+      const int n4 = inF >> 2;
+      float acc0 = 0.f, acc1 = 0.f;
+      for (int k = lane; k < n4; k += 32) {
+        const float4 w = w4[k];
+        const float4 x = i4[k];
+        acc0 += w.x * x.x + w.y * x.y;
+        acc1 += w.z * x.z + w.w * x.w;
+      }
+      sum = acc0 + acc1;
+    } else {
+      for (int k = lane; k < inF; k += 32) {
+        sum += sh_in[k] * w_row[k];
+      }
     }
-    sum = acc0 + acc1;
-  } else {
-    for (int k = lane; k < inF; k += 32) {
-      sum += sh_in[k] * w_row[k];
+    for (int off = 16; off > 0; off >>= 1) {
+      sum += __shfl_down_sync(0xffffffffu, sum, off);
     }
-  }
-  for (int off = 16; off > 0; off >>= 1) {
-    sum += __shfl_down_sync(0xffffffffu, sum, off);
-  }
 
-  if (lane == 0) {
-    float v = sum + bias[of];
-    if (relu && v < 0.f) v = 0.f;
-    output[n * outF + of] = v;
-  }
+    if (lane == 0) {
+      float v = sum + bias[of];
+      if (relu && v < 0.f) v = 0.f;
+      output[n * outF + of] = v;
+    }
   }  // for of
 }
 
