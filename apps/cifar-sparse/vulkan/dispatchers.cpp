@@ -110,6 +110,19 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
 
+  // 3x3/s1/p1 CSR specialization (every pruned conv in the model): literal-9
+  // decode -- the generic shader pays a runtime div/mod per nonzero -- plus two
+  // interleaved accumulators to break the serial FMA chain (CUDA-win port).
+  // Selected per stage when kernel_size==3, stride==1, padding==1.
+  auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
+                                ->work_group_size(256, 1, 1)
+                                ->num_sets(5)  // stages 1,3,5,6,7
+                                ->num_buffers(6)
+                                ->push_constant<Conv2dPushConstants>()
+                                ->build();
+
+  cached_algorithms.try_emplace("conv2d_k3s1p1", std::move(conv2d_k3s1p1_algo));
+
   auto maxpool_algo = engine.make_algo("new_cifar_sparse_maxpool")
                           ->work_group_size(256, 1, 1)
                           ->num_sets(3)  // stages 2,4,8
@@ -188,9 +201,11 @@ void VulkanDispatcher::run_stage_11(cifar_sparse::AppData& appdata) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(0,
                               {
@@ -281,9 +296,11 @@ void VulkanDispatcher::record_stage_2(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_3(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(1,
                               {
@@ -374,9 +391,11 @@ void VulkanDispatcher::record_stage_4(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(2,
                               {
@@ -425,9 +444,11 @@ void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(3,
                               {
@@ -476,9 +497,11 @@ void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::Comman
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_7(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
+
+  // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(4,
                               {
