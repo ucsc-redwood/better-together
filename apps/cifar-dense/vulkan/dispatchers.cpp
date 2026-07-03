@@ -70,6 +70,19 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("conv2d", std::move(conv2d_algo));
 
+  // 3x3/stride-1/pad-1 conv specialization (every conv in AlexNetCIFAR): fully
+  // unrolled taps with hoisted edge masks, register-blocked OC_TILE=4 output
+  // channels per thread so the 9 input taps are reused across 4 weight rows.
+  // Selected per stage when R==S==3, stride==1, padding==1 and K % 4 == 0.
+  auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1")
+                                ->work_group_size(256, 1, 1)
+                                ->num_sets(5)     // stages 1,3,5,6,7
+                                ->num_buffers(4)  // Input, Weight, Bias, Output
+                                ->push_constant<Conv2dPushConstants_v2>()
+                                ->build();
+
+  cached_algorithms.try_emplace("conv2d_k3s1p1", std::move(conv2d_k3s1p1_algo));
+
   // Create algorithm for maxpool
   auto maxpool_algo = engine.make_algo("new_cifar_dense_maxpool")
                           ->work_group_size(256, 1, 1)
@@ -126,9 +139,20 @@ void VulkanDispatcher::run_stage_11(AppData& appdata) { dispatch_multi_stage(app
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
+
+  const int batch_size = appdata.u_input.d0();   // Expected 16
+  const int in_channels = appdata.u_input.d1();  // Expected 3 (RGB)
+  const int in_height = appdata.u_input.d2();    // Expected 32
+  const int in_width = appdata.u_input.d3();     // Expected 32
+
+  const int out_channels = appdata.u_conv1_w.d0();                                // Expected 64
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 32
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 32
+
+  // 3x3/s1/p1 register-blocked specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(0,
                               {
@@ -138,16 +162,9 @@ void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
                                   engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_input.d0();   // Expected 128
-  const int in_channels = appdata.u_input.d1();  // Expected 3 (RGB)
-  const int in_height = appdata.u_input.d2();    // Expected 32
-  const int in_width = appdata.u_input.d3();     // Expected 32
-
-  const int out_channels = appdata.u_conv1_w.d0();                                // Expected 64
-  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 32
-  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 32
-
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
+  const int total_output =
+      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
   algo->update_push_constant(Conv2dPushConstants_v2{
       .N = batch_size,
@@ -213,9 +230,20 @@ void VulkanDispatcher::record_stage_2(AppData& appdata, vk::CommandBuffer cmd) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
+
+  const int batch_size = appdata.u_pool1_out.d0();   // Expected: 16
+  const int in_channels = appdata.u_pool1_out.d1();  // Expected: 64
+  const int in_height = appdata.u_pool1_out.d2();    // Expected: 16
+  const int in_width = appdata.u_pool1_out.d3();     // Expected: 16
+
+  const int out_channels = appdata.u_conv2_w.d0();                                // Expected: 192
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 16
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 16
+
+  // 3x3/s1/p1 register-blocked specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(1,
                               {
@@ -225,16 +253,9 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
                                   engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_pool1_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_pool1_out.d1();  // Expected: 64
-  const int in_height = appdata.u_pool1_out.d2();    // Expected: 16
-  const int in_width = appdata.u_pool1_out.d3();     // Expected: 16
-
-  const int out_channels = appdata.u_conv2_w.d0();                                // Expected: 192
-  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 16
-  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 16
-
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
+  const int total_output =
+      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
   algo->update_push_constant(Conv2dPushConstants_v2{
       .N = batch_size,
@@ -300,9 +321,20 @@ void VulkanDispatcher::record_stage_4(AppData& appdata, vk::CommandBuffer cmd) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
+
+  const int batch_size = appdata.u_pool2_out.d0();   // Expected: 16
+  const int in_channels = appdata.u_pool2_out.d1();  // Expected: 192
+  const int in_height = appdata.u_pool2_out.d2();    // Expected: 8
+  const int in_width = appdata.u_pool2_out.d3();     // Expected: 8
+
+  const int out_channels = appdata.u_conv3_w.d0();                                // Expected: 384
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 8
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 8
+
+  // 3x3/s1/p1 register-blocked specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(2,
                               {
@@ -312,16 +344,9 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
                                   engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_pool2_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_pool2_out.d1();  // Expected: 192
-  const int in_height = appdata.u_pool2_out.d2();    // Expected: 8
-  const int in_width = appdata.u_pool2_out.d3();     // Expected: 8
-
-  const int out_channels = appdata.u_conv3_w.d0();                                // Expected: 384
-  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 8
-  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 8
-
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
+  const int total_output =
+      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
   algo->update_push_constant(Conv2dPushConstants_v2{
       .N = batch_size,
@@ -346,9 +371,20 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
+
+  const int batch_size = appdata.u_conv3_out.d0();   // Expected: 16
+  const int in_channels = appdata.u_conv3_out.d1();  // Expected: 384
+  const int in_height = appdata.u_conv3_out.d2();    // Expected: 8
+  const int in_width = appdata.u_conv3_out.d3();     // Expected: 8
+
+  const int out_channels = appdata.u_conv4_w.d0();                                // Expected: 256
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 8
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 8
+
+  // 3x3/s1/p1 register-blocked specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(3,
                               {
@@ -358,16 +394,9 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
                                   engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_conv3_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_conv3_out.d1();  // Expected: 384
-  const int in_height = appdata.u_conv3_out.d2();    // Expected: 8
-  const int in_width = appdata.u_conv3_out.d3();     // Expected: 8
-
-  const int out_channels = appdata.u_conv4_w.d0();                                // Expected: 256
-  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 8
-  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 8
-
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
+  const int total_output =
+      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
   algo->update_push_constant(Conv2dPushConstants_v2{
       .N = batch_size,
@@ -392,9 +421,20 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
-  auto algo = cached_algorithms.at("conv2d").get();
-
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
+
+  const int batch_size = appdata.u_conv4_out.d0();   // Expected: 16
+  const int in_channels = appdata.u_conv4_out.d1();  // Expected: 256
+  const int in_height = appdata.u_conv4_out.d2();    // Expected: 8
+  const int in_width = appdata.u_conv4_out.d3();     // Expected: 8
+
+  const int out_channels = appdata.u_conv5_w.d0();                                // Expected: 256
+  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 8
+  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 8
+
+  // 3x3/s1/p1 register-blocked specialization when shapes allow; generic fallback.
+  const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
+  auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   algo->update_descriptor_set(4,
                               {
@@ -404,16 +444,9 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
                                   engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
                               });
 
-  const int batch_size = appdata.u_conv4_out.d0();   // Expected: 128
-  const int in_channels = appdata.u_conv4_out.d1();  // Expected: 256
-  const int in_height = appdata.u_conv4_out.d2();    // Expected: 8
-  const int in_width = appdata.u_conv4_out.d3();     // Expected: 8
-
-  const int out_channels = appdata.u_conv5_w.d0();                                // Expected: 256
-  const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;  // 8
-  const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;    // 8
-
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
+  const int total_output =
+      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
   algo->update_push_constant(Conv2dPushConstants_v2{
       .N = batch_size,
