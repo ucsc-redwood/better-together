@@ -79,19 +79,21 @@ build: build-jetson build-x86 build-android
 # shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
 # bt-cross:7.2 podman image lives there, not on this box).
 
-# Both build ON rocky (the build host for everything since the old box retired)
-# and pull the binaries back; see scripts/build-bench-on-rocky.sh.
+# All three build ON rocky (the build host for everything since the old box
+# retired) and pull the binaries back. Each leg gets its OWN remote source dir:
+# the fleet orchestrator runs them CONCURRENTLY, and three `rsync --delete`s
+# into one dir race each other (exit 24, vanished files mid-enumeration).
 build-bench-x86:
-    scripts/build-bench-on-rocky.sh vulkan
+    BT_BENCH_SRC=bt-src-vulkan scripts/build-bench-on-rocky.sh vulkan
 
 build-bench-android:
-    scripts/build-bench-on-rocky.sh android
+    BT_BENCH_SRC=bt-src-android scripts/build-bench-on-rocky.sh android
 
 # Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2 podman
 # image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
 # rsync->podman->pull flow lives in a standalone script (cf. scripts/run-on-*.sh).
 build-bench-jetson:
-    BT_BENCH_JETSON_HOST={{minipc_host}} scripts/build-bench-jetson.sh
+    BT_BENCH_JETSON_HOST={{minipc_host}} BT_BENCH_SRC=bt-src-jetson scripts/build-bench-jetson.sh
 
 # Run the whole fleet benchmark e2e concurrently with live progress (see
 # optimizer/orchestrate/00_run_fleet.py --help). Pass-through args, e.g.
