@@ -16,8 +16,10 @@ precision highp int;
 // (rows-per-workgroup)-fold.
 //
 // Dispatcher contract (falls back to the generic shader otherwise):
-//   N <= MAX_N (16), in_features % 4 == 0.
+//   in_features % 4 == 0.
 //   grid.x = ceil(out_features / ROWS)
+//   grid.y = ceil(N / MAX_N) -- each workgroup handles one batch tile of up to
+//   MAX_N images (cifar-sparse runs N=128: 8 tiles; cifar-dense's N=16: 1).
 //
 // Portable GLSL: shared-memory reduction only (no subgroup ops), 12 KB shared
 // (<= the 16 KB Vulkan minimum), fixed local_size 256.
@@ -41,7 +43,7 @@ layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
 };
 
 layout(push_constant) uniform Params {
-  int N;             // Batch size (<= MAX_N)
+  int N;             // Batch size (grid.y tiles it in groups of MAX_N)
   int in_features;   // Number of input features (% 4 == 0)
   int out_features;  // Number of output features
   int apply_relu;    // 1 to apply ReLU, 0 otherwise
@@ -63,6 +65,9 @@ void main() {
   const int of = int(gl_WorkGroupID.x) * ROWS + row;
   const bool live = of < params.out_features;
 
+  // Batch-tile base: this workgroup handles images [nb, nb + MAX_N).
+  const int nb = int(gl_WorkGroupID.y) * MAX_N;
+
   const int in_f4 = params.in_features / 4;
   // Inactive rows still walk the loop (uniform barriers); clamp their row base.
   const int w_base = (live ? of : 0) * in_f4;
@@ -73,12 +78,13 @@ void main() {
   for (int n = 0; n < MAX_N; ++n) acc[n] = 0.0;
 
   for (int c4 = 0; c4 < in_f4; c4 += CHUNK4) {
-    // Cooperative staging of input columns [c4, c4+CHUNK4) for all images.
+    // Cooperative staging of input columns [c4, c4+CHUNK4) for the tile's images.
     for (int i = tid; i < MAX_N * CHUNK4; i += 256) {
       const int n = i / CHUNK4;
       const int j = i % CHUNK4;
-      sh_in[i] = (n < params.N && c4 + j < in_f4) ? input_data4[n * in_f4 + c4 + j]
-                                                  : vec4(0.0);
+      sh_in[i] = (nb + n < params.N && c4 + j < in_f4)
+                     ? input_data4[(nb + n) * in_f4 + c4 + j]
+                     : vec4(0.0);
     }
     barrier();
 
@@ -97,7 +103,7 @@ void main() {
 
   // Reduce the ROW_W lane partials of each row, four images per pass (vec4-packed).
   for (int n0 = 0; n0 < MAX_N; n0 += 4) {
-    if (n0 >= params.N) break;  // uniform (params.N): all invocations exit together
+    if (nb + n0 >= params.N) break;  // uniform (params.N, nb): all exit together
     sh_red[tid] = vec4(acc[n0], acc[n0 + 1], acc[n0 + 2], acc[n0 + 3]);
     barrier();
     if (live && lane == 0) {
@@ -105,10 +111,10 @@ void main() {
       for (int i = 1; i < ROW_W; ++i) s += sh_red[row * ROW_W + i];
       const float b = bias_data[of];
       for (int m = 0; m < 4; ++m) {
-        if (n0 + m < params.N) {
+        if (nb + n0 + m < params.N) {
           float v = s[m] + b;
           if (params.apply_relu != 0 && v < 0.0) v = 0.0;
-          output_data[(n0 + m) * params.out_features + of] = v;
+          output_data[(nb + n0 + m) * params.out_features + of] = v;
         }
       }
     }
