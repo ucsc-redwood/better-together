@@ -77,9 +77,11 @@ void CudaDispatcher::run_stage_2_async(tree::SafeAppData& appdata) {
   cub::DeviceRadixSort::SortKeys(
       d_temp_storage, temp_storage_bytes, d_keys_in, d_keys_out, num_items);
 
-  // Keep the stage synchronous on completion (host-side readers and the profiler
-  // rely on it; the scratch itself needs no sync -- reuse is stream-ordered).
-  CheckCuda(cudaDeviceSynchronize());
+  // NO sync here: stage 3 consumes the sorted keys ON DEVICE (stream-ordered), and
+  // chunk-end / single-stage completion is owned by dispatch_multi_stage /
+  // dispatch_stage. A device-wide sync per stage costs ~20 us and serializes the
+  // launch pipeline (measured by bm-runtime-null-cu: per-stage sync turned a 50 us
+  // GPU chunk into 169 us). The scratch needs no sync either -- reuse is stream-ordered.
 
   if constexpr (kSync) {
     CheckCuda(cudaGetLastError());
@@ -117,6 +119,8 @@ void CudaDispatcher::run_stage_3_async(tree::SafeAppData& appdata) {
                                       appdata.u_num_selected_out.data(),
                                       num_items));
 
+  // REQUIRED sync: the host reads u_num_selected_out below to size every later
+  // stage's launch -- a true device->host data dependency, not framework tax.
   CheckCuda(cudaDeviceSynchronize());
 
   // -------- host --------------
@@ -193,6 +197,8 @@ void CudaDispatcher::run_stage_6_async(tree::SafeAppData& appdata) {
                                 appdata.u_edge_offset_s6_out.data(),
                                 appdata.get_n_brt_nodes());
 
+  // REQUIRED sync: the host reads the scan total below (octree node count) -- a
+  // true device->host data dependency, not framework tax.
   CheckCuda(cudaDeviceSynchronize());
 
   // -------- host --------------
