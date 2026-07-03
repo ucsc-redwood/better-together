@@ -18,7 +18,10 @@ using AppDataPtr = std::unique_ptr<AppDataT>;
 // AlexNetCIFAR AppData is ~250 MB (two 4096x4096 FC weights); pool x 250 MB must fit a
 // 7.4 GB Jetson alongside the OS.
 constexpr size_t kPoolSize = 4;
-constexpr size_t kNumToProcess = 100;
+// 32 (not 100): the 11-stage model is ~27x heavier per image than the old one;
+// 32 tasks still amortize pipeline ramp-up (pool 4) while keeping a 10-schedule
+// sweep on a phone inside minutes instead of hours.
+constexpr size_t kNumToProcess = 32;
 
 using QueueT = SPSCQueue<AppDataT*, kPoolSize>;
 using LocalQueue = std::queue<AppDataT*>;
