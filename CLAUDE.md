@@ -57,10 +57,14 @@ Status, audits, decision logs, and roadmaps (the *why* and *where we are*) are i
 ## Build & test (quickstart)
 
 ```bash
+just setup-hooks           # once per clone: pre-commit then runs `just fmt-check`
 cmake --preset pc          # CPU/OpenMP only; deps auto-fetched via CPM
 cmake --build --preset pc
 ctest --test-dir build/pc -L omp --output-on-failure   # the everyday gate
 ```
+
+Run `just fmt` before committing — CI's fmt-check job rejects unformatted code
+(the pre-commit hook catches it locally once installed).
 
 Jetson (CUDA), rocky-ryzen (Vulkan), and Android recipes:
 [`02-building.md`](docs/instruction-for-ai/02-building.md) ·
