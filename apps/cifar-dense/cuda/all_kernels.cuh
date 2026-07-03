@@ -57,8 +57,11 @@ inline void conv2d_batch_cuda(const float* input,
   const int TPB = 256;
   int blocks = (total + TPB - 1) / TPB;
 
-  if (kH == 3 && kW == 3 && stride == 1 && padding == 1) {
-    conv2d_batch_k3s1p1_kernel<<<blocks, TPB>>>(
+  if (kH == 3 && kW == 3 && stride == 1 && padding == 1 && (outC & 3) == 0) {
+    // Specialized kernel computes 4 output channels per thread.
+    int total4 = N * (outC / 4) * outH * outW;
+    int blocks4 = (total4 + TPB - 1) / TPB;
+    conv2d_batch_k3s1p1_kernel<<<blocks4, TPB>>>(
         input, weights, bias, output, N, inC, inH, inW, outC, outH, outW, relu);
     CheckCudaLaunch("conv2d_batch_k3s1p1_kernel");
     return;

@@ -121,24 +121,34 @@ __global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
                                            int outH,
                                            int outW,
                                            bool relu) {
+  // Register blocking: each thread computes kOcTile=4 output channels for its
+  // pixel, so the 9 input taps are loaded ONCE per ic and reused across 4
+  // weight rows (4x fewer input loads, 4 independent FMA chains).
+  constexpr int kOcTile = 4;
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int total = N * outC * outH * outW;
+  const int oc_tiles = outC / kOcTile;  // launcher guarantees outC % 4 == 0
+  int total = N * oc_tiles * outH * outW;
   if (idx >= total) return;
 
   int ow = idx % outW;
   int tmp = idx / outW;
   int oh = tmp % outH;
   tmp /= outH;
-  int oc = tmp % outC;
-  int n = tmp / outC;
+  int oct = tmp % oc_tiles;
+  int n = tmp / oc_tiles;
+  const int oc = oct * kOcTile;
 
   // Edge masks, constant per thread (outH==inH, outW==inW for s1p1).
   const bool t = oh > 0, b = oh < inH - 1, l = ow > 0, r = ow < inW - 1;
 
   const float* in_n = input + static_cast<size_t>(n) * inC * inH * inW;
-  const float* w_oc = weights + static_cast<size_t>(oc) * inC * 9;
+  const size_t wrow = static_cast<size_t>(inC) * 9;
+  const float* w0 = weights + static_cast<size_t>(oc) * wrow;
+  const float* w1 = w0 + wrow;
+  const float* w2 = w1 + wrow;
+  const float* w3 = w2 + wrow;
 
-  float s0 = 0.f, s1 = 0.f;
+  float acc0 = 0.f, acc1 = 0.f, acc2 = 0.f, acc3 = 0.f;
   const int hw = inH * inW;
   const float* ic_ptr = in_n + (oh - 1) * inW + (ow - 1);
 
@@ -146,29 +156,47 @@ __global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
     const float* p0 = ic_ptr + ic * hw;            // row oh-1, col ow-1
     const float* p1 = p0 + inW;                    // row oh
     const float* p2 = p1 + inW;                    // row oh+1
-    const float* w = w_oc + ic * 9;
 
-    float a0 = 0.f, a1 = 0.f;
-    if (t) {
-      if (l) a0 += p0[0] * w[0];
-      a1 += p0[1] * w[1];
-      if (r) a0 += p0[2] * w[2];
-    }
-    if (l) a1 += p1[0] * w[3];
-    a0 += p1[1] * w[4];
-    if (r) a1 += p1[2] * w[5];
-    if (b) {
-      if (l) a0 += p2[0] * w[6];
-      a1 += p2[1] * w[7];
-      if (r) a0 += p2[2] * w[8];
-    }
-    s0 += a0;
-    s1 += a1;
+    // 9 taps into registers, zero-masked at the edges.
+    const float x0 = (t && l) ? p0[0] : 0.f;
+    const float x1 = t ? p0[1] : 0.f;
+    const float x2 = (t && r) ? p0[2] : 0.f;
+    const float x3 = l ? p1[0] : 0.f;
+    const float x4 = p1[1];
+    const float x5 = r ? p1[2] : 0.f;
+    const float x6 = (b && l) ? p2[0] : 0.f;
+    const float x7 = b ? p2[1] : 0.f;
+    const float x8 = (b && r) ? p2[2] : 0.f;
+
+    const float* wa = w0 + ic * 9;
+    const float* wb = w1 + ic * 9;
+    const float* wc = w2 + ic * 9;
+    const float* wd = w3 + ic * 9;
+    acc0 += x0 * wa[0] + x1 * wa[1] + x2 * wa[2] + x3 * wa[3] + x4 * wa[4] + x5 * wa[5] +
+            x6 * wa[6] + x7 * wa[7] + x8 * wa[8];
+    acc1 += x0 * wb[0] + x1 * wb[1] + x2 * wb[2] + x3 * wb[3] + x4 * wb[4] + x5 * wb[5] +
+            x6 * wb[6] + x7 * wb[7] + x8 * wb[8];
+    acc2 += x0 * wc[0] + x1 * wc[1] + x2 * wc[2] + x3 * wc[3] + x4 * wc[4] + x5 * wc[5] +
+            x6 * wc[6] + x7 * wc[7] + x8 * wc[8];
+    acc3 += x0 * wd[0] + x1 * wd[1] + x2 * wd[2] + x3 * wd[3] + x4 * wd[4] + x5 * wd[5] +
+            x6 * wd[6] + x7 * wd[7] + x8 * wd[8];
   }
 
-  float v = bias[oc] + s0 + s1;
-  if (relu && v < 0.f) v = 0.f;
-  output[idx] = v;
+  const size_t out_base =
+      ((static_cast<size_t>(n) * outC + oc) * outH + oh) * outW + ow;
+  const size_t px = static_cast<size_t>(outH) * outW;
+  float v0 = bias[oc] + acc0, v1 = bias[oc + 1] + acc1;
+  float v2 = bias[oc + 2] + acc2, v3 = bias[oc + 3] + acc3;
+  if (relu) {
+    v0 = v0 < 0.f ? 0.f : v0;
+    v1 = v1 < 0.f ? 0.f : v1;
+    v2 = v2 < 0.f ? 0.f : v2;
+    v3 = v3 < 0.f ? 0.f : v3;
+  }
+  output[out_base] = v0;
+  output[out_base + px] = v1;
+  output[out_base + 2 * px] = v2;
+  output[out_base + 3 * px] = v3;
 }
 
 
