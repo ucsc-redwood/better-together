@@ -142,12 +142,13 @@ inline void linear_batch_cuda(const float* input,
                               int inF,
                               int outF,
                               bool relu) {
-  if (N <= 16 && (inF & 3) == 0 && (inF % 512) == 0) {
-    // Batch-tiled path: one weight-row pass serves all N images (see kernel doc).
+  if ((inF & 3) == 0 && (inF % 512) == 0) {
+    // Batch-tiled path: one weight-row pass serves a 16-image tile (grid.y
+    // covers larger batches, e.g. cifar-sparse at N=128).
     const int TPB = 512;
     const int warps_per_block = TPB / 32;
-    const int blocks = (outF + warps_per_block - 1) / warps_per_block;
-    const size_t shmem = static_cast<size_t>(N) * 512 * sizeof(float);
+    const dim3 blocks((outF + warps_per_block - 1) / warps_per_block, (N + 15) / 16);
+    const size_t shmem = static_cast<size_t>(16) * 512 * sizeof(float);
     linear_batch_bt_kernel<<<blocks, TPB, shmem>>>(
         input, weights, bias, output, N, inF, outF, relu);
     CheckCudaLaunch("linear_batch_bt_kernel");

@@ -225,6 +225,10 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
   const int lane = threadIdx.x & 31;
   const int of = blockIdx.x * warps_per_block + warp;
 
+  // grid.y tiles the batch in groups of kMaxBatch (cifar-sparse runs N=128).
+  const int n0 = blockIdx.y * kMaxBatch;
+  const int nb = (N - n0) < kMaxBatch ? (N - n0) : kMaxBatch;
+
   float acc[kMaxBatch];
 #pragma unroll
   for (int n = 0; n < kMaxBatch; ++n) acc[n] = 0.f;
@@ -235,12 +239,12 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
 
   for (int c = 0; c < inF; c += kChunk) {
     // Cooperative float4 staging of columns [c, c+kChunk) for all N images.
-    const int n_f4 = (N * kChunk) >> 2;
+    const int n_f4 = (nb * kChunk) >> 2;
     for (int i = threadIdx.x; i < n_f4; i += blockDim.x) {
       const int flat = i << 2;
       const int n = flat / kChunk;
       const int j = flat - n * kChunk;
-      sh4[i] = *reinterpret_cast<const float4*>(&input[n * inF + c + j]);
+      sh4[i] = *reinterpret_cast<const float4*>(&input[(n0 + n) * inF + c + j]);
     }
     __syncthreads();
 
@@ -250,7 +254,7 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
       for (int k = lane; k < chunk4; k += 32) {
         const float4 w = w4[c4 + k];
         const float4* col = sh4 + k;
-        for (int n = 0; n < N; ++n) {
+        for (int n = 0; n < nb; ++n) {
           const float4 x = col[n * chunk4];
           acc[n] += w.x * x.x + w.y * x.y + w.z * x.z + w.w * x.w;
         }
@@ -260,13 +264,13 @@ __global__ void linear_batch_bt_kernel(const float* __restrict__ input,
   }
 
   if (of >= outF) return;
-  for (int n = 0; n < N; ++n) {
+  for (int n = 0; n < nb; ++n) {
     float v = acc[n];
     for (int off = 16; off > 0; off >>= 1) v += __shfl_down_sync(0xffffffffu, v, off);
     if (lane == 0) {
       v += bias[of];
       if (relu && v < 0.f) v = 0.f;
-      output[n * outF + of] = v;
+      output[(n0 + n) * outF + of] = v;
     }
   }
 }
