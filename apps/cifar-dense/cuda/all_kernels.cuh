@@ -113,6 +113,15 @@ inline void maxpool2d_batch_cuda(const float* input,
   CheckCudaLaunch("maxpool2d_batch_kernel");
 }
 
+__global__ void linear_batch_bt_kernel(const float* __restrict__ input,
+                                       const float* __restrict__ weights,
+                                       const float* __restrict__ bias,
+                                       float* __restrict__ output,
+                                       int N,
+                                       int inF,
+                                       int outF,
+                                       bool relu);
+
 __global__ void linear_batch_kernel(const float* __restrict__ input,
                                     const float* __restrict__ weights,
                                     const float* __restrict__ bias,
@@ -130,8 +139,20 @@ inline void linear_batch_cuda(const float* input,
                               int inF,
                               int outF,
                               bool relu) {
-  // Warp-cooperative FC: 16 warps per block, 4 consecutive outputs per warp
-  // (= 64 outputs per block) from ONE staged input row (16 KB at inF=4096).
+  if (N <= 16 && (inF & 3) == 0 && (inF % 512) == 0) {
+    // Batch-tiled path: one weight-row pass serves all N images (see kernel doc).
+    const int TPB = 512;
+    const int warps_per_block = TPB / 32;
+    const int blocks = (outF + warps_per_block - 1) / warps_per_block;
+    const size_t shmem = static_cast<size_t>(N) * 512 * sizeof(float);
+    linear_batch_bt_kernel<<<blocks, TPB, shmem>>>(
+        input, weights, bias, output, N, inF, outF, relu);
+    CheckCudaLaunch("linear_batch_bt_kernel");
+    return;
+  }
+
+  // Fallback: warp-cooperative FC, 4 consecutive outputs per warp from one
+  // staged input row (16 KB at inF=4096).
   const int TPB = 512;
   const int outs_per_block = (TPB / 32) * 4;  // warps x kOutsPerWarp
   const dim3 blocks((outF + outs_per_block - 1) / outs_per_block, N);

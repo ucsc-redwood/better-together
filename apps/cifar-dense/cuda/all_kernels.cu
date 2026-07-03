@@ -171,6 +171,78 @@ __global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
   output[idx] = v;
 }
 
+
+// Batch-tiled FC (N <= kFcMaxBatch, inF % 4 == 0). The warp-per-(n, of) kernel
+// above re-streams every 16 KB weight row once PER IMAGE (67 MB x 16 = 1.07 GB
+// at fc1) and sits at the DRAM ceiling (~94 GB/s -> 11.4 ms). Here a warp owns
+// one output feature and accumulates ALL N images while streaming its weight
+// row ONCE; input columns are staged chunk-by-chunk in shared memory and shared
+// by the whole block. Weight traffic drops N-fold.
+// Launch: TPB = 512 (16 warps = 16 outputs/block); grid.x = ceil(outF/16);
+// dynamic shared = N * kFcChunk * 4 bytes.
+__global__ void linear_batch_bt_kernel(const float* __restrict__ input,
+                                       const float* __restrict__ weights,
+                                       const float* __restrict__ bias,
+                                       float* __restrict__ output,
+                                       int N,
+                                       int inF,
+                                       int outF,
+                                       bool relu) {
+  extern __shared__ float sh[];  // [N][kFcChunk]
+  constexpr int kChunk = 512;
+  constexpr int kMaxBatch = 16;
+
+  const int warps_per_block = blockDim.x >> 5;
+  const int warp = threadIdx.x >> 5;
+  const int lane = threadIdx.x & 31;
+  const int of = blockIdx.x * warps_per_block + warp;
+
+  float acc[kMaxBatch];
+#pragma unroll
+  for (int n = 0; n < kMaxBatch; ++n) acc[n] = 0.f;
+
+  const float4* w4 = reinterpret_cast<const float4*>(
+      weights + static_cast<size_t>(of < outF ? of : 0) * inF);
+  float4* sh4 = reinterpret_cast<float4*>(sh);
+
+  for (int c = 0; c < inF; c += kChunk) {
+    // Cooperative float4 staging of columns [c, c+kChunk) for all N images.
+    const int n_f4 = (N * kChunk) >> 2;
+    for (int i = threadIdx.x; i < n_f4; i += blockDim.x) {
+      const int flat = i << 2;
+      const int n = flat / kChunk;
+      const int j = flat - n * kChunk;
+      sh4[i] = *reinterpret_cast<const float4*>(&input[n * inF + c + j]);
+    }
+    __syncthreads();
+
+    if (of < outF) {
+      const int c4 = c >> 2;
+      const int chunk4 = kChunk >> 2;
+      for (int k = lane; k < chunk4; k += 32) {
+        const float4 w = w4[c4 + k];
+        const float4* col = sh4 + k;
+        for (int n = 0; n < N; ++n) {
+          const float4 x = col[n * chunk4];
+          acc[n] += w.x * x.x + w.y * x.y + w.z * x.z + w.w * x.w;
+        }
+      }
+    }
+    __syncthreads();
+  }
+
+  if (of >= outF) return;
+  for (int n = 0; n < N; ++n) {
+    float v = acc[n];
+    for (int off = 16; off > 0; off >>= 1) v += __shfl_down_sync(0xffffffffu, v, off);
+    if (lane == 0) {
+      v += bias[of];
+      if (relu && v < 0.f) v = 0.f;
+      output[n * outF + of] = v;
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 3) linear_batch
 //    Warp-per-(n, of). The old thread-per-output kernel had each lane of a warp
