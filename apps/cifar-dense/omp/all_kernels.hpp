@@ -121,6 +121,13 @@ inline void conv2d_batch_u(const float* __restrict__ u_input,
   // constructs stay consistent. (OCB=2 for width 32: 4x32 accumulators would
   // exceed the vector register file.)
   if (stride == 1 && padding == 1 && kH == 3 && kW == 3 && outH == inH && outW == inW) {
+    if (outW == 8 && outC % 8 == 0) {
+      // An 8-wide row fits a single vector, so a deeper 8-channel block still
+      // fits the register file and halves the per-MAC padded-row/input cost.
+      detail::conv3x3s1p1_batch<8, 8>(
+          u_input, u_weights, u_bias, u_output, N, inC, inH, outC, relu);
+      return;
+    }
     if (outW == 8 && outC % 4 == 0) {
       detail::conv3x3s1p1_batch<8, 4>(
           u_input, u_weights, u_bias, u_output, N, inC, inH, outC, relu);
