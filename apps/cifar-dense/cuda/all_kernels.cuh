@@ -21,6 +21,19 @@ __global__ void conv2d_batch_kernel(const float* __restrict__ input,
                                     int padding,
                                     bool relu);
 
+__global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
+                                           const float* __restrict__ weights,
+                                           const float* __restrict__ bias,
+                                           float* __restrict__ output,
+                                           int N,
+                                           int inC,
+                                           int inH,
+                                           int inW,
+                                           int outC,
+                                           int outH,
+                                           int outW,
+                                           bool relu);
+
 // ---------------------------------------------------------
 // 2) Host‐side launcher (Helper to make it easier to call)
 // ---------------------------------------------------------
@@ -43,6 +56,16 @@ inline void conv2d_batch_cuda(const float* input,
   int total = N * outC * outH * outW;
   const int TPB = 256;
   int blocks = (total + TPB - 1) / TPB;
+
+  if (kH == 3 && kW == 3 && stride == 1 && padding == 1 && (outC & 3) == 0) {
+    // Specialized kernel computes 4 output channels per thread.
+    int total4 = N * (outC / 4) * outH * outW;
+    int blocks4 = (total4 + TPB - 1) / TPB;
+    conv2d_batch_k3s1p1_kernel<<<blocks4, TPB>>>(
+        input, weights, bias, output, N, inC, inH, inW, outC, outH, outW, relu);
+    CheckCudaLaunch("conv2d_batch_k3s1p1_kernel");
+    return;
+  }
 
   conv2d_batch_kernel<<<blocks, TPB>>>(input,
                                        weights,
@@ -93,6 +116,15 @@ inline void maxpool2d_batch_cuda(const float* input,
   CheckCudaLaunch("maxpool2d_batch_kernel");
 }
 
+__global__ void linear_batch_bt_kernel(const float* __restrict__ input,
+                                       const float* __restrict__ weights,
+                                       const float* __restrict__ bias,
+                                       float* __restrict__ output,
+                                       int N,
+                                       int inF,
+                                       int outF,
+                                       bool relu);
+
 __global__ void linear_batch_kernel(const float* __restrict__ input,
                                     const float* __restrict__ weights,
                                     const float* __restrict__ bias,
@@ -110,11 +142,27 @@ inline void linear_batch_cuda(const float* input,
                               int inF,
                               int outF,
                               bool relu) {
-  int total = N * outF;
-  const int TPB = 256;
-  int blocks = (total + TPB - 1) / TPB;
+  if ((inF & 3) == 0 && (inF % 512) == 0) {
+    // Batch-tiled path: one weight-row pass serves a 16-image tile (grid.y
+    // covers larger batches, e.g. cifar-sparse at N=128).
+    const int TPB = 512;
+    const int warps_per_block = TPB / 32;
+    const dim3 blocks((outF + warps_per_block - 1) / warps_per_block, (N + 15) / 16);
+    const size_t shmem = static_cast<size_t>(16) * 512 * sizeof(float);
+    linear_batch_bt_kernel<<<blocks, TPB, shmem>>>(
+        input, weights, bias, output, N, inF, outF, relu);
+    CheckCudaLaunch("linear_batch_bt_kernel");
+    return;
+  }
 
-  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF, relu);
+  // Fallback: warp-cooperative FC, 4 consecutive outputs per warp from one
+  // staged input row (16 KB at inF=4096).
+  const int TPB = 512;
+  const int outs_per_block = (TPB / 32) * 4;  // warps x kOutsPerWarp
+  const dim3 blocks((outF + outs_per_block - 1) / outs_per_block, N);
+  const size_t shmem = static_cast<size_t>(inF) * sizeof(float);
+
+  linear_batch_kernel<<<blocks, TPB, shmem>>>(input, weights, bias, output, N, inF, outF, relu);
   CheckCudaLaunch("linear_batch_kernel");
 }
 

@@ -1,9 +1,23 @@
 #pragma once
 
+#include <map>
+
 #include "apps/cifar-dense/appdata.hpp"
 #include "platform/engine/cuda/manager.cuh"
 
 namespace cifar_dense::cuda {
+
+// Device-resident mirror of one AppData's weights/biases. The model parameters
+// are READ-ONLY and never part of the CPU<->GPU pipeline handoff, so there is no
+// reason for GPU kernels to stream them from uncached zero-copy pinned memory
+// (measured ~5.7 GB/s on Orin vs ~60 GB/s DRAM). Activations stay zero-copy --
+// they ARE the handoff surface.
+struct DeviceWeights {
+  float* c_w[5];  // conv1..conv5 weights
+  float* c_b[5];  // conv1..conv5 biases
+  float* f_w[3];  // fc1..fc3 weights
+  float* f_b[3];  // fc1..fc3 biases
+};
 
 class CudaDispatcher {
  public:
@@ -14,7 +28,13 @@ class CudaDispatcher {
   CudaDispatcher(CudaDispatcher&&) = delete;
   CudaDispatcher& operator=(CudaDispatcher&&) = delete;
 
+  ~CudaDispatcher();
+
   ::cuda::CudaPinnedResource& get_mr() { return mgr_.get_mr(); }
+
+  // Lazily upload appdata's weights to device memory (once per AppData; pool
+  // slots are stable for the pipeline's lifetime) and return the mirror.
+  const DeviceWeights& dev_weights(const cifar_dense::AppData& appdata);
 
   void run_stage_1_async(cifar_dense::AppData& appdata);
   void run_stage_2_async(cifar_dense::AppData& appdata);
@@ -66,6 +86,7 @@ class CudaDispatcher {
 
  private:
   ::cuda::CudaManager<::cuda::CudaPinnedResource> mgr_;
+  std::map<const cifar_dense::AppData*, DeviceWeights> devw_;
 };
 
 }  // namespace cifar_dense::cuda
