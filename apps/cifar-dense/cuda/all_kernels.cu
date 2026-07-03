@@ -103,9 +103,83 @@ __global__ void maxpool2d_batch_kernel(const float* __restrict__ input,
   output[out_idx] = maxv;
 }
 
+
+// 3x3 / stride-1 / pad-1 specialization (every conv in AlexNetCIFAR). The generic
+// kernel is latency-bound: one accumulator dragging a serial FMA chain through
+// inC*9 iterations with per-tap bounds checks. Here the 3x3 taps are fully
+// unrolled with edge masks hoisted out (constant per thread), and two ic-slices
+// accumulate independently to break the dependency chain.
+__global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
+                                           const float* __restrict__ weights,
+                                           const float* __restrict__ bias,
+                                           float* __restrict__ output,
+                                           int N,
+                                           int inC,
+                                           int inH,
+                                           int inW,
+                                           int outC,
+                                           int outH,
+                                           int outW,
+                                           bool relu) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int total = N * outC * outH * outW;
+  if (idx >= total) return;
+
+  int ow = idx % outW;
+  int tmp = idx / outW;
+  int oh = tmp % outH;
+  tmp /= outH;
+  int oc = tmp % outC;
+  int n = tmp / outC;
+
+  // Edge masks, constant per thread (outH==inH, outW==inW for s1p1).
+  const bool t = oh > 0, b = oh < inH - 1, l = ow > 0, r = ow < inW - 1;
+
+  const float* in_n = input + static_cast<size_t>(n) * inC * inH * inW;
+  const float* w_oc = weights + static_cast<size_t>(oc) * inC * 9;
+
+  float s0 = 0.f, s1 = 0.f;
+  const int hw = inH * inW;
+  const float* ic_ptr = in_n + (oh - 1) * inW + (ow - 1);
+
+  for (int ic = 0; ic < inC; ++ic) {
+    const float* p0 = ic_ptr + ic * hw;            // row oh-1, col ow-1
+    const float* p1 = p0 + inW;                    // row oh
+    const float* p2 = p1 + inW;                    // row oh+1
+    const float* w = w_oc + ic * 9;
+
+    float a0 = 0.f, a1 = 0.f;
+    if (t) {
+      if (l) a0 += p0[0] * w[0];
+      a1 += p0[1] * w[1];
+      if (r) a0 += p0[2] * w[2];
+    }
+    if (l) a1 += p1[0] * w[3];
+    a0 += p1[1] * w[4];
+    if (r) a1 += p1[2] * w[5];
+    if (b) {
+      if (l) a0 += p2[0] * w[6];
+      a1 += p2[1] * w[7];
+      if (r) a0 += p2[2] * w[8];
+    }
+    s0 += a0;
+    s1 += a1;
+  }
+
+  float v = bias[oc] + s0 + s1;
+  if (relu && v < 0.f) v = 0.f;
+  output[idx] = v;
+}
+
 // ---------------------------------------------------------------------------
 // 3) linear_batch
-//    One thread per (n, of)
+//    Warp-per-(n, of). The old thread-per-output kernel had each lane of a warp
+//    scanning a DIFFERENT 16 KB weight row, so every 128-byte transaction served
+//    one 4-byte float (measured 2.6% bandwidth utilization on Orin). Here the 32
+//    lanes stride one row together (fully coalesced) and reduce via shuffles; the
+//    input row is staged in shared memory once per block.
+//    Launch: blockDim.x = multiple of 32; grid = (ceil(outF/warps_per_block), N);
+//    dynamic shared memory = inF * sizeof(float).
 // ---------------------------------------------------------------------------
 __global__ void linear_batch_kernel(const float* __restrict__ input,
                                     const float* __restrict__ weights,
@@ -115,23 +189,56 @@ __global__ void linear_batch_kernel(const float* __restrict__ input,
                                     int inF,
                                     int outF,
                                     bool relu) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int total = N * outF;
-  if (idx >= total) return;
+  extern __shared__ float sh_in[];
+  const int n = blockIdx.y;
 
-  int of = idx % outF;
-  int n = idx / outF;
+  for (int i = threadIdx.x; i < inF; i += blockDim.x) {
+    sh_in[i] = input[n * inF + i];
+  }
+  __syncthreads();
 
-  float sum = bias[of];
-  const float* in_row = input + n * inF;
-  const float* w_row = weights + of * inF;
-  for (int i = 0; i < inF; ++i) {
-    sum += in_row[i] * w_row[i];
+  const int warps_per_block = blockDim.x >> 5;
+  const int warp = threadIdx.x >> 5;
+  const int lane = threadIdx.x & 31;
+
+  // Each warp computes kOutsPerWarp consecutive outputs from the SAME staged
+  // input row: with one output per warp, 16 K blocks each re-loaded the 16 KB
+  // row (268 MB of redundant input traffic vs 67 MB of weights).
+  constexpr int kOutsPerWarp = 4;
+  const int of0 = (blockIdx.x * warps_per_block + warp) * kOutsPerWarp;
+  for (int of = of0; of < of0 + kOutsPerWarp && of < outF; ++of) {
+
+  const float* w_row = weights + static_cast<size_t>(of) * inF;
+  float sum = 0.f;
+  if ((inF & 3) == 0) {
+    // float4 loads + two independent accumulators: 4x fewer load instructions and
+    // a split FMA chain (the scalar loop was latency-bound, ~5.7 GB/s).
+    const float4* w4 = reinterpret_cast<const float4*>(w_row);
+    const float4* i4 = reinterpret_cast<const float4*>(sh_in);
+    const int n4 = inF >> 2;
+    float acc0 = 0.f, acc1 = 0.f;
+    for (int k = lane; k < n4; k += 32) {
+      const float4 w = w4[k];
+      const float4 x = i4[k];
+      acc0 += w.x * x.x + w.y * x.y;
+      acc1 += w.z * x.z + w.w * x.w;
+    }
+    sum = acc0 + acc1;
+  } else {
+    for (int k = lane; k < inF; k += 32) {
+      sum += sh_in[k] * w_row[k];
+    }
+  }
+  for (int off = 16; off > 0; off >>= 1) {
+    sum += __shfl_down_sync(0xffffffffu, sum, off);
   }
 
-  if (relu && sum < 0.f) sum = 0.f;
-
-  output[n * outF + of] = sum;
+  if (lane == 0) {
+    float v = sum + bias[of];
+    if (relu && v < 0.f) v = 0.f;
+    output[n * outF + of] = v;
+  }
+  }  // for of
 }
 
 // ---------------------------------------------------------------------------

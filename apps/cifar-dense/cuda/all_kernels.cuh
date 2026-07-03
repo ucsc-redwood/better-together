@@ -21,6 +21,19 @@ __global__ void conv2d_batch_kernel(const float* __restrict__ input,
                                     int padding,
                                     bool relu);
 
+__global__ void conv2d_batch_k3s1p1_kernel(const float* __restrict__ input,
+                                           const float* __restrict__ weights,
+                                           const float* __restrict__ bias,
+                                           float* __restrict__ output,
+                                           int N,
+                                           int inC,
+                                           int inH,
+                                           int inW,
+                                           int outC,
+                                           int outH,
+                                           int outW,
+                                           bool relu);
+
 // ---------------------------------------------------------
 // 2) Host‐side launcher (Helper to make it easier to call)
 // ---------------------------------------------------------
@@ -43,6 +56,13 @@ inline void conv2d_batch_cuda(const float* input,
   int total = N * outC * outH * outW;
   const int TPB = 256;
   int blocks = (total + TPB - 1) / TPB;
+
+  if (kH == 3 && kW == 3 && stride == 1 && padding == 1) {
+    conv2d_batch_k3s1p1_kernel<<<blocks, TPB>>>(
+        input, weights, bias, output, N, inC, inH, inW, outC, outH, outW, relu);
+    CheckCudaLaunch("conv2d_batch_k3s1p1_kernel");
+    return;
+  }
 
   conv2d_batch_kernel<<<blocks, TPB>>>(input,
                                        weights,
@@ -110,11 +130,14 @@ inline void linear_batch_cuda(const float* input,
                               int inF,
                               int outF,
                               bool relu) {
-  int total = N * outF;
-  const int TPB = 256;
-  int blocks = (total + TPB - 1) / TPB;
+  // Warp-cooperative FC: 16 warps per block, 4 consecutive outputs per warp
+  // (= 64 outputs per block) from ONE staged input row (16 KB at inF=4096).
+  const int TPB = 512;
+  const int outs_per_block = (TPB / 32) * 4;  // warps x kOutsPerWarp
+  const dim3 blocks((outF + outs_per_block - 1) / outs_per_block, N);
+  const size_t shmem = static_cast<size_t>(inF) * sizeof(float);
 
-  linear_batch_kernel<<<blocks, TPB>>>(input, weights, bias, output, N, inF, outF, relu);
+  linear_batch_kernel<<<blocks, TPB, shmem>>>(input, weights, bias, output, N, inF, outF, relu);
   CheckCudaLaunch("linear_batch_kernel");
 }
 
