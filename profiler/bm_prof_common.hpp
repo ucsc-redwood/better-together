@@ -78,14 +78,17 @@ inline double env_double(const char* name, double fallback) {
 // Either way the recorded value is a REAL measurement (a large one) -- the z3
 // optimizer simply never picks it; we never fabricate a sentinel. Knobs (env):
 //   BT_PROF_BUDGET_S (0.3) BT_PROF_ABANDON_S (0.25) BT_PROF_MAX_CELL_S (2.0)
-//   BT_PROF_MIN_ITERS (5)  BT_PROF_MAX_ITERS (2000) BT_PROF_WARMUP (20)
+//   BT_PROF_MIN_ITERS (2)  BT_PROF_MAX_ITERS (2000) BT_PROF_WARMUP (20)
 // Returns true if the cell was abandoned (cost-capped).
 template <class TimeOnce>
 bool measure_calibrated(std::vector<double>& out, TimeOnce time_once) {
   const double budget = env_double("BT_PROF_BUDGET_S", 0.3);
   const double abandon = env_double("BT_PROF_ABANDON_S", 0.25);
+  // MIN_ITERS 2 (was 5): it only binds on abandon-flagged slow stages, where each
+  // extra sample costs SECONDS on a phone CPU cluster (samsung cifar-sparse spent
+  // 30+ min/run on the 5-sample floor) and the data is already flagged low-quality.
   const double max_cell = env_double("BT_PROF_MAX_CELL_S", 2.0);
-  const int min_it = env_int("BT_PROF_MIN_ITERS", 5);
+  const int min_it = env_int("BT_PROF_MIN_ITERS", 2);
   const int max_it = env_int("BT_PROF_MAX_ITERS", 2000);
   const int warm_max = env_int("BT_PROF_WARMUP", 20);
 

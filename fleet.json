@@ -31,7 +31,8 @@
       },
       "build": "android",
       "backends": ["vk"],
-      "caps": { "cifar-sparse": 1 }
+      "caps": { "cifar-sparse": 1 },
+      "runs": 2
     },
     "pixel": {
       "device_id": "3A021JEHN02756",
@@ -42,7 +43,8 @@
       },
       "build": "android",
       "backends": ["vk"],
-      "caps": { "cifar-sparse": 1 }
+      "caps": { "cifar-sparse": 1 },
+      "runs": 2
     }
   },
   "build_artifacts": {
