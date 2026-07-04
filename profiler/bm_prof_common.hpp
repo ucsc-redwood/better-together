@@ -325,9 +325,22 @@ int run_bm_prof(int argc,
     benchmark::RegisterBenchmark(
         (cell.pu + "/stage" + std::to_string(cell.stage)).c_str(),
         [c, &disp, interfere, gpu_pu, &make_timer, &omp_dispatch](benchmark::State& state) {
-          App app(bt_pipe::as_mr_ptr(disp.get_mr()));
           const int s = c->stage;
           const bool is_gpu = (c->pu == gpu_pu);
+
+          // Genuinely-chained AppData (unlike SafeAppData's golden-decoupled fields)
+          // only has valid data for stage s once stages [1, s-1] actually ran on
+          // THIS instance -- so prime each fresh App up to s-1 (untimed) before it's
+          // used to measure/interfere with stage s. No-op cost-wise for SafeAppData
+          // cells (their dispatch reads fixed golden fields regardless).
+          auto prep = [&omp_dispatch](App& a, int upto) {
+            if (upto < 1) return;
+            const auto cores = get_cores_by_type(first_present_cpu_type());
+            omp_dispatch(cores, cores.size(), a, 1, upto);
+          };
+
+          App app(bt_pipe::as_mr_ptr(disp.get_mr()));
+          prep(app, s - 1);
 
           // Stateful GPU-timer policy: created ONCE here (per benchmark instance),
           // NOT per sample -- so cudaEvents/timestamps are set up exactly once.
@@ -357,6 +370,7 @@ int run_bm_prof(int argc,
             if (!is_gpu) {  // GPU contends only when the target is a CPU tier
               bg_apps.push_back(std::make_unique<App>(bt_pipe::as_mr_ptr(disp.get_mr())));
               App* a = bg_apps.back().get();
+              prep(*a, s - 1);
               bg.emplace_back([&disp, a, s, &stop, &bg_ready] {
                 bool first = true;
                 while (!stop.load(std::memory_order_relaxed)) {
@@ -372,6 +386,7 @@ int run_bm_prof(int argc,
               if (!is_gpu && bpt == c->cpu_pt) continue;  // skip the target CPU tier itself
               bg_apps.push_back(std::make_unique<App>(bt_pipe::as_mr_ptr(disp.get_mr())));
               App* a = bg_apps.back().get();
+              prep(*a, s - 1);
               auto cores = get_cores_by_type(bpt);
               bg.emplace_back([a, cores, s, &stop, &omp_dispatch, &bg_ready] {
                 bool first = true;

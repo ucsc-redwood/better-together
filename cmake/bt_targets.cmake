@@ -3,14 +3,9 @@
 # identical to the pre-split inline helpers; only their home moved.
 
 # ---- executables that link the runtime/core (no test registration) ----
-# NOTE on ARGN: the _run / _test helpers below splice ${ARGN} in as extra SOURCE files;
+# NOTE on ARGN: the _test helpers below splice ${ARGN} in as extra SOURCE files;
 # the _app helpers (bt_add_omp_app/_cuda_app/_vk_app) splice ${ARGN} in as extra LINK
 # LIBRARIES instead. Same trailing slot, opposite meaning -- match the helper to your intent.
-function(bt_add_omp_run name src)
-    add_executable(${name} ${src} ${ARGN}) # ARGN = extra sources
-    target_link_libraries(${name} PRIVATE bt::core bt::openmp)
-endfunction()
-
 function(bt_add_omp_app name src) # google-benchmark OMP app (extra libs via ARGN)
     add_executable(${name} ${src})
     target_link_libraries(${name} PRIVATE bt::core bt::openmp ${ARGN})
@@ -29,11 +24,6 @@ function(bt_add_cuda_app name src)
             -Xcompiler=-fopenmp>
     )
     target_link_libraries(${name} PRIVATE bt::cuda bt::core bt::openmp ${ARGN})
-endfunction()
-
-function(bt_add_vk_run name src)
-    add_executable(${name} ${src} ${ARGN})
-    target_link_libraries(${name} PRIVATE bt::vulkan bt::core bt::openmp)
 endfunction()
 
 function(bt_add_vk_app name src)

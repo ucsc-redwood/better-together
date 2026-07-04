@@ -170,4 +170,114 @@ void run_stage_7(tree::SafeAppData& appdata) {
   }
 }
 
+// ----------------------------------------------------------------------------
+// AppData overloads: genuinely chained (single buffer per field), extracted
+// verbatim from HostTreeManager::initialize() (tree_appdata.cpp), which used
+// to inline this to build the golden. Same kernel calls, same buffer wiring,
+// same pragma shape -- a pure extraction, not new logic. See dispatchers.hpp
+// for why these aren't wrapped in a shared #pragma omp parallel {} the way the
+// SafeAppData overloads above are.
+// ----------------------------------------------------------------------------
+
+void run_stage_1(tree::AppData& appdata) {
+  const int start = 0;
+  const int end = appdata.get_n_input();
+
+#pragma omp parallel for
+  for (int i = start; i < end; ++i) {
+    appdata.u_morton_keys_s1[i] =
+        xyz_to_morton32(appdata.u_input_points_s0[i], tree::kMinCoord, tree::kRange);
+  }
+}
+
+void run_stage_2(tree::AppData& appdata) {
+  std::ranges::sort(appdata.u_morton_keys_s1);
+  std::ranges::copy(appdata.u_morton_keys_s1, appdata.u_morton_keys_sorted_s2.begin());
+}
+
+void run_stage_3(tree::AppData& appdata) {
+  const auto last = std::unique_copy(appdata.u_morton_keys_sorted_s2.data(),
+                                     appdata.u_morton_keys_sorted_s2.data() + appdata.get_n_input(),
+                                     appdata.u_morton_keys_unique_s3.data());
+  const auto n_unique = std::distance(appdata.u_morton_keys_unique_s3.data(), last);
+
+  appdata.set_n_unique(n_unique);
+  appdata.set_n_brt_nodes(n_unique - 1);
+}
+
+void run_stage_4(tree::AppData& appdata) {
+  const int start = 0;
+  const int end = appdata.get_n_brt_nodes();
+
+#pragma omp parallel for
+  for (int i = start; i < end; ++i) {
+    v1::process_radix_tree_i(i,
+                             appdata.get_n_brt_nodes(),
+                             appdata.u_morton_keys_unique_s3.data(),
+                             appdata.u_brt_prefix_n_s4.data(),
+                             appdata.u_brt_has_leaf_left_s4.data(),
+                             appdata.u_brt_has_leaf_right_s4.data(),
+                             appdata.u_brt_left_child_s4.data(),
+                             appdata.u_brt_parents_s4.data());
+  }
+}
+
+void run_stage_5(tree::AppData& appdata) {
+  const int start = 0;
+  const int end = appdata.get_n_brt_nodes();
+
+#pragma omp parallel for
+  for (int i = start; i < end; ++i) {
+    v1::process_edge_count_i(i,
+                             appdata.u_brt_prefix_n_s4.data(),
+                             appdata.u_brt_parents_s4.data(),
+                             appdata.u_edge_count_s5.data());
+  }
+}
+
+void run_stage_6(tree::AppData& appdata) {
+  const int start = 0;
+  const int end = appdata.get_n_brt_nodes();
+
+  std::partial_sum(appdata.u_edge_count_s5.data() + start,
+                   appdata.u_edge_count_s5.data() + end,
+                   appdata.u_edge_offset_s6.data() + start);
+
+  const auto num_octree_nodes = appdata.u_edge_offset_s6[end - 1];
+  appdata.set_n_octree_nodes(num_octree_nodes);
+}
+
+void run_stage_7(tree::AppData& appdata) {
+  const int start = 0;
+  const int end = appdata.get_n_brt_nodes();
+
+#pragma omp parallel for
+  for (int i = start; i < end; ++i) {
+    process_oct_node(i,
+                     reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
+                     appdata.u_oct_corner_s7.data(),
+                     appdata.u_oct_cell_size_s7.data(),
+                     appdata.u_oct_child_node_mask_s7.data(),
+                     appdata.u_edge_offset_s6.data(),
+                     appdata.u_edge_count_s5.data(),
+                     appdata.u_morton_keys_unique_s3.data(),
+                     appdata.u_brt_prefix_n_s4.data(),
+                     appdata.u_brt_parents_s4.data(),
+                     tree::kMinCoord,
+                     tree::kRange);
+
+    process_link_leaf(i,
+                      reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
+                      appdata.u_oct_child_leaf_mask_s7.data(),
+                      appdata.u_edge_offset_s6.data(),
+                      appdata.u_edge_count_s5.data(),
+                      appdata.u_morton_keys_unique_s3.data(),
+                      appdata.u_brt_has_leaf_left_s4.data(),
+                      appdata.u_brt_has_leaf_right_s4.data(),
+                      appdata.u_brt_prefix_n_s4.data(),
+                      appdata.u_brt_parents_s4.data(),
+                      appdata.u_brt_left_child_s4.data());
+  }
+}
+
 }  // namespace tree::omp

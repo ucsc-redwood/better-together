@@ -86,13 +86,61 @@ class VulkanDispatcher final {
 
   // Record a device-wide INCLUSIVE prefix scan of `src` (n uints) into `dst`,
   // using `block_sums` as scratch, into the already-open command buffer `cmd`.
-  // Shared by stage 3 (flag scan) and stage 6 (edge-count scan).
+  // Shared by stage 3 (flag scan) and stage 6 (edge-count scan), and by both
+  // the VkAppData_Safe and VkAppData (chained) record bodies below -- this
+  // helper only takes buffer infos, not an AppData type, so it needs no
+  // chained-specific overload.
   void record_device_scan(vk::CommandBuffer cmd,
                           vk::DescriptorBufferInfo src,
                           vk::DescriptorBufferInfo dst,
                           vk::DescriptorBufferInfo block_sums,
                           uint32_t n,
                           uint32_t descriptor_set);
+
+ public:
+  // --------------------------------------------------------------------------
+  // Genuinely-chained overloads (tree::vulkan::VkAppData, no golden/_out split)
+  // -- added alongside the VkAppData_Safe overloads above, which stay
+  // unmodified. See apps/tree/tree_diff_oracle.hpp's Phase 3 note and this
+  // feature's research.md for why dispatch_multi_stage's chained overload
+  // needs internal host-readback synchronization that the VkAppData_Safe
+  // overload never did (its counts are const, known from the golden).
+  // --------------------------------------------------------------------------
+
+  void run_stage_1(VkAppData& appdata);
+  void run_stage_2(VkAppData& appdata);
+  void run_stage_3(VkAppData& appdata);
+  void run_stage_4(VkAppData& appdata);
+  void run_stage_5(VkAppData& appdata);
+  void run_stage_6(VkAppData& appdata);
+  void run_stage_7(VkAppData& appdata);
+
+  void dispatch_stage(VkAppData& data, const int stage) {
+    dispatch_multi_stage(data, stage, stage);
+  }
+
+  void dispatch_multi_stage(VkAppData& data, const int start_stage, const int end_stage);
+
+ private:
+  void record_stage_1(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_2(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_4(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_5(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_6(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd);
+
+  using RecordFnChained = void (VulkanDispatcher::*)(VkAppData&, vk::CommandBuffer);
+
+  static constexpr std::array<RecordFnChained, 7> record_functions_chained = {
+      &VulkanDispatcher::record_stage_1,
+      &VulkanDispatcher::record_stage_2,
+      &VulkanDispatcher::record_stage_3,
+      &VulkanDispatcher::record_stage_4,
+      &VulkanDispatcher::record_stage_5,
+      &VulkanDispatcher::record_stage_6,
+      &VulkanDispatcher::record_stage_7,
+  };
 
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> seq;

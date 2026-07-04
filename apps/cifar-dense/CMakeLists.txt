@@ -23,12 +23,6 @@ if(BT_ENABLE_VULKAN)
     target_sources(bt_vulkan PRIVATE vulkan/dispatchers.cpp)
 endif()
 
-# ---- runners ----
-bt_add_omp_run(run-cifar-dense-omp omp/main.cpp)
-if(BT_ENABLE_CUDA)
-    bt_add_cuda_app(run-cifar-dense-cu cuda/main.cu)
-endif()
-
 # ---- benchmarks (per-stage BM_Stage1..N) ----
 if(BT_BUILD_BENCHMARKS)
     bt_add_omp_app(bm-cifar-dense-omp omp/bm_main.cpp benchmark::benchmark)

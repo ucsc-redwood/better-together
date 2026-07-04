@@ -73,6 +73,34 @@ def main():
     )
     parser.add_argument("--verbose", action="store_true", help="Print detailed statistics")
     parser.add_argument("--save", action="store_true", help="Save data as .npy files")
+    parser.add_argument(
+        "--concat_target",
+        type=int,
+        default=None,
+        help="Target point count for the concatenated points.npy corpus "
+        "(scans are consumed in ascending numeric order and truncated once reached). "
+        "Default: no truncation -- use every point in --scan_range. The on-disk file "
+        "size doesn't determine memory use at run time; see BT_TREE_INPUT_SIZE and the "
+        "per-device table in docs/instruction-for-ai/05-profiling.md for how many of "
+        "these points a given target actually loads.",
+    )
+    parser.add_argument(
+        "--recenter",
+        action="store_true",
+        help="Recenter/scale concatenated points into [domain_min, domain_min + domain_range)",
+    )
+    parser.add_argument(
+        "--domain_min",
+        type=float,
+        default=0.0,
+        help="Lower bound of the recentered coordinate domain (matches tree::kMinCoord)",
+    )
+    parser.add_argument(
+        "--domain_range",
+        type=float,
+        default=1024.0,
+        help="Width of the recentered coordinate domain (matches tree::kRange)",
+    )
     args = parser.parse_args()
 
     # Parse scan range
@@ -84,6 +112,9 @@ def main():
             scan_nums.extend(range(start, end + 1))
         else:
             scan_nums.append(int(part))
+    # Concatenation order must be fixed/deterministic regardless of how
+    # --scan_range was written (e.g. "5,1-3" vs "1-3,5"): ascending scan number.
+    scan_nums = sorted(set(scan_nums))
 
     # Create output directory if it doesn't exist and save is enabled
     if args.save:
@@ -194,6 +225,35 @@ def main():
             np.save(combined_points_file, all_points_array)
             print(f"\nSaved combined points data:")
             print(f"  {combined_points_file} ({all_points_array.shape})")
+
+            # points.npy: the tree app's real-data corpus (contracts/tree-real-data-
+            # contract.md). Scans were already consumed in ascending numeric order
+            # above, so a prefix of this array is deterministic and reproducible.
+            # concat_target=None (default) keeps every point -- the on-disk file size
+            # doesn't drive memory use at run time, BT_TREE_INPUT_SIZE does.
+            corpus = (
+                all_points_array
+                if args.concat_target is None
+                else all_points_array[: args.concat_target]
+            )
+            if args.recenter:
+                lo, hi = float(corpus.min()), float(corpus.max())
+                scale = args.domain_range / (hi - lo) if hi > lo else 1.0
+                corpus = (corpus - lo) * scale + args.domain_min
+            corpus = np.ascontiguousarray(corpus, dtype="<f4")
+
+            points_file = os.path.join(args.output_dir, "points.npy")
+            np.save(points_file, corpus)
+            print(f"\nSaved real-data corpus:")
+            print(
+                f"  {points_file} ({corpus.shape[0]} points"
+                + (f", target was {args.concat_target})" if args.concat_target is not None else ")")
+            )
+            if args.concat_target is not None and corpus.shape[0] < args.concat_target:
+                print(
+                    f"  WARNING: corpus has fewer points ({corpus.shape[0]}) than "
+                    f"--concat_target ({args.concat_target}); add more scans via --scan_range"
+                )
 
 
 if __name__ == "__main__":

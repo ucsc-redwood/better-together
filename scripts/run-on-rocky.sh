@@ -73,6 +73,8 @@ cd /tmp/bt
 # Deployed real weights (scripts/deploy-weights.sh rocky) are picked up
 # automatically; without a deploy the apps keep their synthetic seeded init.
 [ -d /tmp/bt/weights/dense ] && export BT_WEIGHTS_DIR=/tmp/bt/weights
+# Same for the real tree corpus (scripts/deploy-tree-data.sh rocky).
+[ -d /tmp/bt/tree-data ] && export BT_TREE_DATA_DIR=/tmp/bt/tree-data
 fail=0
 for t in "$@"; do
   echo "== $t =="

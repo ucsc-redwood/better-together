@@ -1,6 +1,7 @@
 #pragma once
 
 #include "apps/tree/safe_tree_appdata.hpp"
+#include "apps/tree/tree_appdata.hpp"
 #include "platform/engine/vulkan/vma_pmr.hpp"
 
 namespace tree::vulkan {
@@ -49,6 +50,46 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   std::pmr::vector<uint32_t> u_sort_histograms;
 
   // for the device-wide scan (stages 3 & 6): per-block totals / offsets
+  std::pmr::vector<uint32_t> u_scan_block_sums;
+};
+
+// ----------------------------------------------------------------------------
+// Genuinely-chained variant (no golden/_out split, see
+// apps/tree/tree_appdata.hpp) -- mirrors what VkAppData_Safe adds onto
+// tree::SafeAppData, but onto plain tree::AppData instead. Every pipeline
+// field is single-buffer: stage N+1 reads what stage N's OWN dispatch on this
+// instance actually wrote, not a construction-time golden. Unlike
+// VkAppData_Safe (whose n_unique/n_brt_nodes/n_octree_nodes are const, known
+// upfront from the golden), this variant needs an explicit host readback of
+// those counts after stage 3 and after stage 6 -- see
+// VulkanDispatcher::dispatch_multi_stage's VkAppData overload.
+// ----------------------------------------------------------------------------
+struct VkAppData final : public tree::AppData {
+  static constexpr uint32_t kRadixBins = 256;
+  static constexpr uint32_t kRadixNumWorkgroups = 256;
+  static constexpr uint32_t kScanElementsPerWg = 256 * 8;
+
+  explicit VkAppData(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr,
+                     const size_t n_input = tree::kDefaultInputSize)
+      : tree::AppData(vk_mr, n_input),
+        u_contributes(n_input, vk_mr),
+        u_out_idx(n_input, vk_mr),
+        u_sums(n_input, vk_mr),
+        u_prefix_sums(n_input, vk_mr),
+        u_sort_tmp(n_input, vk_mr),
+        u_sort_histograms(kRadixBins * kRadixNumWorkgroups, vk_mr),
+        u_scan_block_sums((n_input + kScanElementsPerWg - 1) / kScanElementsPerWg + 1, vk_mr) {
+    spdlog::trace("VkAppData constructor, address: {}", (void*)this);
+  }
+
+  ~VkAppData() { spdlog::trace("VkAppData destructor, address: {}", (void*)this); }
+
+  std::pmr::vector<uint32_t> u_contributes;
+  std::pmr::vector<uint32_t> u_out_idx;
+  std::pmr::vector<uint32_t> u_sums;
+  std::pmr::vector<uint32_t> u_prefix_sums;
+  std::pmr::vector<uint32_t> u_sort_tmp;
+  std::pmr::vector<uint32_t> u_sort_histograms;
   std::pmr::vector<uint32_t> u_scan_block_sums;
 };
 

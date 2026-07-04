@@ -24,14 +24,6 @@ if(BT_ENABLE_VULKAN)
     target_sources(bt_vulkan PRIVATE vulkan/dispatchers.cpp)
 endif()
 
-# ---- runners (BT-Implementer per-app smoke) ----
-if(BT_ENABLE_CUDA)
-    bt_add_cuda_app(run-tree-cu cuda/main.cu)
-endif()
-if(BT_ENABLE_VULKAN)
-    bt_add_vk_run(run-tree-vk vulkan/run_main.cpp)
-endif()
-
 # ---- benchmarks (per-stage BM_Stage1..N; tree/cuda has no bm_main upstream) ----
 if(BT_BUILD_BENCHMARKS)
     bt_add_omp_app(bm-tree-omp omp/bm_main.cpp benchmark::benchmark)
@@ -48,6 +40,15 @@ if(BT_BUILD_TESTS)
     bt_add_omp_test(test-pipeline-e2e-omp omp/test_pipeline_main.cpp)
     set_tests_properties(test-pipeline-e2e-omp PROPERTIES LABELS "omp;runtime")
 
+    # EXPERIMENTAL proof-of-correctness for the genuinely-chained AppData dispatch
+    # path (not the differential/oracle SafeAppData path above) -- deliberately
+    # excluded from ctest -L omp, a one-off verification not a maintained gate.
+    bt_add_omp_test(test-pipeline-chained-omp omp/test_pipeline_chained.cpp)
+    set_tests_properties(
+        test-pipeline-chained-omp
+        PROPERTIES LABELS "experimental"
+    )
+
     if(BT_ENABLE_CUDA)
         bt_add_cuda_test(test-tree-cu cuda/test_main.cu)
         set_tests_properties(test-tree-cu PROPERTIES LABELS "cuda;differential")
@@ -56,6 +57,24 @@ if(BT_BUILD_TESTS)
         set_tests_properties(
             test-pipeline-e2e-cu
             PROPERTIES LABELS "cuda;runtime"
+        )
+
+        # EXPERIMENTAL proof-of-correctness for the genuinely-chained AppData
+        # dispatch path on a hybrid OMP+CUDA schedule -- excluded from ctest -L
+        # cuda, a one-off verification not a maintained gate.
+        bt_add_cuda_test(test-pipeline-chained-cu cuda/test_pipeline_chained_cu.cu)
+        set_tests_properties(
+            test-pipeline-chained-cu
+            PROPERTIES LABELS "experimental"
+        )
+
+        # EXPERIMENTAL exhaustive CPU/GPU schedule permutation + overlap sweep
+        # (all 29 valid stage splits) on the genuinely-chained AppData path --
+        # excluded from ctest -L cuda, a one-off verification not a maintained gate.
+        bt_add_cuda_test(test-schedule-permutation-cu cuda/test_schedule_permutation_cu.cu)
+        set_tests_properties(
+            test-schedule-permutation-cu
+            PROPERTIES LABELS "experimental"
         )
     endif()
     if(BT_ENABLE_VULKAN)
@@ -69,6 +88,15 @@ if(BT_BUILD_TESTS)
         set_tests_properties(
             test-pipeline-e2e-vk
             PROPERTIES LABELS "vulkan;runtime"
+        )
+
+        # EXPERIMENTAL proof-of-correctness for the genuinely-chained VkAppData
+        # dispatch path on a hybrid OMP+Vulkan schedule -- excluded from ctest -L
+        # vulkan, a one-off verification not a maintained gate.
+        bt_add_vk_test(test-pipeline-chained-vk vulkan/test_pipeline_chained_vk.cpp)
+        set_tests_properties(
+            test-pipeline-chained-vk
+            PROPERTIES LABELS "experimental"
         )
     endif()
 endif()

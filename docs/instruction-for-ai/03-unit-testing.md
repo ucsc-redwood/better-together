@@ -105,6 +105,16 @@ re-verified on 2026-07-02: all three `test-*-cu` suites (7/10/10) **pass on both
 ducks** using the CUDA 12.6 cross binaries — the 12.6-binary-on-7.2-stack path is
 correctness-verified (see [`02-building.md`](02-building.md)).)
 
+**EXPERIMENTAL, on-demand only — `test-schedule-permutation-cu`** (tree, CUDA): sweeps
+all 29 valid contiguous CPU/GPU stage-split schedules for the tree pipeline on the
+genuinely-chained `tree::AppData` dispatch path, checking both per-schedule
+correctness (vs. the OMP oracle) and genuine CPU/GPU overlap (>= 3 of 5 repeated runs
+must show measured concurrent execution, not serialization). `LABELS "experimental"` —
+deliberately excluded from `ctest -L cuda`; build + run it explicitly:
+`cmake --build --preset jetson --target test-schedule-permutation-cu` then
+`scripts/run-on-jetson.sh test-schedule-permutation-cu`. See
+`specs/002-cpu-gpu-schedule-coverage/` for the full spec/plan/tasks.
+
 **Vulkan — rocky-ryzen iGPU (x86, easiest):** build natively, then run.
 ```bash
 cmake --preset vulkan

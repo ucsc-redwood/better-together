@@ -74,6 +74,11 @@ envp=""
 if adb -s "$serial" shell "[ -d $WEIGHTS/dense ]" </dev/null; then
   envp="BT_WEIGHTS_DIR=$WEIGHTS "
 fi
+# Same for the real tree corpus (scripts/deploy-tree-data.sh android <serial>).
+TREE_DATA=/data/local/tmp/bt/tree-data
+if adb -s "$serial" shell "[ -e $TREE_DATA/points.npy ]" </dev/null; then
+  envp="${envp}BT_TREE_DATA_DIR=$TREE_DATA "
+fi
 fail=0
 for t in "${targets[@]}"; do
   echo "== $t =="
