@@ -1,5 +1,19 @@
 <!--
 Sync Impact Report
+- Version change: 1.0.0 → 1.1.0
+- Modified principles: none
+- Added sections:
+  - VI. Isolated Measurement Environment
+- Removed sections: none
+- Templates requiring updates:
+  - ✅ .specify/templates/plan-template.md (no constitution-specific placeholders found)
+  - ✅ .specify/templates/spec-template.md (no constitution-specific placeholders found)
+  - ✅ .specify/templates/tasks-template.md (no constitution-specific placeholders found)
+  - ✅ .specify/templates/checklist-template.md (no constitution-specific placeholders found)
+  - No command files under .specify/templates/commands/ exist in this repo
+- Follow-up TODOs: none
+
+Prior Sync Impact Report (1.0.0, initial ratification):
 - Version change: [TEMPLATE] → 1.0.0 (initial ratification)
 - Modified principles: n/a (first fill of template placeholders)
 - Added sections:
@@ -12,13 +26,6 @@ Sync Impact Report
   - Development Workflow (Section 3)
   - Governance
 - Removed sections: none (placeholders only)
-- Templates requiring updates:
-  - ✅ .specify/templates/plan-template.md (generic "[Gates determined based on constitution file]" placeholder is filled per-feature at plan time; no edit needed now)
-  - ✅ .specify/templates/spec-template.md (no constitution-specific placeholders found)
-  - ✅ .specify/templates/tasks-template.md (no constitution-specific placeholders found)
-  - ✅ .specify/templates/checklist-template.md (no constitution-specific placeholders found)
-  - No command files under .specify/templates/commands/ exist in this repo
-- Follow-up TODOs: none
 -->
 
 # BetterTogether Constitution
@@ -84,6 +91,21 @@ knowledge belongs in `docs/instruction-for-ai/`. Do not duplicate one into the o
 reconfigured multiple times; stale narrative docs have previously caused wrong deploy
 targets and non-comparable benchmark results (e.g. pre/post JetPack-7.2 reflash data).
 
+### VI. Isolated Measurement Environment
+Before recording any profiling, benchmarking, or interference measurement as
+authoritative (kernel timings, `bm_baseline`/`bm_fully`/`bm_prof` output, DVFS-sensitive
+data), confirm no unrelated process is competing for the same CPU/GPU/memory on the
+target device — e.g. another user's inference server, a stray build, a leftover
+benchmark from a prior session. Stop or account for anything found before trusting the
+numbers; note in the report if a run could not be re-isolated.
+**Rationale**: correctness gates (`ctest -L <backend>`, PASS/FAIL) are insensitive to
+background load, but timing numbers are not — an uncontrolled competing process silently
+invalidates measurements without ever failing a test. This class of defect has already
+surfaced twice: DVFS/interference distorting GPU timing signals (see
+`docs/reports-for-human/session-2026-06-20-benchmark-orchestrator-and-dvfs-interference.md`)
+and, concretely, an idle `llama-server` occupying a Jetson's GPU during a profiling
+session and going unnoticed until after the run.
+
 ## Backend & Build Constraints
 
 **Build system**: CMake (`cmake/` + presets `pc`/`jetson`/`vulkan`/`android`) is the only
@@ -116,7 +138,7 @@ public-facing (default branch). Both are protected with required Tier-0 checks. 
 on every PR. Self-hosted fleet Tier-1 checks (CUDA/Vulkan/Android) apply when the change
 touches that backend or is being promoted to `main`.
 
-**Review discipline**: reviews check for compliance with Principles I–V above in
+**Review discipline**: reviews check for compliance with Principles I–VI above in
 addition to functional correctness — unrequested abstraction, unrelated diffs, or
 untested backend-specific code are grounds for requesting changes, not just style nits.
 
@@ -142,7 +164,7 @@ amendment is considered complete.
 **Compliance review**: every plan produced by `/speckit-plan` MUST pass the
 "Constitution Check" gate against the current version of this document before Phase 0
 research begins, and again after Phase 1 design. Every PR is expected to satisfy
-Principles I–V; deviations require explicit justification recorded in the plan's
+Principles I–VI; deviations require explicit justification recorded in the plan's
 Complexity Tracking section, not silent omission.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-03 | **Last Amended**: 2026-07-03
+**Version**: 1.1.0 | **Ratified**: 2026-07-03 | **Last Amended**: 2026-07-04
