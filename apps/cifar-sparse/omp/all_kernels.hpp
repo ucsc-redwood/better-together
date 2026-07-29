@@ -7,6 +7,58 @@
 
 namespace cifar_sparse::omp {
 
+namespace detail {
+
+// Register-blocked FC microkernel -- same 4 images x 2 output features tile as
+// cifar-dense's detail::fc_tile4x2 (the FC head is dense math; only the convs
+// are pruned). See apps/cifar-dense/omp/all_kernels.hpp for the full design
+// rationale: the XNNPACK/MLAS mr x nr GEMM register-tile shape, vectorized
+// along k (eight scalar `omp simd` reductions the compiler widens into eight
+// vector accumulators) so the row-major weights need no packing pass. The
+// reassociation is the same class the previous `omp simd reduction(+:sum)`
+// dot product already had; loop order and tiling are fixed and there are no
+// atomics, so results are deterministic for any thread count, and the float
+// gates (NearEqual vs a double reference) stay the oracle contract.
+inline void fc_tile4x2(const float* __restrict__ a_base,  // &input[n0 * inF]
+                       const float* __restrict__ w_base,  // &weights[of0 * inF]
+                       const float* __restrict__ bias,    // &bias[of0]
+                       float* __restrict__ out_base,      // &output[n0 * outF + of0]
+                       const int inF,
+                       const int outF,
+                       const bool relu) {
+  const float* __restrict__ a0 = a_base;
+  const float* __restrict__ a1 = a_base + inF;
+  const float* __restrict__ a2 = a_base + 2 * inF;
+  const float* __restrict__ a3 = a_base + 3 * inF;
+  const float* __restrict__ w0 = w_base;
+  const float* __restrict__ w1 = w_base + inF;
+  float s00 = 0.0f, s01 = 0.0f, s10 = 0.0f, s11 = 0.0f;
+  float s20 = 0.0f, s21 = 0.0f, s30 = 0.0f, s31 = 0.0f;
+#pragma omp simd reduction(+ : s00, s01, s10, s11, s20, s21, s30, s31)
+  for (int k = 0; k < inF; ++k) {
+    const float x0 = a0[k], x1 = a1[k], x2 = a2[k], x3 = a3[k];
+    const float y0 = w0[k], y1 = w1[k];
+    s00 += x0 * y0;
+    s01 += x0 * y1;
+    s10 += x1 * y0;
+    s11 += x1 * y1;
+    s20 += x2 * y0;
+    s21 += x2 * y1;
+    s30 += x3 * y0;
+    s31 += x3 * y1;
+  }
+  float r[4][2] = {{s00, s01}, {s10, s11}, {s20, s21}, {s30, s31}};
+  for (int m = 0; m < 4; ++m) {
+    for (int j = 0; j < 2; ++j) {
+      float s = r[m][j] + bias[j];
+      if (relu && s < 0.0f) s = 0.0f;
+      out_base[m * outF + j] = s;
+    }
+  }
+}
+
+}  // namespace detail
+
 // ----------------------------------------------------------------------------
 // Convolution 2D (Sparse, Batched)
 // ----------------------------------------------------------------------------
@@ -147,40 +199,72 @@ inline void maxpool2d_omp_batched_clean(const float* __restrict__ input_data,
 }
 
 // ----------------------------------------------------------------------------
-// Linear Layer (Sparse, Batched)
+// Linear Layer (Dense FC head, Batched)
 // ----------------------------------------------------------------------------
-
-// Batched sparse linear (dense) layer kernel.
-// Assumptions:
-//   - input_data is of shape (batch_size, input_features) (flattened)
-//   - weight matrix is in CSR format with dimensions (out_neurons x input_features)
-//   - output_data will be of shape (batch_size, out_neurons) (flattened)
-inline void linear_omp_batched(
-    const float* __restrict__ input_data,
-    const int batch_size,
-    const int input_features,  // needed for indexing in each sample's input
-    const float* __restrict__ weight_vals,
-    const int* __restrict__ weight_row_ptr,
-    const int* __restrict__ weight_col_idx,
-    const float* __restrict__ bias_data,
-    float* __restrict__ output_data,
-    const int out_neurons) {
-// The parallelization is over batch and the output neurons.
-// schedule(static) collapse(2)
-#pragma omp for schedule(static) collapse(2)
-  for (int b = 0; b < batch_size; b++) {
-    for (int i = 0; i < out_neurons; i++) {
-      float sum = 0.0f;
-      // Loop over the nonzero entries in the i-th row of the weight matrix.
-      for (int idx = weight_row_ptr[i]; idx < weight_row_ptr[i + 1]; ++idx) {
-        int col = weight_col_idx[idx];
-        // Compute the index in the current batch sample's input vector.
-        int input_idx = b * input_features + col;
-        sum += input_data[input_idx] * weight_vals[idx];
+// The AlexNetCIFAR FC head is dense (only the convs are pruned), so this is the
+// same dense linear kernel as cifar-dense's.
+// input:  (N, in_features)
+// weights: (out_features, in_features)
+// bias:   (out_features)
+// output: (N, out_features), optional ReLU
+inline void linear_batch_u(const float* __restrict__ u_input,
+                           const float* __restrict__ u_weights,
+                           const float* __restrict__ u_bias,
+                           float* __restrict__ u_output,
+                           const int N,             // in_shape[0]
+                           const int in_features,   // in_shape[1]
+                           const int out_features,  // w_shape[0]
+                           const bool relu) {
+  // Fast path: register-blocked GEMM (see detail::fc_tile4x2). Unlike
+  // cifar-dense (N=16, DRAM-bound -> plain of-pair-major streaming), N=128
+  // here makes this stage compute-bound and the 2 MB of activations exceed
+  // L2 -- so of-pairs are grouped into NB-row cache blocks: a block's weight
+  // panel (NB x 16 KB) is streamed from DRAM once (first image tile) and
+  // stays L2-resident for the remaining N/MR - 1 image-tile passes (NB sized
+  // for two SMT siblings sharing an L2), and each image tile's 4 input rows
+  // are reused from cache across the block's of-pairs instead of re-pulling
+  // all 2 MB of activations from L3 per of-pair. Guards are uniform across
+  // threads, so the worksharing constructs stay consistent.
+  constexpr int MR = 4;   // images per register tile
+  constexpr int NR = 2;   // output features per register tile
+  constexpr int NB = 16;  // weight rows per cache block (16 x 16 KB = 256 KB)
+  if (N % MR == 0 && out_features % NR == 0) {
+    const int n_blocks = (out_features + NB - 1) / NB;
+#pragma omp for collapse(2) schedule(static)
+    for (int ofb = 0; ofb < n_blocks; ofb++) {
+      for (int n0 = 0; n0 < N; n0 += MR) {
+        const int of_end = std::min((ofb + 1) * NB, out_features);
+        for (int of0 = ofb * NB; of0 < of_end; of0 += NR) {
+          detail::fc_tile4x2(u_input + n0 * in_features,
+                             u_weights + of0 * in_features,
+                             u_bias + of0,
+                             u_output + n0 * out_features + of0,
+                             in_features,
+                             out_features,
+                             relu);
+        }
       }
-      // Compute the index in the flattened output array:
-      int output_idx = b * out_neurons + i;
-      output_data[output_idx] = sum + bias_data[i];
+    }
+    return;
+  }
+
+  // Generic fallback (any shape): parallelize over (out_features, N);
+  // vectorize the per-output dot product. of-major: a thread's contiguous
+  // chunk of the collapse space visits each weight row N consecutive times
+  // (L1-resident), so the (out x in) weight matrix streams from DRAM once per
+  // task instead of once per image.
+#pragma omp for collapse(2)
+  for (int of = 0; of < out_features; of++) {
+    for (int n = 0; n < N; n++) {
+      const float* __restrict__ in_row = u_input + n * in_features;
+      const float* __restrict__ w_row = u_weights + of * in_features;
+      float sum = u_bias[of];
+#pragma omp simd reduction(+ : sum)
+      for (int inf = 0; inf < in_features; inf++) {
+        sum += in_row[inf] * w_row[inf];
+      }
+      if (relu) sum = std::max(sum, 0.0f);
+      u_output[n * (out_features) + of] = sum;
     }
   }
 }

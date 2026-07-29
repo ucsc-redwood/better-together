@@ -41,6 +41,6 @@ inline ProcessorType ParseCoreType(const std::string& s) {
 // Per-app pipeline stage counts (single source for the AppTraits specializations).
 namespace bt::vocab {
 inline constexpr int kTreeStages = 7;
-inline constexpr int kCifarDenseStages = 9;
-inline constexpr int kCifarSparseStages = 9;
+inline constexpr int kCifarDenseStages = 11;
+inline constexpr int kCifarSparseStages = 11;
 }  // namespace bt::vocab

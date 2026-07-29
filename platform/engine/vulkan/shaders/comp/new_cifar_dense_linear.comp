@@ -26,6 +26,7 @@ layout(push_constant) uniform Params {
   int N;             // Batch size
   int in_features;   // Number of input features
   int out_features;  // Number of output features
+  int apply_relu;    // 1 to apply ReLU, 0 otherwise
 }
 params;
 
@@ -51,6 +52,8 @@ void main() {
     int weightIndex = of * params.in_features + inf;
     sum += input_data[inputIndex] * weight_data[weightIndex];
   }
+
+  if (params.apply_relu != 0 && sum < 0.0) sum = 0.0;
 
   // Store the result in the output buffer (assumed [N, out_features] order).
   int outputIndex = n * params.out_features + of;

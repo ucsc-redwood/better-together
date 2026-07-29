@@ -1,6 +1,6 @@
 {
   "_comment": "Single source of truth for the framework vocabulary (PU tiers, backends, app stage counts). Codegen -> platform/vocab/generated/bt_vocab.hpp (C++) + optimizer/smt/bt_vocab.py (Python) via scripts/embed_vocab.py. Encodes the CURRENT values verbatim; behavior-preserving (the orphaned 'super' tier stays out of the solver's tier list exactly as today -- see docs/reports-for-human/target-structure.md P4).",
-  "_app_stages_comment": "Stage counts of the CURRENTLY IMPLEMENTED kernels: tree = the 7-stage octree pipeline; cifar-dense/cifar-sparse = the 9-stage SmallAlexNet. The canonical AlexNetCIFAR spec (docs/instruction-for-ai/04) is 11 stages -- the C++ kernels are not migrated to it yet, so 9 is correct here today.",
+  "_app_stages_comment": "Stage counts of the CURRENTLY IMPLEMENTED kernels: tree = the 7-stage octree pipeline; cifar-dense/cifar-sparse = the 11-stage canonical AlexNetCIFAR (docs/instruction-for-ai/04): Conv1 Pool1 Conv2 Pool2 Conv3 Conv4 Conv5 Pool3 FC1 FC2 FC3 (BN/ReLU fused into the convs).",
   "processor_types": [
     {
       "cpp": "kLittleCore",
@@ -51,7 +51,7 @@
   ],
   "app_stages": {
     "tree": 7,
-    "cifar-dense": 9,
-    "cifar-sparse": 9
+    "cifar-dense": 11,
+    "cifar-sparse": 11
   }
 }

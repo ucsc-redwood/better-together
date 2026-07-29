@@ -20,10 +20,12 @@ class CudaDispatcher {
   void run_stage_7_async(cifar_sparse::AppData& appdata);
   void run_stage_8_async(cifar_sparse::AppData& appdata);
   void run_stage_9_async(cifar_sparse::AppData& appdata);
+  void run_stage_10_async(cifar_sparse::AppData& appdata);
+  void run_stage_11_async(cifar_sparse::AppData& appdata);
 
   using StageFn = void (CudaDispatcher::*)(cifar_sparse::AppData&);
 
-  static constexpr std::array<StageFn, 9> stage_functions = {
+  static constexpr std::array<StageFn, 11> stage_functions = {
       &CudaDispatcher::run_stage_1_async,
       &CudaDispatcher::run_stage_2_async,
       &CudaDispatcher::run_stage_3_async,
@@ -34,10 +36,12 @@ class CudaDispatcher {
       &CudaDispatcher::run_stage_7_async,
       &CudaDispatcher::run_stage_8_async,
       &CudaDispatcher::run_stage_9_async,
+      &CudaDispatcher::run_stage_10_async,
+      &CudaDispatcher::run_stage_11_async,
   };
 
   void dispatch_stage(AppData& appdata, const int stage) {
-    assert(stage >= 1 && stage <= 9);
+    assert(stage >= 1 && stage <= 11);
 
     (this->*stage_functions[stage - 1])(appdata);
 
@@ -46,7 +50,7 @@ class CudaDispatcher {
   }
 
   void dispatch_multi_stage(AppData& appdata, const int start_stage, const int end_stage) {
-    assert(start_stage >= 1 && end_stage <= 9);
+    assert(start_stage >= 1 && end_stage <= 11);
 
     for (int stage = start_stage; stage <= end_stage; stage++) {
       (this->*stage_functions[stage - 1])(appdata);

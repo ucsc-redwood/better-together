@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <memory>
+#include <memory_resource>
 #include <optional>
 #include <queue>
 #include <vector>
@@ -14,7 +15,7 @@
 #include "platform/registry/device_registry.hpp"
 #include "runtime/record.hpp"
 #include "runtime/spsc_queue.hpp"
-#include "vk_appdata.hpp"  // tree::vulkan::VkAppData_Safe
+#include "vk_appdata.hpp"  // tree::vulkan::VkAppData, VkAppData_Safe
 
 // ----------------------------------------------------------------------------
 // Framework runtime test, VULKAN: drive the tree app through the REAL concurrent
@@ -32,10 +33,14 @@
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
 
 // AppTraits for the Vulkan tree runtime-test cell (keyed on its real GPU dispatcher;
-// mirrors the constants in pipe/tree-vk/const.hpp). Real Vulkan dispatcher + UMA AppData.
+// mirrors the constants in pipe/tree-vk/const.hpp). Real Vulkan dispatcher + the
+// genuinely-chained tree::vulkan::VkAppData (Phase 3 of the Vulkan migration --
+// mirrors apps/tree/cuda/test_pipeline_main_cu.cu's equivalent switch; this
+// specialization can only exist once per binary, so it's an in-place switch, not
+// additive -- VkAppData_Safe remains untouched for TreeDiffVulkan in test_main.cpp).
 template <>
 struct AppTraits<tree::vulkan::VulkanDispatcher> {
-  using AppData = tree::vulkan::VkAppData_Safe;
+  using AppData = tree::vulkan::VkAppData;
   using Queue = SPSCQueue<AppData*, 32>;  // pow2 >= kPoolSize(16) with a free slot
   static constexpr int kNumStages = bt::vocab::kTreeStages;
   static constexpr std::size_t kPoolSize = 16;
@@ -52,15 +57,22 @@ using bt_pipe_test::run_runtime_test;
 using AppDataT = AppTraits<tree::vulkan::VulkanDispatcher>::AppData;
 constexpr int kNumStages = AppTraits<tree::vulkan::VulkanDispatcher>::kNumStages;
 
-// Per-item check: the full stage-7 differential oracle + the §1/§7 subset-zero
-// detector (a partial-visibility / stale-read regression leaves the octree mask
-// all-zero on a subset of items).
+// Per-item check: build a fresh OMP-computed `ref` chain from `a`'s own input
+// points (the same pattern test_pipeline_chained_vk.cpp's CheckItemChained uses),
+// then diff `a` (what the concurrent ring actually produced) against it -- the
+// full stage-7 differential oracle plus the §1/§7 subset-zero detector (a
+// partial-visibility / stale-read regression leaves the octree mask all-zero on
+// a subset of items).
 void CheckItem(AppDataT& a) {
-  tree::testing::CheckStage7(a);
+  tree::AppData ref(std::pmr::new_delete_resource(), a.get_n_input());
+  ref.u_input_points_s0 = a.u_input_points_s0;
+  tree::omp::dispatch_multi_stage(ref, 1, 7);
+
+  tree::testing::CheckStage7(ref, a);
   const auto n = a.get_n_octree_nodes();
   bool all_zero = n > 0;
   for (std::size_t i = 0; i < n; ++i) {
-    if (a.u_oct_child_node_mask_s7_out[i] != 0) {
+    if (a.u_oct_child_node_mask_s7[i] != 0) {
       all_zero = false;
       break;
     }

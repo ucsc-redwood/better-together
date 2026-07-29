@@ -13,6 +13,9 @@ if(BT_ENABLE_CUDA)
     endforeach()
 
     if(BT_BUILD_BENCHMARKS)
+        # Null-kernel runtime microbenchmark: pure framework tax, no app kernels.
+        bt_add_cuda_app(bm-runtime-null-cu runtime-null-cu/bm_main.cu)
+
         foreach(app ${BT_PROFILED_APPS})
             bt_add_cuda_app(bm-baseline-${app}-cu ${app}-cu/bm_baseline.cu        benchmark::benchmark)
             bt_add_cuda_app(bm-fully-${app}-cu    ${app}-cu/bm_fully_vs_normal.cu benchmark::benchmark)

@@ -7,15 +7,17 @@
 
 namespace cifar_sparse::omp {
 
-void run_stage_1(AppData& appdata);  // Conv 1
-void run_stage_2(AppData& appdata);  // MaxPool 1
-void run_stage_3(AppData& appdata);  // Conv 2
-void run_stage_4(AppData& appdata);  // MaxPool 2
-void run_stage_5(AppData& appdata);  // Conv 3
-void run_stage_6(AppData& appdata);  // Conv 4
-void run_stage_7(AppData& appdata);  // Conv 5
-void run_stage_8(AppData& appdata);  // MaxPool 3
-void run_stage_9(AppData& appdata);  // Linear
+void run_stage_1(AppData& appdata);   // Conv 1
+void run_stage_2(AppData& appdata);   // MaxPool 1
+void run_stage_3(AppData& appdata);   // Conv 2
+void run_stage_4(AppData& appdata);   // MaxPool 2
+void run_stage_5(AppData& appdata);   // Conv 3
+void run_stage_6(AppData& appdata);   // Conv 4
+void run_stage_7(AppData& appdata);   // Conv 5
+void run_stage_8(AppData& appdata);   // MaxPool 3
+void run_stage_9(AppData& appdata);   // FC 1
+void run_stage_10(AppData& appdata);  // FC 2
+void run_stage_11(AppData& appdata);  // FC 3
 
 using DispatchFnBatch = void (*)(AppData&);
 
@@ -29,10 +31,12 @@ const DispatchFnBatch dispatch_fns_batch[] = {
     run_stage_7,
     run_stage_8,
     run_stage_9,
+    run_stage_10,
+    run_stage_11,
 };
 
 inline void dispatch_stage(AppData& appdata, const int stage) {
-  assert(stage >= 1 && stage <= 9);
+  assert(stage >= 1 && stage <= 11);
 
 #pragma omp parallel
   {
@@ -41,7 +45,7 @@ inline void dispatch_stage(AppData& appdata, const int stage) {
 }
 
 inline void dispatch_multi_stage(AppData& appdata, const int start_stage, const int end_stage) {
-  assert(start_stage >= 1 && end_stage <= 9);
+  assert(start_stage >= 1 && end_stage <= 11);
 
 #pragma omp parallel
   {
@@ -55,7 +59,7 @@ inline void dispatch_stage(const std::vector<int>& cores_to_use,
                            const int num_threads,
                            AppData& appdata,
                            const int stage) {
-  assert(stage >= 1 && stage <= 9);
+  assert(stage >= 1 && stage <= 11);
 
 #pragma omp parallel num_threads(num_threads)
   {
@@ -70,7 +74,7 @@ inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
                                  AppData& appdata,
                                  const int start_stage,
                                  const int end_stage) {
-  assert(start_stage >= 1 && end_stage <= 9);
+  assert(start_stage >= 1 && end_stage <= 11);
 
 #pragma omp parallel num_threads(num_threads)
   {

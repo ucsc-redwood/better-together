@@ -145,7 +145,9 @@ def deploy_and_run_ssh(host, binary, schedule, device, dest, n_sched):
         f"LD_LIBRARY_PATH=. ./{bname} --device {device} "
         f"--schedule-file {sname} --n-schedules-to-run {n_sched}"
     )
-    return t.exec(cmd, env=VK_QUIET_ENV)
+    # Real weights, fail-loud (deploy-weights.sh first). Sparse stage timings
+    # depend on the real CSR pattern, so benchmarking synthetic would be a lie.
+    return t.exec(cmd, env={**VK_QUIET_ENV, "BT_WEIGHTS_DIR": f"{t.dest}/weights"})
 
 
 def deploy_and_run_adb(serial, adb_host, binary, schedule, device, n_sched):
@@ -157,4 +159,4 @@ def deploy_and_run_adb(serial, adb_host, binary, schedule, device, n_sched):
         f"LD_LIBRARY_PATH=. ./{bname} --device {device} "
         f"--schedule-file {sname} --n-schedules-to-run {n_sched}"
     )
-    return t.exec(cmd)
+    return t.exec(cmd, env={"BT_WEIGHTS_DIR": f"{t.dest}/weights"})

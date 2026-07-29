@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <memory>
+#include <memory_resource>
 #include <optional>
 #include <queue>
 #include <vector>
@@ -30,17 +31,18 @@
 
 #include "runtime/pipeline_runner.hpp"  // run_runtime_test, AppTraits
 
-// AppTraits for this (tree, Cuda) runtime-test cell, keyed on its dispatcher.
+// AppTraits for this (tree, Cuda) runtime-test cell, keyed on its dispatcher. Uses
+// tree::AppData (genuinely chained) -- see the Phase 3 note in tree_diff_oracle.hpp.
 template <>
 struct AppTraits<tree::cuda::CudaDispatcher> {
-  using AppData = tree::SafeAppData;
-  using Queue = SPSCQueue<tree::SafeAppData*, 64>;
+  using AppData = tree::AppData;
+  using Queue = SPSCQueue<tree::AppData*, 64>;
   static constexpr int kNumStages = bt::vocab::kTreeStages;
   static constexpr std::size_t kPoolSize = 32;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;
   static void omp_dispatch(
-      const std::vector<int>& cores, int n, tree::SafeAppData& app, int start, int end) {
+      const std::vector<int>& cores, int n, tree::AppData& app, int start, int end) {
     tree::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -57,11 +59,15 @@ bool CudaAvailable() {
 }
 
 void CheckItem(AppDataT& a) {
-  tree::testing::CheckStage7(a);
+  tree::AppData ref(std::pmr::new_delete_resource(), a.get_n_input());
+  ref.u_input_points_s0 = a.u_input_points_s0;
+  tree::omp::dispatch_multi_stage(ref, 1, 7);
+
+  tree::testing::CheckStage7(ref, a);
   const auto n = a.get_n_octree_nodes();
   bool all_zero = n > 0;
   for (std::size_t i = 0; i < n; ++i) {
-    if (a.u_oct_child_node_mask_s7_out[i] != 0) {
+    if (a.u_oct_child_node_mask_s7[i] != 0) {
       all_zero = false;
       break;
     }

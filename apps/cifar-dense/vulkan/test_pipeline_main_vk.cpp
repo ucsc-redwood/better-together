@@ -1,6 +1,6 @@
 // Framework runtime test, cifar-dense × VULKAN: tree's harness applied to a second
 // app. Hybrid OMP|Vulkan schedule through the REAL concurrent worker/SPSC ring --
-// OMP stages 1-4 ∥ Vulkan stages 5-9 over the shared UMA pool, the concurrent CPU+GPU
+// OMP stages 1-4 ∥ Vulkan stages 5-11 over the shared UMA pool, the concurrent CPU+GPU
 // visibility path. cifar is feed-forward (fixed stage shapes, no data-dependent
 // counts), so unlike tree it has no GPU-re-entry landmine. per-item check = the
 // end-to-end CheckFinalPipeline (NearEqual on the final logits). Runs on rocky / Mali.
@@ -52,7 +52,7 @@ TEST(PipelineE2ECifarDenseVk, HybridOmpVulkan) {
   Schedule sched;
   sched.uid = "cifar-dense-omp-vk";
   sched.chunks = {{ExecutionModel::kOMP, 1, 4, first_present_cpu_type()},
-                  {ExecutionModel::kVulkan, 5, 9, std::nullopt}};
+                  {ExecutionModel::kVulkan, 5, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_dense::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
@@ -60,7 +60,7 @@ TEST(PipelineE2ECifarDenseVk, HybridOmpVulkan) {
 TEST(PipelineE2ECifarDenseVk, AllVulkan) {
   Schedule sched;
   sched.uid = "cifar-dense-all-vk";
-  sched.chunks = {{ExecutionModel::kVulkan, 1, 9, std::nullopt}};
+  sched.chunks = {{ExecutionModel::kVulkan, 1, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_dense::vulkan::VulkanDispatcher>(sched, CheckItem);
 }

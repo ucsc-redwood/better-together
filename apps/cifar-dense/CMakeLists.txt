@@ -1,17 +1,26 @@
 # cifar-dense -- AlexNet inference on CIFAR-10 (dense). Float (NearEqual) compares.
 
 target_sources(bt_core PRIVATE omp/dispatchers.cpp)
+
+# The OMP kernels in this TU are both the numerical oracle and a scheduled CPU
+# target. Default Release flags target baseline x86-64 (SSE2, no FMA); every
+# x86 box in play (rocky-ryzen Zen4, GitHub ubuntu runners) is x86-64-v3
+# capable (AVX2+FMA, Haswell 2013+), which doubles the vector width and fuses
+# the MACs. Scoped to this one source file so the rest of the build stays
+# baseline. (aarch64 targets are unaffected: NEON+FMA is baseline there.)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+    set_source_files_properties(
+        omp/dispatchers.cpp
+        TARGET_DIRECTORY bt_core
+        PROPERTIES COMPILE_OPTIONS "-march=x86-64-v3"
+    )
+endif()
+
 if(BT_ENABLE_CUDA)
     target_sources(bt_cuda PRIVATE cuda/all_kernels.cu cuda/dispatchers.cu)
 endif()
 if(BT_ENABLE_VULKAN)
     target_sources(bt_vulkan PRIVATE vulkan/dispatchers.cpp)
-endif()
-
-# ---- runners ----
-bt_add_omp_run(run-cifar-dense-omp omp/main.cpp)
-if(BT_ENABLE_CUDA)
-    bt_add_cuda_app(run-cifar-dense-cu cuda/main.cu)
 endif()
 
 # ---- benchmarks (per-stage BM_Stage1..N) ----

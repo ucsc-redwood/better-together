@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <memory_resource>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -18,17 +19,18 @@
 #include "runtime/spsc_queue.hpp"
 
 // AppTraits for the OMP-only tree runtime-test cell (keyed on the OMP stub dispatcher:
-// host memory, no GPU chunk -- its dispatch_multi_stage is never reached here).
+// host memory, no GPU chunk -- its dispatch_multi_stage is never reached here). Uses
+// tree::AppData (genuinely chained) -- see the Phase 3 note in tree_diff_oracle.hpp.
 template <>
-struct AppTraits<bt_pipe_test::OmpStubDispatcher<tree::SafeAppData>> {
-  using AppData = tree::SafeAppData;
-  using Queue = SPSCQueue<tree::SafeAppData*, 64>;  // pow2 >= kPoolSize(32) with a free slot
+struct AppTraits<bt_pipe_test::OmpStubDispatcher<tree::AppData>> {
+  using AppData = tree::AppData;
+  using Queue = SPSCQueue<tree::AppData*, 64>;  // pow2 >= kPoolSize(32) with a free slot
   static constexpr int kNumStages = bt::vocab::kTreeStages;
   static constexpr std::size_t kPoolSize = 32;
   static constexpr std::size_t kNumToProcess = 100;
   static constexpr ExecutionModel kGpuExecModel = ExecutionModel::kCuda;  // unused (OMP-only)
   static void omp_dispatch(
-      const std::vector<int>& cores, int n, tree::SafeAppData& app, int start, int end) {
+      const std::vector<int>& cores, int n, tree::AppData& app, int start, int end) {
     tree::omp::dispatch_multi_stage(cores, n, app, start, end);
   }
 };
@@ -64,23 +66,30 @@ namespace {
 using bt_pipe_test::run_runtime_test;
 
 // This OMP-only cell's dispatcher key + stage count (used by validate_schedule_coverage).
-using OmpTreeDispatcher = bt_pipe_test::OmpStubDispatcher<tree::SafeAppData>;
+using OmpTreeDispatcher = bt_pipe_test::OmpStubDispatcher<tree::AppData>;
 constexpr int kNumStages = AppTraits<OmpTreeDispatcher>::kNumStages;
 
-// Per-item check: the full stage-7 differential oracle, plus the §1/§7 subset-zero
-// detector (a partial-visibility / stale-read regression leaves a stage output
-// all-zero on a subset of items).
-void CheckItem(tree::SafeAppData& a) {
+// Per-item check: build a fresh OMP-computed `ref` chain from `a`'s own input
+// points (the same pattern test_pipeline_chained.cpp's CheckItemChained uses),
+// then diff `a` (what the concurrent ring actually produced) against it -- the
+// full stage-7 differential oracle plus the interior stage-4/6 bracket, plus
+// the §1/§7 subset-zero detector (a partial-visibility / stale-read regression
+// leaves a stage output all-zero on a subset of items).
+void CheckItem(tree::AppData& a) {
+  tree::AppData ref(std::pmr::new_delete_resource(), a.get_n_input());
+  ref.u_input_points_s0 = a.u_input_points_s0;
+  tree::omp::dispatch_multi_stage(ref, 1, 7);
+
   // Assert interior hand-off too, not just the terminal stage: a mid-pipeline buffer
   // corrupted by a bad chunk hand-off can be numerically swamped before stage 7 (review #9).
   // Stage 4 (radix tree) + stage 6 (edge offset) bracket the interior at exact tolerance.
-  tree::testing::CheckStage4(a);
-  tree::testing::CheckStage6(a);
-  tree::testing::CheckStage7(a);
+  tree::testing::CheckStage4(ref, a);
+  tree::testing::CheckStage6(ref, a);
+  tree::testing::CheckStage7(ref, a);
   const auto n = a.get_n_octree_nodes();
   bool all_zero = n > 0;
   for (std::size_t i = 0; i < n; ++i) {
-    if (a.u_oct_child_node_mask_s7_out[i] != 0) {
+    if (a.u_oct_child_node_mask_s7[i] != 0) {
       all_zero = false;
       break;
     }

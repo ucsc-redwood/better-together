@@ -1,16 +1,23 @@
 # cifar-sparse -- pruned/sparse AlexNet (irregular memory). Float (NearEqual) compares.
 
 target_sources(bt_core PRIVATE omp/dispatchers.cpp)
+
+# Same rationale as cifar-dense's block: default Release flags target baseline
+# x86-64 (SSE2, no FMA); every x86 box in play is x86-64-v3 capable (AVX2+FMA),
+# and the FC GEMM microkernel needs the 8-wide FMA registers to pay off. Scoped
+# to the one TU holding the sparse OMP kernels. (aarch64 unaffected.)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$")
+    set_source_files_properties(
+        omp/dispatchers.cpp
+        TARGET_DIRECTORY bt_core
+        PROPERTIES COMPILE_OPTIONS "-march=x86-64-v3"
+    )
+endif()
 if(BT_ENABLE_CUDA)
     target_sources(bt_cuda PRIVATE cuda/all_kernels.cu cuda/dispatchers.cu)
 endif()
 if(BT_ENABLE_VULKAN)
     target_sources(bt_vulkan PRIVATE vulkan/dispatchers.cpp)
-endif()
-
-# ---- runners ----
-if(BT_ENABLE_CUDA)
-    bt_add_cuda_app(run-cifar-sparse-cu cuda/main.cu)
 endif()
 
 # ---- benchmarks (per-stage BM_Stage1..N) ----

@@ -33,13 +33,15 @@ class VulkanDispatcher final {
   void run_stage_7(AppData& appdata);
   void run_stage_8(AppData& appdata);
   void run_stage_9(AppData& appdata);
+  void run_stage_10(AppData& appdata);
+  void run_stage_11(AppData& appdata);
 
   // Record stages [start_stage, end_stage] into ONE command buffer with a
   // shaderWrite->shaderRead barrier between consecutive stages, then run it with ONE
   // submit + ONE fence wait. Collapses the per-stage CPU<->GPU round-trips of a chunk;
   // host cache flush/invalidate happen once per chunk (inside submit/wait_for_fence).
   void dispatch_multi_stage(AppData& data, const int start_stage, const int end_stage) {
-    if (start_stage < 1 || end_stage > 9 || start_stage > end_stage)
+    if (start_stage < 1 || end_stage > 11 || start_stage > end_stage)
       throw std::out_of_range("Invalid stage");
 
     seq->cmd_begin();
@@ -68,10 +70,12 @@ class VulkanDispatcher final {
   void record_stage_7(AppData& appdata, vk::CommandBuffer cmd);
   void record_stage_8(AppData& appdata, vk::CommandBuffer cmd);
   void record_stage_9(AppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_10(AppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_11(AppData& appdata, vk::CommandBuffer cmd);
 
   using RecordFn = void (VulkanDispatcher::*)(AppData&, vk::CommandBuffer);
 
-  static constexpr std::array<RecordFn, 9> record_functions = {
+  static constexpr std::array<RecordFn, 11> record_functions = {
       &VulkanDispatcher::record_stage_1,
       &VulkanDispatcher::record_stage_2,
       &VulkanDispatcher::record_stage_3,
@@ -81,6 +85,8 @@ class VulkanDispatcher final {
       &VulkanDispatcher::record_stage_7,
       &VulkanDispatcher::record_stage_8,
       &VulkanDispatcher::record_stage_9,
+      &VulkanDispatcher::record_stage_10,
+      &VulkanDispatcher::record_stage_11,
   };
 
   kiss_vk::Engine engine;

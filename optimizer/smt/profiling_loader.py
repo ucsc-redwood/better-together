@@ -64,11 +64,21 @@ def validate(records):
         raise ValueError("schema validation failed:\n" + "\n".join(errors))
 
 
-def load_profiling(root, device, app, backend, scenario, metric="p50", min_runs=1, max_cv=0.1):
+def load_profiling(
+    root, device, app, backend, scenario, metric="p50", min_runs=1, max_cv=0.1, cv_exempt_pus=()
+):
     """Return (table, report).
 
     table: {(stage, pu): {"value", "n_runs", "count"}} -- aggregated metric.
     report: provenance about what was read, dropped, or came up short.
+
+    ``cv_exempt_pus``: PUs whose rows pass the CV gate regardless of noise (an
+    explicit throttle flag still drops them). Rationale: the GPU target PU must
+    exist for EVERY stage or the whole cell is unschedulable, and its p50 is
+    robust to the interference spikes that inflate CV -- with sub-ms optimized
+    kernels one preempted sample blows past any sane gate, and losing the cell
+    is strictly worse than trusting the median. Exempted-but-noisy cells are
+    listed in ``report["cv_exempted"]`` so callers can warn loudly.
     """
     pattern = os.path.join(root, device, app, backend, scenario, "run-*.jsonl")
     paths = sorted(glob.glob(pattern))
@@ -82,7 +92,7 @@ def load_profiling(root, device, app, backend, scenario, metric="p50", min_runs=
     for r in records:
         cells[(r["stage"], r["pu"])].append(r)
 
-    table, dropped, insufficient = {}, [], []
+    table, dropped, insufficient, cv_exempted = {}, [], [], []
     for (stage, pu), rs in sorted(cells.items()):
         # Drop measured-and-known-bad samples: explicit thermal throttle, or
         # noise above the CV gate. A field absent from provenance is never
@@ -90,8 +100,13 @@ def load_profiling(root, device, app, backend, scenario, metric="p50", min_runs=
         kept = [
             r
             for r in rs
-            if not r["provenance"].get("throttled", False) and r["timing"]["cv"] <= max_cv
+            if not r["provenance"].get("throttled", False)
+            and (r["timing"]["cv"] <= max_cv or pu in cv_exempt_pus)
         ]
+        if pu in cv_exempt_pus:
+            noisy = [r["timing"]["cv"] for r in kept if r["timing"]["cv"] > max_cv]
+            if noisy:
+                cv_exempted.append((stage, pu, max(noisy)))
         if len(kept) < len(rs):
             dropped.append((stage, pu, len(rs) - len(kept)))
         if len(kept) < min_runs:
@@ -109,6 +124,7 @@ def load_profiling(root, device, app, backend, scenario, metric="p50", min_runs=
         "min_runs": min_runs,
         "dropped": dropped,
         "insufficient": insufficient,
+        "cv_exempted": cv_exempted,
     }
     return table, report
 

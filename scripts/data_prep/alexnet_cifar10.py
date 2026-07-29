@@ -194,7 +194,12 @@ def main() -> None:
     args = p.parse_args()
 
     set_seed(args.seed)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():  # Apple-silicon GPU (fp32; AMP stays CUDA-only)
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     print(f"[setup] device={device} epochs={args.epochs} batch={args.batch_size} lr={args.lr}")
 
     train_loader, val_loader, test_loader = build_loaders(

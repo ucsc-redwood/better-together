@@ -1,5 +1,5 @@
 // Framework runtime test, cifar-sparse × CUDA: hybrid OMP|CUDA through the REAL
-// concurrent ring -- OMP stages 1-4 ∥ CUDA stages 5-9 on zero-copy pinned UMA.
+// concurrent ring -- OMP stages 1-4 ∥ CUDA stages 5-11 on zero-copy pinned UMA.
 // per-item check = CheckFinalPipeline. Cross-built in bt-cross:6.1, run on the Jetson.
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
@@ -56,7 +56,7 @@ TEST(PipelineE2ECifarSparseCu, HybridOmpCuda) {
   Schedule sched;
   sched.uid = "cifar-sparse-omp-cu";
   sched.chunks = {{ExecutionModel::kOMP, 1, 4, first_present_cpu_type()},
-                  {ExecutionModel::kCuda, 5, 9, std::nullopt}};
+                  {ExecutionModel::kCuda, 5, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_sparse::cuda::CudaDispatcher>(sched, CheckItem);
 }
@@ -65,7 +65,7 @@ TEST(PipelineE2ECifarSparseCu, AllCuda) {
   if (!CudaAvailable()) GTEST_SKIP() << "no CUDA device";
   Schedule sched;
   sched.uid = "cifar-sparse-all-cu";
-  sched.chunks = {{ExecutionModel::kCuda, 1, 9, std::nullopt}};
+  sched.chunks = {{ExecutionModel::kCuda, 1, 11, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<cifar_sparse::cuda::CudaDispatcher>(sched, CheckItem);
 }

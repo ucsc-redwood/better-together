@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Versioned pre-commit hook: refuse commits that would fail CI's fmt-check.
+# Install once with:  just setup-hooks   (sets core.hooksPath to this dir)
+# Bypass in an emergency with:  git commit --no-verify
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+if ! command -v just >/dev/null 2>&1; then
+  echo "pre-commit: 'just' not found -- skipping fmt-check (CI will still enforce it)" >&2
+  exit 0
+fi
+
+if ! just fmt-check >/dev/null 2>&1; then
+  echo "" >&2
+  echo "pre-commit: fmt-check FAILED. Fix with:" >&2
+  echo "    just fmt && git add -u" >&2
+  echo "(or bypass once with git commit --no-verify)" >&2
+  exit 1
+fi

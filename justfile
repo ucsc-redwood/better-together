@@ -24,9 +24,11 @@
 
 jetson_host         := "doremy@duck-stable"
 jetson_naughty_host := "doremy@duck-naughty"
-minipc_host    := "rocky-ryzen"
+minipc_host    := "doremy@rocky-ryzen"
 samsung_serial := "R5CY21Y3VEV"
-ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var("ANDROID_HOME") / "ndk/29.0.14206865")
+# Nested defaults: must never hard-fail at parse time on a machine without Android
+# env (an eager env_var() here used to kill EVERY recipe, incl. fmt and non-android builds).
+ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var_or_default("ANDROID_HOME", "/opt/android-sdk") / "ndk/29.0.14206865")
 # Container runtime for the Jetson cross-build: `docker` (build box) or `podman`
 # (the Rocky fleet runner — rootless + SELinux → --userns=keep-id + a :z volume).
 container      := env_var_or_default("BT_CONTAINER", "docker")
@@ -77,19 +79,21 @@ build: build-jetson build-x86 build-android
 # shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
 # bt-cross:7.2 podman image lives there, not on this box).
 
+# All three build ON rocky (the build host for everything since the old box
+# retired) and pull the binaries back. Each leg gets its OWN remote source dir:
+# the fleet orchestrator runs them CONCURRENTLY, and three `rsync --delete`s
+# into one dir race each other (exit 24, vanished files mid-enumeration).
 build-bench-x86:
-    cmake --preset vulkan
-    cmake --build --preset vulkan --target {{bench_vk_bins}}
+    BT_BENCH_SRC=bt-src-vulkan scripts/build-bench-on-rocky.sh vulkan
 
 build-bench-android:
-    ANDROID_NDK_HOME={{ndk}} cmake --preset android
-    cmake --build --preset android --target {{bench_vk_bins}}
+    BT_BENCH_SRC=bt-src-android scripts/build-bench-on-rocky.sh android
 
 # Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2 podman
 # image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
 # rsync->podman->pull flow lives in a standalone script (cf. scripts/run-on-*.sh).
 build-bench-jetson:
-    BT_BENCH_JETSON_HOST={{minipc_host}} scripts/build-bench-jetson.sh
+    BT_BENCH_JETSON_HOST={{minipc_host}} BT_BENCH_SRC=bt-src-jetson scripts/build-bench-jetson.sh
 
 # Run the whole fleet benchmark e2e concurrently with live progress (see
 # optimizer/orchestrate/00_run_fleet.py --help). Pass-through args, e.g.
@@ -211,6 +215,11 @@ fmt-check:
     echo "▸ prettier (JSON)"
     git ls-files '*.json' ':(exclude)dashboard/*' | xargs -r bunx prettier@3.8.4 --check --log-level warn || rc=1
     exit $rc
+
+# Install the versioned git hooks (pre-commit fmt-check gate). Run once per clone.
+setup-hooks:
+    git config core.hooksPath scripts/git-hooks
+    @echo "hooks installed: commits now run fmt-check (bypass: git commit --no-verify)"
 
 # --- static analysis & sanitizers -------------------------------------------
 # These build the OpenMP surface only (no GPU needed), so they run anywhere.

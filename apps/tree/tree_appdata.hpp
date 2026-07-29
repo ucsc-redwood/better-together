@@ -27,6 +27,26 @@ constexpr auto kDefaultInputSize = 640 * 480;
 constexpr auto kMinCoord = 0.0f;
 constexpr auto kRange = 1024.0f;
 
+// Real-data input mode (see specs/001-octomap-real-workload/contracts/
+// tree-real-data-contract.md): if the env var BT_TREE_DATA_DIR is set,
+// AppData loads $BT_TREE_DATA_DIR/points.npy (a pre-built, deterministically
+// concatenated Freiburg Campus 360 3D Octomap corpus, already recentered into
+// [kMinCoord, kMinCoord + kRange)) via bt::npy::load_prefix instead of
+// generating synthetic points. BT_TREE_INPUT_SIZE optionally overrides how
+// many points (a prefix of the file) to load; this is the real-data default
+// when it's unset.
+//
+// Deliberately conservative: profiler/tree-{cu,vk}'s bm_prof pooled harness
+// (kPoolSize=32, runtime/pipeline.hpp's make_dataset) allocates 32 SafeAppData
+// instances SIMULTANEOUSLY -- at ~132 bytes/point/instance that's ~4.2KB/point
+// pooled. 500k keeps that under ~2.1GB, safe on the most constrained fleet
+// targets (Jetson Orin, 7.4GB total RAM) without any per-device tuning. This
+// is a memory-safety floor, not a workload target -- operators on capable
+// hosts (rocky-ryzen, the PC build box) should raise BT_TREE_INPUT_SIZE
+// explicitly to get more per-stage work; see the per-device table in
+// docs/instruction-for-ai/05-profiling.md.
+constexpr auto kRealDataDefaultInputSize = 500'000;
+
 // clang-format off
 // Data structure for managing buffers in the octree construction pipeline.
 //
@@ -152,6 +172,12 @@ struct AppData {
   void set_n_brt_nodes(const uint32_t n_brt_nodes) { this->n_brt_nodes = n_brt_nodes; }
 
   void set_n_octree_nodes(const uint32_t n_octree_nodes) { this->n_octree_nodes = n_octree_nodes; }
+
+  // No-op: satisfies runtime/pipeline.hpp's worker(), which calls reset() on a
+  // ring-recycled item after its last stage. AppData (unlike BaseAppData-derived
+  // types) doesn't track a per-cycle uid, so there's nothing to reset -- each
+  // stage overwrites its own buffers in full every pass.
+  void reset() {}
 };
 
 }  // namespace tree

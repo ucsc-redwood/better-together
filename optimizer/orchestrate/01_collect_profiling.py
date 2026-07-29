@@ -112,6 +112,9 @@ def main():
                 "BT_PROF_RUN": run,
                 "BT_PROF_SCENARIO": scenario,
                 "BT_PROF_WARMUP": args.warmup,
+                # Real weights, fail-loud (deploy-weights.sh first): sparse stage
+                # timings depend on the real CSR pattern.
+                "BT_WEIGHTS_DIR": f"{target.dest}/weights",
             }
             cmd = f"LD_LIBRARY_PATH=. ./{bname} --device {args.device}"
             out = target.exec(cmd, env=env)

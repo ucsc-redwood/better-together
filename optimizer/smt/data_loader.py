@@ -95,9 +95,25 @@ def load_stage_timings(
 
     case = Case(device, app, backend)
     gpu_pu = case.backend_long  # "cuda" | "vulkan"
+    # The GPU backend is the schedule target: exempt it from the CV gate (its
+    # p50 is spike-robust) rather than losing the whole cell -- see load_profiling.
     table, report = load_profiling(
-        root, device, app, gpu_pu, scenario, metric=metric, max_cv=eff_max_cv, min_runs=eff_min_runs
+        root,
+        device,
+        app,
+        gpu_pu,
+        scenario,
+        metric=metric,
+        max_cv=eff_max_cv,
+        min_runs=eff_min_runs,
+        cv_exempt_pus=(gpu_pu,),
     )
+    if report["cv_exempted"]:
+        cells = ", ".join(f"s{s}(cv={cv:.2f})" for s, _, cv in report["cv_exempted"])
+        print(
+            f"WARNING [CV gate]: {device}/{app}/{backend}/{scenario}: kept noisy {gpu_pu} "
+            f"stage(s) past max_cv={eff_max_cv} (p50 used, spikes ignored): {cells}"
+        )
     num_stages = get_num_stages_for_app(app) if app else 9
 
     if dvfs_floor and scenario == "interference":

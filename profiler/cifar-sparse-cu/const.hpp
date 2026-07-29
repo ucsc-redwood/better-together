@@ -8,15 +8,21 @@
 #include "runtime/spsc_queue.hpp"
 
 // Application-specific constants
-constexpr size_t kNumStages = 9;
+constexpr size_t kNumStages = 11;
 
 using DispatcherT = cifar_sparse::cuda::CudaDispatcher;
 using AppDataT = cifar_sparse::AppData;
 using AppDataPtr = std::unique_ptr<AppDataT>;
 
 // Pipeline-specific constants
-constexpr size_t kPoolSize = 32;
-constexpr size_t kNumToProcess = 100;
+// AlexNetCIFAR AppData is dominated by the two 4096x4096 FC weights; the pool must
+// fit a 7.4 GB Jetson alongside the OS, and SPSCQueue needs a power-of-2 size (6
+// never compiled). 4 in-flight tasks are plenty for 2-3 chunk pipelines.
+constexpr size_t kPoolSize = 4;
+// 32 (not 100): the 11-stage model is ~27x heavier per image than the old one;
+// 32 tasks still amortize pipeline ramp-up (pool 4) while keeping a 10-schedule
+// sweep on a phone inside minutes instead of hours.
+constexpr size_t kNumToProcess = 32;
 
 using QueueT = SPSCQueue<AppDataT*, kPoolSize>;
 using LocalQueue = std::queue<AppDataT*>;

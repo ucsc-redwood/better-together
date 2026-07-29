@@ -93,9 +93,11 @@ shape `(out_ch,)` — fold these into the conv weight/bias for an inference kern
 Total ≈ **52.6M** parameters (the two 4096×4096 FC layers dominate — this is why
 the checkpoint is ~137 MB and is a deliberate AlexNet trait, not a bug).
 
-> Note: these names/shapes differ from the C++ `appdata.hpp` (`u_conv1_w` …
-> `u_linear_w`, the old `SmallAlexNet` shapes). Adopting this model means the C++
-> `AppData` and all `run_stage_*` kernels must be re-shaped to the table above.
+> Migrated 2026-07-02: both cifar apps' `AppData` and `run_stage_*` kernels now
+> implement exactly the table above (`u_conv1_w` … `u_fc3_w`), verified on all
+> three backends on real hardware. `scripts/data_prep/prune_alexnet_cifar10.py`
+> exports the BN-folded dense weights and the magnitude-pruned (25%-density)
+> sparse CSR variant the sparse app mirrors.
 
 ---
 
@@ -126,3 +128,44 @@ uv run scripts/data_prep/alexnet_cifar10.py --export-npy         # dump per-laye
 SGD (momentum 0.9, nesterov, weight-decay 5e-4), cosine LR from 0.1, label
 smoothing 0.1, AMP on CUDA. 45k/5k train/val split + held-out 10k test.
 Best-val checkpoint saved to `saved_params/alexnet_cifar10_best.pt`.
+
+---
+
+## 7. Deploying the real weights
+
+`scripts/data_prep/prune_alexnet_cifar10.py` leaves the trained export in
+`saved_params/export/`: `dense/conv{1..5}_{w,b}.npy` + `fc{1..3}_{w,b}.npy`
+(BN-folded, f32, OIHW / `(out,in)` row-major), `sparse/conv{i}_csr_{values,col_idx,row_ptr}.npy`
+(CSR over `(out_ch, in_ch*3*3)`, plus biases and the dense FC head), and a
+normalized `test_batch.npy` `(128,3,32,32)` + `test_labels.npy` `(128,)`. Both
+cifar `AppData`s honor **`BT_WEIGHTS_DIR`**: unset → the synthetic seeded init
+(hermetic tests, byte-identical to before); set → the real weights and real
+test batch are loaded and **any missing file or shape mismatch throws** —
+asking for real weights never silently falls back.
+
+**Runtime batch is a framework knob, not part of this spec.** `AppData::BATCH_SIZE`
+is **16 for cifar-dense** (the 11-stage model is ~27× heavier per image than the
+old SmallAlexNet; at 128 a dense task cost ~700 ms on the Jetson GPU) and **128
+for cifar-sparse** (per-image cost is far lower — same reasoning as the paper,
+which ran dense at 1 image/task and sparse at 128). When `BATCH_SIZE` is smaller
+than the exported 128-image test batch, the loader takes the first `BATCH_SIZE`
+rows (`bt::npy::load_prefix`); trailing dims are still checked strictly. Deploy
+with
+
+```bash
+scripts/deploy-weights.sh jetson              # -> doremy@duck-stable:/tmp/bt/weights
+scripts/deploy-weights.sh rocky               # -> rocky-ryzen:/tmp/bt/weights
+scripts/deploy-weights.sh android R5CY21Y3VEV # -> /data/local/tmp/bt/weights
+```
+
+after which the `run-on-{jetson,rocky,android}.sh` scripts export
+`BT_WEIGHTS_DIR` automatically when the deployed dir exists. The end-to-end
+check is `RealWeights_EndTaskAccuracy` in the two OMP test binaries (skips
+without `BT_WEIGHTS_DIR`; sparse asserts ≥ 0.85 over its 128 images and measures
+~0.90; dense asserts ≥ 0.75 over its 16-image prefix — small-sample binomial
+slack — and measures ~0.94):
+
+```bash
+BT_WEIGHTS_DIR=$PWD/saved_params/export \
+    ./build/pc/test-cifar-dense-omp --gtest_filter='*RealWeights*'
+```

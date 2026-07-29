@@ -5,13 +5,14 @@ description = "Profile-guided software pipelining for heterogeneous edge SoCs"
 readme = "README.md"
 requires-python = ">=3.13"
 # The Python side of the repo is one uv workspace (members below) resolved into a
-# single uv.lock. The only runtime dependency is the bt-optimizer member: it owns
-# the analysis/orchestration stack (z3, jsonschema, numpy, rich, + the plot extra
-# matplotlib/pandas), so the dashboard and the fleet orchestrator -- which import
-# `smt`/`orchestrate` -- run from this one venv via `uv run`. The duplicated root
-# copies of those deps (and an unused seaborn) were removed; they live in
-# optimizer/pyproject.toml, their true owner.
-dependencies = ["bt-optimizer[plot]"]
+# single uv.lock. The bt-optimizer member owns the analysis/orchestration stack
+# (z3, jsonschema, numpy, rich, + the plot extra matplotlib/pandas), so the
+# dashboard and the fleet orchestrator -- which import `smt`/`orchestrate` --
+# run from this one venv via `uv run`. The duplicated root copies of those deps
+# (and an unused seaborn) were removed; they live in optimizer/pyproject.toml,
+# their true owner. `tabulate` is the one root-level addition: scripts/data_prep/
+# (e.g. oct.py) also runs from this venv via `uv run` and needs it directly.
+dependencies = ["bt-optimizer[plot]", "tabulate"]
 
 [tool.uv.workspace]
 members = ["optimizer"]

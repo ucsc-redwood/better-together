@@ -1,20 +1,27 @@
 name: Fleet (hardware-in-the-loop)
 
-# Tier-1 gate: runs the real CUDA/Vulkan/OMP differential tests on the physical fleet
-# and FAILS LOUD if any expected (app x backend x hardware) cell didn't run-and-pass.
-# This is the verification dev->main promotion depends on (CONTRIBUTING.md); the hosted
+# Tier-1 gate: the real CUDA/Vulkan/OMP differential tests on the physical fleet,
+# FAILING LOUD if any expected (app x backend x hardware) cell didn't run-and-pass.
+# This is the verification dev->main promotion depends on (CONTRIBUTING.md); hosted
 # ci.yml only covers OMP on x86 and gives no signal on the GPU backends.
 #
-# Runs on ONE self-hosted runner on the Rocky box (label: rocky), which co-locates the
-# whole OMP+Vulkan surface — its own iGPU (minipc, local) and both phones (local adb) —
-# and cross-builds the Jetson CUDA target via rootless podman, then ssh-deploys to it
-# (option b). A single job keeps one fleet-coverage.log for the check-fleet gate.
+# Fleet architecture (org-level runners, live 2026-07-02) — capability LABELS, never
+# machine names:
+#   [self-hosted, rdna3]            Rocky/RDNA3 iGPU box (podman not docker, adb host)
+#   [self-hosted, android, pixel]   Pixel 7a  — its own runner, ANDROID_SERIAL pinned
+#   [self-hosted, android, samsung] Galaxy    — its own runner, ANDROID_SERIAL pinned
+#   [self-hosted, jetson, cuda]     2x Jetson Orin (JetPack 7.2, arm64); pin a box
+#                                   with duck-stable / duck-naughty
+# Rules these jobs respect: runners are PERSISTENT (expect caches, clean your own
+# mess), the runner user has NO sudo (no package installs — missing system deps go
+# to the fleet owner's Ansible role), the three rocky-hosted runners share one
+# physical box (rocky jobs stay device-bound; the heavy arm64 build runs natively on
+# the Jetson), and NOTHING here may trigger from fork PRs (dispatch + nightly only).
 #
-# Never triggered by pull_request: a self-hosted runner must not execute untrusted fork
-# code. Manual dispatch + nightly only.
-#
-# Runner prereqs on Rocky: podman + bt-cross:6.1 image, Android NDK, uv (~/.local/bin),
-# rocky->Jetson ssh, and adb to both phones. See docs / the runner setup.
+# Topology: per-device jobs run their own backend natively and upload a BT-CELL
+# coverage slice; the hosted `gate` job concatenates the slices and asserts the full
+# matrix via scripts/check_fleet_coverage.py. One offline device fails only its own
+# job — the gate is the single hard verdict.
 
 on:
   workflow_dispatch:
@@ -25,43 +32,142 @@ concurrency:
   group: fleet # the devices are a shared mutex
   cancel-in-progress: false # never cancel a half-deployed run
 
+env:
+  OMP_VK_BINS: test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
+
 jobs:
-  fleet:
-    runs-on: [self-hosted, rocky]
+  rocky:
+    # x86 Vulkan+OMP on the RDNA3 iGPU. This job also BUILDS x86 (nowhere else can);
+    # the persistent runner's incremental build keeps that cheap after the first run.
+    runs-on: [self-hosted, rdna3]
+    continue-on-error: true
     env:
+      BT_CELL_HW: minipc
       BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
-      BT_CONTAINER: podman # Jetson cross-build via rootless podman on Rocky
-      BT_ROCKY_HOST: localhost # minipc iGPU is THIS box -> run locally, no ssh
+      BT_ROCKY_HOST: localhost # the iGPU is THIS box -> run-on-rocky local mode
     steps:
       - uses: actions/checkout@v4
-
-      - name: Tool env (uv is in ~/.local/bin; NDK for the Android build)
+      - name: Build x86 Vulkan+OMP test binaries
         run: |
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          cmake --preset vulkan
+          cmake --build --preset vulkan -j"$(nproc)" --target $OMP_VK_BINS
+      - name: Run differential suites (local iGPU)
+        run: |
+          rm -f "$BT_CELL_LOG"
+          scripts/run-on-rocky.sh $OMP_VK_BINS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-minipc
+          path: fleet-coverage.log
+
+  android-build:
+    # NDK build ONCE on the shared box; the phone runners only push + execute, so
+    # per-device jobs stay short and the shared rocky CPU isn't built on twice.
+    runs-on: [self-hosted, rdna3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build arm64 Android test binaries (NDK)
+        run: |
+          export ANDROID_NDK_HOME="$HOME/android-ndk-r29"
+          [ -d "$ANDROID_NDK_HOME" ] || { echo "::error::NDK missing for the runner user — add android-ndk-r29 to the Ansible role"; exit 1; }
+          cmake --preset android
+          cmake --build --preset android -j"$(nproc)" --target $OMP_VK_BINS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-test-bins
+          path: build/android/test-*
+          retention-days: 1
+
+  phone:
+    needs: android-build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: pixel
+            labels: [self-hosted, android, pixel]
+          - device: samsung
+            labels: [self-hosted, android, samsung]
+    runs-on: ${{ matrix.labels }}
+    continue-on-error: true
+    env:
+      BT_CELL_HW: ${{ matrix.device }}
+      BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
+    steps:
+      - uses: actions/checkout@v4
+      # adb lives in /usr/local/bin, which the runner service PATH lacks; the NDK
+      # (for the libc++_shared.so that rides along with every binary) is the
+      # fleet-owner-provisioned ~/android-ndk-r29, not the script's SDK default.
+      - run: |
+          echo "/usr/local/bin" >> "$GITHUB_PATH"
           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r29" >> "$GITHUB_ENV"
-
-      - name: Build — x86 Vulkan+OMP (minipc) + Android (NDK) + Jetson (podman cross)
-        run: just build # build-x86 + build-android + build-jetson (BT_CONTAINER=podman)
-
-      - name: Start a fresh coverage log
-        run: rm -f "$BT_CELL_LOG"
-
-      # Each device step is continue-on-error so one offline device doesn't mask which
-      # cells DID run; the single hard gate is `just check-fleet` below.
-      - name: Rocky / minipc — OMP + Vulkan (local)
-        continue-on-error: true
-        run: scripts/run-on-rocky.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
-
-      - name: Android phones — OMP + Vulkan (local adb)
-        continue-on-error: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-test-bins
+          path: build/android
+      - name: Run differential suites on the phone (ANDROID_SERIAL is runner-pinned)
         run: |
-          for serial in R5CY21Y3VEV 3A021JEHN02756; do
-            scripts/run-on-android.sh "$serial" test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk || true
+          rm -f "$BT_CELL_LOG"
+          chmod +x build/android/test-*
+          scripts/run-on-android.sh "$ANDROID_SERIAL" $OMP_VK_BINS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-${{ matrix.device }}
+          path: fleet-coverage.log
+
+  jetson:
+    # Native arm64 build + run on the coverage-gated duck (CUDA 13.2 on-device —
+    # heavy CPU work belongs here, not on the shared rocky box). The first run pays
+    # a full build; the persistent workspace keeps later runs incremental.
+    runs-on: [self-hosted, jetson, cuda, duck-stable]
+    continue-on-error: true
+    env:
+      BT_CELL_HW: duck-stable
+      BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build natively (arm64, CUDA 13.2 + Vulkan)
+        run: |
+          cmake --preset jetson
+          cmake --build --preset jetson -j"$(nproc)" --target $OMP_VK_BINS test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu
+      - name: Run differential suites (all three backends)
+        run: |
+          rm -f "$BT_CELL_LOG"
+          . scripts/lib-cell-marker.sh
+          [ -d /tmp/bt/weights/dense ] && export BT_WEIGHTS_DIR=/tmp/bt/weights
+          rc=0
+          for t in $OMP_VK_BINS test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu; do
+            echo "== $t =="
+            trc=0
+            out=$(./build/jetson/"$t" --device duck-stable 2>&1) || trc=1
+            printf '%s\n' "$out" | tail -3
+            bt_emit_marker "$t" "$BT_CELL_HW" "$trc" "$out" | tee -a "$BT_CELL_LOG"
+            [ "$trc" -eq 0 ] || rc=1
           done
+          exit $rc
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-duck-stable
+          path: fleet-coverage.log
 
-      - name: Jetson — OMP + CUDA + Vulkan (cross-built here, run via ssh)
-        continue-on-error: true
-        run: scripts/run-on-jetson.sh test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-cu test-cifar-dense-cu test-cifar-sparse-cu test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk
-
-      - name: Assert full fleet coverage (the gate)
-        run: just check-fleet
+  gate:
+    # The single hard verdict: every expected (app x backend x hardware) cell RAN.
+    needs: [rocky, phone, jetson]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: slices
+      - name: Assert full fleet coverage
+        run: |
+          cat slices/*/fleet-coverage.log > fleet-coverage.log 2>/dev/null || true
+          echo "--- collected cells ---"
+          cat fleet-coverage.log || true
+          uv run scripts/check_fleet_coverage.py fleet-coverage.log

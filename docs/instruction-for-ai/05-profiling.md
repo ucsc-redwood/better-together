@@ -40,6 +40,47 @@ Where the overhead hides in this codebase (the suspects worth instrumenting firs
 | SPSC queue atomics / false sharing | `runtime/spsc_queue.hpp` | head/tail on one cache line bounces between cores |
 | Per-task pmr allocation | `make_dataset` / AppData ctor | allocator in the hot path if not pooled |
 
+## Real-world workload for the tree app
+
+By default the tree (octree-build) app profiles a synthetic uniformly-random point
+cloud (`kDefaultInputSize`, ~300k points). To profile a real, sparse workload instead —
+so per-stage timings reflect a realistic input — set `BT_TREE_DATA_DIR` to a directory
+containing a prepared `points.npy` corpus (built via `scripts/data_prep/oct.py` from the
+Freiburg Campus 360 3D Octomap scan set: 77 scans, 12,154,589 points by default, no
+truncation). `BT_TREE_INPUT_SIZE` overrides how many of those points (a deterministic
+prefix) to load; unset, it falls back to `kRealDataDefaultInputSize` (500,000 — see below
+for why). Unset `BT_TREE_DATA_DIR` entirely and the tree app is unaffected — same
+synthetic generator as always, and no `ctest` gate depends on this mode. Deploy the
+corpus to a fleet target with `scripts/deploy-tree-data.sh`, picked up automatically by
+the `run-on-*.sh` scripts. Full contract and a runnable validation walkthrough:
+[`specs/001-octomap-real-workload/contracts/tree-real-data-contract.md`](../../specs/001-octomap-real-workload/contracts/tree-real-data-contract.md) ·
+[`specs/001-octomap-real-workload/quickstart.md`](../../specs/001-octomap-real-workload/quickstart.md).
+
+**Why the default is only 500k, and how to size it up for real signal.** Real data has
+heavy Morton-key duplication (many LIDAR returns land in the same octree cell): at the
+same `n_input`, the real corpus produces roughly **3x fewer unique/BRT nodes** than
+synthetic uniform-random data (measured: 4M input → 3,992,616 unique for synthetic vs.
+1,244,715 for real, ~31%). So getting *meaningfully more* structural work than today's
+300k-synthetic baseline requires `BT_TREE_INPUT_SIZE` well above the default — but the
+**pooled profiler** (`profiler/tree-{cu,vk}`'s `bm_prof`, `kPoolSize=32` in `const.hpp`,
+via `runtime/pipeline.hpp`'s `make_dataset`) allocates **32 `SafeAppData` instances
+simultaneously**, at a measured ~132 bytes/point/instance — ~4.2KB/point pooled. That
+makes the *default* a memory-safety floor, not a performance target: it's sized to fit
+the most constrained fleet target (Jetson, ~7.4GB RAM) even under the pooled harness,
+with zero configuration. Single-instance tools (`bm-tree-omp`, `test-tree-cu`/`-vk`, the
+differential `ctest` binaries) aren't subject to the ×32 multiplier and can safely use
+much larger `BT_TREE_INPUT_SIZE` anywhere.
+
+| Target | Total RAM | Safe `BT_TREE_INPUT_SIZE` for the **pooled** profiler (`bm_prof`) |
+|---|---|---|
+| Jetson (`duck-stable`/`duck-naughty`) | 7.4 GB | `500,000` (the default — don't override) |
+| Phones (Pixel/Samsung) | assumed similar to Jetson, **unverified** | `500,000` until measured on-device |
+| `rocky-ryzen` | 28 GB | up to `~2,000,000` |
+| PC build box | 62 GB | up to `~4,000,000` |
+
+(Budget: ~30% of total device RAM ÷ 4,224 bytes/point. Single-instance tools have no
+such ceiling — even the full 12.15M-point file is fine there on any of these targets.)
+
 ## The agent rule: prefer tools whose output is JSON / CSV / SQL
 
 ## Tier S — works today, zero install, output is already structured

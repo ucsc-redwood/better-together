@@ -3,7 +3,12 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <random>
+#include <string>
+#include <vector>
+
+#include "platform/util/npy_loader.hpp"
 
 namespace tree {
 
@@ -50,12 +55,25 @@ AppData::AppData(std::pmr::memory_resource* mr, const size_t n_input)
       u_oct_child_node_mask_s7(n_input * kMemoryRatio, mr),
       u_oct_child_leaf_mask_s7(n_input * kMemoryRatio, mr),
       u_num_selected_out(1, mr) {
-  static std::mt19937 gen(114514);
-  static std::uniform_real_distribution dis(kMinCoord, kMinCoord + kRange);
+  // BT_TREE_DATA_DIR set -> real Octomap-derived corpus (points.npy), a fixed-size
+  // prefix loaded via bt::npy::load_prefix; fails loud on any problem, never a
+  // silent fallback to synthetic data. Unset -> the synthetic seeded generator
+  // below, byte-identical to today's behavior. See
+  // specs/001-octomap-real-workload/contracts/tree-real-data-contract.md.
+  if (const char* dir = std::getenv("BT_TREE_DATA_DIR")) {
+    std::vector<float> xyz(n_input * 3);
+    bt::npy::load_prefix(std::string(dir) + "/points.npy", "<f4", {n_input, 3}, xyz.data());
+    for (size_t i = 0; i < n_input; ++i) {
+      u_input_points_s0[i] = glm::vec4(xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2], 1.0f);
+    }
+  } else {
+    static std::mt19937 gen(114514);
+    static std::uniform_real_distribution dis(kMinCoord, kMinCoord + kRange);
 
-  // generate random points
-  std::ranges::generate(u_input_points_s0,
-                        [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
+    // generate random points
+    std::ranges::generate(u_input_points_s0,
+                          [&]() { return glm::vec4(dis(gen), dis(gen), dis(gen), 1.0f); });
+  }
 
   // Calculate total memory allocation in bytes
   const size_t total_bytes = u_input_points_s0.size() * sizeof(glm::vec4) +       // Stage 1

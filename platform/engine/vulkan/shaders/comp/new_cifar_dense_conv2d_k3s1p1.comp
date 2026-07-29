@@ -1,0 +1,135 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// 3x3 / stride-1 / pad-1 conv2d specialization (port of the CUDA k3s1p1 win) --
+// every conv in AlexNetCIFAR is this shape. The generic conv2d shader is
+// latency-bound: one accumulator dragging a serial FMA chain through C*9
+// iterations with per-tap bounds checks. Here the 3x3 taps are fully unrolled
+// with the edge masks hoisted out of the channel loop (constant per thread),
+// and each thread register-blocks OC_TILE=4 output channels: the 9 input taps
+// are loaded ONCE per input channel and reused across 4 weight rows (4x fewer
+// input loads, 4 independent FMA chains).
+//
+// Dispatcher contract (falls back to the generic shader otherwise):
+//   R == S == 3, stride == 1, padding == 1, K % OC_TILE == 0.
+//   One invocation per (n, k/OC_TILE, p, q):
+//   grid.x = ceil(N * (K/OC_TILE) * P * Q / 256)
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [N, C, H, W]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float weight_data[];  // [K, C, 3, 3]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [K]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, K, H, W]  (P == H, Q == W for 3x3/s1/p1)
+};
+
+// Same layout as the generic conv2d shader; R/S/stride/padding are implied 3/3/1/1.
+layout(push_constant) uniform Params {
+  int N;           // Batch size
+  int C;           // Number of input channels
+  int H;           // Input height
+  int W;           // Input width
+  int K;           // Number of output channels (% OC_TILE == 0)
+  int R;           // Kernel height (== 3)
+  int S;           // Kernel width  (== 3)
+  int stride;      // Convolution stride (== 1)
+  int padding;     // Convolution padding (== 1)
+  int apply_relu;  // 1 to apply ReLU, 0 otherwise
+}
+params;
+
+const int OC_TILE = 4;
+
+void main() {
+  const int H = params.H;
+  const int W = params.W;
+  const int C = params.C;
+
+  const int oc_tiles = params.K / OC_TILE;
+  const int total = params.N * oc_tiles * H * W;
+  int idx = int(gl_GlobalInvocationID.x);
+  if (idx >= total) return;
+
+  const int ow = idx % W;
+  idx /= W;
+  const int oh = idx % H;
+  idx /= H;
+  const int oct = idx % oc_tiles;
+  const int n = idx / oc_tiles;
+  const int oc = oct * OC_TILE;
+
+  // Edge masks, hoisted out of the channel loop (outH==H, outW==W for s1p1).
+  const bool t = oh > 0, b = oh < H - 1, l = ow > 0, r = ow < W - 1;
+
+  const int hw = H * W;
+  const int wrow = C * 9;         // one weight row = [C, 3, 3]
+  const int w0 = oc * wrow;       // weight rows oc .. oc+3 at w0 + i*wrow
+  // Top-left tap of the 3x3 window in channel 0 of image n.
+  const int p_base = n * C * hw + (oh - 1) * W + (ow - 1);
+
+  float acc0 = 0.0, acc1 = 0.0, acc2 = 0.0, acc3 = 0.0;
+
+  for (int ic = 0; ic < C; ++ic) {
+    const int p0 = p_base + ic * hw;  // row oh-1, col ow-1
+    const int p1 = p0 + W;            // row oh
+    const int p2 = p1 + W;            // row oh+1
+
+    // 9 taps into registers, mask-guarded loads at the edges (guards keep the
+    // out-of-range indices from ever being dereferenced).
+    float x0 = 0.0, x1 = 0.0, x2 = 0.0, x3 = 0.0, x5 = 0.0, x6 = 0.0, x7 = 0.0, x8 = 0.0;
+    if (t && l) x0 = input_data[p0];
+    if (t) x1 = input_data[p0 + 1];
+    if (t && r) x2 = input_data[p0 + 2];
+    if (l) x3 = input_data[p1];
+    const float x4 = input_data[p1 + 1];
+    if (r) x5 = input_data[p1 + 2];
+    if (b && l) x6 = input_data[p2];
+    if (b) x7 = input_data[p2 + 1];
+    if (b && r) x8 = input_data[p2 + 2];
+
+    const int wa = w0 + ic * 9;
+    const int wb = wa + wrow;
+    const int wc = wb + wrow;
+    const int wd = wc + wrow;
+    acc0 += x0 * weight_data[wa] + x1 * weight_data[wa + 1] + x2 * weight_data[wa + 2] +
+            x3 * weight_data[wa + 3] + x4 * weight_data[wa + 4] + x5 * weight_data[wa + 5] +
+            x6 * weight_data[wa + 6] + x7 * weight_data[wa + 7] + x8 * weight_data[wa + 8];
+    acc1 += x0 * weight_data[wb] + x1 * weight_data[wb + 1] + x2 * weight_data[wb + 2] +
+            x3 * weight_data[wb + 3] + x4 * weight_data[wb + 4] + x5 * weight_data[wb + 5] +
+            x6 * weight_data[wb + 6] + x7 * weight_data[wb + 7] + x8 * weight_data[wb + 8];
+    acc2 += x0 * weight_data[wc] + x1 * weight_data[wc + 1] + x2 * weight_data[wc + 2] +
+            x3 * weight_data[wc + 3] + x4 * weight_data[wc + 4] + x5 * weight_data[wc + 5] +
+            x6 * weight_data[wc + 6] + x7 * weight_data[wc + 7] + x8 * weight_data[wc + 8];
+    acc3 += x0 * weight_data[wd] + x1 * weight_data[wd + 1] + x2 * weight_data[wd + 2] +
+            x3 * weight_data[wd + 3] + x4 * weight_data[wd + 4] + x5 * weight_data[wd + 5] +
+            x6 * weight_data[wd + 6] + x7 * weight_data[wd + 7] + x8 * weight_data[wd + 8];
+  }
+
+  const int out_base = ((n * params.K + oc) * H + oh) * W + ow;
+  float v0 = bias_data[oc] + acc0;
+  float v1 = bias_data[oc + 1] + acc1;
+  float v2 = bias_data[oc + 2] + acc2;
+  float v3 = bias_data[oc + 3] + acc3;
+  if (params.apply_relu != 0) {
+    v0 = max(v0, 0.0);
+    v1 = max(v1, 0.0);
+    v2 = max(v2, 0.0);
+    v3 = max(v3, 0.0);
+  }
+  output_data[out_base] = v0;
+  output_data[out_base + hw] = v1;
+  output_data[out_base + 2 * hw] = v2;
+  output_data[out_base + 3 * hw] = v3;
+}

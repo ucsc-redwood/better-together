@@ -217,7 +217,11 @@ def device_worker(name, dev, apps, phases, runs, repeat):
             if "schedule" in phases:
                 step(f"sched:{tt}", cmd_02(dev, app, be, tt), f"sched {app}/{be}/{tt}")
             if "run" in phases:
-                cap = dev.get("caps", {}).get(app, 0)
+                # Default cap 4 (was 0 = ALL ~10 union-sweep candidates): they are
+                # sorted by predicted makespan, so measuring the top 4 keeps the
+                # predicted-vs-measured story at ~2.5x less device time. Explicit
+                # per-device caps (fleet.json) still win.
+                cap = dev.get("caps", {}).get(app, 4)
                 step(f"run:{tt}", cmd_03(dev, app, be, tt, cap, repeat), f"run {app}/{be}/{tt}")
         s["done"] += 1
         if not TTY:

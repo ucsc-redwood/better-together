@@ -28,6 +28,25 @@ struct VulkanTreeRunner {
 
 BT_DECLARE_TREE_DIFF_TESTS(TreeDiffVulkan, VulkanTreeRunner)
 
+// ----------------------------------------------------------------------------
+// Tree x Vulkan differential oracle, genuinely-chained path (tree::vulkan::VkAppData,
+// no golden/_out split) -- added alongside TreeDiffVulkan above (unchanged). Same
+// BT_DECLARE_TREE_DIFF_TESTS_APPDATA expansion as the OMP/CUDA chained suites; see
+// apps/tree/tree_diff_oracle.hpp and this feature's research.md/contracts.
+// ----------------------------------------------------------------------------
+
+namespace {
+struct VulkanChainedTreeRunner {
+  using AppData = tree::vulkan::VkAppData;
+  tree::vulkan::VulkanDispatcher disp;
+  static bool Available() { return kiss_vk::has_integrated_gpu(); }
+  kiss_vk::VulkanMemoryResource::memory_resource* Mr() { return disp.get_mr(); }
+  void RunStage(AppData& a, int stage) { disp.dispatch_stage(a, stage); }
+};
+}  // namespace
+
+BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffVulkanChained, VulkanChainedTreeRunner)
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   parse_args_test(argc, argv);

@@ -10,4 +10,4 @@ CPU_TIERS = ('little', 'medium', 'big')
 CORE_TYPES = ['Little', 'Medium', 'Big', 'GPU']
 
 # Application stage counts.
-APP_STAGES = {'tree': 7, 'cifar-dense': 9, 'cifar-sparse': 9}
+APP_STAGES = {'tree': 7, 'cifar-dense': 11, 'cifar-sparse': 11}

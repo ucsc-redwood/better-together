@@ -45,19 +45,26 @@ Status, audits, decision logs, and roadmaps (the *why* and *where we are*) are i
 - **Testing = OMP-as-oracle differential**, fixed seed `114514`: exact compare for
   integer/structural stages (tree), `NearEqual` for float (cifar). `ctest -L omp`
   is the everyday gate; a `GTEST_SKIP` counts as a pass.
-- **Canonical model not yet migrated:** [`04-alexnet-cifar-spec.md`](docs/instruction-for-ai/04-alexnet-cifar-spec.md)
-  makes `AlexNetCIFAR` (11 stages) canonical, but the C++ kernels still implement the old
-  `SmallAlexNet` (9 stages) — they are **not** shape/weight-compatible.
+- **Canonical model MIGRATED (2026-07-02):** both cifar apps implement the canonical
+  11-stage `AlexNetCIFAR` of [`04-alexnet-cifar-spec.md`](docs/instruction-for-ai/04-alexnet-cifar-spec.md)
+  (verified on all three backends on real HW). Real trained weights live in
+  `saved_params/export/` (dense 90.48% / sparse@25%-density 90.58% test acc, regenerate
+  via `scripts/data_prep/{alexnet_cifar10,prune_alexnet_cifar10}.py`); shipped AppData
+  still seeds synthetic weights — .npy loading is the remaining wiring.
 - **Device topology source of truth** is `devices/*.json` (schema-validated), **not** the
   README — where they disagreed, `conf.cpp`/the JSON win.
 
 ## Build & test (quickstart)
 
 ```bash
+just setup-hooks           # once per clone: pre-commit then runs `just fmt-check`
 cmake --preset pc          # CPU/OpenMP only; deps auto-fetched via CPM
 cmake --build --preset pc
 ctest --test-dir build/pc -L omp --output-on-failure   # the everyday gate
 ```
+
+Run `just fmt` before committing — CI's fmt-check job rejects unformatted code
+(the pre-commit hook catches it locally once installed).
 
 Jetson (CUDA), rocky-ryzen (Vulkan), and Android recipes:
 [`02-building.md`](docs/instruction-for-ai/02-building.md) ·

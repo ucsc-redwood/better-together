@@ -95,9 +95,15 @@ inline std::vector<float> MaxPool2dRef(const float* in,
   return out;
 }
 
-// Linear: out[n,of] = bias[of] + sum_inf in[n,inf] * w[of,inf]  (no activation).
-inline std::vector<float> LinearRef(
-    const float* in, const float* w, const float* b, int N, int in_features, int out_features) {
+// Linear: out[n,of] = bias[of] + sum_inf in[n,inf] * w[of,inf] ; optional ReLU
+// (defaults off, matching the pre-FC-head call sites).
+inline std::vector<float> LinearRef(const float* in,
+                                    const float* w,
+                                    const float* b,
+                                    int N,
+                                    int in_features,
+                                    int out_features,
+                                    bool relu = false) {
   std::vector<float> out(static_cast<std::size_t>(N) * out_features);
   for (int n = 0; n < N; ++n) {
     for (int of = 0; of < out_features; ++of) {
@@ -106,6 +112,7 @@ inline std::vector<float> LinearRef(
         sum += static_cast<double>(in[static_cast<std::size_t>(n) * in_features + inf]) *
                static_cast<double>(w[static_cast<std::size_t>(of) * in_features + inf]);
       }
+      if (relu && sum < 0) sum = 0;
       out[static_cast<std::size_t>(n) * out_features + of] = static_cast<float>(sum);
     }
   }

@@ -16,23 +16,26 @@
 #include "platform/registry/device_registry.hpp"
 
 // ----------------------------------------------------------------------------
-// Tree × OMP differential oracle. OMP is the reference, so this run is a
-// self-consistency check: dispatching each stage must reproduce the golden
-// computed at SafeAppData construction (same kernels), proving the harness and
-// the per-stage comparisons before CUDA/Vulkan adopt the identical BT_DECLARE
-// expansion. Always available (every target has a CPU).
+// Tree × OMP differential oracle. OMP is both the reference and the backend
+// under test here, so this run is a self-consistency check: an independent
+// `ref` chain built by RunAndCheckStageAppData must reproduce the SAME output
+// as this Runner's `out` chain (both OMP, both on the same input), proving the
+// harness and the per-stage comparisons before CUDA adopts the identical
+// BT_DECLARE_TREE_DIFF_TESTS_APPDATA expansion. Always available (every target
+// has a CPU). Uses tree::AppData (genuinely chained) -- see the Phase 3 note in
+// tree_diff_oracle.hpp.
 // ----------------------------------------------------------------------------
 
 namespace {
 struct OmpTreeRunner {
-  using AppData = tree::SafeAppData;
+  using AppData = tree::AppData;
   static constexpr bool Available() { return true; }
   static std::pmr::memory_resource* Mr() { return std::pmr::new_delete_resource(); }
-  void RunStage(tree::SafeAppData& a, int stage) { tree::omp::dispatch_stage(a, stage); }
+  void RunStage(tree::AppData& a, int stage) { tree::omp::dispatch_stage(a, stage); }
 };
 }  // namespace
 
-BT_DECLARE_TREE_DIFF_TESTS(TreeDiffOmp, OmpTreeRunner)
+BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffOmp, OmpTreeRunner)
 
 // ----------------------------------------------------------------------------
 // INDEPENDENT correctness anchors for the OMP golden (stages 1/4/5/7).
@@ -44,13 +47,17 @@ BT_DECLARE_TREE_DIFF_TESTS(TreeDiffOmp, OmpTreeRunner)
 // under test, giving the (shared) golden a real ground truth -- which the GPU
 // differential tests then inherit. A failure here is a real OMP bug.
 //
-// The golden lives in SafeAppData's const buffers (built once at construction
-// from HostTreeManager::initialize()); we only read it here.
+// The golden is a tree::AppData run once through the full OMP stage-1..7 chain
+// (no golden/_out split to build separately anymore -- see tree_diff_oracle.hpp).
 // ----------------------------------------------------------------------------
 namespace {
 
-const tree::SafeAppData& Golden() {
-  static tree::SafeAppData a(std::pmr::new_delete_resource());
+const tree::AppData& Golden() {
+  static tree::AppData a = [] {
+    tree::AppData app(std::pmr::new_delete_resource());
+    tree::omp::dispatch_multi_stage(app, 1, 7);
+    return app;
+  }();
   return a;
 }
 
