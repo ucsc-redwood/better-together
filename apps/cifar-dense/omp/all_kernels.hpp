@@ -83,6 +83,8 @@ inline void conv3x3s1p1_batch(const float* __restrict__ u_input,
 
         for (int j = 0; j < OCB; j++) {
           float* __restrict__ out_row = u_output + ((n * outC + oc0 + j) * inH + oh) * OUTW;
+          // NOLINTNEXTLINE(bugprone-branch-clone) -- branches differ (relu clamp vs passthrough);
+          // clang-tidy's clone detector is confused by the identical loop/pragma shape.
           if (relu) {
 #pragma omp simd
             for (int t = 0; t < OUTW; t++) out_row[t] = acc[j][t] < 0.0f ? 0.0f : acc[j][t];

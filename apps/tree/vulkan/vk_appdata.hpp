@@ -64,11 +64,16 @@ struct VkAppData_Safe final : public tree::SafeAppData {
 // those counts after stage 3 and after stage 6 -- see
 // VulkanDispatcher::dispatch_multi_stage's VkAppData overload.
 // ----------------------------------------------------------------------------
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions) -- destructor only logs; the
+// pmr vector members below self-manage, so copy/move are safe to leave implicitly deleted
+// (base class already disables them).
 struct VkAppData final : public tree::AppData {
   static constexpr uint32_t kRadixBins = 256;
   static constexpr uint32_t kRadixNumWorkgroups = 256;
   static constexpr uint32_t kScanElementsPerWg = 256 * 8;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init) -- every pmr vector member below
+  // IS initialized, in the initializer list; clang-tidy misflags this constructor shape.
   explicit VkAppData(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr,
                      const size_t n_input = tree::kDefaultInputSize)
       : tree::AppData(vk_mr, n_input),

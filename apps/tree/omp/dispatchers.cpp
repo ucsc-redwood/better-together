@@ -181,7 +181,7 @@ void run_stage_7(tree::SafeAppData& appdata) {
 
 void run_stage_1(tree::AppData& appdata) {
   const int start = 0;
-  const int end = appdata.get_n_input();
+  const int end = static_cast<int>(appdata.get_n_input());
 
 #pragma omp parallel for
   for (int i = start; i < end; ++i) {
@@ -207,12 +207,12 @@ void run_stage_3(tree::AppData& appdata) {
 
 void run_stage_4(tree::AppData& appdata) {
   const int start = 0;
-  const int end = appdata.get_n_brt_nodes();
+  const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
 #pragma omp parallel for
   for (int i = start; i < end; ++i) {
     v1::process_radix_tree_i(i,
-                             appdata.get_n_brt_nodes(),
+                             static_cast<int>(appdata.get_n_brt_nodes()),
                              appdata.u_morton_keys_unique_s3.data(),
                              appdata.u_brt_prefix_n_s4.data(),
                              appdata.u_brt_has_leaf_left_s4.data(),
@@ -224,7 +224,7 @@ void run_stage_4(tree::AppData& appdata) {
 
 void run_stage_5(tree::AppData& appdata) {
   const int start = 0;
-  const int end = appdata.get_n_brt_nodes();
+  const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
 #pragma omp parallel for
   for (int i = start; i < end; ++i) {
@@ -237,7 +237,7 @@ void run_stage_5(tree::AppData& appdata) {
 
 void run_stage_6(tree::AppData& appdata) {
   const int start = 0;
-  const int end = appdata.get_n_brt_nodes();
+  const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
   std::partial_sum(appdata.u_edge_count_s5.data() + start,
                    appdata.u_edge_count_s5.data() + end,
@@ -249,7 +249,7 @@ void run_stage_6(tree::AppData& appdata) {
 
 void run_stage_7(tree::AppData& appdata) {
   const int start = 0;
-  const int end = appdata.get_n_brt_nodes();
+  const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
 #pragma omp parallel for
   for (int i = start; i < end; ++i) {
