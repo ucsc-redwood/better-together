@@ -57,9 +57,30 @@ means:
 
 ## 3. Phase A — feature enablement (device-init)
 
-- [ ] 3.1 Replace `check_vulkan_12_features` with a single required-feature table, using the query → check → minimal-enable flow from design D3. A missing feature throws an error naming it. Verify: `ctest -L vk` is green on all three VK targets.
-- [ ] 3.2 Add a unit test for the feature check: given a supported-features struct missing `shaderInt8`, the check reports `shaderInt8`. Verify: the test is labelled `vk` and passes, and it skips on hosts without an iGPU.
-- [ ] 3.3 Confirm that `has_integrated_gpu()` returns false (and the suites skip) when device creation throws on missing features. Verify: covered by the same unit test, or by code inspection noted in the PR.
+- [x] 3.1 Replace `check_vulkan_12_features` with a single required-feature table, using the query → check → minimal-enable flow from design D3. A missing feature throws an error naming it. Verify: `ctest -L vk` is green on all three VK targets.
+  - *Evidence (de389af):*
+    - rocky-ryzen: tree / cifar-dense / cifar-sparse → 15 / 12 / 12 PASSED, `ctest -L vulkan` 7/7. Under
+      `BT_VK_VALIDATION=1` the three suites print 0 `Validation Error` lines, so no shader uses a capability whose
+      feature is no longer enabled.
+    - `scripts/run-on-android.sh 3A021JEHN02756 …` (Pixel 7a) and `R5CY21Y3VEV` (Samsung) → 15 / 12 / 12, plus
+      `test-kiss-vk` 3/3, with 0 skips on both phones.
+  - *Spec correction:* the required set is `storageBuffer8BitAccess`, `shaderInt8` and `bufferDeviceAddress`. That is
+    exactly what the shaders' SPIR-V capabilities and VMA's BDA flag need. `uniformAndStorageBuffer8BitAccess` was
+    dropped from proposal.md because no shader needs it.
+- [x] 3.2 Add a unit test for the feature check: given a supported-features struct missing `shaderInt8`, the check reports `shaderInt8`. Verify: the test is labelled `vk` and passes, and it skips on hosts without an iGPU.
+  - *Evidence:* `VulkanDeviceFeatures.MissingShaderInt8IsReported` lives in `test-kiss-vk` (CTest labels `vulkan;engine`).
+    It takes the real iGPU's supported set, expects nothing missing, then clears `shaderInt8` and expects exactly
+    `{"shaderInt8"}`. Results:
+    - OK on rocky-ryzen, the Pixel 7a and the Samsung (de389af);
+    - SKIPPED ("no integrated GPU", gtest exit 0) locally with only llvmpipe exposed
+      (`VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json ./test-kiss-vk`).
+- [x] 3.3 Confirm that `has_integrated_gpu()` returns false (and the suites skip) when device creation throws on missing features. Verify: covered by the same unit test, or by code inspection noted in the PR.
+  - *Evidence (code inspection, de389af):* `has_integrated_gpu()` builds `BaseEngine probe(false)` inside
+    `try { … } catch (...) { return false; }`. The missing-feature `std::runtime_error` is thrown from
+    `BaseEngine::create_device()`, which that constructor calls, so the probe returns false, and every suite's
+    `Runner::Available()` (and the new 3.2 test) `GTEST_SKIP`s. The same path was exercised by the llvmpipe-only run
+    above, where construction throws "No integrated GPU found" and the suite skips. A real missing-feature device
+    was not available to run.
 
 ## 4. Phase A — validation opt-in (device-init) + phase gate
 
