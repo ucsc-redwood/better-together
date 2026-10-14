@@ -33,18 +33,29 @@ BaseEngine::BaseEngine(const bool enable_validation_layer)
     request_validation_layer();
   }
 
-  create_instance();
-  create_physical_device();
-  create_device();
+  // A constructor that throws never runs ~BaseEngine, so a failure after create_instance()
+  // (e.g. no iGPU, or a missing required feature) would leak the instance/device. Release
+  // what exists, then rethrow.
+  try {
+    create_instance();
+    create_physical_device();
+    create_device();
 
-  initialize_vma_allocator();
+    initialize_vma_allocator();
+    owns_vma_allocator_ = true;
+  } catch (...) {
+    destroy();
+    throw;
+  }
 }
 
 // ----------------------------------------------------------------------------
 // Destructor
 // ----------------------------------------------------------------------------
 
-BaseEngine::~BaseEngine() {
+BaseEngine::~BaseEngine() { destroy(); }
+
+void BaseEngine::destroy() noexcept {
   // Tear down explicitly and in order. Previously only the VMA allocator was
   // destroyed; the vk::Device and vk::Instance were leaked, so the Vulkan loader's
   // own static/atexit teardown raced and segfaulted on exit on Tegra (§9) — after the
@@ -60,8 +71,9 @@ BaseEngine::~BaseEngine() {
       spdlog::warn("BaseEngine teardown: device.waitIdle() failed: {}", e.what());
     }
   }
-  if (g_vma_allocator) {
+  if (owns_vma_allocator_ && g_vma_allocator) {
     vmaDestroyAllocator(g_vma_allocator);
+    owns_vma_allocator_ = false;
     // Null the global so a second BaseEngine destruction (or any later use via
     // vma_pmr) can't double-free / use-after-free this handle. NOTE: g_vma_allocator
     // is still a single global shared across engines, so two BaseEngines must not

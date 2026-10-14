@@ -58,6 +58,12 @@ class BaseEngine {
   vk::Queue compute_queue_;
 
  private:
+  // Releases whatever has been created so far (allocator, device, instance). Shared by the
+  // destructor and the constructor's failure path, which the destructor never sees.
+  void destroy() noexcept;
+
+  // g_vma_allocator is a process global: free it only if this engine created it.
+  bool owns_vma_allocator_ = false;
   uint32_t compute_queue_family_index_;
   std::vector<const char*> enabled_layers_;
 

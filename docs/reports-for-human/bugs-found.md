@@ -466,6 +466,24 @@ reverse creation order, each guarded on a null handle. No reordering was needed:
 dispatchers declare `engine` before `seq` and `cached_algorithms`, so algorithms are
 destroyed first.
 
+**Same class, constructor path (fixed after review of Phase A).** A constructor that throws
+never runs its destructor. `BaseEngine` creates the instance before selecting the GPU,
+creating the device and creating the allocator, so any throw after `create_instance()` leaked
+the instance, and the device too if it was already created. That covers "No integrated GPU
+found", a missing required feature, and an allocator failure. It matters because
+`has_integrated_gpu()` builds and discards a probe engine, and that throw is the expected
+path on discrete-GPU or llvmpipe-only hosts.
+
+The fix: the teardown moved into `BaseEngine::destroy() noexcept`, which the destructor and
+the constructor's `catch (...)` both call before rethrowing. Because `g_vma_allocator` is a
+process global, `destroy()` now frees it only when this engine created it
+(`owns_vma_allocator_`). Otherwise a probe that failed early could free a live engine's
+allocator.
+
+Verified: green on rocky-ryzen, Pixel 7a and Samsung. `test-kiss-vk` (which runs the probe)
+passes with `BT_VK_VALIDATION=1` on the discrete-GPU build box, where the probe throws. No
+test forces a mid-construction failure on a real device.
+
 ## Latent issue noticed (not fixed)
 
 `SETUP_DEFAULT_LAUNCH_PARAMS` (`builtin-apps/common/cuda/helpers.cuh`) declares

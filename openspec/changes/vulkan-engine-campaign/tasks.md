@@ -48,12 +48,20 @@ means:
       `bm-fully-<app>-vk -t 1`, `bm-gen-logs-<app>-vk` on one btpm schedule, and `bm-prof-<app>-vk` with short
       `BT_PROF_*` budgets;
     - plus `stressor-vk`.
-    Every log has **0** `Validation Error` lines, and 25/26 exit 0.
+    That is 8 + 15 + 1 = **24** binaries. Every log has **0** `Validation Error` lines, and 23/24 exit 0.
+    (Corrected from an earlier miscount of "25/26", found in review.)
   - **Caveat:** `bm-fully-tree-vk` aborts with `n_unique is not set` (`apps/tree/tree_appdata.hpp:154`) before its last
     teardown. This is **pre-existing and unrelated**: identical abort at 4d8b376 with `VK_LOADER_LAYERS_DISABLE='~all~'`.
     Its earlier engine lifetimes in the same log tear down with 0 errors. Not fixed here (out of Phase A scope).
-  - *Re-run at b7ac417* (final Phase A code, with the minimal feature set from group 3): identical. All 26 logs have 0
+  - *Re-run at b7ac417* (final Phase A code, with the minimal feature set from group 3): identical. All 24 logs have 0
     `Validation Error` lines; the only non-zero exit is the same pre-existing `bm-fully-tree-vk` abort.
+  - *Normal-exit coverage for `bm-fully-tree-vk`* (rocky-ryzen, at the BaseEngine failure-path commit that follows
+    fc6b3e6): it runs with a stage range that avoids the abort, and the log is checked to prove validation was active.
+    - `BT_VK_VALIDATION=1 VK_LOADER_DEBUG=layer ./bm-fully-tree-vk --device minipc -s 1 -e 1 -t 1` → exit 0,
+      0 `Validation Error` lines. The loader logs `Insert instance layer "VK_LAYER_KHRONOS_validation"` for all 3
+      instances the binary creates; a control run without `BT_VK_VALIDATION` logs it 0 times.
+    - The full range `-s 1 -e 7 -t 1` still aborts with the pre-existing `n_unique is not set` (exit 134).
+    - With this run, every one of the 24 binaries has a validated normal teardown.
 - [x] 2.4 Add a `bugs-found.md` entry for the Algorithm leak, as a follow-up to §9. Verify: the entry exists.
   - *Evidence:* `docs/reports-for-human/bugs-found.md` §12 ("follow-up to §9") links fix commit d65faf3.
 
