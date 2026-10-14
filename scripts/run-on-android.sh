@@ -8,11 +8,11 @@
 #      `</dev/null` so it can't consume the script.
 #   2) libc++_shared.so must ride along with the binary (it isn't on the device).
 #
-# Both phones now hang off rocky-ryzen's adb (the build box has none attached):
-#   - Pixel 7a (3A021JEHN02756, subgroup 16)
-#   - Samsung  (R5CY21Y3VEV,    subgroup 32)
+# Both phones hang off the build box's adb (not rocky-ryzen's):
+#   - Pixel 7a (3A021JEHN02756, Mali-G710, subgroup 16)
+#   - Samsung  (R5CY21Y3VEV,    Xclipse 940, subgroup 64; 32..64)
 # `adb devices` lists both, so `adb -s <serial>` (used throughout) picks one. Run
-# this script ON rocky-ryzen after copying build/android there.
+# this script on the build box, where build/android is.
 # Deploy goes to the Android tmp: /data/local/tmp/bt.
 #
 # Usage:   scripts/run-on-android.sh <serial> [test-target ...]
@@ -41,8 +41,8 @@ targets=("$@")
 if ! adb -s "$serial" get-state >/dev/null 2>&1; then
   echo "error: '$serial' is not visible to local adb." >&2
   echo "  Both phones (Pixel 7a 3A021JEHN02756, Samsung R5CY21Y3VEV) are attached to" >&2
-  echo "  rocky-ryzen, not the build box. Copy build/android there, then run this script" >&2
-  echo "  on rocky-ryzen ('adb -s <serial>' selects between the two)." >&2
+  echo "  the build box, not rocky-ryzen. Run this script on the build box" >&2
+  echo "  ('adb -s <serial>' selects between the two)." >&2
   exit 1
 fi
 

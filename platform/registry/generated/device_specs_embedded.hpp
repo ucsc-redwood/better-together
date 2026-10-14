@@ -44,7 +44,7 @@ inline const std::vector<std::string_view> kEmbedded = {
   "gpu": {
     "backend": "vulkan",
     "name": "Samsung Xclipse (Galaxy S24, SM-S926B)",
-    "subgroup_size": 32
+    "subgroup_size": 64
   }
 })DEVSPEC",
     // duck-naughty.json

@@ -54,7 +54,7 @@ honest — a missing backend is a **skip, not a pass** (see hardware gating abov
 
 | Hardware | OMP | CUDA | Vulkan |
 |---|---|---|---|
-| **Samsung phone** (`R5CY21Y3VEV`, subgroup 32) | ✅ | — no NVIDIA GPU | ✅ |
+| **Samsung phone** (`R5CY21Y3VEV`, subgroup 64; 32..64) | ✅ | — no NVIDIA GPU | ✅ |
 | **Jetson Orin** (`duck-stable`, sm_87; twin `duck-naughty` is benchmark-only) | ✅ | ✅ | ✅ |
 | **Rocky MiniPC** (`minipc`, Radeon iGPU) | ✅ | — no NVIDIA GPU | ✅ |
 
@@ -63,9 +63,10 @@ Notes that make the gate precise on this fleet:
 - **CUDA = Jetson only.** No phone/MiniPC has an NVIDIA GPU; the build box's RTX is
   discrete and breaks the CUDA-13 build, so it's **build-only** (compile-checks, no run).
 - **Vulkan needs an integrated GPU** (`kiss-vk` hard-selects `eIntegratedGpu`): Jetson,
-  the MiniPC iGPU, and the phones run it; the discrete-GPU build box does not. The two
-  phones uniquely exercise the **subgroup-16 (Pixel/Mali) vs subgroup-32 (Samsung)** shader
-  variants — the Jetson alone can't cover those.
+  the MiniPC iGPU, and the phones run it; the discrete-GPU build box does not. The
+  subgroup size is queried from the device at runtime (one radix-sort shader for every
+  width): the Pixel is the only subgroup-16 target, rocky-ryzen and the Samsung run 64 and,
+  with `BT_VK_SUBGROUP_SIZE=32`, 32 — the Jetson alone can't cover those.
 
 The richer matrix (per-stage counts, the Pixel 7a row, build-only cells, the T0–T4
 rollout) lives in [`../reports-for-human/testing-status.md`](../reports-for-human/testing-status.md).
@@ -140,13 +141,22 @@ SPDLOG_LEVEL=debug BT_VK_VALIDATION=1 ./test-kiss-vk       # logs "Vulkan instan
 Validation output is printed as `Validation Error: [ VUID-… ]` lines, so grep for that.
 Leaving validation off locally means you can miss errors, so run it before touching the engine.
 
-**OMP on Android phones** (both phones' adb is on rocky-ryzen now; copy `build/android`
-there and run the script on rocky — `adb -s <serial>` selects the phone):
+**Subgroup widths.** The engine specializes the subgroup-dependent radix sort with the
+subgroup size the device reports, pinned where it can be (rocky-ryzen and the Samsung: 64,
+the Pixel 7a: 16; see [`01-hardware.md`](01-hardware.md)). No fleet GPU defaults to 32, so
+cover that width by pinning the device's minimum with `BT_VK_SUBGROUP_SIZE` (it throws if
+the device cannot pin that size, e.g. 32 on the Pixel):
+```bash
+BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned at 32
+```
+
+**OMP on Android phones** (both phones' adb is on the build box; run the script there —
+`adb -s <serial>` selects the phone):
 ```bash
 export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865
 cmake --preset android
 cmake --build --preset android --target test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp
-scripts/run-on-android.sh 3A021JEHN02756  # Pixel 7a   (on rocky-ryzen)
+scripts/run-on-android.sh 3A021JEHN02756  # Pixel 7a   (on the build box)
 scripts/run-on-android.sh R5CY21Y3VEV     # Samsung    (same host, other serial)
 ```
 
