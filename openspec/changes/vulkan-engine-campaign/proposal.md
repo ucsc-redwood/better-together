@@ -23,7 +23,8 @@ Phase A — correctness (small, independent fixes):
   layout, the descriptor-set layout, the descriptor pool, the shader module and the pipeline cache.
   This satisfies `VUID-vkDestroyDevice-device-05137`.
 - Device creation enables exactly the features the engine requires. These are `storageBuffer8BitAccess`,
-  `shaderInt8` and `bufferDeviceAddress`, plus any added by later phases. A missing required feature
+  `shaderInt8` and `bufferDeviceAddress`, plus any added by later phases (Phase B: `maintenance4`,
+  required by `LocalSizeId` shaders; `subgroupSizeControl` when supported). A missing required feature
   fails device creation with an error that names it. (Corrected during Phase A: an earlier draft also
   listed `uniformAndStorageBuffer8BitAccess`, but no committed shader declares the
   `UniformAndStorageBuffer8BitAccess` SPIR-V capability — the shaders declare only `Shader`,

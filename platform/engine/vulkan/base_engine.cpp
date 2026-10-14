@@ -226,26 +226,38 @@ bool has_integrated_gpu() noexcept {
 // ----------------------------------------------------------------------------
 
 // The device features the engine requires -- exactly what the committed shaders' SPIR-V
-// capabilities (Int8, StorageBuffer8BitAccess) and the VMA allocator
-// (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) need. Only these are enabled.
+// capabilities (Int8, StorageBuffer8BitAccess), the VMA allocator
+// (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) and LocalSizeId (the SPIR-V 1.6 form of
+// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need. Only these are enabled.
 namespace {
+template <typename Features>
 struct RequiredFeature {
   const char* name;
-  vk::Bool32 vk::PhysicalDeviceVulkan12Features::* member;
+  vk::Bool32 Features::* member;
 };
 
-constexpr std::array<RequiredFeature, 3> kRequiredVulkan12Features{{
-    {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
-    {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
-    {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
-}};
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 3>
+    kRequiredVulkan12Features{{
+        {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
+        {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
+        {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
+    }};
+
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 1>
+    kRequiredVulkan13Features{{
+        {"maintenance4", &vk::PhysicalDeviceVulkan13Features::maintenance4},
+    }};
 }  // namespace
 
 std::vector<std::string> missing_required_features(
-    const vk::PhysicalDeviceVulkan12Features& supported) {
+    const vk::PhysicalDeviceVulkan12Features& supported_12,
+    const vk::PhysicalDeviceVulkan13Features& supported_13) {
   std::vector<std::string> missing;
   for (const auto& f : kRequiredVulkan12Features) {
-    if (supported.*f.member != VK_TRUE) missing.emplace_back(f.name);
+    if (supported_12.*f.member != VK_TRUE) missing.emplace_back(f.name);
+  }
+  for (const auto& f : kRequiredVulkan13Features) {
+    if (supported_13.*f.member != VK_TRUE) missing.emplace_back(f.name);
   }
   return missing;
 }
@@ -286,7 +298,9 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
   vk::PhysicalDeviceFeatures2 supported{.pNext = &supported_12};
   physical_device_.getFeatures2(&supported);
 
-  if (const auto missing = missing_required_features(supported_12); !missing.empty()) {
+  // Not 1.3: supported_13 stays zeroed, so the 1.3 features are reported missing.
+  if (const auto missing = missing_required_features(supported_12, supported_13);
+      !missing.empty()) {
     std::string names;
     for (const auto& name : missing) names += (names.empty() ? "" : ", ") + name;
     throw std::runtime_error(std::string(physical_device_.getProperties().deviceName.data()) +
@@ -326,8 +340,9 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
 
   // Optional features are enabled only when supported (design D3).
   vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable};
-  vk::PhysicalDeviceVulkan12Features enabled_12{.pNext = pinnable ? &enabled_13 : nullptr};
+  vk::PhysicalDeviceVulkan12Features enabled_12{.pNext = &enabled_13};
   for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
+  for (const auto& f : kRequiredVulkan13Features) enabled_13.*f.member = VK_TRUE;
 
   const vk::DeviceCreateInfo deviceCreateInfo{
       .pNext = &enabled_12,

@@ -101,9 +101,10 @@ class BaseEngine {
 // suites) on a discrete-GPU-only box instead of crashing. noexcept: any failure -> false.
 [[nodiscard]] bool has_integrated_gpu() noexcept;
 
-// Names of the engine's required device features that `supported` lacks (empty: none).
-// Device creation throws with these names instead of running with a feature disabled.
+// Names of the engine's required device features that the supported sets lack (empty:
+// none). Device creation throws with these names instead of running with a feature disabled.
 [[nodiscard]] std::vector<std::string> missing_required_features(
-    const vk::PhysicalDeviceVulkan12Features& supported);
+    const vk::PhysicalDeviceVulkan12Features& supported_12,
+    const vk::PhysicalDeviceVulkan13Features& supported_13);
 
 }  // namespace kiss_vk

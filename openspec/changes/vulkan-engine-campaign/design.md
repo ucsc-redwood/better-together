@@ -71,7 +71,10 @@ entirely by D7. Destruction guards on null handles, so a partially built `Algori
    `createDevice`.
 
 The required list lives in one table in `base_engine.cpp`. Phase B adds `subgroupSizeControl`
-(1.3) to it as *optional* (enabled if supported). Phase C adds the `VK_KHR_push_descriptor`
+(1.3) to it as *optional* (enabled if supported), and `maintenance4` (1.3) as *required*: glslc's
+SPIR-V 1.6 output expresses `local_size_*_id` as `LocalSizeId`, which needs it
+(`VUID-RuntimeSpirv-LocalSizeId-06434`, found by the validation layer in the Phase B gate). Every
+Vulkan 1.3 device supports it, and the SPIR-V 1.6 shaders already require 1.3. Phase C adds the `VK_KHR_push_descriptor`
 device extension as optional. `has_integrated_gpu()` already catches throws, so an incapable
 device makes the suites skip rather than crash.
 

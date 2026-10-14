@@ -26,13 +26,21 @@ TEST(VulkanDeviceFeatures, MissingShaderInt8IsReported) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   kiss_vk::Engine engine;
 
-  vk::PhysicalDeviceVulkan12Features supported{};
+  vk::PhysicalDeviceVulkan13Features supported_13{};
+  vk::PhysicalDeviceVulkan12Features supported{.pNext = &supported_13};
   vk::PhysicalDeviceFeatures2 features2{.pNext = &supported};
   engine.get_physical_device().getFeatures2(&features2);
-  EXPECT_TRUE(kiss_vk::missing_required_features(supported).empty());
+  EXPECT_TRUE(kiss_vk::missing_required_features(supported, supported_13).empty());
 
   supported.shaderInt8 = VK_FALSE;
-  EXPECT_EQ(kiss_vk::missing_required_features(supported), std::vector<std::string>{"shaderInt8"});
+  EXPECT_EQ(kiss_vk::missing_required_features(supported, supported_13),
+            std::vector<std::string>{"shaderInt8"});
+
+  // maintenance4: required for LocalSizeId (VUID-RuntimeSpirv-LocalSizeId-06434).
+  supported.shaderInt8 = VK_TRUE;
+  supported_13.maintenance4 = VK_FALSE;
+  EXPECT_EQ(kiss_vk::missing_required_features(supported, supported_13),
+            std::vector<std::string>{"maintenance4"});
 }
 
 // Pipeline-config (design D5): the SPIR-V scan reads spec ids and workgroup size from
