@@ -100,7 +100,39 @@ means:
     - under `bash` → rc=0, tree 15 PASSED twice, `test-kiss-vk` 3 PASSED, the `…layers enabled:
       VK_LAYER_KHRONOS_validation` lines present, 0 `Validation Error`;
     - under rocky's login shell `fish` 4.2.0 → rc=0, same results.
-- [ ] 4.3 Phase A gate: VK fleet gate green. Then do one `fit_overhead` refit on `rocky-ryzen` and record the per-chunk overhead delta in the PR. Verify: the delta is within run-to-run noise, or the new constants are committed with an explanation.
+- [x] 4.3 Phase A gate: VK fleet gate green. Then do one `fit_overhead` refit on `rocky-ryzen` and record the per-chunk overhead delta in the PR. Verify: the delta is within run-to-run noise, or the new constants are committed with an explanation.
+  - *VK fleet gate (code at b7ac417; later commits are docs-only):*
+    - local `ctest -L omp` → 9/9 passed;
+    - rocky-ryzen → 15/12/12, `ctest -L vulkan` 7/7;
+    - Pixel 7a and Samsung (`scripts/run-on-android.sh`) → 15/12/12, `test-kiss-vk` 3/3, 0 skips;
+    - `cmake --build build/vulkan --target bake-shaders` → no-op, `git status` clean (Phase A changes no shader).
+  - *Overhead refit (rocky-ryzen only).* Each run was a full `00_run_fleet.py --only minipc --fresh` (profile 5 runs/scenario →
+    z3 → run the top-4 btpm + isolated schedules), then `fit_overhead.py --dry-run`:
+    - "before" = parent 4d8b376 (worktree);
+    - "after" = 06bad92 (code = b7ac417).
+    - Order: before-1, after-1, before-2, after-2.
+    - Conditions were identical in all four: governor `powersave`, clocks unlocked (no passwordless sudo for
+      `lock-gpu-clocks.sh`), AMD DPM `auto`, rocky otherwise idle, same deployed weights.
+
+    | class | before-1 | before-2 | after-1 | after-2 | mean before → after | Δ |
+    |---|---|---|---|---|---|---|
+    | `gpu_vulkan` per_chunk_ms | 2.034 | 1.562 | 1.658 | 1.529 | 1.798 → 1.594 | **−0.20 ms** |
+    | `cpu` per_chunk_ms | 1.628 | 2.427 | 2.587 | 1.546 | 2.028 → 2.067 | +0.04 ms |
+
+    Notes on the fits:
+    - per_stage_ms = 0 in all eight (model `median`, n = 24 chunks each).
+    - **Verdict: within run-to-run noise.** The same 4d8b376 binaries alone spread 0.47 ms (GPU) and 0.80 ms (CPU)
+      between two runs, and both deltas are well inside that. No new constants need committing (`overhead.json`
+      lives under the git-ignored `data/` anyway).
+  - *Per-stage cross-check (isolated GPU-timestamp p50, median over 5 runs):*
+    - The barrier's own cost **is** visible and reproducible on µs-scale VK stages: +4–15 µs per submit, e.g.
+      tree s5 0.034 → 0.041 ms, tree s7 0.216 → 0.231 ms, cifar-dense s8 0.0253 → 0.0297 ms. Both runs on each side
+      agree to ≤ 1 µs.
+    - That is +6–21 % on tree stages 1 and 3–7, and the design's "tiny" holds only in absolute terms.
+    - Stages ≥ 0.5 ms are unchanged within noise.
+    - The cost sits inside the profiled stage times (D1 records it before the closing timestamp), so z3 already
+      prices it through the profiling table, not through the overhead constants. Phase C's tree × VK re-measurement
+      (7.7) should start from these post-barrier tables.
 
 ## 5. Phase B — device-derived subgroup size (pipeline-config)
 
