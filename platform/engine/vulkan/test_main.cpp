@@ -5,10 +5,12 @@
 #include <spdlog/spdlog.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <chrono>
 #include <csignal>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -338,7 +340,14 @@ TEST_F(PipelineCacheTest, FifoAtCachePathIsIgnoredWithoutBlocking) {
   std::string path;
   run_once(&path);
   std::filesystem::remove(path);
-  ASSERT_EQ(mkfifo(path.c_str(), 0600), 0) << std::strerror(errno);
+  if (mkfifo(path.c_str(), 0600) != 0) {
+    // Android's SELinux policy denies the shell domain `fifo_file create` in /data/local/tmp,
+    // so on the phones no FIFO can exist at the cache path; any other error is a failure.
+    if (errno == EACCES || errno == EPERM) {
+      GTEST_SKIP() << "the OS forbids creating a FIFO here: " << std::strerror(errno);
+    }
+    FAIL() << "mkfifo: " << std::strerror(errno);
+  }
 
   std::promise<kiss_vk::PipelineCacheLoad> result;
   auto done = result.get_future();
@@ -439,37 +448,51 @@ void write_sparse_cache(const std::string& path,
   std::filesystem::resize_file(path, size);
 }
 
-// This process's data-segment usage (VmData, what RLIMIT_DATA is checked against), in bytes.
-uint64_t vm_data_bytes() {
+// This process's address-space size (VmSize, what RLIMIT_AS is checked against), in bytes.
+uint64_t vm_size_bytes() {
   std::ifstream status("/proc/self/status");
   for (std::string line; std::getline(status, line);) {
-    if (line.rfind("VmData:", 0) == 0) return std::stoull(line.substr(7)) * 1024;
+    if (line.rfind("VmSize:", 0) == 0) return std::stoull(line.substr(7)) * 1024;
   }
   return 0;
 }
 
-// Reads `path` with the soft RLIMIT_DATA lowered to 16 MiB above current use; the old limit
-// is restored on every path out, an escaping exception included.
-kiss_vk::PipelineCacheFile read_with_tight_memory(const std::string& path,
-                                                  const vk::PhysicalDeviceProperties& props) {
-  struct RestoreLimit {
-    rlimit old{};
-    ~RestoreLimit() { setrlimit(RLIMIT_DATA, &old); }
-  } restore;
-  EXPECT_EQ(getrlimit(RLIMIT_DATA, &restore.old), 0);
-  const uint64_t used = vm_data_bytes();
-  EXPECT_GT(used, 0u);
-  rlimit tight = restore.old;
-  tight.rlim_cur = used + (16u << 20);
-  EXPECT_EQ(setrlimit(RLIMIT_DATA, &tight), 0);
-  return kiss_vk::read_pipeline_cache_file(path, props);
+// Child mode of this binary (see main): read the cache file at `path` with the soft
+// RLIMIT_AS 16 MiB above current use. RLIMIT_AS, not RLIMIT_DATA: bionic's allocator maps
+// memory that RLIMIT_DATA does not cap. Exit 0 iff the read was rejected as unallocatable.
+int cache_alloc_child(const char* path) {
+  rlimit limit{};
+  if (getrlimit(RLIMIT_AS, &limit) != 0) return 2;
+  limit.rlim_cur = vm_size_bytes() + (16u << 20);
+  if (setrlimit(RLIMIT_AS, &limit) != 0) return 3;
+  const auto file = kiss_vk::read_pipeline_cache_file(path, fake_cache_device());
+  std::printf("child: load %d, why \"%s\"\n", static_cast<int>(file.load), file.why.c_str());
+  return file.load == kiss_vk::PipelineCacheLoad::kRejected &&
+                 file.why.find("cannot allocate") != std::string::npos
+             ? 0
+             : 1;
+}
+
+// Runs cache_alloc_child(path) in a fresh copy of this binary and returns its exit status.
+// A fresh process: memory this one already holds (a retained heap top, allocator caches)
+// could otherwise satisfy the allocation without new address space, making the limit moot.
+int run_cache_alloc_child(const std::string& path) {
+  const pid_t pid = fork();
+  if (pid == 0) {
+    execl("/proc/self/exe", "test-kiss-vk", "--cache-alloc-child", path.c_str(), nullptr);
+    _exit(127);
+  }
+  int status = 0;
+  if (pid < 0 || waitpid(pid, &status, 0) != pid || !WIFEXITED(status)) return -1;
+  return WEXITSTATUS(status);
 }
 }  // namespace
 
-// Pipeline-config spec, "Stale or foreign cache" for oversized data: the header is read
-// first and the size bounded before the payload is allocated, so even a 2 GiB file is
-// rejected under a memory limit it could never fit in; a 48 MiB file (under the bound) whose
-// allocation fails is rejected too, never thrown.
+// Pipeline-config spec, "Stale or foreign cache" for oversized data. The header is read and
+// the size bounded before the payload is allocated, so a 2 GiB file is rejected without an
+// allocation, even with the address space limited to 16 MiB above current use. A 48 MiB
+// file (under the bound) whose allocation fails is rejected too, never thrown: checked in a
+// fresh child process (run_cache_alloc_child).
 TEST(PipelineCacheFile, OversizedOrUnallocatableDataIsRejected) {
   const auto dir =
       std::filesystem::current_path() / ("bt-vk-cache-test-" + std::to_string(getpid()) + "-size");
@@ -478,15 +501,24 @@ TEST(PipelineCacheFile, OversizedOrUnallocatableDataIsRejected) {
   const auto props = fake_cache_device();
 
   write_sparse_cache(path, props, uint64_t{2} << 30);
-  auto file = read_with_tight_memory(path, props);
+  kiss_vk::PipelineCacheFile file;
+  {
+    struct RestoreLimit {
+      rlimit old{};
+      ~RestoreLimit() { setrlimit(RLIMIT_AS, &old); }
+    } restore;
+    ASSERT_EQ(getrlimit(RLIMIT_AS, &restore.old), 0);
+    rlimit tight = restore.old;
+    tight.rlim_cur = vm_size_bytes() + (16u << 20);
+    ASSERT_EQ(setrlimit(RLIMIT_AS, &tight), 0);
+    file = kiss_vk::read_pipeline_cache_file(path, props);
+  }
   EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kRejected);
   EXPECT_NE(file.why.find("2147483648 bytes exceeds the 67108864-byte limit"), std::string::npos)
       << file.why;
 
   write_sparse_cache(path, props, 48u << 20);
-  file = read_with_tight_memory(path, props);
-  EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kRejected);
-  EXPECT_NE(file.why.find("cannot allocate 50331648 bytes"), std::string::npos) << file.why;
+  EXPECT_EQ(run_cache_alloc_child(path), 0) << "the child's read was not rejected as unallocatable";
 
   // Control: without the limit the 48 MiB file reads in full.
   file = kiss_vk::read_pipeline_cache_file(path, props);
@@ -587,6 +619,10 @@ TEST(RegistrySubgroupCrossCheck, MismatchWarns) {
 }
 
 int main(int argc, char** argv) {
+  if (argc == 3 && std::string_view(argv[1]) == "--cache-alloc-child") {
+    return cache_alloc_child(argv[2]);
+  }
+
   // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
 
