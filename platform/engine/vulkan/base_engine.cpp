@@ -2,7 +2,10 @@
 
 #include <spdlog/spdlog.h>
 
+#include <array>
 #include <limits>
+#include <string>
+#include <vector>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_IMPLEMENTATION
@@ -187,8 +190,9 @@ void BaseEngine::create_physical_device(vk::PhysicalDeviceType type) {
 
 bool has_integrated_gpu() noexcept {
   // Constructing a throwaway engine reuses the exact loader+enumeration path: it succeeds
-  // only if an integrated GPU was selected, and throws "No integrated GPU found" (or a
-  // loader error) otherwise. Probe once and cache; validation layer off to stay quiet.
+  // only if an integrated GPU was selected and has every required feature, and throws
+  // "No integrated GPU found", "... lacks required Vulkan features: ..." (or a loader
+  // error) otherwise. Probe once and cache; validation layer off to stay quiet.
   static const bool available = [] {
     try {
       BaseEngine probe(/*enable_validation_layer=*/false);
@@ -204,46 +208,29 @@ bool has_integrated_gpu() noexcept {
 // Device
 // ----------------------------------------------------------------------------
 
-[[nodiscard]] static vk::PhysicalDeviceVulkan12Features check_vulkan_12_features(
-    const vk::PhysicalDevice& physical_device) {
-  // we want to query and check if uniformAndStorageBuffer8BitAccess is
-  // supported before we can create this feature struct
+// The device features the engine requires -- exactly what the committed shaders' SPIR-V
+// capabilities (Int8, StorageBuffer8BitAccess) and the VMA allocator
+// (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) need. Only these are enabled.
+namespace {
+struct RequiredFeature {
+  const char* name;
+  vk::Bool32 vk::PhysicalDeviceVulkan12Features::* member;
+};
 
-  // vk::PhysicalDeviceFeatures2 features2;
-  // physical_device.getFeatures2(&features2);
+constexpr std::array<RequiredFeature, 3> kRequiredVulkan12Features{{
+    {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
+    {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
+    {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
+}};
+}  // namespace
 
-  // I need to enable these features for the 8-bit integer shader to work
-  vk::PhysicalDeviceVulkan12Features vulkan12_features{
-      // Allows the use of 8-bit integer types (int8_t, uint8_t) in storage
-      // buffers. This feature enables shaders to read and write 8-bit
-      // integers
-      // in storage buffers directly.
-      .storageBuffer8BitAccess = true,
-
-      // Extends the above capability to also allow 8-bit integer types in
-      // uniform buffers (in addition to storage buffers). Uniform buffers
-      // typically hold data shared between the CPU and GPU, such as constants
-      // or frequently updated data.
-
-      .uniformAndStorageBuffer8BitAccess = true,
-
-      // Enables the use of 8-bit integer arithmetic (int8_t, uint8_t) in
-      // shaders. This includes performing operations like addition,
-      // subtraction, multiplication, and bitwise operations directly on 8-bit
-      // integers.
-      .shaderInt8 = true,
-
-      // I got an error from VMA if I don't enable this:
-      .bufferDeviceAddress = true,
-  };
-
-  vk::PhysicalDeviceFeatures2 features2{
-      .pNext = &vulkan12_features,
-  };
-
-  physical_device.getFeatures2(&features2);
-
-  return vulkan12_features;
+std::vector<std::string> missing_required_features(
+    const vk::PhysicalDeviceVulkan12Features& supported) {
+  std::vector<std::string> missing;
+  for (const auto& f : kRequiredVulkan12Features) {
+    if (supported.*f.member != VK_TRUE) missing.emplace_back(f.name);
+  }
+  return missing;
 }
 
 void BaseEngine::create_device(vk::QueueFlags queue_flags) {
@@ -271,10 +258,24 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       .pQueuePriorities = &queuePriority,
   };
 
-  const auto vulkan_12_features = check_vulkan_12_features(physical_device_);
+  // Query -> check -> enable a separate minimal struct (never pass the queried struct:
+  // that would enable every supported feature).
+  vk::PhysicalDeviceVulkan12Features supported_12{};
+  vk::PhysicalDeviceFeatures2 supported{.pNext = &supported_12};
+  physical_device_.getFeatures2(&supported);
+
+  if (const auto missing = missing_required_features(supported_12); !missing.empty()) {
+    std::string names;
+    for (const auto& name : missing) names += (names.empty() ? "" : ", ") + name;
+    throw std::runtime_error(std::string(physical_device_.getProperties().deviceName.data()) +
+                             " lacks required Vulkan features: " + names);
+  }
+
+  vk::PhysicalDeviceVulkan12Features enabled_12{};
+  for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
 
   const vk::DeviceCreateInfo deviceCreateInfo{
-      .pNext = &vulkan_12_features,
+      .pNext = &enabled_12,
       .queueCreateInfoCount = 1,
       .pQueueCreateInfos = &deviceQueueCreateInfo,
   };

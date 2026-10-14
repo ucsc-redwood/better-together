@@ -23,8 +23,12 @@ Phase A — correctness (small, independent fixes):
   layout, the descriptor-set layout, the descriptor pool, the shader module and the pipeline cache.
   This satisfies `VUID-vkDestroyDevice-device-05137`.
 - Device creation enables exactly the features the engine requires. These are `storageBuffer8BitAccess`,
-  `uniformAndStorageBuffer8BitAccess`, `shaderInt8` and `bufferDeviceAddress`, plus any added by later
-  phases. A missing required feature fails device creation with an error that names it.
+  `shaderInt8` and `bufferDeviceAddress`, plus any added by later phases. A missing required feature
+  fails device creation with an error that names it. (Corrected during Phase A: an earlier draft also
+  listed `uniformAndStorageBuffer8BitAccess`, but no committed shader declares the
+  `UniformAndStorageBuffer8BitAccess` SPIR-V capability — the shaders declare only `Shader`,
+  `Int8`, `StorageBuffer8BitAccess` and `GroupNonUniform{,Arithmetic}` — so requiring it would break
+  the device-init spec's "exactly the required features".)
 - The validation layer becomes opt-in through an environment variable (`BT_VK_VALIDATION=1`) instead of
   always requested by `Engine()`. **BREAKING (behavioral):** direct runs no longer get validation
   by default. Fleet runs are unchanged because they already disable layers.

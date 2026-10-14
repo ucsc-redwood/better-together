@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "vk.hpp"
 
 // Vulkan-Hpp version-safe DynamicLoader
@@ -67,5 +70,10 @@ class BaseEngine {
 // Used by the differential tests' Runner::Available() so they GTEST_SKIP (like the CUDA
 // suites) on a discrete-GPU-only box instead of crashing. noexcept: any failure -> false.
 [[nodiscard]] bool has_integrated_gpu() noexcept;
+
+// Names of the engine's required device features that `supported` lacks (empty: none).
+// Device creation throws with these names instead of running with a feature disabled.
+[[nodiscard]] std::vector<std::string> missing_required_features(
+    const vk::PhysicalDeviceVulkan12Features& supported);
 
 }  // namespace kiss_vk
