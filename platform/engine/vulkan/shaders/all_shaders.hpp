@@ -63,6 +63,9 @@ namespace shaders {
 // new shaders
 #include "h/stressor_spv.h"
 
+// engine self-test (test-kiss-vk)
+#include "h/engine_test_workgroup_size_spv.h"
+
 // Helper macro to create shader entry with proper naming convention
 // The baked-header variable name is the bare .spv basename (xxd -i run from the
 // spv/ dir), so it is independent of the source-tree path -- relocating the
@@ -130,6 +133,8 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(octree_morton),
         // new shaders
         SHADER_ENTRY(stressor),
+        // engine self-test (test-kiss-vk)
+        SHADER_ENTRY(engine_test_workgroup_size),
 };
 
 #undef SHADER_ENTRY

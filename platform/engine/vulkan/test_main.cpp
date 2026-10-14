@@ -51,6 +51,116 @@ TEST(SpirvReflection, CommittedShaders) {
                std::runtime_error);
 }
 
+// SPIR-V 1.6 `local_size_*_id`: OpExecutionModeId LocalSizeId over spec constants.
+TEST(SpirvReflection, LocalSizeId) {
+  const auto r = kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("engine_test_workgroup_size"));
+  EXPECT_EQ(r.spec_ids, (std::set<uint32_t>{100, 101, 102}));
+  EXPECT_EQ(r.local_size, (std::array<uint32_t, 3>{1, 1, 1}));  // the spec constants' defaults
+  EXPECT_EQ(r.local_size_spec_id[0], 100u);
+  EXPECT_EQ(r.local_size_spec_id[1], 101u);
+  EXPECT_EQ(r.local_size_spec_id[2], 102u);
+}
+
+// Pipeline-config spec, "Declared workgroup size is applied to the shader".
+namespace {
+std::string build_error(const std::shared_ptr<kiss_vk::Algorithm>& algo) {
+  try {
+    (void)algo->build();
+  } catch (const std::runtime_error& e) {
+    return e.what();
+  }
+  return "";
+}
+std::string dims(const auto& s) { return fmt::format("({}, {}, {})", s[0], s[1], s[2]); }
+}  // namespace
+
+TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  auto seq = engine.make_seq();
+  std::pmr::vector<uint32_t> out(4, 0, engine.get_mr());
+
+  auto algo = engine.make_algo("engine_test_workgroup_size")
+                  ->work_group_size(64, 2, 1)
+                  ->num_buffers(1)
+                  ->build();
+  algo->update_descriptor_set(0, {engine.get_buffer_info(out)});
+
+  seq->cmd_begin();
+  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+  seq->cmd_end();
+  seq->submit();
+  seq->wait_for_fence();
+  seq->reset_fence();
+
+  EXPECT_EQ(out[0], 128u);  // invocations in the one workgroup
+  EXPECT_EQ(out[1], 64u);
+  EXPECT_EQ(out[2], 2u);
+  EXPECT_EQ(out[3], 1u);
+}
+
+TEST(VulkanWorkGroupSize, MismatchWithLiteralLocalSizeThrows) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  // tree_morton.comp: layout(local_size_x = 256) in;
+  const auto err =
+      build_error(engine.make_algo("tree_morton")->work_group_size(128, 1, 1)->num_buffers(2));
+  EXPECT_NE(err.find("declared workgroup size (128, 1, 1)"), std::string::npos) << err;
+  EXPECT_NE(err.find("LocalSize is (256, 1, 1)"), std::string::npos) << err;
+}
+
+TEST(VulkanWorkGroupSize, ExceedsDeviceLimitsThrows) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  const auto& limits = engine.compute_limits();
+  const auto& max_wg = limits.max_work_group_size;
+
+  const std::array<uint32_t, 3> too_wide{max_wg[0] + 1, 1, 1};
+  auto err = build_error(engine.make_algo("engine_test_workgroup_size")
+                             ->work_group_size(too_wide[0], too_wide[1], too_wide[2])
+                             ->num_buffers(1));
+  EXPECT_NE(err.find("workgroup size " + dims(too_wide)), std::string::npos) << err;
+  EXPECT_NE(err.find("maxComputeWorkGroupSize " + dims(max_wg)), std::string::npos) << err;
+
+  // Every dimension at its own limit: within maxComputeWorkGroupSize, but far over the
+  // invocation limit on every fleet GPU.
+  ASSERT_GT(uint64_t{max_wg[0]} * max_wg[1] * max_wg[2], limits.max_work_group_invocations);
+  err = build_error(engine.make_algo("engine_test_workgroup_size")
+                        ->work_group_size(max_wg[0], max_wg[1], max_wg[2])
+                        ->num_buffers(1));
+  EXPECT_NE(err.find("workgroup size " + dims(max_wg)), std::string::npos) << err;
+  EXPECT_NE(
+      err.find(fmt::format("maxComputeWorkGroupInvocations {}", limits.max_work_group_invocations)),
+      std::string::npos)
+      << err;
+}
+
+// A shader that declares constant_id = 0 (subgroup size) must be built
+// subgroup_size_dependent(), and only such a shader may be: never run on the default.
+TEST(VulkanSubgroupSize, DependentPipelinesMatchTheShader) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  auto err = build_error(engine.make_algo("multi_radixsort")
+                             ->work_group_size(256, 1, 1)
+                             ->num_buffers(3)
+                             ->push_constant_size(16));
+  EXPECT_NE(err.find("is not subgroup_size_dependent()"), std::string::npos) << err;
+
+  err = build_error(engine.make_algo("tree_morton")
+                        ->work_group_size(256, 1, 1)
+                        ->subgroup_size_dependent()
+                        ->num_buffers(2));
+  EXPECT_NE(err.find("has no constant_id = 0"), std::string::npos) << err;
+
+  EXPECT_NO_THROW((void)engine.make_algo("multi_radixsort")
+                      ->work_group_size(256, 1, 1)
+                      ->subgroup_size_dependent()
+                      ->num_buffers(3)
+                      ->push_constant_size(16)
+                      ->build());
+}
+
 // Pipeline-config spec, "Registry subgroup value is a cross-check only": a registry
 // subgroup size that disagrees with the device-derived one warns, naming both values.
 // Hardware-free: minipc's devices/minipc.json declares 64.
@@ -76,7 +186,7 @@ TEST(RegistrySubgroupCrossCheck, MismatchWarns) {
   ASSERT_EQ(mismatch_logs.size(), 1u);
   EXPECT_NE(mismatch_logs[0].find("[warning]"), std::string::npos) << mismatch_logs[0];
   EXPECT_NE(mismatch_logs[0].find("gpu.subgroup_size 64"), std::string::npos) << mismatch_logs[0];
-  EXPECT_NE(mismatch_logs[0].find("reports 16"), std::string::npos) << mismatch_logs[0];
+  EXPECT_NE(mismatch_logs[0].find("engine uses 16"), std::string::npos) << mismatch_logs[0];
   EXPECT_TRUE(match_ok);
   EXPECT_EQ(all_logs.size(), 1u);  // the match logged nothing
 }

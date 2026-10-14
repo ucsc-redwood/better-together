@@ -11,11 +11,10 @@ bool check_vulkan_subgroup_size(const uint32_t engine_subgroup_size) {
   if (registry <= 0 || static_cast<uint32_t>(registry) == engine_subgroup_size) return true;
 
   spdlog::warn(
-      "devices/{}.json declares gpu.subgroup_size {} but the Vulkan device reports {}; "
-      "using {}",
+      "devices/{}.json declares gpu.subgroup_size {} but the Vulkan engine uses {} "
+      "(the registry value is informational)",
       g_device_id,
       registry,
-      engine_subgroup_size,
       engine_subgroup_size);
   return false;
 }

@@ -347,28 +347,6 @@ void Algorithm::create_pipeline() {
 
   assert(internal_.push_constant_size <= push_constants_buffer_.size());
 
-  // Push Constants
-  std::vector<vk::PushConstantRange> push_constant_ranges;
-
-  if (has_push_constants()) {
-    push_constant_ranges.emplace_back(vk::PushConstantRange{
-        .stageFlags = vk::ShaderStageFlagBits::eCompute,
-        .offset = 0,
-        .size = static_cast<uint32_t>(internal_.push_constant_size),
-    });
-  }
-
-  // Pipeline Layout
-  const vk::PipelineLayoutCreateInfo pipeline_layout_create_info{
-      .setLayoutCount = 1,
-      .pSetLayouts = &descriptor_set_layout_,
-      .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges.size()),
-      .pPushConstantRanges = push_constant_ranges.empty() ? nullptr : push_constant_ranges.data()};
-
-  pipeline_layout_ = device_ref_.createPipelineLayout(pipeline_layout_create_info);
-
-  pipeline_cache_ = device_ref_.createPipelineCache(vk::PipelineCacheCreateInfo{});
-
   // Specialization constants (design D5).
   std::vector<vk::SpecializationMapEntry> spec_entries;
   std::vector<uint32_t> spec_values;
@@ -449,6 +427,28 @@ void Algorithm::create_pipeline() {
   const vk::PipelineShaderStageRequiredSubgroupSizeCreateInfo required_subgroup_size{
       .requiredSubgroupSize = limits_.subgroup_size,
   };
+
+  // Push Constants
+  std::vector<vk::PushConstantRange> push_constant_ranges;
+
+  if (has_push_constants()) {
+    push_constant_ranges.emplace_back(vk::PushConstantRange{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .offset = 0,
+        .size = static_cast<uint32_t>(internal_.push_constant_size),
+    });
+  }
+
+  // Pipeline Layout
+  const vk::PipelineLayoutCreateInfo pipeline_layout_create_info{
+      .setLayoutCount = 1,
+      .pSetLayouts = &descriptor_set_layout_,
+      .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges.size()),
+      .pPushConstantRanges = push_constant_ranges.empty() ? nullptr : push_constant_ranges.data()};
+
+  pipeline_layout_ = device_ref_.createPipelineLayout(pipeline_layout_create_info);
+
+  pipeline_cache_ = device_ref_.createPipelineCache(vk::PipelineCacheCreateInfo{});
 
   // Pipeline
   const vk::PipelineShaderStageCreateInfo shader_stage_create_info{
