@@ -52,6 +52,8 @@ means:
   - **Caveat:** `bm-fully-tree-vk` aborts with `n_unique is not set` (`apps/tree/tree_appdata.hpp:154`) before its last
     teardown. This is **pre-existing and unrelated**: identical abort at 4d8b376 with `VK_LOADER_LAYERS_DISABLE='~all~'`.
     Its earlier engine lifetimes in the same log tear down with 0 errors. Not fixed here (out of Phase A scope).
+  - *Re-run at b7ac417* (final Phase A code, with the minimal feature set from group 3): identical. All 26 logs have 0
+    `Validation Error` lines; the only non-zero exit is the same pre-existing `bm-fully-tree-vk` abort.
 - [x] 2.4 Add a `bugs-found.md` entry for the Algorithm leak, as a follow-up to §9. Verify: the entry exists.
   - *Evidence:* `docs/reports-for-human/bugs-found.md` §12 ("follow-up to §9") links fix commit d65faf3.
 
@@ -84,8 +86,20 @@ means:
 
 ## 4. Phase A — validation opt-in (device-init) + phase gate
 
-- [ ] 4.1 Make `Engine()` request validation only when `BT_VK_VALIDATION=1`, and demote the layer-list dump to `debug` (design D4). Verify: on `rocky-ryzen`, a run without the variable shows no validation layer in the debug log, and a run with it shows the layer enabled.
-- [ ] 4.2 Document `BT_VK_VALIDATION` in `docs/instruction-for-ai/03-unit-testing.md`. Note there that fleet scripts also set `VK_LOADER_LAYERS_DISABLE`. Verify: the documented command runs as written on `rocky-ryzen`.
+- [x] 4.1 Make `Engine()` request validation only when `BT_VK_VALIDATION=1`, and demote the layer-list dump to `debug` (design D4). Verify: on `rocky-ryzen`, a run without the variable shows no validation layer in the debug log, and a run with it shows the layer enabled.
+  - *Evidence (b7ac417, rocky-ryzen, `SPDLOG_LEVEL=debug ./test-kiss-vk`; test-kiss-vk now honours `SPDLOG_LEVEL`):*
+    - no variable, or `BT_VK_VALIDATION=0` → every engine logs `Vulkan instance layers enabled: none`, and the layer
+      list is not dumped;
+    - `BT_VK_VALIDATION=1` → `Vulkan instance layers enabled: VK_LAYER_KHRONOS_validation`, with the
+      "Available Vulkan Layers" dump at `[debug]`. The `has_integrated_gpu()` probe stays `none` by design;
+    - `BT_VK_VALIDATION=1 VK_LOADER_LAYERS_DISABLE='~all~'` (layer hidden) → `[warning] Validation layer requested
+      but not available, continuing without it...`, layers `none`, 3/3 PASSED.
+- [x] 4.2 Document `BT_VK_VALIDATION` in `docs/instruction-for-ai/03-unit-testing.md`. Note there that fleet scripts also set `VK_LOADER_LAYERS_DISABLE`. Verify: the documented command runs as written on `rocky-ryzen`.
+  - *Evidence (b7ac417, rocky-ryzen):* the three documented commands were extracted verbatim from
+    `03-unit-testing.md` and run from `build/vulkan`:
+    - under `bash` → rc=0, tree 15 PASSED twice, `test-kiss-vk` 3 PASSED, the `…layers enabled:
+      VK_LAYER_KHRONOS_validation` lines present, 0 `Validation Error`;
+    - under rocky's login shell `fish` 4.2.0 → rc=0, same results.
 - [ ] 4.3 Phase A gate: VK fleet gate green. Then do one `fit_overhead` refit on `rocky-ryzen` and record the per-chunk overhead delta in the PR. Verify: the delta is within run-to-run noise, or the new constants are committed with an explanation.
 
 ## 5. Phase B — device-derived subgroup size (pipeline-config)
