@@ -406,6 +406,66 @@ needed). Diagnosis path: GPU-AV via
 `VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT` on rocky
 (validation layers installed 2026-06-17).
 
+## 11. Vulkan results read after the fence wait without a host-visibility barrier — **FIXED (commit 82b3c56)**
+
+**Found by:** spec review of `platform/engine/vulkan` (OpenSpec change
+`vulkan-engine-campaign`, Phase A, spec `vulkan-engine/execution-sync`), not by a
+failing test. It held only because the fleet drivers are lenient.
+
+**Root cause.** Every dispatcher records its stages into one `Sequence` command buffer,
+submits it, `wait_for_fence()`s, and then reads the output buffers on the host. The command
+buffer ended with no memory dependency whose destination was the host, so the
+compute-shader writes were never made **available** to the host domain. A fence only
+orders *completion*. Vulkan spec, Synchronization > Fences: "Signaling a fence and waiting
+on the host does not guarantee that the results of memory accesses will be visible to the
+host, as the access scope of a memory dependency defined by a fence only includes device
+access. A memory barrier or other memory dependency must be used to guarantee this."
+`invalidate_touched()` after the wait (the §7 cache maintenance) covers only the CPU-cache
+side on `HOST_CACHED` memory. It cannot make device writes available.
+
+**Fix (82b3c56).** `Sequence::cmd_end()` records a global
+`COMPUTE_SHADER/SHADER_WRITE → HOST/HOST_READ` memory barrier before the bottom-of-pipe
+timestamp, so every dispatcher and profiler runner gets it from one site. That is one
+barrier per chunk, not per stage, and the measured GPU time includes it.
+
+**Verification.**
+- `test-{tree,cifar-dense,cifar-sparse}-vk` stay green on rocky-ryzen (RADV) at 82b3c56.
+- They also stay green on the Pixel 7a (Mali, `HOST_CACHED` non-coherent) and the Samsung (Xclipse) at
+  the later Phase A commits, which carry the barrier.
+- Synchronization validation (`BT_VK_VALIDATION=1 VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT`,
+  layer 1.4.328.1 on rocky) reports no hazard. **Caveat:** it also reports none *without*
+  the barrier (control run at 4d8b376). The layer does not model host reads of mapped
+  memory, so this defect was invisible to every tool we have. The fix rests on the spec
+  text above.
+
+## 12. Every `Algorithm` leaked its Vulkan objects past `vkDestroyDevice` — **FIXED (commit d65faf3)** — follow-up to §9
+
+**Found by:** spec review (`vulkan-engine/object-lifetime`), then confirmed with the
+validation layer on rocky-ryzen.
+
+**Root cause.** §9 made `~BaseEngine` drain and destroy the device, and the review-#5
+fix made `~Sequence` free its pool and fence. But `Algorithm` had `~Algorithm() = default`,
+and it holds raw `vk::` handles: shader module, pipeline, pipeline cache, pipeline
+layout, descriptor-set layout and descriptor pool. Every stage kernel of every
+dispatcher therefore left six child objects alive at `vkDestroyDevice`, which violates
+`VUID-vkDestroyDevice-device-05137` ("All child objects created on device must have been
+destroyed prior to destroying device"). It was silent because the layer was installed but
+nobody grepped its stdout. The suites still passed.
+
+**Evidence (rocky-ryzen, validation layer on).** Before the fix:
+- `test-tree-vk` printed 140 `Validation Error: [ VUID-vkDestroyDevice-device-05137 ]` lines;
+- `test-cifar-dense-vk` and `test-cifar-sparse-vk` printed 120 each.
+
+After d65faf3, all three print **0** validation errors. The new
+`VulkanDispatcherLifetime.ConstructDestroyReconstruct` test (two full construct → run →
+destroy rounds in one process) reports none either.
+
+**Fix (d65faf3).** `~Algorithm()` destroys the pipeline, pipeline cache, pipeline
+layout, descriptor pool (which frees its sets), descriptor-set layout and shader module, in
+reverse creation order, each guarded on a null handle. No reordering was needed:
+dispatchers declare `engine` before `seq` and `cached_algorithms`, so algorithms are
+destroyed first.
+
 ## Latent issue noticed (not fixed)
 
 `SETUP_DEFAULT_LAUNCH_PARAMS` (`builtin-apps/common/cuda/helpers.cuh`) declares

@@ -4,21 +4,56 @@ Each phase (A = groups 1–4, B = groups 5–6, C = groups 7–8) is one PR into
 means:
 - `ctest -L vk` passes on `rocky-ryzen`, the Pixel 7a and the Samsung (via `scripts/run-on-rocky.sh`
   and `scripts/run-on-android.sh`);
+  - *Note (Phase A):* the repo's CTest label is `vulkan`, and `-L` is a regex, so a literal
+    `ctest -L vk` selects **0 tests** and "passes" vacuously (checked on rocky: `ctest -L vk -N` →
+    `Total Tests: 0`, `ctest -L vulkan -N` → 7). Throughout this file, "`ctest -L vk`" means
+    `ctest -L vulkan` on rocky-ryzen plus the `test-{tree,cifar-dense,cifar-sparse}-vk` binaries
+    (and `test-kiss-vk`) run directly, as `scripts/run-on-*.sh` do.
 - plus `ctest -L omp` locally;
 - plus the shader bake / clean-tree check.
 
 ## 1. Phase A — host visibility (execution-sync)
 
-- [ ] 1.1 Record a COMPUTE_SHADER/SHADER_WRITE → HOST/HOST_READ memory barrier in `Sequence::cmd_end()`, before the bottom-of-pipe timestamp (design D1). Verify: `ctest -L vk` is green on `rocky-ryzen`.
-- [ ] 1.2 Run the tree, cifar-dense and cifar-sparse VK suites with `BT_VK_VALIDATION=1` and `VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT` on `rocky-ryzen`. Verify: no shader-write/host-read hazard is reported.
-- [ ] 1.3 Add a `bugs-found.md` entry for the missing host-visibility barrier (root cause, spec citation, fix commit). Verify: the entry exists and links the commit.
+- [x] 1.1 Record a COMPUTE_SHADER/SHADER_WRITE → HOST/HOST_READ memory barrier in `Sequence::cmd_end()`, before the bottom-of-pipe timestamp (design D1). Verify: `ctest -L vk` is green on `rocky-ryzen`.
+  - *Evidence (82b3c56, rocky-ryzen):* `cmake --build --preset vulkan`, then
+    `VK_LOADER_LAYERS_DISABLE='~all~' ./test-{tree,cifar-dense,cifar-sparse}-vk --device minipc` → 14 / 12 / 12
+    PASSED. `ctest -L vulkan` → 7/7 passed.
+- [x] 1.2 Run the tree, cifar-dense and cifar-sparse VK suites with `BT_VK_VALIDATION=1` and `VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT` on `rocky-ryzen`. Verify: no shader-write/host-read hazard is reported.
+  - *Evidence (82b3c56, rocky-ryzen, layer 1.4.328.1; confirmed active, since `VK_LAYER_REPORT_FLAGS=info` prints
+    "Current Enables: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT"):* the three suites print 0 `SYNC-HAZARD`
+    lines. The only errors are the `VUID-vkDestroyDevice-device-05137` leak that group 2 fixes; at d65faf3 they print 0
+    validation errors of any kind.
+  - **Caveat:** a control run at the parent 4d8b376 (no barrier) also prints 0 `SYNC-HAZARD`. Sync validation does not model
+    host reads of mapped memory, so this check can't catch the defect. The fix rests on the spec text (bugs-found §11)
+    and on the phone oracle runs (Pixel 7a, non-coherent Mali: 15/12/12 green at de389af and b7ac417).
+- [x] 1.3 Add a `bugs-found.md` entry for the missing host-visibility barrier (root cause, spec citation, fix commit). Verify: the entry exists and links the commit.
+  - *Evidence:* `docs/reports-for-human/bugs-found.md` §11 links fix commit 82b3c56.
 
 ## 2. Phase A — object lifetime
 
-- [ ] 2.1 Implement `~Algorithm()` to destroy the pipeline, pipeline layout, descriptor pool, descriptor-set layout, shader module and the per-Algorithm pipeline cache, guarding null handles (design D2). Verify: `ctest -L vk` is green on `rocky-ryzen`.
-- [ ] 2.2 Add a VK test that constructs, destroys and reconstructs a dispatcher in one process. Verify: it passes, and with `BT_VK_VALIDATION=1` it reports no `VUID-vkDestroyDevice-device-05137`.
-- [ ] 2.3 Run every VK test and `bm-*-vk` binary once with `BT_VK_VALIDATION=1` on `rocky-ryzen`. Verify: the exit logs contain no undestroyed-object errors.
-- [ ] 2.4 Add a `bugs-found.md` entry for the Algorithm leak, as a follow-up to §9. Verify: the entry exists.
+- [x] 2.1 Implement `~Algorithm()` to destroy the pipeline, pipeline layout, descriptor pool, descriptor-set layout, shader module and the per-Algorithm pipeline cache, guarding null handles (design D2). Verify: `ctest -L vk` is green on `rocky-ryzen`.
+  - *Evidence (d65faf3, rocky-ryzen):* tree / cifar-dense / cifar-sparse → 15 / 12 / 12 PASSED. tree has 15 = 14 + the
+    new 2.2 test. `ctest -L vulkan` → 7/7 passed.
+- [x] 2.2 Add a VK test that constructs, destroys and reconstructs a dispatcher in one process. Verify: it passes, and with `BT_VK_VALIDATION=1` it reports no `VUID-vkDestroyDevice-device-05137`.
+  - *Evidence (d65faf3, rocky-ryzen):* `VulkanDispatcherLifetime.ConstructDestroyReconstruct` in `test-tree-vk` runs two full
+    construct → stages 1..7 → check → destroy rounds. `BT_VK_VALIDATION=1 ./test-tree-vk --device minipc
+    --gtest_filter='VulkanDispatcherLifetime.*'` → PASSED, 0 `Validation Error` lines, 0 `05137`.
+  - *Control:* at 4d8b376 a single tree test prints 20 `05137` lines.
+- [x] 2.3 Run every VK test and `bm-*-vk` binary once with `BT_VK_VALIDATION=1` on `rocky-ryzen`. Verify: the exit logs contain no undestroyed-object errors.
+  - *Evidence (d65faf3, rocky-ryzen):* each binary was run once from `build/vulkan` with `BT_VK_VALIDATION=1
+    BT_WEIGHTS_DIR=/tmp/bt/weights`:
+    - all 8 VK tests (`test-kiss-vk`, `test-{tree,cifar-dense,cifar-sparse}-vk`, `test-pipeline-e2e{,-cifar-dense,-cifar-sparse}-vk`,
+      `test-pipeline-chained-vk`);
+    - all 15 `bm-*-vk`: `bm-<app>-vk --benchmark_min_time=1x`, `bm-baseline-<app>-vk --benchmark_min_time=1x`,
+      `bm-fully-<app>-vk -t 1`, `bm-gen-logs-<app>-vk` on one btpm schedule, and `bm-prof-<app>-vk` with short
+      `BT_PROF_*` budgets;
+    - plus `stressor-vk`.
+    Every log has **0** `Validation Error` lines, and 25/26 exit 0.
+  - **Caveat:** `bm-fully-tree-vk` aborts with `n_unique is not set` (`apps/tree/tree_appdata.hpp:154`) before its last
+    teardown. This is **pre-existing and unrelated**: identical abort at 4d8b376 with `VK_LOADER_LAYERS_DISABLE='~all~'`.
+    Its earlier engine lifetimes in the same log tear down with 0 errors. Not fixed here (out of Phase A scope).
+- [x] 2.4 Add a `bugs-found.md` entry for the Algorithm leak, as a follow-up to §9. Verify: the entry exists.
+  - *Evidence:* `docs/reports-for-human/bugs-found.md` §12 ("follow-up to §9") links fix commit d65faf3.
 
 ## 3. Phase A — feature enablement (device-init)
 
