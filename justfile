@@ -108,6 +108,7 @@ fleet-bench *args:
 # `fleet-bench --fresh` to wipe + re-benchmark in one go.
 bench-clean:
     rm -rf data/profiling data/schedules_btpm data/schedules_isolated data/sched_logs
+    rm -f bt-vk-pipeline-cache-*.bin bt-vk-pipeline-cache-*.bin.tmp.*
 
 # 4. Run the unit tests across the whole matrix (build first with `just build`).
 # Fail-loud: any failing fleet test makes this go red (see the per-target notes).

@@ -2,8 +2,12 @@
 #include <spdlog/cfg/env.h>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
+#include <unistd.h>
 
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <optional>
 #include <set>
 
@@ -202,6 +206,116 @@ INSTANTIATE_TEST_SUITE_P(BothPaths,
                            return info.param == BindingPath::kFallback ? "Fallback"
                                                                        : "PushDescriptors";
                          });
+
+// Pipeline-config spec, "Compiled pipelines persist across runs" (design D7). Each test
+// gets its own cache directory under the working directory (writable on every target),
+// removed afterwards.
+class PipelineCacheTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+    dir_ = std::filesystem::current_path() /
+           ("bt-vk-cache-test-" + std::to_string(getpid()) + "-" +
+            ::testing::UnitTest::GetInstance()->current_test_info()->name());
+    std::filesystem::create_directory(dir_);
+    env_.emplace("BT_VK_PIPELINE_CACHE_DIR", dir_.c_str());
+  }
+  void TearDown() override {
+    env_.reset();
+    if (dir_.empty()) return;
+    std::filesystem::permissions(dir_, std::filesystem::perms::owner_all);
+    std::filesystem::remove_all(dir_);
+  }
+
+  // One engine lifetime: build a pipeline from the persisted cache, run it, check the
+  // result, save the cache on destruction. Returns how the cache started.
+  static kiss_vk::PipelineCacheLoad run_once(std::string* path = nullptr) {
+    kiss_vk::Engine engine;
+    auto seq = engine.make_seq();
+    std::pmr::vector<uint32_t> out(4, 0, engine.get_mr());
+    auto algo = engine.make_algo("engine_test_workgroup_size")
+                    ->work_group_size(64, 2, 1)
+                    ->num_buffers(1)
+                    ->build();
+    seq->cmd_begin();
+    algo->record_bind(*seq, {engine.get_buffer_info(out)});
+    algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+    seq->cmd_end();
+    seq->submit();
+    seq->wait_for_fence();
+    seq->reset_fence();
+    EXPECT_EQ(out, (std::pmr::vector<uint32_t>{128, 64, 2, 1}));
+    if (path) *path = engine.pipeline_cache_path();
+    return engine.pipeline_cache_load();
+  }
+
+  static std::vector<char> read_file(const std::string& path) {
+    std::ifstream f(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
+  }
+  static void write_file(const std::string& path, const std::vector<char>& data) {
+    std::ofstream(path, std::ios::binary | std::ios::trunc).write(data.data(), data.size());
+  }
+
+  std::filesystem::path dir_;
+  std::optional<ScopedEnv> env_;
+};
+
+// "Warm start": the second engine loads what the first one saved.
+TEST_F(PipelineCacheTest, SecondRunLoadsTheSavedCache) {
+  std::string path;
+  EXPECT_EQ(run_once(&path), kiss_vk::PipelineCacheLoad::kMissing);
+  EXPECT_EQ(path.rfind(dir_.string() + "/bt-vk-pipeline-cache-", 0), 0u) << path;
+  ASSERT_TRUE(std::filesystem::exists(path));
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kLoaded);
+}
+
+// "Stale or foreign cache": a corrupt file is ignored -- garbage, and a valid file cut
+// short inside its header.
+TEST_F(PipelineCacheTest, CorruptFileIsIgnored) {
+  std::string path;
+  run_once(&path);
+  const auto valid = read_file(path);
+  ASSERT_GE(valid.size(), 32u);
+
+  write_file(path, std::vector<char>(4096, '\xab'));
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+
+  write_file(path, std::vector<char>(valid.begin(), valid.begin() + 20));
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+}
+
+// "Stale or foreign cache": a file from another device (vendorID / deviceID) or another
+// driver build (pipelineCacheUUID) is ignored, as is a wrong header length or version.
+TEST_F(PipelineCacheTest, ForeignDeviceOrDriverIsIgnored) {
+  std::string path;
+  run_once(&path);
+  const auto valid = read_file(path);
+  ASSERT_GE(valid.size(), 32u);
+
+  // VkPipelineCacheHeaderVersionOne: headerSize, headerVersion, vendorID, deviceID at
+  // byte offsets 0, 4, 8, 12; pipelineCacheUUID at 16..31.
+  for (const size_t offset : {0u, 4u, 8u, 12u, 16u, 31u}) {
+    auto foreign = valid;
+    foreign[offset] = static_cast<char>(foreign[offset] ^ 0x5a);
+    write_file(path, foreign);
+    EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected) << "byte " << offset;
+  }
+
+  write_file(path, valid);  // control: the untouched file loads
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kLoaded);
+}
+
+// "Read-only location": the run completes and nothing is written.
+TEST_F(PipelineCacheTest, ReadOnlyDirectoryRunsWithoutPersisting) {
+  std::filesystem::permissions(
+      dir_, std::filesystem::perms::owner_read | std::filesystem::perms::owner_exec);
+  ASSERT_NE(access(dir_.c_str(), W_OK), 0) << dir_ << " is still writable (running as root?)";
+
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kMissing);
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kMissing);  // still nothing persisted
+  EXPECT_TRUE(std::filesystem::is_empty(dir_));
+}
 
 TEST(VulkanWorkGroupSize, MismatchWithLiteralLocalSizeThrows) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";

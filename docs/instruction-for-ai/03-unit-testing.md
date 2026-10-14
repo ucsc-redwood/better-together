@@ -150,6 +150,27 @@ the device cannot pin that size, e.g. 32 on the Pixel):
 BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned at 32
 ```
 
+**Binding paths.** Stage buffers are bound with push descriptors (`VK_KHR_push_descriptor`,
+enabled on every fleet GPU) or, where the extension is missing, from a per-`Sequence`
+transient descriptor pool. `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1` forces the pool path even
+where the extension exists, so one device covers both; `SPDLOG_LEVEL=debug` logs which path
+an engine uses (`Descriptor binding: …`):
+```bash
+BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
+```
+
+**Pipeline cache (`BT_VK_PIPELINE_CACHE_DIR`).** Each `kiss_vk::Engine` loads its compiled
+pipelines from `<dir>/bt-vk-pipeline-cache-<vendorID>-<deviceID>-<pipelineCacheUUID>.bin`
+and saves them back when it is destroyed. `<dir>` is `$BT_VK_PIPELINE_CACHE_DIR`, by default
+the current directory: `build/vulkan` for `ctest`, `/tmp/bt` for the rocky and Jetson
+scripts, `/data/local/tmp/bt` on the phones. A file from another device or driver, or a
+corrupt one, is ignored and the pipelines compile cold; an unwritable directory just means
+nothing is saved. The cache only speeds up dispatcher construction, which is outside every
+timed region, and the files are safe to delete at any time. `SPDLOG_LEVEL=debug` logs the
+load (`Pipeline cache: loaded N bytes from …`, or why it compiled cold) and, per pipeline,
+whether the driver reports a cache hit. The files are git-ignored, and `just bench-clean`
+also deletes any left in the repo root.
+
 **OMP on Android phones** (both phones' adb is on the build box; run the script there —
 `adb -s <serial>` selects the phone):
 ```bash

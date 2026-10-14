@@ -53,10 +53,12 @@ constexpr auto div_ceil(size_t a, size_t b) { return (a + b - 1) / b; }
 class Algorithm final : public std::enable_shared_from_this<Algorithm> {
  public:
   // push_descriptor_fn: BaseEngine::push_descriptor_fn(), null for the transient-pool path.
+  // pipeline_cache: the Engine's (design D7), not owned.
   explicit Algorithm(VulkanMemoryResource* mr_ptr,
                      std::string shader_name,
                      const ComputeLimits& limits,
-                     PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn);
+                     PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn,
+                     vk::PipelineCache pipeline_cache);
 
   // Destroys every Vulkan object this Algorithm created (VUID-vkDestroyDevice-device-05137).
   // Owners must destroy it before the Engine; dispatchers declare `engine` first, so their
@@ -147,7 +149,7 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   // Core vulkan handles
   vk::ShaderModule shader_module_ = nullptr;
   vk::Pipeline pipeline_ = nullptr;
-  vk::PipelineCache pipeline_cache_ = nullptr;
+  vk::PipelineCache pipeline_cache_;  // the Engine's
   vk::PipelineLayout pipeline_layout_ = nullptr;
   vk::DescriptorSetLayout descriptor_set_layout_ = nullptr;
   PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_;

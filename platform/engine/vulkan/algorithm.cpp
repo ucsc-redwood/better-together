@@ -77,8 +77,10 @@ std::vector<uint32_t> load_shader_spirv(const std::string& shader_name) {
 Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
                      std::string shader_name,
                      const ComputeLimits& limits,
-                     const PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn)
+                     const PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn,
+                     const vk::PipelineCache pipeline_cache)
     : device_ref_(mr_ptr->get_device()),
+      pipeline_cache_(pipeline_cache),
       push_descriptor_fn_(push_descriptor_fn),
       shader_name_(std::move(shader_name)),
       limits_(limits) {
@@ -90,9 +92,9 @@ Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
 Algorithm::~Algorithm() {
   // Reverse creation order; every handle may be null on a partially built Algorithm.
   // Callers have already waited on the fences of any command buffer that used this
-  // pipeline. Fallback-path sets live in the Sequence's transient pools, not here.
+  // pipeline. Fallback-path sets live in the Sequence's transient pools and the pipeline
+  // cache is the Engine's, so neither is destroyed here.
   if (pipeline_) device_ref_.destroyPipeline(pipeline_);
-  if (pipeline_cache_) device_ref_.destroyPipelineCache(pipeline_cache_);
   if (pipeline_layout_) device_ref_.destroyPipelineLayout(pipeline_layout_);
   if (descriptor_set_layout_) device_ref_.destroyDescriptorSetLayout(descriptor_set_layout_);
   if (shader_module_) device_ref_.destroyShaderModule(shader_module_);
@@ -401,8 +403,6 @@ void Algorithm::create_pipeline() {
 
   pipeline_layout_ = device_ref_.createPipelineLayout(pipeline_layout_create_info);
 
-  pipeline_cache_ = device_ref_.createPipelineCache(vk::PipelineCacheCreateInfo{});
-
   // Pipeline
   const vk::PipelineShaderStageCreateInfo shader_stage_create_info{
       .pNext = pin ? &required_subgroup_size : nullptr,
@@ -412,7 +412,14 @@ void Algorithm::create_pipeline() {
       .pSpecializationInfo = spec_entries.empty() ? nullptr : &spec_info,
   };
 
+  // Did the Engine's (persisted) cache supply this pipeline? Debug log only.
+  vk::PipelineCreationFeedback feedback{};
+  const vk::PipelineCreationFeedbackCreateInfo feedback_info{
+      .pPipelineCreationFeedback = &feedback,
+  };
+
   const vk::ComputePipelineCreateInfo pipeline_create_info{
+      .pNext = &feedback_info,
       .stage = shader_stage_create_info,
       .layout = pipeline_layout_,
       .basePipelineHandle = nullptr,
@@ -420,13 +427,20 @@ void Algorithm::create_pipeline() {
 
   pipeline_ = device_ref_.createComputePipeline(pipeline_cache_, pipeline_create_info).value;
 
+  const char* cache_result =
+      !(feedback.flags & vk::PipelineCreationFeedbackFlagBits::eValid) ? "not reported"
+      : (feedback.flags & vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit)
+          ? "hit"
+          : "miss";
   if (subgroup_size_dependent_) {
-    spdlog::debug("Pipeline [{}] created successfully (subgroup size {}, {})",
+    spdlog::debug("Pipeline [{}] created successfully (subgroup size {}, {}; pipeline cache {})",
                   shader_name_,
                   limits_.subgroup_size,
-                  pin ? "pinned" : "not pinned");
+                  pin ? "pinned" : "not pinned",
+                  cache_result);
   } else {
-    spdlog::debug("Pipeline [{}] created successfully", shader_name_);
+    spdlog::debug(
+        "Pipeline [{}] created successfully (pipeline cache {})", shader_name_, cache_result);
   }
 }
 
