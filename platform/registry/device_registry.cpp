@@ -1,18 +1,23 @@
 #include "platform/registry/device_registry.hpp"
 
-// Vulkan subgroup (warp) size, data-driven from the device registry
-// (devices/<id>.json -> gpu.subgroup_size). Adding a board is now dropping a JSON
-// spec, not editing a hardcoded map here. Throws if the device isn't registered
-// or its spec has no GPU subgroup size.
-size_t get_vulkan_warp_size() {
-  assert(g_device_id.empty() == false);
+// Cross-check only: the Vulkan engine takes the subgroup size from the running device.
+// devices/<id>.json -> gpu.subgroup_size is informational; a disagreement is a warning.
+bool check_vulkan_subgroup_size(const uint32_t engine_subgroup_size) {
+  if (g_device_id.empty()) return true;
 
-  const int subgroup = GlobalDeviceRegistry().getDevice(g_device_id).gpu_subgroup_size();
-  if (subgroup <= 0) {
-    throw std::runtime_error("device [" + g_device_id +
-                             "] has no gpu.subgroup_size in its devices/*.json spec");
-  }
-  return static_cast<size_t>(subgroup);
+  const auto& devices = GlobalDeviceRegistry();
+  if (!devices.hasDevice(g_device_id)) return true;
+  const int registry = devices.getDevice(g_device_id).gpu_subgroup_size();
+  if (registry <= 0 || static_cast<uint32_t>(registry) == engine_subgroup_size) return true;
+
+  spdlog::warn(
+      "devices/{}.json declares gpu.subgroup_size {} but the Vulkan device reports {}; "
+      "using {}",
+      g_device_id,
+      registry,
+      engine_subgroup_size,
+      engine_subgroup_size);
+  return false;
 }
 
 bool check_device_arg(const int argc, char** argv) {

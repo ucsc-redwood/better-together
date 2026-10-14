@@ -7,6 +7,7 @@
 
 #include "algorithm.hpp"
 #include "base_engine.hpp"
+#include "platform/registry/device_registry.hpp"
 #include "sequence.hpp"
 #include "vma_pmr.hpp"
 
@@ -19,6 +20,8 @@ class Engine final : public BaseEngine {
       : BaseEngine(validation_requested()),
         mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {
     spdlog::trace("Engine::Engine()");
+    // The registry's subgroup size is a cross-check only (design D5).
+    check_vulkan_subgroup_size(subgroup_size());
   }
 
   ~Engine() { spdlog::trace("Engine::~Engine()"); }
@@ -26,7 +29,7 @@ class Engine final : public BaseEngine {
   [[nodiscard]] VulkanMemoryResource* get_mr() const { return mr_ptr_.get(); }
 
   [[nodiscard]] std::shared_ptr<Algorithm> make_algo(const std::string& shader_name) const {
-    return std::make_shared<Algorithm>(mr_ptr_.get(), shader_name);
+    return std::make_shared<Algorithm>(mr_ptr_.get(), shader_name, compute_limits());
   }
 
   [[nodiscard]] std::shared_ptr<Sequence> make_seq() {

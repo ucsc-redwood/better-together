@@ -1,12 +1,84 @@
 #include "algorithm.hpp"
 
+#include <unordered_map>
+
 #include "shaders/all_shaders.hpp"
 #include "spdlog/spdlog.h"
 
 namespace kiss_vk {
-Algorithm::Algorithm(VulkanMemoryResource* mr_ptr, std::string shader_name)
-    : device_ref_(mr_ptr->get_device()), shader_name_(std::move(shader_name)) {
-  load_compiled_shader();
+
+// ----------------------------------------------------------------------------
+// SPIR-V scan (design D5). Only what glslc emits for our compute shaders: SpecId
+// decorations, LocalSize literals, and (SPIR-V 1.6) LocalSizeId over 32-bit constants.
+// ----------------------------------------------------------------------------
+
+SpirvReflection reflect_spirv(const std::span<const uint32_t> words) {
+  constexpr uint32_t kMagic = 0x07230203;
+  constexpr uint32_t kHeaderWords = 5;
+  constexpr uint32_t kOpExecutionMode = 16, kOpConstant = 43, kOpSpecConstant = 50,
+                     kOpDecorate = 71, kOpExecutionModeId = 331;
+  constexpr uint32_t kDecorationSpecId = 1, kModeLocalSize = 17, kModeLocalSizeId = 38;
+
+  if (words.size() < kHeaderWords || words[0] != kMagic) {
+    throw std::runtime_error("reflect_spirv: not a SPIR-V module");
+  }
+
+  SpirvReflection r;
+  std::unordered_map<uint32_t, uint32_t> spec_id_of;  // result id -> SpecId
+  std::unordered_map<uint32_t, uint32_t> value_of;    // 32-bit (spec) constant -> (default) value
+  std::optional<std::array<uint32_t, 3>> local_size_ids;
+
+  for (size_t i = kHeaderWords; i < words.size();) {
+    const uint32_t count = words[i] >> 16;
+    const uint32_t opcode = words[i] & 0xFFFF;
+    if (count == 0 || i + count > words.size()) {
+      throw std::runtime_error("reflect_spirv: malformed instruction at word " + std::to_string(i));
+    }
+    const uint32_t* in = &words[i];
+    if (opcode == kOpDecorate && count >= 4 && in[2] == kDecorationSpecId) {
+      spec_id_of[in[1]] = in[3];
+      r.spec_ids.insert(in[3]);
+    } else if (opcode == kOpExecutionMode && count >= 6 && in[2] == kModeLocalSize) {
+      r.local_size = {in[3], in[4], in[5]};
+    } else if (opcode == kOpExecutionModeId && count >= 6 && in[2] == kModeLocalSizeId) {
+      local_size_ids = {in[3], in[4], in[5]};
+    } else if ((opcode == kOpConstant || opcode == kOpSpecConstant) && count == 4) {
+      value_of[in[2]] = in[3];
+    }
+    i += count;
+  }
+
+  if (local_size_ids) {
+    for (size_t d = 0; d < 3; ++d) {
+      const uint32_t id = (*local_size_ids)[d];
+      if (!value_of.contains(id)) {
+        throw std::runtime_error("reflect_spirv: LocalSizeId operand is not a 32-bit constant");
+      }
+      r.local_size[d] = value_of.at(id);
+      if (spec_id_of.contains(id)) r.local_size_spec_id[d] = spec_id_of.at(id);
+    }
+  }
+  return r;
+}
+
+std::vector<uint32_t> load_shader_spirv(const std::string& shader_name) {
+  if (!shaders::all_shaders.contains(shader_name)) {
+    throw std::runtime_error("Shader " + shader_name + " not found");
+  }
+
+  const auto [shader_binary, shader_binary_size] = shaders::all_shaders.at(shader_name);
+
+  std::vector<uint32_t> spirv(shader_binary_size / sizeof(uint32_t));
+  std::memcpy(spirv.data(), shader_binary, shader_binary_size);
+  return spirv;
+}
+
+Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
+                     std::string shader_name,
+                     const ComputeLimits& limits)
+    : device_ref_(mr_ptr->get_device()), shader_name_(std::move(shader_name)), limits_(limits) {
+  internal_.spirv_binary = load_shader_spirv(shader_name_);
+  reflection_ = reflect_spirv(internal_.spirv_binary);
   create_shader_module();
 }
 
@@ -28,6 +100,11 @@ std::shared_ptr<Algorithm> Algorithm::work_group_size(const uint32_t x,
   internal_.work_group_size[0] = x;
   internal_.work_group_size[1] = y;
   internal_.work_group_size[2] = z;
+  return shared_from_this();
+}
+
+std::shared_ptr<Algorithm> Algorithm::subgroup_size_dependent() {
+  subgroup_size_dependent_ = true;
   return shared_from_this();
 }
 
@@ -152,20 +229,8 @@ void Algorithm::record_dispatch(const vk::CommandBuffer& cmd_buf,
 
 // -------------------------------------------------------------------------------------------------
 // Shader Related
-//   load_compiled_shader();
 //   create_shader_module();
 // -------------------------------------------------------------------------------------------------
-
-void Algorithm::load_compiled_shader() {
-  if (!shaders::all_shaders.contains(shader_name_)) {
-    throw std::runtime_error("Shader " + shader_name_ + " not found");
-  }
-
-  const auto [shader_binary, shader_binary_size] = shaders::all_shaders.at(shader_name_);
-
-  internal_.spirv_binary.resize(shader_binary_size / sizeof(uint32_t));
-  std::memcpy(internal_.spirv_binary.data(), shader_binary, shader_binary_size);
-}
 
 void Algorithm::create_shader_module() {
   if (shader_name_.empty()) {
@@ -304,11 +369,94 @@ void Algorithm::create_pipeline() {
 
   pipeline_cache_ = device_ref_.createPipelineCache(vk::PipelineCacheCreateInfo{});
 
+  // Specialization constants (design D5).
+  std::vector<vk::SpecializationMapEntry> spec_entries;
+  std::vector<uint32_t> spec_values;
+  auto specialize = [&](const uint32_t spec_id, const uint32_t value) {
+    spec_entries.push_back(vk::SpecializationMapEntry{
+        .constantID = spec_id,
+        .offset = static_cast<uint32_t>(spec_values.size() * sizeof(uint32_t)),
+        .size = sizeof(uint32_t),
+    });
+    spec_values.push_back(value);
+  };
+
+  const auto& wg = internal_.work_group_size;
+  const auto wg_str = [](const auto& s) { return fmt::format("({}, {}, {})", s[0], s[1], s[2]); };
+
+  // The declared workgroup size must fit the device's compute limits.
+  const auto& max_wg = limits_.max_work_group_size;
+  if (wg[0] > max_wg[0] || wg[1] > max_wg[1] || wg[2] > max_wg[2]) {
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: workgroup size " + wg_str(wg) +
+                             " exceeds maxComputeWorkGroupSize " + wg_str(max_wg));
+  }
+  const uint64_t invocations = uint64_t{wg[0]} * wg[1] * wg[2];
+  if (invocations > limits_.max_work_group_invocations) {
+    throw std::runtime_error(
+        fmt::format("Pipeline [{}]: workgroup size {} = {} invocations exceeds "
+                    "maxComputeWorkGroupInvocations {}",
+                    shader_name_,
+                    wg_str(wg),
+                    invocations,
+                    limits_.max_work_group_invocations));
+  }
+
+  // Each dimension is either specialized (local_size_*_id) or must match the literal.
+  for (size_t d = 0; d < 3; ++d) {
+    if (const auto spec_id = reflection_.local_size_spec_id[d]) {
+      specialize(*spec_id, wg[d]);
+    } else if (wg[d] != reflection_.local_size[d]) {
+      throw std::runtime_error("Pipeline [" + shader_name_ + "]: declared workgroup size " +
+                               wg_str(wg) + " but the SPIR-V LocalSize is " +
+                               wg_str(reflection_.local_size));
+    }
+  }
+
+  // Subgroup size: from the device, never from the shader's default.
+  const bool declares_subgroup_size = reflection_.spec_ids.contains(kSubgroupSizeSpecId);
+  if (declares_subgroup_size != subgroup_size_dependent_) {
+    throw std::runtime_error(
+        "Pipeline [" + shader_name_ + "]: " +
+        (subgroup_size_dependent_
+             ? "subgroup_size_dependent() but the shader has no constant_id = 0"
+             : "the shader declares constant_id = 0 (subgroup size) but the Algorithm is not "
+               "subgroup_size_dependent()"));
+  }
+  const bool pin = subgroup_size_dependent_ && limits_.subgroup_size_pinned;
+  if (subgroup_size_dependent_) specialize(kSubgroupSizeSpecId, limits_.subgroup_size);
+  if (pin) {
+    // VUID-VkPipelineShaderStageCreateInfo-pNext-02756
+    const uint64_t max_pinned =
+        uint64_t{limits_.subgroup_size} * limits_.max_compute_workgroup_subgroups;
+    if (invocations > max_pinned) {
+      throw std::runtime_error(fmt::format(
+          "Pipeline [{}]: workgroup size {} = {} invocations exceeds requiredSubgroupSize {} x "
+          "maxComputeWorkgroupSubgroups {}",
+          shader_name_,
+          wg_str(wg),
+          invocations,
+          limits_.subgroup_size,
+          limits_.max_compute_workgroup_subgroups));
+    }
+  }
+
+  const vk::SpecializationInfo spec_info{
+      .mapEntryCount = static_cast<uint32_t>(spec_entries.size()),
+      .pMapEntries = spec_entries.data(),
+      .dataSize = spec_values.size() * sizeof(uint32_t),
+      .pData = spec_values.data(),
+  };
+  const vk::PipelineShaderStageRequiredSubgroupSizeCreateInfo required_subgroup_size{
+      .requiredSubgroupSize = limits_.subgroup_size,
+  };
+
   // Pipeline
   const vk::PipelineShaderStageCreateInfo shader_stage_create_info{
+      .pNext = pin ? &required_subgroup_size : nullptr,
       .stage = vk::ShaderStageFlagBits::eCompute,
       .module = shader_module_,
       .pName = "main",
+      .pSpecializationInfo = spec_entries.empty() ? nullptr : &spec_info,
   };
 
   const vk::ComputePipelineCreateInfo pipeline_create_info{
@@ -319,7 +467,14 @@ void Algorithm::create_pipeline() {
 
   pipeline_ = device_ref_.createComputePipeline(pipeline_cache_, pipeline_create_info).value;
 
-  spdlog::debug("Pipeline [{}] created successfully", shader_name_);
+  if (subgroup_size_dependent_) {
+    spdlog::debug("Pipeline [{}] created successfully (subgroup size {}, {})",
+                  shader_name_,
+                  limits_.subgroup_size,
+                  pin ? "pinned" : "not pinned");
+  } else {
+    spdlog::debug("Pipeline [{}] created successfully", shader_name_);
+  }
 }
 
 }  // namespace kiss_vk

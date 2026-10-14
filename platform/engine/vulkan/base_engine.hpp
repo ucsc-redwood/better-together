@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,20 @@ using DispatchLoaderDynamic = vk::DispatchLoaderDynamic;
 #endif
 
 namespace kiss_vk {
+
+// What a compute pipeline may use on the selected device, fixed at device creation and
+// handed to every Algorithm (design D5).
+struct ComputeLimits {
+  // Device-reported default subgroup size (VkPhysicalDeviceSubgroupProperties), passed to
+  // subgroup-dependent shaders as spec constant 0. Never taken from devices/*.json.
+  uint32_t subgroup_size = 0;
+  // subgroupSizeControl is enabled and COMPUTE is in requiredSubgroupSizeStages, so
+  // subgroup-dependent pipelines require subgroup_size instead of letting the driver pick.
+  bool subgroup_size_pinned = false;
+  uint32_t max_compute_workgroup_subgroups = 0;  // 0 unless pinned
+  std::array<uint32_t, 3> max_work_group_size{};
+  uint32_t max_work_group_invocations = 0;
+};
 
 class BaseEngine {
  public:
@@ -40,6 +55,8 @@ class BaseEngine {
   [[nodiscard]] uint32_t get_compute_queue_family_index() const {
     return compute_queue_family_index_;
   }
+  [[nodiscard]] const ComputeLimits& compute_limits() const { return compute_limits_; }
+  [[nodiscard]] uint32_t subgroup_size() const { return compute_limits_.subgroup_size; }
 
  protected:
   void initialize_dynamic_loader();
@@ -65,6 +82,7 @@ class BaseEngine {
   // g_vma_allocator is a process global: free it only if this engine created it.
   bool owns_vma_allocator_ = false;
   uint32_t compute_queue_family_index_;
+  ComputeLimits compute_limits_;
   std::vector<const char*> enabled_layers_;
 
   DynamicLoader dl_;

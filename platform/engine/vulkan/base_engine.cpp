@@ -274,9 +274,14 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       .pQueuePriorities = &queuePriority,
   };
 
+  // Subgroup size control is core 1.3; its structs must not be chained on an older device.
+  const auto device_props = physical_device_.getProperties();
+  const bool is_vulkan_13 = device_props.apiVersion >= VK_API_VERSION_1_3;
+
   // Query -> check -> enable a separate minimal struct (never pass the queried struct:
   // that would enable every supported feature).
-  vk::PhysicalDeviceVulkan12Features supported_12{};
+  vk::PhysicalDeviceVulkan13Features supported_13{};
+  vk::PhysicalDeviceVulkan12Features supported_12{.pNext = is_vulkan_13 ? &supported_13 : nullptr};
   vk::PhysicalDeviceFeatures2 supported{.pNext = &supported_12};
   physical_device_.getFeatures2(&supported);
 
@@ -287,7 +292,38 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
                              " lacks required Vulkan features: " + names);
   }
 
-  vk::PhysicalDeviceVulkan12Features enabled_12{};
+  // Subgroup size (design D5): the device's default size, pinned on subgroup-dependent
+  // pipelines when subgroupSizeControl covers COMPUTE (VUID-...-pNext-02755 needs both).
+  vk::PhysicalDeviceSubgroupSizeControlProperties size_control{};
+  vk::PhysicalDeviceSubgroupProperties subgroup{.pNext = is_vulkan_13 ? &size_control : nullptr};
+  vk::PhysicalDeviceProperties2 props2{.pNext = &subgroup};
+  physical_device_.getProperties2(&props2);
+
+  const bool pinnable =
+      supported_13.subgroupSizeControl == VK_TRUE &&
+      (size_control.requiredSubgroupSizeStages & vk::ShaderStageFlagBits::eCompute);
+  compute_limits_ = ComputeLimits{
+      .subgroup_size = subgroup.subgroupSize,
+      .subgroup_size_pinned = pinnable,
+      .max_compute_workgroup_subgroups = pinnable ? size_control.maxComputeWorkgroupSubgroups : 0,
+      .max_work_group_size = device_props.limits.maxComputeWorkGroupSize,
+      .max_work_group_invocations = device_props.limits.maxComputeWorkGroupInvocations,
+  };
+  spdlog::debug(
+      "Subgroup size {} ({}): device default {}, min {}, max {}, subgroupSizeControl {}, "
+      "requiredSubgroupSizeStages {}, maxComputeWorkgroupSubgroups {}",
+      compute_limits_.subgroup_size,
+      pinnable ? "pinned" : "not pinned",
+      subgroup.subgroupSize,
+      size_control.minSubgroupSize,
+      size_control.maxSubgroupSize,
+      supported_13.subgroupSizeControl == VK_TRUE,
+      vk::to_string(size_control.requiredSubgroupSizeStages),
+      size_control.maxComputeWorkgroupSubgroups);
+
+  // Optional features are enabled only when supported (design D3).
+  vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable};
+  vk::PhysicalDeviceVulkan12Features enabled_12{.pNext = pinnable ? &enabled_13 : nullptr};
   for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
 
   const vk::DeviceCreateInfo deviceCreateInfo{
