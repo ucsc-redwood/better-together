@@ -127,10 +127,14 @@ device makes the suites skip rather than crash.
 ### D6. Binding: push descriptors, transient-pool fallback
 - **Primary path.** `Algorithm` records bindings with `vkCmdPushDescriptorSetKHR`, using a set
   layout created with the PUSH_DESCRIPTOR flag. This replaces `update_descriptor_set(set_index, …)`
-  + `record_bind_core(cmd, set_index)` with `record_bind(cmd, {buffers…})`, and removes
-  `num_sets()`, the descriptor pool and the set vector.
+  + `record_bind_core(cmd, set_index)` with `record_bind(seq, {buffers…})`, and removes
+  `num_sets()`, the descriptor pool and the set vector. (Corrected in Phase C: an earlier draft
+  wrote `record_bind(cmd, …)`. The call takes the `Sequence`, whose command buffer it records
+  into, because the fallback allocates from that `Sequence`'s pool; a bare command buffer
+  cannot reach it.) `vkCmdPushDescriptorSetKHR` is fetched with `vkGetDeviceProcAddr`.
 - **Fallback.** When the extension is absent, `Sequence` owns a transient descriptor pool.
-  `cmd_begin()` resets it, and each `record_bind` allocates and writes one set from it. Behaviour is
+  `cmd_begin()` resets it, and each `record_bind` allocates and writes one set from it. The pool
+  is created on first use and grows by whole pools when a chunk outgrows it. Behaviour is
   identical: the dispatcher API is the same, and no planning is needed.
 - **Why not the fallback alone?** It is simpler and still removes dispatcher bookkeeping, but it
   keeps the alloc+update per dispatch, which is the CPU cost we are trying to shave on tree × Vulkan.

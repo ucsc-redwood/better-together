@@ -3,6 +3,8 @@
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdlib>
+#include <optional>
 #include <set>
 
 #include "engine.hpp"
@@ -92,10 +94,9 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
                   ->work_group_size(64, 2, 1)
                   ->num_buffers(1)
                   ->build();
-  algo->update_descriptor_set(0, {engine.get_buffer_info(out)});
 
   seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind(*seq, {engine.get_buffer_info(out)});
   algo->record_dispatch(seq->get_handle(), {1, 1, 1});
   seq->cmd_end();
   seq->submit();
@@ -108,14 +109,56 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
   EXPECT_EQ(out[3], 1u);
 }
 
-// Resource-binding spec, "Bindings are recorded per dispatch": one kernel recorded many
-// times into one command buffer, each time bound to a different buffer. The shader
-// atomically adds its 128 invocations to g_out[0], so each buffer must end at its own
-// start value plus 128 per dispatch bound to it: a dispatch that saw another dispatch's
-// binding would read and write the wrong buffer. 75 binds also exceed one transient pool.
-TEST(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
+// Sets (or, with nullptr, unsets) an environment variable for one scope.
+class ScopedEnv {
+ public:
+  ScopedEnv(const char* name, const char* value) : name_(name) {
+    if (const char* old = std::getenv(name)) old_ = old;
+    if (value) {
+      setenv(name, value, 1);
+    } else {
+      unsetenv(name);
+    }
+  }
+  ~ScopedEnv() {
+    if (old_) {
+      setenv(name_, old_->c_str(), 1);
+    } else {
+      unsetenv(name_);
+    }
+  }
+  ScopedEnv(const ScopedEnv&) = delete;
+  ScopedEnv& operator=(const ScopedEnv&) = delete;
+
+ private:
+  const char* name_;
+  std::optional<std::string> old_;
+};
+
+// Resource-binding spec, "Bindings are recorded per dispatch" and "Portable binding
+// fallback", on both binding paths of the same device: push descriptors (where the device
+// has VK_KHR_push_descriptor) and the transient-pool fallback (BT_VK_FORCE_DESCRIPTOR_FALLBACK=1,
+// even where it has). One kernel is recorded many times into one command buffer, each
+// time bound to a different buffer. The shader atomically adds its 128 invocations to
+// g_out[0], so each buffer must end at its own start value plus 128 per dispatch bound to
+// it: a dispatch that saw another dispatch's binding would read and write the wrong
+// buffer. 75 binds also exceed one transient pool.
+enum class BindingPath { kPushDescriptors, kFallback };
+
+class VulkanBinding : public ::testing::TestWithParam<BindingPath> {};
+
+TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const bool fallback = GetParam() == BindingPath::kFallback;
+  // Explicit either way, so an outer BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 still tests push.
+  const ScopedEnv force("BT_VK_FORCE_DESCRIPTOR_FALLBACK", fallback ? "1" : nullptr);
   kiss_vk::Engine engine;
+  if (fallback) {
+    ASSERT_EQ(engine.push_descriptor_fn(), nullptr);
+  } else if (engine.push_descriptor_fn() == nullptr) {
+    GTEST_SKIP() << "VK_KHR_push_descriptor not supported";
+  }
+
   auto seq = engine.make_seq();
   auto algo = engine.make_algo("engine_test_workgroup_size")
                   ->work_group_size(64, 2, 1)
@@ -151,6 +194,14 @@ TEST(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
     }
   }
 }
+
+INSTANTIATE_TEST_SUITE_P(BothPaths,
+                         VulkanBinding,
+                         ::testing::Values(BindingPath::kPushDescriptors, BindingPath::kFallback),
+                         [](const auto& info) {
+                           return info.param == BindingPath::kFallback ? "Fallback"
+                                                                       : "PushDescriptors";
+                         });
 
 TEST(VulkanWorkGroupSize, MismatchWithLiteralLocalSizeThrows) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";

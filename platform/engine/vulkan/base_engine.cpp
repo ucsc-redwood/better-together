@@ -4,8 +4,11 @@
 
 #include <array>
 #include <bit>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
@@ -344,13 +347,39 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
   for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
   for (const auto& f : kRequiredVulkan13Features) enabled_13.*f.member = VK_TRUE;
 
+  // VK_KHR_push_descriptor is optional (design D6): enabled when the device has it, unless
+  // BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 asks for the transient-pool path.
+  const bool has_push_descriptor = std::ranges::any_of(
+      physical_device_.enumerateDeviceExtensionProperties(), [](const auto& ext) {
+        return std::strcmp(ext.extensionName.data(), VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) == 0;
+      });
+  const char* force_env = std::getenv("BT_VK_FORCE_DESCRIPTOR_FALLBACK");
+  const bool force_fallback = force_env != nullptr && std::string_view(force_env) == "1";
+  const bool use_push_descriptor = has_push_descriptor && !force_fallback;
+  std::vector<const char*> extensions;
+  if (use_push_descriptor) extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+
   const vk::DeviceCreateInfo deviceCreateInfo{
       .pNext = &enabled_12,
       .queueCreateInfoCount = 1,
       .pQueueCreateInfos = &deviceQueueCreateInfo,
+      .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+      .ppEnabledExtensionNames = extensions.data(),
   };
 
   device_ = physical_device_.createDevice(deviceCreateInfo);
+
+  if (use_push_descriptor) {
+    // From the device, not the instance-level dispatcher: an extension command.
+    push_descriptor_fn_ = reinterpret_cast<PFN_vkCmdPushDescriptorSetKHR>(
+        device_.getProcAddr("vkCmdPushDescriptorSetKHR"));
+    if (!push_descriptor_fn_) throw std::runtime_error("vkCmdPushDescriptorSetKHR not found");
+  }
+  spdlog::debug("Descriptor binding: {}",
+                use_push_descriptor ? "push descriptors (VK_KHR_push_descriptor)"
+                : force_fallback
+                    ? "transient descriptor pool (forced by BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)"
+                    : "transient descriptor pool (VK_KHR_push_descriptor not supported)");
 
   // looks like I don't need this
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);

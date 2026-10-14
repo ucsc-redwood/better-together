@@ -76,8 +76,12 @@ std::vector<uint32_t> load_shader_spirv(const std::string& shader_name) {
 
 Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
                      std::string shader_name,
-                     const ComputeLimits& limits)
-    : device_ref_(mr_ptr->get_device()), shader_name_(std::move(shader_name)), limits_(limits) {
+                     const ComputeLimits& limits,
+                     const PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn)
+    : device_ref_(mr_ptr->get_device()),
+      push_descriptor_fn_(push_descriptor_fn),
+      shader_name_(std::move(shader_name)),
+      limits_(limits) {
   internal_.spirv_binary = load_shader_spirv(shader_name_);
   reflection_ = reflect_spirv(internal_.spirv_binary);
   create_shader_module();
@@ -85,12 +89,11 @@ Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
 
 Algorithm::~Algorithm() {
   // Reverse creation order; every handle may be null on a partially built Algorithm.
-  // The descriptor pool frees its sets. Callers have already waited on the fences of
-  // any command buffer that used this pipeline.
+  // Callers have already waited on the fences of any command buffer that used this
+  // pipeline. Fallback-path sets live in the Sequence's transient pools, not here.
   if (pipeline_) device_ref_.destroyPipeline(pipeline_);
   if (pipeline_cache_) device_ref_.destroyPipelineCache(pipeline_cache_);
   if (pipeline_layout_) device_ref_.destroyPipelineLayout(pipeline_layout_);
-  if (descriptor_pool_) device_ref_.destroyDescriptorPool(descriptor_pool_);
   if (descriptor_set_layout_) device_ref_.destroyDescriptorSetLayout(descriptor_set_layout_);
   if (shader_module_) device_ref_.destroyShaderModule(shader_module_);
 }
@@ -112,17 +115,6 @@ std::shared_ptr<Algorithm> Algorithm::subgroup_size_dependent() {
 std::shared_ptr<Algorithm> Algorithm::num_buffers(const size_t n) {
   internal_.num_buffers = n;
   create_descriptor_set_layout();
-  create_descriptor_pool();
-  allocate_descriptor_sets();
-  return shared_from_this();
-}
-
-std::shared_ptr<Algorithm> Algorithm::num_sets(const size_t count) {
-  if (count == 0) {
-    throw std::runtime_error("Number of sets cannot be 0");
-  }
-
-  descriptor_set_count_ = static_cast<uint32_t>(count);
   return shared_from_this();
 }
 
@@ -143,61 +135,14 @@ void Algorithm::update_push_constant(const void* data_ptr, const size_t size_in_
   std::memcpy(push_constants_buffer_.data(), data_ptr, size_in_bytes);
 }
 
-// ----------------------------------------------------------------------------
-// New multi-set version
-// ----------------------------------------------------------------------------
-
-void Algorithm::update_descriptor_set(
-    uint32_t set_index, const std::vector<vk::DescriptorBufferInfo>& buffer_infos) const {
-  spdlog::trace("Algorithm::update_descriptor_set() set_index: {}", set_index);
-
-  if (set_index >= descriptor_sets_.size()) {
-    throw std::runtime_error("set_index out of range");
-  }
-  if (buffer_infos.size() != internal_.num_buffers) {
-    throw std::runtime_error("Unexpected number of buffers for this layout");
-  }
-
-  const vk::DescriptorSet dst_set = descriptor_sets_[set_index];
-
-  // Build the writes
-  std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(buffer_infos.size());
-  for (uint32_t binding = 0; binding < static_cast<uint32_t>(buffer_infos.size()); ++binding) {
-    writes.push_back(vk::WriteDescriptorSet{.dstSet = dst_set,
-                                            .dstBinding = binding,
-                                            .dstArrayElement = 0,
-                                            .descriptorCount = 1,
-                                            .descriptorType = vk::DescriptorType::eStorageBuffer,
-                                            .pImageInfo = nullptr,
-                                            .pBufferInfo = &buffer_infos[binding],
-                                            .pTexelBufferView = nullptr});
-  }
-
-  // Issue the update
-  device_ref_.updateDescriptorSets(writes, {});
-}
-
 std::shared_ptr<Algorithm> Algorithm::build() {
   create_pipeline();
   return shared_from_this();
 }
 
 // ----------------------------------------------------------------------------
-// record_bind_core / record_bind_push
+// record_bind / record_bind_push
 // ----------------------------------------------------------------------------
-
-void Algorithm::record_bind_core(const vk::CommandBuffer& cmd_buf, uint32_t set_index) const {
-  if (set_index >= descriptor_sets_.size()) {
-    throw std::runtime_error("Invalid descriptor set index");
-  }
-  cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
-  cmd_buf.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                             pipeline_layout_,
-                             0,  // firstSet
-                             descriptor_sets_[set_index],
-                             {});
-}
 
 void Algorithm::record_bind(Sequence& seq,
                             const std::initializer_list<vk::DescriptorBufferInfo> buffers) const {
@@ -207,8 +152,10 @@ void Algorithm::record_bind(Sequence& seq,
                              std::to_string(internal_.num_buffers));
   }
 
-  // A set from the Sequence's transient pool, written now and freed by its next cmd_begin().
-  const vk::DescriptorSet set = seq.allocate_descriptor_set(descriptor_set_layout_);
+  // Push descriptors ignore dstSet. The fallback takes a set from the Sequence's transient
+  // pool, written now and freed by its next cmd_begin().
+  const vk::DescriptorSet set =
+      push_descriptor_fn_ ? nullptr : seq.allocate_descriptor_set(descriptor_set_layout_);
 
   std::array<vk::WriteDescriptorSet, kMaxBindingBuffers> writes;
   for (uint32_t binding = 0; binding < buffers.size(); ++binding) {
@@ -224,8 +171,17 @@ void Algorithm::record_bind(Sequence& seq,
 
   const vk::CommandBuffer cmd = seq.get_handle();
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
-  device_ref_.updateDescriptorSets(num_writes, writes.data(), 0, nullptr);
-  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout_, 0, set, {});
+  if (push_descriptor_fn_) {
+    push_descriptor_fn_(cmd,
+                        VK_PIPELINE_BIND_POINT_COMPUTE,
+                        pipeline_layout_,
+                        0,
+                        num_writes,
+                        reinterpret_cast<const VkWriteDescriptorSet*>(writes.data()));
+  } else {
+    device_ref_.updateDescriptorSets(num_writes, writes.data(), 0, nullptr);
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout_, 0, set, {});
+  }
 }
 
 void Algorithm::record_bind_push(const vk::CommandBuffer& cmd_buf) const {
@@ -284,8 +240,6 @@ void Algorithm::create_shader_module() {
 // ----------------------------------------------------------------------------
 // Descriptor Related
 //   create_descriptor_set_layout();
-//   create_descriptor_pool();
-//   allocate_descriptor_sets();
 // ----------------------------------------------------------------------------
 
 void Algorithm::create_descriptor_set_layout() {
@@ -312,51 +266,15 @@ void Algorithm::create_descriptor_set_layout() {
     });
   }
 
+  // Push descriptors need a PUSH_DESCRIPTOR layout; the fallback allocates ordinary sets.
   const vk::DescriptorSetLayoutCreateInfo create_info{
+      .flags = push_descriptor_fn_ ? vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR
+                                   : vk::DescriptorSetLayoutCreateFlags{},
       .bindingCount = static_cast<uint32_t>(bindings.size()),
       .pBindings = bindings.data(),
   };
 
   descriptor_set_layout_ = device_ref_.createDescriptorSetLayout(create_info);
-}
-
-void Algorithm::create_descriptor_pool() {
-  const uint32_t total_descriptors = descriptor_set_count_ * internal_.num_buffers;
-
-  const std::vector<vk::DescriptorPoolSize> pool_sizes{
-      {
-          .type = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = total_descriptors,
-      },
-      // ^ we need enough descriptors for each set
-  };
-
-  const vk::DescriptorPoolCreateInfo create_info{
-      .maxSets = descriptor_set_count_,
-      .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
-      .pPoolSizes = pool_sizes.data(),
-  };
-
-  descriptor_pool_ = device_ref_.createDescriptorPool(create_info);
-}
-
-void Algorithm::allocate_descriptor_sets() {
-  if (descriptor_pool_ == nullptr || descriptor_set_layout_ == nullptr) {
-    throw std::runtime_error("Descriptor pool or set layout is not initialized");
-  }
-
-  std::vector<vk::DescriptorSetLayout> layouts(descriptor_set_count_, descriptor_set_layout_);
-
-  const vk::DescriptorSetAllocateInfo allocate_info{
-      .descriptorPool = descriptor_pool_,
-      .descriptorSetCount = descriptor_set_count_,
-      .pSetLayouts = layouts.data(),
-  };
-
-  descriptor_sets_ = device_ref_.allocateDescriptorSets(allocate_info);
-
-  // // old single-set version
-  // descriptor_set_ = device_ref_.allocateDescriptorSets(allocate_info).front();
 }
 
 // ----------------------------------------------------------------------------
