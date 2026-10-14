@@ -29,6 +29,7 @@ dev = [
     "ruff>=0.15",
     "gersemi>=0.27",
     "clang-format>=20",
+    "pytest",
 ]
 
 [tool.ruff]

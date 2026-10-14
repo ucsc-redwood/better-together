@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 
 [manifest]
@@ -30,6 +30,7 @@ dependencies = [
 dev = [
     { name = "clang-format" },
     { name = "gersemi" },
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -43,6 +44,7 @@ requires-dist = [
 dev = [
     { name = "clang-format", specifier = ">=20" },
     { name = "gersemi", specifier = ">=0.27" },
+    { name = "pytest" },
     { name = "ruff", specifier = ">=0.15" },
 ]
 

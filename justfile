@@ -31,7 +31,8 @@ samsung_serial := "R5CY21Y3VEV"
 ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var_or_default("ANDROID_HOME", "/opt/android-sdk") / "ndk/29.0.14206865")
 # Container runtime for the Jetson cross-build: `docker` (build box) or `podman`
 # (the Rocky fleet runner — rootless + SELinux → --userns=keep-id + a :z volume).
-container      := env_var_or_default("BT_CONTAINER", "docker")
+# Defaults to docker when installed, else podman; BT_CONTAINER overrides.
+container      := env_var_or_default("BT_CONTAINER", `command -v docker >/dev/null 2>&1 && echo docker || echo podman`)
 
 # Per-app test binaries. OMP+VK builds (x86 / Android) ship six; Jetson adds CUDA.
 omp_vk_bins := "test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk"
@@ -171,8 +172,9 @@ test-samsung:
 # Formatters: clang-format (C++), ruff (Python), gersemi (CMake), shfmt (shell),
 # prettier (JSON). The pip tools run via `uv run` and are version-pinned in
 # uv.lock (`uv sync --group dev` to install) — clang-format especially, whose
-# output drifts between releases. shfmt is a Go binary
-# (`go install mvdan.cc/sh/v3/cmd/shfmt@latest`); prettier runs via `bunx`.
+# output drifts between releases. shfmt is a Go binary whose output also drifts:
+# use v3.13.1, the version CI installs (`go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1`);
+# prettier runs via `bunx`.
 # File sets come from `git ls-files`, so untracked + build/ + _deps are skipped.
 # Generated code is excluded — codegen re-emits it unformatted at build time, so
 # formatting it is futile and makes fmt-check non-deterministic: the */generated/
