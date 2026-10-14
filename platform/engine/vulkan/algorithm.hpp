@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <initializer_list>
 #include <optional>
 #include <set>
 #include <span>
@@ -10,6 +11,12 @@
 #include "vma_pmr.hpp"
 
 namespace kiss_vk {
+
+class Sequence;
+
+// Most storage buffers one Algorithm binds (num_buffers); record_bind keeps its writes on
+// the stack. Well under the guaranteed maxPushDescriptors (32).
+inline constexpr uint32_t kMaxBindingBuffers = 16;
 
 // Spec constant id carrying the subgroup size into subgroup-dependent shaders:
 // `layout(constant_id = 0) const uint SUBGROUP_SIZE = ...;` (design D5).
@@ -118,6 +125,11 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
 
   void update_descriptor_set(uint32_t set_index,
                              const std::vector<vk::DescriptorBufferInfo>& buffer_infos) const;
+
+  // Binds the pipeline and `buffers` (bindings 0..num_buffers-1) into `seq`'s open command
+  // buffer. The bindings are captured at record time, so the same Algorithm may be
+  // recorded several times into one command buffer with different buffers (design D6).
+  void record_bind(Sequence& seq, std::initializer_list<vk::DescriptorBufferInfo> buffers) const;
 
   // Used by 'Sequence' Class
   // void record_bind_core(const vk::CommandBuffer& cmd_buf) const;

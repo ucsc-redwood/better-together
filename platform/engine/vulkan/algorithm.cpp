@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 
+#include "sequence.hpp"
 #include "shaders/all_shaders.hpp"
 #include "spdlog/spdlog.h"
 
@@ -198,6 +199,35 @@ void Algorithm::record_bind_core(const vk::CommandBuffer& cmd_buf, uint32_t set_
                              {});
 }
 
+void Algorithm::record_bind(Sequence& seq,
+                            const std::initializer_list<vk::DescriptorBufferInfo> buffers) const {
+  if (buffers.size() != internal_.num_buffers) {
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: record_bind got " +
+                             std::to_string(buffers.size()) + " buffers, the layout has " +
+                             std::to_string(internal_.num_buffers));
+  }
+
+  // A set from the Sequence's transient pool, written now and freed by its next cmd_begin().
+  const vk::DescriptorSet set = seq.allocate_descriptor_set(descriptor_set_layout_);
+
+  std::array<vk::WriteDescriptorSet, kMaxBindingBuffers> writes;
+  for (uint32_t binding = 0; binding < buffers.size(); ++binding) {
+    writes[binding] = vk::WriteDescriptorSet{
+        .dstSet = set,
+        .dstBinding = binding,
+        .descriptorCount = 1,
+        .descriptorType = vk::DescriptorType::eStorageBuffer,
+        .pBufferInfo = buffers.begin() + binding,
+    };
+  }
+  const auto num_writes = static_cast<uint32_t>(buffers.size());
+
+  const vk::CommandBuffer cmd = seq.get_handle();
+  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
+  device_ref_.updateDescriptorSets(num_writes, writes.data(), 0, nullptr);
+  cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout_, 0, set, {});
+}
+
 void Algorithm::record_bind_push(const vk::CommandBuffer& cmd_buf) const {
   spdlog::trace("Algorithm::record_bind_push(), push_constant_size: {}",
                 internal_.push_constant_size);
@@ -263,6 +293,11 @@ void Algorithm::create_descriptor_set_layout() {
 
   if (internal_.num_buffers == 0) {
     throw std::runtime_error("Number of buffers is 0");
+  }
+  if (internal_.num_buffers > kMaxBindingBuffers) {
+    throw std::runtime_error("Pipeline [" + shader_name_ +
+                             "]: " + std::to_string(internal_.num_buffers) + " buffers exceeds " +
+                             std::to_string(kMaxBindingBuffers));
   }
 
   std::vector<vk::DescriptorSetLayoutBinding> bindings;
