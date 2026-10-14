@@ -124,6 +124,22 @@ scripts/run-on-rocky.sh                   # deploy + run all *-vk on the iGPU bo
 All Vulkan suites green as of the 2026-06-16 all-green milestone (reverified on
 rocky-ryzen 2026-06-18: tree-vk 7 / cifar-dense-vk 10 / cifar-sparse-vk 10).
 
+**Vulkan validation is opt-in (`BT_VK_VALIDATION=1`).** `kiss_vk::Engine` requests the
+Khronos validation layer only when `BT_VK_VALIDATION=1` is set; by default no layer is
+requested. If it is set but the layer is not installed, the engine warns and continues
+without it. The fleet scripts (`scripts/run-on-rocky.sh`, `optimizer/orchestrate/transport.py`)
+*also* export `VK_LOADER_LAYERS_DISABLE='~all~'`, which hides every layer from the loader —
+so for a validation run, call the binary directly and **do not** set that variable. The
+layer is installed on rocky-ryzen. From the build dir there:
+```bash
+BT_VK_VALIDATION=1 ./test-tree-vk --device minipc          # validation errors go to stdout
+BT_VK_VALIDATION=1 VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT \
+  ./test-tree-vk --device minipc                           # + synchronization validation
+SPDLOG_LEVEL=debug BT_VK_VALIDATION=1 ./test-kiss-vk       # logs "Vulkan instance layers enabled: ..."
+```
+Validation output is printed as `Validation Error: [ VUID-… ]` lines, so grep for that.
+Leaving validation off locally means you can miss errors, so run it before touching the engine.
+
 **OMP on Android phones** (both phones' adb is on rocky-ryzen now; copy `build/android`
 there and run the script on rocky — `adb -s <serial>` selects the phone):
 ```bash

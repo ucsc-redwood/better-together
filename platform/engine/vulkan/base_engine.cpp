@@ -113,6 +113,11 @@ void BaseEngine::create_instance() {
       .ppEnabledLayerNames = enabled_layers_.data(),
   };
 
+  std::string layers;
+  for (const char* layer : enabled_layers_)
+    layers += (layers.empty() ? "" : ", ") + std::string(layer);
+  spdlog::debug("Vulkan instance layers enabled: {}", layers.empty() ? "none" : layers);
+
   // Create the instance using the default dispatcher
   instance_ = createInstance(instance_create_info);
 
@@ -129,10 +134,9 @@ void BaseEngine::request_validation_layer() {
 
   const auto availableLayers = vk::enumerateInstanceLayerProperties();
 
-  // Debug: Print all detected layers
-  spdlog::info("Available Vulkan Layers:");
+  spdlog::debug("Available Vulkan Layers:");
   for (const auto& layer : availableLayers) {
-    spdlog::info("- {}", layer.layerName.data());
+    spdlog::debug("- {}", layer.layerName.data());
   }
 
   bool layerFound = std::ranges::any_of(availableLayers, [validationLayerName](const auto& layer) {
