@@ -25,6 +25,8 @@ struct ComputeLimits {
   // Device-reported default subgroup size (VkPhysicalDeviceSubgroupProperties), passed to
   // subgroup-dependent shaders as spec constant 0. Never taken from devices/*.json.
   uint32_t subgroup_size = 0;
+  uint32_t min_subgroup_size = 0;  // the range subgroup_size may be pinned to
+  uint32_t max_subgroup_size = 0;
   // subgroupSizeControl is enabled and COMPUTE is in requiredSubgroupSizeStages, so
   // subgroup-dependent pipelines require subgroup_size instead of letting the driver pick.
   bool subgroup_size_pinned = false;
@@ -67,6 +69,10 @@ class BaseEngine {
   void create_device(vk::QueueFlags queue_flags = vk::QueueFlagBits::eCompute);
 
   void initialize_vma_allocator() const;
+
+  // Pins subgroup-dependent pipelines to `size` instead of the device default. Throws
+  // unless pinning is available and `size` is a power of two in [min, max].
+  void override_subgroup_size(uint32_t size);
 
   // Handles
   vk::Instance instance_;

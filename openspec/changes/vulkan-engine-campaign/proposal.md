@@ -84,7 +84,8 @@ Out of scope (noted, not changed):
 - **Behaviour:** validation is opt-in; on-disk pipeline-cache files appear. Numerical results are
   unchanged, and the OMP oracle enforces this.
 - **Gates:** every phase must pass `ctest -L vk` on `rocky-ryzen` (RDNA3, sg64/32) and on both phones
-  (Pixel 7a Mali sg16, Samsung Xclipse sg32), plus `ctest -L omp` locally. Phase C is additionally
+  (Pixel 7a Mali sg16, Samsung Xclipse sg64/32 — corrected in Phase B from "sg32": the device
+  reports a default of 64), plus `ctest -L omp` locally. Phase C is additionally
   gated on a tree × Vulkan re-measurement.
 - **Docs:**
   - `docs/reports-for-human/testing-status.md` §F: close the subgroup gap.

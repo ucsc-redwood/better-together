@@ -2,6 +2,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include <charconv>
 #include <cstdlib>
 #include <string_view>
 
@@ -20,6 +21,16 @@ class Engine final : public BaseEngine {
       : BaseEngine(validation_requested()),
         mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {
     spdlog::trace("Engine::Engine()");
+    // Test hook (design D5): BT_VK_SUBGROUP_SIZE=<n> pins another size the device
+    // supports, e.g. its minSubgroupSize; an unsupported value throws.
+    if (const char* v = std::getenv("BT_VK_SUBGROUP_SIZE")) {
+      uint32_t size = 0;
+      const std::string_view s(v);
+      if (std::from_chars(s.data(), s.data() + s.size(), size).ptr != s.data() + s.size()) {
+        throw std::runtime_error("BT_VK_SUBGROUP_SIZE is not a number: " + std::string(s));
+      }
+      override_subgroup_size(size);
+    }
     // The registry's subgroup size is a cross-check only (design D5).
     check_vulkan_subgroup_size(subgroup_size());
   }

@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include <array>
+#include <bit>
 #include <limits>
 #include <string>
 #include <vector>
@@ -304,6 +305,8 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       (size_control.requiredSubgroupSizeStages & vk::ShaderStageFlagBits::eCompute);
   compute_limits_ = ComputeLimits{
       .subgroup_size = subgroup.subgroupSize,
+      .min_subgroup_size = is_vulkan_13 ? size_control.minSubgroupSize : subgroup.subgroupSize,
+      .max_subgroup_size = is_vulkan_13 ? size_control.maxSubgroupSize : subgroup.subgroupSize,
       .subgroup_size_pinned = pinnable,
       .max_compute_workgroup_subgroups = pinnable ? size_control.maxComputeWorkgroupSubgroups : 0,
       .max_work_group_size = device_props.limits.maxComputeWorkGroupSize,
@@ -336,6 +339,21 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
 
   // looks like I don't need this
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);
+}
+
+void BaseEngine::override_subgroup_size(const uint32_t size) {
+  const auto& l = compute_limits_;
+  if (!l.subgroup_size_pinned || std::popcount(size) != 1 || size < l.min_subgroup_size ||
+      size > l.max_subgroup_size) {
+    throw std::runtime_error(fmt::format(
+        "Subgroup size {} cannot be pinned on this device (pinning {}, supported {}..{})",
+        size,
+        l.subgroup_size_pinned ? "available" : "unavailable",
+        l.min_subgroup_size,
+        l.max_subgroup_size));
+  }
+  spdlog::debug("Subgroup size {} (pinned, overrides device default {})", size, l.subgroup_size);
+  compute_limits_.subgroup_size = size;
 }
 
 // ----------------------------------------------------------------------------
