@@ -111,7 +111,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto morton_algo = engine.make_algo("tree_morton")
                          ->work_group_size(256, 1, 1)
-                         ->num_sets(1)
                          ->num_buffers(2)
                          ->push_constant<MortonPushConstants>()
                          ->build();
@@ -119,13 +118,11 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   cached_algorithms.try_emplace("morton", std::move(morton_algo));
 
   // Multi-workgroup (device-wide) LSD radix sort: histogram pass (in,
-  // histograms) + scatter pass (in, out, histograms), 4x8-bit, ping-pong.
-  // 4 descriptor sets each: the 4 radix passes are recorded into one command
-  // buffer (one submit), so each pass needs its own descriptor set (a single
-  // shared set would be overwritten and all passes would use the last binding).
+  // histograms) + scatter pass (in, out, histograms), 4x8-bit, ping-pong. The 4
+  // radix passes are recorded into one command buffer (one submit); record_bind
+  // captures each pass's ping-pong buffers per dispatch.
   auto radix_histograms_algo = engine.make_algo("multi_radixsort_histograms")
                                    ->work_group_size(256, 1, 1)
-                                   ->num_sets(4)
                                    ->num_buffers(2)
                                    ->push_constant<RadixSortPushConstants>()
                                    ->build();
@@ -137,7 +134,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   auto radix_scatter_algo = engine.make_algo("multi_radixsort")
                                 ->work_group_size(256, 1, 1)
                                 ->subgroup_size_dependent()
-                                ->num_sets(4)
                                 ->num_buffers(3)
                                 ->push_constant<RadixSortPushConstants>()
                                 ->build();
@@ -146,7 +142,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto find_dups_algo = engine.make_algo("tree_find_dups")
                             ->work_group_size(256, 1, 1)
-                            ->num_sets(1)
                             ->num_buffers(2)
                             ->push_constant<FindDupsPushConstants>()
                             ->build();
@@ -156,12 +151,10 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Device-wide inclusive scan (3 passes), used by stage 3 (flags) and stage 6
   // (edge counts). See tree_scan_*.comp. Each pass is its own algo; all three
   // are recorded into one command buffer with shaderWrite->shaderRead barriers
-  // between them. num_sets(2): stage 3 and stage 6 can share one command buffer
-  // (a whole-pipeline chunk), so each scan uses its own descriptor-set index
-  // (stage 3 -> 0, stage 6 -> 1) to avoid clobbering the other's bindings.
+  // between them. Stage 3 and stage 6 can share one command buffer (a
+  // whole-pipeline chunk); record_bind keeps each scan's bindings its own.
   auto scan_local_algo = engine.make_algo("tree_scan_local")
                              ->work_group_size(256, 1, 1)
-                             ->num_sets(2)
                              ->num_buffers(3)
                              ->push_constant<PrefixSumPushConstants>()
                              ->build();
@@ -170,7 +163,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto scan_block_sums_algo = engine.make_algo("tree_scan_block_sums")
                                   ->work_group_size(256, 1, 1)
-                                  ->num_sets(2)
                                   ->num_buffers(1)
                                   ->push_constant<GlobalPushConstants>()
                                   ->build();
@@ -179,7 +171,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto scan_add_algo = engine.make_algo("tree_scan_add")
                            ->work_group_size(256, 1, 1)
-                           ->num_sets(2)
                            ->num_buffers(2)
                            ->push_constant<PrefixSumPushConstants>()
                            ->build();
@@ -188,7 +179,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto move_dups_algo = engine.make_algo("tree_move_dups")
                             ->work_group_size(256, 1, 1)
-                            ->num_sets(1)
                             ->num_buffers(4)
                             ->push_constant<MoveDupsPushConstants>()
                             ->build();
@@ -197,7 +187,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto build_radix_tree_algo = engine.make_algo("tree_build_radix_tree")
                                    ->work_group_size(256, 1, 1)
-                                   ->num_sets(1)
                                    ->num_buffers(6)
                                    ->push_constant<RadixTreePushConstants>()
                                    ->build();
@@ -206,7 +195,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto edge_count_algo = engine.make_algo("tree_edge_count")
                              ->work_group_size(512, 1, 1)  // Edge count uses 512 threads
-                             ->num_sets(1)
                              ->num_buffers(3)
                              ->push_constant<EdgeCountPushConstants>()
                              ->build();
@@ -215,7 +203,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto build_octree_algo = engine.make_algo("tree_build_octree")
                                ->work_group_size(256, 1, 1)
-                               ->num_sets(1)
                                ->num_buffers(13)
                                ->push_constant<OctreePushConstants>()
                                ->build();
@@ -244,19 +231,17 @@ void VulkanDispatcher::record_stage_1(VkAppData_Safe& appdata, vk::CommandBuffer
 
   auto algo = cached_algorithms.at("morton").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_input_points_s0),
-                                  engine.get_buffer_info(appdata.u_morton_keys_s1_out),
-                              });
-
   algo->update_push_constant(MortonPushConstants{
       .n = static_cast<uint32_t>(appdata.get_n_input()),
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_input_points_s0),
+                        engine.get_buffer_info(appdata.u_morton_keys_s1_out),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(
       cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
@@ -310,8 +295,7 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer
   // separate submits guarantees execution order but NOT memory availability/
   // visibility across submits -- AMD/Xclipse are coherent and tolerate it, but
   // Mali-G710 is not. Doing it in one submit with explicit barriers makes the
-  // dependencies correct on all three backends. Each pass uses its own
-  // descriptor set (num_sets(4)).
+  // dependencies correct on all three backends.
   const vk::MemoryBarrier mem_barrier{
       .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
       .dstAccessMask = vk::AccessFlagBits::eShaderRead,
@@ -325,21 +309,6 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer
                         nullptr);
   };
 
-  // Bind buffers up-front: each pass -> its own descriptor set index.
-  for (uint32_t pass = 0; pass < 4; ++pass) {
-    hist_algo->update_descriptor_set(pass,
-                                     {
-                                         engine.get_buffer_info(*src_seq[pass]),
-                                         engine.get_buffer_info(appdata.u_sort_histograms),
-                                     });
-    scatter_algo->update_descriptor_set(pass,
-                                        {
-                                            engine.get_buffer_info(*src_seq[pass]),
-                                            engine.get_buffer_info(*dst_seq[pass]),
-                                            engine.get_buffer_info(appdata.u_sort_histograms),
-                                        });
-  }
-
   for (uint32_t pass = 0; pass < 4; ++pass) {
     const RadixSortPushConstants pc{
         .g_num_elements = n,
@@ -350,14 +319,23 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer
 
     // histogram pass (src -> histograms)
     hist_algo->update_push_constant(pc);
-    hist_algo->record_bind_core(cmd, pass);
+    hist_algo->record_bind(*seq,
+                           {
+                               engine.get_buffer_info(*src_seq[pass]),
+                               engine.get_buffer_info(appdata.u_sort_histograms),
+                           });
     hist_algo->record_bind_push(cmd);
     hist_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
     record_barrier();
 
     // scatter pass (src + histograms -> dst)
     scatter_algo->update_push_constant(pc);
-    scatter_algo->record_bind_core(cmd, pass);
+    scatter_algo->record_bind(*seq,
+                              {
+                                  engine.get_buffer_info(*src_seq[pass]),
+                                  engine.get_buffer_info(*dst_seq[pass]),
+                                  engine.get_buffer_info(appdata.u_sort_histograms),
+                              });
     scatter_algo->record_bind_push(cmd);
     scatter_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
     if (pass != 3) record_barrier();
@@ -373,14 +351,12 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer
 // Three passes (local scan -> scan block totals -> add block offsets) separated
 // by shaderWrite->shaderRead barriers (kiss-vk has no inter-dispatch pipeline
 // barrier API, so everything stays in one submit). Caller does cmd_begin/end +
-// submit + fence-wait. `descriptor_set` selects which set index each scan algo
-// uses (so two scans in one cmd buffer don't clobber each other's bindings).
+// submit + fence-wait.
 void VulkanDispatcher::record_device_scan(vk::CommandBuffer cmd,
                                           vk::DescriptorBufferInfo src,
                                           vk::DescriptorBufferInfo dst,
                                           vk::DescriptorBufferInfo block_sums,
-                                          uint32_t n,
-                                          uint32_t descriptor_set) {
+                                          uint32_t n) {
   auto* local_algo = cached_algorithms.at("scan_local").get();
   auto* block_algo = cached_algorithms.at("scan_block_sums").get();
   auto* add_algo = cached_algorithms.at("scan_add").get();
@@ -402,25 +378,22 @@ void VulkanDispatcher::record_device_scan(vk::CommandBuffer cmd,
   };
 
   // Pass 1: per-block inclusive scan + per-block totals.
-  local_algo->update_descriptor_set(descriptor_set, {src, dst, block_sums});
   local_algo->update_push_constant(PrefixSumPushConstants{.inputSize = n});
-  local_algo->record_bind_core(cmd, descriptor_set);
+  local_algo->record_bind(*seq, {src, dst, block_sums});
   local_algo->record_bind_push(cmd);
   local_algo->record_dispatch(cmd, {num_blocks, 1, 1});
   barrier();
 
   // Pass 2: exclusive scan of the per-block totals (single workgroup, in place).
-  block_algo->update_descriptor_set(descriptor_set, {block_sums});
   block_algo->update_push_constant(GlobalPushConstants{.n_blocks = num_blocks});
-  block_algo->record_bind_core(cmd, descriptor_set);
+  block_algo->record_bind(*seq, {block_sums});
   block_algo->record_bind_push(cmd);
   block_algo->record_dispatch(cmd, {1, 1, 1});
   barrier();
 
   // Pass 3: add the exclusive block offset to every element of each block.
-  add_algo->update_descriptor_set(descriptor_set, {dst, block_sums});
   add_algo->update_push_constant(PrefixSumPushConstants{.inputSize = n});
-  add_algo->record_bind_core(cmd, descriptor_set);
+  add_algo->record_bind(*seq, {dst, block_sums});
   add_algo->record_bind_push(cmd);
   add_algo->record_dispatch(cmd, {num_blocks, 1, 1});
 }
@@ -438,20 +411,8 @@ void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer
   auto* move_algo = cached_algorithms.at("move_dups").get();
 
   // Flags -> u_contributes; inclusive scan -> u_out_idx.
-  find_algo->update_descriptor_set(0,
-                                   {
-                                       engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                                       engine.get_buffer_info(appdata.u_contributes),
-                                   });
   find_algo->update_push_constant(FindDupsPushConstants{.n = static_cast<int32_t>(n)});
 
-  move_algo->update_descriptor_set(0,
-                                   {
-                                       engine.get_buffer_info(appdata.u_contributes),
-                                       engine.get_buffer_info(appdata.u_out_idx),
-                                       engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                                       engine.get_buffer_info(appdata.u_morton_keys_unique_s3_out),
-                                   });
   move_algo->update_push_constant(MoveDupsPushConstants{.n = n});
 
   const vk::MemoryBarrier mem_barrier{
@@ -468,22 +429,31 @@ void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer
   };
 
   // find_dups: flags into u_contributes.
-  find_algo->record_bind_core(cmd, 0);
+  find_algo->record_bind(*seq,
+                         {
+                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                             engine.get_buffer_info(appdata.u_contributes),
+                         });
   find_algo->record_bind_push(cmd);
   find_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
   barrier();
 
-  // device-wide inclusive scan of the flags -> u_out_idx (scan descriptor set 0).
+  // device-wide inclusive scan of the flags -> u_out_idx.
   record_device_scan(cmd,
                      engine.get_buffer_info(appdata.u_contributes),
                      engine.get_buffer_info(appdata.u_out_idx),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
-                     n,
-                     0);
+                     n);
   barrier();
 
   // move_dups: scatter kept keys to their compacted positions.
-  move_algo->record_bind_core(cmd, 0);
+  move_algo->record_bind(*seq,
+                         {
+                             engine.get_buffer_info(appdata.u_contributes),
+                             engine.get_buffer_info(appdata.u_out_idx),
+                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                             engine.get_buffer_info(appdata.u_morton_keys_unique_s3_out),
+                         });
   move_algo->record_bind_push(cmd);
   move_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
@@ -498,21 +468,19 @@ void VulkanDispatcher::record_stage_4(VkAppData_Safe& appdata, vk::CommandBuffer
   const int32_t n = appdata.get_n_unique();
   auto algo = cached_algorithms.at("build_radix_tree").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
-                                  engine.get_buffer_info(appdata.u_brt_prefix_n_s4_out),
-                                  engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4_out),
-                                  engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4_out),
-                                  engine.get_buffer_info(appdata.u_brt_left_child_s4_out),
-                                  engine.get_buffer_info(appdata.u_brt_parents_s4_out),
-                              });
-
   algo->update_push_constant(RadixTreePushConstants{
       .n = n,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
+                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4_out),
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4_out),
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4_out),
+                        engine.get_buffer_info(appdata.u_brt_left_child_s4_out),
+                        engine.get_buffer_info(appdata.u_brt_parents_s4_out),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
@@ -526,18 +494,16 @@ void VulkanDispatcher::record_stage_5(VkAppData_Safe& appdata, vk::CommandBuffer
 
   auto algo = cached_algorithms.at("edge_count").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_brt_prefix_n_s4),    // input
-                                  engine.get_buffer_info(appdata.u_brt_parents_s4),     // input
-                                  engine.get_buffer_info(appdata.u_edge_count_s5_out),  // output
-                              });
-
   algo->update_push_constant(EdgeCountPushConstants{
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),    // input
+                        engine.get_buffer_info(appdata.u_brt_parents_s4),     // input
+                        engine.get_buffer_info(appdata.u_edge_count_s5_out),  // output
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(
       cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
@@ -553,16 +519,13 @@ void VulkanDispatcher::record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer
   // Device-wide INCLUSIVE prefix sum of the edge counts (matches std::partial_sum
   // / cub::DeviceScan::InclusiveSum), entirely on the GPU. The buffers are int32
   // but the values are non-negative edge counts, so a uint scan is bit-identical.
-  // Uses scan descriptor set 1 (stage 3's scan uses set 0) so both can share one
-  // command buffer when a chunk spans stages 3..6.
   const uint32_t n = appdata.get_n_brt_nodes();
 
   record_device_scan(cmd,
                      engine.get_buffer_info(appdata.u_edge_count_s5),
                      engine.get_buffer_info(appdata.u_edge_offset_s6_out),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
-                     n,
-                     1);
+                     n);
 }
 
 //----------------------------------------------------------------------------
@@ -574,31 +537,28 @@ void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, vk::CommandBuffer
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  algo->update_descriptor_set(
-      0,
-      {
-          engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
-          engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
-          engine.get_buffer_info(appdata.u_oct_cell_size_s7_out),        // output
-          engine.get_buffer_info(appdata.u_oct_child_node_mask_s7_out),  // output
-          engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7_out),  // output
-          engine.get_buffer_info(appdata.u_edge_offset_s6),              // input
-          engine.get_buffer_info(appdata.u_edge_count_s5),               // input
-          engine.get_buffer_info(appdata.u_morton_keys_unique_s3),       // input
-          engine.get_buffer_info(appdata.u_brt_prefix_n_s4),             // input
-          engine.get_buffer_info(appdata.u_brt_parents_s4),              // input
-          engine.get_buffer_info(appdata.u_brt_left_child_s4),           // input
-          engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
-          engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
-      });
-
   algo->update_push_constant(OctreePushConstants{
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
+                        engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
+                        engine.get_buffer_info(appdata.u_oct_cell_size_s7_out),        // output
+                        engine.get_buffer_info(appdata.u_oct_child_node_mask_s7_out),  // output
+                        engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7_out),  // output
+                        engine.get_buffer_info(appdata.u_edge_offset_s6),              // input
+                        engine.get_buffer_info(appdata.u_edge_count_s5),               // input
+                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),       // input
+                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),             // input
+                        engine.get_buffer_info(appdata.u_brt_parents_s4),              // input
+                        engine.get_buffer_info(appdata.u_brt_left_child_s4),           // input
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
+                    });
   algo->record_bind_push(cmd);
   // The shader loops over brt node indices [1, n_brt_nodes); size the grid for
   // n_brt_nodes (the grid-stride loop covers the rest).
@@ -630,19 +590,17 @@ void VulkanDispatcher::record_stage_1(VkAppData& appdata, vk::CommandBuffer cmd)
 
   auto algo = cached_algorithms.at("morton").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_input_points_s0),
-                                  engine.get_buffer_info(appdata.u_morton_keys_s1),
-                              });
-
   algo->update_push_constant(MortonPushConstants{
       .n = static_cast<uint32_t>(appdata.get_n_input()),
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_input_points_s0),
+                        engine.get_buffer_info(appdata.u_morton_keys_s1),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(
       cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
@@ -690,20 +648,6 @@ void VulkanDispatcher::record_stage_2(VkAppData& appdata, vk::CommandBuffer cmd)
   };
 
   for (uint32_t pass = 0; pass < 4; ++pass) {
-    hist_algo->update_descriptor_set(pass,
-                                     {
-                                         engine.get_buffer_info(*src_seq[pass]),
-                                         engine.get_buffer_info(appdata.u_sort_histograms),
-                                     });
-    scatter_algo->update_descriptor_set(pass,
-                                        {
-                                            engine.get_buffer_info(*src_seq[pass]),
-                                            engine.get_buffer_info(*dst_seq[pass]),
-                                            engine.get_buffer_info(appdata.u_sort_histograms),
-                                        });
-  }
-
-  for (uint32_t pass = 0; pass < 4; ++pass) {
     const RadixSortPushConstants pc{
         .g_num_elements = n,
         .g_shift = 8u * pass,
@@ -712,13 +656,22 @@ void VulkanDispatcher::record_stage_2(VkAppData& appdata, vk::CommandBuffer cmd)
     };
 
     hist_algo->update_push_constant(pc);
-    hist_algo->record_bind_core(cmd, pass);
+    hist_algo->record_bind(*seq,
+                           {
+                               engine.get_buffer_info(*src_seq[pass]),
+                               engine.get_buffer_info(appdata.u_sort_histograms),
+                           });
     hist_algo->record_bind_push(cmd);
     hist_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
     record_barrier();
 
     scatter_algo->update_push_constant(pc);
-    scatter_algo->record_bind_core(cmd, pass);
+    scatter_algo->record_bind(*seq,
+                              {
+                                  engine.get_buffer_info(*src_seq[pass]),
+                                  engine.get_buffer_info(*dst_seq[pass]),
+                                  engine.get_buffer_info(appdata.u_sort_histograms),
+                              });
     scatter_algo->record_bind_push(cmd);
     scatter_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
     if (pass != 3) record_barrier();
@@ -733,20 +686,8 @@ void VulkanDispatcher::record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd)
   auto* find_algo = cached_algorithms.at("find_dups").get();
   auto* move_algo = cached_algorithms.at("move_dups").get();
 
-  find_algo->update_descriptor_set(0,
-                                   {
-                                       engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                                       engine.get_buffer_info(appdata.u_contributes),
-                                   });
   find_algo->update_push_constant(FindDupsPushConstants{.n = static_cast<int32_t>(n)});
 
-  move_algo->update_descriptor_set(0,
-                                   {
-                                       engine.get_buffer_info(appdata.u_contributes),
-                                       engine.get_buffer_info(appdata.u_out_idx),
-                                       engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                                       engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
-                                   });
   move_algo->update_push_constant(MoveDupsPushConstants{.n = n});
 
   const vk::MemoryBarrier mem_barrier{
@@ -762,7 +703,11 @@ void VulkanDispatcher::record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd)
                         nullptr);
   };
 
-  find_algo->record_bind_core(cmd, 0);
+  find_algo->record_bind(*seq,
+                         {
+                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                             engine.get_buffer_info(appdata.u_contributes),
+                         });
   find_algo->record_bind_push(cmd);
   find_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
   barrier();
@@ -777,11 +722,16 @@ void VulkanDispatcher::record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd)
                      engine.get_buffer_info(appdata.u_contributes),
                      engine.get_buffer_info(appdata.u_out_idx),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
-                     n,
-                     0);
+                     n);
   barrier();
 
-  move_algo->record_bind_core(cmd, 0);
+  move_algo->record_bind(*seq,
+                         {
+                             engine.get_buffer_info(appdata.u_contributes),
+                             engine.get_buffer_info(appdata.u_out_idx),
+                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                             engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
+                         });
   move_algo->record_bind_push(cmd);
   move_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
@@ -792,21 +742,19 @@ void VulkanDispatcher::record_stage_4(VkAppData& appdata, vk::CommandBuffer cmd)
   const int32_t n = static_cast<int32_t>(appdata.get_n_unique());
   auto algo = cached_algorithms.at("build_radix_tree").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
-                                  engine.get_buffer_info(appdata.u_brt_prefix_n_s4),
-                                  engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),
-                                  engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),
-                                  engine.get_buffer_info(appdata.u_brt_left_child_s4),
-                                  engine.get_buffer_info(appdata.u_brt_parents_s4),
-                              });
-
   algo->update_push_constant(RadixTreePushConstants{
       .n = n,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
+                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),
+                        engine.get_buffer_info(appdata.u_brt_left_child_s4),
+                        engine.get_buffer_info(appdata.u_brt_parents_s4),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
@@ -816,18 +764,16 @@ void VulkanDispatcher::record_stage_5(VkAppData& appdata, vk::CommandBuffer cmd)
 
   auto algo = cached_algorithms.at("edge_count").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_brt_prefix_n_s4),  // input
-                                  engine.get_buffer_info(appdata.u_brt_parents_s4),   // input
-                                  engine.get_buffer_info(appdata.u_edge_count_s5),    // output
-                              });
-
   algo->update_push_constant(EdgeCountPushConstants{
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),  // input
+                        engine.get_buffer_info(appdata.u_brt_parents_s4),   // input
+                        engine.get_buffer_info(appdata.u_edge_count_s5),    // output
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(
       cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
@@ -846,8 +792,7 @@ void VulkanDispatcher::record_stage_6(VkAppData& appdata, vk::CommandBuffer cmd)
                      engine.get_buffer_info(appdata.u_edge_count_s5),
                      engine.get_buffer_info(appdata.u_edge_offset_s6),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
-                     n,
-                     1);
+                     n);
 }
 
 void VulkanDispatcher::record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd) {
@@ -855,31 +800,28 @@ void VulkanDispatcher::record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd)
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  algo->update_descriptor_set(
-      0,
-      {
-          engine.get_buffer_info(appdata.u_oct_children_s7),         // output
-          engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
-          engine.get_buffer_info(appdata.u_oct_cell_size_s7),        // output
-          engine.get_buffer_info(appdata.u_oct_child_node_mask_s7),  // output
-          engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7),  // output
-          engine.get_buffer_info(appdata.u_edge_offset_s6),          // input
-          engine.get_buffer_info(appdata.u_edge_count_s5),           // input
-          engine.get_buffer_info(appdata.u_morton_keys_unique_s3),   // input
-          engine.get_buffer_info(appdata.u_brt_prefix_n_s4),         // input
-          engine.get_buffer_info(appdata.u_brt_parents_s4),          // input
-          engine.get_buffer_info(appdata.u_brt_left_child_s4),       // input
-          engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
-          engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
-      });
-
   algo->update_push_constant(OctreePushConstants{
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_oct_children_s7),         // output
+                        engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
+                        engine.get_buffer_info(appdata.u_oct_cell_size_s7),        // output
+                        engine.get_buffer_info(appdata.u_oct_child_node_mask_s7),  // output
+                        engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7),  // output
+                        engine.get_buffer_info(appdata.u_edge_offset_s6),          // input
+                        engine.get_buffer_info(appdata.u_edge_count_s5),           // input
+                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),   // input
+                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),         // input
+                        engine.get_buffer_info(appdata.u_brt_parents_s4),          // input
+                        engine.get_buffer_info(appdata.u_brt_left_child_s4),       // input
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
+                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(
       cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
