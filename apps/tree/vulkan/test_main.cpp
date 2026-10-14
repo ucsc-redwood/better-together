@@ -28,6 +28,17 @@ struct VulkanTreeRunner {
 
 BT_DECLARE_TREE_DIFF_TESTS(TreeDiffVulkan, VulkanTreeRunner)
 
+// Object-lifetime spec, "Repeated engine construction": construct a dispatcher (and so its
+// Engine and every stage's Algorithm), run the full chain, destroy it, and do it all again
+// in the same process. Under BT_VK_VALIDATION=1 an object outliving its device shows up
+// here as VUID-vkDestroyDevice-device-05137.
+TEST(VulkanDispatcherLifetime, ConstructDestroyReconstruct) {
+  for (int round = 0; round < 2; ++round) {
+    SCOPED_TRACE(round);
+    tree::testing::RunAndCheckStage<VulkanTreeRunner>(7);
+  }
+}
+
 // ----------------------------------------------------------------------------
 // Tree x Vulkan differential oracle, genuinely-chained path (tree::vulkan::VkAppData,
 // no golden/_out split) -- added alongside TreeDiffVulkan above (unchanged). Same
