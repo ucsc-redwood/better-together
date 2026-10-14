@@ -162,8 +162,9 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
 **Pipeline cache (`BT_VK_PIPELINE_CACHE_DIR`).** Each `kiss_vk::Engine` loads its compiled
 pipelines from `<dir>/bt-vk-pipeline-cache-<vendorID>-<deviceID>-<pipelineCacheUUID>.bin`
 and saves them back when it is destroyed. `<dir>` is `$BT_VK_PIPELINE_CACHE_DIR`, by default
-the current directory: `build/vulkan` for `ctest`, `/tmp/bt` for the rocky and Jetson
-scripts, `/data/local/tmp/bt` on the phones. A file from another device or driver, or a
+the current directory: each test's build subdirectory under `build/vulkan` for `ctest`
+(`platform/`, `apps/<app>/`), `/tmp/bt` for the rocky and Jetson scripts,
+`/data/local/tmp/bt` on the phones. A file from another device or driver, or a
 corrupt one, is ignored and the pipelines compile cold; an unwritable directory just means
 nothing is saved. The cache only speeds up dispatcher construction, which is outside every
 timed region, and the files are safe to delete at any time. `SPDLOG_LEVEL=debug` logs the

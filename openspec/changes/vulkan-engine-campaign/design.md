@@ -142,15 +142,28 @@ device makes the suites skip rather than crash.
   It stays a possible future step.
 - **Test hook.** `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1` forces the fallback, so CI on `rocky-ryzen`
   covers both paths.
+- **Measured in Phase C (task 7.7, rocky-ryzen / RADV).** The CPU cost the two paths above were
+  meant to shave is small, and push descriptors do not reduce it on RADV.
+  - Recording one bind + dispatch: 124–127 ns before → 109–131 ns with push descriptors at 2
+    buffers, and 302–304 → 309–322 ns at 13 buffers (+15 ns). The fallback costs 208–214 and
+    384–401 ns.
+  - A tree chunk binds 20 times, so binding is a few µs of a ~1.7 ms makespan. The tree × VK
+    makespan and the fitted overhead constants are unchanged within noise.
+  - The resource-binding requirement "no greater than the descriptor-update path" therefore holds
+    for makespan, but not per bind at 13 buffers or on the fallback. This is recorded and left for
+    review; it was not tuned around.
 
 ### D7. Pipeline cache: one per engine, persisted
 - `Engine` owns one `vk::PipelineCache`, passed to each `Algorithm`.
-- **Load.** On construction it loads `$BT_VK_PIPELINE_CACHE_DIR/<vendorID>-<deviceID>-<uuid>.bin`.
+- **Load.** On construction it loads
+  `$BT_VK_PIPELINE_CACHE_DIR/bt-vk-pipeline-cache-<vendorID>-<deviceID>-<uuid>.bin` (ids in hex).
+  (Phase C added the `bt-vk-pipeline-cache-` prefix so a file left in a working directory says
+  what it is, and so `.gitignore` can match it narrowly.)
   - The directory defaults to the current working directory. That is writable in every fleet
     location, including `/data/local/tmp` on the phones.
-  - Before passing the data to the driver, the file's `VkPipelineCacheHeaderVersionOne` (vendor,
-    device, `pipelineCacheUUID`) is validated. On a mismatch or a short or corrupt file it is
-    ignored. Drivers are supposed to reject bad blobs, but not all mobile drivers are trusted to.
+  - Before passing the data to the driver, the file's `VkPipelineCacheHeaderVersionOne` (header
+    length 32 and version 1, vendor, device, `pipelineCacheUUID`) is validated. On a mismatch or a
+    short or corrupt file it is ignored. Drivers are supposed to reject bad blobs, but not all mobile drivers are trusted to.
 - **Save.** On `~Engine` it writes via `getPipelineCacheData` to a temp file plus a rename. On any
   I/O error it logs at debug level and continues.
 - **Timing.** Pipelines are built in dispatcher constructors, outside any timed region, so profiling

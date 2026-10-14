@@ -306,20 +306,235 @@ means:
 
 ## 7. Phase C — per-dispatch binding (resource-binding)
 
-- [ ] 7.1 Enable `VK_KHR_push_descriptor` when it is available. Add `Algorithm::record_bind(cmd, buffers)` using push descriptors, plus the per-`Sequence` transient-pool fallback reset in `cmd_begin()`, and `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1` (design D6). Verify: an engine-level unit test records the same kernel twice with different buffers in one command buffer and checks both outputs, on both paths.
-- [ ] 7.2 Migrate the `apps/cifar-dense` VK dispatcher and its profiler runner to `record_bind`, removing its `num_sets` and set indices. Verify: the cifar-dense VK suites pass on all three targets.
-- [ ] 7.3 Migrate the `apps/cifar-sparse` VK dispatcher and its profiler runner. Verify: the cifar-sparse VK suites pass on all three targets.
-- [ ] 7.4 Migrate the `apps/tree` VK dispatcher (radix-sort passes, scans, dup removal) and its profiler runner. Verify: the tree VK suites match exactly on all three targets.
-- [ ] 7.5 Remove `num_sets()`, `update_descriptor_set()`, `record_bind_core()` and the descriptor pool and sets from `Algorithm` once nothing uses them. Verify: a clean build of the `vulkan` and `android` presets.
-- [ ] 7.6 Run the full VK suites on `rocky-ryzen` with `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`. Verify: green, with identical results.
-- [ ] 7.7 Re-profile tree × VK on `rocky-ryzen` before and after, with the same governor and clocks, and refit the overhead. Verify: the per-chunk makespan does not increase beyond noise, and the delta is recorded in the PR.
+- [x] 7.1 Enable `VK_KHR_push_descriptor` when it is available. Add `Algorithm::record_bind(cmd, buffers)` using push descriptors, plus the per-`Sequence` transient-pool fallback reset in `cmd_begin()`, and `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1` (design D6). Verify: an engine-level unit test records the same kernel twice with different buffers in one command buffer and checks both outputs, on both paths.
+  - *Evidence (43d180f + 7c18fef):*
+    - (The call takes the `Sequence`, not a bare command buffer; see the design D6 correction.)
+    - `BaseEngine` enables `VK_KHR_push_descriptor` only when the device lists it, outside the required-feature table,
+      and fetches `vkCmdPushDescriptorSetKHR` with `vkGetDeviceProcAddr`. `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1` leaves the
+      extension disabled even where it exists. `Algorithm::record_bind(seq, {buffers…})` pushes on a PUSH_DESCRIPTOR
+      layout, or allocates, writes and binds one set from the `Sequence`'s transient pool. The pool is created on first
+      use, grows by whole pools, and is reset by `cmd_begin()`.
+    - Path in use, from the `SPDLOG_LEVEL=debug` line `Descriptor binding: …`. It is the same on every target:
+      `push descriptors (VK_KHR_push_descriptor)` by default, and `transient descriptor pool (forced by
+      BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)` with the variable. Targets: rocky-ryzen (Radeon 780M, RADV), Pixel 7a (Mali-G710),
+      Samsung (Xclipse 940), and also this build box's Ryzen 9600X iGPU (RADV RAPHAEL_MENDOCINO). All four have the
+      extension, as gpuinfo predicted.
+    - Unit test `BothPaths/VulkanBinding.SameKernelManyBuffersInOneCommandBuffer/{PushDescriptors,Fallback}`
+      (`test-kiss-vk`). Each variant sets `BT_VK_FORCE_DESCRIPTOR_FALLBACK` explicitly, so both run on the same device
+      even under an outer forced-fallback run. The test records one kernel 75 times (25 rounds × 3 buffers, more than one
+      64-set pool) into one command buffer, twice (two submits). Each buffer must end at its own start value
+      (1000/2000/3000) + 128 per dispatch bound to it. Both variants are OK on rocky-ryzen, the Pixel 7a, the Samsung and
+      the build box.
+    - *Mutation check (rocky-ryzen, not committed):* with `record_bind` changed to reuse the first buffers it ever saw,
+      both variants FAIL (e.g. buffer 0 holds 4200, buffer 1 holds 2000). With the code restored, both pass.
+- [x] 7.2 Migrate the `apps/cifar-dense` VK dispatcher and its profiler runner to `record_bind`, removing its `num_sets` and set indices. Verify: the cifar-dense VK suites pass on all three targets.
+  - *Evidence (87418bc; suites run at 7c18fef):* the 11 `update_descriptor_set` + `record_bind_core(cmd, i)` pairs became
+    `record_bind(*seq, {…})`, and the 5 `num_sets()` calls and the set-index comments were removed.
+    - `grep -rn "update_descriptor_set\|record_bind\|num_sets" profiler/` → 0 hits, at 7cc0916 and now. The
+      `cifar-dense-vk` profiler runners only call the dispatcher (`bm_prof_vulkan.hpp`: `disp.dispatch_multi_stage(app, s, s)`).
+    - `test-cifar-dense-vk` → 12/12 on rocky-ryzen (default and forced fallback), the Pixel 7a and the Samsung.
+- [x] 7.3 Migrate the `apps/cifar-sparse` VK dispatcher and its profiler runner. Verify: the cifar-sparse VK suites pass on all three targets.
+  - *Evidence (ed8237b; suites run at 7c18fef):* the same migration: 11 call sites, 5 `num_sets()` removed. The profiler
+    runner has no binding code of its own. `test-cifar-sparse-vk` → 12/12 on rocky-ryzen (default and forced fallback),
+    the Pixel 7a and the Samsung.
+- [x] 7.4 Migrate the `apps/tree` VK dispatcher (radix-sort passes, scans, dup removal) and its profiler runner. Verify: the tree VK suites match exactly on all three targets.
+  - *Evidence (4eb856b; suites run at 7c18fef):*
+    - All 19 call sites moved, in both the `VkAppData_Safe` and the chained `VkAppData` bodies; 13 `num_sets()` removed.
+    - The radix sort binds each pass's ping-pong buffers at record time, so the "bind all 4 passes up front" loops are
+      gone. `record_device_scan` lost its `descriptor_set` parameter.
+    - Barriers, dispatch sizes and the one-submit-per-chunk `dispatch_multi_stage` are unchanged.
+    - Across the three dispatchers that is 11 + 11 + 19 = 41 `update_descriptor_set` call sites at 7cc0916, the count
+      the brief gave. The only other callers were `stressor-vk` and one `test-kiss-vk` test (1 each), migrated in 7c18fef.
+    - `test-tree-vk` → 15/15 with an exact oracle match on rocky-ryzen (default and forced fallback, and pinned at 32 on
+      both paths), on the Pixel 7a (sg16) and on the Samsung (default 64, and pinned at 32).
+- [x] 7.5 Remove `num_sets()`, `update_descriptor_set()`, `record_bind_core()` and the descriptor pool and sets from `Algorithm` once nothing uses them. Verify: a clean build of the `vulkan` and `android` presets.
+  - *Evidence (7c18fef):*
+    - Removed: `num_sets()`, `update_descriptor_set()`, `record_bind_core()`, `create_descriptor_pool()`,
+      `allocate_descriptor_sets()`, the `descriptor_pool_`, `descriptor_sets_` and `descriptor_set_count_` members, and
+      the commented-out single-set and `update_buffer` remnants. Also removed: the unused `buffer_infos_` member
+      (pre-existing dead code, part of the same binding state).
+    - `~Algorithm()` now destroys the pipeline, pipeline layout, descriptor-set layout and shader module. The pipeline
+      cache went to the Engine in 8.1.
+    - `grep -rn` for any of those names over `platform apps profiler tools runtime tests` → 0 hits.
+    - Clean builds in fresh directories at 1e732ea (`cmake --preset vulkan -B <new dir>` / `--preset android -B <new dir>`,
+      full build): both rc=0. Android: 0 warnings. Vulkan: 2 warnings, both pre-existing OMP ones in
+      `apps/tree/omp/func_sort.hpp` (none in Vulkan code).
+    - Validation-layer teardown on both binding paths (rocky-ryzen, `BT_VK_VALIDATION=1 VK_LOADER_DEBUG=layer`, the four
+      suites): 0 `Validation Error` lines and 0 `VUID-vkDestroyDevice-device-05137`. The layer was inserted 9 / 16 / 12 / 12
+      times at 7c18fef, and 24 / 16 / 12 / 12 at 1e732ea (the new cache tests add 15 engines).
+- [x] 7.6 Run the full VK suites on `rocky-ryzen` with `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`. Verify: green, with identical results.
+  - *Evidence (rocky-ryzen, `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`; at 7c18fef and again at 1e732ea):*
+    - `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 12 / 15 / 12 / 12 at 7c18fef and 16 / 15 / 12 / 12 at 1e732ea.
+      `ctest -L vulkan` → 7/7 both times (6 min 11 s at 7c18fef, against 6 min 4 s on the default path).
+    - With `BT_VK_VALIDATION=1`: 0 validation errors, also with the tree pinned at 32.
+    - The debug log confirms the forced path ("transient descriptor pool (forced by …)").
+    - "Identical results" means every suite meets the same oracle bar as on the default path: an exact match for tree,
+      and `NearEqual` for cifar.
+- [x] 7.7 Re-profile tree × VK on `rocky-ryzen` before and after, with the same governor and clocks, and refit the overhead. Verify: the per-chunk makespan does not increase beyond noise, and the delta is recorded in the PR.
+  - *Method (rocky-ryzen; "before" = 7cc0916, "after" = 7c18fef, the final binding code; group 8 changes no binding).*
+    - Each arm has its own clean worktree, with benchmark binaries built on rocky (`scripts/build-bench-on-rocky.sh
+      vulkan`). Each run is a full `00_run_fleet.py --only minipc --fresh --phases profile,schedule,run,summary`
+      (profile 5 runs/scenario → z3 → run the top-4 btpm + isolated schedules), then `fit_overhead.py --dry-run`.
+    - The host-side extra comes after each run: `bm-prof-tree-vk` isolated twice, once timed by GPU timestamps and once
+      with `BT_PROF_GPU_WALLCLOCK=1`.
+    - Order, interleaved: before-1, after-1, before-2, after-2, before-3, after-3. A third pair was added because the
+      tree-only GPU constant's first two before/after ranges did not overlap; see below.
+    - Conditions, identical and recorded before every run: governor `powersave` on all 16 CPUs, AMD DPM `auto`, clocks
+      unlocked (as in 4.3), `gpu_busy_percent` 0, 1-min load ≤ 0.48 (the script waits for < 0.5), no process holding
+      `/dev/dri`, no CI runner process. All six fleet runs exit 0.
+
+    | metric (ms) | before 1/2/3 | after 1/2/3 | mean before → after | Δ | before spread |
+    |---|---|---|---|---|---|
+    | fitted `gpu_vulkan` per_chunk (all apps) | 1.6763 / 1.5503 / 1.5786 | 1.6578 / 1.4114 / 1.4637 | 1.6017 → 1.5110 | −0.0908 | 0.1260 |
+    | fitted `cpu` per_chunk (all apps) | 1.5713 / 2.5410 / 1.7782 | 1.2959 / 2.0429 / 1.4899 | 1.9635 → 1.6096 | −0.3539 | 0.9697 |
+    | fitted `gpu_vulkan` per_chunk (tree only) | 0.8592 / 0.8680 / 0.8248 | 0.8889 / 0.8752 / 0.8373 | 0.8507 → 0.8671 | +0.0165 | 0.0432 |
+    | fitted `cpu` per_chunk (tree only) | 0.1655 / 0.1913 / 0.1605 | 0.1996 / 0.1918 / 0.1207 | 0.1724 → 0.1707 | −0.0017 | 0.0308 |
+    | tree best measured makespan (ms/task) | 1.7182 / 1.7255 / 1.9072 | 1.7286 / 1.7257 / 1.7408 | 1.7836 → 1.7317 | −0.0519 | 0.1890 |
+
+    - Every fit is model `median` with per_stage_ms = 0 (n = 24 chunks over all apps, 8 for tree). The tree-only fit is
+      the same `fit_overhead` code restricted to the two tree cells.
+    - The best makespan depends on which candidates z3 picks. before-3's top-4 had no "GPU stages 1–2" schedule, the
+      winner in the other five runs, hence its 1.9072.
+    - The per-chunk comparison that does not depend on z3's choice: the measured duration of each GPU chunk shape that
+      every run executed (the mean over that run's schedules with that GPU chunk). The GPU chunk is the makespan-setting
+      chunk in every tree schedule.
+
+    | tree GPU chunk | before 1/2/3 | after 1/2/3 | mean before → after | Δ | before spread |
+    |---|---|---|---|---|---|
+    | stages 1–3 | 1.9298 / 1.9112 / 1.9291 | 1.9225 / 1.9309 / 1.9362 | 1.9234 → 1.9299 | +0.0065 (+0.3 %) | 0.0186 |
+    | stages 1–4 | 2.1178 / 2.1316 / 2.1069 | 2.1348 / 2.0915 / 2.0967 | 2.1188 → 2.1077 | −0.0111 (−0.5 %) | 0.0247 |
+    | stages 1–5 | 2.0567 / 2.0754 / 2.0794 | 2.0803 / 2.0334 / 2.0653 | 2.0705 → 2.0597 | −0.0108 (−0.5 %) | 0.0227 |
+    | stages 1–6 | 2.2170 / 2.1945 / 2.2255 | 2.2374 / 2.2023 / 2.2077 | 2.2123 → 2.2158 | +0.0035 (+0.2 %) | 0.0311 |
+
+    - Per-stage tree × VK GPU time (isolated GPU-timestamp p50, median over the 5 profiling runs, mean of 3 arms), in ms,
+      before → after:
+      - s1 0.08096 → 0.08092; s2 0.78073 → 0.78075; s3 0.17816 → 0.17749; s4 0.13180 → 0.12896; s5 0.04115 → 0.04124;
+        s6 0.11584 → 0.10805; s7 0.23071 → 0.23057.
+      - Every delta is within ±0.0007 ms except two. s4 is −0.0028, inside its before spread of 0.0042. s6 is −0.0078
+        (−6.7 %), consistent across all three pairs (before 0.1156 / 0.1155 / 0.1164, after 0.1077 / 0.1073 / 0.1092).
+      - Under interference every stage is within ±0.0005 ms except s4: −0.0053 (−2.4 %), beyond its before spread of
+        0.0034 but in the faster direction.
+    - Host side, as the tooling exposes it: the single-stage dispatch round trip, wall-clock p50 minus GPU p50.
+      - Per stage it is 64.6–78.7 µs on both sides, apart from three outliers (57.8, 102.4 and 1299.7 µs). The median over the 7 stages is 0.07014 / 0.07097 / 0.07463 →
+        0.06810 / 0.07066 / 0.06990, mean 0.07191 → 0.06955, Δ −0.0024, before spread 0.0045.
+      - before-3's stage-2 wall run had a 1.3 ms outlier, which is why the medians are used.
+      - That round trip is dominated by submit + fence wait + thread wake-up, so it cannot resolve binding cost.
+    - *Recording-cost probe (rocky-ryzen, not committed).* It measures what design D6 targets, the CPU time to record
+      one bind + dispatch, with no submit:
+      - 20 binds per command buffer (one tree stage 1–7 chunk), 1900 measured reps after 100 warm-up, pinned to CPU 2.
+      - before: `update_descriptor_set(i, {…})` + `record_bind_core(cmd, i)` with `num_sets(20)`; after: `record_bind`.
+      - Interleaved 3×; GPU busy 0, load ≤ 0.28. p50 ns per bind:
+
+      | buffers | before | after, push descriptors | after, forced fallback |
+      |---|---|---|---|
+      | 2 (radix histograms) | 124.2 / 124.2 / 127.2 | 121.2 / 108.7 / 131.2 | 214.4 / 208.9 / 207.9 |
+      | 13 (build octree) | 301.6 / 303.1 / 304.1 | 322.1 / 309.1 / 321.6 | 400.8 / 390.2 / 384.2 |
+
+  - **Verdict on the 7.7 check: met.** The per-chunk makespan does not increase beyond run-to-run noise. Every matched
+    GPU chunk moves by ≤ 0.0111 ms (≤ 0.52 %), inside its before spread. The best makespan, the all-apps constants and the
+    tree-only constants move inside their before spreads too. The tree-only GPU constant (+0.0165 ms) needed the third
+    pair: after two pairs the ranges did not overlap (before 0.8592–0.8680, after 0.8752–0.8889). before-3 (0.8248) shows
+    the before spread is 0.043 ms.
+  - **Finding: the resource-binding requirement is not met as worded, and is not tuned around.** The requirement says
+    "Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces". On RADV:
+    - push descriptors are no cheaper to record at 2 buffers (mean 125.2 → 120.4 ns, inside the after spread of 22.5);
+    - they are **+14.7 ns per bind (+4.8 %)** at 13 buffers, beyond the before spread of 2.5 ns;
+    - the transient-pool fallback costs **+85 to +89 ns per bind** (+68 % / +29 %).
+    - The makespan scenario is unaffected: a whole tree chunk binds 20 times, so binding costs a few µs against a
+      ~1.7 ms makespan whose ~0.85 ms per-chunk GPU overhead is clearly not descriptor binding.
+    - This also means D6's premise (proposal "Why": per-item descriptor rewrites dominate the µs-scale tree × VK
+      overhead) does not hold on rocky-ryzen.
+    - Not measured: the recording cost on the phones (Mali, Xclipse), where push descriptors may behave differently.
+    - The requirement text is left unchanged, for the reviewer to decide on (see the design D6 note).
 
 ## 8. Phase C — persisted pipeline cache (pipeline-config) + phase gate
 
-- [ ] 8.1 Give `Engine` one pipeline cache shared by all `Algorithm`s. Load it from `$BT_VK_PIPELINE_CACHE_DIR` (default: the current directory) after validating the header against vendorID, deviceID and UUID, and save it atomically on destruction (design D7). Verify: a second run of a VK test on `rocky-ryzen` logs a cache hit at debug level.
-- [ ] 8.2 Add tests for a corrupt cache file, a cache from a foreign device or UUID, and a read-only directory. Verify: all three runs complete with unchanged results and a cold compile.
-- [ ] 8.3 Ignore `*.bin` pipeline-cache files in `.gitignore` and the fleet cleanup scripts, and document `BT_VK_PIPELINE_CACHE_DIR` in `03-unit-testing.md`. Verify: `git status` is clean after a local VK run.
-- [ ] 8.4 Phase C gate: VK fleet gate green, including the Pixel 7a and Samsung with push descriptors active. Verify: the debug log on each phone shows which binding path is in use.
+- [x] 8.1 Give `Engine` one pipeline cache shared by all `Algorithm`s. Load it from `$BT_VK_PIPELINE_CACHE_DIR` (default: the current directory) after validating the header against vendorID, deviceID and UUID, and save it atomically on destruction (design D7). Verify: a second run of a VK test on `rocky-ryzen` logs a cache hit at debug level.
+  - *Evidence (1e732ea):*
+    - `Engine` owns one `vk::PipelineCache`, passed to every `Algorithm` it makes; the per-Algorithm cache is gone.
+    - It loads `$BT_VK_PIPELINE_CACHE_DIR/bt-vk-pipeline-cache-<vendorID>-<deviceID>-<uuid>.bin`, defaulting to the
+      working directory. (The `bt-vk-pipeline-cache-` prefix was added to design D7's name, so a stray file says what it
+      is.) It saves on `~Engine` via `<file>.tmp.<pid>` + `rename`.
+    - `pipeline_cache_header_mismatch()` checks headerSize = 32, headerVersion = 1, vendorID, deviceID and
+      pipelineCacheUUID before the data reaches `vkCreatePipelineCache`.
+    - Pipelines are still built only in dispatcher constructors. Each logs at debug level whether the driver reports an
+      application-cache hit (`VkPipelineCreationFeedback`, core 1.3, chained with no per-stage array).
+    - rocky-ryzen, run twice into an empty cache directory:
+      `BT_VK_PIPELINE_CACHE_DIR=<dir> ./bm-fully-tree-vk --device minipc -l debug -s 1 -e 1 -t 1` (3 engines × 11
+      pipelines).
+      - Run 1: the first engine logs `Pipeline cache: no readable …, compiling cold` (11 misses). Engines 2 and 3 log
+        `Pipeline cache: loaded 25816 / 25828 bytes from …` (22 hits).
+      - Run 2: all 3 engines load, **33/33 `pipeline cache hit`**.
+    - Pixel 7a and Samsung, the same check with `test-kiss-vk --gtest_filter=VulkanWorkGroupSize.DeclaredSizeReachesShader`:
+      - run 1: `compiling cold` → `pipeline cache miss` → `saved 697` (Pixel) / `1052` (Samsung) bytes;
+      - run 2: `loaded … bytes` → `pipeline cache hit`.
+- [x] 8.2 Add tests for a corrupt cache file, a cache from a foreign device or UUID, and a read-only directory. Verify: all three runs complete with unchanged results and a cold compile.
+  - *Evidence (1e732ea):*
+    - `PipelineCacheTest.*` in `test-kiss-vk`. Each test uses its own `bt-vk-cache-test-<pid>-<name>` directory under the
+      working directory and removes it afterwards; 0 were left on any target. Every engine lifetime runs a kernel and
+      checks its output ({128, 64, 2, 1}).
+      - `SecondRunLoadsTheSavedCache`: kMissing, then kLoaded.
+      - `CorruptFileIsIgnored`: 4096 bytes of 0xAB, and a valid file cut to 20 bytes → kRejected.
+      - `ForeignDeviceOrDriverIsIgnored`: a valid file with one byte flipped in headerSize, headerVersion, vendorID,
+        deviceID, or the first or last UUID byte → kRejected each time. The untouched file → kLoaded.
+      - `ReadOnlyDirectoryRunsWithoutPersisting`: the directory is chmod 0555 and asserted unwritable → two runs, both
+        kMissing, and the directory stays empty.
+    - All four are OK on rocky-ryzen, the Pixel 7a, the Samsung and the build box. kRejected/kMissing means the
+      application cache started empty, i.e. a cold compile.
+    - The full tree suite under each condition: 15/15 PASSED in every case (exact oracle match) on rocky-ryzen and the
+      Pixel 7a. Each condition is a dedicated directory set through `BT_VK_PIPELINE_CACHE_DIR`; the phone deploy location
+      is unchanged.
+      - Corrupt (4096 random bytes) and foreign (a valid file with one UUID byte changed): the file is ignored and
+        replaced by a valid cache. Both conditions end with the same md5 (rocky 69cfe8bd, Pixel 5b854a52).
+      - Read-only (chmod 555): 0 files written. rocky logs `Pipeline cache: not saved (cannot write ….tmp.<pid>),
+        continuing`.
+    - rocky-ryzen, debug log of the first engine (`bm-fully-tree-vk -l debug`, 11 misses then 22 hits):
+      - `ignoring … (headerSize 2552050312, expected 32), compiling cold` for the corrupt file;
+      - `ignoring … (pipelineCacheUUID differs from the driver's), compiling cold` for the foreign one.
+- [x] 8.3 Ignore `*.bin` pipeline-cache files in `.gitignore` and the fleet cleanup scripts, and document `BT_VK_PIPELINE_CACHE_DIR` in `03-unit-testing.md`. Verify: `git status` is clean after a local VK run.
+  - *Evidence (1e732ea + the 03-unit-testing.md location fix):*
+    - `.gitignore` gains `bt-vk-pipeline-cache-*.bin`, `bt-vk-pipeline-cache-*.bin.tmp.*` and `bt-vk-cache-test-*/`.
+      These patterns are narrower than a blanket `*.bin`, so a future unrelated `.bin` stays visible.
+    - `03-unit-testing.md` documents `BT_VK_PIPELINE_CACHE_DIR`: where the file lands for each runner, what is ignored,
+      and that the cache is outside timed regions. It also documents `BT_VK_FORCE_DESCRIPTOR_FALLBACK`.
+    - What the cleanup scripts do:
+      - `just bench-clean` only removed the local `data/` result dirs. The run scripts (`scripts/run-on-{rocky,android,jetson}.sh`,
+        the `_test-ssh` recipe, `optimizer/orchestrate/transport.py`) stage into `/tmp/bt` and `/data/local/tmp/bt`, run
+        there, and bring back only stdout. They never copy files back, so a cache file cannot leak into results.
+      - There it stays as one file per (vendor, device, driver UUID), rewritten on each run. That is the intended warm
+        start; a new file appears only after a driver update.
+      - A run from the repo root does leave a file there, so `bench-clean` now also deletes
+        `bt-vk-pipeline-cache-*.bin` and its temp files from the repo root.
+    - Verify: this build box has an iGPU (Ryzen 9600X, RADV), so a local VK run is real. `ctest -L vulkan` → 7/7, and
+      `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 16 / 15 / 12 / 12. That left cache files in the repo root and
+      in `build/vulkan/{platform,apps/*}`, and `git status --short` was empty.
+      - `git check-ignore -v` names the three new patterns for a cache file, its `.tmp.123` copy and a
+        `bt-vk-cache-test-*` dir.
+      - `just bench-clean` removed the repo-root file.
+- [x] 8.4 Phase C gate: VK fleet gate green, including the Pixel 7a and Samsung with push descriptors active. Verify: the debug log on each phone shows which binding path is in use.
+  - *VK fleet gate (code at 1e732ea; later commits are docs-only):*
+    - local `ctest -L omp` → 9/9 passed.
+    - Bake / clean-tree check: `cmake --build build/vulkan --target bake-shaders` → no-op, `git status` clean. Phase C
+      changes no shader (`git diff --stat 7cc0916 HEAD -- platform/engine/vulkan/shaders` is empty).
+    - rocky-ryzen (`--device minipc`, `VK_LOADER_LAYERS_DISABLE='~all~'`), the same results on the default path (push
+      descriptors) and with `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`:
+      - `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 16 / 15 / 12 / 12 PASSED, 0 skipped;
+      - `ctest -L vulkan` → 7/7;
+      - tree at `BT_VK_SUBGROUP_SIZE=32` → 15/15;
+      - with `BT_VK_VALIDATION=1` (layer inserted 24 / 16 / 12 / 12 times) → 0 `Validation Error` lines and 0
+        `05137`, plus 0 in tree pinned at 32.
+    - Pixel 7a and Samsung (`scripts/run-on-android.sh <serial> test-kiss-vk test-tree-vk test-cifar-dense-vk
+      test-cifar-sparse-vk`) → 16 / 15 / 12 / 12 on both, 0 skipped, script exit 0. Samsung tree at
+      `BT_VK_SUBGROUP_SIZE=32` → 15/15.
+    - Binding path, from the debug log (`SPDLOG_LEVEL=debug ./test-kiss-vk --gtest_filter=VulkanEngineTest.EngineInitialization`):
+      `Descriptor binding: push descriptors (VK_KHR_push_descriptor)` on rocky-ryzen (Radeon 780M), the Pixel 7a
+      (Mali-G710) and the Samsung (Xclipse 940), as expected from gpuinfo. With the forced fallback on rocky-ryzen:
+      `transient descriptor pool (forced by BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)`.
+    - test-kiss-vk grew from 10 to 16 tests: `BothPaths/VulkanBinding.SameKernelManyBuffersInOneCommandBuffer/{PushDescriptors,Fallback}`
+      and `PipelineCacheTest.{SecondRunLoadsTheSavedCache,CorruptFileIsIgnored,ForeignDeviceOrDriverIsIgnored,ReadOnlyDirectoryRunsWithoutPersisting}`.
+    - Also green on the build box's own iGPU (RADV RAPHAEL_MENDOCINO): 16 / 15 / 12 / 12, `ctest -L vulkan` 7/7.
+    - **Open** (see 7.7): the resource-binding requirement "per-dispatch host-side binding cost SHALL be no greater"
+      is not met per bind on RADV at 13 buffers (+14.7 ns) or on the fallback path. It is met for the makespan scenario.
 
 ## Workflow follow-up
 
