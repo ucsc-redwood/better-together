@@ -57,10 +57,9 @@ class VulkanDispatcher final {
   }
 
  private:
-  // Record-only stage bodies: descriptor-set update + push + bind + dispatch into `cmd`,
-  // no cmd_begin/submit/wait. Each binds its own fixed descriptor-set index (occurrence
-  // order within its shared algo) so several stages can share one command buffer without
-  // clobbering each other's bindings.
+  // Record-only stage bodies: bind (buffers captured per dispatch) + push + dispatch into
+  // `cmd` (= seq's command buffer), no cmd_begin/submit/wait, so several stages can share
+  // one command buffer.
   void record_stage_1(AppData& appdata, vk::CommandBuffer cmd);
   void record_stage_2(AppData& appdata, vk::CommandBuffer cmd);
   void record_stage_3(AppData& appdata, vk::CommandBuffer cmd);
