@@ -1,17 +1,23 @@
+#include <fcntl.h>
 #include <gtest/gtest.h>
 #include <spdlog/cfg/env.h>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iterator>
 #include <optional>
 #include <set>
+#include <thread>
 
 #include "engine.hpp"
 
@@ -324,6 +330,41 @@ TEST_F(PipelineCacheTest, UnreadableCacheFileIsIgnored) {
             1);
 }
 
+// A FIFO at the cache path must not block Engine construction (opening it for reading
+// would wait for a writer). Bounded: if construction is still blocked after 5 s, the test
+// opens the FIFO's write end to release it, then fails, so a regression cannot hang the
+// suite.
+TEST_F(PipelineCacheTest, FifoAtCachePathIsIgnoredWithoutBlocking) {
+  std::string path;
+  run_once(&path);
+  std::filesystem::remove(path);
+  ASSERT_EQ(mkfifo(path.c_str(), 0600), 0) << std::strerror(errno);
+
+  std::promise<kiss_vk::PipelineCacheLoad> result;
+  auto done = result.get_future();
+  std::thread worker([&] { result.set_value(run_once()); });
+  const bool finished = done.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+  if (!finished) {
+    for (int i = 0;
+         i < 100 && done.wait_for(std::chrono::milliseconds(50)) != std::future_status::ready;
+         ++i) {
+      if (const int w = open(path.c_str(), O_WRONLY | O_NONBLOCK); w >= 0) close(w);
+    }
+  }
+  worker.join();
+  EXPECT_TRUE(finished) << "Engine construction blocked on the FIFO for 5 s";
+  EXPECT_EQ(done.get(), kiss_vk::PipelineCacheLoad::kRejected);
+}
+
+// A cache file over kMaxPipelineCacheBytes (here a valid file extended sparsely past it) is
+// ignored and compiles cold.
+TEST_F(PipelineCacheTest, OversizedCacheFileIsIgnored) {
+  std::string path;
+  run_once(&path);
+  std::filesystem::resize_file(path, kiss_vk::kMaxPipelineCacheBytes + 1);
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+}
+
 // "Read-only location": the run completes and nothing is written.
 TEST_F(PipelineCacheTest, ReadOnlyDirectoryRunsWithoutPersisting) {
   std::filesystem::permissions(
@@ -372,6 +413,85 @@ TEST(PipelineCacheFile, FailedWriteKeepsThePreviousFile) {
   // Control: without the limit the same call replaces the file.
   EXPECT_EQ(kiss_vk::write_file_atomically(path, next), "");
   EXPECT_EQ(contents(), next);
+  std::filesystem::remove_all(dir);
+}
+
+// Hardware-free: a file whose header matches `props`, extended sparsely to `size` bytes.
+namespace {
+vk::PhysicalDeviceProperties fake_cache_device() {
+  vk::PhysicalDeviceProperties props{};
+  props.vendorID = 0x1234;
+  props.deviceID = 0x5678;
+  for (uint8_t i = 0; i < VK_UUID_SIZE; ++i) props.pipelineCacheUUID[i] = i;
+  return props;
+}
+
+void write_sparse_cache(const std::string& path,
+                        const vk::PhysicalDeviceProperties& props,
+                        const uint64_t size) {
+  VkPipelineCacheHeaderVersionOne header{.headerSize = sizeof(header),
+                                         .headerVersion = VK_PIPELINE_CACHE_HEADER_VERSION_ONE,
+                                         .vendorID = props.vendorID,
+                                         .deviceID = props.deviceID};
+  std::memcpy(header.pipelineCacheUUID, props.pipelineCacheUUID.data(), VK_UUID_SIZE);
+  std::ofstream(path, std::ios::binary | std::ios::trunc)
+      .write(reinterpret_cast<const char*>(&header), sizeof(header));
+  std::filesystem::resize_file(path, size);
+}
+
+// This process's data-segment usage (VmData, what RLIMIT_DATA is checked against), in bytes.
+uint64_t vm_data_bytes() {
+  std::ifstream status("/proc/self/status");
+  for (std::string line; std::getline(status, line);) {
+    if (line.rfind("VmData:", 0) == 0) return std::stoull(line.substr(7)) * 1024;
+  }
+  return 0;
+}
+
+// Reads `path` with the soft RLIMIT_DATA lowered to 16 MiB above current use; the old limit
+// is restored on every path out, an escaping exception included.
+kiss_vk::PipelineCacheFile read_with_tight_memory(const std::string& path,
+                                                  const vk::PhysicalDeviceProperties& props) {
+  struct RestoreLimit {
+    rlimit old{};
+    ~RestoreLimit() { setrlimit(RLIMIT_DATA, &old); }
+  } restore;
+  EXPECT_EQ(getrlimit(RLIMIT_DATA, &restore.old), 0);
+  const uint64_t used = vm_data_bytes();
+  EXPECT_GT(used, 0u);
+  rlimit tight = restore.old;
+  tight.rlim_cur = used + (16u << 20);
+  EXPECT_EQ(setrlimit(RLIMIT_DATA, &tight), 0);
+  return kiss_vk::read_pipeline_cache_file(path, props);
+}
+}  // namespace
+
+// Pipeline-config spec, "Stale or foreign cache" for oversized data: the header is read
+// first and the size bounded before the payload is allocated, so even a 2 GiB file is
+// rejected under a memory limit it could never fit in; a 48 MiB file (under the bound) whose
+// allocation fails is rejected too, never thrown.
+TEST(PipelineCacheFile, OversizedOrUnallocatableDataIsRejected) {
+  const auto dir =
+      std::filesystem::current_path() / ("bt-vk-cache-test-" + std::to_string(getpid()) + "-size");
+  std::filesystem::create_directory(dir);
+  const std::string path = (dir / "cache.bin").string();
+  const auto props = fake_cache_device();
+
+  write_sparse_cache(path, props, uint64_t{2} << 30);
+  auto file = read_with_tight_memory(path, props);
+  EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kRejected);
+  EXPECT_NE(file.why.find("2147483648 bytes exceeds the 67108864-byte limit"), std::string::npos)
+      << file.why;
+
+  write_sparse_cache(path, props, 48u << 20);
+  file = read_with_tight_memory(path, props);
+  EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kRejected);
+  EXPECT_NE(file.why.find("cannot allocate 50331648 bytes"), std::string::npos) << file.why;
+
+  // Control: without the limit the 48 MiB file reads in full.
+  file = kiss_vk::read_pipeline_cache_file(path, props);
+  EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kLoaded) << file.why;
+  EXPECT_EQ(file.data.size(), 48u << 20);
   std::filesystem::remove_all(dir);
 }
 

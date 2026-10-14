@@ -165,7 +165,16 @@ device makes the suites skip rather than crash.
     location, including `/data/local/tmp` on the phones.
   - Before passing the data to the driver, the file's `VkPipelineCacheHeaderVersionOne` (header
     length 32 and version 1, vendor, device, `pipelineCacheUUID`) is validated. On a mismatch or a
-    short or corrupt file it is ignored. Drivers are supposed to reject bad blobs, but not all mobile drivers are trusted to.
+    short or corrupt file it is ignored. Drivers are supposed to reject bad blobs, but not all
+    mobile drivers are trusted to.
+  - The read never blocks and never fails the Engine. Added in Phase C review:
+    - the file is opened with `O_NONBLOCK` and must be a regular file, so a FIFO is rejected
+      instead of waited on;
+    - the 32-byte header is read and checked before the payload is allocated;
+    - a file over 64 MiB (`kMaxPipelineCacheBytes`) is rejected unread; real caches are at most
+      63 KB on the fleet;
+    - a failed allocation or read rejects the data.
+    All of these compile cold.
 - **Save.** On `~Engine` it writes via `getPipelineCacheData` to a temp file plus a rename. On any
   I/O error it logs at debug level and continues.
 - **Timing.** Pipelines are built in dispatcher constructors, outside any timed region, so profiling

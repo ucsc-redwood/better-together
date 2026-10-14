@@ -5,9 +5,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <array>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <new>
 #include <vector>
 
 namespace kiss_vk {
@@ -54,41 +57,23 @@ namespace {
 
 std::string errno_text(const std::string& what) { return what + ": " + std::strerror(errno); }
 
-enum class ReadResult { kOk, kMissing, kFailed };
+// Closes the descriptor on every path out of read_pipeline_cache_file, exceptions included.
+struct FdCloser {
+  int fd;
+  ~FdCloser() { ::close(fd); }
+};
 
-// The whole regular file at `path`. kMissing if it does not exist; any other failure (not
-// a regular file, open/read error, a read that ends early) is kFailed with the reason.
-ReadResult read_regular_file(const std::string& path,
-                             std::vector<uint8_t>& data,
-                             std::string& why) {
-  const int fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC);
-  if (fd < 0) {
-    if (errno == ENOENT) return ReadResult::kMissing;
-    why = errno_text("cannot open");
-    return ReadResult::kFailed;
+// Reads exactly data.size() bytes into `data`; empty on success, else why.
+std::string read_exactly(const int fd, const std::span<uint8_t> data) {
+  size_t got = 0;
+  while (got < data.size()) {
+    const ssize_t n = ::read(fd, data.data() + got, data.size() - got);
+    if (n < 0 && errno == EINTR) continue;
+    if (n < 0) return errno_text(fmt::format("read failed after {} of {} bytes", got, data.size()));
+    if (n == 0) return fmt::format("short read: {} of {} bytes", got, data.size());
+    got += static_cast<size_t>(n);
   }
-  struct stat st{};
-  if (::fstat(fd, &st) != 0) {
-    why = errno_text("cannot stat");
-  } else if (!S_ISREG(st.st_mode)) {
-    why = "not a regular file";
-  } else {
-    data.resize(static_cast<size_t>(st.st_size));
-    size_t got = 0;
-    while (why.empty() && got < data.size()) {
-      const ssize_t n = ::read(fd, data.data() + got, data.size() - got);
-      if (n < 0 && errno == EINTR) continue;
-      if (n < 0) {
-        why = errno_text(fmt::format("read failed after {} of {} bytes", got, data.size()));
-      } else if (n == 0) {
-        why = fmt::format("short read: {} of {} bytes", got, data.size());
-      } else {
-        got += static_cast<size_t>(n);
-      }
-    }
-  }
-  ::close(fd);
-  return why.empty() ? ReadResult::kOk : ReadResult::kFailed;
+  return {};
 }
 
 }  // namespace
@@ -119,6 +104,54 @@ std::string write_file_atomically(const std::string& path, const std::span<const
   return why;
 }
 
+PipelineCacheFile read_pipeline_cache_file(const std::string& path,
+                                           const vk::PhysicalDeviceProperties& props) {
+  const auto rejected = [](std::string why) {
+    return PipelineCacheFile{PipelineCacheLoad::kRejected, {}, std::move(why)};
+  };
+
+  // O_NONBLOCK: opening a FIFO (or another special file) at the path must not wait for a
+  // writer; the type is checked on the opened descriptor below. No effect on regular files.
+  const int fd = ::open(path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+  if (fd < 0) {
+    if (errno == ENOENT) return {PipelineCacheLoad::kMissing, {}, "no file"};
+    return rejected(errno_text("cannot open"));
+  }
+  const FdCloser closer{fd};
+
+  struct stat st{};
+  if (::fstat(fd, &st) != 0) return rejected(errno_text("cannot stat"));
+  if (!S_ISREG(st.st_mode)) return rejected("not a regular file");
+  const auto size = static_cast<uint64_t>(st.st_size);
+
+  // The 32-byte header first, so a foreign or corrupt file is rejected before the payload
+  // is allocated.
+  std::array<uint8_t, sizeof(VkPipelineCacheHeaderVersionOne)> header{};
+  if (size < header.size()) {
+    return rejected(fmt::format("{} bytes is shorter than the 32-byte header", size));
+  }
+  if (std::string why = read_exactly(fd, header); !why.empty()) return rejected(std::move(why));
+  if (std::string why = pipeline_cache_header_mismatch(header, props); !why.empty()) {
+    return rejected(std::move(why));
+  }
+
+  if (size > kMaxPipelineCacheBytes) {
+    return rejected(
+        fmt::format("{} bytes exceeds the {}-byte limit", size, kMaxPipelineCacheBytes));
+  }
+  std::vector<uint8_t> data;
+  try {
+    data.resize(static_cast<size_t>(size));
+  } catch (const std::bad_alloc&) {
+    return rejected(fmt::format("cannot allocate {} bytes", size));
+  }
+  std::copy(header.begin(), header.end(), data.begin());
+  if (std::string why = read_exactly(fd, std::span(data).subspan(header.size())); !why.empty()) {
+    return rejected(std::move(why));
+  }
+  return {PipelineCacheLoad::kLoaded, std::move(data), {}};
+}
+
 LoadedPipelineCache load_pipeline_cache(const vk::Device device,
                                         const vk::PhysicalDeviceProperties& props,
                                         const std::string& path) {
@@ -126,23 +159,21 @@ LoadedPipelineCache load_pipeline_cache(const vk::Device device,
     return LoadedPipelineCache{device.createPipelineCache(vk::PipelineCacheCreateInfo{}), load};
   };
 
-  std::vector<uint8_t> data;
-  std::string why;
-  switch (read_regular_file(path, data, why)) {
-    case ReadResult::kMissing:
-      spdlog::debug("Pipeline cache: no file {}, compiling cold", path);
-      return cold(PipelineCacheLoad::kMissing);
-    case ReadResult::kFailed:
-      spdlog::debug("Pipeline cache: ignoring {} ({}), compiling cold", path, why);
-      return cold(PipelineCacheLoad::kRejected);
-    case ReadResult::kOk:
-      break;
+  PipelineCacheFile file;
+  try {
+    file = read_pipeline_cache_file(path, props);
+  } catch (const std::exception& e) {  // e.g. out of memory: never fail the Engine for a cache
+    file = {PipelineCacheLoad::kRejected, {}, e.what()};
   }
-
-  if (why = pipeline_cache_header_mismatch(data, props); !why.empty()) {
-    spdlog::debug("Pipeline cache: ignoring {} ({}), compiling cold", path, why);
+  if (file.load == PipelineCacheLoad::kMissing) {
+    spdlog::debug("Pipeline cache: no file {}, compiling cold", path);
+    return cold(PipelineCacheLoad::kMissing);
+  }
+  if (file.load == PipelineCacheLoad::kRejected) {
+    spdlog::debug("Pipeline cache: ignoring {} ({}), compiling cold", path, file.why);
     return cold(PipelineCacheLoad::kRejected);
   }
+  const std::vector<uint8_t>& data = file.data;
 
   try {
     const vk::PipelineCache cache = device.createPipelineCache(vk::PipelineCacheCreateInfo{
