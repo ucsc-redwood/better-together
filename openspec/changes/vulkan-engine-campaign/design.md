@@ -149,9 +149,11 @@ device makes the suites skip rather than crash.
     384–401 ns.
   - A tree chunk binds 20 times, so binding is a few µs of a ~1.7 ms makespan. The tree × VK
     makespan and the fitted overhead constants are unchanged within noise.
-  - The resource-binding requirement "no greater than the descriptor-update path" therefore holds
-    for makespan, but not per bind at 13 buffers or on the fallback. This is recorded and left for
-    review; it was not tuned around.
+  - The resource-binding requirement "Per-dispatch host-side binding cost SHALL be no greater than
+    the descriptor-update path it replaces" is therefore **not satisfied**: not per bind at 13
+    buffers, and not on the fallback. The unchanged makespan does not discharge it. It stays open
+    (tasks.md 7.8) until a compliant implementation or a justified, reviewed spec/design change;
+    it was not tuned around.
 
 ### D7. Pipeline cache: one per engine, persisted
 - `Engine` owns one `vk::PipelineCache`, passed to each `Algorithm`.

@@ -406,19 +406,51 @@ means:
     | stages 1–5 | 2.0567 / 2.0754 / 2.0794 | 2.0803 / 2.0334 / 2.0653 | 2.0705 → 2.0597 | −0.0108 (−0.5 %) | 0.0227 |
     | stages 1–6 | 2.2170 / 2.1945 / 2.2255 | 2.2374 / 2.2023 / 2.2077 | 2.2123 → 2.2158 | +0.0035 (+0.2 %) | 0.0311 |
 
-    - Per-stage tree × VK GPU time (isolated GPU-timestamp p50, median over the 5 profiling runs, mean of 3 arms), in ms,
-      before → after:
-      - s1 0.08096 → 0.08092; s2 0.78073 → 0.78075; s3 0.17816 → 0.17749; s4 0.13180 → 0.12896; s5 0.04115 → 0.04124;
-        s6 0.11584 → 0.10805; s7 0.23071 → 0.23057.
-      - Every delta is within ±0.0007 ms except two. s4 is −0.0028, inside its before spread of 0.0042. s6 is −0.0078
-        (−6.7 %), consistent across all three pairs (before 0.1156 / 0.1155 / 0.1164, after 0.1077 / 0.1073 / 0.1092).
-      - Under interference every stage is within ±0.0005 ms except s4: −0.0053 (−2.4 %), beyond its before spread of
-        0.0034 but in the faster direction.
-    - Host side, as the tooling exposes it: the single-stage dispatch round trip, wall-clock p50 minus GPU p50.
-      - Per stage it is 64.6–78.7 µs on both sides, apart from three outliers (57.8, 102.4 and 1299.7 µs). The median over the 7 stages is 0.07014 / 0.07097 / 0.07463 →
-        0.06810 / 0.07066 / 0.06990, mean 0.07191 → 0.06955, Δ −0.0024, before spread 0.0045.
-      - before-3's stage-2 wall run had a 1.3 ms outlier, which is why the medians are used.
-      - That round trip is dominated by submit + fence wait + thread wake-up, so it cannot resolve binding cost.
+    - Per-stage tree × VK GPU time, in ms. Each arm's value is the GPU-timestamp p50 per stage, as the median over that
+      arm's 5 profiling runs. "isolated" and "interference" are the two profiling scenarios.
+
+    | stage | before 1/2/3 | after 1/2/3 | mean before → after | Δ | before spread |
+    |---|---|---|---|---|---|
+    | s1 isolated | 0.08084 / 0.08092 / 0.08112 | 0.08096 / 0.08108 / 0.08072 | 0.08096 → 0.08092 | −0.00004 (−0.0 %) | 0.00028 |
+    | s2 isolated | 0.78052 / 0.78084 / 0.78084 | 0.78060 / 0.78064 / 0.78100 | 0.78073 → 0.78075 | +0.00001 (+0.0 %) | 0.00032 |
+    | s3 isolated | 0.17816 / 0.17832 / 0.17800 | 0.17808 / 0.17732 / 0.17708 | 0.17816 → 0.17749 | −0.00067 (−0.4 %) | 0.00032 |
+    | s4 isolated | 0.13336 / 0.13284 / 0.12920 | 0.12932 / 0.12876 / 0.12880 | 0.13180 → 0.12896 | −0.00284 (−2.2 %) | 0.00416 |
+    | s5 isolated | 0.04100 / 0.04136 / 0.04108 | 0.04116 / 0.04144 / 0.04112 | 0.04115 → 0.04124 | +0.00009 (+0.2 %) | 0.00036 |
+    | s6 isolated | 0.11560 / 0.11548 / 0.11644 | 0.10768 / 0.10728 / 0.10920 | 0.11584 → 0.10805 | −0.00779 (−6.7 %) | 0.00096 |
+    | s7 isolated | 0.23088 / 0.23052 / 0.23072 | 0.23108 / 0.23024 / 0.23040 | 0.23071 → 0.23057 | −0.00013 (−0.1 %) | 0.00036 |
+    | s1 interference | 0.08120 / 0.08072 / 0.08092 | 0.08052 / 0.08048 / 0.08044 | 0.08095 → 0.08048 | −0.00047 (−0.6 %) | 0.00048 |
+    | s2 interference | 0.77984 / 0.78012 / 0.77972 | 0.77976 / 0.77976 / 0.78024 | 0.77989 → 0.77992 | +0.00003 (+0.0 %) | 0.00040 |
+    | s3 interference | 0.18024 / 0.18016 / 0.18008 | 0.17984 / 0.17980 / 0.18008 | 0.18016 → 0.17991 | −0.00025 (−0.1 %) | 0.00016 |
+    | s4 interference | 0.21748 / 0.21952 / 0.22092 | 0.21400 / 0.21484 / 0.21308 | 0.21931 → 0.21397 | −0.00533 (−2.4 %) | 0.00344 |
+    | s5 interference | 0.04264 / 0.04268 / 0.04276 | 0.04268 / 0.04272 / 0.04268 | 0.04269 → 0.04269 | −0.00000 (−0.0 %) | 0.00012 |
+    | s6 interference | 0.10652 / 0.10640 / 0.10656 | 0.10648 / 0.10460 / 0.10708 | 0.10649 → 0.10605 | −0.00044 (−0.4 %) | 0.00016 |
+    | s7 interference | 0.25412 / 0.25376 / 0.25384 | 0.25476 / 0.25352 / 0.25444 | 0.25391 → 0.25424 | +0.00033 (+0.1 %) | 0.00036 |
+
+      - Deltas beyond the before spread: isolated s3 (−0.00067 vs 0.00032) and s6 (**−0.00779, −6.7 %** vs 0.00096; all
+        three after-runs are below all three before-runs); interference s3 (−0.00025 vs 0.00016), s4 (−0.00533 vs 0.00344)
+        and s6 (−0.00044 vs 0.00016). All of them are in the faster direction.
+      - No stage got slower beyond its before spread. The largest increase is interference s7, +0.00033 vs a spread of
+        0.00036.
+    - Host side, as the tooling exposes it: the single-stage dispatch round trip, wall-clock p50 minus GPU p50, in ms (the
+      same `bm-prof-tree-vk` run in each arm, with and without `BT_PROF_GPU_WALLCLOCK=1`).
+
+    | stage | before 1/2/3 | after 1/2/3 | mean before → after | Δ | before spread |
+    |---|---|---|---|---|---|
+    | s1 | 0.07014 / 0.07221 / 0.07476 | 0.07653 / 0.07681 / 0.07369 | 0.07237 → 0.07568 | +0.00331 (+4.6 %) | 0.00462 |
+    | s2 | 0.07193 / 0.10240 / 1.29970 | 0.07016 / 0.07066 / 0.06990 | 0.49135 → 0.07024 | −0.42111 (−85.7 %) | 1.22777 |
+    | s3 | 0.07654 / 0.07315 / 0.07870 | 0.06771 / 0.06882 / 0.06639 | 0.07613 → 0.06764 | −0.00849 (−11.2 %) | 0.00555 |
+    | s4 | 0.07342 / 0.06762 / 0.07317 | 0.06586 / 0.07452 / 0.07443 | 0.07140 → 0.07160 | +0.00020 (+0.3 %) | 0.00580 |
+    | s5 | 0.06533 / 0.06508 / 0.06499 | 0.06590 / 0.06456 / 0.06525 | 0.06514 → 0.06524 | +0.00010 (+0.2 %) | 0.00034 |
+    | s6 | 0.06968 / 0.07097 / 0.07463 | 0.07469 / 0.07217 / 0.07057 | 0.07176 → 0.07248 | +0.00072 (+1.0 %) | 0.00496 |
+    | s7 | 0.06641 / 0.07059 / 0.06998 | 0.06810 / 0.06817 / 0.05776 | 0.06899 → 0.06468 | −0.00431 (−6.3 %) | 0.00417 |
+    | median over stages | 0.07014 / 0.07097 / 0.07463 | 0.06810 / 0.07066 / 0.06990 | 0.07191 → 0.06955 | −0.00236 (−3.3 %) | 0.00449 |
+
+      - Per stage it is 64.6–78.7 µs on both sides, apart from three outliers (57.8, 102.4 and 1299.7 µs). The 1.3 ms
+        outlier is before-3's stage 2, which is why the summary row uses the median over stages.
+      - Deltas beyond the before spread are s3 (−0.00849 vs 0.00555) and s7 (−0.00431 vs 0.00417, driven by after-3's
+        57.8 µs), both faster. No stage got slower beyond its spread.
+      - That round trip is dominated by submit + fence wait + thread wake-up, so it cannot resolve binding cost; hence
+        the probe below.
     - *Recording-cost probe (rocky-ryzen, not committed).* It measures what design D6 targets, the CPU time to record
       one bind + dispatch, with no submit:
       - 20 binds per command buffer (one tree stage 1–7 chunk), 1900 measured reps after 100 warm-up, pinned to CPU 2.
@@ -430,12 +462,14 @@ means:
       | 2 (radix histograms) | 124.2 / 124.2 / 127.2 | 121.2 / 108.7 / 131.2 | 214.4 / 208.9 / 207.9 |
       | 13 (build octree) | 301.6 / 303.1 / 304.1 | 322.1 / 309.1 / 321.6 | 400.8 / 390.2 / 384.2 |
 
-  - **Verdict on the 7.7 check: met.** The per-chunk makespan does not increase beyond run-to-run noise. Every matched
+  - **Verdict on the 7.7 check (makespan): met.** This verdict covers only the check written in 7.7. It does **not**
+    satisfy the resource-binding requirement "Binding overhead does not regress", which stays open as 7.8. The per-chunk
+    makespan does not increase beyond run-to-run noise. Every matched
     GPU chunk moves by ≤ 0.0111 ms (≤ 0.52 %), inside its before spread. The best makespan, the all-apps constants and the
     tree-only constants move inside their before spreads too. The tree-only GPU constant (+0.0165 ms) needed the third
     pair: after two pairs the ranges did not overlap (before 0.8592–0.8680, after 0.8752–0.8889). before-3 (0.8248) shows
     the before spread is 0.043 ms.
-  - **Finding: the resource-binding requirement is not met as worded, and is not tuned around.** The requirement says
+  - **Finding: the resource-binding requirement is not met, and is not tuned around (open: 7.8).** The requirement says
     "Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces". On RADV:
     - push descriptors are no cheaper to record at 2 buffers (mean 125.2 → 120.4 ns, inside the after spread of 22.5);
     - they are **+14.7 ns per bind (+4.8 %)** at 13 buffers, beyond the before spread of 2.5 ns;
@@ -445,7 +479,11 @@ means:
     - This also means D6's premise (proposal "Why": per-item descriptor rewrites dominate the µs-scale tree × VK
       overhead) does not hold on rocky-ryzen.
     - Not measured: the recording cost on the phones (Mali, Xclipse), where push descriptors may behave differently.
-    - The requirement text is left unchanged, for the reviewer to decide on (see the design D6 note).
+    - The requirement text is left unchanged. The makespan result does not discharge its SHALL.
+- [ ] 7.8 **Open, unresolved:** the resource-binding requirement "Binding overhead does not regress" ("Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces") is not satisfied by the implemented code. Per 7.7, on rocky-ryzen push descriptors cost +14.7 ns per bind (+4.8 %) at 13 buffers, and the fallback +85–89 ns per bind. Close it only with a compliant implementation, or with a justified spec/design change reviewed on its own. Neither the makespan result nor a narrower reading of the requirement closes it.
+  - Possible next steps, none taken: measure the recording cost on the Pixel 7a and the Samsung; profile RADV's
+    push-descriptor path at 13 bindings; or decide, with a reviewed spec and design change, what the requirement should
+    guarantee.
 
 ## 8. Phase C — persisted pipeline cache (pipeline-config) + phase gate
 
@@ -468,6 +506,14 @@ means:
     - Pixel 7a and Samsung, the same check with `test-kiss-vk --gtest_filter=VulkanWorkGroupSize.DeclaredSizeReachesShader`:
       - run 1: `compiling cold` → `pipeline cache miss` → `saved 697` (Pixel) / `1052` (Samsung) bytes;
       - run 2: `loaded … bytes` → `pipeline cache hit`.
+  - *Review fix (0b127b6):* the cache file I/O is now checked end to end; see 8.2 for the two defects and their tests.
+    - The header check now runs only on a complete regular-file read: open, fstat (regular files only), and a read
+      loop that rejects any error or short read.
+    - The save is `write_file_atomically()`: every `write()` and the `close()` are checked, and it renames only after
+      both succeed.
+    - The same rocky-ryzen check at 0b127b6:
+      - run 1: the first engine logs `Pipeline cache: no file …, compiling cold`, then 11 misses + 22 hits;
+      - run 2: `Pipeline cache: loaded 25820 bytes from …` → **33/33 `pipeline cache hit`**.
 - [x] 8.2 Add tests for a corrupt cache file, a cache from a foreign device or UUID, and a read-only directory. Verify: all three runs complete with unchanged results and a cold compile.
   - *Evidence (1e732ea):*
     - `PipelineCacheTest.*` in `test-kiss-vk`. Each test uses its own `bt-vk-cache-test-<pid>-<name>` directory under the
@@ -491,6 +537,42 @@ means:
     - rocky-ryzen, debug log of the first engine (`bm-fully-tree-vk -l debug`, 11 misses then 22 hits):
       - `ignoring … (headerSize 2552050312, expected 32), compiling cold` for the corrupt file;
       - `ignoring … (pipelineCacheUUID differs from the driver's), compiling cold` for the foreign one.
+  - *Review fix (0b127b6): two defects in the 1e732ea cache I/O, reproduced with the reviewer's
+    `/tmp/phase-c-review-cache-repro.py` on the build box before the fix.*
+    - **Read:** a cache path that cannot be read escaped Engine construction. With a directory at the path,
+      `VulkanEngineTest.EngineInitialization` failed with `std::__ios_failure` "… Is a directory", because the
+      `istreambuf_iterator` read was outside any handler. Now it logs `ignoring … (not a regular file), compiling
+      cold`, the status is kRejected, and the following save fails with `cannot rename to …: Is a directory`, previous
+      file kept.
+    - **Save:** a truncated write replaced a valid cache and reported success. `file.good()` was checked before the
+      buffered stream flushed and closed. With SIGXFSZ ignored and `RLIMIT_FSIZE` = 32, a valid 1056-byte cache became
+      32 bytes while the log said `saved 1056 bytes`. Now the save logs `not saved to … (write failed after 32 of
+      1056 bytes: File too large), previous file kept`, and the file stays 1056 bytes.
+    - The repro after the fix: build box "original bytes 1056 current bytes 1056", directory case exit 0. rocky-ryzen
+      "original bytes 1480 current bytes 1480"; the attempted write was 1488 bytes, failed after 32, directory case
+      exit 0.
+    - New tests:
+      - `PipelineCacheTest.UnreadableCacheFileIsIgnored`: a directory at the cache path gives kRejected; the kernel
+        result is correct, the path is still a directory, and no temporary file is left.
+      - `PipelineCacheFile.FailedWriteKeepsThePreviousFile`: hardware-free. It writes a 1056-byte file, lowers the soft
+        `RLIMIT_FSIZE` to 32 (SIGXFSZ ignored) around one `write_file_atomically` call and restores both, then expects
+        "write failed after 32 of 1056 bytes", the previous bytes intact and no temporary file. Control: without the
+        limit the same call replaces the file.
+      - Not separately induced: a failure of `close()` itself, which has no portable trigger on a local filesystem.
+        The code checks it the same way as `write()`.
+    - *Mutation checks (build box, not committed):*
+      - with the old `ifstream` read restored, `UnreadableCacheFileIsIgnored` FAILS (only that test);
+      - with failed `write()`s ignored, `FailedWriteKeepsThePreviousFile` FAILS (only that test);
+      - restored, all 6 pass.
+    - All 6 cache tests (the four above plus these two) are OK at 0b127b6 on rocky-ryzen, the Pixel 7a, the Samsung and
+      the build box.
+    - rocky-ryzen, the full tree suite with `BT_VK_PIPELINE_CACHE_DIR` set to each condition at 0b127b6 → 15/15 PASSED
+      in every case. The first engine's debug line for each:
+      - corrupt: `ignoring … (headerSize 3333445683, expected 32), compiling cold`;
+      - foreign UUID: `ignoring … (pipelineCacheUUID differs from the driver's), compiling cold`;
+      - a directory at the path: `ignoring … (not a regular file), compiling cold`, and it is still a directory
+        afterwards;
+      - read-only: `no file …, compiling cold`, with 0 files written.
 - [x] 8.3 Ignore `*.bin` pipeline-cache files in `.gitignore` and the fleet cleanup scripts, and document `BT_VK_PIPELINE_CACHE_DIR` in `03-unit-testing.md`. Verify: `git status` is clean after a local VK run.
   - *Evidence (1e732ea + the 03-unit-testing.md location fix):*
     - `.gitignore` gains `bt-vk-pipeline-cache-*.bin`, `bt-vk-pipeline-cache-*.bin.tmp.*` and `bt-vk-cache-test-*/`.
@@ -511,30 +593,39 @@ means:
       - `git check-ignore -v` names the three new patterns for a cache file, its `.tmp.123` copy and a
         `bt-vk-cache-test-*` dir.
       - `just bench-clean` removed the repo-root file.
+    - Re-run at 0b127b6 on the build box: `ctest -L vulkan` 7/7 and 18 / 15 / 12 / 12. `git status --short` is empty,
+      and 0 `bt-vk-cache-test-*` dirs are left in the repo root or `build/vulkan/{platform,apps/*}`.
+      `XDG_RUNTIME_DIR=/tmp BUN_TMPDIR=$TMPDIR just fmt-check` passed all five stages (clang-format, ruff, gersemi,
+      shfmt, prettier). In this sandbox Bun needs `BUN_TMPDIR=$TMPDIR`; `/tmp` gives EACCES.
 - [x] 8.4 Phase C gate: VK fleet gate green, including the Pixel 7a and Samsung with push descriptors active. Verify: the debug log on each phone shows which binding path is in use.
-  - *VK fleet gate (code at 1e732ea; later commits are docs-only):*
+  - *VK fleet gate, re-run at 0b127b6 (the review fix; later commits are docs-only). The first gate, at 1e732ea, was also
+    green: 16 / 15 / 12 / 12 everywhere, with the same ctest, validation and sg32 results.*
     - local `ctest -L omp` → 9/9 passed.
     - Bake / clean-tree check: `cmake --build build/vulkan --target bake-shaders` → no-op, `git status` clean. Phase C
       changes no shader (`git diff --stat 7cc0916 HEAD -- platform/engine/vulkan/shaders` is empty).
     - rocky-ryzen (`--device minipc`, `VK_LOADER_LAYERS_DISABLE='~all~'`), the same results on the default path (push
       descriptors) and with `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`:
-      - `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 16 / 15 / 12 / 12 PASSED, 0 skipped;
-      - `ctest -L vulkan` → 7/7;
+      - `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 18 / 15 / 12 / 12 PASSED, 0 skipped;
+      - `ctest -L vulkan` → 7/7 (6 min 0 s on each path);
       - tree at `BT_VK_SUBGROUP_SIZE=32` → 15/15;
-      - with `BT_VK_VALIDATION=1` (layer inserted 24 / 16 / 12 / 12 times) → 0 `Validation Error` lines and 0
-        `05137`, plus 0 in tree pinned at 32.
+      - with `BT_VK_VALIDATION=1` (layer inserted 26 / 16 / 12 / 12 times; the new directory test adds 2 engines) → 0
+        `Validation Error` lines and 0 `05137`, plus 0 in tree pinned at 32.
     - Pixel 7a and Samsung (`scripts/run-on-android.sh <serial> test-kiss-vk test-tree-vk test-cifar-dense-vk
-      test-cifar-sparse-vk`) → 16 / 15 / 12 / 12 on both, 0 skipped, script exit 0. Samsung tree at
-      `BT_VK_SUBGROUP_SIZE=32` → 15/15.
+      test-cifar-sparse-vk`) → 18 / 15 / 12 / 12 on both, 0 skipped, script exit 0. That includes both review tests
+      (the `RLIMIT_FSIZE` test also works under Android's adb shell). Samsung tree at `BT_VK_SUBGROUP_SIZE=32` → 15/15.
     - Binding path, from the debug log (`SPDLOG_LEVEL=debug ./test-kiss-vk --gtest_filter=VulkanEngineTest.EngineInitialization`):
       `Descriptor binding: push descriptors (VK_KHR_push_descriptor)` on rocky-ryzen (Radeon 780M), the Pixel 7a
       (Mali-G710) and the Samsung (Xclipse 940), as expected from gpuinfo. With the forced fallback on rocky-ryzen:
       `transient descriptor pool (forced by BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)`.
-    - test-kiss-vk grew from 10 to 16 tests: `BothPaths/VulkanBinding.SameKernelManyBuffersInOneCommandBuffer/{PushDescriptors,Fallback}`
-      and `PipelineCacheTest.{SecondRunLoadsTheSavedCache,CorruptFileIsIgnored,ForeignDeviceOrDriverIsIgnored,ReadOnlyDirectoryRunsWithoutPersisting}`.
-    - Also green on the build box's own iGPU (RADV RAPHAEL_MENDOCINO): 16 / 15 / 12 / 12, `ctest -L vulkan` 7/7.
-    - **Open** (see 7.7): the resource-binding requirement "per-dispatch host-side binding cost SHALL be no greater"
-      is not met per bind on RADV at 13 buffers (+14.7 ns) or on the fallback path. It is met for the makespan scenario.
+    - test-kiss-vk grew from 10 to 18 tests:
+      - `BothPaths/VulkanBinding.SameKernelManyBuffersInOneCommandBuffer/{PushDescriptors,Fallback}`;
+      - `PipelineCacheTest.{SecondRunLoadsTheSavedCache,CorruptFileIsIgnored,ForeignDeviceOrDriverIsIgnored,UnreadableCacheFileIsIgnored,ReadOnlyDirectoryRunsWithoutPersisting}`;
+      - `PipelineCacheFile.FailedWriteKeepsThePreviousFile`.
+    - Also green on the build box's own iGPU (RADV RAPHAEL_MENDOCINO): 18 / 15 / 12 / 12, `ctest -L vulkan` 7/7.
+    - **Phase C is not complete: 7.8 is open.** The gate is green, but the resource-binding requirement "per-dispatch
+      host-side binding cost SHALL be no greater than the descriptor-update path it replaces" is not satisfied. On RADV
+      it costs +14.7 ns per bind at 13 buffers, and the fallback costs +85–89 ns. The unchanged makespan does not
+      discharge it.
 
 ## Workflow follow-up
 
