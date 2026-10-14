@@ -11,8 +11,8 @@ namespace kiss_vk {
 // How the Engine's pipeline cache started (design D7).
 enum class PipelineCacheLoad {
   kLoaded,    // seeded from the file: pipelines may come warm
-  kMissing,   // no readable file: cold compile
-  kRejected,  // file failed the header check (or the driver refused it): cold compile
+  kMissing,   // no file: cold compile
+  kRejected,  // file unreadable, failed the header check, or refused by the driver: cold
 };
 
 // <dir>/bt-vk-pipeline-cache-<vendorID>-<deviceID>-<pipelineCacheUUID>.bin (hex), where
@@ -35,8 +35,14 @@ struct LoadedPipelineCache {
                                                       const vk::PhysicalDeviceProperties& props,
                                                       const std::string& path);
 
-// Writes the cache to `path` via a temporary file and a rename. An I/O error (e.g. a
-// read-only directory) is logged at debug level and otherwise ignored.
+// Writes `data` to `<path>.tmp.<pid>` (every write and the close checked), then renames it
+// over `path`. Returns the empty string on success; otherwise why, with the temporary file
+// removed and any previous `path` left untouched.
+[[nodiscard]] std::string write_file_atomically(const std::string& path,
+                                                std::span<const uint8_t> data);
+
+// Writes the cache to `path` with write_file_atomically. A failure (e.g. a read-only
+// directory or a full disk) is logged at debug level and otherwise ignored.
 void save_pipeline_cache(vk::Device device,
                          vk::PipelineCache cache,
                          const std::string& path) noexcept;

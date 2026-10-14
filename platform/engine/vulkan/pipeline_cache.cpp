@@ -1,15 +1,13 @@
 #include "pipeline_cache.hpp"
 
+#include <fcntl.h>
 #include <spdlog/spdlog.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <cerrno>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
-#include <iterator>
-#include <stdexcept>
 #include <vector>
 
 namespace kiss_vk {
@@ -52,21 +50,98 @@ std::string pipeline_cache_header_mismatch(const std::span<const uint8_t> data,
   return {};
 }
 
+namespace {
+
+std::string errno_text(const std::string& what) { return what + ": " + std::strerror(errno); }
+
+enum class ReadResult { kOk, kMissing, kFailed };
+
+// The whole regular file at `path`. kMissing if it does not exist; any other failure (not
+// a regular file, open/read error, a read that ends early) is kFailed with the reason.
+ReadResult read_regular_file(const std::string& path,
+                             std::vector<uint8_t>& data,
+                             std::string& why) {
+  const int fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC);
+  if (fd < 0) {
+    if (errno == ENOENT) return ReadResult::kMissing;
+    why = errno_text("cannot open");
+    return ReadResult::kFailed;
+  }
+  struct stat st{};
+  if (::fstat(fd, &st) != 0) {
+    why = errno_text("cannot stat");
+  } else if (!S_ISREG(st.st_mode)) {
+    why = "not a regular file";
+  } else {
+    data.resize(static_cast<size_t>(st.st_size));
+    size_t got = 0;
+    while (why.empty() && got < data.size()) {
+      const ssize_t n = ::read(fd, data.data() + got, data.size() - got);
+      if (n < 0 && errno == EINTR) continue;
+      if (n < 0) {
+        why = errno_text(fmt::format("read failed after {} of {} bytes", got, data.size()));
+      } else if (n == 0) {
+        why = fmt::format("short read: {} of {} bytes", got, data.size());
+      } else {
+        got += static_cast<size_t>(n);
+      }
+    }
+  }
+  ::close(fd);
+  return why.empty() ? ReadResult::kOk : ReadResult::kFailed;
+}
+
+}  // namespace
+
+std::string write_file_atomically(const std::string& path, const std::span<const uint8_t> data) {
+  const std::string tmp = path + ".tmp." + std::to_string(getpid());
+  const int fd = ::open(tmp.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0666);
+  if (fd < 0) return errno_text("cannot create " + tmp);
+
+  std::string why;
+  size_t done = 0;
+  while (why.empty() && done < data.size()) {
+    const ssize_t n = ::write(fd, data.data() + done, data.size() - done);
+    if (n < 0 && errno == EINTR) continue;
+    if (n < 0) {
+      why = errno_text(fmt::format("write failed after {} of {} bytes", done, data.size()));
+    } else if (n == 0) {
+      why = fmt::format("write failed after {} of {} bytes: wrote nothing", done, data.size());
+    } else {
+      done += static_cast<size_t>(n);
+    }
+  }
+  if (::close(fd) != 0 && why.empty()) why = errno_text("close failed");
+  if (why.empty() && ::rename(tmp.c_str(), path.c_str()) != 0) {
+    why = errno_text("cannot rename to " + path);
+  }
+  if (!why.empty()) ::unlink(tmp.c_str());
+  return why;
+}
+
 LoadedPipelineCache load_pipeline_cache(const vk::Device device,
                                         const vk::PhysicalDeviceProperties& props,
                                         const std::string& path) {
-  std::ifstream file(path, std::ios::binary);
-  if (!file) {
-    spdlog::debug("Pipeline cache: no readable {}, compiling cold", path);
-    return {device.createPipelineCache(vk::PipelineCacheCreateInfo{}), PipelineCacheLoad::kMissing};
-  }
-  const std::vector<uint8_t> data{std::istreambuf_iterator<char>(file),
-                                  std::istreambuf_iterator<char>()};
+  const auto cold = [&](const PipelineCacheLoad load) {
+    return LoadedPipelineCache{device.createPipelineCache(vk::PipelineCacheCreateInfo{}), load};
+  };
 
-  if (const std::string why = pipeline_cache_header_mismatch(data, props); !why.empty()) {
+  std::vector<uint8_t> data;
+  std::string why;
+  switch (read_regular_file(path, data, why)) {
+    case ReadResult::kMissing:
+      spdlog::debug("Pipeline cache: no file {}, compiling cold", path);
+      return cold(PipelineCacheLoad::kMissing);
+    case ReadResult::kFailed:
+      spdlog::debug("Pipeline cache: ignoring {} ({}), compiling cold", path, why);
+      return cold(PipelineCacheLoad::kRejected);
+    case ReadResult::kOk:
+      break;
+  }
+
+  if (why = pipeline_cache_header_mismatch(data, props); !why.empty()) {
     spdlog::debug("Pipeline cache: ignoring {} ({}), compiling cold", path, why);
-    return {device.createPipelineCache(vk::PipelineCacheCreateInfo{}),
-            PipelineCacheLoad::kRejected};
+    return cold(PipelineCacheLoad::kRejected);
   }
 
   try {
@@ -78,30 +153,22 @@ LoadedPipelineCache load_pipeline_cache(const vk::Device device,
     return {cache, PipelineCacheLoad::kLoaded};
   } catch (const vk::SystemError& e) {
     spdlog::debug("Pipeline cache: driver refused {} ({}), compiling cold", path, e.what());
-    return {device.createPipelineCache(vk::PipelineCacheCreateInfo{}),
-            PipelineCacheLoad::kRejected};
+    return cold(PipelineCacheLoad::kRejected);
   }
 }
 
 void save_pipeline_cache(const vk::Device device,
                          const vk::PipelineCache cache,
                          const std::string& path) noexcept {
-  const std::string tmp = path + ".tmp." + std::to_string(getpid());
   try {
     const std::vector<uint8_t> data = device.getPipelineCacheData(cache);
-    {
-      std::ofstream file(tmp, std::ios::binary | std::ios::trunc);
-      file.write(reinterpret_cast<const char*>(data.data()),
-                 static_cast<std::streamsize>(data.size()));
-      if (!file.good()) throw std::runtime_error("cannot write " + tmp);
-    }
-    if (std::rename(tmp.c_str(), path.c_str()) != 0) {
-      throw std::runtime_error("cannot rename " + tmp + ": " + std::strerror(errno));
+    if (const std::string why = write_file_atomically(path, data); !why.empty()) {
+      spdlog::debug("Pipeline cache: not saved to {} ({}), previous file kept", path, why);
+      return;
     }
     spdlog::debug("Pipeline cache: saved {} bytes to {}", data.size(), path);
   } catch (const std::exception& e) {
-    std::remove(tmp.c_str());
-    spdlog::debug("Pipeline cache: not saved ({}), continuing", e.what());
+    spdlog::debug("Pipeline cache: not saved to {} ({}), previous file kept", path, e.what());
   }
 }
 

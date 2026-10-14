@@ -2,8 +2,10 @@
 #include <spdlog/cfg/env.h>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -306,6 +308,22 @@ TEST_F(PipelineCacheTest, ForeignDeviceOrDriverIsIgnored) {
   EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kLoaded);
 }
 
+// A cache path that cannot be read (here: a directory) is ignored like a corrupt file, not
+// thrown out of Engine construction; the save then fails without touching it.
+TEST_F(PipelineCacheTest, UnreadableCacheFileIsIgnored) {
+  std::string path;
+  run_once(&path);
+  std::filesystem::remove(path);
+  std::filesystem::create_directory(path);
+
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+  EXPECT_TRUE(std::filesystem::is_directory(path));
+  // No temporary file left behind: the directory holds only the unreadable "cache".
+  EXPECT_EQ(std::distance(std::filesystem::directory_iterator(dir_),
+                          std::filesystem::directory_iterator{}),
+            1);
+}
+
 // "Read-only location": the run completes and nothing is written.
 TEST_F(PipelineCacheTest, ReadOnlyDirectoryRunsWithoutPersisting) {
   std::filesystem::permissions(
@@ -315,6 +333,46 @@ TEST_F(PipelineCacheTest, ReadOnlyDirectoryRunsWithoutPersisting) {
   EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kMissing);
   EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kMissing);  // still nothing persisted
   EXPECT_TRUE(std::filesystem::is_empty(dir_));
+}
+
+// A save that cannot be written completely is reported as failed and leaves the previous
+// file intact: the temporary file is never renamed over it. Hardware-free. The write is cut
+// off by lowering this process's soft RLIMIT_FSIZE to 32 bytes (SIGXFSZ ignored), only
+// around the one call, so the test's own output is unaffected.
+TEST(PipelineCacheFile, FailedWriteKeepsThePreviousFile) {
+  const auto dir =
+      std::filesystem::current_path() / ("bt-vk-cache-test-" + std::to_string(getpid()) + "-write");
+  std::filesystem::create_directory(dir);
+  const std::string path = (dir / "cache.bin").string();
+  const std::vector<uint8_t> previous(1056, 0x11);
+  const std::vector<uint8_t> next(1056, 0x22);
+  const auto contents = [&] {
+    std::ifstream f(path, std::ios::binary);
+    return std::vector<uint8_t>{std::istreambuf_iterator<char>(f),
+                                std::istreambuf_iterator<char>()};
+  };
+  ASSERT_EQ(kiss_vk::write_file_atomically(path, previous), "");
+
+  rlimit old_limit{};
+  ASSERT_EQ(getrlimit(RLIMIT_FSIZE, &old_limit), 0);
+  rlimit small = old_limit;
+  small.rlim_cur = 32;
+  const auto old_handler = std::signal(SIGXFSZ, SIG_IGN);
+  ASSERT_EQ(setrlimit(RLIMIT_FSIZE, &small), 0);
+  const std::string why = kiss_vk::write_file_atomically(path, next);
+  setrlimit(RLIMIT_FSIZE, &old_limit);
+  std::signal(SIGXFSZ, old_handler);
+
+  EXPECT_NE(why.find("write failed after 32 of 1056 bytes"), std::string::npos) << why;
+  EXPECT_EQ(contents(), previous);
+  EXPECT_EQ(std::distance(std::filesystem::directory_iterator(dir),
+                          std::filesystem::directory_iterator{}),
+            1);  // no temporary file left
+
+  // Control: without the limit the same call replaces the file.
+  EXPECT_EQ(kiss_vk::write_file_atomically(path, next), "");
+  EXPECT_EQ(contents(), next);
+  std::filesystem::remove_all(dir);
 }
 
 TEST(VulkanWorkGroupSize, MismatchWithLiteralLocalSizeThrows) {
