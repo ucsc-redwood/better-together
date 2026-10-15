@@ -16,9 +16,17 @@ function(bt_build_shaders)
 
     # glslc is a build-host tool: look it up on the host even when cross-compiling.
     set(ndk_hints)
-    if(DEFINED ANDROID_NDK)
-        file(GLOB ndk_hints ${ANDROID_NDK}/shader-tools/*)
-    endif()
+    foreach(
+        ndk
+        "${ANDROID_NDK}"
+        "${CMAKE_ANDROID_NDK}"
+        "$ENV{ANDROID_NDK_HOME}"
+    )
+        if(ndk)
+            file(GLOB found_hints ${ndk}/shader-tools/*)
+            list(APPEND ndk_hints ${found_hints})
+        endif()
+    endforeach()
     find_program(BT_GLSLC glslc HINTS ${ndk_hints} NO_CMAKE_FIND_ROOT_PATH)
     if(NOT BT_GLSLC)
         message(
