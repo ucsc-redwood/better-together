@@ -42,6 +42,10 @@ class Engine final : public BaseEngine {
     }
     // The registry's subgroup size is a cross-check only (design D5).
     check_vulkan_subgroup_size(subgroup_size());
+    // Phase timing (BT_VK_PHASES=1) relies on the calibration: verify it once (design D1).
+    if (const char* v = std::getenv("BT_VK_PHASES"); v != nullptr && std::string_view(v) == "1") {
+      check_calibration();
+    }
 
     // One pipeline cache for every Algorithm, persisted across runs (design D7). Created
     // last: nothing after it can throw, and ~Engine is what saves and destroys it.

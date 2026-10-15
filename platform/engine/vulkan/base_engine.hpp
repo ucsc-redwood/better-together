@@ -70,6 +70,9 @@ class BaseEngine {
   // One (device tick, CLOCK_MONOTONIC ns) pair via VK_KHR/EXT_calibrated_timestamps; false
   // when the device lacks them (design D1).
   [[nodiscard]] bool calibrate(uint64_t& device_ticks, uint64_t& host_ns) const;
+  // Turns calibration off (with a warning) if a queue timestamp does not fall between two
+  // calibrated device ticks around it: the domains are then not correlated (design D1).
+  void check_calibration();
 
  protected:
   void initialize_dynamic_loader();
@@ -84,6 +87,8 @@ class BaseEngine {
   // Pins subgroup-dependent pipelines to `size` instead of the device default. Throws
   // unless pinning is available and `size` is a power of two in [min, max].
   void override_subgroup_size(uint32_t size);
+
+  [[nodiscard]] uint32_t queue_family_timestamp_bits() const;
 
   // Handles
   vk::Instance instance_;

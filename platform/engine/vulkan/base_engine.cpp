@@ -543,6 +543,66 @@ void BaseEngine::create_device() {
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);
 }
 
+void BaseEngine::check_calibration() {
+  if (calibrated_timestamps_fn_ == nullptr) return;
+  // A queue timestamp written between two calibration pairs must lie between their device
+  // ticks. RADV 25.2.7 on the 780M (PHOENIX) puts it ~2.9e9 ticks (29 s) later, a constant
+  // offset between the two counters; mapping through it would make every latency garbage.
+  const uint32_t valid_bits = queue_family_timestamp_bits();
+  if (valid_bits == 0) return;
+  const vk::QueryPool query = device_.createQueryPool(
+      vk::QueryPoolCreateInfo{.queryType = vk::QueryType::eTimestamp, .queryCount = 1});
+  const vk::CommandPool pool = device_.createCommandPool(
+      vk::CommandPoolCreateInfo{.queueFamilyIndex = compute_queue_family_index_});
+  const vk::Fence fence = device_.createFence({});
+  const vk::CommandBuffer cmd = device_
+                                    .allocateCommandBuffers(vk::CommandBufferAllocateInfo{
+                                        .commandPool = pool,
+                                        .level = vk::CommandBufferLevel::ePrimary,
+                                        .commandBufferCount = 1,
+                                    })
+                                    .front();
+  cmd.begin(vk::CommandBufferBeginInfo{});
+  cmd.resetQueryPool(query, 0, 1);
+  cmd.writeTimestamp2(vk::PipelineStageFlagBits2::eAllCommands, query, 0);
+  cmd.end();
+
+  uint64_t before = 0, after = 0, host = 0, ts = 0;
+  bool ok = calibrate(before, host);
+  compute_queue_.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &cmd}, fence);
+  ok = ok && device_.waitForFences(1, &fence, VK_TRUE, UINT64_MAX) == vk::Result::eSuccess;
+  ok = ok && calibrate(after, host);
+  ok = ok &&
+       device_.getQueryPoolResults(query,
+                                   0,
+                                   1,
+                                   sizeof(ts),
+                                   &ts,
+                                   sizeof(ts),
+                                   vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait) ==
+           vk::Result::eSuccess;
+  device_.destroyFence(fence);
+  device_.destroyCommandPool(pool);
+  device_.destroyQueryPool(query);
+
+  const uint64_t mask = valid_bits >= 64 ? ~uint64_t{0} : (uint64_t{1} << valid_bits) - 1;
+  ts &= mask;
+  if (ok && ts >= (before & mask) && ts <= (after & mask)) return;
+  spdlog::warn(
+      "Calibrated timestamps: a queue timestamp ({}) lies outside the calibrated device ticks "
+      "around it ({}..{}, offset {} ticks); GPU and host phases stay uncorrelated",
+      ts,
+      before & mask,
+      after & mask,
+      static_cast<int64_t>(ts - (before & mask)));
+  calibrated_timestamps_fn_ = nullptr;
+}
+
+uint32_t BaseEngine::queue_family_timestamp_bits() const {
+  return physical_device_.getQueueFamilyProperties()[compute_queue_family_index_]
+      .timestampValidBits;
+}
+
 bool BaseEngine::calibrate(uint64_t& device_ticks, uint64_t& host_ns) const {
   if (calibrated_timestamps_fn_ == nullptr) return false;
   const std::array<VkCalibratedTimestampInfoKHR, 2> infos{{

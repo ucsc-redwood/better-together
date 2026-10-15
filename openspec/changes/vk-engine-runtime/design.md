@@ -342,6 +342,14 @@ two-GPU-chunk test is added.
     CLOCK_MONOTONIC domains, a calibration pair sampled right after the wait maps the GPU start/end timestamps onto
     the host clock, splitting the wait into start latency + GPU + wake. Without it the split is reported as
     uncorrelated (`calibrated=0`).
+  - *Calibration is verified, and fails on rocky.* With `BT_VK_PHASES=1` the Engine first checks that a queue
+    timestamp lies between the calibrated device ticks taken just before and after it. On rocky-ryzen (RADV 25.2.7,
+    PHOENIX) it does not: queue timestamps run a constant ≈2.898e9 ticks (28.98 s at 10 ns) ahead of
+    `VK_TIME_DOMAIN_DEVICE`, at the same rate (a probe saw the offset stable to ±0.3 ms over three submissions). This
+    is a driver defect: Mesa 26.2.4 on the build box's iGPU passes the check. The engine then warns, naming the
+    offset, and reports rocky's phases as uncorrelated (the submission spec's "Device without calibrated timestamps"
+    path). There, start latency + wake are reported only together, as wait − GPU. The Pixel 7a (KHR) and the
+    Samsung (EXT) pass the check.
   - *Tool.* `bm-phases-{tree,cifar-dense}-vk --device <id> -s <start> -e <end> [--gap-ms G]` prints one CSV row per
     chunk and median summaries, and also times each stage alone so the chunk can be set against the solver's
     per-stage table sum.

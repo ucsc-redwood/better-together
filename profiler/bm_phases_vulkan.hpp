@@ -51,8 +51,8 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
   app.add_option("--gap-ms", gap_ms, "Idle gap after each chunk (ms)");
   PARSE_ARGS_END
 
-  spdlog::set_level(spdlog::level::off);
-  setenv("BT_VK_PHASES", "1", 1);  // read by every Sequence at construction
+  spdlog::set_level(spdlog::level::warn);  // e.g. an uncorrelated calibration (stderr)
+  setenv("BT_VK_PHASES", "1", 1);          // read by every Sequence at construction
 
   DispatcherT disp;
   std::set<int> gpu;
