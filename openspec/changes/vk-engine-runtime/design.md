@@ -269,6 +269,10 @@ default/boundary, weights, gpu_local.
     Samsung; the Pixel has no compute-only family, so it warns and stays on family 0.
   - Global priority: rocky's RADV refuses `high` with `VK_ERROR_NOT_PERMITTED` (presumably the amdgpu kernel's
     privilege check for high-priority contexts), so the engine warns and runs at the default; both phones accept `high` and `low`.
+  - **A/B and decision (tasks 3.2):** no arm beats universal/default beyond noise, so the default stays `universal`
+    at the driver's default priority. On rocky the `high` arms run at the default priority, because the driver
+    refuses `high` (VK_ERROR_NOT_PERMITTED); the A/B therefore cannot test a raised priority there. The phones accept
+    `high` but were not part of the A/B.
 
 **C2. One Sequence per GPU chunk.**
 - **API:** `dispatch_multi_stage(data, s, e, Sequence&)` overloads take a runtime-owned Sequence;

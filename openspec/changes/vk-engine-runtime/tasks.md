@@ -306,7 +306,35 @@ Gates used below:
   - Phones (`SPDLOG_LEVEL=debug ./test-kiss-vk --gtest_filter=VulkanEngineTest.EngineInitialization`): the Pixel with
     `BT_VK_QUEUE=compute` warns `no compute-only queue family; using family 0 (…)` and passes; the Samsung selects
     family 1. Both accept `high` and `low` (`priority high` / `priority low`).
-- [ ] 3.2 Run the queue A/B on rocky: tree × VK and cifar-dense × VK, isolated and under `bm-prof-*-vk` interference, for universal/compute × default/high, with 3 interleaved runs. Verify: tables and a decision on the default are recorded.
+- [x] 3.2 Run the queue A/B on rocky: tree × VK and cifar-dense × VK, isolated and under `bm-prof-*-vk` interference, for universal/compute × default/high, with 3 interleaved runs. Verify: tables and a decision on the default are recorded.
+  - *Evidence (rocky-ryzen, code 4321e25):* `bm-prof-{tree,cifar-dense}-vk --device minipc --benchmark_filter='vulkan/'`
+    (the GPU cells only), `BT_PROF_SCENARIO` isolated and interference (every CPU tier saturated with the same stage
+    while the GPU cell is measured), timed by GPU timestamps (`gpu`) and by host wall clock around each dispatch
+    (`wall`, `BT_PROF_GPU_WALLCLOCK=1`). Arms `BT_VK_QUEUE` ∈ {universal, compute} × `BT_VK_QUEUE_PRIORITY` ∈
+    {default, high}.
+    - 3 runs, interleaved over every app × scenario × timing × arm: 96 runs, all exit 0.
+    - Before each run: 5 s settle, then `gpu_busy_percent` 0, 1-min load < 0.5 (recorded 0.19–0.49), no other
+      `/dev/dri` holder; `powersave`, DPM `auto`.
+  - Metric: the sum over the app's stages of each GPU cell's p50 (ms), per run → mean (Δ vs universal:default):
+
+    | app | scenario | timing | universal:default | universal:high | compute:default | compute:high | universal:default spread |
+    |---|---|---|---|---|---|---|---|
+    | tree | isolated | gpu | 1.5407 / 1.5456 / 1.5473 → 1.5445 (+0.0 %) | 1.5422 / 1.5323 / 1.5441 → 1.5395 (-0.3 %) | 1.5451 / 1.5446 / 1.5436 → 1.5444 (-0.0 %) | 1.5406 / 1.5438 / 1.5465 → 1.5436 (-0.1 %) | 0.0066 |
+    | tree | isolated | wall | 2.0132 / 2.0327 / 2.0117 → 2.0192 (+0.0 %) | 2.0620 / 2.5158 / 2.0100 → 2.1959 (+8.8 %) | 2.0166 / 2.0503 / 3.1861 → 2.4177 (+19.7 %) | 2.0424 / 2.0436 / 2.0251 → 2.0370 (+0.9 %) | 0.0209 |
+    | tree | interference | gpu | 1.6560 / 1.6552 / 1.6479 → 1.6530 (+0.0 %) | 1.6490 / 1.6514 / 1.6502 → 1.6502 (-0.2 %) | 1.6473 / 1.6503 / 1.6599 → 1.6525 (-0.0 %) | 1.6562 / 1.6586 / 1.6592 → 1.6580 (+0.3 %) | 0.0081 |
+    | tree | interference | wall | 2.2221 / 2.1508 / 2.2369 → 2.2032 (+0.0 %) | 2.2143 / 2.1893 / 2.1621 → 2.1886 (-0.7 %) | 2.1968 / 2.2337 / 2.2247 → 2.2184 (+0.7 %) | 2.2038 / 2.1879 / 2.2025 → 2.1981 (-0.2 %) | 0.0861 |
+    | cifar-dense | isolated | gpu | 8.9309 / 8.5441 / 8.5056 → 8.6602 (+0.0 %) | 8.5568 / 8.9164 / 8.5474 → 8.6735 (+0.2 %) | 8.5602 / 8.5316 / 8.4902 → 8.5273 (-1.5 %) | 8.4733 / 8.9001 / 8.4658 → 8.6131 (-0.5 %) | 0.4253 |
+    | cifar-dense | isolated | wall | 9.8267 / 10.6761 / 10.6572 → 10.3867 (+0.0 %) | 9.7540 / 11.1755 / 10.7730 → 10.5675 (+1.7 %) | 11.5509 / 10.2915 / 9.8625 → 10.5683 (+1.7 %) | 10.7303 / 9.3370 / 11.5084 → 10.5253 (+1.3 %) | 0.8494 |
+    | cifar-dense | interference | gpu | 10.9127 / 10.8760 / 10.8841 → 10.8909 (+0.0 %) | 10.9044 / 10.8344 / 10.8473 → 10.8621 (-0.3 %) | 10.8719 / 10.8949 / 10.9204 → 10.8957 (+0.0 %) | 10.8872 / 10.8859 / 10.8389 → 10.8707 (-0.2 %) | 0.0367 |
+    | cifar-dense | interference | wall | 12.4491 / 12.3073 / 12.2820 → 12.3461 (+0.0 %) | 12.1202 / 12.3016 / 12.3051 → 12.2423 (-0.8 %) | 12.2514 / 12.2663 / 12.3133 → 12.2770 (-0.6 %) | 12.2831 / 12.2657 / 12.2874 → 12.2787 (-0.5 %) | 0.1672 |
+
+  - Every arm's mean is within ±1.5 % of universal:default, mostly inside its spread. Two wall-clock means move
+    more (tree isolated universal:high +8.8 %, compute:default +19.7 %), each because of one outlier run (2.5158 and
+    3.1861 ms) while its other two runs sit with the base.
+  - The `high` arms ran at the **default** priority: rocky's driver refuses `high` (`VK_ERROR_NOT_PERMITTED`, see
+    3.1; `bm-prof` keeps logging off, so the warning is not in these logs). So the priority half of the A/B could
+    not be measured on rocky.
+  - **Decision: the defaults stay** (`universal` family, driver-default priority); recorded in design.md C1.
 - [x] 3.3 Move the touched-buffer set into `Sequence`, add the `Engine` submit mutex and the `dispatch_multi_stage(…, Sequence&)` overloads (C2). Verify: the rocky gate and phone gate are green; a new test runs two threads with their own Sequences against one dispatcher for 1,000 items under `BT_VK_VALIDATION=1`, with 0 validation errors.
   - *Evidence:* the touched set moved into `Sequence` in 2.4 (`Sequence::touched_buffers()`, flushed and
     invalidated through the owning resource). `Engine` owns a `std::mutex` that every one of its Sequences locks
