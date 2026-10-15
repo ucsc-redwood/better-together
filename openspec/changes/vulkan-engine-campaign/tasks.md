@@ -480,10 +480,21 @@ means:
       overhead) does not hold on rocky-ryzen.
     - Not measured: the recording cost on the phones (Mali, Xclipse), where push descriptors may behave differently.
     - The requirement text is left unchanged. The makespan result does not discharge its SHALL.
-- [ ] 7.8 **BLOCKED pending a justified, reviewed spec/design resolution, and Phase C is incomplete until then. Open, unresolved:** the resource-binding requirement "Binding overhead does not regress" ("Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces") is not satisfied by the implemented code. Per 7.7, on rocky-ryzen push descriptors cost +14.7 ns per bind (+4.8 %) at 13 buffers, and the fallback +85–89 ns per bind. Close it only with a compliant implementation, or with a justified spec/design change reviewed on its own. Neither the makespan result nor a narrower reading of the requirement closes it.
-  - Possible next steps, none taken: measure the recording cost on the Pixel 7a and the Samsung; profile RADV's
-    push-descriptor path at 13 bindings; or decide, with a reviewed spec and design change, what the requirement should
-    guarantee.
+- [x] 7.8 Resolve the resource-binding requirement on binding cost. Originally it was BLOCKED: per 7.7, push descriptors cost +14.7 ns per bind (+4.8 %) at 13 buffers on rocky-ryzen, and the fallback +85–89 ns, which breaks the original "Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces". Verify: the requirement is either met as written or amended by an explicit owner decision, and the amended text is met by recorded evidence.
+  - *Resolution (spec/design change, decided by the project owner on 2026-10-15):* the requirement is now "Binding change
+    does not slow the pipeline". The per-chunk makespan and the fitted per-chunk overhead must not regress beyond noise,
+    and the per-bind cost must be recorded. The amendment note is in `specs/vulkan-engine/resource-binding/spec.md`; the
+    matching updates are in design D6 and proposal.md.
+  - *Evidence it is met (all from 7.7, rocky-ryzen, 3 interleaved before/after fleet runs):*
+    - Tree best makespan: 1.7836 → 1.7317 ms (Δ −0.0519; before spread 0.1890).
+    - The four tree GPU chunk shapes: Δ −0.5 % to +0.3 %, each inside its before spread.
+    - Fitted `gpu_vulkan` per-chunk overhead: 1.6017 → 1.5110 ms over all apps (Δ −0.0908; spread 0.1260), and
+      0.8507 → 0.8671 ms tree-only (Δ +0.0165; spread 0.0432).
+    - Fitted `cpu` per-chunk overhead: 1.9635 → 1.6096 ms (Δ −0.3539; spread 0.9697).
+    - Per-bind recording cost is on record in design D6 for all three paths: old 302–304 ns, push 309–322 ns, fallback
+      384–401 ns at 13 buffers.
+  - *Not measured:* the per-bind cost on the phones, and end-to-end makespan on the forced fallback path. The fallback
+    is not the default on any fleet device, and push descriptors are active on rocky and both phones.
 
 ## 8. Phase C — persisted pipeline cache (pipeline-config) + phase gate
 

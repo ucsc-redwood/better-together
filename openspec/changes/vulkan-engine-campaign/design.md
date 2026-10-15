@@ -149,11 +149,17 @@ device makes the suites skip rather than crash.
     384–401 ns.
   - A tree chunk binds 20 times, so binding is a few µs of a ~1.7 ms makespan. The tree × VK
     makespan and the fitted overhead constants are unchanged within noise.
-  - The resource-binding requirement "Per-dispatch host-side binding cost SHALL be no greater than
-    the descriptor-update path it replaces" is therefore **not satisfied**: not per bind at 13
-    buffers, and not on the fallback. The unchanged makespan does not discharge it. It stays open
-    (tasks.md 7.8) until a compliant implementation or a justified, reviewed spec/design change;
-    it was not tuned around.
+  - The original resource-binding requirement ("Per-dispatch host-side binding cost SHALL be no
+    greater than the descriptor-update path it replaces") was not met per bind, so the actor left
+    it open (tasks.md 7.8) and did not tune around it.
+  - **Resolution, decided by the project owner:** the requirement was amended to the end-to-end
+    bound it stood in for: makespan and fitted per-chunk overhead must not regress beyond noise,
+    which holds. The per-bind cost must be recorded, which it is (above). See the amendment note in
+    `specs/vulkan-engine/resource-binding/spec.md`.
+  - **What Phase C's binding change is worth:** simpler code, not speed. It removes `num_sets()`,
+    the per-Algorithm descriptor pools and sets, and the per-stage set-index bookkeeping at the 41
+    dispatcher call sites. It does not make tree × VK faster on RADV. Phones were not
+    micro-benchmarked.
 
 ### D7. Pipeline cache: one per engine, persisted
 - `Engine` owns one `vk::PipelineCache`, passed to each `Algorithm`.
