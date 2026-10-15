@@ -17,6 +17,9 @@ namespace kiss_vk {
 class Engine final : public BaseEngine {
  public:
   // The Khronos validation layer is opt-in: requested only when BT_VK_VALIDATION=1.
+  // mr_ptr_ is initialized below; CI's clang-tidy (pc build, no Vulkan headers) can't parse
+  // the initializer and misreports it.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit Engine()
       : BaseEngine(validation_requested()),
         mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {

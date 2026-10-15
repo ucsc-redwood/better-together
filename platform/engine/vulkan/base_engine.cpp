@@ -232,8 +232,8 @@ bool has_integrated_gpu() noexcept {
 namespace {
 template <typename Features>
 struct RequiredFeature {
-  const char* name;
-  vk::Bool32 Features::* member;
+  const char* name = nullptr;
+  vk::Bool32 Features::* member = nullptr;
 };
 
 constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 3>
