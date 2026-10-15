@@ -185,6 +185,7 @@ TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
   constexpr int kBuffers = 3;
   constexpr int kRounds = 25;
   std::vector<std::pmr::vector<uint32_t>> outs;
+  outs.reserve(kBuffers);
   for (int b = 0; b < kBuffers; ++b) outs.emplace_back(4, 0, engine.get_mr());
 
   for (int submit = 0; submit < 2; ++submit) {  // the second cmd_begin() reuses the pools
@@ -267,7 +268,8 @@ class PipelineCacheTest : public ::testing::Test {
     return {std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
   }
   static void write_file(const std::string& path, const std::vector<char>& data) {
-    std::ofstream(path, std::ios::binary | std::ios::trunc).write(data.data(), data.size());
+    std::ofstream(path, std::ios::binary | std::ios::trunc)
+        .write(data.data(), static_cast<std::streamsize>(data.size()));
   }
 
   std::filesystem::path dir_;

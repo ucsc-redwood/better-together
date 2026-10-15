@@ -129,8 +129,10 @@ jobs:
   clang-tidy:
     # Static analysis (.clang-tidy) scoped to the lines changed in the PR, so the
     # curated checks gate NEW code without the legacy tree's findings walling the gate.
-    # Configure-only: pc needs no build (the codegen headers are committed), just the
-    # compile_commands.json that `cmake --preset pc` writes.
+    # Configure-only: no build is needed (the codegen headers are committed), just a
+    # compile_commands.json. It comes from the `vulkan` preset, a superset of pc that also
+    # lists the Vulkan TUs, with the Vulkan headers CPM-fetched at configure time. Under pc
+    # those TUs had no headers, so clang-tidy misparsed them into false positives.
     name: clang-tidy (changed lines)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
@@ -147,9 +149,10 @@ jobs:
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
           restore-keys: cpm-${{ runner.os }}-
       - name: Install clang-tidy
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+        # libomp-dev: Ubuntu's clang-tidy can't find GCC's omp.h.
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy libomp-dev
       - name: Configure (writes compile_commands.json)
-        run: cmake --preset pc
+        run: cmake --preset vulkan
       - name: Fetch clang-tidy-diff helper
         run: |
           curl -fsSL -o clang-tidy-diff.py \
@@ -158,13 +161,13 @@ jobs:
         run: |
           base='${{ github.event.pull_request.base.sha }}'
           out=$(git diff -U0 "$base" -- '*.cpp' '*.hpp' '*.cu' '*.cuh' \
-            | python3 clang-tidy-diff.py -p1 -path build/pc -j"$(nproc)" 2>&1) || true
+            | python3 clang-tidy-diff.py -p1 -path build/vulkan -j"$(nproc)" 2>&1) || true
           echo "$out"
           # Fail only on first-party clang-tidy CHECK findings on changed lines.
-          # Ignore clang-diagnostic-* : a Vulkan/CUDA TU isn't built under the pc
-          # preset, so clang-tidy reports its backend headers as "file not found".
-          # That's the known hosted-coverage gap (the fleet build / `just tidy` lints
-          # those), not a code issue, and must not wall the gate.
+          # Ignore clang-diagnostic-* : CUDA TUs aren't in the vulkan preset's
+          # compile_commands, so clang-tidy reports their headers as "file not found".
+          # That's the known hosted-coverage gap (the Jetson build lints those), not a
+          # code issue, and must not wall the gate.
           findings=$(echo "$out" | grep -E ': (warning|error): ' | grep -vE '\[clang-diagnostic-' || true)
           if [ -n "$findings" ]; then
             echo "::error::clang-tidy reported issues on changed lines (see log above)"

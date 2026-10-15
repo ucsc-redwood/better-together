@@ -258,16 +258,20 @@ tsan:
 
 # Lint only the lines changed vs a base ref (default: origin/main) so legacy
 # findings never wall the gate -- the same gate CI runs. `build` is the compile-db
-# dir: build/pc lints the OMP surface anywhere; pass build/vulkan (or build/jetson)
-# on a box that has them to also lint the GPU engine TUs. Fails on first-party check
-# findings; ignores clang-diagnostic-* (a backend TU absent from `build`).
-tidy base="origin/main" build="build/pc":
+# dir: build/vulkan (default, as in CI) lints the OMP + Vulkan surface anywhere, since
+# the Vulkan headers are CPM-fetched; pass build/jetson on a box that has it to also lint
+# the CUDA TUs. Fails on first-party check findings; ignores clang-diagnostic-* (a
+# backend TU absent from `build`).
+tidy base="origin/main" build="build/vulkan":
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{justfile_directory()}}"
-    test -f "{{build}}/compile_commands.json" || cmake --preset pc
+    test -f "{{build}}/compile_commands.json" || cmake --preset vulkan
+    # Debian/Ubuntu ship it under /usr/bin or /usr/lib/llvm-*; Fedora under /usr/share/clang.
     script=$(command -v clang-tidy-diff.py 2>/dev/null \
-      || ls /usr/bin/clang-tidy-diff*.py /usr/lib/llvm-*/share/clang/clang-tidy-diff.py 2>/dev/null | head -1)
+      || ls /usr/bin/clang-tidy-diff*.py /usr/lib/llvm-*/share/clang/clang-tidy-diff.py \
+        /usr/share/clang/clang-tidy-diff.py 2>/dev/null | head -1 || true)
+    [ -n "$script" ] || { echo "error: clang-tidy-diff.py not found (install clang-tools-extra)" >&2; exit 1; }
     out=$(git diff -U0 "{{base}}" -- '*.cpp' '*.hpp' '*.cu' '*.cuh' \
       | python3 "$script" -p1 -path "{{build}}" -j"$(nproc)" 2>&1) || true
     echo "$out"
