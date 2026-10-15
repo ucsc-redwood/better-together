@@ -18,7 +18,7 @@ inline constexpr uint32_t kSubgroupSizeSpecId = 0;
 // What Algorithm needs from a compute shader's SPIR-V, found by a scan of the module's
 // OpDecorate SpecId, OpExecutionMode LocalSize and OpExecutionModeId LocalSizeId.
 struct SpirvReflection {
-  std::set<uint32_t> spec_ids;  // every SpecId the module declares
+  std::set<uint32_t> spec_ids{};  // every SpecId the module declares
   // Workgroup size: the LocalSize literals, or the LocalSizeId constants' (default) values.
   std::array<uint32_t, 3> local_size{};
   // The SpecId behind each LocalSizeId operand (`local_size_{x,y,z}_id`), if any.
@@ -154,7 +154,7 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   // vk::DescriptorSet descriptor_set_ = nullptr;
 
   // Instead of a single descriptor_set_, store a vector.
-  std::vector<vk::DescriptorSet> descriptor_sets_;
+  std::vector<vk::DescriptorSet> descriptor_sets_{};
   uint32_t descriptor_set_count_ = 1;  // default to 1
 
   std::string shader_name_;
@@ -164,7 +164,7 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
 
   // Payloads (buffers and push constants)
   std::array<std::byte, 128> push_constants_buffer_;
-  std::vector<vk::DescriptorBufferInfo> buffer_infos_;
+  std::vector<vk::DescriptorBufferInfo> buffer_infos_{};
 
   struct {
     std::vector<uint32_t> spirv_binary;
