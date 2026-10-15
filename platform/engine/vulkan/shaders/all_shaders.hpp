@@ -65,9 +65,8 @@ namespace shaders {
 #include "h/engine_test_workgroup_size_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
-// The baked-header variable name is the bare .spv basename (xxd -i run from the
-// spv/ dir), so it is independent of the source-tree path -- relocating the
-// shaders dir (as the P5a component move did) no longer breaks these references.
+// The generated header's variable name is the bare .comp basename (see
+// cmake/bt_embed_spv.cmake), so it is independent of the source-tree path.
 #define SHADER_ENTRY(name)                \
   {                                       \
     #name, { name##_spv, name##_spv_len } \

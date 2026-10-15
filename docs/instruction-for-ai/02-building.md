@@ -104,6 +104,11 @@ scripts/run-on-rocky.sh               # all Vulkan tests; or pass targets to nar
 ```
 
 `libvulkan` is loaded via `dlopen` at runtime, so the binary doesn't link it.
+
+Every Vulkan build compiles `platform/engine/vulkan/shaders/comp/*.comp` with **`glslc`** at build
+time (`cmake/bt_shaders.cmake`; nothing generated is committed). Install it on the build host
+(`apt install glslc`); the Android preset finds the NDK's copy, and `Dockerfile.cross-7.2` ships it
+(rebuild `bt-cross:7.2` once to pick it up). Configure fails with a clear message if it is missing.
 (rocky-ryzen is also fish — the script uses `ssh … bash -s`; see [`01-hardware.md`](01-hardware.md).)
 
 ## `android` — arm64-v8a (OpenMP + Vulkan), cross-compiled

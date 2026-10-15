@@ -179,8 +179,7 @@ test-samsung:
 # File sets come from `git ls-files`, so untracked + build/ + _deps are skipped.
 # Generated code is excluded — codegen re-emits it unformatted at build time, so
 # formatting it is futile and makes fmt-check non-deterministic: the */generated/
-# headers (device_specs_embedded.hpp, bt_vocab.hpp), the baked shader headers
-# (platform/engine/vulkan/shaders/h/*_spv.h — all .h), and the .comp GLSL. The
+# headers (device_specs_embedded.hpp, bt_vocab.hpp) and the .comp GLSL. The
 # Python codegen output (optimizer/smt/bt_vocab.py) is excluded via pyproject.
 
 # Format the whole tree in place.
