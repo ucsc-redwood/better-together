@@ -504,3 +504,15 @@ Gates used below:
     README. It has the knob/default table, the measurement tables per topic (barrier counts, fc1/fc2 placement, queue
     A/B, phases, idle gap, 4.5 refit) and the open follow-ups.
 - [ ] 5.2 Final gate at the last commit: local, rocky gate, phone gate and sync-val. Verify: all green, with results listed in the PR.
+  - *Results at f51f815 (the code is 1ffb88f's; 4aaddd8 and f51f815 change only docs):*
+    - local: `ctest --test-dir build/pc -L omp` 9/9; `uv run pytest -q optimizer` 21 passed.
+    - rocky gate (`--device minipc`): `ctest -L vulkan` 7/7; `test-kiss-vk` / tree / cifar-dense / cifar-sparse
+      29 / 17 / 13 / 13.
+    - sync-val (rocky, with the heuristic and `VK_LOADER_DEBUG=layer`): those four plus `test-pipeline-e2e-vk` 5/5 and
+      `test-pipeline-e2e-cifar-dense-vk` 3/3. 0 `Validation Error`, 0 `SYNC-HAZARD`; the validation layer was inserted
+      40 / 18 / 13 / 13 / 7 / 3 times.
+  - **Phone gate: not run, so 5.2 stays open.** Both phones are attached to the build box (`lsusb` lists them), but
+    this session's process could not open `/dev/bus/usb` (seccomp, NoNewPrivs; `adb devices` reports both as `no
+    permissions`). Running `scripts/run-on-android.sh 3A021JEHN02756 …` and `… R5CY21Y3VEV …` with the four VK test
+    targets from a normal shell closes it. The last phone results are 4.4's (all green at depths 1 and 2).
+  - No PR was opened. The results are listed here.
