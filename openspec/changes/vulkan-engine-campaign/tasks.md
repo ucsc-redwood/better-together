@@ -480,7 +480,7 @@ means:
       overhead) does not hold on rocky-ryzen.
     - Not measured: the recording cost on the phones (Mali, Xclipse), where push descriptors may behave differently.
     - The requirement text is left unchanged. The makespan result does not discharge its SHALL.
-- [ ] 7.8 **Open, unresolved:** the resource-binding requirement "Binding overhead does not regress" ("Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces") is not satisfied by the implemented code. Per 7.7, on rocky-ryzen push descriptors cost +14.7 ns per bind (+4.8 %) at 13 buffers, and the fallback +85–89 ns per bind. Close it only with a compliant implementation, or with a justified spec/design change reviewed on its own. Neither the makespan result nor a narrower reading of the requirement closes it.
+- [ ] 7.8 **BLOCKED pending a justified, reviewed spec/design resolution, and Phase C is incomplete until then. Open, unresolved:** the resource-binding requirement "Binding overhead does not regress" ("Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces") is not satisfied by the implemented code. Per 7.7, on rocky-ryzen push descriptors cost +14.7 ns per bind (+4.8 %) at 13 buffers, and the fallback +85–89 ns per bind. Close it only with a compliant implementation, or with a justified spec/design change reviewed on its own. Neither the makespan result nor a narrower reading of the requirement closes it.
   - Possible next steps, none taken: measure the recording cost on the Pixel 7a and the Samsung; profile RADV's
     push-descriptor path at 13 bindings; or decide, with a reviewed spec and design change, what the requirement should
     guarantee.
@@ -514,6 +514,17 @@ means:
     - The same rocky-ryzen check at 0b127b6:
       - run 1: the first engine logs `Pipeline cache: no file …, compiling cold`, then 11 misses + 22 hits;
       - run 2: `Pipeline cache: loaded 25820 bytes from …` → **33/33 `pipeline cache hit`**.
+  - *Second review fix (8e8302b + 52b582f):* the read never blocks and never throws out of Engine construction.
+    `read_pipeline_cache_file()`:
+    - opens with `O_NONBLOCK`, then requires a regular file by `fstat` on the opened descriptor;
+    - reads and checks the 32-byte header before allocating the payload;
+    - rejects a file over `kMaxPipelineCacheBytes` (64 MiB) unread. The largest fleet cache is 62,664 bytes (Pixel 7a).
+    - treats a failed allocation or read as rejected data;
+    - closes the descriptor via RAII on every path.
+    - `load_pipeline_cache` also turns any other exception from the read into a cold compile.
+    - design D7 records these guards and the bound.
+    - The same rocky-ryzen check at 52b582f: run 1 `no file …, compiling cold`, 11 misses + 22 hits; run 2 `loaded 25820
+      bytes`, **33/33 hits**.
 - [x] 8.2 Add tests for a corrupt cache file, a cache from a foreign device or UUID, and a read-only directory. Verify: all three runs complete with unchanged results and a cold compile.
   - *Evidence (1e732ea):*
     - `PipelineCacheTest.*` in `test-kiss-vk`. Each test uses its own `bt-vk-cache-test-<pid>-<name>` directory under the
@@ -573,6 +584,51 @@ means:
       - a directory at the path: `ignoring … (not a regular file), compiling cold`, and it is still a directory
         afterwards;
       - read-only: `no file …, compiling cold`, with 0 files written.
+  - *Second review fix (8e8302b + 52b582f): two more defects in 0b127b6, reproduced first on the build box.*
+    - **FIFO at the cache path** (`/tmp/phase-c-review-fifo-repro.py`): the blocking `O_RDONLY` open waited for a writer
+      before `fstat` could reject the file, so `VulkanEngineTest.EngineInitialization` timed out after 5 s. Now: `FIFO
+      case exit: 0`, logging `ignoring … (not a regular file), compiling cold`.
+    - **Sparse 2 GiB file with a valid header** (`/tmp/phase-c-review-cache-size-repro.py`, `RLIMIT_DATA` 512 MiB): the
+      whole payload was allocated from the unchecked size, and Engine construction threw `std::bad_alloc`. Now: exit 0,
+      logging `ignoring … (2147483648 bytes exceeds the 67108864-byte limit), compiling cold`.
+    - New tests (test-kiss-vk 18 → 21):
+      - `PipelineCacheTest.FifoAtCachePathIsIgnoredWithoutBlocking`, bounded: Engine construction runs on a worker
+        thread. If it has not finished after 5 s, the test opens the FIFO's write end to release the blocked open, then
+        fails; the suite never hangs.
+      - `PipelineCacheTest.OversizedCacheFileIsIgnored`: a valid file extended sparsely to 64 MiB + 1 gives kRejected.
+      - `PipelineCacheFile.OversizedOrUnallocatableDataIsRejected`, hardware-free:
+        - A 2 GiB file is rejected for size, with nothing allocated, even with the soft `RLIMIT_AS` lowered to VmSize +
+          16 MiB.
+        - A 48 MiB file (under the bound) is read in a fresh child, this binary re-exec'd with `--cache-alloc-child`
+          under `RLIMIT_AS` = VmSize + 16 MiB. The child must report `cannot allocate 50331648 bytes` as kRejected.
+        - Control: with no limit the 48 MiB file loads in full.
+    - *Why a child process and `RLIMIT_AS` (52b582f, found on the phones):*
+      - `RLIMIT_DATA` does not cap bionic's allocator; the 48 MiB read loaded on both phones.
+      - In-process, memory the test process already holds (glibc keeps up to ~64 MiB at the heap top) could serve the
+        allocation: the case passed alone but failed after the earlier tests locally.
+      - In a fresh child it fails to allocate deterministically: 3/3 full local runs, both phones and rocky-ryzen.
+    - *FIFO on the phones:* Android's SELinux policy denies the shell domain `fifo_file create` in `/data/local/tmp`
+      (`avc: denied { create } … scontext=u:r:shell:s0 tcontext=u:object_r:shell_data_file:s0 tclass=fifo_file`; plain
+      `mkfifo` and `mknod p` fail too). A FIFO cannot exist at the cache path there.
+      - The test therefore **skips** on the two phones, only when `mkfifo` fails with EACCES/EPERM, and says so. Any
+        other `mkfifo` error fails the test.
+      - The test runs and passes on rocky-ryzen and the build box, where the defect was reproducible. This is the one
+        skip in the Phase C gate.
+    - *Mutation checks (build box, not committed). Each mutation fails only the tests aimed at it, and the restored code
+      passes 21/21:*
+      - a blocking open fails `FifoAtCachePathIsIgnoredWithoutBlocking`, in 6 s with no hang;
+      - removing the size bound fails `OversizedCacheFileIsIgnored` and `OversizedOrUnallocatableDataIsRejected`;
+      - leaving `bad_alloc` unhandled fails `OversizedOrUnallocatableDataIsRejected`.
+    - Through real Engines at 52b582f:
+      - rocky-ryzen `bm-fully-tree-vk -l debug`, first engine:
+        - a FIFO: `ignoring … (not a regular file), compiling cold`;
+        - a valid file extended to 2 GiB: `ignoring … (2147483648 bytes exceeds the 67108864-byte limit), compiling
+          cold`;
+        - corrupt, foreign UUID, directory and read-only behave as above.
+      - The full tree suite under each of the six conditions → 15/15.
+      - On the Pixel 7a and the Samsung, the 2 GiB file logs the same `exceeds … limit, compiling cold` line.
+      - All three review repro scripts (truncated write/directory, FIFO, 2 GiB) pass on the build box and on
+        rocky-ryzen.
 - [x] 8.3 Ignore `*.bin` pipeline-cache files in `.gitignore` and the fleet cleanup scripts, and document `BT_VK_PIPELINE_CACHE_DIR` in `03-unit-testing.md`. Verify: `git status` is clean after a local VK run.
   - *Evidence (1e732ea + the 03-unit-testing.md location fix):*
     - `.gitignore` gains `bt-vk-pipeline-cache-*.bin`, `bt-vk-pipeline-cache-*.bin.tmp.*` and `bt-vk-cache-test-*/`.
@@ -598,30 +654,41 @@ means:
       `XDG_RUNTIME_DIR=/tmp BUN_TMPDIR=$TMPDIR just fmt-check` passed all five stages (clang-format, ruff, gersemi,
       shfmt, prettier). In this sandbox Bun needs `BUN_TMPDIR=$TMPDIR`; `/tmp` gives EACCES.
 - [x] 8.4 Phase C gate: VK fleet gate green, including the Pixel 7a and Samsung with push descriptors active. Verify: the debug log on each phone shows which binding path is in use.
-  - *VK fleet gate, re-run at 0b127b6 (the review fix; later commits are docs-only). The first gate, at 1e732ea, was also
-    green: 16 / 15 / 12 / 12 everywhere, with the same ctest, validation and sg32 results.*
+  - *VK fleet gate, re-run at 52b582f (the final code; later commits are docs-only). Earlier gates at 1e732ea and 0b127b6
+    were also green.*
     - local `ctest -L omp` → 9/9 passed.
     - Bake / clean-tree check: `cmake --build build/vulkan --target bake-shaders` → no-op, `git status` clean. Phase C
       changes no shader (`git diff --stat 7cc0916 HEAD -- platform/engine/vulkan/shaders` is empty).
     - rocky-ryzen (`--device minipc`, `VK_LOADER_LAYERS_DISABLE='~all~'`), the same results on the default path (push
       descriptors) and with `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`:
-      - `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 18 / 15 / 12 / 12 PASSED, 0 skipped;
+      - `test-kiss-vk` / tree / cifar-dense / cifar-sparse → 21 / 15 / 12 / 12 PASSED, 0 skipped;
       - `ctest -L vulkan` → 7/7 (6 min 0 s on each path);
       - tree at `BT_VK_SUBGROUP_SIZE=32` → 15/15;
-      - with `BT_VK_VALIDATION=1` (layer inserted 26 / 16 / 12 / 12 times; the new directory test adds 2 engines) → 0
-        `Validation Error` lines and 0 `05137`, plus 0 in tree pinned at 32.
+      - with `BT_VK_VALIDATION=1` (layer inserted 30 / 16 / 12 / 12 times; the FIFO and oversized Engine tests add 2
+        engines each) → 0 `Validation Error` lines and 0 `05137`, plus 0 in tree pinned at 32;
+      - 0 `bt-vk-cache-test-*` dirs left.
     - Pixel 7a and Samsung (`scripts/run-on-android.sh <serial> test-kiss-vk test-tree-vk test-cifar-dense-vk
-      test-cifar-sparse-vk`) → 18 / 15 / 12 / 12 on both, 0 skipped, script exit 0. That includes both review tests
-      (the `RLIMIT_FSIZE` test also works under Android's adb shell). Samsung tree at `BT_VK_SUBGROUP_SIZE=32` → 15/15.
+      test-cifar-sparse-vk`) → script exit 0 on both:
+      - `test-kiss-vk` 20 passed + **1 skipped**: `FifoAtCachePathIsIgnoredWithoutBlocking`, because SELinux forbids the
+        FIFO (see 8.2);
+      - tree / cifar-dense / cifar-sparse → 15 / 12 / 12;
+      - Samsung tree at `BT_VK_SUBGROUP_SIZE=32` → 15/15; 0 test dirs left.
     - Binding path, from the debug log (`SPDLOG_LEVEL=debug ./test-kiss-vk --gtest_filter=VulkanEngineTest.EngineInitialization`):
       `Descriptor binding: push descriptors (VK_KHR_push_descriptor)` on rocky-ryzen (Radeon 780M), the Pixel 7a
       (Mali-G710) and the Samsung (Xclipse 940), as expected from gpuinfo. With the forced fallback on rocky-ryzen:
       `transient descriptor pool (forced by BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)`.
-    - test-kiss-vk grew from 10 to 18 tests:
+    - test-kiss-vk grew from 10 to 21 tests:
       - `BothPaths/VulkanBinding.SameKernelManyBuffersInOneCommandBuffer/{PushDescriptors,Fallback}`;
-      - `PipelineCacheTest.{SecondRunLoadsTheSavedCache,CorruptFileIsIgnored,ForeignDeviceOrDriverIsIgnored,UnreadableCacheFileIsIgnored,ReadOnlyDirectoryRunsWithoutPersisting}`;
-      - `PipelineCacheFile.FailedWriteKeepsThePreviousFile`.
-    - Also green on the build box's own iGPU (RADV RAPHAEL_MENDOCINO): 18 / 15 / 12 / 12, `ctest -L vulkan` 7/7.
+      - `PipelineCacheTest.{SecondRunLoadsTheSavedCache,CorruptFileIsIgnored,ForeignDeviceOrDriverIsIgnored,UnreadableCacheFileIsIgnored,FifoAtCachePathIsIgnoredWithoutBlocking,OversizedCacheFileIsIgnored,ReadOnlyDirectoryRunsWithoutPersisting}`;
+      - `PipelineCacheFile.{FailedWriteKeepsThePreviousFile,OversizedOrUnallocatableDataIsRejected}`.
+    - Also green on the build box's own iGPU (RADV RAPHAEL_MENDOCINO): 21 / 15 / 12 / 12 (and `test-kiss-vk` 21/21
+      under the forced fallback), `ctest -L vulkan` 7/7.
+    - Formatting:
+      - `XDG_RUNTIME_DIR=/tmp BUN_TMPDIR=$TMPDIR BUN_INSTALL=$TMPDIR/bun just fmt-check` → exit 0, through the prettier
+        stage. Here `$TMPDIR` is a writable per-session directory; Bun fails with EACCES when its temp dir isn't
+        writable.
+      - The prettier step run directly (`git ls-files '*.json' ':(exclude)dashboard/*' | xargs bunx prettier@3.8.4
+        --check`) → "All matched files use Prettier code style!" over 19 files, exit 0.
     - **Phase C is not complete: 7.8 is open.** The gate is green, but the resource-binding requirement "per-dispatch
       host-side binding cost SHALL be no greater than the descriptor-update path it replaces" is not satisfied. On RADV
       it costs +14.7 ns per bind at 13 buffers, and the fallback costs +85–89 ns. The unchanged makespan does not
