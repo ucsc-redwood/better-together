@@ -1,9 +1,34 @@
 #pragma once
 
+#include <array>
+#include <optional>
+#include <set>
+#include <span>
+
+#include "base_engine.hpp"
 #include "vk.hpp"
 #include "vma_pmr.hpp"
 
 namespace kiss_vk {
+
+// Spec constant id carrying the subgroup size into subgroup-dependent shaders:
+// `layout(constant_id = 0) const uint SUBGROUP_SIZE = ...;` (design D5).
+inline constexpr uint32_t kSubgroupSizeSpecId = 0;
+
+// What Algorithm needs from a compute shader's SPIR-V, found by a scan of the module's
+// OpDecorate SpecId, OpExecutionMode LocalSize and OpExecutionModeId LocalSizeId.
+struct SpirvReflection {
+  std::set<uint32_t> spec_ids{};  // every SpecId the module declares
+  // Workgroup size: the LocalSize literals, or the LocalSizeId constants' (default) values.
+  std::array<uint32_t, 3> local_size{};
+  // The SpecId behind each LocalSizeId operand (`local_size_{x,y,z}_id`), if any.
+  std::array<std::optional<uint32_t>, 3> local_size_spec_id;
+};
+
+[[nodiscard]] SpirvReflection reflect_spirv(std::span<const uint32_t> words);
+
+// The baked SPIR-V of a shader in shaders/all_shaders.hpp; throws on an unknown name.
+[[nodiscard]] std::vector<uint32_t> load_shader_spirv(const std::string& shader_name);
 
 /**
  * @brief Calculate the ceiling of a division
@@ -20,7 +45,9 @@ constexpr auto div_ceil(size_t a, size_t b) { return (a + b - 1) / b; }
 
 class Algorithm final : public std::enable_shared_from_this<Algorithm> {
  public:
-  explicit Algorithm(VulkanMemoryResource* mr_ptr, std::string shader_name);
+  explicit Algorithm(VulkanMemoryResource* mr_ptr,
+                     std::string shader_name,
+                     const ComputeLimits& limits);
 
   // Destroys every Vulkan object this Algorithm created (VUID-vkDestroyDevice-device-05137).
   // Owners must destroy it before the Engine; dispatchers declare `engine` first, so their
@@ -36,7 +63,13 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   Algorithm& operator=(Algorithm&&) = delete;
 
   // Builder pattern
+  // The workgroup size the shader runs with: fed to its `local_size_{x,y,z}_id` spec
+  // constants where it declares them; elsewhere it must equal the SPIR-V's LocalSize.
+  // build() throws on a mismatch or when it exceeds the device's compute limits.
   [[nodiscard]] std::shared_ptr<Algorithm> work_group_size(uint32_t x, uint32_t y, uint32_t z);
+  // The shader depends on the subgroup size (spec constant kSubgroupSizeSpecId): it is
+  // specialized with the device's size, pinned when the device supports that (design D5).
+  [[nodiscard]] std::shared_ptr<Algorithm> subgroup_size_dependent();
   [[nodiscard]] std::shared_ptr<Algorithm> num_buffers(size_t n);
   [[nodiscard]] std::shared_ptr<Algorithm> num_sets(size_t count);
   [[nodiscard]] std::shared_ptr<Algorithm> push_constant_size(size_t size_in_bytes);
@@ -99,8 +132,6 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   [[nodiscard]] bool has_push_constants() const { return internal_.push_constant_size > 0; }
 
  private:
-  void load_compiled_shader();
-
   void create_shader_module();
   void create_descriptor_set_layout();
   void create_descriptor_pool();
@@ -123,14 +154,17 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   // vk::DescriptorSet descriptor_set_ = nullptr;
 
   // Instead of a single descriptor_set_, store a vector.
-  std::vector<vk::DescriptorSet> descriptor_sets_;
+  std::vector<vk::DescriptorSet> descriptor_sets_{};
   uint32_t descriptor_set_count_ = 1;  // default to 1
 
   std::string shader_name_;
+  ComputeLimits limits_;
+  SpirvReflection reflection_;
+  bool subgroup_size_dependent_ = false;
 
   // Payloads (buffers and push constants)
-  std::array<std::byte, 128> push_constants_buffer_;
-  std::vector<vk::DescriptorBufferInfo> buffer_infos_;
+  std::array<std::byte, 128> push_constants_buffer_{};
+  std::vector<vk::DescriptorBufferInfo> buffer_infos_{};
 
   struct {
     std::vector<uint32_t> spirv_binary;

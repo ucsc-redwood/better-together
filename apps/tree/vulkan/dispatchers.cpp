@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "platform/registry/device_registry.hpp"
 #include "platform/util/debug_logger.hpp"
 
 namespace tree::vulkan {
@@ -34,7 +33,7 @@ struct InputSizePushConstantsUnsigned {
 };
 
 // Multi-workgroup (device-wide) radix sort push constants (shared by the
-// histogram and scatter passes); see multi_radixsort_*.comp.
+// histogram and scatter passes); see multi_radixsort{,_histograms}.comp.
 struct RadixSortPushConstants {
   uint32_t g_num_elements;
   uint32_t g_shift;
@@ -133,13 +132,15 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   cached_algorithms.try_emplace("radix_histograms", std::move(radix_histograms_algo));
 
-  auto radix_scatter_algo =
-      engine.make_algo("multi_radixsort_warp" + std::to_string(get_vulkan_warp_size()))
-          ->work_group_size(256, 1, 1)
-          ->num_sets(4)
-          ->num_buffers(3)
-          ->push_constant<RadixSortPushConstants>()
-          ->build();
+  // The scatter pass's subgroup-sum array is sized by the subgroup width: one shader,
+  // specialized with the device's subgroup size (pinned where supported).
+  auto radix_scatter_algo = engine.make_algo("multi_radixsort")
+                                ->work_group_size(256, 1, 1)
+                                ->subgroup_size_dependent()
+                                ->num_sets(4)
+                                ->num_buffers(3)
+                                ->push_constant<RadixSortPushConstants>()
+                                ->build();
 
   cached_algorithms.try_emplace("radix_scatter", std::move(radix_scatter_algo));
 

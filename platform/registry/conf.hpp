@@ -81,6 +81,10 @@ class DeviceRegistry {
     throw std::runtime_error("Device not found: " + deviceId);
   }
 
+  [[nodiscard]] bool hasDevice(const std::string& deviceId) const {
+    return devices_.contains(deviceId);
+  }
+
  private:
   std::unordered_map<std::string, Device> devices_;
 };

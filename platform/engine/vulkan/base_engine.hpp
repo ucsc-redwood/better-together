@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,22 @@ using DispatchLoaderDynamic = vk::DispatchLoaderDynamic;
 #endif
 
 namespace kiss_vk {
+
+// What a compute pipeline may use on the selected device, fixed at device creation and
+// handed to every Algorithm (design D5).
+struct ComputeLimits {
+  // Device-reported default subgroup size (VkPhysicalDeviceSubgroupProperties), passed to
+  // subgroup-dependent shaders as spec constant 0. Never taken from devices/*.json.
+  uint32_t subgroup_size = 0;
+  uint32_t min_subgroup_size = 0;  // the range subgroup_size may be pinned to
+  uint32_t max_subgroup_size = 0;
+  // subgroupSizeControl is enabled and COMPUTE is in requiredSubgroupSizeStages, so
+  // subgroup-dependent pipelines require subgroup_size instead of letting the driver pick.
+  bool subgroup_size_pinned = false;
+  uint32_t max_compute_workgroup_subgroups = 0;  // 0 unless pinned
+  std::array<uint32_t, 3> max_work_group_size{};
+  uint32_t max_work_group_invocations = 0;
+};
 
 class BaseEngine {
  public:
@@ -40,6 +57,8 @@ class BaseEngine {
   [[nodiscard]] uint32_t get_compute_queue_family_index() const {
     return compute_queue_family_index_;
   }
+  [[nodiscard]] const ComputeLimits& compute_limits() const { return compute_limits_; }
+  [[nodiscard]] uint32_t subgroup_size() const { return compute_limits_.subgroup_size; }
 
  protected:
   void initialize_dynamic_loader();
@@ -50,6 +69,10 @@ class BaseEngine {
   void create_device(vk::QueueFlags queue_flags = vk::QueueFlagBits::eCompute);
 
   void initialize_vma_allocator() const;
+
+  // Pins subgroup-dependent pipelines to `size` instead of the device default. Throws
+  // unless pinning is available and `size` is a power of two in [min, max].
+  void override_subgroup_size(uint32_t size);
 
   // Handles
   vk::Instance instance_;
@@ -65,6 +88,7 @@ class BaseEngine {
   // g_vma_allocator is a process global: free it only if this engine created it.
   bool owns_vma_allocator_ = false;
   uint32_t compute_queue_family_index_;
+  ComputeLimits compute_limits_;
   std::vector<const char*> enabled_layers_;
 
   DynamicLoader dl_;
@@ -77,9 +101,10 @@ class BaseEngine {
 // suites) on a discrete-GPU-only box instead of crashing. noexcept: any failure -> false.
 [[nodiscard]] bool has_integrated_gpu() noexcept;
 
-// Names of the engine's required device features that `supported` lacks (empty: none).
-// Device creation throws with these names instead of running with a feature disabled.
+// Names of the engine's required device features that the supported sets lack (empty:
+// none). Device creation throws with these names instead of running with a feature disabled.
 [[nodiscard]] std::vector<std::string> missing_required_features(
-    const vk::PhysicalDeviceVulkan12Features& supported);
+    const vk::PhysicalDeviceVulkan12Features& supported_12,
+    const vk::PhysicalDeviceVulkan13Features& supported_13);
 
 }  // namespace kiss_vk

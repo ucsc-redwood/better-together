@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include <array>
+#include <bit>
 #include <limits>
 #include <string>
 #include <vector>
@@ -225,26 +226,38 @@ bool has_integrated_gpu() noexcept {
 // ----------------------------------------------------------------------------
 
 // The device features the engine requires -- exactly what the committed shaders' SPIR-V
-// capabilities (Int8, StorageBuffer8BitAccess) and the VMA allocator
-// (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) need. Only these are enabled.
+// capabilities (Int8, StorageBuffer8BitAccess), the VMA allocator
+// (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) and LocalSizeId (the SPIR-V 1.6 form of
+// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need. Only these are enabled.
 namespace {
+template <typename Features>
 struct RequiredFeature {
   const char* name = nullptr;
-  vk::Bool32 vk::PhysicalDeviceVulkan12Features::* member = nullptr;
+  vk::Bool32 Features::* member = nullptr;
 };
 
-constexpr std::array<RequiredFeature, 3> kRequiredVulkan12Features{{
-    {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
-    {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
-    {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
-}};
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 3>
+    kRequiredVulkan12Features{{
+        {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
+        {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
+        {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
+    }};
+
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 1>
+    kRequiredVulkan13Features{{
+        {"maintenance4", &vk::PhysicalDeviceVulkan13Features::maintenance4},
+    }};
 }  // namespace
 
 std::vector<std::string> missing_required_features(
-    const vk::PhysicalDeviceVulkan12Features& supported) {
+    const vk::PhysicalDeviceVulkan12Features& supported_12,
+    const vk::PhysicalDeviceVulkan13Features& supported_13) {
   std::vector<std::string> missing;
   for (const auto& f : kRequiredVulkan12Features) {
-    if (supported.*f.member != VK_TRUE) missing.emplace_back(f.name);
+    if (supported_12.*f.member != VK_TRUE) missing.emplace_back(f.name);
+  }
+  for (const auto& f : kRequiredVulkan13Features) {
+    if (supported_13.*f.member != VK_TRUE) missing.emplace_back(f.name);
   }
   return missing;
 }
@@ -274,21 +287,62 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       .pQueuePriorities = &queuePriority,
   };
 
+  // Subgroup size control is core 1.3; its structs must not be chained on an older device.
+  const auto device_props = physical_device_.getProperties();
+  const bool is_vulkan_13 = device_props.apiVersion >= VK_API_VERSION_1_3;
+
   // Query -> check -> enable a separate minimal struct (never pass the queried struct:
   // that would enable every supported feature).
-  vk::PhysicalDeviceVulkan12Features supported_12{};
+  vk::PhysicalDeviceVulkan13Features supported_13{};
+  vk::PhysicalDeviceVulkan12Features supported_12{.pNext = is_vulkan_13 ? &supported_13 : nullptr};
   vk::PhysicalDeviceFeatures2 supported{.pNext = &supported_12};
   physical_device_.getFeatures2(&supported);
 
-  if (const auto missing = missing_required_features(supported_12); !missing.empty()) {
+  // Not 1.3: supported_13 stays zeroed, so the 1.3 features are reported missing.
+  if (const auto missing = missing_required_features(supported_12, supported_13);
+      !missing.empty()) {
     std::string names;
     for (const auto& name : missing) names += (names.empty() ? "" : ", ") + name;
     throw std::runtime_error(std::string(physical_device_.getProperties().deviceName.data()) +
                              " lacks required Vulkan features: " + names);
   }
 
-  vk::PhysicalDeviceVulkan12Features enabled_12{};
+  // Subgroup size (design D5): the device's default size, pinned on subgroup-dependent
+  // pipelines when subgroupSizeControl covers COMPUTE (VUID-...-pNext-02755 needs both).
+  vk::PhysicalDeviceSubgroupSizeControlProperties size_control{};
+  vk::PhysicalDeviceSubgroupProperties subgroup{.pNext = is_vulkan_13 ? &size_control : nullptr};
+  vk::PhysicalDeviceProperties2 props2{.pNext = &subgroup};
+  physical_device_.getProperties2(&props2);
+
+  const bool pinnable =
+      supported_13.subgroupSizeControl == VK_TRUE &&
+      (size_control.requiredSubgroupSizeStages & vk::ShaderStageFlagBits::eCompute);
+  compute_limits_ = ComputeLimits{
+      .subgroup_size = subgroup.subgroupSize,
+      .min_subgroup_size = is_vulkan_13 ? size_control.minSubgroupSize : subgroup.subgroupSize,
+      .max_subgroup_size = is_vulkan_13 ? size_control.maxSubgroupSize : subgroup.subgroupSize,
+      .subgroup_size_pinned = pinnable,
+      .max_compute_workgroup_subgroups = pinnable ? size_control.maxComputeWorkgroupSubgroups : 0,
+      .max_work_group_size = device_props.limits.maxComputeWorkGroupSize,
+      .max_work_group_invocations = device_props.limits.maxComputeWorkGroupInvocations,
+  };
+  spdlog::debug(
+      "Subgroup size {} ({}): device default {}, min {}, max {}, subgroupSizeControl {}, "
+      "requiredSubgroupSizeStages {}, maxComputeWorkgroupSubgroups {}",
+      compute_limits_.subgroup_size,
+      pinnable ? "pinned" : "not pinned",
+      subgroup.subgroupSize,
+      size_control.minSubgroupSize,
+      size_control.maxSubgroupSize,
+      supported_13.subgroupSizeControl == VK_TRUE,
+      vk::to_string(size_control.requiredSubgroupSizeStages),
+      size_control.maxComputeWorkgroupSubgroups);
+
+  // Optional features are enabled only when supported (design D3).
+  vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable};
+  vk::PhysicalDeviceVulkan12Features enabled_12{.pNext = &enabled_13};
   for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
+  for (const auto& f : kRequiredVulkan13Features) enabled_13.*f.member = VK_TRUE;
 
   const vk::DeviceCreateInfo deviceCreateInfo{
       .pNext = &enabled_12,
@@ -300,6 +354,21 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
 
   // looks like I don't need this
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);
+}
+
+void BaseEngine::override_subgroup_size(const uint32_t size) {
+  const auto& l = compute_limits_;
+  if (!l.subgroup_size_pinned || std::popcount(size) != 1 || size < l.min_subgroup_size ||
+      size > l.max_subgroup_size) {
+    throw std::runtime_error(fmt::format(
+        "Subgroup size {} cannot be pinned on this device (pinning {}, supported {}..{})",
+        size,
+        l.subgroup_size_pinned ? "available" : "unavailable",
+        l.min_subgroup_size,
+        l.max_subgroup_size));
+  }
+  spdlog::debug("Subgroup size {} (pinned, overrides device default {})", size, l.subgroup_size);
+  compute_limits_.subgroup_size = size;
 }
 
 // ----------------------------------------------------------------------------

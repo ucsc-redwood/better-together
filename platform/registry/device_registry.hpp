@@ -99,7 +99,10 @@ inline std::vector<int> g_sup_cores;
 #define BIG_CORES g_big_cores, g_big_cores.size()
 #define SUPER_CORES g_sup_cores, g_sup_cores.size()
 
-[[nodiscard]] size_t get_vulkan_warp_size();
+// Warns (and returns false) when the --device registry entry declares a gpu.subgroup_size
+// other than the one the Vulkan engine queried from the device. No --device, an unknown
+// device or no declared size is not a mismatch.
+bool check_vulkan_subgroup_size(uint32_t engine_subgroup_size);
 
 #define PARSE_ARGS_BEGIN CLI::App app{"default"};
 

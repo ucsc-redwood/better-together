@@ -20,7 +20,7 @@ scripts/run-on-jetson.sh                       # build/jetson  → doremy@duck-s
 # twin devkit: BT_JETSON_HOST=doremy@duck-naughty BT_JETSON_DEVICE=duck-naughty \
 #              BT_CELL_HW=duck-naughty scripts/run-on-jetson.sh
 scripts/run-on-rocky.sh                         # build/vulkan  → rocky-ryzen   (Vulkan tests)
-# Both phones' adb lives on rocky-ryzen now → copy build/android there & run the script on it:
+# Both phones' adb is on the build box (the Fedora workstation) → run these there:
 scripts/run-on-android.sh 3A021JEHN02756        # build/android → Pixel 7a   (adb -s picks the phone)
 scripts/run-on-android.sh R5CY21Y3VEV           # build/android → Samsung    (same host, other serial)
 scripts/run-mali-oracle.sh                      # build/android → BOTH phones (Mali oracle gate, run from the build box)
@@ -46,7 +46,7 @@ source of truth for core tiers and pinning. This doc is the human/agent-readable
 
 Every machine above doubles as a GitHub Actions self-hosted runner for the
 `ucsc-redwood` org, selected by **capability label, never by name**:
-`[self-hosted, rdna3]` (Rocky box: iGPU Vulkan, podman, adb host),
+`[self-hosted, rdna3]` (Rocky box: iGPU Vulkan, podman),
 `[self-hosted, android, pixel|samsung]` (each phone is its own runner with
 `ANDROID_SERIAL` pinned — plain `adb` works, jobs per phone serialize),
 `[self-hosted, jetson, cuda]` (+ `duck-stable`/`duck-naughty` to pin a box;
@@ -63,13 +63,31 @@ hardware-in-the-loop gate is `.github/workflows/fleet.yml`.
 | Old build/dev box | `pc` | OMP (CUDA/Vulkan **build-only**) | (retired from workflow) | no longer needed — rocky builds everything |
 | Jetson Orin #1 | `duck-stable` | OMP + CUDA + Vulkan | `ssh doremy@duck-stable` | primary CUDA target, coverage-gated |
 | Jetson Orin #2 | `duck-naughty` | OMP + CUDA + Vulkan | `ssh doremy@duck-naughty` | twin devkit, benchmark-only |
-| Rocky MiniPC | `minipc` | OMP + Vulkan | `ssh doremy@rocky-ryzen` | **the build host** (x86 Vulkan native + Jetson cross via podman); Vulkan (iGPU) runner; **adb host for both phones** |
-| Pixel 7a | `3A021JEHN02756` | OMP + Vulkan (**subgroup 16**) | adb on `rocky-ryzen` (`adb -s`) | Mali subgroup-16 shader variant |
-| Samsung Galaxy | `R5CY21Y3VEV` | OMP + Vulkan (**subgroup 32**) | adb on `rocky-ryzen` (`adb -s`) | subgroup-32 shader variant |
+| Rocky MiniPC | `minipc` | OMP + Vulkan (subgroup 64, 32..64) | `ssh doremy@rocky-ryzen` | **the build host** (x86 Vulkan native + Jetson cross via podman); Vulkan (iGPU) runner |
+| Pixel 7a | `3A021JEHN02756` | OMP + Vulkan (**subgroup 16**, 16 only) | adb on the build box (`adb -s`) | the only subgroup-16 (Mali) target |
+| Samsung Galaxy | `R5CY21Y3VEV` | OMP + Vulkan (subgroup 64, 32..64) | adb on the build box (`adb -s`) | Android Xclipse; pinned-32 coverage |
 
 Key hardware constraint: `platform/engine/vulkan/base_engine.cpp` **hard-selects
 an integrated GPU** (`eIntegratedGpu`) — discrete GPUs throw "No integrated GPU
 found", which is why the build box's RTX 4070 Ti never runs Vulkan.
+
+**Subgroup size comes from the device, at runtime** (since 2026-10, Phase B of the
+`vulkan-engine-campaign` change). The engine queries `VkPhysicalDeviceSubgroupProperties`
+and the 1.3 subgroup-size-control properties, specializes subgroup-dependent shaders
+(today only `multi_radixsort.comp`) with the device's default size, and pins it with
+`requiredSubgroupSize` where the device allows. Neither `--device` nor `devices/*.json`
+selects a shader variant any more: `gpu.subgroup_size` there is an informational
+cross-check, and a disagreement logs a warning. `SPDLOG_LEVEL=debug ./test-kiss-vk` prints
+what the device reports; queried 2026-10-14:
+
+| GPU | default | min..max | pinned (COMPUTE in `requiredSubgroupSizeStages`) |
+|---|---|---|---|
+| rocky-ryzen Radeon 780M (RADV) | 64 | 32..64 | yes |
+| Pixel 7a Mali-G710 | 16 | 16..16 | yes |
+| Samsung Xclipse 940 | 64 | 32..64 | yes |
+
+No fleet GPU defaults to 32: `BT_VK_SUBGROUP_SIZE=32` pins rocky-ryzen and the Samsung
+at their minimum to cover that width (an unsupported value makes `Engine()` throw).
 
 ---
 
@@ -84,10 +102,9 @@ The old i9/RTX build box is **no longer part of the workflow**. All builds run o
   `bt-cross:7.2` **podman** image (`just build-jetson` with `BT_CONTAINER=podman`,
   or `scripts/build-bench-jetson.sh`); `bt-cross:6.1` remains the legacy image for
   JetPack-6 targets.
-- **Android** (`android` preset): needs NDK **29.0.14206865** on the building
-  machine (currently a laptop); binaries are then copied to rocky and deployed via
-  its adb (`scripts/run-on-android.sh` there — `ANDROID_NDK_HOME=$HOME/ndk-libcxx`
-  on rocky supplies just `libc++_shared.so`, no full NDK install needed).
+- **Android** (`android` preset): needs an NDK on the building machine (the build
+  box; NDK r30 via `$ANDROID_NDK_HOME` works). Both phones are on the build box's
+  adb, so `scripts/run-on-android.sh <serial>` deploys and runs from there directly.
 - **OMP oracle / CI**: `ctest -L omp` runs in hosted GitHub CI; any dev machine
   can run it locally with the `pc` preset.
 
@@ -125,7 +142,8 @@ pre-2026-07 Jetson numbers are from that old software stack and are **not compar
 
 ## Rocky Linux MiniPC — `doremy@rocky-ryzen`
 
-- **GPU** AMD Radeon 780M — **integrated** (RADV). `minipc` device spec, 16 cores.
+- **GPU** AMD Radeon 780M — **integrated** (RADV), subgroup 64 (32..64).
+  `minipc` device spec, 16 cores.
 - **OS** Rocky Linux 10.2, glibc 2.39.
 - **Access** `ssh rocky-ryzen`. **Login shell is fish** → for loops / `VAR=…` /
   multi-line, pipe bash via `ssh rocky-ryzen bash -s <<'EOF' … EOF` (a single
@@ -133,34 +151,29 @@ pre-2026-07 Jetson numbers are from that old software stack and are **not compar
 - **Deploy** copy the x86 Vulkan binary + `libomp.so` to `/tmp/bt/`, run with
   `LD_LIBRARY_PATH=.`. All Vulkan suites pass here.
 - **Run** `scripts/run-on-rocky.sh` (deploy + run Vulkan tests).
-- **Role** the easiest **Vulkan** path (x86, no cross-compile); also the **adb host
-  for both phones** (Pixel 7a + Samsung Galaxy — the build box can't see either).
-  Both are plugged in at once, so `adb devices` lists two → always `adb -s <serial>`
-  (the `run-on-android.sh` script does this).
+- **Role** the easiest **Vulkan** path (x86, no cross-compile). The phones are no
+  longer attached here — they are on the build box's adb.
 
 ## Pixel 7a — `3A021JEHN02756`
 
-- **SoC** Tensor G2, Mali-G710 GPU, **subgroup size 16**.
-- **Access** connected via adb **on `rocky-ryzen`** (moved off the build box 2026-06-17).
-  It now shares rocky's adb with the Samsung, so `adb devices` shows both — select with
-  `adb -s 3A021JEHN02756`. Same workflow as the Samsung below: `scp build/android/`
-  binaries + `libc++_shared.so` to `rocky-ryzen:/tmp/bt/`, then `ssh rocky-ryzen` and run
-  the script there.
-- **Run** `scripts/run-on-android.sh 3A021JEHN02756` (on rocky-ryzen; pushes binary +
+- **SoC** Tensor G2, Mali-G710 GPU, **subgroup size 16** (its only size).
+- **Access** connected via adb **on the build box** (the Fedora workstation), together
+  with the Samsung, so `adb devices` shows both — select with `adb -s 3A021JEHN02756`.
+- **Run** `scripts/run-on-android.sh 3A021JEHN02756` (on the build box; pushes binary +
   `libc++_shared.so` to `/data/local/tmp/bt`, runs with `</dev/null` on each `adb shell`).
-- **Role** uniquely exercises the **subgroup-16** Mali shader variant
-  (`tmp_single_radixsort_warp16`) — the Jetson cannot.
+- **Role** the only target that runs the subgroup-dependent radix sort
+  (`multi_radixsort.comp`) at **subgroup 16** — the Jetson cannot.
 
 ## Samsung Galaxy — `R5CY21Y3VEV`
 
-- **SoC** SM-S926B, **subgroup size 32**, 10 cores.
-- **Access** connected via adb **on `rocky-ryzen`, NOT the build box** — and as of
-  2026-06-17 the **Pixel shares the same rocky adb**, so `adb devices` lists both and
-  every call needs `adb -s <serial>`. Run the adb deploy **from rocky**: `scp` the
-  `build/android/` binaries + `libc++_shared.so` to `rocky-ryzen:/tmp/bt/`, then
-  `ssh rocky-ryzen` and run `scripts/run-on-android.sh R5CY21Y3VEV` there (the script
-  self-checks the serial is locally visible and tells you if you're on the wrong host).
-- **Role** the **subgroup-32** shader variant on an Android target.
+- **SoC** SM-S926B, Xclipse 940 GPU, **subgroup size 64** (supports 32..64; the
+  registry said 32 until 2026-10), 10 cores.
+- **Access** connected via adb **on the build box**, together with the Pixel, so
+  `adb devices` lists both and every call needs `adb -s <serial>`. Run
+  `scripts/run-on-android.sh R5CY21Y3VEV` there (the script self-checks the serial
+  is locally visible and tells you if you're on the wrong host).
+- **Role** Vulkan on an Android Xclipse GPU; with `BT_VK_SUBGROUP_SIZE=32`, also the
+  Android target for the radix sort pinned at subgroup 32.
 
 ## Android build notes (both phones)
 

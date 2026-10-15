@@ -117,7 +117,7 @@ sdkmanager "ndk;29.0.14206865"          # -> $ANDROID_HOME/ndk/29.0.14206865
 cmake --preset android && cmake --build --preset android
 
 # deploy to the phone and run (finds libc++_shared.so, pushes, runs; serial = device id)
-# BOTH phones' adb is on rocky-ryzen → copy build/android there and run the script on it:
+# BOTH phones' adb is on the build box, so run the script right where you built:
 scripts/run-on-android.sh 3A021JEHN02756        # Pixel 7a   (adb -s selects this serial)
 scripts/run-on-android.sh R5CY21Y3VEV           # Samsung    (same host, other serial)
 ```

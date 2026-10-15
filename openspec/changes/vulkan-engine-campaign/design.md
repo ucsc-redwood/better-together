@@ -71,7 +71,10 @@ entirely by D7. Destruction guards on null handles, so a partially built `Algori
    `createDevice`.
 
 The required list lives in one table in `base_engine.cpp`. Phase B adds `subgroupSizeControl`
-(1.3) to it as *optional* (enabled if supported). Phase C adds the `VK_KHR_push_descriptor`
+(1.3) to it as *optional* (enabled if supported), and `maintenance4` (1.3) as *required*: glslc's
+SPIR-V 1.6 output expresses `local_size_*_id` as `LocalSizeId`, which needs it
+(`VUID-RuntimeSpirv-LocalSizeId-06434`, found by the validation layer in the Phase B gate). Every
+Vulkan 1.3 device supports it, and the SPIR-V 1.6 shaders already require 1.3. Phase C adds the `VK_KHR_push_descriptor`
 device extension as optional. `has_integrated_gpu()` already catches throws, so an incapable
 device makes the suites skip rather than crash.
 
@@ -94,6 +97,13 @@ device makes the suites skip rather than crash.
     pipelines chain a `PipelineShaderStageRequiredSubgroupSizeCreateInfo{subgroupSize}`.
   - The workgroup must also fit: local size ≤ `requiredSubgroupSize × maxComputeWorkgroupSubgroups`
     (`VUID-…-02756`). This is trivially true for 256 at sizes 16, 32 and 64, but checked anyway.
+- **Test hook.** `BT_VK_SUBGROUP_SIZE=<n>` pins `n` instead of the default, when pinning is available
+  and `n` is a power of two in `[minSubgroupSize, maxSubgroupSize]`; otherwise `Engine()` throws
+  (it is applied in `Engine`, not `BaseEngine`, so the `has_integrated_gpu()` probe cannot turn a
+  bad value into a silent skip). It is how the fleet covers width 32, and it is the "pin to
+  `minSubgroupSize`" knob from the risks below. *Added in Phase B,* when the queried fleet turned
+  out to be (default / min..max): rocky-ryzen 780M 64 / 32..64, Pixel 7a Mali-G710 16 / 16..16,
+  Samsung Xclipse 940 64 / 32..64 — all three pin COMPUTE. No fleet GPU defaults to 32.
 - **Why pin.** Without a required size, a 1.3 driver may compile the shader at a different width
   than `subgroupSize` reports. RADV on RDNA3 can run wave32 or wave64. That would silently break the
   `RADIX_SORT_BINS / SUBGROUP_SIZE` shared-array arithmetic. Pinning makes the width a contract.

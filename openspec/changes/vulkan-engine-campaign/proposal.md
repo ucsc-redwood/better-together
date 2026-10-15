@@ -23,7 +23,8 @@ Phase A — correctness (small, independent fixes):
   layout, the descriptor-set layout, the descriptor pool, the shader module and the pipeline cache.
   This satisfies `VUID-vkDestroyDevice-device-05137`.
 - Device creation enables exactly the features the engine requires. These are `storageBuffer8BitAccess`,
-  `shaderInt8` and `bufferDeviceAddress`, plus any added by later phases. A missing required feature
+  `shaderInt8` and `bufferDeviceAddress`, plus any added by later phases (Phase B: `maintenance4`,
+  required by `LocalSizeId` shaders; `subgroupSizeControl` when supported). A missing required feature
   fails device creation with an error that names it. (Corrected during Phase A: an earlier draft also
   listed `uniformAndStorageBuffer8BitAccess`, but no committed shader declares the
   `UniformAndStorageBuffer8BitAccess` SPIR-V capability — the shaders declare only `Shader`,
@@ -84,7 +85,8 @@ Out of scope (noted, not changed):
 - **Behaviour:** validation is opt-in; on-disk pipeline-cache files appear. Numerical results are
   unchanged, and the OMP oracle enforces this.
 - **Gates:** every phase must pass `ctest -L vk` on `rocky-ryzen` (RDNA3, sg64/32) and on both phones
-  (Pixel 7a Mali sg16, Samsung Xclipse sg32), plus `ctest -L omp` locally. Phase C is additionally
+  (Pixel 7a Mali sg16, Samsung Xclipse sg64/32 — corrected in Phase B from "sg32": the device
+  reports a default of 64), plus `ctest -L omp` locally. Phase C is additionally
   gated on a tree × Vulkan re-measurement.
 - **Docs:**
   - `docs/reports-for-human/testing-status.md` §F: close the subgroup gap.

@@ -103,8 +103,10 @@ def structural_errors(name: str, spec: object) -> list[str]:
                 errs.append(f"{name}: gpu has unexpected key(s) {sorted(extra_gpu)}")
             if gpu.get("backend") not in {"cuda", "vulkan"}:
                 errs.append(f"{name}: gpu.backend {gpu.get('backend')!r} not in ['cuda', 'vulkan']")
-            ss = gpu.get("subgroup_size")
-            if not isinstance(ss, int) or isinstance(ss, bool) or ss < 1:
+            ss = gpu.get("subgroup_size")  # optional, informational
+            if "subgroup_size" in gpu and (
+                not isinstance(ss, int) or isinstance(ss, bool) or ss < 1
+            ):
                 errs.append(f"{name}: gpu.subgroup_size must be a positive integer")
             if "name" in gpu and not isinstance(gpu["name"], str):
                 errs.append(f"{name}: gpu.name must be a string")

@@ -30,9 +30,7 @@ namespace shaders {
 // #include "h/tmp_local_inclusive_scan_v2_32_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_64_spv.h"
 #include "h/multi_radixsort_histograms_spv.h"
-#include "h/multi_radixsort_warp16_spv.h"
-#include "h/multi_radixsort_warp32_spv.h"
-#include "h/multi_radixsort_warp64_spv.h"
+#include "h/multi_radixsort_spv.h"
 #include "h/tmp_single_radixsort_warp16_spv.h"
 #include "h/tmp_single_radixsort_warp32_spv.h"
 #include "h/tmp_single_radixsort_warp64_spv.h"
@@ -64,6 +62,9 @@ namespace shaders {
 
 // new shaders
 #include "h/stressor_spv.h"
+
+// engine self-test (test-kiss-vk)
+#include "h/engine_test_workgroup_size_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
 // The baked-header variable name is the bare .spv basename (xxd -i run from the
@@ -104,9 +105,7 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(tmp_single_radixsort_warp32),
         SHADER_ENTRY(tmp_single_radixsort_warp64),
         SHADER_ENTRY(multi_radixsort_histograms),
-        SHADER_ENTRY(multi_radixsort_warp16),
-        SHADER_ENTRY(multi_radixsort_warp32),
-        SHADER_ENTRY(multi_radixsort_warp64),
+        SHADER_ENTRY(multi_radixsort),
         SHADER_ENTRY(tree_build_octree),
         SHADER_ENTRY(tree_build_radix_tree),
         SHADER_ENTRY(tree_edge_count),
@@ -134,6 +133,8 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(octree_morton),
         // new shaders
         SHADER_ENTRY(stressor),
+        // engine self-test (test-kiss-vk)
+        SHADER_ENTRY(engine_test_workgroup_size),
 };
 
 #undef SHADER_ENTRY
