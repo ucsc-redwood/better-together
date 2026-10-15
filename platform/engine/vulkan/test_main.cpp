@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -143,6 +144,8 @@ class ScopedEnv {
   }
   ScopedEnv(const ScopedEnv&) = delete;
   ScopedEnv& operator=(const ScopedEnv&) = delete;
+  ScopedEnv(ScopedEnv&&) = delete;
+  ScopedEnv& operator=(ScopedEnv&&) = delete;
 
  private:
   const char* name_;
@@ -157,7 +160,7 @@ class ScopedEnv {
 // g_out[0], so each buffer must end at its own start value plus 128 per dispatch bound to
 // it: a dispatch that saw another dispatch's binding would read and write the wrong
 // buffer. 75 binds also exceed one transient pool.
-enum class BindingPath { kPushDescriptors, kFallback };
+enum class BindingPath : std::uint8_t { kPushDescriptors, kFallback };
 
 class VulkanBinding : public ::testing::TestWithParam<BindingPath> {};
 
@@ -504,8 +507,13 @@ TEST(PipelineCacheFile, OversizedOrUnallocatableDataIsRejected) {
   kiss_vk::PipelineCacheFile file;
   {
     struct RestoreLimit {
-      rlimit old{};
+      RestoreLimit() = default;
       ~RestoreLimit() { setrlimit(RLIMIT_AS, &old); }
+      RestoreLimit(const RestoreLimit&) = delete;
+      RestoreLimit& operator=(const RestoreLimit&) = delete;
+      RestoreLimit(RestoreLimit&&) = delete;
+      RestoreLimit& operator=(RestoreLimit&&) = delete;
+      rlimit old{};
     } restore;
     ASSERT_EQ(getrlimit(RLIMIT_AS, &restore.old), 0);
     rlimit tight = restore.old;

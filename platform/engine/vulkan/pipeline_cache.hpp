@@ -10,7 +10,7 @@
 namespace kiss_vk {
 
 // How the Engine's pipeline cache started (design D7).
-enum class PipelineCacheLoad {
+enum class PipelineCacheLoad : std::uint8_t {
   kLoaded,    // seeded from the file: pipelines may come warm
   kMissing,   // no file: cold compile
   kRejected,  // file unreadable, failed the header check, or refused by the driver: cold

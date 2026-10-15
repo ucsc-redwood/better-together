@@ -59,8 +59,13 @@ std::string errno_text(const std::string& what) { return what + ": " + std::stre
 
 // Closes the descriptor on every path out of read_pipeline_cache_file, exceptions included.
 struct FdCloser {
-  int fd;
+  explicit FdCloser(const int f) : fd(f) {}
   ~FdCloser() { ::close(fd); }
+  FdCloser(const FdCloser&) = delete;
+  FdCloser& operator=(const FdCloser&) = delete;
+  FdCloser(FdCloser&&) = delete;
+  FdCloser& operator=(FdCloser&&) = delete;
+  int fd;
 };
 
 // Reads exactly data.size() bytes into `data`; empty on success, else why.
