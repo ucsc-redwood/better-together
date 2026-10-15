@@ -700,10 +700,12 @@ means:
         writable.
       - The prettier step run directly (`git ls-files '*.json' ':(exclude)dashboard/*' | xargs bunx prettier@3.8.4
         --check`) → "All matched files use Prettier code style!" over 19 files, exit 0.
-    - **Phase C is not complete: 7.8 is open.** The gate is green, but the resource-binding requirement "per-dispatch
-      host-side binding cost SHALL be no greater than the descriptor-update path it replaces" is not satisfied. On RADV
-      it costs +14.7 ns per bind at 13 buffers, and the fallback costs +85–89 ns. The unchanged makespan does not
-      discharge it.
+    - *Historical (as of 52b582f, superseded):* at this gate Phase C was incomplete because 7.8 was open. The original
+      requirement "per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces"
+      was not satisfied: +14.7 ns per bind at 13 buffers on RADV, and +85–89 ns for the fallback.
+    - **Resolved since (afb3833):** the project owner amended the requirement to its end-to-end bound, and 7.8 is ticked
+      against the amended text (see 7.8 and the resource-binding spec). Phase C is complete. A final read-only Codex
+      review at afb3833 returned DONE.
 
 ## Workflow follow-up
 
