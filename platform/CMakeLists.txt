@@ -86,6 +86,7 @@ if(BT_ENABLE_VULKAN)
         STATIC
         engine/vulkan/algorithm.cpp
         engine/vulkan/base_engine.cpp
+        engine/vulkan/pipeline_cache.cpp
         engine/vulkan/sequence.cpp
         engine/vulkan/vma_pmr.cpp
     )

@@ -97,13 +97,10 @@ struct LinearPushConstants {
 VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
-  // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8. When a chunk
-  // records several of those into one command buffer, each stage must bind its OWN
-  // descriptor set (a single shared set would be overwritten and every dispatch would
-  // see the last binding) -- so allocate one set per stage that uses the algo.
+  // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8; record_bind
+  // captures each stage's buffers per dispatch, so they can share one command buffer.
   auto conv2d_algo = engine.make_algo("new_cifar_sparse_conv2d")
                          ->work_group_size(256, 1, 1)
-                         ->num_sets(5)  // stages 1,3,5,6,7
                          ->num_buffers(6)
                          ->push_constant<Conv2dPushConstants>()
                          ->build();
@@ -116,7 +113,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Selected per stage when kernel_size==3, stride==1, padding==1.
   auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
                                 ->work_group_size(256, 1, 1)
-                                ->num_sets(5)  // stages 1,3,5,6,7
                                 ->num_buffers(6)
                                 ->push_constant<Conv2dPushConstants>()
                                 ->build();
@@ -125,7 +121,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto maxpool_algo = engine.make_algo("new_cifar_sparse_maxpool")
                           ->work_group_size(256, 1, 1)
-                          ->num_sets(3)  // stages 2,4,8
                           ->num_buffers(2)
                           ->push_constant<MaxpoolPushConstants>()
                           ->build();
@@ -134,7 +129,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
 
   auto linear_algo = engine.make_algo("new_cifar_sparse_linear")
                          ->work_group_size(256, 1, 1)
-                         ->num_sets(3)     // stages 9,10,11
                          ->num_buffers(4)  // Input, Weight, Bias, Output
                          ->push_constant<LinearPushConstants>()
                          ->build();
@@ -150,7 +144,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Selected per stage when in_features % 4 == 0.
   auto linear_bt_algo = engine.make_algo("new_cifar_dense_linear_bt")
                             ->work_group_size(256, 1, 1)
-                            ->num_sets(3)     // stages 9,10,11
                             ->num_buffers(4)  // Input, Weight, Bias, Output
                             ->push_constant<LinearPushConstants>()
                             ->build();
@@ -197,7 +190,7 @@ void VulkanDispatcher::run_stage_11(cifar_sparse::AppData& appdata) {
 }
 
 // ----------------------------------------------------------------------------
-// Stage 1 (v2)  (conv2d descriptor set 0)
+// Stage 1 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -206,16 +199,6 @@ void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, vk::Comman
   // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
-
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_input.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv1_sparse.values_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv1_sparse.row_ptr_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv1_sparse.col_idx_pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv1_b.pmr_vec()),
-                              });
 
   const int batch_size = appdata.u_input.d0();   // Expected 128
   const int in_channels = appdata.u_input.d1();  // Expected 3 (RGB)
@@ -244,25 +227,27 @@ void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, vk::Comman
       .bias_size = appdata.u_conv1_b.d0(),
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_input.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.conv1_sparse.values_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv1_sparse.row_ptr_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv1_sparse.col_idx_pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv1_b.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 2 (v2)  (maxpool descriptor set 0)
+// Stage 2 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_2(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
-
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
-                              });
 
   // Extract dimensions from the convolution output NDArray4D.
   const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
@@ -286,13 +271,17 @@ void VulkanDispatcher::record_stage_2(cifar_sparse::AppData& appdata, vk::Comman
       .stride = kPoolStride,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 3 (v2)  (conv2d descriptor set 1)
+// Stage 3 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_3(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -301,16 +290,6 @@ void VulkanDispatcher::record_stage_3(cifar_sparse::AppData& appdata, vk::Comman
   // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
-
-  algo->update_descriptor_set(1,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv2_sparse.values_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv2_sparse.row_ptr_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv2_sparse.col_idx_pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
-                              });
 
   const int batch_size = appdata.u_pool1_out.d0();
   const int in_channels = appdata.u_pool1_out.d1();
@@ -339,25 +318,27 @@ void VulkanDispatcher::record_stage_3(cifar_sparse::AppData& appdata, vk::Comman
       .bias_size = appdata.u_conv2_b.d0(),
   });
 
-  algo->record_bind_core(cmd, 1);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.conv2_sparse.values_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv2_sparse.row_ptr_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv2_sparse.col_idx_pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 4 (v2)  (maxpool descriptor set 1)
+// Stage 4 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_4(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
-
-  algo->update_descriptor_set(1,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
-                              });
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv2_out.d0();
@@ -381,13 +362,17 @@ void VulkanDispatcher::record_stage_4(cifar_sparse::AppData& appdata, vk::Comman
       .stride = kPoolStride,
   });
 
-  algo->record_bind_core(cmd, 1);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 5 (v2)  (conv2d descriptor set 2)
+// Stage 5 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -396,16 +381,6 @@ void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::Comman
   // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
-
-  algo->update_descriptor_set(2,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv3_sparse.values_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv3_sparse.row_ptr_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv3_sparse.col_idx_pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
-                              });
 
   const int batch_size = appdata.u_pool2_out.d0();
   const int in_channels = appdata.u_pool2_out.d1();
@@ -434,13 +409,21 @@ void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, vk::Comman
       .bias_size = appdata.u_conv3_b.d0(),
   });
 
-  algo->record_bind_core(cmd, 2);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.conv3_sparse.values_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv3_sparse.row_ptr_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv3_sparse.col_idx_pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 6 (v2)  (conv2d descriptor set 3)
+// Stage 6 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -449,16 +432,6 @@ void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::Comman
   // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
-
-  algo->update_descriptor_set(3,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv4_sparse.values_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv4_sparse.row_ptr_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv4_sparse.col_idx_pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
-                              });
 
   const int batch_size = appdata.u_conv3_out.d0();
   const int in_channels = appdata.u_conv3_out.d1();
@@ -487,13 +460,21 @@ void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, vk::Comman
       .bias_size = appdata.u_conv4_b.d0(),
   });
 
-  algo->record_bind_core(cmd, 3);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.conv4_sparse.values_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv4_sparse.row_ptr_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv4_sparse.col_idx_pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 7 (v2)  (conv2d descriptor set 4)
+// Stage 7 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_7(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -502,16 +483,6 @@ void VulkanDispatcher::record_stage_7(cifar_sparse::AppData& appdata, vk::Comman
   // 3x3/s1/p1 CSR specialization when shapes allow; generic fallback.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
-
-  algo->update_descriptor_set(4,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv5_sparse.values_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv5_sparse.row_ptr_pmr_vec()),
-                                  engine.get_buffer_info(appdata.conv5_sparse.col_idx_pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
-                              });
 
   const int batch_size = appdata.u_conv4_out.d0();
   const int in_channels = appdata.u_conv4_out.d1();
@@ -540,25 +511,27 @@ void VulkanDispatcher::record_stage_7(cifar_sparse::AppData& appdata, vk::Comman
       .bias_size = appdata.u_conv5_b.d0(),
   });
 
-  algo->record_bind_core(cmd, 4);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.conv5_sparse.values_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv5_sparse.row_ptr_pmr_vec()),
+                        engine.get_buffer_info(appdata.conv5_sparse.col_idx_pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 8 (v2)  (maxpool descriptor set 2)
+// Stage 8 (v2)
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_8(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
-
-  algo->update_descriptor_set(2,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                              });
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv5_out.d0();
@@ -582,13 +555,17 @@ void VulkanDispatcher::record_stage_8(cifar_sparse::AppData& appdata, vk::Comman
       .stride = kPoolStride,
   });
 
-  algo->record_bind_core(cmd, 2);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 9 (v2) - FC1  (linear descriptor set 0)
+// Stage 9 (v2) - FC1
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -608,14 +585,6 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
   const bool bt = input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                              });
-
   // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
   // the batch in 16-image tiles.
   const uint32_t gx = static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
@@ -629,13 +598,19 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, vk::Comman
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {gx, gy, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 10 (v2) - FC2  (linear descriptor set 1)
+// Stage 10 (v2) - FC2
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -651,14 +626,6 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::Comma
   const bool bt = input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  algo->update_descriptor_set(1,
-                              {
-                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
-                              });
-
   // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
   // the batch in 16-image tiles.
   const uint32_t gx = static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
@@ -672,13 +639,19 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, vk::Comma
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 1);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {gx, gy, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 11 (v2) - FC3  (linear descriptor set 2)
+// Stage 11 (v2) - FC3
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::CommandBuffer cmd) {
@@ -694,14 +667,6 @@ void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::Comma
   const bool bt = input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  algo->update_descriptor_set(2,
-                              {
-                                  engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc3_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc3_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
-                              });
-
   // bt: one 16-lane row per output feature, 16 rows per workgroup; grid.y walks
   // the batch in 16-image tiles.
   const uint32_t gx = static_cast<uint32_t>(bt ? kiss_vk::div_ceil(out_features, 16)
@@ -715,7 +680,13 @@ void VulkanDispatcher::record_stage_11(cifar_sparse::AppData& appdata, vk::Comma
       .apply_relu = 0,  // FC3 emits raw logits: no ReLU
   });
 
-  algo->record_bind_core(cmd, 2);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc3_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc3_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {gx, gy, 1});
 }

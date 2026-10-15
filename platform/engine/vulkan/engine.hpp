@@ -8,6 +8,7 @@
 
 #include "algorithm.hpp"
 #include "base_engine.hpp"
+#include "pipeline_cache.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "sequence.hpp"
 #include "vma_pmr.hpp"
@@ -36,14 +37,31 @@ class Engine final : public BaseEngine {
     }
     // The registry's subgroup size is a cross-check only (design D5).
     check_vulkan_subgroup_size(subgroup_size());
+
+    // One pipeline cache for every Algorithm, persisted across runs (design D7). Created
+    // last: nothing after it can throw, and ~Engine is what saves and destroys it.
+    const auto props = get_physical_device().getProperties();
+    pipeline_cache_path_ = kiss_vk::pipeline_cache_path(props);
+    const auto loaded = load_pipeline_cache(device_, props, pipeline_cache_path_);
+    pipeline_cache_ = loaded.cache;
+    pipeline_cache_load_ = loaded.load;
   }
 
-  ~Engine() { spdlog::trace("Engine::~Engine()"); }
+  // Every Algorithm built from this Engine is gone by now (owners declare it first).
+  ~Engine() {
+    spdlog::trace("Engine::~Engine()");
+    save_pipeline_cache(device_, pipeline_cache_, pipeline_cache_path_);
+    device_.destroyPipelineCache(pipeline_cache_);
+  }
+
+  [[nodiscard]] PipelineCacheLoad pipeline_cache_load() const { return pipeline_cache_load_; }
+  [[nodiscard]] const std::string& pipeline_cache_path() const { return pipeline_cache_path_; }
 
   [[nodiscard]] VulkanMemoryResource* get_mr() const { return mr_ptr_.get(); }
 
   [[nodiscard]] std::shared_ptr<Algorithm> make_algo(const std::string& shader_name) const {
-    return std::make_shared<Algorithm>(mr_ptr_.get(), shader_name, compute_limits());
+    return std::make_shared<Algorithm>(
+        mr_ptr_.get(), shader_name, compute_limits(), push_descriptor_fn(), pipeline_cache_);
   }
 
   [[nodiscard]] std::shared_ptr<Sequence> make_seq() {
@@ -102,6 +120,9 @@ class Engine final : public BaseEngine {
   }
 
   std::unique_ptr<VulkanMemoryResource> mr_ptr_;
+  std::string pipeline_cache_path_;
+  vk::PipelineCache pipeline_cache_;
+  PipelineCacheLoad pipeline_cache_load_ = PipelineCacheLoad::kMissing;
 };
 
 }  // namespace kiss_vk

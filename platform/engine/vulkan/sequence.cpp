@@ -38,6 +38,9 @@ Sequence::~Sequence() {
   if (fence_) {
     device_ref_.destroyFence(fence_);
   }
+  for (const auto pool : descriptor_pools_) {
+    device_ref_.destroyDescriptorPool(pool);  // also frees its sets
+  }
 }
 
 void Sequence::create_query_pool() {
@@ -84,8 +87,49 @@ void Sequence::create_command_buffer() {
   handle_ = device_ref_.allocateCommandBuffers(allocate_info).front();
 }
 
-void Sequence::cmd_begin() const {
+vk::DescriptorPool Sequence::create_descriptor_pool() const {
+  // Sized so a whole chunk fits one pool (the longest, tree stages 1-7, binds 20 sets of
+  // <= 13 buffers); a bigger chunk just opens another pool.
+  constexpr uint32_t kSetsPerPool = 64;
+  const vk::DescriptorPoolSize pool_size{
+      .type = vk::DescriptorType::eStorageBuffer,
+      .descriptorCount = kSetsPerPool * kMaxBindingBuffers,
+  };
+  return device_ref_.createDescriptorPool(vk::DescriptorPoolCreateInfo{
+      .maxSets = kSetsPerPool,
+      .poolSizeCount = 1,
+      .pPoolSizes = &pool_size,
+  });
+}
+
+vk::DescriptorSet Sequence::allocate_descriptor_set(const vk::DescriptorSetLayout layout) {
+  for (;; ++current_pool_) {
+    const bool fresh = current_pool_ == descriptor_pools_.size();
+    if (fresh) descriptor_pools_.push_back(create_descriptor_pool());
+
+    const vk::DescriptorSetAllocateInfo allocate_info{
+        .descriptorPool = descriptor_pools_[current_pool_],
+        .descriptorSetCount = 1,
+        .pSetLayouts = &layout,
+    };
+    vk::DescriptorSet set;
+    const vk::Result result = device_ref_.allocateDescriptorSets(&allocate_info, &set);
+    if (result == vk::Result::eSuccess) return set;
+    // A full pool moves on to the next one; anything else (or a fresh pool that cannot
+    // hold one set) is a real error.
+    if (fresh || (result != vk::Result::eErrorOutOfPoolMemory &&
+                  result != vk::Result::eErrorFragmentedPool)) {
+      throw std::runtime_error("vkAllocateDescriptorSets failed: " + vk::to_string(result));
+    }
+  }
+}
+
+void Sequence::cmd_begin() {
   spdlog::trace("Sequence::cmd_begin()");
+
+  // The sets of the previous (completed) submit are no longer in use.
+  for (const auto pool : descriptor_pools_) device_ref_.resetDescriptorPool(pool);
+  current_pool_ = 0;
 
   // Start a fresh touched-buffer set for this chunk; the stages recorded between here
   // and submit() bind exactly the buffers this task uses, so submit/wait flush and

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <initializer_list>
 #include <optional>
 #include <set>
 #include <span>
@@ -10,6 +11,12 @@
 #include "vma_pmr.hpp"
 
 namespace kiss_vk {
+
+class Sequence;
+
+// Most storage buffers one Algorithm binds (num_buffers); record_bind keeps its writes on
+// the stack. Well under the guaranteed maxPushDescriptors (32).
+inline constexpr uint32_t kMaxBindingBuffers = 16;
 
 // Spec constant id carrying the subgroup size into subgroup-dependent shaders:
 // `layout(constant_id = 0) const uint SUBGROUP_SIZE = ...;` (design D5).
@@ -45,16 +52,20 @@ constexpr auto div_ceil(size_t a, size_t b) { return (a + b - 1) / b; }
 
 class Algorithm final : public std::enable_shared_from_this<Algorithm> {
  public:
+  // push_descriptor_fn: BaseEngine::push_descriptor_fn(), null for the transient-pool path.
+  // pipeline_cache: the Engine's (design D7), not owned.
   explicit Algorithm(VulkanMemoryResource* mr_ptr,
                      std::string shader_name,
-                     const ComputeLimits& limits);
+                     const ComputeLimits& limits,
+                     PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn,
+                     vk::PipelineCache pipeline_cache);
 
   // Destroys every Vulkan object this Algorithm created (VUID-vkDestroyDevice-device-05137).
   // Owners must destroy it before the Engine; dispatchers declare `engine` first, so their
   // cached algorithms go first.
   ~Algorithm();
 
-  // Holds raw vk::Pipeline/ShaderModule/DescriptorPool handles and is only ever used
+  // Holds raw vk::Pipeline/ShaderModule/DescriptorSetLayout handles and is only ever used
   // through a shared_ptr (Engine::make_algo + enable_shared_from_this). A copy would
   // alias those handles and break the shared_from_this identity, so forbid copy/move.
   Algorithm(const Algorithm&) = delete;
@@ -71,7 +82,6 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   // specialized with the device's size, pinned when the device supports that (design D5).
   [[nodiscard]] std::shared_ptr<Algorithm> subgroup_size_dependent();
   [[nodiscard]] std::shared_ptr<Algorithm> num_buffers(size_t n);
-  [[nodiscard]] std::shared_ptr<Algorithm> num_sets(size_t count);
   [[nodiscard]] std::shared_ptr<Algorithm> push_constant_size(size_t size_in_bytes);
   template <typename T>
   [[nodiscard]] std::shared_ptr<Algorithm> push_constant() {
@@ -102,27 +112,22 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   }
 
   /**
-   * @brief Update buffer bindings for the compute shader
-   * @param buffer_infos List of buffer descriptors to bind
+   * @brief Bind the pipeline and the stage's buffers into `seq`'s open command buffer
+   * @param buffers One buffer per binding 0..num_buffers-1
+   *
+   * The bindings are captured at record time (push descriptors, or a set from the
+   * Sequence's transient pool; design D6), so the same Algorithm may be recorded several
+   * times into one command buffer with different buffers.
    *
    * Example usage:
    * ```cpp
-   * algo->update_buffer({
-   *   engine.get_buffer_info(input_a),
-   *   engine.get_buffer_info(input_b),
+   * algo->record_bind(*seq, {
+   *   engine.get_buffer_info(input),
    *   engine.get_buffer_info(output)
    * });
    * ```
    */
-  // void update_buffer(std::initializer_list<vk::DescriptorBufferInfo> buffer_infos);
-
-  void update_descriptor_set(uint32_t set_index,
-                             const std::vector<vk::DescriptorBufferInfo>& buffer_infos) const;
-
-  // Used by 'Sequence' Class
-  // void record_bind_core(const vk::CommandBuffer& cmd_buf) const;
-
-  void record_bind_core(const vk::CommandBuffer& cmd_buf, uint32_t set_index) const;
+  void record_bind(Sequence& seq, std::initializer_list<vk::DescriptorBufferInfo> buffers) const;
 
   void record_bind_push(const vk::CommandBuffer& cmd_buf) const;
 
@@ -134,8 +139,6 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
  private:
   void create_shader_module();
   void create_descriptor_set_layout();
-  void create_descriptor_pool();
-  void allocate_descriptor_sets();
 
   void create_pipeline();
 
@@ -146,25 +149,18 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   // Core vulkan handles
   vk::ShaderModule shader_module_ = nullptr;
   vk::Pipeline pipeline_ = nullptr;
-  vk::PipelineCache pipeline_cache_ = nullptr;
+  vk::PipelineCache pipeline_cache_;  // the Engine's
   vk::PipelineLayout pipeline_layout_ = nullptr;
   vk::DescriptorSetLayout descriptor_set_layout_ = nullptr;
-  vk::DescriptorPool descriptor_pool_ = nullptr;
-
-  // vk::DescriptorSet descriptor_set_ = nullptr;
-
-  // Instead of a single descriptor_set_, store a vector.
-  std::vector<vk::DescriptorSet> descriptor_sets_{};
-  uint32_t descriptor_set_count_ = 1;  // default to 1
+  PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_ = nullptr;
 
   std::string shader_name_;
   ComputeLimits limits_;
   SpirvReflection reflection_;
   bool subgroup_size_dependent_ = false;
 
-  // Payloads (buffers and push constants)
+  // Payload (push constants)
   std::array<std::byte, 128> push_constants_buffer_{};
-  std::vector<vk::DescriptorBufferInfo> buffer_infos_{};
 
   struct {
     std::vector<uint32_t> spirv_binary;

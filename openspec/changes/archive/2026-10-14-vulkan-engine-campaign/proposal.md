@@ -47,7 +47,10 @@ Phase C — binding and pipeline overhead:
 - Stage buffers are bound with push descriptors (`VK_KHR_push_descriptor`) instead of
   per-item `vkUpdateDescriptorSets` on pre-allocated sets. This removes descriptor pools,
   `num_sets()` and the per-stage set-index bookkeeping in the dispatchers. It needs a fallback
-  for devices without the extension.
+  for devices without the extension. (Measured in Phase C: on RADV this simplifies the code but does
+  not reduce the end-to-end cost of tree × VK. Makespan is unchanged, and a bind costs +15 ns at 13
+  buffers. The binding requirement was amended to the end-to-end bound; see the resource-binding
+  spec.)
 - One pipeline cache per engine, persisted to disk across runs. This only affects startup.
 
 Out of scope (noted, not changed):

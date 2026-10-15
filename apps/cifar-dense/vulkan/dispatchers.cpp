@@ -57,13 +57,10 @@ struct LinearPushConstants_v2 {
 VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
-  // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8. When a chunk
-  // records several of those into one command buffer, each stage must bind its OWN
-  // descriptor set (a single shared set would be overwritten and every dispatch would
-  // see the last binding) -- so allocate one set per stage that uses the algo.
+  // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8; record_bind
+  // captures each stage's buffers per dispatch, so they can share one command buffer.
   auto conv2d_algo = engine.make_algo("new_cifar_dense_conv2d")
                          ->work_group_size(256, 1, 1)
-                         ->num_sets(5)     // stages 1,3,5,6,7
                          ->num_buffers(4)  // Input, Weight, Bias, Output
                          ->push_constant<Conv2dPushConstants_v2>()
                          ->build();
@@ -76,7 +73,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Selected per stage when R==S==3, stride==1, padding==1 and K % 4 == 0.
   auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1")
                                 ->work_group_size(256, 1, 1)
-                                ->num_sets(5)     // stages 1,3,5,6,7
                                 ->num_buffers(4)  // Input, Weight, Bias, Output
                                 ->push_constant<Conv2dPushConstants_v2>()
                                 ->build();
@@ -86,7 +82,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Create algorithm for maxpool
   auto maxpool_algo = engine.make_algo("new_cifar_dense_maxpool")
                           ->work_group_size(256, 1, 1)
-                          ->num_sets(3)     // stages 2,4,8
                           ->num_buffers(2)  // Input, Output
                           ->push_constant<MaxpoolPushConstants_v2>()
                           ->build();
@@ -96,7 +91,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Create algorithm for linear
   auto linear_algo = engine.make_algo("new_cifar_dense_linear")
                          ->work_group_size(256, 1, 1)
-                         ->num_sets(3)     // stages 9,10,11
                          ->num_buffers(4)  // Input, Weight, Bias, Output
                          ->push_constant<LinearPushConstants_v2>()
                          ->build();
@@ -110,7 +104,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
   // Selected per stage when N <= 16 and in_features % 4 == 0.
   auto linear_bt_algo = engine.make_algo("new_cifar_dense_linear_bt")
                             ->work_group_size(256, 1, 1)
-                            ->num_sets(3)     // stages 9,10,11
                             ->num_buffers(4)  // Input, Weight, Bias, Output
                             ->push_constant<LinearPushConstants_v2>()
                             ->build();
@@ -135,7 +128,7 @@ void VulkanDispatcher::run_stage_10(AppData& appdata) { dispatch_multi_stage(app
 void VulkanDispatcher::run_stage_11(AppData& appdata) { dispatch_multi_stage(appdata, 11, 11); }
 
 // ----------------------------------------------------------------------------
-// Stage 1 (v2) - Conv1  (conv2d descriptor set 0)
+// Stage 1 (v2) - Conv1
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
@@ -154,14 +147,6 @@ void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_input.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv1_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv1_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
-                              });
-
   // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
@@ -179,25 +164,25 @@ void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_input.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv1_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv1_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 2 (v2) - MaxPool1  (maxpool descriptor set 0)
+// Stage 2 (v2) - MaxPool1
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_2(AppData& appdata, vk::CommandBuffer cmd) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
-
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
-                              });
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv1_out.d0();  // Expected: 128
@@ -220,13 +205,17 @@ void VulkanDispatcher::record_stage_2(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kPoolStride,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 3 (v2) - Conv2  (conv2d descriptor set 1)
+// Stage 3 (v2) - Conv2
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
@@ -245,14 +234,6 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  algo->update_descriptor_set(1,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv2_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
-                              });
-
   // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
@@ -270,25 +251,25 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 1);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv2_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 4 (v2) - MaxPool2  (maxpool descriptor set 1)
+// Stage 4 (v2) - MaxPool2
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_4(AppData& appdata, vk::CommandBuffer cmd) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
-
-  algo->update_descriptor_set(1,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
-                              });
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv2_out.d0();  // Expected: 128
@@ -311,13 +292,17 @@ void VulkanDispatcher::record_stage_4(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kPoolStride,
   });
 
-  algo->record_bind_core(cmd, 1);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 5 (v2) - Conv3  (conv2d descriptor set 2)
+// Stage 5 (v2) - Conv3
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
@@ -336,14 +321,6 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  algo->update_descriptor_set(2,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv3_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
-                              });
-
   // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
@@ -361,13 +338,19 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 2);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv3_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 6 (v2) - Conv4  (conv2d descriptor set 3)
+// Stage 6 (v2) - Conv4
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
@@ -386,14 +369,6 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  algo->update_descriptor_set(3,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv4_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
-                              });
-
   // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
@@ -411,13 +386,19 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 3);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv4_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 7 (v2) - Conv5  (conv2d descriptor set 4)
+// Stage 7 (v2) - Conv5
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
@@ -436,14 +417,6 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  algo->update_descriptor_set(4,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv5_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
-                              });
-
   // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
@@ -461,25 +434,25 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 4);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv5_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 8 (v2) - MaxPool3  (maxpool descriptor set 2)
+// Stage 8 (v2) - MaxPool3
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_8(AppData& appdata, vk::CommandBuffer cmd) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
-
-  algo->update_descriptor_set(2,
-                              {
-                                  engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                              });
 
   // Extract dimensions from the convolution output NDArray4D
   const int batch_size = appdata.u_conv5_out.d0();  // Expected: 128
@@ -502,13 +475,17 @@ void VulkanDispatcher::record_stage_8(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kPoolStride,
   });
 
-  algo->record_bind_core(cmd, 2);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 9 (v2) - FC1  (linear descriptor set 0)
+// Stage 9 (v2) - FC1
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_9(AppData& appdata, vk::CommandBuffer cmd) {
@@ -528,14 +505,6 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, vk::CommandBuffer cmd) {
   const bool bt = batch_size <= 16 && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  algo->update_descriptor_set(0,
-                              {
-                                  engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                              });
-
   // bt: one 16-lane row per output feature, 16 rows per workgroup.
   const size_t num_groups =
       bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
@@ -547,13 +516,19 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, vk::CommandBuffer cmd) {
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 0);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(num_groups), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 10 (v2) - FC2  (linear descriptor set 1)
+// Stage 10 (v2) - FC2
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_10(AppData& appdata, vk::CommandBuffer cmd) {
@@ -569,14 +544,6 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, vk::CommandBuffer cmd) 
   const bool bt = batch_size <= 16 && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  algo->update_descriptor_set(1,
-                              {
-                                  engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
-                              });
-
   // bt: one 16-lane row per output feature, 16 rows per workgroup.
   const size_t num_groups =
       bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
@@ -588,13 +555,19 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, vk::CommandBuffer cmd) 
       .apply_relu = kRelu ? 1 : 0,
   });
 
-  algo->record_bind_core(cmd, 1);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(num_groups), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
-// Stage 11 (v2) - FC3  (linear descriptor set 2)
+// Stage 11 (v2) - FC3
 // ----------------------------------------------------------------------------
 
 void VulkanDispatcher::record_stage_11(AppData& appdata, vk::CommandBuffer cmd) {
@@ -610,14 +583,6 @@ void VulkanDispatcher::record_stage_11(AppData& appdata, vk::CommandBuffer cmd) 
   const bool bt = batch_size <= 16 && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  algo->update_descriptor_set(2,
-                              {
-                                  engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc3_w.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc3_b.pmr_vec()),
-                                  engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
-                              });
-
   // bt: one 16-lane row per output feature, 16 rows per workgroup.
   const size_t num_groups =
       bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
@@ -629,7 +594,13 @@ void VulkanDispatcher::record_stage_11(AppData& appdata, vk::CommandBuffer cmd) 
       .apply_relu = 0,  // FC3 emits raw logits: no ReLU
   });
 
-  algo->record_bind_core(cmd, 2);
+  algo->record_bind(*seq,
+                    {
+                        engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc3_w.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc3_b.pmr_vec()),
+                        engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
+                    });
   algo->record_bind_push(cmd);
   algo->record_dispatch(cmd, {static_cast<uint32_t>(num_groups), 1, 1});
 }

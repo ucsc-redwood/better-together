@@ -15,16 +15,23 @@ class Sequence {
 
   ~Sequence();
 
-  // Owns a VkCommandPool/VkFence/VkQueryPool freed in ~Sequence; only ever held behind a
-  // shared_ptr (Engine::make_seq). Copying would double-free those handles and there is no
+  // Owns a VkCommandPool/VkFence/VkQueryPool/VkDescriptorPools freed in ~Sequence; only ever held
+  // behind a shared_ptr (Engine::make_seq). Copying would double-free those handles and there is no
   // move, so make every copy/move ill-formed.
   Sequence(const Sequence&) = delete;
   Sequence& operator=(const Sequence&) = delete;
   Sequence(Sequence&&) = delete;
   Sequence& operator=(Sequence&&) = delete;
 
-  void cmd_begin() const;
+  // Also resets the transient descriptor pools, so the previous submit must have been
+  // waited on (as vkBeginCommandBuffer already requires of the command buffer).
+  void cmd_begin();
   void cmd_end() const;
+
+  // One descriptor set of `layout` for the command buffer being recorded, freed by the
+  // next cmd_begin() (Algorithm::record_bind, design D6). Grows by whole pools, so no
+  // caller plans a set count.
+  [[nodiscard]] vk::DescriptorSet allocate_descriptor_set(vk::DescriptorSetLayout layout);
 
   // Records a global COMPUTE->COMPUTE, shaderWrite->shaderRead memory barrier into the
   // open command buffer. Use it between stages when several stages are recorded into a
@@ -51,6 +58,7 @@ class Sequence {
   void create_command_pool();
   void create_command_buffer();
   void create_query_pool();
+  [[nodiscard]] vk::DescriptorPool create_descriptor_pool() const;
 
   vk::Device device_ref_;
   vk::Queue compute_queue_ref_;
@@ -60,6 +68,11 @@ class Sequence {
   vk::CommandBuffer handle_;
   vk::CommandPool command_pool_;
   vk::Fence fence_;
+
+  // Transient descriptor pools: sets are allocated from descriptor_pools_[current_pool_]
+  // and all reset together in cmd_begin().
+  std::vector<vk::DescriptorPool> descriptor_pools_;
+  size_t current_pool_ = 0;
 
   // Device-side timestamp query (2 entries: top-of-pipe, bottom-of-pipe).
   vk::QueryPool query_pool_;

@@ -127,10 +127,14 @@ device makes the suites skip rather than crash.
 ### D6. Binding: push descriptors, transient-pool fallback
 - **Primary path.** `Algorithm` records bindings with `vkCmdPushDescriptorSetKHR`, using a set
   layout created with the PUSH_DESCRIPTOR flag. This replaces `update_descriptor_set(set_index, …)`
-  + `record_bind_core(cmd, set_index)` with `record_bind(cmd, {buffers…})`, and removes
-  `num_sets()`, the descriptor pool and the set vector.
+  + `record_bind_core(cmd, set_index)` with `record_bind(seq, {buffers…})`, and removes
+  `num_sets()`, the descriptor pool and the set vector. (Corrected in Phase C: an earlier draft
+  wrote `record_bind(cmd, …)`. The call takes the `Sequence`, whose command buffer it records
+  into, because the fallback allocates from that `Sequence`'s pool; a bare command buffer
+  cannot reach it.) `vkCmdPushDescriptorSetKHR` is fetched with `vkGetDeviceProcAddr`.
 - **Fallback.** When the extension is absent, `Sequence` owns a transient descriptor pool.
-  `cmd_begin()` resets it, and each `record_bind` allocates and writes one set from it. Behaviour is
+  `cmd_begin()` resets it, and each `record_bind` allocates and writes one set from it. The pool
+  is created on first use and grows by whole pools when a chunk outgrows it. Behaviour is
   identical: the dispatcher API is the same, and no planning is needed.
 - **Why not the fallback alone?** It is simpler and still removes dispatcher bookkeeping, but it
   keeps the alloc+update per dispatch, which is the CPU cost we are trying to shave on tree × Vulkan.
@@ -138,15 +142,45 @@ device makes the suites skip rather than crash.
   It stays a possible future step.
 - **Test hook.** `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1` forces the fallback, so CI on `rocky-ryzen`
   covers both paths.
+- **Measured in Phase C (task 7.7, rocky-ryzen / RADV).** The CPU cost the two paths above were
+  meant to shave is small, and push descriptors do not reduce it on RADV.
+  - Recording one bind + dispatch: 124–127 ns before → 109–131 ns with push descriptors at 2
+    buffers, and 302–304 → 309–322 ns at 13 buffers (+15 ns). The fallback costs 208–214 and
+    384–401 ns.
+  - A tree chunk binds 20 times, so binding is a few µs of a ~1.7 ms makespan. The tree × VK
+    makespan and the fitted overhead constants are unchanged within noise.
+  - The original resource-binding requirement ("Per-dispatch host-side binding cost SHALL be no
+    greater than the descriptor-update path it replaces") was not met per bind, so the actor left
+    it open (tasks.md 7.8) and did not tune around it.
+  - **Resolution, decided by the project owner:** the requirement was amended to the end-to-end
+    bound it stood in for: makespan and fitted per-chunk overhead must not regress beyond noise,
+    which holds. The per-bind cost must be recorded, which it is (above). See the amendment note in
+    `specs/vulkan-engine/resource-binding/spec.md`.
+  - **What Phase C's binding change is worth:** simpler code, not speed. It removes `num_sets()`,
+    the per-Algorithm descriptor pools and sets, and the per-stage set-index bookkeeping at the 41
+    dispatcher call sites. It does not make tree × VK faster on RADV. Phones were not
+    micro-benchmarked.
 
 ### D7. Pipeline cache: one per engine, persisted
 - `Engine` owns one `vk::PipelineCache`, passed to each `Algorithm`.
-- **Load.** On construction it loads `$BT_VK_PIPELINE_CACHE_DIR/<vendorID>-<deviceID>-<uuid>.bin`.
+- **Load.** On construction it loads
+  `$BT_VK_PIPELINE_CACHE_DIR/bt-vk-pipeline-cache-<vendorID>-<deviceID>-<uuid>.bin` (ids in hex).
+  (Phase C added the `bt-vk-pipeline-cache-` prefix so a file left in a working directory says
+  what it is, and so `.gitignore` can match it narrowly.)
   - The directory defaults to the current working directory. That is writable in every fleet
     location, including `/data/local/tmp` on the phones.
-  - Before passing the data to the driver, the file's `VkPipelineCacheHeaderVersionOne` (vendor,
-    device, `pipelineCacheUUID`) is validated. On a mismatch or a short or corrupt file it is
-    ignored. Drivers are supposed to reject bad blobs, but not all mobile drivers are trusted to.
+  - Before passing the data to the driver, the file's `VkPipelineCacheHeaderVersionOne` (header
+    length 32 and version 1, vendor, device, `pipelineCacheUUID`) is validated. On a mismatch or a
+    short or corrupt file it is ignored. Drivers are supposed to reject bad blobs, but not all
+    mobile drivers are trusted to.
+  - The read never blocks and never fails the Engine. Added in Phase C review:
+    - the file is opened with `O_NONBLOCK` and must be a regular file, so a FIFO is rejected
+      instead of waited on;
+    - the 32-byte header is read and checked before the payload is allocated;
+    - a file over 64 MiB (`kMaxPipelineCacheBytes`) is rejected unread; real caches are at most
+      63 KB on the fleet;
+    - a failed allocation or read rejects the data.
+    All of these compile cold.
 - **Save.** On `~Engine` it writes via `getPipelineCacheData` to a temp file plus a rename. On any
   I/O error it logs at debug level and continues.
 - **Timing.** Pipelines are built in dispatcher constructors, outside any timed region, so profiling

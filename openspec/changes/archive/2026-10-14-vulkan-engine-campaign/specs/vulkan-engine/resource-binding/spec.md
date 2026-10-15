@@ -37,9 +37,27 @@ binding method with the same observable behaviour. It SHALL NOT fail.
 - **WHEN** the selected GPU does not support the per-dispatch binding extension
 - **THEN** every Vulkan suite still passes with identical results
 
-### Requirement: Binding overhead does not regress
-Per-dispatch host-side binding cost SHALL be no greater than the descriptor-update path it replaces.
+### Requirement: Binding change does not slow the pipeline
+Replacing the descriptor-update path SHALL NOT increase the measured per-chunk makespan, or the fitted
+per-chunk framework overhead, beyond run-to-run noise. The host-side cost of recording one bind SHALL
+be measured and recorded for each binding path, but it is not a pass/fail bound on its own.
 
 #### Scenario: µs-scale app re-measured
 - **WHEN** tree × Vulkan is profiled on rocky-ryzen before and after the change, under the same governor and clock conditions
 - **THEN** the measured per-chunk makespan does not increase beyond run-to-run noise
+
+#### Scenario: Overhead constants refit
+- **WHEN** `fit_overhead` is refit from the same before/after fleet runs
+- **THEN** the fitted per-chunk overhead constants do not increase beyond the spread of the before-runs
+
+#### Scenario: Per-bind recording cost is on record
+- **WHEN** the change is measured
+- **THEN** the per-bind recording cost of the old path, the push-descriptor path and the fallback is recorded next to the end-to-end result, including any increase
+
+(Amended during Phase C, by the project owner's decision. The original requirement read "Per-dispatch
+host-side binding cost SHALL be no greater than the descriptor-update path it replaces". On RADV, push
+descriptors measured +14.7 ns per bind at 13 buffers (+4.8 %), and the fallback +85–89 ns. Meanwhile
+the tree × VK makespan, the fitted overhead and every stage time were unchanged or faster. A tree
+chunk binds about 20 times, so binding is a few µs of a ~1.7 ms makespan. The per-bind bound was a
+proxy for end-to-end cost, and the proxy turned out stricter than the goal; the end-to-end bound is
+the one that matters, and it holds.)

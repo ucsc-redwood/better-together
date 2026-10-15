@@ -60,10 +60,10 @@ class VulkanDispatcher final {
   }
 
  private:
-  // Record-only stage bodies: descriptor-set update(s) + bind + dispatch(es) into `cmd`
-  // (keeping each stage's own intra-stage barriers), no cmd_begin/submit/wait. The scan
-  // algos are shared by stage 3 and stage 6, so each binds a distinct scan descriptor-set
-  // index (stage 3 -> 0, stage 6 -> 1) to avoid clobbering when both are in one buffer.
+  // Record-only stage bodies: bind (buffers captured per dispatch) + dispatch(es) into
+  // `cmd` (= seq's command buffer), keeping each stage's own intra-stage barriers, no
+  // cmd_begin/submit/wait. The scan algos are shared by stage 3 and stage 6, which may
+  // share one command buffer.
   void record_stage_1(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
   void record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
   void record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
@@ -94,8 +94,7 @@ class VulkanDispatcher final {
                           vk::DescriptorBufferInfo src,
                           vk::DescriptorBufferInfo dst,
                           vk::DescriptorBufferInfo block_sums,
-                          uint32_t n,
-                          uint32_t descriptor_set);
+                          uint32_t n);
 
  public:
   // --------------------------------------------------------------------------

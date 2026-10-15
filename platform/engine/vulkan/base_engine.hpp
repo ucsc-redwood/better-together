@@ -59,6 +59,11 @@ class BaseEngine {
   }
   [[nodiscard]] const ComputeLimits& compute_limits() const { return compute_limits_; }
   [[nodiscard]] uint32_t subgroup_size() const { return compute_limits_.subgroup_size; }
+  // VK_KHR_push_descriptor's vkCmdPushDescriptorSetKHR when the extension is enabled, else
+  // null: Algorithm::record_bind then uses the Sequence's transient pool (design D6).
+  [[nodiscard]] PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn() const {
+    return push_descriptor_fn_;
+  }
 
  protected:
   void initialize_dynamic_loader();
@@ -89,6 +94,7 @@ class BaseEngine {
   bool owns_vma_allocator_ = false;
   uint32_t compute_queue_family_index_;
   ComputeLimits compute_limits_;
+  PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_ = nullptr;
   std::vector<const char*> enabled_layers_;
 
   DynamicLoader dl_;

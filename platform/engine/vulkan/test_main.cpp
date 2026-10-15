@@ -1,9 +1,26 @@
+#include <fcntl.h>
 #include <gtest/gtest.h>
 #include <spdlog/cfg/env.h>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
+#include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <future>
+#include <iterator>
+#include <optional>
 #include <set>
+#include <thread>
 
 #include "engine.hpp"
 
@@ -92,10 +109,9 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
                   ->work_group_size(64, 2, 1)
                   ->num_buffers(1)
                   ->build();
-  algo->update_descriptor_set(0, {engine.get_buffer_info(out)});
 
   seq->cmd_begin();
-  algo->record_bind_core(seq->get_handle(), 0);
+  algo->record_bind(*seq, {engine.get_buffer_info(out)});
   algo->record_dispatch(seq->get_handle(), {1, 1, 1});
   seq->cmd_end();
   seq->submit();
@@ -106,6 +122,417 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
   EXPECT_EQ(out[1], 64u);
   EXPECT_EQ(out[2], 2u);
   EXPECT_EQ(out[3], 1u);
+}
+
+// Sets (or, with nullptr, unsets) an environment variable for one scope.
+class ScopedEnv {
+ public:
+  ScopedEnv(const char* name, const char* value) : name_(name) {
+    if (const char* old = std::getenv(name)) old_ = old;
+    if (value) {
+      setenv(name, value, 1);
+    } else {
+      unsetenv(name);
+    }
+  }
+  ~ScopedEnv() {
+    if (old_) {
+      setenv(name_, old_->c_str(), 1);
+    } else {
+      unsetenv(name_);
+    }
+  }
+  ScopedEnv(const ScopedEnv&) = delete;
+  ScopedEnv& operator=(const ScopedEnv&) = delete;
+  ScopedEnv(ScopedEnv&&) = delete;
+  ScopedEnv& operator=(ScopedEnv&&) = delete;
+
+ private:
+  const char* name_;
+  std::optional<std::string> old_;
+};
+
+// Resource-binding spec, "Bindings are recorded per dispatch" and "Portable binding
+// fallback", on both binding paths of the same device: push descriptors (where the device
+// has VK_KHR_push_descriptor) and the transient-pool fallback (BT_VK_FORCE_DESCRIPTOR_FALLBACK=1,
+// even where it has). One kernel is recorded many times into one command buffer, each
+// time bound to a different buffer. The shader atomically adds its 128 invocations to
+// g_out[0], so each buffer must end at its own start value plus 128 per dispatch bound to
+// it: a dispatch that saw another dispatch's binding would read and write the wrong
+// buffer. 75 binds also exceed one transient pool.
+enum class BindingPath : std::uint8_t { kPushDescriptors, kFallback };
+
+class VulkanBinding : public ::testing::TestWithParam<BindingPath> {};
+
+TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const bool fallback = GetParam() == BindingPath::kFallback;
+  // Explicit either way, so an outer BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 still tests push.
+  const ScopedEnv force("BT_VK_FORCE_DESCRIPTOR_FALLBACK", fallback ? "1" : nullptr);
+  kiss_vk::Engine engine;
+  if (fallback) {
+    ASSERT_EQ(engine.push_descriptor_fn(), nullptr);
+  } else if (engine.push_descriptor_fn() == nullptr) {
+    GTEST_SKIP() << "VK_KHR_push_descriptor not supported";
+  }
+
+  auto seq = engine.make_seq();
+  auto algo = engine.make_algo("engine_test_workgroup_size")
+                  ->work_group_size(64, 2, 1)
+                  ->num_buffers(1)
+                  ->build();
+
+  constexpr int kBuffers = 3;
+  constexpr int kRounds = 25;
+  std::vector<std::pmr::vector<uint32_t>> outs;
+  for (int b = 0; b < kBuffers; ++b) outs.emplace_back(4, 0, engine.get_mr());
+
+  for (int submit = 0; submit < 2; ++submit) {  // the second cmd_begin() reuses the pools
+    for (int b = 0; b < kBuffers; ++b) {
+      std::ranges::fill(outs[b], 0u);
+      outs[b][0] = 1000u * (b + 1);
+    }
+    seq->cmd_begin();
+    for (int i = 0; i < kRounds * kBuffers; ++i) {
+      if (i != 0) seq->cmd_memory_barrier();
+      algo->record_bind(*seq, {engine.get_buffer_info(outs[i % kBuffers])});
+      algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+    }
+    seq->cmd_end();
+    seq->submit();
+    seq->wait_for_fence();
+    seq->reset_fence();
+
+    for (int b = 0; b < kBuffers; ++b) {
+      EXPECT_EQ(outs[b][0], 1000u * (b + 1) + 128u * kRounds) << "buffer " << b;
+      EXPECT_EQ(outs[b][1], 64u) << "buffer " << b;
+      EXPECT_EQ(outs[b][2], 2u) << "buffer " << b;
+      EXPECT_EQ(outs[b][3], 1u) << "buffer " << b;
+    }
+  }
+}
+
+INSTANTIATE_TEST_SUITE_P(BothPaths,
+                         VulkanBinding,
+                         ::testing::Values(BindingPath::kPushDescriptors, BindingPath::kFallback),
+                         [](const auto& info) {
+                           return info.param == BindingPath::kFallback ? "Fallback"
+                                                                       : "PushDescriptors";
+                         });
+
+// Pipeline-config spec, "Compiled pipelines persist across runs" (design D7). Each test
+// gets its own cache directory under the working directory (writable on every target),
+// removed afterwards.
+class PipelineCacheTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+    dir_ = std::filesystem::current_path() /
+           ("bt-vk-cache-test-" + std::to_string(getpid()) + "-" +
+            ::testing::UnitTest::GetInstance()->current_test_info()->name());
+    std::filesystem::create_directory(dir_);
+    env_.emplace("BT_VK_PIPELINE_CACHE_DIR", dir_.c_str());
+  }
+  void TearDown() override {
+    env_.reset();
+    if (dir_.empty()) return;
+    std::filesystem::permissions(dir_, std::filesystem::perms::owner_all);
+    std::filesystem::remove_all(dir_);
+  }
+
+  // One engine lifetime: build a pipeline from the persisted cache, run it, check the
+  // result, save the cache on destruction. Returns how the cache started.
+  static kiss_vk::PipelineCacheLoad run_once(std::string* path = nullptr) {
+    kiss_vk::Engine engine;
+    auto seq = engine.make_seq();
+    std::pmr::vector<uint32_t> out(4, 0, engine.get_mr());
+    auto algo = engine.make_algo("engine_test_workgroup_size")
+                    ->work_group_size(64, 2, 1)
+                    ->num_buffers(1)
+                    ->build();
+    seq->cmd_begin();
+    algo->record_bind(*seq, {engine.get_buffer_info(out)});
+    algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+    seq->cmd_end();
+    seq->submit();
+    seq->wait_for_fence();
+    seq->reset_fence();
+    EXPECT_EQ(out, (std::pmr::vector<uint32_t>{128, 64, 2, 1}));
+    if (path) *path = engine.pipeline_cache_path();
+    return engine.pipeline_cache_load();
+  }
+
+  static std::vector<char> read_file(const std::string& path) {
+    std::ifstream f(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
+  }
+  static void write_file(const std::string& path, const std::vector<char>& data) {
+    std::ofstream(path, std::ios::binary | std::ios::trunc).write(data.data(), data.size());
+  }
+
+  std::filesystem::path dir_;
+  std::optional<ScopedEnv> env_;
+};
+
+// "Warm start": the second engine loads what the first one saved.
+TEST_F(PipelineCacheTest, SecondRunLoadsTheSavedCache) {
+  std::string path;
+  EXPECT_EQ(run_once(&path), kiss_vk::PipelineCacheLoad::kMissing);
+  EXPECT_EQ(path.rfind(dir_.string() + "/bt-vk-pipeline-cache-", 0), 0u) << path;
+  ASSERT_TRUE(std::filesystem::exists(path));
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kLoaded);
+}
+
+// "Stale or foreign cache": a corrupt file is ignored -- garbage, and a valid file cut
+// short inside its header.
+TEST_F(PipelineCacheTest, CorruptFileIsIgnored) {
+  std::string path;
+  run_once(&path);
+  const auto valid = read_file(path);
+  ASSERT_GE(valid.size(), 32u);
+
+  write_file(path, std::vector<char>(4096, '\xab'));
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+
+  write_file(path, std::vector<char>(valid.begin(), valid.begin() + 20));
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+}
+
+// "Stale or foreign cache": a file from another device (vendorID / deviceID) or another
+// driver build (pipelineCacheUUID) is ignored, as is a wrong header length or version.
+TEST_F(PipelineCacheTest, ForeignDeviceOrDriverIsIgnored) {
+  std::string path;
+  run_once(&path);
+  const auto valid = read_file(path);
+  ASSERT_GE(valid.size(), 32u);
+
+  // VkPipelineCacheHeaderVersionOne: headerSize, headerVersion, vendorID, deviceID at
+  // byte offsets 0, 4, 8, 12; pipelineCacheUUID at 16..31.
+  for (const size_t offset : {0u, 4u, 8u, 12u, 16u, 31u}) {
+    auto foreign = valid;
+    foreign[offset] = static_cast<char>(foreign[offset] ^ 0x5a);
+    write_file(path, foreign);
+    EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected) << "byte " << offset;
+  }
+
+  write_file(path, valid);  // control: the untouched file loads
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kLoaded);
+}
+
+// A cache path that cannot be read (here: a directory) is ignored like a corrupt file, not
+// thrown out of Engine construction; the save then fails without touching it.
+TEST_F(PipelineCacheTest, UnreadableCacheFileIsIgnored) {
+  std::string path;
+  run_once(&path);
+  std::filesystem::remove(path);
+  std::filesystem::create_directory(path);
+
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+  EXPECT_TRUE(std::filesystem::is_directory(path));
+  // No temporary file left behind: the directory holds only the unreadable "cache".
+  EXPECT_EQ(std::distance(std::filesystem::directory_iterator(dir_),
+                          std::filesystem::directory_iterator{}),
+            1);
+}
+
+// A FIFO at the cache path must not block Engine construction (opening it for reading
+// would wait for a writer). Bounded: if construction is still blocked after 5 s, the test
+// opens the FIFO's write end to release it, then fails, so a regression cannot hang the
+// suite.
+TEST_F(PipelineCacheTest, FifoAtCachePathIsIgnoredWithoutBlocking) {
+  std::string path;
+  run_once(&path);
+  std::filesystem::remove(path);
+  if (mkfifo(path.c_str(), 0600) != 0) {
+    // Android's SELinux policy denies the shell domain `fifo_file create` in /data/local/tmp,
+    // so on the phones no FIFO can exist at the cache path; any other error is a failure.
+    if (errno == EACCES || errno == EPERM) {
+      GTEST_SKIP() << "the OS forbids creating a FIFO here: " << std::strerror(errno);
+    }
+    FAIL() << "mkfifo: " << std::strerror(errno);
+  }
+
+  std::promise<kiss_vk::PipelineCacheLoad> result;
+  auto done = result.get_future();
+  std::thread worker([&] { result.set_value(run_once()); });
+  const bool finished = done.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+  if (!finished) {
+    for (int i = 0;
+         i < 100 && done.wait_for(std::chrono::milliseconds(50)) != std::future_status::ready;
+         ++i) {
+      if (const int w = open(path.c_str(), O_WRONLY | O_NONBLOCK); w >= 0) close(w);
+    }
+  }
+  worker.join();
+  EXPECT_TRUE(finished) << "Engine construction blocked on the FIFO for 5 s";
+  EXPECT_EQ(done.get(), kiss_vk::PipelineCacheLoad::kRejected);
+}
+
+// A cache file over kMaxPipelineCacheBytes (here a valid file extended sparsely past it) is
+// ignored and compiles cold.
+TEST_F(PipelineCacheTest, OversizedCacheFileIsIgnored) {
+  std::string path;
+  run_once(&path);
+  std::filesystem::resize_file(path, kiss_vk::kMaxPipelineCacheBytes + 1);
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kRejected);
+}
+
+// "Read-only location": the run completes and nothing is written.
+TEST_F(PipelineCacheTest, ReadOnlyDirectoryRunsWithoutPersisting) {
+  std::filesystem::permissions(
+      dir_, std::filesystem::perms::owner_read | std::filesystem::perms::owner_exec);
+  ASSERT_NE(access(dir_.c_str(), W_OK), 0) << dir_ << " is still writable (running as root?)";
+
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kMissing);
+  EXPECT_EQ(run_once(), kiss_vk::PipelineCacheLoad::kMissing);  // still nothing persisted
+  EXPECT_TRUE(std::filesystem::is_empty(dir_));
+}
+
+// A save that cannot be written completely is reported as failed and leaves the previous
+// file intact: the temporary file is never renamed over it. Hardware-free. The write is cut
+// off by lowering this process's soft RLIMIT_FSIZE to 32 bytes (SIGXFSZ ignored), only
+// around the one call, so the test's own output is unaffected.
+TEST(PipelineCacheFile, FailedWriteKeepsThePreviousFile) {
+  const auto dir =
+      std::filesystem::current_path() / ("bt-vk-cache-test-" + std::to_string(getpid()) + "-write");
+  std::filesystem::create_directory(dir);
+  const std::string path = (dir / "cache.bin").string();
+  const std::vector<uint8_t> previous(1056, 0x11);
+  const std::vector<uint8_t> next(1056, 0x22);
+  const auto contents = [&] {
+    std::ifstream f(path, std::ios::binary);
+    return std::vector<uint8_t>{std::istreambuf_iterator<char>(f),
+                                std::istreambuf_iterator<char>()};
+  };
+  ASSERT_EQ(kiss_vk::write_file_atomically(path, previous), "");
+
+  rlimit old_limit{};
+  ASSERT_EQ(getrlimit(RLIMIT_FSIZE, &old_limit), 0);
+  rlimit small = old_limit;
+  small.rlim_cur = 32;
+  const auto old_handler = std::signal(SIGXFSZ, SIG_IGN);
+  ASSERT_EQ(setrlimit(RLIMIT_FSIZE, &small), 0);
+  const std::string why = kiss_vk::write_file_atomically(path, next);
+  setrlimit(RLIMIT_FSIZE, &old_limit);
+  std::signal(SIGXFSZ, old_handler);
+
+  EXPECT_NE(why.find("write failed after 32 of 1056 bytes"), std::string::npos) << why;
+  EXPECT_EQ(contents(), previous);
+  EXPECT_EQ(std::distance(std::filesystem::directory_iterator(dir),
+                          std::filesystem::directory_iterator{}),
+            1);  // no temporary file left
+
+  // Control: without the limit the same call replaces the file.
+  EXPECT_EQ(kiss_vk::write_file_atomically(path, next), "");
+  EXPECT_EQ(contents(), next);
+  std::filesystem::remove_all(dir);
+}
+
+// Hardware-free: a file whose header matches `props`, extended sparsely to `size` bytes.
+namespace {
+vk::PhysicalDeviceProperties fake_cache_device() {
+  vk::PhysicalDeviceProperties props{};
+  props.vendorID = 0x1234;
+  props.deviceID = 0x5678;
+  for (uint8_t i = 0; i < VK_UUID_SIZE; ++i) props.pipelineCacheUUID[i] = i;
+  return props;
+}
+
+void write_sparse_cache(const std::string& path,
+                        const vk::PhysicalDeviceProperties& props,
+                        const uint64_t size) {
+  VkPipelineCacheHeaderVersionOne header{.headerSize = sizeof(header),
+                                         .headerVersion = VK_PIPELINE_CACHE_HEADER_VERSION_ONE,
+                                         .vendorID = props.vendorID,
+                                         .deviceID = props.deviceID};
+  std::memcpy(header.pipelineCacheUUID, props.pipelineCacheUUID.data(), VK_UUID_SIZE);
+  std::ofstream(path, std::ios::binary | std::ios::trunc)
+      .write(reinterpret_cast<const char*>(&header), sizeof(header));
+  std::filesystem::resize_file(path, size);
+}
+
+// This process's address-space size (VmSize, what RLIMIT_AS is checked against), in bytes.
+uint64_t vm_size_bytes() {
+  std::ifstream status("/proc/self/status");
+  for (std::string line; std::getline(status, line);) {
+    if (line.rfind("VmSize:", 0) == 0) return std::stoull(line.substr(7)) * 1024;
+  }
+  return 0;
+}
+
+// Child mode of this binary (see main): read the cache file at `path` with the soft
+// RLIMIT_AS 16 MiB above current use. RLIMIT_AS, not RLIMIT_DATA: bionic's allocator maps
+// memory that RLIMIT_DATA does not cap. Exit 0 iff the read was rejected as unallocatable.
+int cache_alloc_child(const char* path) {
+  rlimit limit{};
+  if (getrlimit(RLIMIT_AS, &limit) != 0) return 2;
+  limit.rlim_cur = vm_size_bytes() + (16u << 20);
+  if (setrlimit(RLIMIT_AS, &limit) != 0) return 3;
+  const auto file = kiss_vk::read_pipeline_cache_file(path, fake_cache_device());
+  std::printf("child: load %d, why \"%s\"\n", static_cast<int>(file.load), file.why.c_str());
+  return file.load == kiss_vk::PipelineCacheLoad::kRejected &&
+                 file.why.find("cannot allocate") != std::string::npos
+             ? 0
+             : 1;
+}
+
+// Runs cache_alloc_child(path) in a fresh copy of this binary and returns its exit status.
+// A fresh process: memory this one already holds (a retained heap top, allocator caches)
+// could otherwise satisfy the allocation without new address space, making the limit moot.
+int run_cache_alloc_child(const std::string& path) {
+  const pid_t pid = fork();
+  if (pid == 0) {
+    execl("/proc/self/exe", "test-kiss-vk", "--cache-alloc-child", path.c_str(), nullptr);
+    _exit(127);
+  }
+  int status = 0;
+  if (pid < 0 || waitpid(pid, &status, 0) != pid || !WIFEXITED(status)) return -1;
+  return WEXITSTATUS(status);
+}
+}  // namespace
+
+// Pipeline-config spec, "Stale or foreign cache" for oversized data. The header is read and
+// the size bounded before the payload is allocated, so a 2 GiB file is rejected without an
+// allocation, even with the address space limited to 16 MiB above current use. A 48 MiB
+// file (under the bound) whose allocation fails is rejected too, never thrown: checked in a
+// fresh child process (run_cache_alloc_child).
+TEST(PipelineCacheFile, OversizedOrUnallocatableDataIsRejected) {
+  const auto dir =
+      std::filesystem::current_path() / ("bt-vk-cache-test-" + std::to_string(getpid()) + "-size");
+  std::filesystem::create_directory(dir);
+  const std::string path = (dir / "cache.bin").string();
+  const auto props = fake_cache_device();
+
+  write_sparse_cache(path, props, uint64_t{2} << 30);
+  kiss_vk::PipelineCacheFile file;
+  {
+    struct RestoreLimit {
+      RestoreLimit() = default;
+      ~RestoreLimit() { setrlimit(RLIMIT_AS, &old); }
+      RestoreLimit(const RestoreLimit&) = delete;
+      RestoreLimit& operator=(const RestoreLimit&) = delete;
+      RestoreLimit(RestoreLimit&&) = delete;
+      RestoreLimit& operator=(RestoreLimit&&) = delete;
+      rlimit old{};
+    } restore;
+    ASSERT_EQ(getrlimit(RLIMIT_AS, &restore.old), 0);
+    rlimit tight = restore.old;
+    tight.rlim_cur = vm_size_bytes() + (16u << 20);
+    ASSERT_EQ(setrlimit(RLIMIT_AS, &tight), 0);
+    file = kiss_vk::read_pipeline_cache_file(path, props);
+  }
+  EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kRejected);
+  EXPECT_NE(file.why.find("2147483648 bytes exceeds the 67108864-byte limit"), std::string::npos)
+      << file.why;
+
+  write_sparse_cache(path, props, 48u << 20);
+  EXPECT_EQ(run_cache_alloc_child(path), 0) << "the child's read was not rejected as unallocatable";
+
+  // Control: without the limit the 48 MiB file reads in full.
+  file = kiss_vk::read_pipeline_cache_file(path, props);
+  EXPECT_EQ(file.load, kiss_vk::PipelineCacheLoad::kLoaded) << file.why;
+  EXPECT_EQ(file.data.size(), 48u << 20);
+  std::filesystem::remove_all(dir);
 }
 
 TEST(VulkanWorkGroupSize, MismatchWithLiteralLocalSizeThrows) {
@@ -200,6 +627,10 @@ TEST(RegistrySubgroupCrossCheck, MismatchWarns) {
 }
 
 int main(int argc, char** argv) {
+  if (argc == 3 && std::string_view(argv[1]) == "--cache-alloc-child") {
+    return cache_alloc_child(argv[2]);
+  }
+
   // Initialize Google Test
   ::testing::InitGoogleTest(&argc, argv);
 
