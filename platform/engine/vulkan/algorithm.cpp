@@ -182,6 +182,9 @@ void Algorithm::record_bind(Sequence& seq,
 
   const vk::CommandBuffer cmd = seq.get_handle();
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
+  // Push-descriptor vs fallback bodies differ; CI's clang-tidy (pc build, no Vulkan
+  // headers) can't resolve them and sees identical branches.
+  // NOLINTNEXTLINE(bugprone-branch-clone)
   if (push_descriptor_fn_) {
     push_descriptor_fn_(cmd,
                         VK_PIPELINE_BIND_POINT_COMPUTE,

@@ -167,6 +167,9 @@ LoadedPipelineCache load_pipeline_cache(const vk::Device device,
   PipelineCacheFile file;
   try {
     file = read_pipeline_cache_file(path, props);
+    // Not empty: it records the rejection. CI's clang-tidy (no Vulkan headers) can't
+    // resolve the assignment and sees an empty catch.
+    // NOLINTNEXTLINE(bugprone-empty-catch)
   } catch (const std::exception& e) {  // e.g. out of memory: never fail the Engine for a cache
     file = {PipelineCacheLoad::kRejected, {}, e.what()};
   }

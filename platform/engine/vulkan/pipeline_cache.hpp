@@ -44,8 +44,8 @@ struct PipelineCacheFile {
                                                          const vk::PhysicalDeviceProperties& props);
 
 struct LoadedPipelineCache {
-  vk::PipelineCache cache;
-  PipelineCacheLoad load;
+  vk::PipelineCache cache{};
+  PipelineCacheLoad load = PipelineCacheLoad::kMissing;
 };
 
 // A pipeline cache seeded from `path` when the file passes the header check, else empty.
