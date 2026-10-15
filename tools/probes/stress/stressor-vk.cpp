@@ -24,8 +24,6 @@ int main() {
                   ->push_constant_size(12)
                   ->build();
 
-  algo->update_push_constant(pc);
-
   auto seq = engine.make_seq();
 
   // Start timing
@@ -45,13 +43,12 @@ int main() {
 
     // Update push constants with current time
     pc.start_time = static_cast<float>(elapsed);
-    algo->update_push_constant(pc);
 
     // Record and submit the kernel
     seq->cmd_begin();
     algo->record_bind(*seq, {engine.get_buffer_info(input)});
-    algo->record_bind_push(seq->get_handle());
-    algo->record_dispatch(seq->get_handle(), {kiss_vk::div_ceil(n, 256), 1, 1});
+    algo->record_push_constants(*seq, pc);
+    algo->record_dispatch(*seq, {kiss_vk::div_ceil(n, 256), 1, 1});
     seq->cmd_end();
 
     seq->submit();

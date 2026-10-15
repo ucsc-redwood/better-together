@@ -4,6 +4,7 @@
 
 #include <charconv>
 #include <cstdlib>
+#include <mutex>
 #include <string_view>
 
 #include "algorithm.hpp"
@@ -98,7 +99,8 @@ class Engine final : public BaseEngine {
                                       this->get_compute_queue_family_index(),
                                       timestamp_period_ns,
                                       timestamp_valid_bits,
-                                      resources());
+                                      resources(),
+                                      &submit_mutex_);
   }
 
   // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector', from whichever of the
@@ -147,6 +149,7 @@ class Engine final : public BaseEngine {
   std::unique_ptr<VulkanMemoryResource> mr_ptr_;  // boundary
   std::unique_ptr<VulkanMemoryResource> weights_mr_ptr_;
   std::unique_ptr<VulkanMemoryResource> gpu_local_mr_ptr_;
+  std::mutex submit_mutex_;  // guards vkQueueSubmit on the one compute queue (design C2)
   std::string pipeline_cache_path_;
   vk::PipelineCache pipeline_cache_;
   PipelineCacheLoad pipeline_cache_load_ = PipelineCacheLoad::kMissing;

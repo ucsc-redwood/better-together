@@ -74,7 +74,7 @@ class BaseEngine {
 
   void create_instance();
   void create_physical_device(vk::PhysicalDeviceType type = vk::PhysicalDeviceType::eIntegratedGpu);
-  void create_device(vk::QueueFlags queue_flags = vk::QueueFlagBits::eCompute);
+  void create_device();
 
   void initialize_vma_allocator() const;
 

@@ -172,18 +172,6 @@ std::shared_ptr<Algorithm> Algorithm::push_constant_size(const size_t size_in_by
   return shared_from_this();
 }
 
-void Algorithm::update_push_constant(const void* data_ptr, const size_t size_in_bytes) {
-  if (!has_push_constants()) {
-    throw std::runtime_error("Algorithm has no push constants allocated");
-  }
-
-  if (size_in_bytes != internal_.push_constant_size) {
-    throw std::runtime_error("Push constant size mismatch");
-  }
-
-  std::memcpy(push_constants_buffer_.data(), data_ptr, size_in_bytes);
-}
-
 std::shared_ptr<Algorithm> Algorithm::build() {
   create_pipeline();
   return shared_from_this();
@@ -243,23 +231,23 @@ void Algorithm::record_bind(Sequence& seq,
   }
 }
 
-void Algorithm::record_bind_push(const vk::CommandBuffer& cmd_buf) const {
-  spdlog::trace("Algorithm::record_bind_push(), push_constant_size: {}",
-                internal_.push_constant_size);
-
+void Algorithm::record_push_constants(Sequence& seq,
+                                      const void* data,
+                                      const size_t size_in_bytes) const {
   if (!has_push_constants()) {
-    throw std::runtime_error("Push constants not allocated");
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: no push constants declared");
   }
-
-  cmd_buf.pushConstants(pipeline_layout_,
-                        vk::ShaderStageFlagBits::eCompute,
-                        0,
-                        static_cast<uint32_t>(internal_.push_constant_size),
-                        push_constants_buffer_.data());
+  if (size_in_bytes != internal_.push_constant_size) {
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: push constant size mismatch");
+  }
+  seq.get_handle().pushConstants(pipeline_layout_,
+                                 vk::ShaderStageFlagBits::eCompute,
+                                 0,
+                                 static_cast<uint32_t>(size_in_bytes),
+                                 data);
 }
 
-void Algorithm::record_dispatch(const vk::CommandBuffer& cmd_buf,
-                                const std::array<uint32_t, 3> grid_size) const {
+void Algorithm::record_dispatch(Sequence& seq, const std::array<uint32_t, 3> grid_size) const {
   spdlog::trace(
       "Algorithm::record_dispatch(), grid_size: ({}, {}, {}), work_group_size: ({}, {}, {})",
       grid_size[0],
@@ -269,7 +257,7 @@ void Algorithm::record_dispatch(const vk::CommandBuffer& cmd_buf,
       internal_.work_group_size[1],
       internal_.work_group_size[2]);
 
-  cmd_buf.dispatch(grid_size[0], grid_size[1], grid_size[2]);
+  seq.get_handle().dispatch(grid_size[0], grid_size[1], grid_size[2]);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -357,7 +345,9 @@ void Algorithm::create_pipeline() {
     throw std::runtime_error("Work group size is not set");
   }
 
-  assert(internal_.push_constant_size <= push_constants_buffer_.size());
+  if (internal_.push_constant_size > 128) {  // the guaranteed maxPushConstantsSize
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: push constants exceed 128 bytes");
+  }
 
   // Specialization constants (design D5).
   std::vector<vk::SpecializationMapEntry> spec_entries;

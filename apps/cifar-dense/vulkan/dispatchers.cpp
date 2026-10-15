@@ -54,7 +54,7 @@ struct LinearPushConstants_v2 {
 // Constructor (v2)
 // ----------------------------------------------------------------------------
 
-VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
+VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
   // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8; record_bind
@@ -131,7 +131,7 @@ void VulkanDispatcher::run_stage_11(AppData& appdata) { dispatch_multi_stage(app
 // Stage 1 (v2) - Conv1
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_1(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
 
   const int batch_size = appdata.u_input.d0();   // Expected 16
@@ -151,7 +151,7 @@ void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
       .C = in_channels,
       .H = in_height,
@@ -162,24 +162,24 @@ void VulkanDispatcher::record_stage_1(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kStride,
       .padding = kPadding,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_input.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv1_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv1_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 2 (v2) - MaxPool1
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_2(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_2(AppData& appdata, kiss_vk::Sequence& seq) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
@@ -195,7 +195,7 @@ void VulkanDispatcher::record_stage_2(AppData& appdata, vk::CommandBuffer cmd) {
 
   const int total_output = batch_size * channels * out_height * out_width;
 
-  algo->update_push_constant(MaxpoolPushConstants_v2{
+  const auto algo_pc = MaxpoolPushConstants_v2{
       .N = batch_size,
       .C = channels,
       .H = in_height,
@@ -203,22 +203,22 @@ void VulkanDispatcher::record_stage_2(AppData& appdata, vk::CommandBuffer cmd) {
       .pool_h = kPoolSize,
       .pool_w = kPoolSize,
       .stride = kPoolStride,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_conv1_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 3 (v2) - Conv2
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_3(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
   const int batch_size = appdata.u_pool1_out.d0();   // Expected: 16
@@ -238,7 +238,7 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
       .C = in_channels,
       .H = in_height,
@@ -249,24 +249,24 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kStride,
       .padding = kPadding,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_pool1_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv2_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv2_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 4 (v2) - MaxPool2
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_4(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_4(AppData& appdata, kiss_vk::Sequence& seq) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
@@ -282,7 +282,7 @@ void VulkanDispatcher::record_stage_4(AppData& appdata, vk::CommandBuffer cmd) {
 
   const int total_output = batch_size * channels * out_height * out_width;
 
-  algo->update_push_constant(MaxpoolPushConstants_v2{
+  const auto algo_pc = MaxpoolPushConstants_v2{
       .N = batch_size,
       .C = channels,
       .H = in_height,
@@ -290,22 +290,22 @@ void VulkanDispatcher::record_stage_4(AppData& appdata, vk::CommandBuffer cmd) {
       .pool_h = kPoolSize,
       .pool_w = kPoolSize,
       .stride = kPoolStride,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_conv2_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 5 (v2) - Conv3
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_5(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
 
   const int batch_size = appdata.u_pool2_out.d0();   // Expected: 16
@@ -325,7 +325,7 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
       .C = in_channels,
       .H = in_height,
@@ -336,24 +336,24 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kStride,
       .padding = kPadding,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_pool2_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv3_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv3_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 6 (v2) - Conv4
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_6(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
 
   const int batch_size = appdata.u_conv3_out.d0();   // Expected: 16
@@ -373,7 +373,7 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
       .C = in_channels,
       .H = in_height,
@@ -384,24 +384,24 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kStride,
       .padding = kPadding,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_conv3_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv4_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv4_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 7 (v2) - Conv5
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_7(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
 
   const int batch_size = appdata.u_conv4_out.d0();   // Expected: 16
@@ -421,7 +421,7 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
   const int total_output =
       batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
 
-  algo->update_push_constant(Conv2dPushConstants_v2{
+  const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
       .C = in_channels,
       .H = in_height,
@@ -432,24 +432,24 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, vk::CommandBuffer cmd) {
       .stride = kStride,
       .padding = kPadding,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_conv4_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv5_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv5_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 8 (v2) - MaxPool3
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_8(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_8(AppData& appdata, kiss_vk::Sequence& seq) {
   auto algo = cached_algorithms.at("maxpool").get();
 
   LOG_KERNEL(LogKernelType::kVK, 8, &appdata);
@@ -465,7 +465,7 @@ void VulkanDispatcher::record_stage_8(AppData& appdata, vk::CommandBuffer cmd) {
 
   const int total_output = batch_size * channels * out_height * out_width;
 
-  algo->update_push_constant(MaxpoolPushConstants_v2{
+  const auto algo_pc = MaxpoolPushConstants_v2{
       .N = batch_size,
       .C = channels,
       .H = in_height,
@@ -473,22 +473,22 @@ void VulkanDispatcher::record_stage_8(AppData& appdata, vk::CommandBuffer cmd) {
       .pool_h = kPoolSize,
       .pool_w = kPoolSize,
       .stride = kPoolStride,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_conv5_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(total_output, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 9 (v2) - FC1
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_9(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_9(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 9, &appdata);
 
   // Calculate flattened input size (total number of features per sample)
@@ -509,29 +509,29 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, vk::CommandBuffer cmd) {
   const size_t num_groups =
       bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
 
-  algo->update_push_constant(LinearPushConstants_v2{
+  const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
       .in_features = input_features,
       .out_features = out_features,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(num_groups), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(num_groups), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 10 (v2) - FC2
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_10(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_10(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 10, &appdata);
 
   const int batch_size = appdata.u_fc1_out.d0();      // Expected: 16
@@ -548,29 +548,29 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, vk::CommandBuffer cmd) 
   const size_t num_groups =
       bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
 
-  algo->update_push_constant(LinearPushConstants_v2{
+  const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
       .in_features = input_features,
       .out_features = out_features,
       .apply_relu = kRelu ? 1 : 0,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(num_groups), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(num_groups), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 11 (v2) - FC3
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_11(AppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_11(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 11, &appdata);
 
   const int batch_size = appdata.u_fc2_out.d0();      // Expected: 16
@@ -587,22 +587,22 @@ void VulkanDispatcher::record_stage_11(AppData& appdata, vk::CommandBuffer cmd) 
   const size_t num_groups =
       bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
 
-  algo->update_push_constant(LinearPushConstants_v2{
+  const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
       .in_features = input_features,
       .out_features = out_features,
       .apply_relu = 0,  // FC3 emits raw logits: no ReLU
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc3_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc3_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc3_out.pmr_vec()),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(num_groups), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(num_groups), 1, 1});
 }
 
 }  // namespace cifar_dense::vulkan

@@ -253,6 +253,22 @@ default/boundary, weights, gpu_local.
   through the KHR or EXT extension, and retries without it on `VK_ERROR_NOT_PERMITTED`.
 - **A/B:** tree × VK and cifar-dense × VK, isolated and under the profiler's interference load, for
   universal/compute × default/high.
+- **Families (tasks 3.1),** from the debug log `Queue family i: flags …, queueCount …, timestampValidBits …`:
+
+  | device | family | flags | queues | timestampValidBits |
+  |---|---|---|---|---|
+  | rocky-ryzen (RADV PHOENIX) | **0** | Graphics\|Compute\|Transfer\|SparseBinding | 1 | 64 |
+  | | 1 | Compute\|Transfer\|SparseBinding | 4 | 64 |
+  | | 2 | VideoDecodeKHR | 1 | 0 |
+  | | 3 | SparseBinding | 1 | 0 |
+  | Pixel 7a (Mali-G710) | **0** | Graphics\|Compute\|Transfer\|Protected | 2 | 64 |
+  | Samsung (Xclipse 940) | **0** | Graphics\|Compute\|Transfer\|SparseBinding\|Protected | 4 | 64 |
+  | | 1 | Compute\|Transfer\|SparseBinding\|Protected | 2 | 64 |
+
+  - Bold = the default (`universal`) selection, unchanged from before. `compute` selects family 1 on rocky and the
+    Samsung; the Pixel has no compute-only family, so it warns and stays on family 0.
+  - Global priority: rocky's RADV refuses `high` with `VK_ERROR_NOT_PERMITTED` (presumably the amdgpu kernel's
+    privilege check for high-priority contexts), so the engine warns and runs at the default; both phones accept `high` and `low`.
 
 **C2. One Sequence per GPU chunk.**
 - **API:** `dispatch_multi_stage(data, s, e, Sequence&)` overloads take a runtime-owned Sequence;
@@ -267,6 +283,20 @@ default/boundary, weights, gpu_local.
 **C3. Narrow the guard.** `first_concurrent_gpu_chunk` stops rejecting repeated chunks of the same
 GPU backend. `TwoVulkanChunksRejected` becomes `TwoVulkanChunksAllowed`, and an end-to-end
 two-GPU-chunk test is added.
+- **As implemented (tasks 3.3/3.4):**
+  - *Push constants are passed when recorded.* The old `Algorithm::update_push_constant` stored them in the
+    Algorithm, which two chunk threads recording the same kernel would race on; `record_push_constants(seq, pc)` now
+    takes them with the call. `record_dispatch` and the dispatchers' `record_stage_*` take the `Sequence&` too.
+  - *Per-chunk Sequences.* Each dispatcher gains `make_seq()` and a `dispatch_multi_stage(…, Sequence&)` overload. Its
+    own Sequence is renamed `default_seq`, so the record functions' `seq` parameter shadows nothing.
+    `run_pipeline` and `bm-gen-logs` give every Vulkan GPU chunk its own Sequence.
+  - *The touched set* moved into the Sequence in tasks 2.4.
+  - *Scope of the narrowed guard (interpretation, for the owner to confirm).* `first_concurrent_gpu_chunk` now allows
+    repeated **Vulkan** chunks and still rejects repeated **CUDA** chunks. The CUDA dispatchers share one stream and
+    mutable per-dispatcher state across chunk threads (e.g. cifar-dense's lazily filled per-item device-weight map),
+    and per-chunk CUDA streams are out of scope (proposal). The runtime/gpu-chunks requirement is written in Vulkan
+    terms (command buffer, fence, queue), and this change reads it as the Vulkan runtime's requirement. CUDA serving
+    several chunks stays open. `bm-gen-logs` skips such a CUDA schedule with a warning instead of racing it.
 
 **C4. Solver.** An opt-in `allow_gpu_multi_chunk` exempts the GPU core type from contiguity.
 - **Cost:** its cost is the sum over all its maximal segments, each including the per-chunk
@@ -276,6 +306,14 @@ two-GPU-chunk test is added.
 - **Schema:** whether the schema, `config_reader.hpp`'s coverage check, or the contract tests
   forbid more than one chunk per PU is to verify. The schema itself only requires contiguous
   coverage.
+- **Verified (tasks 3.5):** none of them forbids it. The schema requires only contiguous coverage, and so does
+  `validate_schedule_coverage`; `readSchedulesFromJson` reads chunks verbatim; the contract test checks schema
+  validity and required fields. The one consumer that assumed one chunk per PU was `finalize_solution` (also used by
+  the union sweep's `reprice_solution`): it reported the largest chunk as the predicted period. It now reports the
+  largest per-PU sum, which is unchanged when every PU has one chunk.
+- **As implemented:** `add_contiguity_constraints` skips the exempted GPU; `add_chunk_time_constraint` adds
+  Σ_k [x_k,GPU]·(t_k + per-stage) + per-chunk·#GPU-segments ≤ T_max on top of the per-segment bounds.
+  `02_gen_schedule_merged.py --allow-gpu-multi-chunk` turns it on.
 
 ### D. Submission overhead
 

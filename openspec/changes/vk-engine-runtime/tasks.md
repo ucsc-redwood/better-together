@@ -290,11 +290,67 @@ Gates used below:
 
 ## 3. Queue selection and several GPU chunks (topic C)
 
-- [ ] 3.1 Log the queue families, the selection and the priority; add `BT_VK_QUEUE` and `BT_VK_QUEUE_PRIORITY` with warn-and-fallback (C1). Verify: the family tables of all three devices are recorded in design.md C1; the rocky gate is green with `BT_VK_QUEUE=compute`; a refused priority is logged as a warning while the gate stays green.
+- [x] 3.1 Log the queue families, the selection and the priority; add `BT_VK_QUEUE` and `BT_VK_QUEUE_PRIORITY` with warn-and-fallback (C1). Verify: the family tables of all three devices are recorded in design.md C1; the rocky gate is green with `BT_VK_QUEUE=compute`; a refused priority is logged as a warning while the gate stays green.
+  - *Evidence:* `BaseEngine::create_device` logs every queue family (flags, queueCount, timestampValidBits) and the
+    selection (`Compute queue: family N (flags, BT_VK_QUEUE=…), priority …`) at debug level. `BT_VK_QUEUE=universal`
+    (default) is the old first-compute-family choice; `compute` picks the first compute-without-graphics family, and
+    otherwise warns and names the family it keeps. `BT_VK_QUEUE_PRIORITY=low|medium|high` chains
+    `VkDeviceQueueGlobalPriorityCreateInfoKHR` through VK_KHR_global_priority (or the EXT), warns and continues
+    without it when the device lacks both, and retries without it on `VK_ERROR_NOT_PERMITTED`. Family tables of all
+    three devices: design.md C1.
+  - rocky, `BT_VK_QUEUE=compute` (debug: `Compute queue: family 1 ({ Compute | Transfer | SparseBinding },
+    BT_VK_QUEUE=compute)`): `test-kiss-vk` / tree / cifar-dense / cifar-sparse 27 / 16 / 13 / 13, `ctest -L vulkan` 7/7.
+  - rocky, `BT_VK_QUEUE_PRIORITY=high`: `[warning] BT_VK_QUEUE_PRIORITY=high: the driver refused that global queue
+    priority (VK_ERROR_NOT_PERMITTED); using the default priority`, then `priority default`; 27 / 16 / 13 / 13,
+    `ctest -L vulkan` 7/7.
+  - Phones (`SPDLOG_LEVEL=debug ./test-kiss-vk --gtest_filter=VulkanEngineTest.EngineInitialization`): the Pixel with
+    `BT_VK_QUEUE=compute` warns `no compute-only queue family; using family 0 (…)` and passes; the Samsung selects
+    family 1. Both accept `high` and `low` (`priority high` / `priority low`).
 - [ ] 3.2 Run the queue A/B on rocky: tree × VK and cifar-dense × VK, isolated and under `bm-prof-*-vk` interference, for universal/compute × default/high, with 3 interleaved runs. Verify: tables and a decision on the default are recorded.
-- [ ] 3.3 Move the touched-buffer set into `Sequence`, add the `Engine` submit mutex and the `dispatch_multi_stage(…, Sequence&)` overloads (C2). Verify: the rocky gate and phone gate are green; a new test runs two threads with their own Sequences against one dispatcher for 1,000 items under `BT_VK_VALIDATION=1`, with 0 validation errors.
-- [ ] 3.4 Narrow `first_concurrent_gpu_chunk`, update `runtime/tests/test_schedule.cpp`, and add an end-to-end tree and cifar-dense test with Vulkan 1–2 / CPU 3–5 / Vulkan 6–N (C3). Verify: `ctest -L omp` is green; the end-to-end test matches the oracle on the rocky gate and phone gate (the Pixel covers non-coherent memory) with 0 validation errors on rocky.
-- [ ] 3.5 Check whether the schema, `config_reader.hpp`'s coverage check, or `optimizer/tests/test_schedule_contract.py` forbid more than one chunk per PU; then add the opt-in `allow_gpu_multi_chunk` solver mode with the GPU-sum cost (C4). Verify: the findings are recorded; a pytest asserts the default mode never emits two GPU chunks, and that in multi-chunk mode the toy profile's period is ≥ the sum of its GPU segments; `uv run pytest -q optimizer` is green.
+- [x] 3.3 Move the touched-buffer set into `Sequence`, add the `Engine` submit mutex and the `dispatch_multi_stage(…, Sequence&)` overloads (C2). Verify: the rocky gate and phone gate are green; a new test runs two threads with their own Sequences against one dispatcher for 1,000 items under `BT_VK_VALIDATION=1`, with 0 validation errors.
+  - *Evidence:* the touched set moved into `Sequence` in 2.4 (`Sequence::touched_buffers()`, flushed and
+    invalidated through the owning resource). `Engine` owns a `std::mutex` that every one of its Sequences locks
+    around `vkQueueSubmit`. Each dispatcher has `make_seq()` and `dispatch_multi_stage(…, kiss_vk::Sequence&)`; push
+    constants are recorded with the call, so recording the same Algorithm from two threads no longer races (design C3
+    "As implemented").
+  - New `VulkanConcurrentSequences.TwoThreadsOneDispatcher` (`test-tree-vk`): 2 threads × 500 full chunks (stages
+    1–7) on one `VulkanDispatcher`, each thread with its own Sequence and two `VkAppData_Safe` items; every stage of
+    all 4 items then matches the oracle exactly.
+    - rocky with `BT_VK_VALIDATION=1` (plus the sync-val settings): passes, **0** `Validation Error` lines, and the
+      whole suite 16/16 with 0 errors and 0 hazards.
+    - *Control (rocky, not committed):* with the submit lock removed, the same run reports
+      `UNASSIGNED-Threading-MultipleThreads-Write` — `vkQueueSubmit(): THREADING ERROR : object of type VkQueue is
+      simultaneously used in current thread … and thread …`. Restored: 0.
+  - Rocky gate: 27 / 16 / 13 / 13, `ctest -L vulkan` 7/7. Phone gate: both phones 26 + 1 skipped (FIFO) / 16 / 13 / 13,
+    script exit 0.
+- [x] 3.4 Narrow `first_concurrent_gpu_chunk`, update `runtime/tests/test_schedule.cpp`, and add an end-to-end tree and cifar-dense test with Vulkan 1–2 / CPU 3–5 / Vulkan 6–N (C3). Verify: `ctest -L omp` is green; the end-to-end test matches the oracle on the rocky gate and phone gate (the Pixel covers non-coherent memory) with 0 validation errors on rocky.
+  - *Evidence:* `first_concurrent_gpu_chunk` allows repeated Vulkan chunks and still rejects repeated CUDA chunks
+    (scope: design C3). In `runtime/tests/test_schedule.cpp`, `TwoVulkanChunksRejected` became
+    `TwoVulkanChunksAllowed`, and `TwoCudaChunksRejected` now also checks the reported chunk. `run_pipeline` and
+    `bm-gen-logs` give each Vulkan GPU chunk its own Sequence.
+  - End-to-end: `PipelineE2EVk.TwoVulkanChunksAroundCpu` (VK 1–2 / CPU 3–5 / VK 6–7) and
+    `PipelineE2ECifarDenseVk.TwoVulkanChunksAroundCpu` (VK 1–2 / CPU 3–5 / VK 6–11). The tree suite's
+    `RejectsMultiGpuChunkSchedule` became `ThreeVulkanChunksAlternating`, which now **runs** the VK 1–3 / CPU 4 / VK 5 /
+    CPU 6 / VK 7 schedule that used to crash the device, checking every item against the oracle.
+  - `ctest -L omp` locally 9/9 (`test-schedule-omp` 23/23).
+  - rocky: `test-pipeline-e2e-vk` 4/4 and `test-pipeline-e2e-cifar-dense-vk` 3/3 under `BT_VK_VALIDATION=1` with the
+    sync-val settings, 0 `Validation Error` and 0 `SYNC-HAZARD` (layer inserted 4 and 3 times); `ctest -L vulkan` 7/7.
+  - Pixel 7a (non-coherent cached memory): 4/4 and 3/3, e.g. `TwoVulkanChunksAroundCpu` 15.9 s (tree) and 33.9 s
+    (cifar-dense). Samsung: 4/4 and 3/3. Script exit 0 on both.
+- [x] 3.5 Check whether the schema, `config_reader.hpp`'s coverage check, or `optimizer/tests/test_schedule_contract.py` forbid more than one chunk per PU; then add the opt-in `allow_gpu_multi_chunk` solver mode with the GPU-sum cost (C4). Verify: the findings are recorded; a pytest asserts the default mode never emits two GPU chunks, and that in multi-chunk mode the toy profile's period is ≥ the sum of its GPU segments; `uv run pytest -q optimizer` is green.
+  - *Findings* (design C4 "Verified"): the schema, `config_reader.hpp` + `validate_schedule_coverage` and
+    `test_schedule_contract.py` all allow a PU in several chunks. Only `finalize_solution`'s predicted period (largest
+    chunk) assumed otherwise; it is now the largest per-PU sum (unchanged for one chunk per PU).
+  - `solve_optimization_problem(…, allow_gpu_multi_chunk=False)` and `02_gen_schedule_merged.py
+    --allow-gpu-multi-chunk`: the GPU is exempt from contiguity, and the sum of its segments, each with the per-chunk
+    overhead, is ≤ T_max.
+  - New `optimizer/tests/test_gpu_multi_chunk.py`, on a toy profile where two GPU chunks around a Big chunk win:
+    - default mode, 20 solutions: no PU repeats, ≤ 1 GPU chunk, and the best period is above the 2-chunk one;
+    - multi-chunk mode: the best schedule is GPU 1–2 / Big 3–5 / GPU 6–11 at period 8 ms = 2 + 6; for every solution
+      the period ≥ the sum of its GPU chunk times; the output is schema-valid;
+    - with a 5 ms per-chunk GPU overhead every GPU chunk carries its own 5 ms, and the period covers the sum.
+  - `uv run pytest -q optimizer` → 21 passed. *Mutation:* without the time-sharing sum constraint, 2 of the 3 new tests
+    fail.
 
 ## 4. Submission overhead (topic D)
 

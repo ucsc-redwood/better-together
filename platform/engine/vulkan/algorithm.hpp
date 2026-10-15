@@ -98,28 +98,6 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   }
   [[nodiscard]] std::shared_ptr<Algorithm> build();
 
-  // Pass actual data
-  void update_push_constant(const void* data_ptr, size_t size_in_bytes);
-
-  /**
-   * @brief Update push constant data with a templated type
-   * @tparam T Type of push constant data
-   * @param data Push constant data to update
-   *
-   * Example usage:
-   * ```cpp
-   * struct PushConstants {
-   *   uint32_t n;
-   * } pc;
-   *
-   * algo->update_push_constant(pc);
-   * ```
-   */
-  template <typename T>
-  void update_push_constant(const T& data) {
-    update_push_constant(&data, sizeof(T));
-  }
-
   /**
    * @brief Bind the pipeline and the stage's buffers into `seq`'s open command buffer
    * @param buffers One buffer per binding 0..num_buffers-1
@@ -138,10 +116,25 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
    */
   void record_bind(Sequence& seq, std::initializer_list<vk::DescriptorBufferInfo> buffers) const;
 
-  void record_bind_push(const vk::CommandBuffer& cmd_buf) const;
+  /**
+   * @brief Record this stage's push constants into `seq`'s open command buffer
+   *
+   * The values travel with the call (nothing is stored in the Algorithm), so several
+   * threads may record the same Algorithm into their own Sequences (design C2).
+   *
+   * Example usage:
+   * ```cpp
+   * algo->record_push_constants(seq, PushConstants{.n = n});
+   * ```
+   */
+  template <typename T>
+  void record_push_constants(Sequence& seq, const T& data) const {
+    record_push_constants(seq, &data, sizeof(T));
+  }
+  void record_push_constants(Sequence& seq, const void* data, size_t size_in_bytes) const;
 
   // basically CUDA's <<< grid_size >>>
-  void record_dispatch(const vk::CommandBuffer& cmd_buf, std::array<uint32_t, 3> grid_size) const;
+  void record_dispatch(Sequence& seq, std::array<uint32_t, 3> grid_size) const;
 
   [[nodiscard]] bool has_push_constants() const { return internal_.push_constant_size > 0; }
 
@@ -167,9 +160,6 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   ComputeLimits limits_;
   SpirvReflection reflection_;
   bool subgroup_size_dependent_ = false;
-
-  // Payload (push constants)
-  std::array<std::byte, 128> push_constants_buffer_{};
 
   struct {
     std::vector<uint32_t> spirv_binary;

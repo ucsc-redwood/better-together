@@ -106,7 +106,7 @@ struct OctreePushConstants {
 // SHADER_ENTRY(tree_move_dups),
 // SHADER_ENTRY(tree_naive_prefix_sum),
 //
-VulkanDispatcher::VulkanDispatcher() : engine(), seq(engine.make_seq()) {
+VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) {
   spdlog::info("VulkanDispatcher instance created.");
 
   auto morton_algo = engine.make_algo("tree_morton")
@@ -226,32 +226,32 @@ void VulkanDispatcher::run_stage_7(VkAppData_Safe& appdata) { dispatch_multi_sta
 // Stage 1 (Input -> Morton)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_1(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_1(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
 
   auto algo = cached_algorithms.at("morton").get();
 
-  algo->update_push_constant(MortonPushConstants{
+  const auto algo_pc = MortonPushConstants{
       .n = static_cast<uint32_t>(appdata.get_n_input()),
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_input_points_s0),
                         engine.get_buffer_info(appdata.u_morton_keys_s1_out),
                     });
-  algo->record_bind_push(cmd);
+  algo->record_push_constants(seq, algo_pc);
   algo->record_dispatch(
-      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
+      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 2 (Morton -> Sorted Morton)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
   // Device-wide multi-workgroup LSD radix sort (Mirco Werner / Embree). Each of
@@ -305,25 +305,23 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer
     };
 
     // histogram pass (src -> histograms)
-    hist_algo->update_push_constant(pc);
-    hist_algo->record_bind(*seq,
+    hist_algo->record_bind(seq,
                            {
                                engine.get_buffer_info(*src_seq[pass]),
                                engine.get_buffer_info(appdata.u_sort_histograms),
                            });
-    hist_algo->record_bind_push(cmd);
-    hist_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
+    hist_algo->record_push_constants(seq, pc);
+    hist_algo->record_dispatch(seq, {num_workgroups, 1, 1});
 
     // scatter pass (src + histograms -> dst)
-    scatter_algo->update_push_constant(pc);
-    scatter_algo->record_bind(*seq,
+    scatter_algo->record_bind(seq,
                               {
                                   engine.get_buffer_info(*src_seq[pass]),
                                   engine.get_buffer_info(*dst_seq[pass]),
                                   engine.get_buffer_info(appdata.u_sort_histograms),
                               });
-    scatter_algo->record_bind_push(cmd);
-    scatter_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
+    scatter_algo->record_push_constants(seq, pc);
+    scatter_algo->record_dispatch(seq, {num_workgroups, 1, 1});
   }
 }
 
@@ -332,11 +330,11 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer
 // ----------------------------------------------------------------------------
 
 // Record a device-wide INCLUSIVE scan of `src` (n elements) into `dst`, using
-// u_scan_block_sums as scratch, into the already-open command buffer `cmd`.
+// u_scan_block_sums as scratch, into `seq`'s open command buffer.
 // Three passes (local scan -> scan block totals -> add block offsets), each ordered
 // after the pass it reads by the Sequence's dependency tracking, all in one submit.
 // Caller does cmd_begin/end + submit + fence-wait.
-void VulkanDispatcher::record_device_scan(vk::CommandBuffer cmd,
+void VulkanDispatcher::record_device_scan(kiss_vk::Sequence& seq,
                                           vk::DescriptorBufferInfo src,
                                           vk::DescriptorBufferInfo dst,
                                           vk::DescriptorBufferInfo block_sums,
@@ -349,25 +347,25 @@ void VulkanDispatcher::record_device_scan(vk::CommandBuffer cmd,
   const uint32_t num_blocks = static_cast<uint32_t>(kiss_vk::div_ceil(n, elems_per_wg));
 
   // Pass 1: per-block inclusive scan + per-block totals.
-  local_algo->update_push_constant(PrefixSumPushConstants{.inputSize = n});
-  local_algo->record_bind(*seq, {src, dst, block_sums});
-  local_algo->record_bind_push(cmd);
-  local_algo->record_dispatch(cmd, {num_blocks, 1, 1});
+  const auto local_algo_pc = PrefixSumPushConstants{.inputSize = n};
+  local_algo->record_bind(seq, {src, dst, block_sums});
+  local_algo->record_push_constants(seq, local_algo_pc);
+  local_algo->record_dispatch(seq, {num_blocks, 1, 1});
 
   // Pass 2: exclusive scan of the per-block totals (single workgroup, in place).
-  block_algo->update_push_constant(GlobalPushConstants{.n_blocks = num_blocks});
-  block_algo->record_bind(*seq, {block_sums});
-  block_algo->record_bind_push(cmd);
-  block_algo->record_dispatch(cmd, {1, 1, 1});
+  const auto block_algo_pc = GlobalPushConstants{.n_blocks = num_blocks};
+  block_algo->record_bind(seq, {block_sums});
+  block_algo->record_push_constants(seq, block_algo_pc);
+  block_algo->record_dispatch(seq, {1, 1, 1});
 
   // Pass 3: add the exclusive block offset to every element of each block.
-  add_algo->update_push_constant(PrefixSumPushConstants{.inputSize = n});
-  add_algo->record_bind(*seq, {dst, block_sums});
-  add_algo->record_bind_push(cmd);
-  add_algo->record_dispatch(cmd, {num_blocks, 1, 1});
+  const auto add_algo_pc = PrefixSumPushConstants{.inputSize = n};
+  add_algo->record_bind(seq, {dst, block_sums});
+  add_algo->record_push_constants(seq, add_algo_pc);
+  add_algo->record_dispatch(seq, {num_blocks, 1, 1});
 }
 
-void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
   // Stream compaction on the GPU: find_dups (run-head flags) -> device-wide
@@ -380,53 +378,53 @@ void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer
   auto* move_algo = cached_algorithms.at("move_dups").get();
 
   // Flags -> u_contributes; inclusive scan -> u_out_idx.
-  find_algo->update_push_constant(FindDupsPushConstants{.n = static_cast<int32_t>(n)});
+  const auto find_algo_pc = FindDupsPushConstants{.n = static_cast<int32_t>(n)};
 
-  move_algo->update_push_constant(MoveDupsPushConstants{.n = n});
+  const auto move_algo_pc = MoveDupsPushConstants{.n = n};
 
   // find_dups: flags into u_contributes.
-  find_algo->record_bind(*seq,
+  find_algo->record_bind(seq,
                          {
                              engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
                              engine.get_buffer_info(appdata.u_contributes),
                          });
-  find_algo->record_bind_push(cmd);
-  find_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  find_algo->record_push_constants(seq, find_algo_pc);
+  find_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 
   // device-wide inclusive scan of the flags -> u_out_idx.
-  record_device_scan(cmd,
+  record_device_scan(seq,
                      engine.get_buffer_info(appdata.u_contributes),
                      engine.get_buffer_info(appdata.u_out_idx),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
                      n);
 
   // move_dups: scatter kept keys to their compacted positions.
-  move_algo->record_bind(*seq,
+  move_algo->record_bind(seq,
                          {
                              engine.get_buffer_info(appdata.u_contributes),
                              engine.get_buffer_info(appdata.u_out_idx),
                              engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
                              engine.get_buffer_info(appdata.u_morton_keys_unique_s3_out),
                          });
-  move_algo->record_bind_push(cmd);
-  move_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  move_algo->record_push_constants(seq, move_algo_pc);
+  move_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 4 (Unique Sorted Morton -> BRT)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_4(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_4(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
 
   const int32_t n = appdata.get_n_unique();
   auto algo = cached_algorithms.at("build_radix_tree").get();
 
-  algo->update_push_constant(RadixTreePushConstants{
+  const auto algo_pc = RadixTreePushConstants{
       .n = n,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
                         engine.get_buffer_info(appdata.u_brt_prefix_n_s4_out),
@@ -435,39 +433,39 @@ void VulkanDispatcher::record_stage_4(VkAppData_Safe& appdata, vk::CommandBuffer
                         engine.get_buffer_info(appdata.u_brt_left_child_s4_out),
                         engine.get_buffer_info(appdata.u_brt_parents_s4_out),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 5 (BRT -> Edge Count)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_5(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_5(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
 
   auto algo = cached_algorithms.at("edge_count").get();
 
-  algo->update_push_constant(EdgeCountPushConstants{
+  const auto algo_pc = EdgeCountPushConstants{
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_brt_prefix_n_s4),    // input
                         engine.get_buffer_info(appdata.u_brt_parents_s4),     // input
                         engine.get_buffer_info(appdata.u_edge_count_s5_out),  // output
                     });
-  algo->record_bind_push(cmd);
+  algo->record_push_constants(seq, algo_pc);
   algo->record_dispatch(
-      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
+      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
 // Stage 6 (Edge Count -> Edge Offset, prefix sum)
 // ----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_6(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
 
   // Device-wide INCLUSIVE prefix sum of the edge counts (matches std::partial_sum
@@ -475,7 +473,7 @@ void VulkanDispatcher::record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer
   // but the values are non-negative edge counts, so a uint scan is bit-identical.
   const uint32_t n = appdata.get_n_brt_nodes();
 
-  record_device_scan(cmd,
+  record_device_scan(seq,
                      engine.get_buffer_info(appdata.u_edge_count_s5),
                      engine.get_buffer_info(appdata.u_edge_offset_s6_out),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
@@ -486,18 +484,18 @@ void VulkanDispatcher::record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer
 // Stage 7 (Edge Offset -> Octree)
 //----------------------------------------------------------------------------
 
-void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  algo->update_push_constant(OctreePushConstants{
+  const auto algo_pc = OctreePushConstants{
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
                         engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
@@ -513,11 +511,11 @@ void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, vk::CommandBuffer
                         engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
                         engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
                     });
-  algo->record_bind_push(cmd);
+  algo->record_push_constants(seq, algo_pc);
   // The shader loops over brt node indices [1, n_brt_nodes); size the grid for
   // n_brt_nodes (the grid-stride loop covers the rest).
   algo->record_dispatch(
-      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
@@ -539,28 +537,28 @@ void VulkanDispatcher::run_stage_5(VkAppData& appdata) { dispatch_multi_stage(ap
 void VulkanDispatcher::run_stage_6(VkAppData& appdata) { dispatch_multi_stage(appdata, 6, 6); }
 void VulkanDispatcher::run_stage_7(VkAppData& appdata) { dispatch_multi_stage(appdata, 7, 7); }
 
-void VulkanDispatcher::record_stage_1(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_1(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
 
   auto algo = cached_algorithms.at("morton").get();
 
-  algo->update_push_constant(MortonPushConstants{
+  const auto algo_pc = MortonPushConstants{
       .n = static_cast<uint32_t>(appdata.get_n_input()),
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_input_points_s0),
                         engine.get_buffer_info(appdata.u_morton_keys_s1),
                     });
-  algo->record_bind_push(cmd);
+  algo->record_push_constants(seq, algo_pc);
   algo->record_dispatch(
-      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
+      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_input(), 256)), 1, 1});
 }
 
-void VulkanDispatcher::record_stage_2(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_2(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
   auto* hist_algo = cached_algorithms.at("radix_histograms").get();
@@ -596,28 +594,26 @@ void VulkanDispatcher::record_stage_2(VkAppData& appdata, vk::CommandBuffer cmd)
         .g_num_blocks_per_workgroup = blocks_per_workgroup,
     };
 
-    hist_algo->update_push_constant(pc);
-    hist_algo->record_bind(*seq,
+    hist_algo->record_bind(seq,
                            {
                                engine.get_buffer_info(*src_seq[pass]),
                                engine.get_buffer_info(appdata.u_sort_histograms),
                            });
-    hist_algo->record_bind_push(cmd);
-    hist_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
+    hist_algo->record_push_constants(seq, pc);
+    hist_algo->record_dispatch(seq, {num_workgroups, 1, 1});
 
-    scatter_algo->update_push_constant(pc);
-    scatter_algo->record_bind(*seq,
+    scatter_algo->record_bind(seq,
                               {
                                   engine.get_buffer_info(*src_seq[pass]),
                                   engine.get_buffer_info(*dst_seq[pass]),
                                   engine.get_buffer_info(appdata.u_sort_histograms),
                               });
-    scatter_algo->record_bind_push(cmd);
-    scatter_algo->record_dispatch(cmd, {num_workgroups, 1, 1});
+    scatter_algo->record_push_constants(seq, pc);
+    scatter_algo->record_dispatch(seq, {num_workgroups, 1, 1});
   }
 }
 
-void VulkanDispatcher::record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_3(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
   const uint32_t n = appdata.get_n_input();
@@ -625,17 +621,17 @@ void VulkanDispatcher::record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd)
   auto* find_algo = cached_algorithms.at("find_dups").get();
   auto* move_algo = cached_algorithms.at("move_dups").get();
 
-  find_algo->update_push_constant(FindDupsPushConstants{.n = static_cast<int32_t>(n)});
+  const auto find_algo_pc = FindDupsPushConstants{.n = static_cast<int32_t>(n)};
 
-  move_algo->update_push_constant(MoveDupsPushConstants{.n = n});
+  const auto move_algo_pc = MoveDupsPushConstants{.n = n};
 
-  find_algo->record_bind(*seq,
+  find_algo->record_bind(seq,
                          {
                              engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
                              engine.get_buffer_info(appdata.u_contributes),
                          });
-  find_algo->record_bind_push(cmd);
-  find_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  find_algo->record_push_constants(seq, find_algo_pc);
+  find_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 
   // Device-wide inclusive scan of the flags -> u_out_idx. u_out_idx[n-1] after
   // this is exactly n_unique (the running total of "is a new unique value"
@@ -643,34 +639,34 @@ void VulkanDispatcher::record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd)
   // stage 3 completes (see its comment for why: stage 4's dispatch size is a
   // host-side vkCmdDispatch argument, so n_unique must be known before stage 4
   // is recorded).
-  record_device_scan(cmd,
+  record_device_scan(seq,
                      engine.get_buffer_info(appdata.u_contributes),
                      engine.get_buffer_info(appdata.u_out_idx),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
                      n);
 
-  move_algo->record_bind(*seq,
+  move_algo->record_bind(seq,
                          {
                              engine.get_buffer_info(appdata.u_contributes),
                              engine.get_buffer_info(appdata.u_out_idx),
                              engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
                              engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
                          });
-  move_algo->record_bind_push(cmd);
-  move_algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  move_algo->record_push_constants(seq, move_algo_pc);
+  move_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
 
-void VulkanDispatcher::record_stage_4(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_4(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 4, &appdata);
 
   const int32_t n = static_cast<int32_t>(appdata.get_n_unique());
   auto algo = cached_algorithms.at("build_radix_tree").get();
 
-  algo->update_push_constant(RadixTreePushConstants{
+  const auto algo_pc = RadixTreePushConstants{
       .n = n,
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
                         engine.get_buffer_info(appdata.u_brt_prefix_n_s4),
@@ -679,31 +675,31 @@ void VulkanDispatcher::record_stage_4(VkAppData& appdata, vk::CommandBuffer cmd)
                         engine.get_buffer_info(appdata.u_brt_left_child_s4),
                         engine.get_buffer_info(appdata.u_brt_parents_s4),
                     });
-  algo->record_bind_push(cmd);
-  algo->record_dispatch(cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  algo->record_push_constants(seq, algo_pc);
+  algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
 }
 
-void VulkanDispatcher::record_stage_5(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_5(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 5, &appdata);
 
   auto algo = cached_algorithms.at("edge_count").get();
 
-  algo->update_push_constant(EdgeCountPushConstants{
+  const auto algo_pc = EdgeCountPushConstants{
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_brt_prefix_n_s4),  // input
                         engine.get_buffer_info(appdata.u_brt_parents_s4),   // input
                         engine.get_buffer_info(appdata.u_edge_count_s5),    // output
                     });
-  algo->record_bind_push(cmd);
+  algo->record_push_constants(seq, algo_pc);
   algo->record_dispatch(
-      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
+      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 512)), 1, 1});
 }
 
-void VulkanDispatcher::record_stage_6(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_6(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 6, &appdata);
 
   const uint32_t n = appdata.get_n_brt_nodes();
@@ -712,25 +708,25 @@ void VulkanDispatcher::record_stage_6(VkAppData& appdata, vk::CommandBuffer cmd)
   // dispatch_multi_stage's VkAppData overload reads this back once this call's
   // range has included stage 6 (bookkeeping value; stage 7's own dispatch size
   // does not depend on it, only on n_brt_nodes, already known since stage 4).
-  record_device_scan(cmd,
+  record_device_scan(seq,
                      engine.get_buffer_info(appdata.u_edge_count_s5),
                      engine.get_buffer_info(appdata.u_edge_offset_s6),
                      engine.get_buffer_info(appdata.u_scan_block_sums),
                      n);
 }
 
-void VulkanDispatcher::record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd) {
+void VulkanDispatcher::record_stage_7(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 7, &appdata);
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  algo->update_push_constant(OctreePushConstants{
+  const auto algo_pc = OctreePushConstants{
       .min_coord = tree::kMinCoord,
       .range = tree::kRange,
       .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  });
+  };
 
-  algo->record_bind(*seq,
+  algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_oct_children_s7),         // output
                         engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
@@ -746,9 +742,9 @@ void VulkanDispatcher::record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd)
                         engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
                         engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
                     });
-  algo->record_bind_push(cmd);
+  algo->record_push_constants(seq, algo_pc);
   algo->record_dispatch(
-      cmd, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
 }
 
 // ----------------------------------------------------------------------------
@@ -773,7 +769,8 @@ void VulkanDispatcher::record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd)
 // already invalidates every buffer that batch touched.
 void VulkanDispatcher::dispatch_multi_stage(VkAppData& data,
                                             const int start_stage,
-                                            const int end_stage) {
+                                            const int end_stage,
+                                            kiss_vk::Sequence& seq) {
   if (start_stage < 1 || end_stage > 7 || start_stage > end_stage)
     throw std::out_of_range("Invalid stage");
 
@@ -781,15 +778,15 @@ void VulkanDispatcher::dispatch_multi_stage(VkAppData& data,
   const int batch1_end = crosses_3_4 ? 3 : end_stage;
 
   auto run_batch = [&](int lo, int hi) {
-    seq->cmd_begin();
+    seq.cmd_begin();
     for (int stage = lo; stage <= hi; ++stage) {
-      (this->*record_functions_chained[stage - 1])(data, seq->get_handle());
+      (this->*record_functions_chained[stage - 1])(data, seq);
     }
-    seq->cmd_end();
+    seq.cmd_end();
 
-    seq->reset_fence();
-    seq->submit();
-    seq->wait_for_fence();
+    seq.reset_fence();
+    seq.submit();
+    seq.wait_for_fence();
   };
 
   run_batch(start_stage, batch1_end);

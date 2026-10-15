@@ -22,8 +22,8 @@
 namespace bt_placement_test {
 
 struct Allocation {
-  bt::BufferClass cls;
-  bt::BufferKind kind;
+  bt::BufferClass cls = bt::BufferClass::kBoundary;
+  bt::BufferKind kind = bt::BufferKind::kActivation;
   std::vector<int> stages;
 };
 

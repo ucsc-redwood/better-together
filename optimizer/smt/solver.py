@@ -26,6 +26,7 @@ def solve_optimization_problem(
     minimize_mode="gapness",
     gpu_backend=None,
     overhead=None,
+    allow_gpu_multi_chunk=False,
 ):
     """Solve the optimization problem and return the solutions.
 
@@ -39,6 +40,11 @@ def solve_optimization_problem(
     overhead: optional {core_type: (per_chunk_ms, per_stage_ms)} framework-overhead
     constants (smt.overhead.resolve_for_solver); applied both inside the z3 cost
     function and to the predicted chunk "time" fields of the emitted schedules.
+
+    allow_gpu_multi_chunk: opt-in. The GPU may then appear in several chunks (the Vulkan
+    runtime gives each its own Sequence); they share one device, so their summed time,
+    per-chunk overheads included, bounds the period. Default False: one contiguous block
+    per PU, as before.
     """
     # Initialize data
     num_stages, core_types, stage_timings_data = define_data(stage_timings, app_name)
@@ -59,11 +65,12 @@ def solve_optimization_problem(
     # objective regardless of what is minimized (review #2).
     add_availability_constraints(opt, x, core_types, num_stages, stage_timings_data, UNAVAILABLE)
 
+    shared = ("GPU",) if allow_gpu_multi_chunk and "GPU" in core_types else ()
     T_max, T_min, Gapness = add_chunk_time_constraint(
-        opt, x, core_types, num_stages, stage_timings_data, minimize_mode, overhead
+        opt, x, core_types, num_stages, stage_timings_data, minimize_mode, overhead, shared
     )
 
-    add_contiguity_constraints(opt, x, core_types, num_stages)
+    add_contiguity_constraints(opt, x, core_types, num_stages, shared)
 
     objective = (
         "T_max (the pipeline makespan)"

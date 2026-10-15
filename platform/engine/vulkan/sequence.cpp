@@ -13,13 +13,15 @@ Sequence::Sequence(const vk::Device device_ref,
                    const uint32_t compute_queue_index,
                    const float timestamp_period_ns,
                    const uint32_t timestamp_valid_bits,
-                   std::vector<VulkanMemoryResource*> resources)
+                   std::vector<VulkanMemoryResource*> resources,
+                   std::mutex* submit_mutex)
     : device_ref_(device_ref),
       compute_queue_ref_(compute_queue_ref),
       compute_queue_index_(compute_queue_index),
       timestamp_period_ns_(timestamp_period_ns),
       timestamp_valid_bits_(timestamp_valid_bits),
-      resources_(std::move(resources)) {
+      resources_(std::move(resources)),
+      submit_mutex_(submit_mutex) {
   spdlog::trace("Sequence constructor");
 
   const char* barrier_all = std::getenv("BT_VK_BARRIER_ALL");
@@ -283,6 +285,8 @@ void Sequence::submit() const {
       .pCommandBuffers = &handle_,
   };
 
+  std::unique_lock<std::mutex> lock;
+  if (submit_mutex_) lock = std::unique_lock(*submit_mutex_);
   compute_queue_ref_.submit(submit_info, fence_);
 }
 

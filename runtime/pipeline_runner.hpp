@@ -76,9 +76,8 @@ inline void run_pipeline(const Schedule& sched,
                          const ExecutionModel gpu_em,
                          OmpDispatch omp_dispatch,
                          const std::function<void(AppDataTArg&)>& per_item_check) {
-  // The GPU dispatcher's command buffer/fence is shared across the per-chunk worker
-  // threads, so a schedule with >1 GPU chunk would race it into VK_ERROR_DEVICE_LOST.
-  // Reject up front (z3 never emits such a schedule) instead of crashing the device.
+  // A backend whose chunks would share one stream (CUDA) may appear in only one chunk;
+  // Vulkan chunks each get their own Sequence below.
   if (const auto reason = first_concurrent_gpu_chunk(sched)) {
     FAIL() << *reason;
     return;
@@ -116,7 +115,14 @@ inline void run_pipeline(const Schedule& sched,
 
     std::function<void(AppDataTArg*)> fn;
     if (em == gpu_em) {
-      fn = [&disp, start, end](AppDataTArg* app) { disp.dispatch_multi_stage(*app, start, end); };
+      if constexpr (requires { disp.make_seq(); }) {
+        // One Sequence (command buffer + fence) per GPU chunk (design C2).
+        fn = [&disp, seq = disp.make_seq(), start, end](AppDataTArg* app) {
+          disp.dispatch_multi_stage(*app, start, end, *seq);
+        };
+      } else {
+        fn = [&disp, start, end](AppDataTArg* app) { disp.dispatch_multi_stage(*app, start, end); };
+      }
     } else {  // kOMP chunk pinned to its CPU tier
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(sched.chunks[chunk_id]);
       fn = [&omp_dispatch, cpu_pt, start, end](AppDataTArg* app) {

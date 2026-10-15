@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -268,26 +269,54 @@ std::vector<std::string> missing_required_features(
   return missing;
 }
 
-void BaseEngine::create_device(vk::QueueFlags queue_flags) {
+void BaseEngine::create_device() {
   if (!physical_device_) {
     throw std::runtime_error("Physical device is not valid");
   }
 
-  auto queueFamilyProperties = physical_device_.getQueueFamilyProperties();
+  // Queue family (design C1). Every family is logged; BT_VK_QUEUE=universal (default, today's
+  // choice: the first family with compute) or compute (the first with compute and no
+  // graphics, falling back with a warning where none exists).
+  const auto families = physical_device_.getQueueFamilyProperties();
+  for (uint32_t i = 0; i < families.size(); ++i) {
+    spdlog::debug("Queue family {}: flags {}, queueCount {}, timestampValidBits {}",
+                  i,
+                  vk::to_string(families[i].queueFlags),
+                  families[i].queueCount,
+                  families[i].timestampValidBits);
+  }
+  const auto first_family = [&](const auto& pred) -> std::optional<uint32_t> {
+    for (uint32_t i = 0; i < families.size(); ++i) {
+      if (pred(families[i].queueFlags)) return i;
+    }
+    return std::nullopt;
+  };
+  const auto universal = first_family(
+      [](const vk::QueueFlags f) { return static_cast<bool>(f & vk::QueueFlagBits::eCompute); });
+  if (!universal) throw std::runtime_error("No queue family supports compute operations.");
+  compute_queue_family_index_ = *universal;
 
-  compute_queue_family_index_ = std::distance(
-      queueFamilyProperties.begin(),
-      std::find_if(queueFamilyProperties.begin(),
-                   queueFamilyProperties.end(),
-                   [queue_flags](const auto& qfp) { return qfp.queueFlags & queue_flags; }));
-
-  if (compute_queue_family_index_ == queueFamilyProperties.size()) {
-    throw std::runtime_error("No queue family supports compute operations.");
+  const char* queue_env = std::getenv("BT_VK_QUEUE");
+  const std::string_view queue_kind = queue_env != nullptr ? queue_env : "universal";
+  if (queue_kind != "universal" && queue_kind != "compute") {
+    throw std::runtime_error("BT_VK_QUEUE must be universal or compute, got " +
+                             std::string(queue_kind));
+  }
+  if (queue_kind == "compute") {
+    if (const auto compute_only = first_family([](const vk::QueueFlags f) {
+          return (f & vk::QueueFlagBits::eCompute) && !(f & vk::QueueFlagBits::eGraphics);
+        })) {
+      compute_queue_family_index_ = *compute_only;
+    } else {
+      spdlog::warn("BT_VK_QUEUE=compute: no compute-only queue family; using family {} ({})",
+                   compute_queue_family_index_,
+                   vk::to_string(families[compute_queue_family_index_].queueFlags));
+    }
   }
 
   // Create a logical device with a compute queue
   constexpr float queuePriority = 1.0f;
-  const vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
+  vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
       .queueFamilyIndex = compute_queue_family_index_,
       .queueCount = 1,
       .pQueuePriorities = &queuePriority,
@@ -362,25 +391,82 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
 
   // VK_KHR_push_descriptor is optional (design D6): enabled when the device has it, unless
   // BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 asks for the transient-pool path.
-  const bool has_push_descriptor = std::ranges::any_of(
-      physical_device_.enumerateDeviceExtensionProperties(), [](const auto& ext) {
-        return std::strcmp(ext.extensionName.data(), VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) == 0;
-      });
+  const auto device_extensions = physical_device_.enumerateDeviceExtensionProperties();
+  const auto has_extension = [&](const char* name) {
+    return std::ranges::any_of(device_extensions, [name](const auto& ext) {
+      return std::strcmp(ext.extensionName.data(), name) == 0;
+    });
+  };
+  const bool has_push_descriptor = has_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
   const char* force_env = std::getenv("BT_VK_FORCE_DESCRIPTOR_FALLBACK");
   const bool force_fallback = force_env != nullptr && std::string_view(force_env) == "1";
   const bool use_push_descriptor = has_push_descriptor && !force_fallback;
   std::vector<const char*> extensions;
   if (use_push_descriptor) extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 
-  const vk::DeviceCreateInfo deviceCreateInfo{
-      .pNext = &enabled_12,
-      .queueCreateInfoCount = 1,
-      .pQueueCreateInfos = &deviceQueueCreateInfo,
-      .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-      .ppEnabledExtensionNames = extensions.data(),
+  // Global queue priority (design C1), best-effort: BT_VK_QUEUE_PRIORITY=low|medium|high
+  // through VK_KHR_global_priority (or the EXT), warning and continuing at the default
+  // priority when the device lacks it or the driver refuses it (VK_ERROR_NOT_PERMITTED).
+  std::optional<vk::QueueGlobalPriorityKHR> priority;
+  std::string_view priority_name = "default";
+  if (const char* v = std::getenv("BT_VK_QUEUE_PRIORITY")) {
+    priority_name = v;
+    if (priority_name == "low") {
+      priority = vk::QueueGlobalPriorityKHR::eLow;
+    } else if (priority_name == "medium") {
+      priority = vk::QueueGlobalPriorityKHR::eMedium;
+    } else if (priority_name == "high") {
+      priority = vk::QueueGlobalPriorityKHR::eHigh;
+    } else {
+      throw std::runtime_error("BT_VK_QUEUE_PRIORITY must be low, medium or high, got " +
+                               std::string(priority_name));
+    }
+  }
+  const char* priority_extension =
+      has_extension(VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME)   ? VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME
+      : has_extension(VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME) ? VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME
+                                                             : nullptr;
+  if (priority && priority_extension == nullptr) {
+    spdlog::warn(
+        "BT_VK_QUEUE_PRIORITY={}: the device has no global queue priority extension; "
+        "using the default priority",
+        priority_name);
+    priority.reset();
+    priority_name = "default";
+  }
+  const vk::DeviceQueueGlobalPriorityCreateInfoKHR priority_info{
+      .globalPriority = priority.value_or(vk::QueueGlobalPriorityKHR::eMedium),
   };
 
-  device_ = physical_device_.createDevice(deviceCreateInfo);
+  const auto create = [&](const bool with_priority) {
+    std::vector<const char*> exts = extensions;
+    if (with_priority) exts.push_back(priority_extension);
+    deviceQueueCreateInfo.pNext = with_priority ? &priority_info : nullptr;
+    const vk::DeviceCreateInfo deviceCreateInfo{
+        .pNext = &enabled_12,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &deviceQueueCreateInfo,
+        .enabledExtensionCount = static_cast<uint32_t>(exts.size()),
+        .ppEnabledExtensionNames = exts.data(),
+    };
+    return physical_device_.createDevice(deviceCreateInfo);
+  };
+  try {
+    device_ = create(priority.has_value());
+  } catch (const vk::SystemError& e) {
+    if (!priority || e.code().value() != static_cast<int>(VK_ERROR_NOT_PERMITTED_KHR)) throw;
+    spdlog::warn(
+        "BT_VK_QUEUE_PRIORITY={}: the driver refused that global queue priority "
+        "(VK_ERROR_NOT_PERMITTED); using the default priority",
+        priority_name);
+    priority_name = "default";
+    device_ = create(false);
+  }
+  spdlog::debug("Compute queue: family {} ({}, BT_VK_QUEUE={}), priority {}",
+                compute_queue_family_index_,
+                vk::to_string(families[compute_queue_family_index_].queueFlags),
+                queue_kind,
+                priority_name);
 
   if (use_push_descriptor) {
     // From the device, not the instance-level dispatcher: an extension command.

@@ -30,6 +30,20 @@ namespace bt_gen_log {
 // targeting the OTHER GPU backend is rejected up front (see run()), so the spawn
 // loop here only ever sees gpu_em or kOMP.
 
+// A GPU chunk's body. On Vulkan each GPU chunk gets its own Sequence, so a schedule may
+// place the GPU in several chunks (design C2); other backends use the dispatcher's own.
+static std::function<void(AppDataT*)> gpu_chunk_fn(DispatcherT& disp,
+                                                   const int start,
+                                                   const int end) {
+  if constexpr (requires { disp.make_seq(); }) {
+    return [&disp, seq = disp.make_seq(), start, end](AppDataT* app) {
+      disp.dispatch_multi_stage(*app, start, end, *seq);
+    };
+  } else {
+    return [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); };
+  }
+}
+
 template <class OmpDispatch>
 static void warmup(const Schedule& schedule,
                    const ExecutionModel gpu_em,
@@ -53,13 +67,12 @@ static void warmup(const Schedule& schedule,
     const bool is_last = chunk_id == n_chunks - 1;
 
     if (em == gpu_em) {
-      threads.emplace_back(
-          worker<QueueT, AppDataT>,
-          std::ref(q_in),
-          std::ref(q_out),
-          [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-          num_warmup_items,
-          is_last);
+      threads.emplace_back(worker<QueueT, AppDataT>,
+                           std::ref(q_in),
+                           std::ref(q_out),
+                           gpu_chunk_fn(disp, start, end),
+                           num_warmup_items,
+                           is_last);
     } else {  // kOMP (the warmup is constructed with only gpu_em + kOMP chunks)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
@@ -100,15 +113,14 @@ static void run_schedule(const Schedule& schedule,
     const bool is_last = chunk_id == n_chunks - 1;
 
     if (em == gpu_em) {
-      threads.emplace_back(
-          worker_with_record<QueueT, AppDataT, kNumToProcess>,
-          static_cast<int>(chunk_id),
-          std::ref(logger),
-          std::ref(q_in),
-          std::ref(q_out),
-          [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-          kNumToProcess,
-          is_last);
+      threads.emplace_back(worker_with_record<QueueT, AppDataT, kNumToProcess>,
+                           static_cast<int>(chunk_id),
+                           std::ref(logger),
+                           std::ref(q_in),
+                           std::ref(q_out),
+                           gpu_chunk_fn(disp, start, end),
+                           kNumToProcess,
+                           is_last);
     } else {  // kOMP (wrong-backend GPU chunks are filtered before we get here)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
@@ -222,6 +234,10 @@ inline int run(int argc,
 
   for (size_t i = 0; i < n_schedules_to_run; ++i) {
     if (const auto reason = schedule_unrunnable_reason(schedules[i])) {
+      spdlog::warn("Skipping schedule {} [{}]: {}", i, schedules[i].uid, *reason);
+      continue;
+    }
+    if (const auto reason = first_concurrent_gpu_chunk(schedules[i])) {
       spdlog::warn("Skipping schedule {} [{}]: {}", i, schedules[i].uid, *reason);
       continue;
     }

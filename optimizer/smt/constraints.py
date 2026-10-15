@@ -1,6 +1,6 @@
 """SMT constraints and optimization setup for schedule optimization."""
 
-from z3 import And, Bool, Implies, Not, Optimize, Or, Real, RealVal, Sum
+from z3 import And, Bool, If, Implies, Not, Optimize, Or, Real, RealVal, Sum
 
 
 def create_decision_variables(num_stages, core_types):
@@ -39,7 +39,14 @@ def add_availability_constraints(opt, x, core_types, num_stages, stage_timings, 
 
 
 def add_chunk_time_constraint(
-    opt, x, core_types, num_stages, stage_timings, minimize_mode="gapness", overhead=None
+    opt,
+    x,
+    core_types,
+    num_stages,
+    stage_timings,
+    minimize_mode="gapness",
+    overhead=None,
+    shared_core_types=(),
 ):
     """Add constraints for the chunk times and optimize for minimal gap between max and min chunk times.
 
@@ -49,6 +56,11 @@ def add_chunk_time_constraint(
     Adding the constants to EVERY segment (not just maximal chunks) is sound for the
     <= T_max side: a sub-segment costs no more than its enclosing chunk (stage times
     and the constants are >= 0), so the binding constraint is still the maximal chunk.
+
+    shared_core_types: PUs allowed in several chunks (allow_gpu_multi_chunk). One device
+    serves all of them, so their chunks time-share it: the SUM over the PU's maximal
+    segments, each with its per-chunk overhead, must also be <= T_max -- a lower bound on
+    the pipeline period (runtime/gpu-chunks spec "Optimizer models GPU time-sharing").
     """
     # Define the maximum and minimum chunk time variables
     T_max = Real("T_max")
@@ -87,6 +99,23 @@ def add_chunk_time_constraint(
                 # If this is a maximal segment, its time should be >= T_min
                 opt.add(Implies(is_maximal_segment, seg_sum >= T_min))
 
+    for c in shared_core_types:
+        oh_chunk, oh_stage = (overhead or {}).get(c, (0.0, 0.0))
+        col = core_types.index(c)
+        stage_cost = Sum(
+            [
+                If(x[(k, c)], RealVal(stage_timings[k][col] + oh_stage), RealVal(0))
+                for k in range(num_stages)
+            ]
+        )
+        n_chunks = Sum(
+            [
+                If(And(x[(k, c)], True if k == 0 else Not(x[(k - 1, c)])), 1, 0)
+                for k in range(num_stages)
+            ]
+        )
+        opt.add(stage_cost + RealVal(oh_chunk) * n_chunks <= T_max)
+
     # Define Gapness as the difference between max and min chunk times
     opt.add(Gapness == T_max - T_min)
 
@@ -106,9 +135,12 @@ def add_chunk_time_constraint(
     return T_max, T_min, Gapness
 
 
-def add_contiguity_constraints(opt, x, core_types, num_stages):
-    """Add constraints to ensure each PU appears in one continuous block."""
+def add_contiguity_constraints(opt, x, core_types, num_stages, exempt_core_types=()):
+    """Add constraints to ensure each PU appears in one continuous block. PUs in
+    exempt_core_types (allow_gpu_multi_chunk: the GPU) may appear in several."""
     for c in core_types:
+        if c in exempt_core_types:
+            continue
         for i in range(num_stages):
             for j in range(i + 1, num_stages):
                 for k in range(j + 1, num_stages):

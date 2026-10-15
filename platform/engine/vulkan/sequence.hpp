@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <span>
 #include <vector>
 
@@ -14,7 +15,8 @@ class Sequence {
                     uint32_t compute_queue_index,
                     float timestamp_period_ns = 0.0f,
                     uint32_t timestamp_valid_bits = 0,
-                    std::vector<VulkanMemoryResource*> resources = {});
+                    std::vector<VulkanMemoryResource*> resources = {},
+                    std::mutex* submit_mutex = nullptr);
 
   ~Sequence();
 
@@ -112,6 +114,10 @@ class Sequence {
   // No resources => no cache maintenance (memory is coherent or caller manages it).
   std::vector<VulkanMemoryResource*> resources_;
   std::vector<VkBuffer> touched_;
+
+  // The Engine's: the queue is externally synchronized, and every Sequence of one Engine
+  // submits to the same queue, possibly from different threads (design C2).
+  std::mutex* submit_mutex_;
   [[nodiscard]] std::vector<VmaAllocation> touched_allocations() const;
 };
 

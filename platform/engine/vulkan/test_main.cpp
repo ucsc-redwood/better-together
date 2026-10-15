@@ -119,7 +119,7 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
 
   seq->cmd_begin();
   algo->record_bind(*seq, {engine.get_buffer_info(out)});
-  algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+  algo->record_dispatch(*seq, {1, 1, 1});
   seq->cmd_end();
   seq->submit();
   seq->wait_for_fence();
@@ -203,7 +203,7 @@ TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
     seq->cmd_begin();
     for (int i = 0; i < kRounds * kBuffers; ++i) {
       algo->record_bind(*seq, {engine.get_buffer_info(outs[i % kBuffers])});
-      algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+      algo->record_dispatch(*seq, {1, 1, 1});
     }
     seq->cmd_end();
     seq->submit();
@@ -259,7 +259,7 @@ class PipelineCacheTest : public ::testing::Test {
                     ->build();
     seq->cmd_begin();
     algo->record_bind(*seq, {engine.get_buffer_info(out)});
-    algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+    algo->record_dispatch(*seq, {1, 1, 1});
     seq->cmd_end();
     seq->submit();
     seq->wait_for_fence();
@@ -646,7 +646,7 @@ TEST(VulkanStageDependency, OnlyWhereStagesDepend) {
 
     const auto record = [&](std::pmr::vector<uint32_t>& buf) {
       algo->record_bind(*seq, {engine.get_buffer_info(buf)});
-      algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+      algo->record_dispatch(*seq, {1, 1, 1});
     };
     seq->cmd_begin();
     record(a);  // first dispatch: nothing to order
@@ -682,7 +682,7 @@ TEST(VulkanTimestamps, GpuTimeIsPositiveAndWithinWallTime) {
     seq->cmd_begin();
     for (int i = 0; i < 16; ++i) {
       algo->record_bind(*seq, {engine.get_buffer_info(out)});
-      algo->record_dispatch(seq->get_handle(), {256, 1, 1});
+      algo->record_dispatch(*seq, {256, 1, 1});
     }
     seq->cmd_end();
     const auto t0 = std::chrono::steady_clock::now();
@@ -729,7 +729,7 @@ TEST(VulkanBufferClass, EachClassAllocatesAndResolves) {
 
       seq->cmd_begin();
       algo->record_bind(*seq, {engine.get_buffer_info(v)});
-      algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+      algo->record_dispatch(*seq, {1, 1, 1});
       seq->cmd_end();
       seq->submit();
       seq->wait_for_fence();
@@ -759,7 +759,7 @@ TEST(VulkanSubgroupSize, FullSubgroupsDispatch) {
                   ->build();
   seq->cmd_begin();
   algo->record_bind(*seq, {engine.get_buffer_info(out)});
-  algo->record_dispatch(seq->get_handle(), {8, 1, 1});
+  algo->record_dispatch(*seq, {8, 1, 1});
   seq->cmd_end();
   seq->submit();
   seq->wait_for_fence();

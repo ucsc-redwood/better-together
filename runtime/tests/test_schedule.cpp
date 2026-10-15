@@ -132,11 +132,10 @@ TEST(SchedulePUs, GpuChunkPresenceFromPredicate) {
                   .has_value());
 }
 
-// ---- first_concurrent_gpu_chunk: a GPU backend may appear in at most one chunk ----
-// The GPU dispatcher's single command buffer/fence is shared across the per-chunk
-// worker threads, so >1 GPU chunk races it into VK_ERROR_DEVICE_LOST (diagnosed with
-// GPU-assisted validation, 2026-06-17). z3 emits one contiguous GPU chunk per PU;
-// this guard rejects any schedule that would spawn concurrent GPU dispatchers.
+// ---- first_concurrent_gpu_chunk: Vulkan may serve several chunks, CUDA only one ----
+// Each Vulkan GPU chunk records into its own Sequence and submits under the Engine's
+// submit mutex (runtime/gpu-chunks spec, design C2), so repeated Vulkan chunks are allowed.
+// The CUDA dispatcher's single stream is still shared across chunk threads -> rejected.
 
 TEST(ScheduleGpuReuse, SingleGpuChunkAllowed) {
   EXPECT_FALSE(first_concurrent_gpu_chunk(
@@ -152,21 +151,21 @@ TEST(ScheduleGpuReuse, NoGpuChunkAllowed) {
                    .has_value());
 }
 
-TEST(ScheduleGpuReuse, TwoVulkanChunksRejected) {
-  const auto reason = first_concurrent_gpu_chunk(
-      make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan},
-                        {ExecutionModel::kOMP, ProcessorType::kBigCore},
-                        {ExecutionModel::kVulkan, ProcessorType::kVulkan}}));
-  ASSERT_TRUE(reason.has_value());
-  EXPECT_NE(reason->find("chunk 2"), std::string::npos);  // the offending (second Vulkan) chunk
+TEST(ScheduleGpuReuse, TwoVulkanChunksAllowed) {
+  EXPECT_FALSE(first_concurrent_gpu_chunk(
+                   make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan},
+                                     {ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                     {ExecutionModel::kVulkan, ProcessorType::kVulkan}}))
+                   .has_value());
 }
 
 TEST(ScheduleGpuReuse, TwoCudaChunksRejected) {
-  EXPECT_TRUE(
+  const auto reason =
       first_concurrent_gpu_chunk(make_pu_schedule({{ExecutionModel::kCuda, ProcessorType::kCuda},
                                                    {ExecutionModel::kOMP, ProcessorType::kBigCore},
-                                                   {ExecutionModel::kCuda, ProcessorType::kCuda}}))
-          .has_value());
+                                                   {ExecutionModel::kCuda, ProcessorType::kCuda}}));
+  ASSERT_TRUE(reason.has_value());
+  EXPECT_NE(reason.value_or("").find("chunk 2"), std::string::npos);  // the second CUDA chunk
 }
 
 // ---- Case 5.2: a >kMaxChunks schedule must throw a clean std::out_of_range from the
