@@ -382,8 +382,41 @@ Gates used below:
 
 ## 4. Submission overhead (topic D)
 
-- [ ] 4.1 Add phase timing: record, submit, wait, GPU start/end and start latency. Use calibrated timestamps when `VK_KHR_calibrated_timestamps` or its EXT form is available (D1). Verify: on rocky, a tree × VK run reports phases per chunk that sum to wall time within the timer resolution; the device's calibrated-timestamp support is logged.
-- [ ] 4.2 Run the idle-gap sweep (0, 1, 5, 20 ms between chunks) on rocky for tree × VK and cifar-dense × VK (D1). Verify: a phase table and a GPU-time-vs-gap table are recorded in design.md D1, with an explanation of the ≈1.5 ms (≈0.85 ms tree-only) fitted overhead by phase.
+- [x] 4.1 Add phase timing: record, submit, wait, GPU start/end and start latency. Use calibrated timestamps when `VK_KHR_calibrated_timestamps` or its EXT form is available (D1). Verify: on rocky, a tree × VK run reports phases per chunk that sum to wall time within the timer resolution; the device's calibrated-timestamp support is logged.
+  - *Evidence:* `BT_VK_PHASES=1` records per submission record / between / flush / submit / wait / invalidate (host,
+    contiguous), the GPU interval, and with calibrated timestamps the split of submit + wait into start latency + GPU +
+    wake (design D1 "As implemented"). `VK_KHR_calibrated_timestamps` or the EXT is enabled where the device has the
+    device and CLOCK_MONOTONIC domains. Tool: `bm-phases-{tree,cifar-dense}-vk`.
+  - Support logged (`SPDLOG_LEVEL=debug ./test-kiss-vk --gtest_filter=VulkanEngineTest.EngineInitialization`):
+    - rocky `Calibrated timestamps: VK_KHR_calibrated_timestamps (device + CLOCK_MONOTONIC)`;
+    - Pixel 7a `VK_KHR_calibrated_timestamps (…)`;
+    - Samsung `VK_EXT_calibrated_timestamps (…)`.
+  - *Found: rocky's calibration is wrong.* The first sweep's calibrated split was off by a constant ~28,983 ms. A
+    probe showed rocky's queue timestamps 2.898e9 ticks (10 ns/tick) ahead of `VK_TIME_DOMAIN_DEVICE`, at the same
+    rate. The Engine now checks the calibration once when phases are on, and treats a failing device as uncorrelated
+    (design D1). rocky, `bm-phases-tree-vk --device minipc -s 4 -e 7 -n 50` at b2657ee: `[warning] Calibrated
+    timestamps: a queue timestamp (6566338792851) lies outside the calibrated device ticks around it
+    (6563440371417..6563440475701, offset 2898421434 ticks); GPU and host phases stay uncorrelated`, `calibrated=0/50`.
+    The phases are still reported per chunk, and their sum equals the wall time exactly (`max_abs_residual_ms
+    host=0.000000`; the steady clock's resolution is 1 ns).
+  - The phones pass the check and show the full split (design D1 "Phones"). Start latency is measured from the start
+    of the submit call (3d3393d: the GPU may start before the call returns). Minimum start latency ≥ 0 except one
+    Samsung chunk at −0.229 ms, within the 0.534 ms deviation the driver reported for that pair.
+- [x] 4.2 Run the idle-gap sweep (0, 1, 5, 20 ms between chunks) on rocky for tree × VK and cifar-dense × VK (D1). Verify: a phase table and a GPU-time-vs-gap table are recorded in design.md D1, with an explanation of the ≈1.5 ms (≈0.85 ms tree-only) fitted overhead by phase.
+  - *Evidence:* rocky, `bm-phases-<app>-vk --gap-ms G` for G ∈ {0, 1, 5, 20} on tree 1–3, 4–7, 1–7 and cifar-dense
+    1–11, 5–11, 2 runs each, interleaved over shapes and gaps (40 runs, all exit 0).
+    - Before each run: 5 s settle, `gpu_busy_percent` 0, load 0.05–0.49, no other `/dev/dri` holder; `powersave`, DPM
+      `auto`; `BT_WEIGHTS_DIR=/tmp/bt/weights`.
+    - The sweep ran at 0e32da4, before the calibration check, so only its host phases and GPU times are used (start
+      latency + wake as wait − GPU).
+  - Phase table, GPU-time-vs-gap table, dispatch-wall-vs-gap table and the explanation are in design.md D1 "Results"
+    / "What the ≈1.5 ms … is". In short:
+    - host submission costs 0.07 ms (tree) to 0.6 ms (cifar-dense) per chunk, recording only µs;
+    - a hot chunk runs 0.06–0.48 ms *faster* than its stages timed alone;
+    - idle before a chunk slows it sharply: tree 1–3 1.09 → 1.48 / 2.54 / 2.98 ms after 1 / 5 / 20 ms; cifar-dense
+      1–11 8.98 → 24.1 ms after 20 ms.
+    - So the fitted per-chunk constant is mostly the GPU's DVFS slowdown after idling between pipelined items (plus
+      the SPSC hand-off), not submission overhead.
 - [x] 4.3 Pre-record command buffers per (chunk, pooled item), with re-record on a key mismatch and a defined behaviour on the descriptor-fallback path (D2). Verify: a test shows no recording on the second pass of the same item (debug counter), and a re-record when push constants change; the rocky gate and phone gate pass with and without `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`.
   - *Evidence:* recipe capture + cached command buffers (design D2 "As implemented"): an equal recipe (pipelines,
     buffers, push-constant bytes, dispatch sizes, barriers) reuses its recorded command buffer, and any difference
@@ -422,7 +455,39 @@ Gates used below:
     - Pixel 7a and Samsung: `test-pipeline-e2e-vk` 5/5, `-cifar-dense-vk` 3/3, `-cifar-sparse-vk` 2/2, at
       `BT_VK_INFLIGHT=1` and `=2`.
   - `ctest -L omp` locally 9/9 (`test-schedule-omp` 26/26); `uv run pytest -q optimizer` 21 passed.
-- [ ] 4.5 Run the refit gate for 4.3 + 4.4, at depth 1 and depth 2 against the pre-group-4 baseline (D4). Verify: the before/after `gpu_vulkan` per-chunk constants, the spreads, tree × VK best makespan and the per-GPU-chunk-shape wall times are recorded; the after constant is ≤ the before mean + the before spread. Depth 2 becomes the default only if it wins beyond noise.
+- [x] 4.5 Run the refit gate for 4.3 + 4.4, at depth 1 and depth 2 against the pre-group-4 baseline (D4). Verify: the before/after `gpu_vulkan` per-chunk constants, the spreads, tree × VK best makespan and the per-GPU-chunk-shape wall times are recorded; the after constant is ≤ the before mean + the before spread. Depth 2 becomes the default only if it wins beyond noise.
+  - *Method (rocky-ryzen):* "before" = 9236dda (parent of group 4), "depth 1" / "depth 2" = 1ffb88f with
+    `BT_VK_INFLIGHT=1` / `=2`.
+    - Each arm has its own worktree with binaries built on rocky (`scripts/build-bench-on-rocky.sh vulkan`). Each run
+      is a full `00_run_fleet.py --only minipc --fresh --phases profile,schedule,run,summary`, then `fit_overhead.py
+      --dry-run`.
+    - Four rounds, interleaved before → depth 1 → depth 2: 12 runs, all exit 0. Rounds 3–4 were added because after
+      two the all-apps GPU ranges did not overlap.
+    - Before every run: 5 s settle, `gpu_busy_percent` 0, load 0.46–0.49, no other `/dev/dri` holder, no CI job;
+      `powersave`, DPM `auto`, clocks unlocked.
+  - Tables in design.md D4 "Results (tasks 4.5)": fitted constants, throughput, tree GPU chunk shapes, and the
+    teardown experiment. Means before → depth 1 (before spread):
+    - `gpu_vulkan` per_chunk, all apps: 1.4645 → **1.6644** (0.3583). This is ≤ before mean + spread = **1.8228**, so
+      **acceptance met**;
+    - `gpu_vulkan` per_chunk, tree only: 0.8711 → 0.8664 (0.0131);
+    - tree best measured makespan (max chunk): 1.7223 → 1.7324 (0.0364);
+    - tree GPU chunk durations for stages 1–2 / 1–3 / 1–4 / 1–6: within their before spreads (≤ +0.0382); stages 1–5
+      +0.0778 (spread 0.0281).
+  - *Found:* an end-of-run stall in the CPU chunk with the group 4 builds.
+    - Of 32 tree schedule runs per arm, 21 at depth 1 and 20 at depth 2 have one of the last six items above 5 ms (up
+      to 24 ms); before, 0 (max 4.7 ms).
+    - It makes tree's per-task makespan +0.17 ms and its tree-only `cpu` constant +0.077 ms (spread 0.018). The
+      steady period is unchanged: 1.5278 → 1.5335.
+    - Experiment (not committed): keeping each GPU chunk's `Sequence` alive past its thread's exit cuts the stalls on
+      fixed schedules from 10/15 to 3/15 (before 0/15). So the Sequence teardown, with its up to 32 recorded command
+      buffers, explains most of it.
+    - Follow-up recorded in D4; production steady state is unaffected.
+  - *Depth 2:* at depth > 1 the chunk ticks are submit → complete latency, so the fitted constants (8.48 ms all-apps)
+    and the max-chunk makespan (2.96 ms) do not measure cost; depth 2 was compared by throughput.
+    - It beats depth 1 beyond noise on 5 of 6 metrics, but against before it is level. Its steady-state gain is
+      < 1 %: cifar-dense −0.7 %, cifar-sparse −0.5 %, tree inside noise.
+    - Enabling it would need constants fitted at depth 2, which today's tooling cannot produce.
+    - **The default stays `BT_VK_INFLIGHT=1`.**
 
 ## 5. Docs and final gate
 
