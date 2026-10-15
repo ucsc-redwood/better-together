@@ -1,4 +1,6 @@
 #version 460
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
 
 precision highp float;
 precision highp int;
@@ -6,9 +8,18 @@ precision highp int;
 // 3x3 / stride-1 / pad-1 CSR specialization (port of the CUDA win) -- every
 // pruned conv in the model is this shape. The generic shader drags one FMA
 // chain through the whole CSR row with a runtime `/ kernel_area` +
-// `% kernel_size` per nonzero; with the literal 9/3 the compiler
-// strength-reduces the decode, and two interleaved accumulators break the
-// serial dependency.
+// `% kernel_size` per nonzero; here the literal 9/3 lets the compiler strength-reduce
+// the decode.
+//
+// Two paths, chosen per subgroup:
+//  * Fast, when every active lane of the subgroup has the same output channel (always
+//    the case when out_height*out_width is a multiple of the subgroup size: 32x32,
+//    16x16 and 8x8 maps with subgroups of 16..64). The row bounds are then provably
+//    uniform (subgroupBroadcastFirst), so the CSR walk -- col_idx and weight loads, the
+//    decode -- is scalar work, and each tap costs ONE per-lane input load, issued on a
+//    clamped index with no divergent branch. Four independent accumulators.
+//  * Fallback otherwise (a subgroup spanning two output channels): the per-lane walk
+//    with two accumulators. Correct for any subgroup size and shape; slower.
 //
 // Same descriptor layout and push constants as new_cifar_sparse_conv2d.
 // Dispatcher contract (falls back to the generic shader otherwise):
@@ -55,9 +66,9 @@ layout(push_constant) uniform Params {
 }
 params;
 
-// One nonzero's contribution: literal-constant decode of the flat kernel index,
-// 0.0 for taps that land in the padded border.
-float tap(int nz, int in_base, int oh, int ow) {
+// Fallback path -- one nonzero's contribution: literal-constant decode of the flat kernel
+// index, 0.0 for taps that land in the padded border.
+float tap_generic(int nz, int in_base, int oh, int ow) {
   const int flat_k = weight_col_idx[nz];
   const int in_c = flat_k / 9;
   const int rem = flat_k - in_c * 9;
@@ -69,6 +80,22 @@ float tap(int nz, int in_base, int oh, int ow) {
   return input_data[in_base + in_c * (params.in_height * params.in_width) +
                     in_y * params.in_width + in_x] *
          weight_vals[nz];
+}
+
+// Fast path -- nz is subgroup-uniform, so the CSR decode is scalar work; the one per-lane
+// memory op is the input load, on a clamped index (no branch, no wait between taps).
+float tap_fast(int nz, int in_base, int oh, int ow) {
+  const int flat_k = weight_col_idx[nz];
+  const int in_c = flat_k / 9;
+  const int rem = flat_k - in_c * 9;
+  const int ky = rem / 3;
+  const int kx = rem - ky * 3;
+  const int in_y = oh + ky - 1;
+  const int in_x = ow + kx - 1;
+  const bool ok = in_y >= 0 && in_y < params.in_height && in_x >= 0 && in_x < params.in_width;
+  const int off = in_c * (params.in_height * params.in_width) + in_y * params.in_width + in_x;
+  const float v = input_data[ok ? in_base + off : in_base];
+  return ok ? v * weight_vals[nz] : 0.0;
 }
 
 void main() {
@@ -84,21 +111,37 @@ void main() {
   const int out_c = idx % params.out_channels;
   const int b = idx / params.out_channels;
 
-  const int row_start = weight_row_ptr[out_c];
-  const int row_end = weight_row_ptr[out_c + 1];
   const int in_base = b * params.in_channels * params.in_height * params.in_width;
 
-  // Two interleaved accumulators break the serial FMA chain over the CSR row.
-  float s0 = 0.0;
-  float s1 = 0.0;
-  int nz = row_start;
-  for (; nz + 1 < row_end; nz += 2) {
-    s0 += tap(nz, in_base, oh, ow);
-    s1 += tap(nz + 1, in_base, oh, ow);
+  float sum;
+  if (subgroupAllEqual(out_c)) {
+    // Every active lane walks the same CSR row: make its bounds provably uniform.
+    const int row_start = subgroupBroadcastFirst(weight_row_ptr[out_c]);
+    const int row_end = subgroupBroadcastFirst(weight_row_ptr[out_c + 1]);
+    float s0 = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0;
+    int nz = row_start;
+    for (; nz + 3 < row_end; nz += 4) {
+      s0 += tap_fast(nz, in_base, oh, ow);
+      s1 += tap_fast(nz + 1, in_base, oh, ow);
+      s2 += tap_fast(nz + 2, in_base, oh, ow);
+      s3 += tap_fast(nz + 3, in_base, oh, ow);
+    }
+    for (; nz < row_end; ++nz) s0 += tap_fast(nz, in_base, oh, ow);
+    sum = (s0 + s1) + (s2 + s3);
+  } else {
+    const int row_start = weight_row_ptr[out_c];
+    const int row_end = weight_row_ptr[out_c + 1];
+    // Two interleaved accumulators break the serial FMA chain over the CSR row.
+    float s0 = 0.0;
+    float s1 = 0.0;
+    int nz = row_start;
+    for (; nz + 1 < row_end; nz += 2) {
+      s0 += tap_generic(nz, in_base, oh, ow);
+      s1 += tap_generic(nz + 1, in_base, oh, ow);
+    }
+    if (nz < row_end) s0 += tap_generic(nz, in_base, oh, ow);
+    sum = s0 + s1;
   }
-  if (nz < row_end) s0 += tap(nz, in_base, oh, ow);
-
-  float sum = s0 + s1;
   if (params.bias_size > 0 && out_c < params.bias_size) sum += bias_data[out_c];
   if (params.relu != 0 && sum < 0.0) sum = 0.0;
 

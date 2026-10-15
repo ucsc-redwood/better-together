@@ -422,3 +422,30 @@ the dense `/ 8` and sparse `/ 32` divisor edits and the prototype shader headers
 that scratch tree), `~/vkprof-run` (JSONL, ISA dumps `dumps/`, scripts). Variant binaries:
 `bm-prof-cifar-dense-vk.{base,dv2,dv3}`, `bm-prof-cifar-sparse-vk.{base,sv1,sv2,sv3}`,
 `bm-prof-tree-vk.{base,nwg128,nwg64,nwg32}` in `~/bt-src-vkprof/build/vulkan/`.
+
+## 8. Applied: sparse CSR conv (item 1 of the ranking)
+
+`new_cifar_sparse_conv2d_k3s1p1.comp` now has the fast path of the prototype in 4.2 (row
+bounds from `subgroupBroadcastFirst`, branchless clamped taps, 4 accumulators), but guarded by
+construction: the fast path runs only in a subgroup whose active lanes all share one output
+channel (`subgroupAllEqual(out_c)`); otherwise the previous per-lane walk runs. So correctness
+does not depend on `out_h*out_w` being a multiple of the subgroup size, and no dispatcher guard is
+needed. Without the guard the broadcast silently returns another channel's row; the new test
+`SparseConvK3S1P1.FallbackWhenSubgroupSpansChannels` (6x6 maps, hand-made CSR with an empty row,
+double-precision reference) fails on an unguarded shader and passes on this one. A second test
+covers the fast path (8x8).
+
+Per-stage GPU time on rocky-ryzen (`bm-prof-cifar-sparse-vk`, isolated scenario, 3 rounds
+interleaved base/new, `gpu_busy_percent` 0 before each run, run spread < 1 %):
+
+| stage | base ms | new ms | change |
+|---|---|---|---|
+| 1 conv | 1.573-1.599 | 0.987-0.994 | -37 % |
+| 3 conv | 16.98-17.00 | 8.29-8.32 | -51 % |
+| 5 conv | 27.26-27.29 | 12.96-12.97 | -52 % |
+| 6 conv | 38.01-38.12 | 18.24-18.48 | -52 % |
+| 7 conv | 23.72-23.74 | 11.68 | -51 % |
+| other stages | unchanged | unchanged | within 1 % |
+| **sum of stages** | **121.71** | **66.44** | **-45 %** |
+
+The FC stages (9, 10: 6.4 ms each) are untouched; they are item 3 of the ranking.
