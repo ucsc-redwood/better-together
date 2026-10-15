@@ -162,9 +162,11 @@ CI helper: the **rocky-ryzen iGPU** box (Vulkan, subgroup 64).
 cross container; CUDA *runs* on the Jetson. ² The Vulkan engine hard-selects an
 integrated GPU, so the discrete-GPU PC never runs Vulkan — the phones (and the
 iGPU box) do. ³ octree has **no CUDA backend** (only OMP + Vulkan kernels exist);
-this cell is empty by design, not a coverage gap. **The two phones are what
-uniquely exercise the subgroup-16 (Mali) vs subgroup-32 shader variants**
-(`tmp_single_radixsort_warp{16,32,64}`) — the Jetson alone cannot.
+this cell is empty by design, not a coverage gap. **The Pixel 7a (Mali) is what
+uniquely exercises subgroup 16.** Since the Vulkan campaign's Phase B (2026-10), the radix
+sort is one shader (`multi_radixsort`) specialized with the device's subgroup size; 32 is
+covered by pinning (`BT_VK_SUBGROUP_SIZE=32` on rocky-ryzen and the Samsung) and 64 is
+the rocky-ryzen / Samsung default.
 
 > **Update 2026-06-17 — full matrix swept with logs + runtime-pipeline matrix added.**
 > Every supported per-stage cell above was re-run on real HW and the logs committed
