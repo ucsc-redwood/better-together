@@ -160,7 +160,7 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   bool subgroup_size_dependent_ = false;
 
   // Payload (push constants)
-  std::array<std::byte, 128> push_constants_buffer_;
+  std::array<std::byte, 128> push_constants_buffer_{};
 
   struct {
     std::vector<uint32_t> spirv_binary;
