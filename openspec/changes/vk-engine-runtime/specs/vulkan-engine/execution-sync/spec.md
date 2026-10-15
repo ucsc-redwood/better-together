@@ -35,8 +35,15 @@ hazards are both covered.
 
 ### Requirement: Dependencies only where stages depend
 The engine SHALL NOT insert an inter-stage dependency between consecutive recorded stages that share
-no buffer written by the earlier one, unless an earlier write still has to be ordered.
+no buffer written by the earlier one and where the later one writes no buffer the earlier one reads,
+unless an earlier access still has to be ordered.
+
+(Amended during implementation: the first draft named only buffers the earlier stage writes. A later
+stage that writes a buffer the earlier stage reads is a write-after-read hazard, which needs an
+execution dependency (design A2); without it the earlier draft would have forbidden a required
+barrier. With synchronization validation's shader-access analysis on, dropping that barrier is
+reported as `SYNC-HAZARD-WRITE-AFTER-READ`; see tasks 1.4.)
 
 #### Scenario: Independent consecutive stages
-- **WHEN** two consecutive recorded stages share no buffer that the first writes
+- **WHEN** two consecutive recorded stages share no buffer that the first writes, and the second writes no buffer the first reads
 - **THEN** no barrier is recorded between them, and synchronization validation still reports no hazard

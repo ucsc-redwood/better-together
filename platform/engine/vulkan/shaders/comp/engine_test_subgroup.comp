@@ -1,0 +1,25 @@
+/**
+ * kiss-vk engine self-test (test-kiss-vk), not an app kernel: a subgroup-dependent shader
+ * (constant_id = 0) whose X workgroup size is a specialization constant. g_out[0] receives
+ * gl_SubgroupSize, g_out[1] the specialized SUBGROUP_SIZE, and g_out[2] (initialized by the
+ * host to ~0u) the smallest number of active invocations seen in any subgroup -- equal to
+ * the subgroup size when every subgroup is launched full.
+ */
+#version 460
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_arithmetic : require
+
+layout(local_size_x_id = 100) in;
+
+layout(constant_id = 0) const uint SUBGROUP_SIZE = 32;
+
+layout(std430, set = 0, binding = 0) buffer Out { uint g_out[]; };
+
+void main() {
+  const uint n_active = subgroupAdd(1u);
+  if (subgroupElect()) atomicMin(g_out[2], n_active);
+  if (gl_LocalInvocationIndex == 0) {
+    g_out[0] = gl_SubgroupSize;
+    g_out[1] = SUBGROUP_SIZE;
+  }
+}

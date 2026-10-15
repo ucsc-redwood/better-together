@@ -1,5 +1,8 @@
 #pragma once
 
+#include <span>
+#include <vector>
+
 #include "algorithm.hpp"
 
 namespace kiss_vk {
@@ -33,12 +36,23 @@ class Sequence {
   // caller plans a set count.
   [[nodiscard]] vk::DescriptorSet allocate_descriptor_set(vk::DescriptorSetLayout layout);
 
-  // Records a global COMPUTE->COMPUTE, shaderWrite->shaderRead memory barrier into the
-  // open command buffer. Use it between stages when several stages are recorded into a
-  // single command buffer (one submit per chunk) so each stage's shader writes are
-  // available/visible to the next stage's shader reads. Must be called between
-  // cmd_begin() and cmd_end().
-  void cmd_memory_barrier() const;
+  // Records the inter-stage dependency (design A2): a global synchronization2 memory
+  // barrier, COMPUTE_SHADER/SHADER_STORAGE_WRITE -> COMPUTE_SHADER/SHADER_STORAGE_READ|WRITE,
+  // which orders read-after-write and write-after-write (and, as an execution dependency,
+  // write-after-read). Must be called between cmd_begin() and cmd_end().
+  void cmd_stage_dependency();
+
+  // Called by Algorithm::record_bind before each dispatch with the buffers it binds and
+  // how the shader accesses them. Records cmd_stage_dependency() only when the dispatch
+  // reads or writes a buffer written since the last dependency, or writes one read since
+  // it (design A3). BT_VK_BARRIER_ALL=1 records one before every dispatch but the first,
+  // as before conditional barriers.
+  void track_access(std::span<const vk::DescriptorBufferInfo> buffers,
+                    std::span<const BufferAccess> access);
+
+  // Dispatches and inter-stage dependencies in the command buffer recorded last.
+  [[nodiscard]] uint32_t dispatch_count() const { return dispatches_; }
+  [[nodiscard]] uint32_t barrier_count() const { return barriers_; }
 
   void submit() const;
   void wait_for_fence() const;
@@ -74,7 +88,15 @@ class Sequence {
   std::vector<vk::DescriptorPool> descriptor_pools_;
   size_t current_pool_ = 0;
 
-  // Device-side timestamp query (2 entries: top-of-pipe, bottom-of-pipe).
+  // Dependency tracking for the command buffer being recorded (track_access).
+  bool barrier_all_ = false;
+  std::vector<VkBuffer> written_since_barrier_;
+  std::vector<VkBuffer> read_since_barrier_;
+  uint32_t dispatches_ = 0;
+  uint32_t barriers_ = 0;
+
+  // Device-side timestamp query (2 entries: start and end of the command buffer's compute
+  // work, both written at COMPUTE_SHADER).
   vk::QueryPool query_pool_;
   float timestamp_period_ns_;      // nanoseconds per timestamp tick
   uint32_t timestamp_valid_bits_;  // 0 => timestamps unsupported on this queue

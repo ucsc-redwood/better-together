@@ -231,7 +231,8 @@ bool has_integrated_gpu() noexcept {
 // The device features the engine requires -- exactly what the committed shaders' SPIR-V
 // capabilities (Int8, StorageBuffer8BitAccess), the VMA allocator
 // (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) and LocalSizeId (the SPIR-V 1.6 form of
-// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need. Only these are enabled.
+// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need, plus synchronization2 for
+// the Sequence's barriers and timestamps. Only these are enabled.
 namespace {
 template <typename Features>
 struct RequiredFeature {
@@ -246,9 +247,11 @@ constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 3>
         {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
     }};
 
-constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 1>
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 2>
     kRequiredVulkan13Features{{
         {"maintenance4", &vk::PhysicalDeviceVulkan13Features::maintenance4},
+        // vkCmdPipelineBarrier2 / vkCmdWriteTimestamp2 (Sequence, design A1).
+        {"synchronization2", &vk::PhysicalDeviceVulkan13Features::synchronization2},
     }};
 }  // namespace
 
@@ -320,11 +323,13 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
   const bool pinnable =
       supported_13.subgroupSizeControl == VK_TRUE &&
       (size_control.requiredSubgroupSizeStages & vk::ShaderStageFlagBits::eCompute);
+  const bool full_subgroups = supported_13.computeFullSubgroups == VK_TRUE;
   compute_limits_ = ComputeLimits{
       .subgroup_size = subgroup.subgroupSize,
       .min_subgroup_size = is_vulkan_13 ? size_control.minSubgroupSize : subgroup.subgroupSize,
       .max_subgroup_size = is_vulkan_13 ? size_control.maxSubgroupSize : subgroup.subgroupSize,
       .subgroup_size_pinned = pinnable,
+      .full_subgroups = full_subgroups,
       .max_compute_workgroup_subgroups = pinnable ? size_control.maxComputeWorkgroupSubgroups : 0,
       .max_work_group_size = device_props.limits.maxComputeWorkGroupSize,
       .max_work_group_invocations = device_props.limits.maxComputeWorkGroupInvocations,
@@ -342,10 +347,18 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       size_control.maxComputeWorkgroupSubgroups);
 
   // Optional features are enabled only when supported (design D3).
-  vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable};
+  vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable,
+                                                .computeFullSubgroups = full_subgroups};
   vk::PhysicalDeviceVulkan12Features enabled_12{.pNext = &enabled_13};
   for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
   for (const auto& f : kRequiredVulkan13Features) enabled_13.*f.member = VK_TRUE;
+  spdlog::debug(
+      "Vulkan 1.3 features: synchronization2 supported {} enabled {}, computeFullSubgroups "
+      "supported {} enabled {}",
+      supported_13.synchronization2 == VK_TRUE,
+      enabled_13.synchronization2 == VK_TRUE,
+      supported_13.computeFullSubgroups == VK_TRUE,
+      enabled_13.computeFullSubgroups == VK_TRUE);
 
   // VK_KHR_push_descriptor is optional (design D6): enabled when the device has it, unless
   // BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 asks for the transient-pool path.

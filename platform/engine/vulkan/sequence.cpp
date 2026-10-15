@@ -1,6 +1,9 @@
 #include "sequence.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cstdlib>
+#include <string_view>
 #include <vulkan/vulkan.hpp>
 
 namespace kiss_vk {
@@ -18,6 +21,9 @@ Sequence::Sequence(const vk::Device device_ref,
       timestamp_valid_bits_(timestamp_valid_bits),
       mr_(mr) {
   spdlog::trace("Sequence constructor");
+
+  const char* barrier_all = std::getenv("BT_VK_BARRIER_ALL");
+  barrier_all_ = barrier_all != nullptr && std::string_view(barrier_all) == "1";
 
   create_sync_objects();
   create_command_pool();
@@ -141,18 +147,26 @@ void Sequence::cmd_begin() {
   };
 
   handle_.begin(begin_info);
+  written_since_barrier_.clear();
+  read_since_barrier_.clear();
+  dispatches_ = 0;
+  barriers_ = 0;
 
-  // Record a top-of-pipe timestamp so we can measure GPU-side elapsed time of
-  // this command buffer. Cheap and harmless for the production path, which just
-  // ignores the result.
+  // Start timestamp at COMPUTE_SHADER (design A4): written once every earlier command has
+  // finished its compute-shader stage, i.e. when this command buffer's compute work can
+  // start. Cheap and harmless for the production path, which just ignores the result.
   if (timestamp_valid_bits_ != 0) {
     handle_.resetQueryPool(query_pool_, 0, 2);
-    handle_.writeTimestamp(vk::PipelineStageFlagBits::eTopOfPipe, query_pool_, 0);
+    handle_.writeTimestamp2(vk::PipelineStageFlagBits2::eComputeShader, query_pool_, 0);
   }
 }
 
 void Sequence::cmd_end() const {
   spdlog::trace("Sequence::cmd_end()");
+  spdlog::debug("Sequence: command buffer with {} dispatches, {} inter-stage barriers ({})",
+                dispatches_,
+                barriers_,
+                barrier_all_ ? "BT_VK_BARRIER_ALL=1" : "tracked");
 
   // Make every compute-shader write in this command buffer available to the host
   // domain. A fence wait alone only guarantees completion, not host visibility
@@ -162,38 +176,66 @@ void Sequence::cmd_end() const {
   // driver leniency.
   // invalidate_touched() after the fence still handles the CPU-cache side on
   // HOST_CACHED memory. Recorded before the closing timestamp so GPU time includes it.
-  const vk::MemoryBarrier host_barrier{
-      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
-      .dstAccessMask = vk::AccessFlagBits::eHostRead,
+  const vk::MemoryBarrier2 host_barrier{
+      .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+      .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+      .dstStageMask = vk::PipelineStageFlagBits2::eHost,
+      .dstAccessMask = vk::AccessFlagBits2::eHostRead,
   };
-  handle_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                          vk::PipelineStageFlagBits::eHost,
-                          vk::DependencyFlags{},
-                          host_barrier,
-                          nullptr,
-                          nullptr);
+  handle_.pipelineBarrier2(vk::DependencyInfo{
+      .memoryBarrierCount = 1,
+      .pMemoryBarriers = &host_barrier,
+  });
 
+  // End timestamp: written once every dispatch has completed COMPUTE_SHADER (design A4).
   if (timestamp_valid_bits_ != 0) {
-    handle_.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, query_pool_, 1);
+    handle_.writeTimestamp2(vk::PipelineStageFlagBits2::eComputeShader, query_pool_, 1);
   }
 
   handle_.end();
 }
 
-void Sequence::cmd_memory_barrier() const {
-  // Global memory barrier: previous compute-shader writes -> next compute-shader reads.
-  // The same barrier tree's multi-dispatch stages use; required for correct cross-stage
-  // visibility (esp. on non-coherent Mali) when stages share one command buffer.
-  const vk::MemoryBarrier mem_barrier{
-      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
-      .dstAccessMask = vk::AccessFlagBits::eShaderRead,
+void Sequence::cmd_stage_dependency() {
+  // Global, not per-buffer: buffer barriers buy nothing on these drivers (design A3).
+  // Required for cross-stage visibility (esp. on non-coherent Mali) when stages share one
+  // command buffer.
+  const vk::MemoryBarrier2 barrier{
+      .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+      .srcAccessMask = vk::AccessFlagBits2::eShaderStorageWrite,
+      .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+      .dstAccessMask =
+          vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite,
   };
-  handle_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
-                          vk::PipelineStageFlagBits::eComputeShader,
-                          vk::DependencyFlags{},
-                          mem_barrier,
-                          nullptr,
-                          nullptr);
+  handle_.pipelineBarrier2(vk::DependencyInfo{
+      .memoryBarrierCount = 1,
+      .pMemoryBarriers = &barrier,
+  });
+  written_since_barrier_.clear();
+  read_since_barrier_.clear();
+  ++barriers_;
+}
+
+void Sequence::track_access(const std::span<const vk::DescriptorBufferInfo> buffers,
+                            const std::span<const BufferAccess> access) {
+  const auto contains = [](const std::vector<VkBuffer>& set, VkBuffer b) {
+    return std::ranges::find(set, b) != set.end();
+  };
+  const auto reads = [&](size_t i) { return (static_cast<int>(access[i]) & 1) != 0; };
+  const auto writes = [&](size_t i) { return (static_cast<int>(access[i]) & 2) != 0; };
+
+  bool needed = barrier_all_ && dispatches_ != 0;
+  for (size_t i = 0; i < buffers.size() && !needed; ++i) {
+    VkBuffer b = buffers[i].buffer;
+    needed = contains(written_since_barrier_, b) || (writes(i) && contains(read_since_barrier_, b));
+  }
+  if (needed) cmd_stage_dependency();
+
+  for (size_t i = 0; i < buffers.size(); ++i) {
+    VkBuffer b = buffers[i].buffer;
+    if (writes(i) && !contains(written_since_barrier_, b)) written_since_barrier_.push_back(b);
+    if (reads(i) && !contains(read_since_barrier_, b)) read_since_barrier_.push_back(b);
+  }
+  ++dispatches_;
 }
 
 double Sequence::get_last_gpu_time_ns() const {

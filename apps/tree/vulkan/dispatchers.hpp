@@ -36,13 +36,12 @@ class VulkanDispatcher final {
     dispatch_multi_stage(data, stage, stage);
   }
 
-  // Record stages [start_stage, end_stage] into ONE command buffer with a
-  // shaderWrite->shaderRead barrier between consecutive stages, then run it with ONE
-  // submit + ONE fence wait. Collapses the per-stage CPU<->GPU round-trips of a chunk;
-  // host cache flush/invalidate happen once per chunk (inside submit/wait_for_fence).
-  // Safe across tree's data-dependent stages: VkAppData_Safe's counts (n_unique,
-  // n_brt_nodes) are const, fixed at construction -- they don't need a GPU read-back
-  // between stages, so a stage can be recorded before the prior stage executes.
+  // Record stages [start_stage, end_stage] into ONE command buffer (the Sequence orders
+  // dependent dispatches, design A3), then run it with ONE submit + ONE fence wait. Collapses the
+  // per-stage CPU<->GPU round-trips of a chunk; host cache flush/invalidate happen once per chunk
+  // (inside submit/wait_for_fence). Safe across tree's data-dependent stages: VkAppData_Safe's
+  // counts (n_unique, n_brt_nodes) are const, fixed at construction -- they don't need a GPU
+  // read-back between stages, so a stage can be recorded before the prior stage executes.
   void dispatch_multi_stage(VkAppData_Safe& data, const int start_stage, const int end_stage) {
     if (start_stage < 1 || end_stage > 7 || start_stage > end_stage)
       throw std::out_of_range("Invalid stage");
@@ -50,7 +49,6 @@ class VulkanDispatcher final {
     seq->cmd_begin();
     for (int stage = start_stage; stage <= end_stage; ++stage) {
       (this->*record_functions[stage - 1])(data, seq->get_handle());
-      if (stage != end_stage) seq->cmd_memory_barrier();
     }
     seq->cmd_end();
 

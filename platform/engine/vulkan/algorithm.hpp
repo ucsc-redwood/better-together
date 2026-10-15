@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <initializer_list>
+#include <map>
 #include <optional>
 #include <set>
 #include <span>
@@ -22,14 +24,21 @@ inline constexpr uint32_t kMaxBindingBuffers = 16;
 // `layout(constant_id = 0) const uint SUBGROUP_SIZE = ...;` (design D5).
 inline constexpr uint32_t kSubgroupSizeSpecId = 0;
 
+// How a shader accesses one storage-buffer binding: from its GLSL `readonly` (NonWritable)
+// or `writeonly` (NonReadable) qualifier; a plain `buffer` is read and written.
+enum class BufferAccess : std::uint8_t { kNone = 0, kRead = 1, kWrite = 2, kReadWrite = 3 };
+
 // What Algorithm needs from a compute shader's SPIR-V, found by a scan of the module's
-// OpDecorate SpecId, OpExecutionMode LocalSize and OpExecutionModeId LocalSizeId.
+// OpDecorate SpecId, OpExecutionMode LocalSize and OpExecutionModeId LocalSizeId, and the
+// NonWritable/NonReadable decorations of its descriptor-set-0 buffers.
 struct SpirvReflection {
   std::set<uint32_t> spec_ids{};  // every SpecId the module declares
   // Workgroup size: the LocalSize literals, or the LocalSizeId constants' (default) values.
   std::array<uint32_t, 3> local_size{};
   // The SpecId behind each LocalSizeId operand (`local_size_{x,y,z}_id`), if any.
   std::array<std::optional<uint32_t>, 3> local_size_spec_id;
+  // Binding -> access, for every buffer variable in descriptor set 0 (design A3).
+  std::map<uint32_t, BufferAccess> binding_access{};
 };
 
 [[nodiscard]] SpirvReflection reflect_spirv(std::span<const uint32_t> words);

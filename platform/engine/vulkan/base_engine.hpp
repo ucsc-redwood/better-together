@@ -30,6 +30,9 @@ struct ComputeLimits {
   // subgroupSizeControl is enabled and COMPUTE is in requiredSubgroupSizeStages, so
   // subgroup-dependent pipelines require subgroup_size instead of letting the driver pick.
   bool subgroup_size_pinned = false;
+  // computeFullSubgroups is enabled, so subgroup-dependent pipelines require full subgroups
+  // (design A5). Either way their X workgroup size must be a multiple of subgroup_size.
+  bool full_subgroups = false;
   uint32_t max_compute_workgroup_subgroups = 0;  // 0 unless pinned
   std::array<uint32_t, 3> max_work_group_size{};
   uint32_t max_work_group_invocations = 0;

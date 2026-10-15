@@ -73,6 +73,10 @@ Confirmed against the code at `4a4e5bf` (dev):
 - **Timestamps:** `vkCmdWriteTimestamp2` replaces the timestamp writes.
 - *Alternative:* keep the legacy API. Rejected: synchronization2 is core, more explicit, and lets
   the barrier helpers below take stage and access as one value.
+- **Verified (tasks 1.1):** `synchronization2` is in the required 1.3 table (a missing bit is named
+  like any other required feature). The debug line `Vulkan 1.3 features: synchronization2 supported
+  true enabled true, …` appears on rocky-ryzen (RADV PHOENIX), the Pixel 7a (Mali-G710) and the
+  Samsung (Xclipse 940).
 
 **A2. RAW + WAW inter-stage dependency.** `Sequence::cmd_stage_dependency()` records a
 `VkMemoryBarrier2` with src COMPUTE_SHADER / SHADER_STORAGE_WRITE and dst COMPUTE_SHADER /
@@ -88,11 +92,32 @@ dependency, while RAW and WAW "need appropriate memory dependencies".
   drivers, but conditional.
 - **Status:** how much this saves is an open measurement; most cifar stages depend on their
   predecessor, while tree's multi-dispatch stages have some independent pairs.
+- **As implemented (tasks 1.4):**
+  - *Declarations come from the shaders.* `reflect_spirv` reads each set-0 buffer's
+    `NonWritable`/`NonReadable` decorations (GLSL `readonly`/`writeonly`, which glslang puts on the
+    block members). A plain `buffer` counts as read and written, so an undeclared binding can only
+    add barriers, never drop one. `Algorithm::record_bind` passes the bound buffers and their access
+    to `Sequence::track_access`, so the dispatcher's explicit barriers (between stages, and tree's
+    inline ones) are gone. No shader changed.
+  - *Granularity is the dispatch, not the stage.* Tracking every dispatch subsumes the stage
+    boundary and tree's intra-stage barriers with one rule.
+  - *WAR is ordered too.* A barrier is recorded when the next dispatch reads or writes a buffer
+    written since the last barrier (RAW, WAW) **or writes a buffer read since it (WAR)**. The WAR
+    case needs only an execution dependency, which the one barrier type provides; the execution-sync
+    spec delta was amended to say so.
+  - *Where it saves barriers:* on the production (chained) data every tree and cifar dispatch
+    depends on the one before it, so the counts are unchanged (tasks 1.4 table). On tree's
+    golden-decoupled `VkAppData_Safe` (the differential tests), stages read construction-time goldens
+    and write `_out` fields, so consecutive stages are independent and their boundary barriers go.
 
 **A4. Timestamps at COMPUTE_SHADER.** The start timestamp goes after the first dispatch's stage
 scope begins, and the end timestamp covers COMPUTE_SHADER completion. Both use `vkCmdWriteTimestamp2`.
 Measured GPU stage times may shift slightly, so the before/after per-stage tables are recorded and
 the profiler tables regenerated if needed.
+- **As implemented (tasks 1.3):** the start timestamp is written right after the query reset, at
+  COMPUTE_SHADER, i.e. once every earlier command has finished its compute stage; placing it after
+  the first dispatch would have excluded that dispatch. On rocky every stage moved by at most ±4.4 %
+  (most faster; the largest slowdown +1.9 %, cifar-dense s3), table in tasks 1.3.
 
 **A5. Full subgroups.** Enable `computeFullSubgroups` as optional.
 - **When supported:** subgroup-dependent pipelines (`subgroup_size_dependent()`) set
@@ -102,6 +127,10 @@ the profiler tables regenerated if needed.
   for 16, 32 and 64.
 - **When unsupported:** the engine checks that the X size is a multiple of the subgroup size in
   use and fails pipeline creation otherwise (the modified pipeline-config requirement).
+- **As implemented (tasks 1.5):** the multiple-of check runs whether or not the feature is
+  supported, because with it the VUIDs require the same multiple (`…-pNext-02757` when pinned,
+  `…-flags-02759` when not). All three fleet GPUs support `computeFullSubgroups`, so the unsupported
+  path is covered by a unit test that forces the feature off.
 
 ### B. Memory placement
 
