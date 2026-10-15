@@ -41,9 +41,6 @@ SpirvReflection reflect_spirv(const std::span<const uint32_t> words) {
       r.spec_ids.insert(in[3]);
     } else if (opcode == kOpExecutionMode && count >= 6 && in[2] == kModeLocalSize) {
       r.local_size = {in[3], in[4], in[5]};
-      // The branches assign different variables; CI's clang-tidy (pc build, no Vulkan
-      // headers) can't resolve them and sees identical bodies.
-      // NOLINTNEXTLINE(bugprone-branch-clone)
     } else if (opcode == kOpExecutionModeId && count >= 6 && in[2] == kModeLocalSizeId) {
       local_size_ids = {in[3], in[4], in[5]};
     } else if ((opcode == kOpConstant || opcode == kOpSpecConstant) && count == 4) {
@@ -77,9 +74,6 @@ std::vector<uint32_t> load_shader_spirv(const std::string& shader_name) {
   return spirv;
 }
 
-// device_ref_, shader_name_ and limits_ are initialized below; CI's clang-tidy (no Vulkan
-// headers) misreports them.
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
                      std::string shader_name,
                      const ComputeLimits& limits,
@@ -95,9 +89,6 @@ Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
   create_shader_module();
 }
 
-// Not trivial: it destroys six Vulkan handles. CI's clang-tidy runs on the pc build, which
-// lacks the Vulkan headers, so the body doesn't parse there and looks empty.
-// NOLINTNEXTLINE(modernize-use-equals-default)
 Algorithm::~Algorithm() {
   // Reverse creation order; every handle may be null on a partially built Algorithm.
   // Callers have already waited on the fences of any command buffer that used this
@@ -182,9 +173,6 @@ void Algorithm::record_bind(Sequence& seq,
 
   const vk::CommandBuffer cmd = seq.get_handle();
   cmd.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
-  // Push-descriptor vs fallback bodies differ; CI's clang-tidy (pc build, no Vulkan
-  // headers) can't resolve them and sees identical branches.
-  // NOLINTNEXTLINE(bugprone-branch-clone)
   if (push_descriptor_fn_) {
     push_descriptor_fn_(cmd,
                         VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -444,8 +432,6 @@ void Algorithm::create_pipeline() {
       : (feedback.flags & vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit)
           ? "hit"
           : "miss";
-  // The two debug lines differ; CI's clang-tidy (no Vulkan headers) can't resolve them.
-  // NOLINTNEXTLINE(bugprone-branch-clone)
   if (subgroup_size_dependent_) {
     spdlog::debug("Pipeline [{}] created successfully (subgroup size {}, {}; pipeline cache {})",
                   shader_name_,
