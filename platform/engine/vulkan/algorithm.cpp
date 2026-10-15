@@ -197,38 +197,11 @@ void Algorithm::record_bind(Sequence& seq,
     access[binding] =
         it == reflection_.binding_access.end() ? BufferAccess::kReadWrite : it->second;
   }
-  seq.track_access({buffers.begin(), buffers.size()}, {access.data(), buffers.size()});
-
-  // Push descriptors ignore dstSet. The fallback takes a set from the Sequence's transient
-  // pool, written now and freed by its next cmd_begin().
-  const vk::DescriptorSet set =
-      push_descriptor_fn_ ? nullptr : seq.allocate_descriptor_set(descriptor_set_layout_);
-
-  std::array<vk::WriteDescriptorSet, kMaxBindingBuffers> writes;
-  for (uint32_t binding = 0; binding < buffers.size(); ++binding) {
-    writes[binding] = vk::WriteDescriptorSet{
-        .dstSet = set,
-        .dstBinding = binding,
-        .descriptorCount = 1,
-        .descriptorType = vk::DescriptorType::eStorageBuffer,
-        .pBufferInfo = buffers.begin() + binding,
-    };
-  }
-  const auto num_writes = static_cast<uint32_t>(buffers.size());
-
-  const vk::CommandBuffer cmd = seq.get_handle();
-  cmd.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
-  if (push_descriptor_fn_) {
-    push_descriptor_fn_(cmd,
-                        VK_PIPELINE_BIND_POINT_COMPUTE,
-                        pipeline_layout_,
-                        0,
-                        num_writes,
-                        reinterpret_cast<const VkWriteDescriptorSet*>(writes.data()));
-  } else {
-    device_ref_.updateDescriptorSets(num_writes, writes.data(), 0, nullptr);
-    cmd.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline_layout_, 0, set, {});
-  }
+  seq.bind(pipeline_,
+           pipeline_layout_,
+           descriptor_set_layout_,
+           {buffers.begin(), buffers.size()},
+           {access.data(), buffers.size()});
 }
 
 void Algorithm::record_push_constants(Sequence& seq,
@@ -240,11 +213,7 @@ void Algorithm::record_push_constants(Sequence& seq,
   if (size_in_bytes != internal_.push_constant_size) {
     throw std::runtime_error("Pipeline [" + shader_name_ + "]: push constant size mismatch");
   }
-  seq.get_handle().pushConstants(pipeline_layout_,
-                                 vk::ShaderStageFlagBits::eCompute,
-                                 0,
-                                 static_cast<uint32_t>(size_in_bytes),
-                                 data);
+  seq.push_constants(pipeline_layout_, data, size_in_bytes);
 }
 
 void Algorithm::record_dispatch(Sequence& seq, const std::array<uint32_t, 3> grid_size) const {
@@ -257,7 +226,7 @@ void Algorithm::record_dispatch(Sequence& seq, const std::array<uint32_t, 3> gri
       internal_.work_group_size[1],
       internal_.work_group_size[2]);
 
-  seq.get_handle().dispatch(grid_size[0], grid_size[1], grid_size[2]);
+  seq.dispatch(grid_size);
 }
 
 // -------------------------------------------------------------------------------------------------

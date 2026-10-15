@@ -333,6 +333,18 @@ two-GPU-chunk test is added.
   record GPU execution time against the gap. That exposes the ramp-up after idle under APU DPM
   `auto`; rocky has no sudo to pin clocks, so the sweep stands in.
 - **Output:** a phase table that explains the ≈1.5 ms. It decides which of D2/D3 to do.
+- **As implemented (tasks 4.1):**
+  - *Opt-in.* With `BT_VK_PHASES=1` each Sequence timestamps (CLOCK_MONOTONIC) the host phases of every
+    submission: record (cmd_begin → end of cmd_end), between (→ submit), flush, submit (`vkQueueSubmit2` incl. the
+    lock), wait (→ semaphore wait returned), invalidate (+ timestamp read-back). The phases are contiguous, so they
+    sum to the wall time exactly.
+  - *Calibration.* Where the device has `VK_KHR_calibrated_timestamps` (or the EXT) with the device and
+    CLOCK_MONOTONIC domains, a calibration pair sampled right after the wait maps the GPU start/end timestamps onto
+    the host clock, splitting the wait into start latency + GPU + wake. Without it the split is reported as
+    uncorrelated (`calibrated=0`).
+  - *Tool.* `bm-phases-{tree,cifar-dense}-vk --device <id> -s <start> -e <end> [--gap-ms G]` prints one CSV row per
+    chunk and median summaries, and also times each stage alone so the chunk can be set against the solver's
+    per-stage table sum.
 
 **D2. Pre-recorded command buffers per (chunk, pooled item).**
 - **Why it works:** with push descriptors (Phase C) the bindings are recorded into the command
@@ -350,6 +362,23 @@ two-GPU-chunk test is added.
   allocation alive with the command buffer, or disable pre-recording on that path (to decide when
   implementing; the spec allows either, as long as results hold).
 
+- **As implemented (tasks 4.3):**
+  - *Capture, then match.* Between `cmd_begin()` and `cmd_end()` the Algorithms no longer touch a command buffer. They
+    describe the work (`Sequence::bind` / `push_constants` / `dispatch`, with A3's barriers decided on the way) as a
+    recipe of ops, buffers and push-constant bytes. The recipe is the key: pipelines, buffer handles/ranges,
+    push-constant bytes, dispatch sizes and barriers. `cmd_end()` reuses a recorded command buffer whose recipe is
+    equal, and otherwise records one (without ONE_TIME_SUBMIT; the query reset and both timestamps are inside it, so
+    it can be resubmitted as is).
+  - *Cache.* Up to 32 recorded command buffers per Sequence, then least-recently-used eviction among those not in
+    flight. A slot in flight is never re-recorded.
+  - *Invalidation.* Any VMA deallocation bumps `VulkanMemoryResource::generation()`, and a slot recorded under an
+    older generation is not reused, because a new buffer may reuse a freed buffer's handle. Steady-state pipelines
+    free nothing (`AppData::reset()` only renumbers).
+  - *Fallback path: no pre-recording.* With the transient descriptor pool, every submission re-records into its
+    slot, resetting the slot's own pools first. Per-item set allocations kept alive with the command buffer would
+    also have worked; this path is not the default on any fleet device, so the simpler choice was taken.
+  - `Sequence::recording_count()` counts recordings (the debug counter of tasks 4.3).
+
 **D3. Items in flight with timeline semaphores.**
 - **Fence replacement:** the GPU chunk's worker gets a submit/complete split. A per-Sequence
   timeline semaphore replaces the fence: the signal value is the item's ticket, and the host waits
@@ -366,6 +395,19 @@ two-GPU-chunk test is added.
   - C2 (Sequence per chunk, submit lock, per-Sequence touched set);
   - A1's feature-table work: timeline semaphores are core 1.2, and `timelineSemaphore` is not in
     the required 1.2 table today (`base_engine.cpp:243`), so D3 adds it.
+
+- **As implemented (tasks 4.4):**
+  - *Tickets.* `Sequence::submit()` returns a ticket, the value its timeline semaphore reaches when that submission
+    completes (`vkQueueSubmit2` signalling it); `Sequence::wait(ticket)` waits with `vkWaitSemaphores`, then
+    invalidates that submission's own touched set and reads its own timestamp pair. The fence is gone.
+  - *Dispatchers* split `dispatch_multi_stage` into `submit_multi_stage` (returns the ticket) and
+    `complete_multi_stage` (waits, then tree's chained count read-backs).
+  - *Runtime.* `inflight_worker` (runtime/pipeline.hpp) runs Vulkan GPU chunks in `run_pipeline` and `bm-gen-logs`,
+    at `BT_VK_INFLIGHT` (default 1). `run_pipeline` asserts pool ≥ depth × GPU chunks + CPU chunks. `bm-gen-logs`
+    warns instead, because a smaller pool only caps the depth (it cannot deadlock: a chunk with items in flight
+    never blocks on its input).
+  - *Order.* `run_pipeline` now checks for every schedule that items reach the last chunk in pool order, cyclically.
+  - `timelineSemaphore` joins the required 1.2 features.
 
 **D4. Gate by refit.**
 - **Method:** before/after fleet runs on rocky (`00_run_fleet.py --only minipc --fresh --phases profile,schedule,run,summary`),

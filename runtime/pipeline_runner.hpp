@@ -84,6 +84,17 @@ inline void run_pipeline(const Schedule& sched,
   }
 
   const auto n_chunks = sched.n_chunks();
+  // Vulkan GPU chunks keep up to BT_VK_INFLIGHT items in flight (design D3); the pool must
+  // let each of them, and each CPU chunk, hold its share at once.
+  constexpr bool kInflight = requires(DispatcherTArg& d) { d.make_seq(); };
+  const size_t depth = kInflight ? vk_inflight_depth() : 1;
+  {
+    size_t gpu_chunks = 0;
+    for (const auto& c : sched.chunks) gpu_chunks += c.exec_model == gpu_em ? 1 : 0;
+    ASSERT_GE(pool_size, min_pool_size(gpu_chunks, n_chunks - gpu_chunks, depth))
+        << "pool of " << pool_size << " items cannot keep " << depth << " in flight on each of "
+        << gpu_chunks << " GPU chunks plus one per CPU chunk";
+  }
   DispatcherTArg disp;
   // Buffers only GPU stages touch may live in the GPU's weights / GPU-local memory class;
   // everything a CPU chunk reads stays host-cached (memory-placement spec).
@@ -113,16 +124,36 @@ inline void run_pipeline(const Schedule& sched,
     const bool is_last = chunk_id == n_chunks - 1;
     const ExecutionModel em = sched.chunks[chunk_id].exec_model;
 
+    // The last chunk records every item it finishes (completion-edge sink below).
+    const auto record_completion = [&completed, &completed_mu, is_last](AppDataTArg* app) {
+      if (!is_last) return;
+      std::lock_guard<std::mutex> lk(completed_mu);
+      completed.push_back(app);
+    };
+
+    if (em == gpu_em) {
+      if constexpr (kInflight) {
+        // One Sequence per GPU chunk (design C2), up to `depth` items in flight (design D3).
+        const auto seq = disp.make_seq();
+        std::function<uint64_t(AppDataTArg*)> submit = [&disp, seq, start, end](AppDataTArg* app) {
+          return disp.submit_multi_stage(*app, start, end, *seq);
+        };
+        std::function<void(AppDataTArg*, uint64_t)> complete =
+            [&disp, seq, start, end, record_completion](AppDataTArg* app, const uint64_t ticket) {
+              disp.complete_multi_stage(*app, start, end, *seq, ticket);
+              record_completion(app);
+            };
+        threads.emplace_back([&q_in, &q_out, submit, complete, n_items, is_last, depth] {
+          inflight_worker<QueueTArg, AppDataTArg>(
+              q_in, q_out, submit, complete, n_items, is_last, depth);
+        });
+        continue;
+      }
+    }
+
     std::function<void(AppDataTArg*)> fn;
     if (em == gpu_em) {
-      if constexpr (requires { disp.make_seq(); }) {
-        // One Sequence (command buffer + fence) per GPU chunk (design C2).
-        fn = [&disp, seq = disp.make_seq(), start, end](AppDataTArg* app) {
-          disp.dispatch_multi_stage(*app, start, end, *seq);
-        };
-      } else {
-        fn = [&disp, start, end](AppDataTArg* app) { disp.dispatch_multi_stage(*app, start, end); };
-      }
+      fn = [&disp, start, end](AppDataTArg* app) { disp.dispatch_multi_stage(*app, start, end); };
     } else {  // kOMP chunk pinned to its CPU tier
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(sched.chunks[chunk_id]);
       fn = [&omp_dispatch, cpu_pt, start, end](AppDataTArg* app) {
@@ -131,10 +162,9 @@ inline void run_pipeline(const Schedule& sched,
       };
     }
     if (is_last) {
-      fn = [inner = std::move(fn), &completed, &completed_mu](AppDataTArg* app) {
+      fn = [inner = std::move(fn), record_completion](AppDataTArg* app) {
         inner(app);
-        std::lock_guard<std::mutex> lk(completed_mu);
-        completed.push_back(app);
+        record_completion(app);
       };
     }
     threads.emplace_back(worker<QueueTArg, AppDataTArg>,
@@ -172,6 +202,15 @@ inline void run_pipeline(const Schedule& sched,
   EXPECT_EQ(distinct.size(), pool_size)
       << "only " << distinct.size() << " of " << pool_size
       << " pool objects reached the last chunk -- an orphaned/starved item";
+  // Every worker is FIFO (inflight_worker too, at any depth), so items reach the last chunk
+  // in the order the pool entered the ring, cyclically (submission spec "Depth 2 preserves
+  // order and results").
+  for (size_t k = 0; k < completed.size(); ++k) {
+    if (completed[k] != dataset[k % pool_size].get()) {
+      ADD_FAILURE() << "item " << k << " left the ring out of order (depth " << depth << ")";
+      break;
+    }
+  }
 
   // After the ring drains, every pooled item's _out holds the result the pipeline
   // last wrote for it. Check each against its own inherited (distinct-seed) golden.

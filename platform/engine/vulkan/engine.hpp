@@ -100,7 +100,11 @@ class Engine final : public BaseEngine {
                                       timestamp_period_ns,
                                       timestamp_valid_bits,
                                       resources(),
-                                      &submit_mutex_);
+                                      &submit_mutex_,
+                                      push_descriptor_fn(),
+                                      [this](uint64_t& device_ticks, uint64_t& host_ns) {
+                                        return calibrate(device_ticks, host_ns);
+                                      });
   }
 
   // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector', from whichever of the

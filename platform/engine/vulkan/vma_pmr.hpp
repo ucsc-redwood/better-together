@@ -6,6 +6,7 @@
 #include <vk_mem_alloc.h>
 
 // Standard Library
+#include <atomic>
 #include <memory_resource>
 #include <mutex>
 #include <unordered_map>
@@ -71,6 +72,10 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
   // the submit, invalidate after its wait); both are no-ops on coherent memory.
   [[nodiscard]] VmaAllocation find_allocation(VkBuffer buffer) const;
 
+  // Bumped by every deallocation, in any resource: a Sequence's cached command buffers
+  // recorded before it may name a buffer whose handle a new buffer now reuses (design D2).
+  [[nodiscard]] static uint64_t generation() { return generation_.load(); }
+
  protected:
   void* do_allocate(std::size_t bytes, std::size_t alignment) override;
 
@@ -81,6 +86,8 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
  private:
   vk::Device device_;
   MemoryPlacement placement_;
+
+  static inline std::atomic<uint64_t> generation_{0};
 
   mutable std::mutex mutex_;
   std::unordered_map<const void*, VulkanAllocationRecord> allocations_;

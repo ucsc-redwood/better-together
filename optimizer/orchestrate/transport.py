@@ -23,8 +23,11 @@ VK_QUIET_ENV = {"VK_LOADER_LAYERS_DISABLE": "~all~"}
 
 
 def _envprefix(env):
-    # quote values so e.g. '~all~' is not tilde-expanded by the remote shell.
-    return "".join(f"{k}='{v}' " for k, v in (env or {}).items())
+    # The orchestrator's own BT_VK_* engine knobs (e.g. BT_VK_INFLIGHT, BT_VK_QUEUE) reach
+    # every device run, so a fleet run measures the setting it was started with; explicit
+    # `env` entries win. Quote values so e.g. '~all~' is not tilde-expanded remotely.
+    knobs = {k: v for k, v in os.environ.items() if k.startswith("BT_VK_")}
+    return "".join(f"{k}='{v}' " for k, v in {**knobs, **(env or {})}.items())
 
 
 def _run(cmd, **kw):

@@ -67,6 +67,9 @@ class BaseEngine {
   [[nodiscard]] PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn() const {
     return push_descriptor_fn_;
   }
+  // One (device tick, CLOCK_MONOTONIC ns) pair via VK_KHR/EXT_calibrated_timestamps; false
+  // when the device lacks them (design D1).
+  [[nodiscard]] bool calibrate(uint64_t& device_ticks, uint64_t& host_ns) const;
 
  protected:
   void initialize_dynamic_loader();
@@ -98,6 +101,7 @@ class BaseEngine {
   uint32_t compute_queue_family_index_;
   ComputeLimits compute_limits_;
   PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_ = nullptr;
+  PFN_vkGetCalibratedTimestampsKHR calibrated_timestamps_fn_ = nullptr;
   std::vector<const char*> enabled_layers_;
 
   DynamicLoader dl_;

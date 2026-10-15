@@ -384,8 +384,44 @@ Gates used below:
 
 - [ ] 4.1 Add phase timing: record, submit, wait, GPU start/end and start latency. Use calibrated timestamps when `VK_KHR_calibrated_timestamps` or its EXT form is available (D1). Verify: on rocky, a tree × VK run reports phases per chunk that sum to wall time within the timer resolution; the device's calibrated-timestamp support is logged.
 - [ ] 4.2 Run the idle-gap sweep (0, 1, 5, 20 ms between chunks) on rocky for tree × VK and cifar-dense × VK (D1). Verify: a phase table and a GPU-time-vs-gap table are recorded in design.md D1, with an explanation of the ≈1.5 ms (≈0.85 ms tree-only) fitted overhead by phase.
-- [ ] 4.3 Pre-record command buffers per (chunk, pooled item), with re-record on a key mismatch and a defined behaviour on the descriptor-fallback path (D2). Verify: a test shows no recording on the second pass of the same item (debug counter), and a re-record when push constants change; the rocky gate and phone gate pass with and without `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`.
-- [ ] 4.4 Enable `timelineSemaphore`, then split the GPU worker into submit and complete with `BT_VK_INFLIGHT` (default 1), preserving FIFO hand-off; `run_pipeline` asserts the pool size is sufficient (D3). Verify: the end-to-end suites pass at depth 1 and 2 on the rocky gate and phone gate; a test asserts output order equals input order at depth 2.
+- [x] 4.3 Pre-record command buffers per (chunk, pooled item), with re-record on a key mismatch and a defined behaviour on the descriptor-fallback path (D2). Verify: a test shows no recording on the second pass of the same item (debug counter), and a re-record when push constants change; the rocky gate and phone gate pass with and without `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`.
+  - *Evidence:* recipe capture + cached command buffers (design D2 "As implemented"): an equal recipe (pipelines,
+    buffers, push-constant bytes, dispatch sizes, barriers) reuses its recorded command buffer, and any difference
+    re-records. Up to 32 per Sequence, LRU among slots not in flight, invalidated by any deallocation. The
+    transient-pool fallback re-records every submission (its defined behaviour). `Sequence::recording_count()` is the
+    debug counter.
+  - `BothPaths/VulkanPrerecord.SecondPassRecordsNothingChangeReRecords/{PushDescriptors,Fallback}` (`test-kiss-vk`,
+    tree_morton): passes record 1, 0 (same work), 1 (push constant `n` halved), 1 (other output buffer), 0, 0 (both
+    earlier recipes still cached), and the outputs show which `n` ran. On the fallback every pass records 1.
+  - `VulkanPrerecord.SameItemSecondPassRecordsNothing` (`test-tree-vk`): stages 1–7 on item a records 1, a again 0, b
+    1, a again 0; stage 7 of both items matches the oracle exactly. Under the forced fallback the same test expects
+    and gets 1 every pass.
+  - rocky (`--device minipc`), default and `BT_VK_FORCE_DESCRIPTOR_FALLBACK=1`: `test-kiss-vk` / tree / cifar-dense /
+    cifar-sparse 29 / 17 / 13 / 13 both times; `ctest -L vulkan` 7/7. sync-val with the forced fallback: those four
+    plus `test-pipeline-e2e{,-cifar-dense}-vk`, 0 errors / 0 hazards.
+  - Phones, default (`scripts/run-on-android.sh`, exit 0) and forced fallback: both 28 + 1 skipped (FIFO) / 17 / 13 /
+    13.
+- [x] 4.4 Enable `timelineSemaphore`, then split the GPU worker into submit and complete with `BT_VK_INFLIGHT` (default 1), preserving FIFO hand-off; `run_pipeline` asserts the pool size is sufficient (D3). Verify: the end-to-end suites pass at depth 1 and 2 on the rocky gate and phone gate; a test asserts output order equals input order at depth 2.
+  - *Evidence:* `timelineSemaphore` is required (1.2 table); `Sequence::submit()` returns a timeline ticket and
+    `wait(ticket)` completes it, with no fence. The dispatchers split into `submit_multi_stage`/`complete_multi_stage`.
+    `inflight_worker` runs the Vulkan GPU chunks of `run_pipeline` and `bm-gen-logs` at `BT_VK_INFLIGHT` (default
+    1). `run_pipeline` asserts pool ≥ depth × GPU chunks + CPU chunks and checks every run's FIFO completion order
+    (design D3 "As implemented").
+  - Order tests:
+    - `InflightWorker.Depth2KeepsTwoInFlightAndPreservesOrder` (`test-schedule-omp`, hardware-free): 20 items reach 2
+      outstanding and complete and leave in input order;
+    - `Depth1IsSubmitThenWait`: never more than 1 outstanding;
+    - `PipelineE2EVk.InflightDepth2KeepsOrderAndResults` (`test-pipeline-e2e-vk`): forces depth 2 over all-VK,
+      OMP|VK and VK|OMP|VK schedules, oracle per item plus the order check.
+    - *Mutation:* completing the newest instead of the oldest in-flight item fails the hardware-free test, and
+      `item 0 left the ring out of order (depth 2)` fails the e2e one.
+  - End-to-end suites at depth 1 and 2:
+    - rocky: `BT_VK_INFLIGHT=1 ctest -L vulkan` 7/7 and `BT_VK_INFLIGHT=2 ctest -L vulkan` 7/7; sync-val at both depths
+      on the four suites plus `test-pipeline-e2e{,-cifar-dense}-vk`, 0 errors / 0 hazards (layer inserted 40 / 18 / 13 /
+      13 / 7 / 3 times);
+    - Pixel 7a and Samsung: `test-pipeline-e2e-vk` 5/5, `-cifar-dense-vk` 3/3, `-cifar-sparse-vk` 2/2, at
+      `BT_VK_INFLIGHT=1` and `=2`.
+  - `ctest -L omp` locally 9/9 (`test-schedule-omp` 26/26); `uv run pytest -q optimizer` 21 passed.
 - [ ] 4.5 Run the refit gate for 4.3 + 4.4, at depth 1 and depth 2 against the pre-group-4 baseline (D4). Verify: the before/after `gpu_vulkan` per-chunk constants, the spreads, tree × VK best makespan and the per-GPU-chunk-shape wall times are recorded; the after constant is ≤ the before mean + the before spread. Depth 2 becomes the default only if it wins beyond noise.
 
 ## 5. Docs and final gate

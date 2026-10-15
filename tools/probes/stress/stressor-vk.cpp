@@ -52,8 +52,7 @@ int main() {
     seq->cmd_end();
 
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
 
     iteration_count++;
 

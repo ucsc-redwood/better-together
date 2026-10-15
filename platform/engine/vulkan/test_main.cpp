@@ -122,8 +122,7 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
   algo->record_dispatch(*seq, {1, 1, 1});
   seq->cmd_end();
   seq->submit();
-  seq->wait_for_fence();
-  seq->reset_fence();
+  seq->wait();
 
   EXPECT_EQ(out[0], 128u);  // invocations in the one workgroup
   EXPECT_EQ(out[1], 64u);
@@ -207,8 +206,7 @@ TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
     }
     seq->cmd_end();
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
 
     for (int b = 0; b < kBuffers; ++b) {
       EXPECT_EQ(outs[b][0], 1000u * (b + 1) + 128u * kRounds) << "buffer " << b;
@@ -221,6 +219,73 @@ TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
 
 INSTANTIATE_TEST_SUITE_P(BothPaths,
                          VulkanBinding,
+                         ::testing::Values(BindingPath::kPushDescriptors, BindingPath::kFallback),
+                         [](const auto& info) {
+                           return info.param == BindingPath::kFallback ? "Fallback"
+                                                                       : "PushDescriptors";
+                         });
+
+// Submission spec, "Recorded work is reused per pooled item" (design D2): the same work
+// submitted again records nothing; changed push constants or buffers re-record; going back
+// to earlier work reuses its command buffer. The transient-pool fallback re-records every
+// submission (its sets live in pools the next recording resets). tree_morton turns `n`
+// input points into `n` Morton codes, so the outputs show which work actually ran.
+class VulkanPrerecord : public ::testing::TestWithParam<BindingPath> {};
+
+TEST_P(VulkanPrerecord, SecondPassRecordsNothingChangeReRecords) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const bool fallback = GetParam() == BindingPath::kFallback;
+  const ScopedEnv force("BT_VK_FORCE_DESCRIPTOR_FALLBACK", fallback ? "1" : nullptr);
+  kiss_vk::Engine engine;
+  if (!fallback && engine.push_descriptor_fn() == nullptr) {
+    GTEST_SKIP() << "VK_KHR_push_descriptor not supported";
+  }
+  auto seq = engine.make_seq();
+  ASSERT_EQ(seq->reuses_recordings(), !fallback);
+
+  struct MortonPushConstants {
+    uint32_t n;
+    float min_coord;
+    float range;
+  };
+  auto algo = engine.make_algo("tree_morton")
+                  ->work_group_size(256, 1, 1)
+                  ->num_buffers(2)
+                  ->push_constant<MortonPushConstants>()
+                  ->build();
+  constexpr uint32_t kN = 1024;
+  std::pmr::vector<float> points(4 * kN, 0.5f, engine.get_mr());
+  std::pmr::vector<uint32_t> out_a(kN, 0, engine.get_mr());
+  std::pmr::vector<uint32_t> out_b(kN, 0, engine.get_mr());
+
+  // Runs one submission; returns how many command buffers it recorded.
+  const auto pass = [&](std::pmr::vector<uint32_t>& out, const uint32_t n) {
+    std::ranges::fill(out, 0xFFFFFFFFu);
+    const uint64_t before = seq->recording_count();
+    seq->cmd_begin();
+    algo->record_bind(*seq, {engine.get_buffer_info(points), engine.get_buffer_info(out)});
+    algo->record_push_constants(*seq,
+                                MortonPushConstants{.n = n, .min_coord = 0.0f, .range = 1.0f});
+    algo->record_dispatch(*seq, {(n + 255) / 256, 1, 1});
+    seq->cmd_end();
+    seq->submit();
+    seq->wait();
+    EXPECT_NE(out[n - 1], 0xFFFFFFFFu) << "element " << n - 1 << " not written";
+    if (n < kN) EXPECT_EQ(out[n], 0xFFFFFFFFu) << "element " << n << " written";
+    return seq->recording_count() - before;
+  };
+
+  const uint64_t r = fallback ? 1 : 0;  // what an unchanged pass records
+  EXPECT_EQ(pass(out_a, kN), 1u);       // first time: recorded
+  EXPECT_EQ(pass(out_a, kN), r);        // same buffers and push constants
+  EXPECT_EQ(pass(out_a, kN / 2), 1u);   // push constants changed
+  EXPECT_EQ(pass(out_b, kN), 1u);       // buffers changed
+  EXPECT_EQ(pass(out_a, kN), r);        // the first work again: its command buffer is cached
+  EXPECT_EQ(pass(out_b, kN), r);
+}
+
+INSTANTIATE_TEST_SUITE_P(BothPaths,
+                         VulkanPrerecord,
                          ::testing::Values(BindingPath::kPushDescriptors, BindingPath::kFallback),
                          [](const auto& info) {
                            return info.param == BindingPath::kFallback ? "Fallback"
@@ -262,8 +327,7 @@ class PipelineCacheTest : public ::testing::Test {
     algo->record_dispatch(*seq, {1, 1, 1});
     seq->cmd_end();
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
     EXPECT_EQ(out, (std::pmr::vector<uint32_t>{128, 64, 2, 1}));
     if (path) *path = engine.pipeline_cache_path();
     return engine.pipeline_cache_load();
@@ -656,8 +720,7 @@ TEST(VulkanStageDependency, OnlyWhereStagesDepend) {
     EXPECT_EQ(seq->barrier_count(), barrier_all ? 2u : 1u);
     seq->cmd_end();
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
 
     EXPECT_EQ(seq->dispatch_count(), 3u);
     EXPECT_EQ(a[0], 256u);
@@ -687,10 +750,9 @@ TEST(VulkanTimestamps, GpuTimeIsPositiveAndWithinWallTime) {
     seq->cmd_end();
     const auto t0 = std::chrono::steady_clock::now();
     seq->submit();
-    seq->wait_for_fence();
+    seq->wait();
     const double wall_ns =
         std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - t0).count();
-    seq->reset_fence();
 
     const double gpu_ns = seq->get_last_gpu_time_ns();
     EXPECT_GT(gpu_ns, 0.0) << "rep " << rep;
@@ -732,8 +794,7 @@ TEST(VulkanBufferClass, EachClassAllocatesAndResolves) {
       algo->record_dispatch(*seq, {1, 1, 1});
       seq->cmd_end();
       seq->submit();
-      seq->wait_for_fence();
-      seq->reset_fence();
+      seq->wait();
       EXPECT_EQ(v[0], 1128u) << "class " << static_cast<int>(c);
       EXPECT_EQ(v[1], 64u) << "class " << static_cast<int>(c);
     }
@@ -762,8 +823,7 @@ TEST(VulkanSubgroupSize, FullSubgroupsDispatch) {
   algo->record_dispatch(*seq, {8, 1, 1});
   seq->cmd_end();
   seq->submit();
-  seq->wait_for_fence();
-  seq->reset_fence();
+  seq->wait();
 
   EXPECT_EQ(out[1], limits.subgroup_size);  // specialized
   if (limits.subgroup_size_pinned) EXPECT_EQ(out[0], limits.subgroup_size);

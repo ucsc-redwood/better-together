@@ -2,11 +2,13 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <memory_resource>
 #include <optional>
 #include <queue>
+#include <string>
 #include <vector>
 
 #include "apps/tree/omp/dispatchers.hpp"
@@ -102,6 +104,32 @@ TEST(PipelineE2EVk, AllVulkan) {
   sched.chunks = {{ExecutionModel::kVulkan, 1, 7, std::nullopt}};
   validate_schedule_coverage(sched, kNumStages);
   run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
+}
+
+// Submission spec, "Depth 2 preserves order and results" (design D3): with two items in
+// flight on each Vulkan chunk, every item still matches the oracle, and run_pipeline checks
+// that items reach the last chunk in the order they entered.
+TEST(PipelineE2EVk, InflightDepth2KeepsOrderAndResults) {
+  const char* old = std::getenv("BT_VK_INFLIGHT");
+  const std::string saved = old != nullptr ? old : "";
+  setenv("BT_VK_INFLIGHT", "2", 1);
+  for (const auto& chunks : std::vector<std::vector<ChunkConfig>>{
+           {{ExecutionModel::kVulkan, 1, 7, std::nullopt}},
+           {{ExecutionModel::kOMP, 1, 3, first_present_cpu_type()},
+            {ExecutionModel::kVulkan, 4, 7, std::nullopt}},
+           {{ExecutionModel::kVulkan, 1, 2, std::nullopt},
+            {ExecutionModel::kOMP, 3, 5, first_present_cpu_type()},
+            {ExecutionModel::kVulkan, 6, 7, std::nullopt}},
+       }) {
+    Schedule sched{"e2e-depth2", chunks};
+    validate_schedule_coverage(sched, kNumStages);
+    run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
+  }
+  if (old != nullptr) {
+    setenv("BT_VK_INFLIGHT", saved.c_str(), 1);
+  } else {
+    unsetenv("BT_VK_INFLIGHT");
+  }
 }
 
 // Runtime gpu-chunks spec, "Two Vulkan chunks around a CPU chunk": the GPU serves two

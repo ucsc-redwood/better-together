@@ -128,7 +128,7 @@ void* VulkanMemoryResource::do_allocate(std::size_t bytes, [[maybe_unused]] std:
   // (Pixel cifar-dense-vk: 233s vs 2.5s on a coherent-friendly GPU). HOST_CACHED
   // restores fast CPU reads; correctness on the resulting NON-coherent memory is
   // handled explicitly by flushing a submit's buffers before it and invalidating them
-  // after its wait (Sequence::submit / wait_for_fence) -- the maintenance §7 lacked. VMA
+  // after its wait (Sequence::submit / wait) -- the maintenance §7 lacked. VMA
   // falls back to a coherent type if no cached host-visible type exists, and
   // flush/invalidate are no-ops on coherent memory, so other GPUs are unaffected.
   // The default MemoryPlacement is exactly that; the other placements (design B1/B2) pick
@@ -196,6 +196,7 @@ void VulkanMemoryResource::do_deallocate(void* p,
 
   // Destroy the buffer and free the allocation
   vmaDestroyBuffer(g_vma_allocator, record.buffer, record.allocation);
+  ++generation_;
 }
 
 bool VulkanMemoryResource::do_is_equal(const std::pmr::memory_resource& other) const noexcept {

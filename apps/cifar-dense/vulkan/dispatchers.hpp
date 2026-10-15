@@ -28,7 +28,7 @@ class VulkanDispatcher final {
   // different worker threads never share a command buffer (design C2).
   [[nodiscard]] std::shared_ptr<kiss_vk::Sequence> make_seq() { return engine.make_seq(); }
 
-  // Per-stage single-submit path (cmd_begin -> record -> submit -> wait_for_fence).
+  // Per-stage single-submit path (cmd_begin -> record -> submit -> wait).
   // Kept for the per-stage device-time benchmarks: bm_main.cpp calls these directly and
   // reads get_seq()->get_last_gpu_time_ns() for that one stage. Thin wrappers around
   // dispatch_multi_stage(k, k) so the [stage, stage] path stays byte-for-byte the same.
@@ -49,7 +49,7 @@ class VulkanDispatcher final {
   // Record stages [start_stage, end_stage] into ONE command buffer (the Sequence orders
   // dependent dispatches, design A3), then run it with ONE submit + ONE fence wait. Collapses the
   // per-stage CPU<->GPU round-trips of a chunk; host cache flush/invalidate happen once per chunk
-  // (inside submit/wait_for_fence).
+  // (inside submit/wait).
   void dispatch_multi_stage(AppData& data, const int start_stage, const int end_stage) {
     dispatch_multi_stage(data, start_stage, end_stage, *default_seq);
   }
@@ -57,6 +57,17 @@ class VulkanDispatcher final {
                             const int start_stage,
                             const int end_stage,
                             kiss_vk::Sequence& seq) {
+    complete_multi_stage(
+        data, start_stage, end_stage, seq, submit_multi_stage(data, start_stage, end_stage, seq));
+  }
+
+  // The two halves of dispatch_multi_stage, so a GPU chunk can keep several items in flight
+  // (design D3): submit records (or reuses) the chunk's command buffer and submits it,
+  // returning its ticket; complete waits for that ticket and makes the results host-visible.
+  uint64_t submit_multi_stage(AppData& data,
+                              const int start_stage,
+                              const int end_stage,
+                              kiss_vk::Sequence& seq) {
     if (start_stage < 1 || end_stage > 11 || start_stage > end_stage)
       throw std::out_of_range("Invalid stage");
 
@@ -65,10 +76,14 @@ class VulkanDispatcher final {
       (this->*record_functions[stage - 1])(data, seq);
     }
     seq.cmd_end();
-
-    seq.submit();
-    seq.wait_for_fence();
-    seq.reset_fence();
+    return seq.submit();
+  }
+  void complete_multi_stage(AppData& /*data*/,
+                            int /*start_stage*/,
+                            int /*end_stage*/,
+                            kiss_vk::Sequence& seq,
+                            const uint64_t ticket) {
+    seq.wait(ticket);
   }
 
  private:

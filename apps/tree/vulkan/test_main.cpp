@@ -85,6 +85,30 @@ TEST(VulkanConcurrentSequences, TwoThreadsOneDispatcher) {
   }
 }
 
+// Submission spec, "Steady-state execution" (design D2): the same pooled item through the
+// same chunk a second time records no command buffer and still matches the oracle; another
+// item (other buffers) records its own. On the transient-pool fallback every pass records.
+TEST(VulkanPrerecord, SameItemSecondPassRecordsNothing) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  tree::vulkan::VulkanDispatcher disp;
+  const auto seq = disp.make_seq();
+  tree::vulkan::VkAppData_Safe a(disp.get_mr());
+  tree::vulkan::VkAppData_Safe b(disp.get_mr());
+  const uint64_t again = seq->reuses_recordings() ? 0 : 1;
+
+  const auto pass = [&](tree::vulkan::VkAppData_Safe& item) {
+    const uint64_t before = seq->recording_count();
+    disp.dispatch_multi_stage(item, 1, 7, *seq);
+    return seq->recording_count() - before;
+  };
+  EXPECT_EQ(pass(a), 1u);
+  EXPECT_EQ(pass(a), again);
+  EXPECT_EQ(pass(b), 1u);
+  EXPECT_EQ(pass(a), again);
+  tree::testing::CheckStage7(a);
+  tree::testing::CheckStage7(b);
+}
+
 // ----------------------------------------------------------------------------
 // Tree x Vulkan differential oracle, genuinely-chained path (tree::vulkan::VkAppData,
 // no golden/_out split) -- added alongside TreeDiffVulkan above (unchanged). Same

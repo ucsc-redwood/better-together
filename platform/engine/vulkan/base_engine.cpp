@@ -232,8 +232,9 @@ bool has_integrated_gpu() noexcept {
 // The device features the engine requires -- exactly what the committed shaders' SPIR-V
 // capabilities (Int8, StorageBuffer8BitAccess), the VMA allocator
 // (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) and LocalSizeId (the SPIR-V 1.6 form of
-// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need, plus synchronization2 for
-// the Sequence's barriers and timestamps. Only these are enabled.
+// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need, plus synchronization2 and
+// timelineSemaphore for the Sequence's barriers, timestamps and tickets. Only these are
+// enabled.
 namespace {
 template <typename Features>
 struct RequiredFeature {
@@ -241,11 +242,13 @@ struct RequiredFeature {
   vk::Bool32 Features::* member = nullptr;
 };
 
-constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 3>
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 4>
     kRequiredVulkan12Features{{
         {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
         {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
         {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
+        // The Sequence's per-submission tickets (design D3).
+        {"timelineSemaphore", &vk::PhysicalDeviceVulkan12Features::timelineSemaphore},
     }};
 
 constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 2>
@@ -404,6 +407,32 @@ void BaseEngine::create_device() {
   std::vector<const char*> extensions;
   if (use_push_descriptor) extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 
+  // Calibrated timestamps (design D1) correlate the GPU's timestamps with the host's
+  // CLOCK_MONOTONIC for the phase timing; optional, KHR or the older EXT.
+  const char* calibrated_extension = has_extension(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)
+                                         ? VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+                                     : has_extension(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)
+                                         ? VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+                                         : nullptr;
+  bool calibrated_domains = false;
+  if (calibrated_extension != nullptr) {
+    const bool khr =
+        calibrated_extension == std::string_view(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+    const auto get_domains = reinterpret_cast<PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR>(
+        instance_.getProcAddr(khr ? "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR"
+                                  : "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT"));
+    uint32_t n = 0;
+    std::vector<VkTimeDomainKHR> domains;
+    if (get_domains != nullptr && get_domains(physical_device_, &n, nullptr) == VK_SUCCESS) {
+      domains.resize(n);
+      get_domains(physical_device_, &n, domains.data());
+    }
+    calibrated_domains =
+        std::ranges::find(domains, VK_TIME_DOMAIN_DEVICE_KHR) != domains.end() &&
+        std::ranges::find(domains, VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR) != domains.end();
+    if (calibrated_domains) extensions.push_back(calibrated_extension);
+  }
+
   // Global queue priority (design C1), best-effort: BT_VK_QUEUE_PRIORITY=low|medium|high
   // through VK_KHR_global_priority (or the EXT), warning and continuing at the default
   // priority when the device lacks it or the driver refuses it (VK_ERROR_NOT_PERMITTED).
@@ -468,6 +497,21 @@ void BaseEngine::create_device() {
                 queue_kind,
                 priority_name);
 
+  if (calibrated_domains) {
+    calibrated_timestamps_fn_ =
+        reinterpret_cast<PFN_vkGetCalibratedTimestampsKHR>(device_.getProcAddr(
+            calibrated_extension == std::string_view(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)
+                ? "vkGetCalibratedTimestampsKHR"
+                : "vkGetCalibratedTimestampsEXT"));
+  }
+  spdlog::debug(
+      "Calibrated timestamps: {}",
+      calibrated_timestamps_fn_ != nullptr
+          ? std::string(calibrated_extension) + " (device + CLOCK_MONOTONIC)"
+      : calibrated_extension != nullptr
+          ? std::string(calibrated_extension) + " lacks the device/CLOCK_MONOTONIC domains"
+          : std::string("not supported; GPU and host phases stay uncorrelated"));
+
   if (use_push_descriptor) {
     // From the device, not the instance-level dispatcher: an extension command.
     push_descriptor_fn_ = reinterpret_cast<PFN_vkCmdPushDescriptorSetKHR>(
@@ -497,6 +541,27 @@ void BaseEngine::create_device() {
 
   // looks like I don't need this
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);
+}
+
+bool BaseEngine::calibrate(uint64_t& device_ticks, uint64_t& host_ns) const {
+  if (calibrated_timestamps_fn_ == nullptr) return false;
+  const std::array<VkCalibratedTimestampInfoKHR, 2> infos{{
+      {.sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
+       .pNext = nullptr,
+       .timeDomain = VK_TIME_DOMAIN_DEVICE_KHR},
+      {.sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
+       .pNext = nullptr,
+       .timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR},
+  }};
+  std::array<uint64_t, 2> stamps{};
+  uint64_t deviation = 0;
+  if (calibrated_timestamps_fn_(device_, 2, infos.data(), stamps.data(), &deviation) !=
+      VK_SUCCESS) {
+    return false;
+  }
+  device_ticks = stamps[0];
+  host_ns = stamps[1];
+  return true;
 }
 
 void BaseEngine::override_subgroup_size(const uint32_t size) {

@@ -765,41 +765,48 @@ void VulkanDispatcher::record_stage_7(VkAppData& appdata, kiss_vk::Sequence& seq
 //
 // n_octree_nodes has no such hard requirement (stage 7's own dispatch size
 // only needs n_brt_nodes, already known): it's simply read back after whatever
-// batch this call's range causes stage 6 to finish in, since wait_for_fence()
+// batch this call's range causes stage 6 to finish in, since the wait
 // already invalidates every buffer that batch touched.
-void VulkanDispatcher::dispatch_multi_stage(VkAppData& data,
-                                            const int start_stage,
-                                            const int end_stage,
-                                            kiss_vk::Sequence& seq) {
+uint64_t VulkanDispatcher::submit_multi_stage(VkAppData& data,
+                                              const int start_stage,
+                                              const int end_stage,
+                                              kiss_vk::Sequence& seq) {
   if (start_stage < 1 || end_stage > 7 || start_stage > end_stage)
     throw std::out_of_range("Invalid stage");
 
-  const bool crosses_3_4 = start_stage <= 3 && end_stage >= 4;
-  const int batch1_end = crosses_3_4 ? 3 : end_stage;
-
-  auto run_batch = [&](int lo, int hi) {
+  auto submit_batch = [&](int lo, int hi) {
     seq.cmd_begin();
     for (int stage = lo; stage <= hi; ++stage) {
       (this->*record_functions_chained[stage - 1])(data, seq);
     }
     seq.cmd_end();
-
-    seq.reset_fence();
-    seq.submit();
-    seq.wait_for_fence();
+    return seq.submit();
   };
 
-  run_batch(start_stage, batch1_end);
-
-  if (start_stage <= 3 && batch1_end >= 3) {
+  if (start_stage <= 3 && end_stage >= 4) {  // crosses 3|4: n_unique first
+    seq.wait(submit_batch(start_stage, 3));
     const uint32_t n_input = data.get_n_input();
     const uint32_t n_unique = data.u_out_idx[n_input - 1];
     data.set_n_unique(n_unique);
     data.set_n_brt_nodes(n_unique - 1);
+    return submit_batch(4, end_stage);
   }
+  return submit_batch(start_stage, end_stage);
+}
 
-  if (crosses_3_4) {
-    run_batch(4, end_stage);
+void VulkanDispatcher::complete_multi_stage(VkAppData& data,
+                                            const int start_stage,
+                                            const int end_stage,
+                                            kiss_vk::Sequence& seq,
+                                            const uint64_t ticket) {
+  seq.wait(ticket);
+
+  // A range that ends at stage 3 (without crossing into 4) produced n_unique just now.
+  if (start_stage <= 3 && end_stage == 3) {
+    const uint32_t n_input = data.get_n_input();
+    const uint32_t n_unique = data.u_out_idx[n_input - 1];
+    data.set_n_unique(n_unique);
+    data.set_n_brt_nodes(n_unique - 1);
   }
 
   if (start_stage <= 6 && end_stage >= 6) {
