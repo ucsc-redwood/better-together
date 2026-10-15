@@ -126,6 +126,7 @@ The knobs added by vk-engine-runtime, all unset by default (details in
 | `BT_VK_QUEUE=universal\|compute` | `universal` | queue family; `compute` falls back with a warning where none exists |
 | `BT_VK_QUEUE_PRIORITY=low\|medium\|high` | the driver's default priority | global queue priority; a refusal warns and keeps the default |
 | `BT_VK_INFLIGHT=<n>` | `1` | items in flight per Vulkan GPU chunk |
+| `BT_VK_PHASES=1` | off | times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration first; `bm-phases-{tree,cifar-dense}-vk` turns it on and prints them per chunk |
 | `--allow-gpu-multi-chunk` (`02`, solver `allow_gpu_multi_chunk`) | off: one chunk per PU | the GPU may take several chunks (above) |
 
 At `BT_VK_INFLIGHT` > 1 a chunk's `Start`/`End` ticks bracket submit → complete, so they include
