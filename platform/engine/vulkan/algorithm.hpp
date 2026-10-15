@@ -22,7 +22,10 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
  public:
   explicit Algorithm(VulkanMemoryResource* mr_ptr, std::string shader_name);
 
-  ~Algorithm() = default;
+  // Destroys every Vulkan object this Algorithm created (VUID-vkDestroyDevice-device-05137).
+  // Owners must destroy it before the Engine; dispatchers declare `engine` first, so their
+  // cached algorithms go first.
+  ~Algorithm();
 
   // Holds raw vk::Pipeline/ShaderModule/DescriptorPool handles and is only ever used
   // through a shared_ptr (Engine::make_algo + enable_shared_from_this). A copy would

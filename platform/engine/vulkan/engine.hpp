@@ -2,6 +2,9 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cstdlib>
+#include <string_view>
+
 #include "algorithm.hpp"
 #include "base_engine.hpp"
 #include "sequence.hpp"
@@ -11,7 +14,13 @@ namespace kiss_vk {
 
 class Engine final : public BaseEngine {
  public:
-  explicit Engine() : BaseEngine(true), mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {
+  // The Khronos validation layer is opt-in: requested only when BT_VK_VALIDATION=1.
+  // mr_ptr_ is initialized below; CI's clang-tidy (pc build, no Vulkan headers) can't parse
+  // the initializer and misreports it.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+  explicit Engine()
+      : BaseEngine(validation_requested()),
+        mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {
     spdlog::trace("Engine::Engine()");
   }
 
@@ -73,6 +82,11 @@ class Engine final : public BaseEngine {
   }
 
  private:
+  [[nodiscard]] static bool validation_requested() {
+    const char* v = std::getenv("BT_VK_VALIDATION");
+    return v != nullptr && std::string_view(v) == "1";
+  }
+
   std::unique_ptr<VulkanMemoryResource> mr_ptr_;
 };
 

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "vk.hpp"
 
 // Vulkan-Hpp version-safe DynamicLoader
@@ -55,6 +58,12 @@ class BaseEngine {
   vk::Queue compute_queue_;
 
  private:
+  // Releases whatever has been created so far (allocator, device, instance). Shared by the
+  // destructor and the constructor's failure path, which the destructor never sees.
+  void destroy() noexcept;
+
+  // g_vma_allocator is a process global: free it only if this engine created it.
+  bool owns_vma_allocator_ = false;
   uint32_t compute_queue_family_index_;
   std::vector<const char*> enabled_layers_;
 
@@ -67,5 +76,10 @@ class BaseEngine {
 // Used by the differential tests' Runner::Available() so they GTEST_SKIP (like the CUDA
 // suites) on a discrete-GPU-only box instead of crashing. noexcept: any failure -> false.
 [[nodiscard]] bool has_integrated_gpu() noexcept;
+
+// Names of the engine's required device features that `supported` lacks (empty: none).
+// Device creation throws with these names instead of running with a feature disabled.
+[[nodiscard]] std::vector<std::string> missing_required_features(
+    const vk::PhysicalDeviceVulkan12Features& supported);
 
 }  // namespace kiss_vk

@@ -2,7 +2,10 @@
 
 #include <spdlog/spdlog.h>
 
+#include <array>
 #include <limits>
+#include <string>
+#include <vector>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_IMPLEMENTATION
@@ -30,18 +33,29 @@ BaseEngine::BaseEngine(const bool enable_validation_layer)
     request_validation_layer();
   }
 
-  create_instance();
-  create_physical_device();
-  create_device();
+  // A constructor that throws never runs ~BaseEngine, so a failure after create_instance()
+  // (e.g. no iGPU, or a missing required feature) would leak the instance/device. Release
+  // what exists, then rethrow.
+  try {
+    create_instance();
+    create_physical_device();
+    create_device();
 
-  initialize_vma_allocator();
+    initialize_vma_allocator();
+    owns_vma_allocator_ = true;
+  } catch (...) {
+    destroy();
+    throw;
+  }
 }
 
 // ----------------------------------------------------------------------------
 // Destructor
 // ----------------------------------------------------------------------------
 
-BaseEngine::~BaseEngine() {
+BaseEngine::~BaseEngine() { destroy(); }
+
+void BaseEngine::destroy() noexcept {
   // Tear down explicitly and in order. Previously only the VMA allocator was
   // destroyed; the vk::Device and vk::Instance were leaked, so the Vulkan loader's
   // own static/atexit teardown raced and segfaulted on exit on Tegra (§9) — after the
@@ -57,8 +71,9 @@ BaseEngine::~BaseEngine() {
       spdlog::warn("BaseEngine teardown: device.waitIdle() failed: {}", e.what());
     }
   }
-  if (g_vma_allocator) {
+  if (owns_vma_allocator_ && g_vma_allocator) {
     vmaDestroyAllocator(g_vma_allocator);
+    owns_vma_allocator_ = false;
     // Null the global so a second BaseEngine destruction (or any later use via
     // vma_pmr) can't double-free / use-after-free this handle. NOTE: g_vma_allocator
     // is still a single global shared across engines, so two BaseEngines must not
@@ -110,6 +125,11 @@ void BaseEngine::create_instance() {
       .ppEnabledLayerNames = enabled_layers_.data(),
   };
 
+  std::string layers;
+  for (const char* layer : enabled_layers_)
+    layers += (layers.empty() ? "" : ", ") + std::string(layer);
+  spdlog::debug("Vulkan instance layers enabled: {}", layers.empty() ? "none" : layers);
+
   // Create the instance using the default dispatcher
   instance_ = createInstance(instance_create_info);
 
@@ -126,10 +146,9 @@ void BaseEngine::request_validation_layer() {
 
   const auto availableLayers = vk::enumerateInstanceLayerProperties();
 
-  // Debug: Print all detected layers
-  spdlog::info("Available Vulkan Layers:");
+  spdlog::debug("Available Vulkan Layers:");
   for (const auto& layer : availableLayers) {
-    spdlog::info("- {}", layer.layerName.data());
+    spdlog::debug("- {}", layer.layerName.data());
   }
 
   bool layerFound = std::ranges::any_of(availableLayers, [validationLayerName](const auto& layer) {
@@ -187,8 +206,9 @@ void BaseEngine::create_physical_device(vk::PhysicalDeviceType type) {
 
 bool has_integrated_gpu() noexcept {
   // Constructing a throwaway engine reuses the exact loader+enumeration path: it succeeds
-  // only if an integrated GPU was selected, and throws "No integrated GPU found" (or a
-  // loader error) otherwise. Probe once and cache; validation layer off to stay quiet.
+  // only if an integrated GPU was selected and has every required feature, and throws
+  // "No integrated GPU found", "... lacks required Vulkan features: ..." (or a loader
+  // error) otherwise. Probe once and cache; validation layer off to stay quiet.
   static const bool available = [] {
     try {
       BaseEngine probe(/*enable_validation_layer=*/false);
@@ -204,46 +224,29 @@ bool has_integrated_gpu() noexcept {
 // Device
 // ----------------------------------------------------------------------------
 
-[[nodiscard]] static vk::PhysicalDeviceVulkan12Features check_vulkan_12_features(
-    const vk::PhysicalDevice& physical_device) {
-  // we want to query and check if uniformAndStorageBuffer8BitAccess is
-  // supported before we can create this feature struct
+// The device features the engine requires -- exactly what the committed shaders' SPIR-V
+// capabilities (Int8, StorageBuffer8BitAccess) and the VMA allocator
+// (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) need. Only these are enabled.
+namespace {
+struct RequiredFeature {
+  const char* name = nullptr;
+  vk::Bool32 vk::PhysicalDeviceVulkan12Features::* member = nullptr;
+};
 
-  // vk::PhysicalDeviceFeatures2 features2;
-  // physical_device.getFeatures2(&features2);
+constexpr std::array<RequiredFeature, 3> kRequiredVulkan12Features{{
+    {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
+    {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
+    {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
+}};
+}  // namespace
 
-  // I need to enable these features for the 8-bit integer shader to work
-  vk::PhysicalDeviceVulkan12Features vulkan12_features{
-      // Allows the use of 8-bit integer types (int8_t, uint8_t) in storage
-      // buffers. This feature enables shaders to read and write 8-bit
-      // integers
-      // in storage buffers directly.
-      .storageBuffer8BitAccess = true,
-
-      // Extends the above capability to also allow 8-bit integer types in
-      // uniform buffers (in addition to storage buffers). Uniform buffers
-      // typically hold data shared between the CPU and GPU, such as constants
-      // or frequently updated data.
-
-      .uniformAndStorageBuffer8BitAccess = true,
-
-      // Enables the use of 8-bit integer arithmetic (int8_t, uint8_t) in
-      // shaders. This includes performing operations like addition,
-      // subtraction, multiplication, and bitwise operations directly on 8-bit
-      // integers.
-      .shaderInt8 = true,
-
-      // I got an error from VMA if I don't enable this:
-      .bufferDeviceAddress = true,
-  };
-
-  vk::PhysicalDeviceFeatures2 features2{
-      .pNext = &vulkan12_features,
-  };
-
-  physical_device.getFeatures2(&features2);
-
-  return vulkan12_features;
+std::vector<std::string> missing_required_features(
+    const vk::PhysicalDeviceVulkan12Features& supported) {
+  std::vector<std::string> missing;
+  for (const auto& f : kRequiredVulkan12Features) {
+    if (supported.*f.member != VK_TRUE) missing.emplace_back(f.name);
+  }
+  return missing;
 }
 
 void BaseEngine::create_device(vk::QueueFlags queue_flags) {
@@ -271,10 +274,24 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       .pQueuePriorities = &queuePriority,
   };
 
-  const auto vulkan_12_features = check_vulkan_12_features(physical_device_);
+  // Query -> check -> enable a separate minimal struct (never pass the queried struct:
+  // that would enable every supported feature).
+  vk::PhysicalDeviceVulkan12Features supported_12{};
+  vk::PhysicalDeviceFeatures2 supported{.pNext = &supported_12};
+  physical_device_.getFeatures2(&supported);
+
+  if (const auto missing = missing_required_features(supported_12); !missing.empty()) {
+    std::string names;
+    for (const auto& name : missing) names += (names.empty() ? "" : ", ") + name;
+    throw std::runtime_error(std::string(physical_device_.getProperties().deviceName.data()) +
+                             " lacks required Vulkan features: " + names);
+  }
+
+  vk::PhysicalDeviceVulkan12Features enabled_12{};
+  for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
 
   const vk::DeviceCreateInfo deviceCreateInfo{
-      .pNext = &vulkan_12_features,
+      .pNext = &enabled_12,
       .queueCreateInfoCount = 1,
       .pQueueCreateInfos = &deviceQueueCreateInfo,
   };

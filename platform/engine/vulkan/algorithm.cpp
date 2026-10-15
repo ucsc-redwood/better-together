@@ -10,6 +10,21 @@ Algorithm::Algorithm(VulkanMemoryResource* mr_ptr, std::string shader_name)
   create_shader_module();
 }
 
+// Not trivial: it destroys six Vulkan handles. CI's clang-tidy runs on the pc build, which
+// lacks the Vulkan headers, so the body doesn't parse there and looks empty.
+// NOLINTNEXTLINE(modernize-use-equals-default)
+Algorithm::~Algorithm() {
+  // Reverse creation order; every handle may be null on a partially built Algorithm.
+  // The descriptor pool frees its sets. Callers have already waited on the fences of
+  // any command buffer that used this pipeline.
+  if (pipeline_) device_ref_.destroyPipeline(pipeline_);
+  if (pipeline_cache_) device_ref_.destroyPipelineCache(pipeline_cache_);
+  if (pipeline_layout_) device_ref_.destroyPipelineLayout(pipeline_layout_);
+  if (descriptor_pool_) device_ref_.destroyDescriptorPool(descriptor_pool_);
+  if (descriptor_set_layout_) device_ref_.destroyDescriptorSetLayout(descriptor_set_layout_);
+  if (shader_module_) device_ref_.destroyShaderModule(shader_module_);
+}
+
 std::shared_ptr<Algorithm> Algorithm::work_group_size(const uint32_t x,
                                                       const uint32_t y,
                                                       const uint32_t z) {

@@ -110,6 +110,25 @@ void Sequence::cmd_begin() const {
 void Sequence::cmd_end() const {
   spdlog::trace("Sequence::cmd_end()");
 
+  // Make every compute-shader write in this command buffer available to the host
+  // domain. A fence wait alone only guarantees completion, not host visibility
+  // (Vulkan spec, Synchronization > Fences: "Signaling a fence and waiting on the host
+  // does not guarantee that the results of memory accesses will be visible to the
+  // host"): without this barrier, reading results after wait_for_fence() relied on
+  // driver leniency.
+  // invalidate_touched() after the fence still handles the CPU-cache side on
+  // HOST_CACHED memory. Recorded before the closing timestamp so GPU time includes it.
+  const vk::MemoryBarrier host_barrier{
+      .srcAccessMask = vk::AccessFlagBits::eShaderWrite,
+      .dstAccessMask = vk::AccessFlagBits::eHostRead,
+  };
+  handle_.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader,
+                          vk::PipelineStageFlagBits::eHost,
+                          vk::DependencyFlags{},
+                          host_barrier,
+                          nullptr,
+                          nullptr);
+
   if (timestamp_valid_bits_ != 0) {
     handle_.writeTimestamp(vk::PipelineStageFlagBits::eBottomOfPipe, query_pool_, 1);
   }
