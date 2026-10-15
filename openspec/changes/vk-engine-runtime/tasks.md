@@ -496,23 +496,44 @@ Gates used below:
     - `03-unit-testing.md` "Engine knobs": each of the five `BT_VK_*` knobs, plus `BT_VK_PHASES` and the solver's
       `allow_gpu_multi_chunk`, with its values and its default in brackets.
     - `06-end-to-end-scheduling.md`: step 2 describes `--allow-gpu-multi-chunk` (default off). Step 3 has a table of
-      all six with their defaults, the forwarding of `BT_VK_*` to device runs, and the warning that chunk ticks are
+      all seven with their defaults (`BT_VK_PHASES` added in review), the forwarding of `BT_VK_*` to device runs, and the warning that chunk ticks are
       latency at `BT_VK_INFLIGHT` > 1.
   - `bugs-found.md` §10: the guard is lifted for Vulkan (group 3, 4321e25), still rejects repeated CUDA chunks, and
     the once-crashing schedule now runs as `PipelineE2EVk.ThreeVulkanChunksAlternating`.
   - Decision record: `docs/reports-for-human/2026-10-15-vk-engine-runtime-decisions.md`, indexed in that directory's
     README. It has the knob/default table, the measurement tables per topic (barrier counts, fc1/fc2 placement, queue
     A/B, phases, idle gap, 4.5 refit) and the open follow-ups.
-- [ ] 5.2 Final gate at the last commit: local, rocky gate, phone gate and sync-val. Verify: all green, with results listed in the PR.
-  - *Results at f51f815 (the code is 1ffb88f's; 4aaddd8 and f51f815 change only docs):*
-    - local: `ctest --test-dir build/pc -L omp` 9/9; `uv run pytest -q optimizer` 21 passed.
-    - rocky gate (`--device minipc`): `ctest -L vulkan` 7/7; `test-kiss-vk` / tree / cifar-dense / cifar-sparse
-      29 / 17 / 13 / 13.
-    - sync-val (rocky, with the heuristic and `VK_LOADER_DEBUG=layer`): those four plus `test-pipeline-e2e-vk` 5/5 and
-      `test-pipeline-e2e-cifar-dense-vk` 3/3. 0 `Validation Error`, 0 `SYNC-HAZARD`; the validation layer was inserted
-      40 / 18 / 13 / 13 / 7 / 3 times.
-  - **Phone gate: not run, so 5.2 stays open.** Both phones are attached to the build box (`lsusb` lists them), but
-    this session's process could not open `/dev/bus/usb` (seccomp, NoNewPrivs; `adb devices` reports both as `no
-    permissions`). Running `scripts/run-on-android.sh 3A021JEHN02756 …` and `… R5CY21Y3VEV …` with the four VK test
-    targets from a normal shell closes it. The last phone results are 4.4's (all green at depths 1 and 2).
+- [x] 5.2 Final gate at the last commit: local, rocky gate, phone gate and sync-val. Verify: all green, with results listed in the PR.
+  - *Commits.* The code is 1ffb88f's; every later commit changes only docs.
+    - The gates ran on the trees of f51f815 (local, rocky, sync-val) and 9e01c9b (phones), the reviewed HEAD.
+    - The commit-trailer correction then rewrote 4aaddd8 / f51f815 / 9e01c9b as 3049acf / a16665a / 88ce8e0. Only
+      the trailer changed, and the trees are byte-identical.
+  - local: `ctest --test-dir build/pc -L omp` 9/9; `uv run pytest -q optimizer` 21 passed.
+  - rocky gate (`--device minipc`): `ctest -L vulkan` 7/7; `test-kiss-vk` / tree / cifar-dense / cifar-sparse 29 / 17
+    / 13 / 13.
+  - sync-val (rocky; `BT_VK_VALIDATION=1`, the synchronization-validation enable, the shader-access heuristic,
+    `VK_LOADER_DEBUG=layer`):
+    - *First invocation (failed, kept for the record).* The four suites passed with `--device minipc`, but the
+      script ran the two `test-pipeline-e2e*` suites without `--device`. `test-pipeline-e2e-vk` still passed 5/5.
+      `test-pipeline-e2e-cifar-dense-vk` aborted with exit 134 in its first test (`HybridOmpVulkan`): `terminate
+      called after throwing an instance of 'std::runtime_error' what(): Failed to pin thread to cores on Linux:
+      <empty>`. With no device id the CPU chunk's core set is empty. The failure is in the invocation, not the code:
+      ctest passes `--device ${BT_TEST_DEVICE}` (`cmake/bt_targets.cmake`), and the suite is green in `ctest -L
+      vulkan`. That run printed 0 `Validation Error` and 0 `SYNC-HAZARD` before the abort.
+    - *Corrected run:* `./test-pipeline-e2e-vk --device minipc` and `./test-pipeline-e2e-cifar-dense-vk --device
+      minipc`, same environment: 5/5 and 3/3, exit 0.
+    - Result: the four suites plus the two e2e suites pass with 0 `Validation Error` and 0 `SYNC-HAZARD`. The
+      validation layer was inserted 40 / 18 / 13 / 13 / 7 / 3 times.
+  - phone gate, at 9e01c9b:
+    - Build: `cmake --preset android`, then `cmake --build --preset android --target test-kiss-vk test-tree-vk
+      test-cifar-dense-vk test-cifar-sparse-vk -j8`, with `ANDROID_NDK_HOME=/home/doremy/android-ndk-r30`.
+    - Run: `scripts/run-on-android.sh <serial> test-kiss-vk test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk`.
+      Both runs exited 0.
+    - Pixel 7a (3A021JEHN02756) and Samsung (R5CY21Y3VEV) each: `test-kiss-vk` 28 passed + 1 skipped (the existing
+      `PipelineCacheTest.FifoAtCachePathIsIgnoredWithoutBlocking`); tree / cifar-dense / cifar-sparse 17 / 13 / 13.
+    - The `devices/minipc.json declares gpu.subgroup_size 64 but the Vulkan engine uses 16` warning on both phones is
+      `RegistrySubgroupCrossCheck.MismatchWarns` passing a fixed 16 on purpose.
+  - *History.* The phone gate was first blocked: the agent session's process could not open `/dev/bus/usb`
+    (seccomp, NoNewPrivs; `adb devices` showed both phones as `no permissions`). In review both phones accepted adb
+    shell commands and the gate above ran.
   - No PR was opened. The results are listed here.
