@@ -491,5 +491,16 @@ Gates used below:
 
 ## 5. Docs and final gate
 
-- [ ] 5.1 Document every new knob (`BT_VK_BARRIER_ALL`, `BT_VK_WEIGHTS_PLACEMENT` if kept, `BT_VK_QUEUE`, `BT_VK_QUEUE_PRIORITY`, `BT_VK_INFLIGHT`, and the solver's `allow_gpu_multi_chunk`) in `docs/instruction-for-ai/03-unit-testing.md` and `06-end-to-end-scheduling.md`. Update `bugs-found.md` §10 to say the single-GPU-chunk guard is lifted, and add a decision record with the measurement tables under `docs/reports-for-human/`. Verify: each knob is documented with its default.
+- [x] 5.1 Document every new knob (`BT_VK_BARRIER_ALL`, `BT_VK_WEIGHTS_PLACEMENT` if kept, `BT_VK_QUEUE`, `BT_VK_QUEUE_PRIORITY`, `BT_VK_INFLIGHT`, and the solver's `allow_gpu_multi_chunk`) in `docs/instruction-for-ai/03-unit-testing.md` and `06-end-to-end-scheduling.md`. Update `bugs-found.md` §10 to say the single-GPU-chunk guard is lifted, and add a decision record with the measurement tables under `docs/reports-for-human/`. Verify: each knob is documented with its default.
+  - *Evidence:* `BT_VK_WEIGHTS_PLACEMENT` is kept, as the override for re-measuring placement.
+    - `03-unit-testing.md` "Engine knobs": each of the five `BT_VK_*` knobs, plus `BT_VK_PHASES` and the solver's
+      `allow_gpu_multi_chunk`, with its values and its default in brackets.
+    - `06-end-to-end-scheduling.md`: step 2 describes `--allow-gpu-multi-chunk` (default off). Step 3 has a table of
+      all six with their defaults, the forwarding of `BT_VK_*` to device runs, and the warning that chunk ticks are
+      latency at `BT_VK_INFLIGHT` > 1.
+  - `bugs-found.md` §10: the guard is lifted for Vulkan (group 3, 4321e25), still rejects repeated CUDA chunks, and
+    the once-crashing schedule now runs as `PipelineE2EVk.ThreeVulkanChunksAlternating`.
+  - Decision record: `docs/reports-for-human/2026-10-15-vk-engine-runtime-decisions.md`, indexed in that directory's
+    README. It has the knob/default table, the measurement tables per topic (barrier counts, fc1/fc2 placement, queue
+    A/B, phases, idle gap, 4.5 refit) and the open follow-ups.
 - [ ] 5.2 Final gate at the last commit: local, rocky gate, phone gate and sync-val. Verify: all green, with results listed in the PR.

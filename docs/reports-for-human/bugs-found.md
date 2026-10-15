@@ -366,7 +366,22 @@ the data is flushed is harmless to the measurement). The underlying engine-dtor
 crash is still the real fix; until then, Jetson VK schedule/baseline runs exit
 non-zero but produce valid logs.
 
-## 10. Concurrent GPU pipeline chunks share one command buffer → device loss — **GUARDED (2026-06-17)**
+## 10. Concurrent GPU pipeline chunks share one command buffer → device loss — **GUARDED (2026-06-17); guard LIFTED for Vulkan (2026-10-15, vk-engine-runtime group 3)**
+
+**Update (2026-10-15, OpenSpec change `vk-engine-runtime`, commit 4321e25):** the guard is lifted for Vulkan, and the
+dispatcher is now concurrency-safe:
+- every Vulkan GPU chunk records into its own `Sequence` (`make_seq()` + `dispatch_multi_stage(…, Sequence&)`);
+- push constants travel with the record call instead of being stored in the shared `Algorithm`;
+- the Engine's mutex serializes `vkQueueSubmit`;
+- the touched-buffer set lives in the Sequence.
+
+`first_concurrent_gpu_chunk()` now rejects only repeated **CUDA** chunks: the CUDA dispatchers still share one
+stream and per-dispatcher state, and per-chunk CUDA streams are out of scope. The 3-Vulkan-chunk schedule below now
+**runs** as `PipelineE2EVk.ThreeVulkanChunksAlternating`, matching the oracle on rocky-ryzen, the Pixel 7a and the
+Samsung, with 0 validation errors on rocky. A two-thread, one-dispatcher test without the submit lock reproduces the
+queue race as `UNASSIGNED-Threading-MultipleThreads-Write`. The z3 solver can emit such schedules on request
+(`--allow-gpu-multi-chunk`, which prices the GPU's chunks as sharing the device). The text below is the original
+2026-06-17 analysis.
 
 **Symptom:** the `PipelineE2EVk.DISABLED_AlternatingBoundary` schedule
 `{VK 1-3, OMP 4, VK 5, OMP 6, VK 7}` reproducibly SIGSEGVs on rocky/RADV; the
