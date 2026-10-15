@@ -66,6 +66,18 @@ struct CudaEventTimer {
 };
 #endif
 
+// A fresh, genuinely chained AppData only has valid inputs for `stage` once stages
+// [1, stage-1] ran on it (e.g. tree's n_unique is set by stage 3, and stages 4+ throw
+// without it). Prime every item untimed on the first present CPU tier, as bm_prof does.
+template <class OmpDispatch>
+inline void prime_dataset(const std::vector<AppDataPtr>& dataset,
+                          const OmpDispatch& omp_dispatch,
+                          const int stage) {
+  if (stage <= 1) return;
+  const auto& cores = get_cores_by_type(first_present_cpu_type());
+  for (const auto& app : dataset) omp_dispatch(cores, cores.size(), *app, 1, stage - 1);
+}
+
 // ---- Normal benchmark (one PU at a time) ----------------------------------
 inline void run_normal_impl(LocalQueue& q,
                             const std::function<void(AppDataT*)>& func,
@@ -96,6 +108,7 @@ inline void run_normal(BmTable<kNumStages>& table,
                        const bool print_progress) {
   DispatcherT disp;
   const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
+  prime_dataset(dataset, omp_dispatch, stage);
 
   const auto cores_to_use_opt = get_cpu_cores_by_type(pt);
   if (pt != gpu_pt && cores_to_use_opt.has_value() && cores_to_use_opt->empty()) {
@@ -161,6 +174,7 @@ inline void run_fully(BmTable<kNumStages>& table,
                       const bool print_progress) {
   DispatcherT disp;
   const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
+  prime_dataset(dataset, omp_dispatch, stage);
 
   // Each PU thread gets a DISJOINT slice of the pool. Aliasing the same AppData
   // into every queue let a CPU thread and the GPU thread mutate the same tree
