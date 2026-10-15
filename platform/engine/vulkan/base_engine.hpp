@@ -67,9 +67,11 @@ class BaseEngine {
   [[nodiscard]] PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn() const {
     return push_descriptor_fn_;
   }
-  // One (device tick, CLOCK_MONOTONIC ns) pair via VK_KHR/EXT_calibrated_timestamps; false
-  // when the device lacks them (design D1).
-  [[nodiscard]] bool calibrate(uint64_t& device_ticks, uint64_t& host_ns) const;
+  // One (device tick, CLOCK_MONOTONIC ns) pair via VK_KHR/EXT_calibrated_timestamps, with the
+  // driver's maximum deviation; false when the device lacks them (design D1).
+  [[nodiscard]] bool calibrate(uint64_t& device_ticks,
+                               uint64_t& host_ns,
+                               uint64_t& deviation_ns) const;
   // Turns calibration off (with a warning) if a queue timestamp does not fall between two
   // calibrated device ticks around it: the domains are then not correlated (design D1).
   void check_calibration();

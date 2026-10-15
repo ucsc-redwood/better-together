@@ -98,17 +98,18 @@ class Engine final : public BaseEngine {
       timestamp_valid_bits = queue_families[qfi].timestampValidBits;
     }
 
-    return std::make_shared<Sequence>(this->get_device(),
-                                      this->get_compute_queue(),
-                                      this->get_compute_queue_family_index(),
-                                      timestamp_period_ns,
-                                      timestamp_valid_bits,
-                                      resources(),
-                                      &submit_mutex_,
-                                      push_descriptor_fn(),
-                                      [this](uint64_t& device_ticks, uint64_t& host_ns) {
-                                        return calibrate(device_ticks, host_ns);
-                                      });
+    return std::make_shared<Sequence>(
+        this->get_device(),
+        this->get_compute_queue(),
+        this->get_compute_queue_family_index(),
+        timestamp_period_ns,
+        timestamp_valid_bits,
+        resources(),
+        &submit_mutex_,
+        push_descriptor_fn(),
+        [this](uint64_t& device_ticks, uint64_t& host_ns, uint64_t& deviation_ns) {
+          return calibrate(device_ticks, host_ns, deviation_ns);
+        });
   }
 
   // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector', from whichever of the

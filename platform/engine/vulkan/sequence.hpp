@@ -14,13 +14,14 @@ namespace kiss_vk {
 
 // One (device tick, CLOCK_MONOTONIC ns) pair sampled together by
 // VK_KHR/EXT_calibrated_timestamps; false when the device cannot (design D1).
-using CalibrateFn = std::function<bool(uint64_t& device_ticks, uint64_t& host_ns)>;
+using CalibrateFn =
+    std::function<bool(uint64_t& device_ticks, uint64_t& host_ns, uint64_t& deviation_ns)>;
 
 // Where the time of one submission went, all in ns (design D1; submission spec "Per-chunk
 // overhead is measured by phase"). The host phases are contiguous, so record + between +
-// flush + submit + wait + invalidate == wall. With calibrated timestamps the wait splits
-// further: start_latency (submit returned -> GPU start) + gpu + wake (GPU end -> wait
-// returned) == wait.
+// flush + submit + wait + invalidate == wall. With calibrated timestamps submit + wait split
+// further: start_latency (submit call began -> GPU start; the GPU may start before the call
+// returns) + gpu + wake (GPU end -> wait returned) == submit + wait.
 struct PhaseTimes {
   double record_ns = 0;      // cmd_begin() .. end of cmd_end(): capture (+ recording if any)
   double between_ns = 0;     // end of cmd_end() .. submit()
@@ -33,6 +34,7 @@ struct PhaseTimes {
   bool calibrated = false;   // start_latency/wake are valid (host and GPU domains correlated)
   double start_latency_ns = 0;
   double wake_ns = 0;
+  double calibration_deviation_ns = 0;  // the driver's bound on the calibration pair's error
   bool recorded = false;  // this submission recorded its command buffer (no cached reuse)
 };
 

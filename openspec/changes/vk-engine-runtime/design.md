@@ -340,8 +340,9 @@ two-GPU-chunk test is added.
     sum to the wall time exactly.
   - *Calibration.* Where the device has `VK_KHR_calibrated_timestamps` (or the EXT) with the device and
     CLOCK_MONOTONIC domains, a calibration pair sampled right after the wait maps the GPU start/end timestamps onto
-    the host clock, splitting the wait into start latency + GPU + wake. Without it the split is reported as
-    uncorrelated (`calibrated=0`).
+    the host clock, splitting submit + wait into start latency (from the start of the `vkQueueSubmit2` call: the GPU
+    may start before the call returns) + GPU + wake. The driver's own deviation bound for the pair is reported with
+    it. Without calibration the split is reported as uncorrelated (`calibrated=0`).
   - *Calibration is verified, and fails on rocky.* With `BT_VK_PHASES=1` the Engine first checks that a queue
     timestamp lies between the calibrated device ticks taken just before and after it. On rocky-ryzen (RADV 25.2.7,
     PHOENIX) it does not: queue timestamps run a constant ≈2.898e9 ticks (28.98 s at 10 ns) ahead of

@@ -459,7 +459,9 @@ void Sequence::wait(const uint64_t ticket) {
   const uint64_t t_waited = phases_enabled_ ? now_ns() : 0;
   uint64_t cal_device = 0;
   uint64_t cal_host = 0;
-  const bool calibrated = phases_enabled_ && calibrate_ && calibrate_(cal_device, cal_host);
+  uint64_t cal_deviation = 0;
+  const bool calibrated =
+      phases_enabled_ && calibrate_ && calibrate_(cal_device, cal_host, cal_deviation);
 
   // GPU work is done: invalidate host caches so subsequent CPU reads see the freshly
   // written results. No-op on coherent memory; required on HOST_CACHED (this is the cache
@@ -508,8 +510,9 @@ void Sequence::wait(const uint64_t ticket) {
         const auto d = static_cast<int64_t>((ticks - cal_device) << shift) >> shift;
         return static_cast<double>(cal_host) + static_cast<double>(d) * timestamp_period_ns_;
       };
-      ph.start_latency_ns = host_of(ts[0]) - static_cast<double>(it->t_submitted);
+      ph.start_latency_ns = host_of(ts[0]) - static_cast<double>(it->t_flushed);
       ph.wake_ns = static_cast<double>(t_waited) - host_of(ts[1]);
+      ph.calibration_deviation_ns = static_cast<double>(cal_deviation);
     }
     last_phases_ = ph;
   }

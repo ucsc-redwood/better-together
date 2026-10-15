@@ -4,8 +4,8 @@
 // "Per-chunk overhead is measured by phase"). Runs one chunk shape [start, end] over a
 // small pool of items, one submission at a time, and reports per chunk the host phases of
 // the Sequence (record / between / flush / submit / wait / invalidate), the GPU interval,
-// and -- with calibrated timestamps -- the wait split into submit->GPU-start latency, GPU
-// execution and GPU-end->wake-up latency. --gap-ms inserts an idle gap between chunks (the
+// and -- with calibrated timestamps -- submit + wait split into submit->GPU-start latency,
+// GPU execution and GPU-end->wake-up latency. --gap-ms inserts an idle gap between chunks (the
 // DVFS check). It also times each stage of the shape on its own, so the chunk's wall time
 // can be set against the per-stage table sum the solver predicts with.
 //
@@ -79,10 +79,10 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
 
   std::printf(
       "chunk,dispatch_wall_ms,wall_ms,record_ms,between_ms,flush_ms,submit_ms,wait_ms,"
-      "invalidate_ms,gpu_ms,calibrated,start_latency_ms,wake_ms,recorded,host_residual_ms,"
-      "wait_residual_ms\n");
+      "invalidate_ms,gpu_ms,calibrated,start_latency_ms,wake_ms,calibration_deviation_ms,"
+      "recorded,host_residual_ms,wait_residual_ms\n");
   std::vector<double> c_dispatch, c_wall, c_record, c_between, c_flush, c_submit, c_wait, c_inval,
-      c_gpu, c_lat, c_wake;
+      c_gpu, c_lat, c_wake, c_dev;
   double max_host_residual = 0, max_wait_residual = 0;
   int recorded = 0, calibrated = 0;
   for (int i = 0; i < warmup + chunks; ++i) {
@@ -98,12 +98,13 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
         p.record_ns + p.between_ns + p.flush_ns + p.submit_ns + p.wait_ns + p.invalidate_ns;
     const double host_residual = (host_sum - p.wall_ns) * 1e-6;
     const double wait_residual =
-        p.calibrated ? (p.start_latency_ns + p.gpu_ns + p.wake_ns - p.wait_ns) * 1e-6 : 0;
+        p.calibrated ? (p.start_latency_ns + p.gpu_ns + p.wake_ns - p.submit_ns - p.wait_ns) * 1e-6
+                     : 0;
     max_host_residual = std::max(max_host_residual, std::abs(host_residual));
     max_wait_residual = std::max(max_wait_residual, std::abs(wait_residual));
     recorded += p.recorded ? 1 : 0;
     calibrated += p.calibrated ? 1 : 0;
-    std::printf("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%.4f,%.4f,%d,%.6f,%.6f\n",
+    std::printf("%d,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%d,%.4f,%.4f,%.4f,%d,%.6f,%.6f\n",
                 i - warmup,
                 dispatch_ms,
                 p.wall_ns * 1e-6,
@@ -117,6 +118,7 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
                 p.calibrated ? 1 : 0,
                 p.start_latency_ns * 1e-6,
                 p.wake_ns * 1e-6,
+                p.calibration_deviation_ns * 1e-6,
                 p.recorded ? 1 : 0,
                 host_residual,
                 wait_residual);
@@ -131,6 +133,7 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
     c_gpu.push_back(p.gpu_ns * 1e-6);
     c_lat.push_back(p.start_latency_ns * 1e-6);
     c_wake.push_back(p.wake_ns * 1e-6);
+    c_dev.push_back(p.calibration_deviation_ns * 1e-6);
   }
 
   std::printf("# summary stages=%d-%d gap_ms=%d chunks=%d items=%d calibrated=%d/%d recorded=%d\n",
@@ -167,6 +170,9 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
   std::printf("# min_ms start_latency=%.4f wake=%.4f\n",
               c_lat.empty() ? 0.0 : *std::ranges::min_element(c_lat),
               c_wake.empty() ? 0.0 : *std::ranges::min_element(c_wake));
+  std::printf("# calibration_deviation_ms median=%.4f max=%.4f\n",
+              median(c_dev),
+              c_dev.empty() ? 0.0 : *std::ranges::max_element(c_dev));
   return 0;
 }
 

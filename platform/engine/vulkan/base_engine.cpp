@@ -567,11 +567,11 @@ void BaseEngine::check_calibration() {
   cmd.writeTimestamp2(vk::PipelineStageFlagBits2::eAllCommands, query, 0);
   cmd.end();
 
-  uint64_t before = 0, after = 0, host = 0, ts = 0;
-  bool ok = calibrate(before, host);
+  uint64_t before = 0, after = 0, host = 0, deviation = 0, ts = 0;
+  bool ok = calibrate(before, host, deviation);
   compute_queue_.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &cmd}, fence);
   ok = ok && device_.waitForFences(1, &fence, VK_TRUE, UINT64_MAX) == vk::Result::eSuccess;
-  ok = ok && calibrate(after, host);
+  ok = ok && calibrate(after, host, deviation);
   ok = ok &&
        device_.getQueryPoolResults(query,
                                    0,
@@ -603,7 +603,9 @@ uint32_t BaseEngine::queue_family_timestamp_bits() const {
       .timestampValidBits;
 }
 
-bool BaseEngine::calibrate(uint64_t& device_ticks, uint64_t& host_ns) const {
+bool BaseEngine::calibrate(uint64_t& device_ticks,
+                           uint64_t& host_ns,
+                           uint64_t& deviation_ns) const {
   if (calibrated_timestamps_fn_ == nullptr) return false;
   const std::array<VkCalibratedTimestampInfoKHR, 2> infos{{
       {.sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
@@ -614,8 +616,7 @@ bool BaseEngine::calibrate(uint64_t& device_ticks, uint64_t& host_ns) const {
        .timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR},
   }};
   std::array<uint64_t, 2> stamps{};
-  uint64_t deviation = 0;
-  if (calibrated_timestamps_fn_(device_, 2, infos.data(), stamps.data(), &deviation) !=
+  if (calibrated_timestamps_fn_(device_, 2, infos.data(), stamps.data(), &deviation_ns) !=
       VK_SUCCESS) {
     return false;
   }
