@@ -11,6 +11,7 @@
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/npy_loader.hpp"
+#include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-dense × OMP differential oracle. Each stage output is compared against
@@ -37,6 +38,14 @@ struct OmpRunner {
 }  // namespace
 
 BT_DECLARE_CIFAR_DENSE_DIFF_TESTS(CifarDenseDiffOmp, OmpRunner)
+
+// Memory-placement spec, "Boundary buffers keep host-cached placement" (design B3): under
+// every schedule with one GPU stage range, each buffer a CPU stage or host code touches is
+// placed in the boundary class; the rest go to the weights / GPU-local classes.
+// Hardware-free: the classes are recording host resources.
+TEST(Placement, CpuChunkBuffersStayBoundary) {
+  bt_placement_test::ExpectCpuBuffersStayBoundary<cifar_dense::AppData>(11);
+}
 
 // End-task accuracy on the REAL trained weights + real normalized CIFAR-10 test
 // batch (04-alexnet-cifar-spec.md §7). Skips unless BT_WEIGHTS_DIR is set, so

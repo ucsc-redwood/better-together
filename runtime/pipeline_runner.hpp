@@ -38,6 +38,7 @@
 #include "platform/registry/device_registry.hpp"  // get_cores_by_type, ProcessorType
 #include "runtime/app_traits.hpp"                 // AppTraits, BtRuntimeApp
 #include "runtime/pipeline.hpp"                   // make_dataset, worker
+#include "runtime/placement.hpp"                  // make_placed_dataset
 #include "runtime/schedule.hpp"  // Schedule, ExecutionModel, get_processor_type_from_chunk_config
 
 namespace bt_pipe_test {
@@ -85,8 +86,10 @@ inline void run_pipeline(const Schedule& sched,
 
   const auto n_chunks = sched.n_chunks();
   DispatcherTArg disp;
+  // Buffers only GPU stages touch may live in the GPU's weights / GPU-local memory class;
+  // everything a CPU chunk reads stays host-cached (memory-placement spec).
   const std::vector<std::unique_ptr<AppDataTArg>> dataset =
-      make_dataset<AppDataTArg>(disp, pool_size);
+      make_placed_dataset<AppDataTArg>(disp, pool_size, gpu_stages_of(sched, gpu_em));
 
   std::vector<QueueTArg> queues(n_chunks);
   for (size_t i = 0; i < pool_size; ++i) {

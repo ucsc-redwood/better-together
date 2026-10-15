@@ -20,6 +20,7 @@
 
 #include "platform/registry/device_registry.hpp"
 #include "runtime/config_reader.hpp"
+#include "runtime/placement.hpp"
 #include "runtime/schedule_source.hpp"
 
 namespace bt_gen_log {
@@ -35,7 +36,8 @@ static void warmup(const Schedule& schedule,
                    const OmpDispatch& omp_dispatch) {
   const auto n_chunks = schedule.n_chunks();
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset =
+      make_placed_dataset<AppDataT>(disp, kPoolSize, gpu_stages_of(schedule, gpu_em));
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
@@ -81,7 +83,8 @@ static void run_schedule(const Schedule& schedule,
                          const OmpDispatch& omp_dispatch) {
   const auto n_chunks = schedule.n_chunks();
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset =
+      make_placed_dataset<AppDataT>(disp, kPoolSize, gpu_stages_of(schedule, gpu_em));
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());

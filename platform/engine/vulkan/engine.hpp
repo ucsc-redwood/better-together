@@ -10,6 +10,7 @@
 #include "base_engine.hpp"
 #include "pipeline_cache.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/buffer_placement.hpp"
 #include "sequence.hpp"
 #include "vma_pmr.hpp"
 
@@ -20,7 +21,13 @@ class Engine final : public BaseEngine {
   // The Khronos validation layer is opt-in: requested only when BT_VK_VALIDATION=1.
   explicit Engine()
       : BaseEngine(validation_requested()),
-        mr_ptr_(std::make_unique<VulkanMemoryResource>(device_)) {
+        mr_ptr_(
+            std::make_unique<VulkanMemoryResource>(device_, MemoryPlacement{.name = "boundary"})),
+        weights_mr_ptr_(std::make_unique<VulkanMemoryResource>(
+            device_, weights_class_placement(get_physical_device()))),
+        // No measurement has promoted the GPU-local class on any device (design B1/B2).
+        gpu_local_mr_ptr_(
+            std::make_unique<VulkanMemoryResource>(device_, MemoryPlacement{.name = "gpu_local"})) {
     spdlog::trace("Engine::Engine()");
     // Test hook (design D5): BT_VK_SUBGROUP_SIZE=<n> pins another size the device
     // supports, e.g. its minSubgroupSize; an unsupported value throws.
@@ -54,7 +61,20 @@ class Engine final : public BaseEngine {
   [[nodiscard]] PipelineCacheLoad pipeline_cache_load() const { return pipeline_cache_load_; }
   [[nodiscard]] const std::string& pipeline_cache_path() const { return pipeline_cache_path_; }
 
+  // The boundary (default) class: host-visible, host-cached where available.
   [[nodiscard]] VulkanMemoryResource* get_mr() const { return mr_ptr_.get(); }
+  // One resource per buffer class (design B2); every class is host-visible and mapped.
+  [[nodiscard]] VulkanMemoryResource* get_mr(const bt::BufferClass c) const {
+    switch (c) {
+      case bt::BufferClass::kWeights:
+        return weights_mr_ptr_.get();
+      case bt::BufferClass::kGpuLocal:
+        return gpu_local_mr_ptr_.get();
+      case bt::BufferClass::kBoundary:
+        break;
+    }
+    return mr_ptr_.get();
+  }
 
   [[nodiscard]] std::shared_ptr<Algorithm> make_algo(const std::string& shader_name) const {
     return std::make_shared<Algorithm>(
@@ -78,12 +98,16 @@ class Engine final : public BaseEngine {
                                       this->get_compute_queue_family_index(),
                                       timestamp_period_ns,
                                       timestamp_valid_bits,
-                                      mr_ptr_.get());
+                                      resources());
   }
 
-  // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector'
+  // To get a 'vk::Buffer' from raw pointer of the 'std::pmr::vector', from whichever of the
+  // engine's resources allocated it.
   [[nodiscard]] vk::Buffer get_buffer(void* ptr) const {
-    return mr_ptr_->get_buffer_from_pointer(ptr);
+    for (const VulkanMemoryResource* mr : resources()) {
+      if (const vk::Buffer b = mr->find_buffer(ptr)) return b;
+    }
+    throw std::runtime_error("Unknown pointer in Engine::get_buffer");
   }
 
   template <typename T>
@@ -116,7 +140,13 @@ class Engine final : public BaseEngine {
     return v != nullptr && std::string_view(v) == "1";
   }
 
-  std::unique_ptr<VulkanMemoryResource> mr_ptr_;
+  [[nodiscard]] std::vector<VulkanMemoryResource*> resources() const {
+    return {mr_ptr_.get(), weights_mr_ptr_.get(), gpu_local_mr_ptr_.get()};
+  }
+
+  std::unique_ptr<VulkanMemoryResource> mr_ptr_;  // boundary
+  std::unique_ptr<VulkanMemoryResource> weights_mr_ptr_;
+  std::unique_ptr<VulkanMemoryResource> gpu_local_mr_ptr_;
   std::string pipeline_cache_path_;
   vk::PipelineCache pipeline_cache_;
   PipelineCacheLoad pipeline_cache_load_ = PipelineCacheLoad::kMissing;

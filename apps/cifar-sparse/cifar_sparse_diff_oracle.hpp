@@ -202,11 +202,28 @@ inline void RunAndCheckStage(int s) {
 // full double-precision reference chained from the seed (densified CSR conv
 // weights + the dense FC head).
 inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
+  // Under a schedule, weights only GPU stages read may sit in memory that is uncached for
+  // the CPU (memory-placement spec). The reference reads each weight many times, so it
+  // works on one host-cached copy of each instead.
+  const auto host = [](const auto& arr) {
+    return std::vector<float>(arr.pmr_vec().begin(), arr.pmr_vec().end());
+  };
+  const std::vector<float> conv1_b = host(a.u_conv1_b);
+  const std::vector<float> conv2_b = host(a.u_conv2_b);
+  const std::vector<float> conv3_b = host(a.u_conv3_b);
+  const std::vector<float> conv4_b = host(a.u_conv4_b);
+  const std::vector<float> conv5_b = host(a.u_conv5_b);
+  const std::vector<float> fc1_w = host(a.u_fc1_w);
+  const std::vector<float> fc1_b = host(a.u_fc1_b);
+  const std::vector<float> fc2_w = host(a.u_fc2_w);
+  const std::vector<float> fc2_b = host(a.u_fc2_b);
+  const std::vector<float> fc3_w = host(a.u_fc3_w);
+  const std::vector<float> fc3_b = host(a.u_fc3_b);
   const int N = a.u_input.d0();
   const auto w1 = Densify(a.conv1_sparse);
   auto c1 = ref::Conv2dRef(a.u_input.data(),
                            w1.data(),
-                           a.u_conv1_b.data(),
+                           conv1_b.data(),
                            N,
                            a.u_input.d1(),
                            a.u_input.d2(),
@@ -231,7 +248,7 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
   const auto w2 = Densify(a.conv2_sparse);
   auto c2 = ref::Conv2dRef(p1.data(),
                            w2.data(),
-                           a.u_conv2_b.data(),
+                           conv2_b.data(),
                            N,
                            a.u_pool1_out.d1(),
                            a.u_pool1_out.d2(),
@@ -256,7 +273,7 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
   const auto w3 = Densify(a.conv3_sparse);
   auto c3 = ref::Conv2dRef(p2.data(),
                            w3.data(),
-                           a.u_conv3_b.data(),
+                           conv3_b.data(),
                            N,
                            a.u_pool2_out.d1(),
                            a.u_pool2_out.d2(),
@@ -272,7 +289,7 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
   const auto w4 = Densify(a.conv4_sparse);
   auto c4 = ref::Conv2dRef(c3.data(),
                            w4.data(),
-                           a.u_conv4_b.data(),
+                           conv4_b.data(),
                            N,
                            a.u_conv3_out.d1(),
                            a.u_conv3_out.d2(),
@@ -288,7 +305,7 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
   const auto w5 = Densify(a.conv5_sparse);
   auto c5 = ref::Conv2dRef(c4.data(),
                            w5.data(),
-                           a.u_conv5_b.data(),
+                           conv5_b.data(),
                            N,
                            a.u_conv4_out.d1(),
                            a.u_conv4_out.d2(),
@@ -311,13 +328,13 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                               kPoolSize,
                               kPoolStride);
   const int in_features = a.u_pool3_out.d1() * a.u_pool3_out.d2() * a.u_pool3_out.d3();
-  auto f1 = ref::LinearRef(
-      p3.data(), a.u_fc1_w.data(), a.u_fc1_b.data(), N, in_features, a.u_fc1_w.d0(), kRelu);
+  auto f1 =
+      ref::LinearRef(p3.data(), fc1_w.data(), fc1_b.data(), N, in_features, a.u_fc1_w.d0(), kRelu);
   auto f2 = ref::LinearRef(
-      f1.data(), a.u_fc2_w.data(), a.u_fc2_b.data(), N, a.u_fc1_w.d0(), a.u_fc2_w.d0(), kRelu);
+      f1.data(), fc2_w.data(), fc2_b.data(), N, a.u_fc1_w.d0(), a.u_fc2_w.d0(), kRelu);
   auto logits = ref::LinearRef(f2.data(),
-                               a.u_fc3_w.data(),
-                               a.u_fc3_b.data(),
+                               fc3_w.data(),
+                               fc3_b.data(),
                                N,
                                a.u_fc2_w.d0(),
                                a.u_fc3_w.d0(),

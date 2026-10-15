@@ -143,6 +143,62 @@ allocates cifar-dense's weights from a second resource with the matching VMA fla
   (`docs/reports-for-human/2026-07-03-kernel-wave-and-definitive-baseline.md:23`, "same DRAM"):
   the hypothesis is about the access path, not the DRAM. GPU reads of snooped GTT may run below
   uncached GTT or the carve-out. This is unverified.
+- **Memory types (tasks 2.1),** from the `Memory heap/type` debug lines `BaseEngine` now logs:
+
+  | device | heap | size | heap flags | types (index: property flags) |
+  |---|---|---|---|---|
+  | rocky-ryzen (Radeon 780M, RADV 25.2.7) | 0 | 5609 MiB | — | 2: HostVisible\|HostCoherent; 5, 6: HostVisible\|HostCoherent\|HostCached; 8, 10: same + DeviceCoherentAMD\|DeviceUncachedAMD |
+  | | 1 | 11219 MiB | DeviceLocal | 0, 1: DeviceLocal; **3, 4: DeviceLocal\|HostVisible\|HostCoherent**; 7, 9: AMD device-coherent variants |
+  | Pixel 7a (Mali-G710) | 0 | 7466 MiB | DeviceLocal | 0: DeviceLocal\|HostVisible\|HostCoherent; 1: DeviceLocal\|HostVisible\|HostCached; 2: DeviceLocal\|LazilyAllocated |
+  | | 1 | 100 MiB | DeviceLocal | 3: DeviceLocal\|Protected |
+  | Samsung (Xclipse 940) | 0 | 8192 MiB | DeviceLocal\|MultiInstance | 0, 8: DeviceLocal\|HostVisible\|HostCoherent; 4, 12: + HostCached; 1, 5, 9, 13: DeviceLocal |
+  | | 1 | 64 MiB | DeviceLocal | 2, 10: DeviceLocal\|HostVisible\|HostCoherent; 3, 6, 11, 14: DeviceLocal; 7, 15: Protected |
+
+  - **The 780M has a DEVICE_LOCAL|HOST_VISIBLE type** (3/4), on the 11219 MiB device-local heap. Today's
+    placement is type 5 (snooped GTT), as the proposal suspected.
+  - On both phones every type is DEVICE_LOCAL; the only host-visible choice is cached vs uncached.
+- **Arms as implemented (tasks 2.2):** `default` = today's placement; `device_local` = DEVICE_LOCAL|HOST_VISIBLE
+  types without HOST_CACHED; `uncached` = HOST_VISIBLE without HOST_CACHED and, where the device has one, without
+  DEVICE_LOCAL. Without the "not cached" exclusion VMA's random-access preference picks the cached type on the phones,
+  i.e. the default. Resolved types: rocky 5 / 3 / 2; Pixel 1 / 0 / 0; Samsung 4 / 0 / 0 (on the phones both
+  non-default arms are the same coherent uncached type).
+- **Measurement (tasks 2.3).** `bm-cifar-dense-vk --benchmark_filter='Stage(9|10)/' --benchmark_min_time=0.5s`,
+  GPU time in ms, arms interleaved per run. rocky: 6 runs per arm (3, then 3 more because the first 3 were
+  borderline), idle-gated as in tasks 1.3, `BT_WEIGHTS_DIR=/tmp/bt/weights`. Phones: 3 runs per arm, 10 s apart,
+  screen dozing, battery 25.4–26.0 °C; the Samsung with its deployed real weights, the Pixel (no deployed weights)
+  with the synthetic ones.
+  - rocky-ryzen:
+
+  | stage | default r1–r6 | device_local r1–r6 | uncached r1–r6 | default mean | device_local mean (Δ) | uncached mean (Δ) | default spread |
+  |---|---|---|---|---|---|---|---|
+  | s9 | 0.8627 / 0.8650 / 0.8739 / 0.9000 / 0.8908 / 0.8882 | 0.8514 / 0.8606 / 0.8569 / 0.8513 / 0.8514 / 0.8573 | 0.8604 / 0.8637 / 0.8632 / 0.8722 / 0.8679 / 0.8692 | 0.8801 (+0.0 %) | 0.8548 (-2.9 %) | 0.8661 (-1.6 %) | 0.0373 |
+  | s10 | 0.8708 / 0.8699 / 0.8663 / 0.8884 / 0.8861 / 0.8801 | 0.8532 / 0.8557 / 0.8541 / 0.8510 / 0.8550 / 0.8528 | 0.8675 / 0.8663 / 0.8699 / 0.8863 / 0.8684 / 0.8676 | 0.8769 (+0.0 %) | 0.8536 (-2.7 %) | 0.8710 (-0.7 %) | 0.0221 |
+
+  - Pixel 7a:
+
+  | stage | default r1–r3 | device_local r1–r3 | uncached r1–r3 | default mean | device_local mean (Δ) | uncached mean (Δ) | default spread |
+  |---|---|---|---|---|---|---|---|
+  | s9 | 17.0777 / 16.6515 / 16.1957 | 11.5836 / 11.6917 / 11.1457 | 11.0977 / 10.6225 / 11.6180 | 16.6416 (+0.0 %) | 11.4737 (-31.1 %) | 11.1127 (-33.2 %) | 0.8820 |
+  | s10 | 16.8091 / 16.3957 / 15.7825 | 12.6959 / 11.6096 / 12.1566 | 11.3828 / 10.3103 / 10.0949 | 16.3291 (+0.0 %) | 12.1540 (-25.6 %) | 10.5960 (-35.1 %) | 1.0266 |
+
+  - Samsung:
+
+  | stage | default r1–r3 | device_local r1–r3 | uncached r1–r3 | default mean | device_local mean (Δ) | uncached mean (Δ) | default spread |
+  |---|---|---|---|---|---|---|---|
+  | s9 | 3.8315 / 3.2398 / 3.2600 | 3.2097 / 3.2629 / 3.2890 | 3.2497 / 3.1963 / 3.2514 | 3.4437 (+0.0 %) | 3.2539 (-5.5 %) | 3.2325 (-6.1 %) | 0.5917 |
+  | s10 | 3.2251 / 3.3082 / 3.3414 | 3.3261 / 3.3304 / 3.3109 | 3.1849 / 3.2545 / 3.3074 | 3.2916 (+0.0 %) | 3.3225 (+0.9 %) | 3.2489 (-1.3 %) | 0.1163 |
+
+- **Decision rule:** "a gain beyond run-to-run noise" = the arm's mean is lower than the default's by more than the
+  default arm's spread (max − min over its runs), on both fc1 and fc2 (the rule of the archived campaign's
+  before/after tables).
+  - **Pixel 7a: go, `uncached`.** −31 to −35 % on both stages, about 5× the spread (both non-default arms are the same
+    type here). The hypothesis holds on Mali, in the opposite direction from the "same DRAM" CUDA result: the GPU
+    reads Mali's host-cached type markedly slower than its coherent uncached one.
+  - **rocky-ryzen: no-go.** `device_local` is faster in every run (its slowest run beats the default's fastest on both
+    stages), but only by 2.9 % / 2.7 %; fc1's 0.0253 ms gain is inside the default spread of 0.0373 ms, so the rule is
+    not met. `uncached` gains nothing beyond noise. The weights class keeps the default placement on rocky; a larger
+    sample could revisit the carve-out.
+  - **Samsung: no-go.** The −5.5 % on fc1 comes from one slow default run (spread 0.59 ms); fc2 is within ±1.3 %.
 
 **B2. Classes are separate resources owned by Engine.** One `VulkanMemoryResource` per class:
 default/boundary, weights, gpu_local.
@@ -151,16 +207,40 @@ default/boundary, weights, gpu_local.
   pointer, and containers value-initialize through it). Classes differ only in memory type.
 - **Default rule:** a class is promoted on a device only after B1 shows a win there. Otherwise it
   maps to the default flags on that device.
+- **As implemented (tasks 2.4):** `Engine` always owns three resources, named `boundary`, `weights` and `gpu_local`.
+  - The weights class resolves through `weights_class_placement()`: a table of measured-go devices keyed by
+    (vendorID, deviceID), holding only the Pixel 7a's Mali-G710 (0x13B5, 0xa8620000) → `uncached`.
+    `BT_VK_WEIGHTS_PLACEMENT` stays as an override for re-measuring.
+  - `gpu_local` keeps the default flags everywhere: nothing measured it.
+  - A pointer resolves to its `VkBuffer` through whichever resource allocated it. A `Sequence` flushes and invalidates
+    its own touched buffers through the owning resource; this moved the touched set out of the shared resource ahead
+    of C2, which needed it anyway.
 - *Alternative:* one resource with a per-allocation tag. Rejected: pmr carries no per-allocation
   tag.
 
 **B3. Boundary vs GPU-local.**
-- Weights are always the weights class.
+- Weights are always the weights class. *(Corrected in tasks 2.4: only weights that no CPU chunk reads. The
+  boundary requirement keeps anything a CPU chunk reads host-cached, and on the Pixel, the one go device, the weights
+  class is uncached for the CPU. A weight of a CPU-run stage is therefore a boundary buffer; the memory-placement
+  delta's "Weight buffer" scenario was amended to match.)*
 - An activation is GPU-local only if every stage that reads or writes it runs on the GPU under the
   running schedule. The runner computes this from each stage's declared buffers before building the
   pool. That's the same declaration A3 needs (to verify whether one exists; if not, A3 introduces
   it).
 - Benchmarks that prime items on the CPU keep activations in the default class.
+- **As implemented (tasks 2.5):**
+  - *Declarations.* The declaration A3 introduced is per dispatch, inside the Sequence, and is not available before
+    the pool is built. So each cifar AppData buffer now declares, at construction, the stages that read or write it
+    (`bt::PlaceBuffer`, 0 standing for host code: the input written at construction, the final output read by
+    checks).
+  - *Placement.* `runtime/placement.hpp` turns a schedule into a placement: a buffer whose every declared accessor is
+    a GPU stage of the schedule goes to the weights or GPU-local class by kind; anything else is boundary.
+    `run_pipeline`, `bm-gen-logs` and the all-GPU benchmarks (`bm-cifar-*-vk`, the GPU baseline) build their items
+    with it.
+  - *Profiler.* `bm-prof`'s GPU cell for stage s places as for "GPU stage {s}", so the profiled GPU time matches what
+    the runtime will see. Its CPU cells, and the differential tests (whose oracle reads every buffer on the host),
+    keep everything boundary.
+  - *Tree.* Tree has no weights, and `gpu_local` maps to the default flags, so its AppData is unchanged.
 
 ### C. Queue selection and several GPU chunks
 

@@ -13,13 +13,13 @@ Sequence::Sequence(const vk::Device device_ref,
                    const uint32_t compute_queue_index,
                    const float timestamp_period_ns,
                    const uint32_t timestamp_valid_bits,
-                   VulkanMemoryResource* mr)
+                   std::vector<VulkanMemoryResource*> resources)
     : device_ref_(device_ref),
       compute_queue_ref_(compute_queue_ref),
       compute_queue_index_(compute_queue_index),
       timestamp_period_ns_(timestamp_period_ns),
       timestamp_valid_bits_(timestamp_valid_bits),
-      mr_(mr) {
+      resources_(std::move(resources)) {
   spdlog::trace("Sequence constructor");
 
   const char* barrier_all = std::getenv("BT_VK_BARRIER_ALL");
@@ -139,8 +139,8 @@ void Sequence::cmd_begin() {
 
   // Start a fresh touched-buffer set for this chunk; the stages recorded between here
   // and submit() bind exactly the buffers this task uses, so submit/wait flush and
-  // invalidate only those (not the whole pooled allocation map). See flush_touched().
-  if (mr_) mr_->clear_touched();
+  // invalidate only those (not every pooled allocation).
+  touched_.clear();
 
   constexpr vk::CommandBufferBeginInfo begin_info{
       .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
@@ -234,6 +234,7 @@ void Sequence::track_access(const std::span<const vk::DescriptorBufferInfo> buff
     VkBuffer b = buffers[i].buffer;
     if (writes(i) && !contains(written_since_barrier_, b)) written_since_barrier_.push_back(b);
     if (reads(i) && !contains(read_since_barrier_, b)) read_since_barrier_.push_back(b);
+    if (!contains(touched_, b)) touched_.push_back(b);
   }
   ++dispatches_;
 }
@@ -272,8 +273,10 @@ void Sequence::submit() const {
 
   // Make any pending host writes (inputs/weights) visible to the GPU before it
   // runs. No-op on coherent memory; required on HOST_CACHED (see do_allocate).
-  // Scoped to the buffers this chunk bound (flush_touched) -- not the whole pool.
-  if (mr_) mr_->flush_touched();
+  // Scoped to the buffers this chunk bound -- not the whole pool.
+  for (VmaAllocation a : touched_allocations()) {
+    vmaFlushAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
+  }
 
   const vk::SubmitInfo submit_info{
       .commandBufferCount = 1,
@@ -295,8 +298,24 @@ void Sequence::wait_for_fence() const {
   // GPU work is done: invalidate host caches so subsequent CPU reads see the
   // freshly written results. No-op on coherent memory; required on HOST_CACHED
   // (this is the cache maintenance BUGS-FOUND.md §7 originally lacked). Scoped to the
-  // buffers this chunk bound (invalidate_touched) -- not the whole pool.
-  if (mr_) mr_->invalidate_touched();
+  // buffers this chunk bound -- not the whole pool.
+  for (VmaAllocation a : touched_allocations()) {
+    vmaInvalidateAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
+  }
+}
+
+std::vector<VmaAllocation> Sequence::touched_allocations() const {
+  std::vector<VmaAllocation> allocations;
+  allocations.reserve(touched_.size());
+  for (VkBuffer b : touched_) {
+    for (const VulkanMemoryResource* mr : resources_) {
+      if (VmaAllocation a = mr->find_allocation(b)) {
+        allocations.push_back(a);
+        break;
+      }
+    }
+  }
+  return allocations;
 }
 
 void Sequence::reset_fence() const {

@@ -699,6 +699,48 @@ TEST(VulkanTimestamps, GpuTimeIsPositiveAndWithinWallTime) {
   EXPECT_EQ(out[0], 3u * 16u * 256u * 128u);
 }
 
+// Memory-placement spec (design B2): every buffer class allocates host-mapped memory whose
+// pointer resolves to its own VkBuffer, the host's writes reach the GPU and the GPU's writes
+// reach the host -- also with the weights class forced into write-combined memory
+// ("Weights written through a write-combined mapping").
+TEST(VulkanBufferClass, EachClassAllocatesAndResolves) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  for (const char* weights : {static_cast<const char*>(nullptr), "uncached", "device_local"}) {
+    SCOPED_TRACE(weights ? weights : "weights placement unset");
+    const ScopedEnv env("BT_VK_WEIGHTS_PLACEMENT", weights);
+    kiss_vk::Engine engine;
+    auto seq = engine.make_seq();
+    auto algo = engine.make_algo("engine_test_workgroup_size")
+                    ->work_group_size(64, 2, 1)
+                    ->num_buffers(1)
+                    ->build();
+
+    std::set<VkBuffer> buffers;
+    std::vector<std::pmr::vector<uint32_t>> alive;  // all three at once: distinct handles
+    alive.reserve(3);
+    for (const auto c :
+         {bt::BufferClass::kBoundary, bt::BufferClass::kWeights, bt::BufferClass::kGpuLocal}) {
+      auto& v = alive.emplace_back(4, 0, engine.get_mr(c));
+      v[0] = 1000;  // written through the class's mapping
+      const vk::Buffer b = engine.get_buffer(v.data());
+      ASSERT_TRUE(b);
+      EXPECT_EQ(engine.get_mr(c)->find_buffer(v.data()), b);
+      buffers.insert(b);
+
+      seq->cmd_begin();
+      algo->record_bind(*seq, {engine.get_buffer_info(v)});
+      algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+      seq->cmd_end();
+      seq->submit();
+      seq->wait_for_fence();
+      seq->reset_fence();
+      EXPECT_EQ(v[0], 1128u) << "class " << static_cast<int>(c);
+      EXPECT_EQ(v[1], 64u) << "class " << static_cast<int>(c);
+    }
+    EXPECT_EQ(buffers.size(), 3u);
+  }
+}
+
 // Pipeline-config spec, "Full subgroups available": a subgroup-dependent pipeline whose X
 // size is a multiple of the subgroup size runs with that size, and with computeFullSubgroups
 // every subgroup is launched full.

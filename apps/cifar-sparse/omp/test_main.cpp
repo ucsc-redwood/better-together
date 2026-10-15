@@ -12,6 +12,7 @@
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/npy_loader.hpp"
+#include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-sparse × OMP differential oracle. Each stage output is compared against
@@ -39,6 +40,14 @@ struct OmpRunner {
 }  // namespace
 
 BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(CifarSparseDiffOmp, OmpRunner)
+
+// Memory-placement spec, "Boundary buffers keep host-cached placement" (design B3): under
+// every schedule with one GPU stage range, each buffer a CPU stage or host code touches is
+// placed in the boundary class; the rest go to the weights / GPU-local classes.
+// Hardware-free: the classes are recording host resources.
+TEST(Placement, CpuChunkBuffersStayBoundary) {
+  bt_placement_test::ExpectCpuBuffersStayBoundary<cifar_sparse::AppData>(11);
+}
 
 // Shipped-path regression guard: the shipped AppData must build real CSR indices
 // (CSRMatrix::build_from_dense in the ctor). A regression to the old behavior --

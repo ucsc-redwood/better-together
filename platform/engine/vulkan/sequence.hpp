@@ -14,7 +14,7 @@ class Sequence {
                     uint32_t compute_queue_index,
                     float timestamp_period_ns = 0.0f,
                     uint32_t timestamp_valid_bits = 0,
-                    VulkanMemoryResource* mr = nullptr);
+                    std::vector<VulkanMemoryResource*> resources = {});
 
   ~Sequence();
 
@@ -49,6 +49,10 @@ class Sequence {
   // as before conditional barriers.
   void track_access(std::span<const vk::DescriptorBufferInfo> buffers,
                     std::span<const BufferAccess> access);
+
+  // The buffers bound since the last cmd_begin(): what submit() flushes and
+  // wait_for_fence() invalidates.
+  [[nodiscard]] const std::vector<VkBuffer>& touched_buffers() const { return touched_; }
 
   // Dispatches and inter-stage dependencies in the command buffer recorded last.
   [[nodiscard]] uint32_t dispatch_count() const { return dispatches_; }
@@ -101,10 +105,14 @@ class Sequence {
   float timestamp_period_ns_;      // nanoseconds per timestamp tick
   uint32_t timestamp_valid_bits_;  // 0 => timestamps unsupported on this queue
 
-  // Optional: the engine's memory resource, for host<->device cache maintenance
-  // on non-coherent memory (flush before submit, invalidate after fence). Null =>
-  // no cache maintenance (memory is coherent or caller manages it).
-  VulkanMemoryResource* mr_;
+  // Host<->device cache maintenance on non-coherent memory: the buffers bound since
+  // cmd_begin() (track_access) are flushed before submit() and invalidated after
+  // wait_for_fence(), each through whichever of the engine's resources owns it. Kept per
+  // Sequence, so concurrently recording chunks never share it (runtime/gpu-chunks spec).
+  // No resources => no cache maintenance (memory is coherent or caller manages it).
+  std::vector<VulkanMemoryResource*> resources_;
+  std::vector<VkBuffer> touched_;
+  [[nodiscard]] std::vector<VmaAllocation> touched_allocations() const;
 };
 
 }  // namespace kiss_vk

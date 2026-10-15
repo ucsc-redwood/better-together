@@ -17,8 +17,13 @@ A buffer with no class SHALL get today's placement: host-visible, preferring hos
 - **THEN** it is host-visible, host-cached where available, and mapped, exactly as before this change
 
 #### Scenario: Weight buffer
-- **WHEN** a weight buffer is allocated
+- **WHEN** a weight buffer that no CPU chunk reads under the configured schedule is allocated
 - **THEN** it is placed in the memory type selected for the weights class on that device, and the first dispatch reads exactly the host-provided weights
+
+(Amended during implementation: the first draft said "a weight buffer", which conflicts with "Boundary buffers keep
+host-cached placement" whenever a CPU chunk runs a weighted stage. On the Pixel 7a, the one device where the weights
+class moved, it is uncached for the CPU, so the boundary requirement wins for such weights; see design B3 and tasks
+2.4.)
 
 ### Requirement: Every class stays host-mapped
 Every buffer SHALL remain host-visible and persistently mapped whatever its class, because AppData

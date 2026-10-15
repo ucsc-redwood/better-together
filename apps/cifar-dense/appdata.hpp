@@ -7,6 +7,7 @@
 #include <string>
 
 #include "platform/util/base_appdata.hpp"
+#include "platform/util/buffer_placement.hpp"
 #include "platform/util/ndarray.hpp"
 #include "platform/util/npy_loader.hpp"
 
@@ -41,36 +42,41 @@ struct AppData final : public BaseAppData {
   // fc2: 4096 output channels, 4096 inputs
   // fc3: 10 output channels, 4096 inputs
 
-  explicit AppData(std::pmr::memory_resource* mr)
+  explicit AppData(std::pmr::memory_resource* mr) : AppData(bt::place_all_in(mr)) {}
+
+  // Each buffer declares the stages that read or write it (0: host code -- the input is
+  // written at construction, the final output read by checks), so a caller can place it by
+  // the schedule (memory-placement spec, design B3).
+  explicit AppData(const bt::PlaceBuffer& place)
       : BaseAppData(),
-        u_input(BATCH_SIZE, 3, 32, 32, mr),
-        u_conv1_out(BATCH_SIZE, 64, 32, 32, mr),
-        u_pool1_out(BATCH_SIZE, 64, 16, 16, mr),
-        u_conv2_out(BATCH_SIZE, 192, 16, 16, mr),
-        u_pool2_out(BATCH_SIZE, 192, 8, 8, mr),
-        u_conv3_out(BATCH_SIZE, 384, 8, 8, mr),
-        u_conv4_out(BATCH_SIZE, 256, 8, 8, mr),
-        u_conv5_out(BATCH_SIZE, 256, 8, 8, mr),
-        u_pool3_out(BATCH_SIZE, 256, 4, 4, mr),
-        u_fc1_out(BATCH_SIZE, 4096, mr),
-        u_fc2_out(BATCH_SIZE, 4096, mr),
-        u_fc3_out(BATCH_SIZE, 10, mr),
-        u_conv1_w(64, 3, 3, 3, mr),
-        u_conv1_b(64, mr),
-        u_conv2_w(192, 64, 3, 3, mr),
-        u_conv2_b(192, mr),
-        u_conv3_w(384, 192, 3, 3, mr),
-        u_conv3_b(384, mr),
-        u_conv4_w(256, 384, 3, 3, mr),
-        u_conv4_b(256, mr),
-        u_conv5_w(256, 256, 3, 3, mr),
-        u_conv5_b(256, mr),
-        u_fc1_w(4096, 4096, mr),
-        u_fc1_b(4096, mr),
-        u_fc2_w(4096, 4096, mr),
-        u_fc2_b(4096, mr),
-        u_fc3_w(10, 4096, mr),
-        u_fc3_b(10, mr) {
+        u_input(BATCH_SIZE, 3, 32, 32, place(bt::BufferKind::kActivation, {0, 1})),
+        u_conv1_out(BATCH_SIZE, 64, 32, 32, place(bt::BufferKind::kActivation, {1, 2})),
+        u_pool1_out(BATCH_SIZE, 64, 16, 16, place(bt::BufferKind::kActivation, {2, 3})),
+        u_conv2_out(BATCH_SIZE, 192, 16, 16, place(bt::BufferKind::kActivation, {3, 4})),
+        u_pool2_out(BATCH_SIZE, 192, 8, 8, place(bt::BufferKind::kActivation, {4, 5})),
+        u_conv3_out(BATCH_SIZE, 384, 8, 8, place(bt::BufferKind::kActivation, {5, 6})),
+        u_conv4_out(BATCH_SIZE, 256, 8, 8, place(bt::BufferKind::kActivation, {6, 7})),
+        u_conv5_out(BATCH_SIZE, 256, 8, 8, place(bt::BufferKind::kActivation, {7, 8})),
+        u_pool3_out(BATCH_SIZE, 256, 4, 4, place(bt::BufferKind::kActivation, {8, 9})),
+        u_fc1_out(BATCH_SIZE, 4096, place(bt::BufferKind::kActivation, {9, 10})),
+        u_fc2_out(BATCH_SIZE, 4096, place(bt::BufferKind::kActivation, {10, 11})),
+        u_fc3_out(BATCH_SIZE, 10, place(bt::BufferKind::kActivation, {11, 0})),
+        u_conv1_w(64, 3, 3, 3, place(bt::BufferKind::kWeights, {1})),
+        u_conv1_b(64, place(bt::BufferKind::kWeights, {1})),
+        u_conv2_w(192, 64, 3, 3, place(bt::BufferKind::kWeights, {3})),
+        u_conv2_b(192, place(bt::BufferKind::kWeights, {3})),
+        u_conv3_w(384, 192, 3, 3, place(bt::BufferKind::kWeights, {5})),
+        u_conv3_b(384, place(bt::BufferKind::kWeights, {5})),
+        u_conv4_w(256, 384, 3, 3, place(bt::BufferKind::kWeights, {6})),
+        u_conv4_b(256, place(bt::BufferKind::kWeights, {6})),
+        u_conv5_w(256, 256, 3, 3, place(bt::BufferKind::kWeights, {7})),
+        u_conv5_b(256, place(bt::BufferKind::kWeights, {7})),
+        u_fc1_w(4096, 4096, place(bt::BufferKind::kWeights, {9})),
+        u_fc1_b(4096, place(bt::BufferKind::kWeights, {9})),
+        u_fc2_w(4096, 4096, place(bt::BufferKind::kWeights, {10})),
+        u_fc2_b(4096, place(bt::BufferKind::kWeights, {10})),
+        u_fc3_w(10, 4096, place(bt::BufferKind::kWeights, {11})),
+        u_fc3_b(10, place(bt::BufferKind::kWeights, {11})) {
     // BT_WEIGHTS_DIR set -> the real trained AlexNetCIFAR export + real test
     // batch, fail-loud on any problem. Unset -> the synthetic seeded init
     // below, byte-identical to the hermetic-test behavior.

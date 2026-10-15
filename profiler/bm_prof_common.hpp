@@ -36,6 +36,7 @@
 
 #include "platform/mem/mr_ptr.hpp"                // bt_pipe::as_mr_ptr (cu get_mr()=ref, vk=ptr)
 #include "platform/registry/device_registry.hpp"  // ProcessorType, g_device_id, has_*_cores
+#include "runtime/placement.hpp"                  // make_placed_appdata
 
 // Build-time provenance: the bt_git_sha CMake target regenerates bt_git_sha.h each
 // build and puts it on the bm-prof include path. Falls back to "unknown" when the
@@ -339,7 +340,11 @@ int run_bm_prof(int argc,
             omp_dispatch(cores, cores.size(), a, 1, upto);
           };
 
-          App app(bt_pipe::as_mr_ptr(disp.get_mr()));
+          // Placed as at runtime: stage s's own buffers may use the GPU's memory classes
+          // when it is the GPU cell; prep's CPU stages read only boundary buffers.
+          const auto app_ptr =
+              make_placed_appdata<App>(disp, is_gpu ? std::set<int>{s} : std::set<int>{});
+          App& app = *app_ptr;
           prep(app, s - 1);
 
           // Stateful GPU-timer policy: created ONCE here (per benchmark instance),
@@ -368,7 +373,7 @@ int run_bm_prof(int argc,
           std::vector<std::thread> bg;
           if (interfere) {
             if (!is_gpu) {  // GPU contends only when the target is a CPU tier
-              bg_apps.push_back(std::make_unique<App>(bt_pipe::as_mr_ptr(disp.get_mr())));
+              bg_apps.push_back(make_placed_appdata<App>(disp, std::set<int>{s}));
               App* a = bg_apps.back().get();
               prep(*a, s - 1);
               bg.emplace_back([&disp, a, s, &stop, &bg_ready] {

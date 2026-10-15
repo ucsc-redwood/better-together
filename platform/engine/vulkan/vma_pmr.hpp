@@ -23,19 +23,33 @@ struct VulkanAllocationRecord {
   VmaAllocationInfo allocInfo;
 };
 
+// Which memory types a VulkanMemoryResource allocates from (design B1/B2). Every placement
+// is host-visible and persistently mapped: the pmr allocator must return a host pointer.
+struct MemoryPlacement {
+  const char* name = "default";
+  // Today's placement: host-visible, host-cached where the device offers it (do_allocate).
+  VkMemoryPropertyFlags required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+  VkMemoryPropertyFlags preferred = VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+  uint32_t memory_type_bits = 0;  // 0: any type with `required`
+};
+
+// The weights class's placement on this device (design B1/B2). BT_VK_WEIGHTS_PLACEMENT
+// (experiment knob) overrides it: `default` = today's placement; `device_local` =
+// DEVICE_LOCAL|HOST_VISIBLE without HOST_CACHED (on an AMD APU the carve-out); `uncached` =
+// HOST_VISIBLE without HOST_CACHED, and without DEVICE_LOCAL where the device has such a type
+// (write-combined system memory). On a phone, where every type is DEVICE_LOCAL, both resolve
+// to the coherent uncached type. Unset: `uncached` on the devices where the fc1/fc2
+// measurement showed a gain (the Pixel 7a's Mali-G710), `default` elsewhere. A placement the
+// device has no type for warns and keeps the default; any other value throws.
+[[nodiscard]] MemoryPlacement weights_class_placement(vk::PhysicalDevice physical_device);
+
 // ----------------------------------------------------------------------------
 // VulkanMemoryResource
 // ----------------------------------------------------------------------------
 
 class VulkanMemoryResource : public std::pmr::memory_resource {
  public:
-  // We use the requested defaults for usage flags and allocation flags.
-  explicit VulkanMemoryResource(
-      vk::Device device,
-      vk::BufferUsageFlags buffer_usage = vk::BufferUsageFlagBits::eStorageBuffer,
-      VmaMemoryUsage memory_usage = VMA_MEMORY_USAGE_AUTO,
-      VmaAllocationCreateFlags flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
-                                       VMA_ALLOCATION_CREATE_MAPPED_BIT);
+  explicit VulkanMemoryResource(vk::Device device, MemoryPlacement placement = {});
 
   ~VulkanMemoryResource() override;
 
@@ -48,30 +62,14 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
   VulkanMemoryResource& operator=(VulkanMemoryResource&&) = delete;
 
   [[nodiscard]] vk::Device get_device() const { return device_; }
+  [[nodiscard]] const MemoryPlacement& placement() const { return placement_; }
 
-  [[nodiscard]] vk::Buffer get_buffer_from_pointer(void* p);
-
-  // Host<->device cache maintenance for NON-coherent (HOST_CACHED) memory; no-ops
-  // on coherent memory. flush_all() makes host writes visible to the GPU (call
-  // before submitting GPU work); invalidate_all() makes GPU writes visible to the
-  // host (call after the GPU fence is signaled). See do_allocate's heap choice.
-  void flush_all();
-  void invalidate_all();
-
-  // Scoped cache maintenance: flush/invalidate ONLY the buffers touched (bound) since
-  // the last clear_touched(), instead of the whole allocation map. The allocation map
-  // holds every pooled AppData's buffers (the memory resource is shared across the
-  // pool), so flush_all() does pool_size x more cache maintenance than a single task
-  // needs -- a real cost on non-coherent Mali. get_buffer_from_pointer() records each
-  // bound buffer; the dispatch records a chunk's stages (binding exactly that task's
-  // buffers) between clear_touched() and submit, so the touched set == the buffers this
-  // chunk actually reads/writes. Conservative + correct: it is the union of inputs and
-  // outputs, so flushing it before submit and invalidating it after covers both.
-  void flush_touched();
-  void invalidate_touched();
-  void clear_touched();
-
-  //   [[nodiscard]] vk::DescriptorBufferInfo make_descriptor_buffer_info(vk::Buffer buffer) const;
+  // The buffer behind a pointer this resource returned, or a null handle.
+  [[nodiscard]] vk::Buffer find_buffer(const void* p) const;
+  // The allocation behind one of this resource's buffers, or null. Sequence uses it for
+  // host<->device cache maintenance of exactly the buffers a submit binds (flush before
+  // the submit, invalidate after its wait); both are no-ops on coherent memory.
+  [[nodiscard]] VmaAllocation find_allocation(VkBuffer buffer) const;
 
  protected:
   void* do_allocate(std::size_t bytes, std::size_t alignment) override;
@@ -82,16 +80,11 @@ class VulkanMemoryResource : public std::pmr::memory_resource {
 
  private:
   vk::Device device_;
-  vk::BufferUsageFlags bufferUsage_;
-  VmaMemoryUsage memoryUsage_;
-  VmaAllocationCreateFlags allocationFlags_;
+  MemoryPlacement placement_;
 
   mutable std::mutex mutex_;
-  std::unordered_map<void*, VulkanAllocationRecord> allocations_;
-
-  // Buffers bound since the last clear_touched() (for scoped flush/invalidate). Only
-  // mutated by the single GPU-chunk worker thread during command-buffer recording.
-  std::vector<VmaAllocation> touched_;
+  std::unordered_map<const void*, VulkanAllocationRecord> allocations_;
+  std::unordered_map<VkBuffer, VmaAllocation> allocation_of_buffer_;
 };
 
 }  // namespace kiss_vk

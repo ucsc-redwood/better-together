@@ -394,6 +394,21 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
                     ? "transient descriptor pool (forced by BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)"
                     : "transient descriptor pool (VK_KHR_push_descriptor not supported)");
 
+  // Memory placement (design B1): every heap and memory type, for the per-device tables.
+  const auto mem = physical_device_.getMemoryProperties();
+  for (uint32_t h = 0; h < mem.memoryHeapCount; ++h) {
+    spdlog::debug("Memory heap {}: {} MiB, flags {}",
+                  h,
+                  mem.memoryHeaps[h].size >> 20,
+                  vk::to_string(mem.memoryHeaps[h].flags));
+  }
+  for (uint32_t t = 0; t < mem.memoryTypeCount; ++t) {
+    spdlog::debug("Memory type {}: heap {}, flags {}",
+                  t,
+                  mem.memoryTypes[t].heapIndex,
+                  vk::to_string(mem.memoryTypes[t].propertyFlags));
+  }
+
   // looks like I don't need this
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);
 }

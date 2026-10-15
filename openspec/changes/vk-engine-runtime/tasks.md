@@ -154,11 +154,139 @@ Gates used below:
 
 ## 2. Memory placement (topic B)
 
-- [ ] 2.1 Record each fleet GPU's memory types and heaps (B1). Verify: the table is in design.md B1, including whether a DEVICE_LOCAL|HOST_VISIBLE type exists on the 780M and its heap size.
-- [ ] 2.2 Add the experiment-only `BT_VK_WEIGHTS_PLACEMENT` override and log the chosen memory type. Verify: on rocky the debug log shows a different `memoryTypeIndex` per arm, and `test-cifar-dense-vk` passes 12/12 under each arm.
-- [ ] 2.3 Measure fc1/fc2 GPU time per arm on rocky, the Pixel 7a and the Samsung: 3 interleaved runs each, with conditions recorded. Verify: tables and per-device go/no-go decisions are recorded in design.md B1.
-- [ ] 2.4 If any device is a go: add per-class resources to `Engine` (B2) and route the cifar apps' weights and biases to the weights class; no-go devices map the class to the default flags. Verify: the rocky gate and phone gate are green; a `test-kiss-vk` case allocates from each class and resolves each pointer to its VkBuffer; full cifar stage times on rocky before vs after are recorded, with no stage slower beyond noise.
-- [ ] 2.5 If 2.4 landed and 1.4's stage→buffer declarations exist: compute GPU-local activations from the schedule (B3). Verify: a unit test asserts that every buffer a CPU chunk touches stays in the default class; the hybrid `test-pipeline-e2e-*-vk` suites pass on the rocky gate and phone gate.
+- [x] 2.1 Record each fleet GPU's memory types and heaps (B1). Verify: the table is in design.md B1, including whether a DEVICE_LOCAL|HOST_VISIBLE type exists on the 780M and its heap size.
+  - *Evidence:* `BaseEngine::create_device` logs every heap and memory type at debug level (`Memory heap i: … MiB,
+    flags …` / `Memory type t: heap h, flags …`). `SPDLOG_LEVEL=debug ./test-kiss-vk
+    --gtest_filter=VulkanEngineTest.EngineInitialization` on rocky-ryzen, the Pixel 7a and the Samsung; the tables
+    are in design.md B1 "Memory types". The 780M **has** DEVICE_LOCAL|HOST_VISIBLE|HOST_COHERENT types (3, 4) on heap 1,
+    11219 MiB, flagged DeviceLocal. Today's placement is type 5 (HostVisible|HostCoherent|HostCached, heap 0, 5609 MiB).
+- [x] 2.2 Add the experiment-only `BT_VK_WEIGHTS_PLACEMENT` override and log the chosen memory type. Verify: on rocky the debug log shows a different `memoryTypeIndex` per arm, and `test-cifar-dense-vk` passes 12/12 under each arm.
+  - *Evidence:* `BT_VK_WEIGHTS_PLACEMENT=default|device_local|uncached` (arm definitions in design.md B1), resolved
+    to a memory-type mask against the device's types. Each allocation logs `VulkanMemoryResource [<name>]: <bytes>
+    bytes in memoryTypeIndex <t>` at debug level (`bm-cifar-dense-vk` now honours `SPDLOG_LEVEL`).
+  - rocky-ryzen, `SPDLOG_LEVEL=debug bm-cifar-dense-vk --benchmark_filter='Stage9/' --benchmark_min_time=1x`: the 16
+    weight and bias buffers land in **memoryTypeIndex 5 / 3 / 2** for default / device_local / uncached, while the
+    other 12 buffers stay in 5. The same check at the final group 2 code, where the knob overrides the weights
+    class: identical (unset → `Buffer class weights: default placement (no measured gain on this device)`, type 5).
+  - `test-cifar-dense-vk --device minipc` under each arm (with the experiment-stage code, where the differential tests
+    put the weights in the arm's resource): 12/12 / 12/12 / 12/12, run twice, once at the end of each placement
+    measurement batch.
+  - Phones (`… --device <serial>`): Pixel 7a 1 / 0 / 0, Samsung 4 / 0 / 0. On both, device_local and uncached are the
+    same coherent uncached type, because every phone type is DEVICE_LOCAL.
+- [x] 2.3 Measure fc1/fc2 GPU time per arm on rocky, the Pixel 7a and the Samsung: 3 interleaved runs each, with conditions recorded. Verify: tables and per-device go/no-go decisions are recorded in design.md B1.
+  - *Evidence:* tables and decisions in design.md B1 "Measurement" / "Decision rule" (`bm-cifar-dense-vk
+    --benchmark_filter='Stage(9|10)/' --benchmark_min_time=0.5s`, arms interleaved within each run).
+    - rocky: 6 runs per arm (3, then 3 more because the first were borderline). Before every run: 10 s settle,
+      `gpu_busy_percent` 0, 1-min load 0.08–0.48, no other `/dev/dri` holder; `powersave`, DPM `auto`.
+    - Phones: 3 runs per arm, 10 s apart, screen dozing; battery 25.6–25.7 °C (Pixel) and 25.4–26.0 °C (Samsung).
+  - Decisions (rule: Δ mean beyond the default arm's spread on both fc1 and fc2):
+    - **Pixel 7a go** (`uncached`): fc1 16.642 → 11.113 ms (−33.2 %), fc2 16.329 → 10.596 ms (−35.1 %); spreads
+      0.88 / 1.03 ms.
+    - **rocky no-go:** best arm `device_local` −2.9 % / −2.7 %, but fc1's Δ 0.0253 ms is inside its 0.0373 ms spread.
+      Its runs are all faster than the default's, so this is a small real effect that the rule does not admit.
+    - **Samsung no-go:** −5.5 % fc1 inside a 0.59 ms spread, fc2 +0.9 % / −1.3 %.
+  - So 2.4 and 2.5 apply, for the Pixel.
+- [x] 2.4 If any device is a go: add per-class resources to `Engine` (B2) and route the cifar apps' weights and biases to the weights class; no-go devices map the class to the default flags. Verify: the rocky gate and phone gate are green; a `test-kiss-vk` case allocates from each class and resolves each pointer to its VkBuffer; full cifar stage times on rocky before vs after are recorded, with no stage slower beyond noise.
+  - *Evidence:* `Engine` owns one resource per class (`boundary`, `weights`, `gpu_local`; design B2 "As
+    implemented"). `Engine::get_mr(bt::BufferClass)` selects one, and `get_buffer(ptr)` searches all three. The weights
+    class is `uncached` only on the measured-go device (vendor 0x13B5, device 0xa8620000, the Pixel's Mali-G710) and
+    the default elsewhere; `gpu_local` is the default everywhere. Both cifar apps route their 16 weight/bias buffers
+    (cifar-sparse: 5 CSR matrices + 11 dense) through the class chosen by the schedule; see 2.5 for which ones move.
+  - Debug log (`SPDLOG_LEVEL=debug bm-cifar-dense-vk`): rocky `Buffer class weights: default placement (no measured
+    gain on this device)`, all buffers type 5. Pixel 7a: `Buffer class weights: uncached placement (measured gain on
+    this device), memory type bits 0x1`, the 16 weight buffers in type 0 and the other 12 in type 1. Samsung: default
+    placement, all in type 4.
+  - New `VulkanBufferClass.EachClassAllocatesAndResolves` (`test-kiss-vk`): for the weights placement unset,
+    `uncached` and `device_local`, a vector from each class resolves to its own `VkBuffer` (3 distinct, matching
+    `find_buffer`), and a value written through the class's mapping (WC for the forced arms) is read and updated by a
+    dispatch (1000 → 1128). OK on rocky, the Pixel 7a and the Samsung.
+  - Rocky gate: `test-kiss-vk` / tree / cifar-dense / cifar-sparse 27 / 15 / 13 / 13 (+1 each for cifar: 2.5's
+    test), `ctest -L vulkan` 7/7; sync-val (with the heuristic) 0 errors / 0 hazards in those four plus
+    `test-pipeline-e2e-vk` and `test-pipeline-e2e-cifar-dense-vk` (layer inserted 38 / 16 / 13 / 13 / 2 / 2 times).
+    Phone gate: both phones 26 + 1 skipped (FIFO) / 15 / 13 / 13, script exit 0.
+  - *Full cifar stage times on rocky, before vs after.* "before" = the group 1 commit 3746427 (`~/bt-vk-g1`), "after"
+    = this code; same method and idle gating as 1.3, `BT_WEIGHTS_DIR=/tmp/bt/weights`. cifar-sparse: 3 interleaved
+    runs. cifar-dense: 6, because after 3 its s3 (+6.6 %, one 1.0084 ms run) and s5 (+2.2 %) exceeded the before
+    spread; with 6, no stage is slower beyond noise. Load 0.04–0.49 across the 18 runs.
+
+    - cifar-dense (rows: run values / means):
+
+      | stage | before r1/r2/r3 | after r1/r2/r3 | mean before → after | Δ | Δ % | before spread |
+      |---|---|---|---|---|---|---|
+      | s1 | 0.1142 / 0.1130 / 0.1117 / 0.1148 / 0.1121 / 0.1114 | 0.1139 / 0.1137 / 0.1121 / 0.1120 / 0.1129 / 0.1022 | 0.1129 → 0.1111 | -0.0018 | -1.6 % | 0.0034 |
+      | s2 | 0.0886 / 0.0869 / 0.0893 / 0.0908 / 0.0880 / 0.0915 | 0.0910 / 0.0883 / 0.0907 / 0.0910 / 0.0907 / 0.0898 | 0.0892 → 0.0903 | +0.0011 | +1.2 % | 0.0045 |
+      | s3 | 0.8731 / 0.8954 / 0.8589 / 0.8952 / 0.9609 / 0.8907 | 1.0084 / 0.8866 / 0.9068 / 0.8893 / 0.8938 / 0.8617 | 0.8957 → 0.9078 | +0.0121 | +1.3 % | 0.1020 |
+      | s4 | 0.0736 / 0.0726 / 0.0737 / 0.0737 / 0.0737 / 0.0738 | 0.0737 / 0.0737 / 0.0738 / 0.0736 / 0.0729 / 0.0736 | 0.0735 → 0.0736 | +0.0000 | +0.1 % | 0.0012 |
+      | s5 | 1.9616 / 1.9337 / 1.9208 / 1.9594 / 2.0116 / 2.0209 | 1.9321 / 1.9896 / 2.0195 / 1.9188 / 2.0098 / 1.9515 | 1.9680 → 1.9702 | +0.0022 | +0.1 % | 0.1001 |
+      | s6 | 2.4260 / 2.3452 / 2.4136 / 2.4431 / 2.3216 / 2.3693 | 2.4119 / 2.3588 / 2.4198 / 2.3413 / 2.3304 / 2.3284 | 2.3865 → 2.3651 | -0.0214 | -0.9 % | 0.1215 |
+      | s7 | 1.6092 / 1.6285 / 1.5537 / 1.5829 / 1.5748 / 1.5988 | 1.5715 / 1.6208 / 1.5531 / 1.6035 / 1.5636 / 1.5706 | 1.5913 → 1.5805 | -0.0108 | -0.7 % | 0.0748 |
+      | s8 | 0.0289 / 0.0289 / 0.0289 / 0.0288 / 0.0289 / 0.0289 | 0.0289 / 0.0289 / 0.0289 / 0.0289 / 0.0289 / 0.0289 | 0.0289 → 0.0289 | +0.0000 | +0.0 % | 0.0000 |
+      | s9 | 0.8936 / 0.8796 / 0.8667 / 0.8708 / 0.8666 / 0.8699 | 0.8785 / 0.8660 / 0.8633 / 0.8669 / 0.8676 / 0.8748 | 0.8745 → 0.8695 | -0.0050 | -0.6 % | 0.0270 |
+      | s10 | 0.8807 / 0.8819 / 0.8702 / 0.8786 / 0.8737 / 0.8750 | 0.8730 / 0.8710 / 0.8699 / 0.8787 / 0.8719 / 0.8788 | 0.8767 → 0.8739 | -0.0028 | -0.3 % | 0.0117 |
+      | s11 | 0.0967 / 0.0955 / 0.0972 / 0.0963 / 0.0962 / 0.0977 | 0.0939 / 0.0987 / 0.0998 / 0.0978 / 0.1013 / 0.0977 | 0.0966 → 0.0982 | +0.0016 | +1.6 % | 0.0022 |
+
+    - cifar-sparse (rows: run values / means):
+
+      | stage | before r1/r2/r3 | after r1/r2/r3 | mean before → after | Δ | Δ % | before spread |
+      |---|---|---|---|---|---|---|
+      | s1 | 1.7292 / 1.7633 / 1.7676 | 1.7829 / 1.7531 / 1.7320 | 1.7534 → 1.7560 | +0.0026 | +0.2 % | 0.0384 |
+      | s2 | 0.5775 / 0.5809 / 0.5839 | 0.5775 / 0.5809 / 0.5852 | 0.5808 → 0.5812 | +0.0005 | +0.1 % | 0.0064 |
+      | s3 | 17.5402 / 17.5468 / 17.5202 | 17.5096 / 17.5534 / 17.5502 | 17.5357 → 17.5377 | +0.0020 | +0.0 % | 0.0266 |
+      | s4 | 0.4501 / 0.4707 / 0.4749 | 0.4638 / 0.4819 / 0.4989 | 0.4652 → 0.4815 | +0.0163 | +3.5 % | 0.0248 |
+      | s5 | 27.4214 / 27.4149 / 27.4489 | 27.4335 / 27.4235 / 27.4450 | 27.4284 → 27.4340 | +0.0056 | +0.0 % | 0.0340 |
+      | s6 | 38.1429 / 38.1914 / 38.2026 | 38.1916 / 38.2051 / 38.1042 | 38.1790 → 38.1670 | -0.0120 | -0.0 % | 0.0597 |
+      | s7 | 23.6958 / 23.6895 / 23.7181 | 23.7002 / 23.7199 / 23.7313 | 23.7011 → 23.7171 | +0.0160 | +0.1 % | 0.0286 |
+      | s8 | 0.1427 / 0.1431 / 0.1429 | 0.1427 / 0.1428 / 0.1427 | 0.1429 → 0.1427 | -0.0001 | -0.1 % | 0.0004 |
+      | s9 | 6.3987 / 6.3957 / 6.4413 | 6.3969 / 6.4028 / 6.3913 | 6.4119 → 6.3970 | -0.0149 | -0.2 % | 0.0457 |
+      | s10 | 6.3968 / 6.3895 / 6.3914 | 6.3916 / 6.3932 / 6.3919 | 6.3925 → 6.3922 | -0.0003 | -0.0 % | 0.0074 |
+      | s11 | 0.0887 / 0.0888 / 0.0888 | 0.0878 / 0.0893 / 0.0876 | 0.0888 → 0.0882 | -0.0005 | -0.6 % | 0.0001 |
+
+    - Nothing is slower beyond its before spread; the largest increases are cifar-dense s11 +0.0016 ms (spread 0.0022)
+      and cifar-sparse s4 +0.0163 ms (spread 0.0248). As expected: on rocky every buffer is still in type 5.
+  - *Pixel 7a, the go device* (not required, recorded for the record): full `bm-cifar-dense-vk`, weights class forced
+    to `default` vs the measured placement, 3 interleaved runs, battery 28.6–28.9 °C. Columns: default runs / measured
+    runs / default mean / measured mean (Δ) / default spread:
+
+      | s1 | 5.3474 / 7.0797 / 7.0815 | 6.5410 / 7.0838 / 7.0807 | 6.5028 (+0.0 %) | 6.9018 (+6.1 %) | 1.7341 |
+      | s2 | 0.6523 / 0.6571 / 0.6571 | 0.6629 / 0.6461 / 0.6621 | 0.6555 (+0.0 %) | 0.6570 (+0.2 %) | 0.0047 |
+      | s3 | 27.2662 / 26.0491 / 27.0231 | 26.2834 / 26.4706 / 26.0619 | 26.7795 (+0.0 %) | 26.2720 (-1.9 %) | 1.2171 |
+      | s4 | 0.4874 / 0.4952 / 0.4980 | 0.4819 / 0.5057 / 0.5049 | 0.4935 (+0.0 %) | 0.4975 (+0.8 %) | 0.0106 |
+      | s5 | 36.7471 / 37.8139 / 36.3989 | 36.9916 / 36.9651 / 36.9256 | 36.9866 (+0.0 %) | 36.9608 (-0.1 %) | 1.4150 |
+      | s6 | 49.6263 / 49.2922 / 48.9664 | 49.1312 / 49.1209 / 48.8687 | 49.2950 (+0.0 %) | 49.0403 (-0.5 %) | 0.6599 |
+      | s7 | 34.6950 / 34.1823 / 33.7802 | 32.6534 / 32.8133 / 32.9697 | 34.2192 (+0.0 %) | 32.8121 (-4.1 %) | 0.9148 |
+      | s8 | 0.2412 / 0.2477 / 0.2662 | 0.2379 / 0.2393 / 0.2450 | 0.2517 (+0.0 %) | 0.2407 (-4.4 %) | 0.0250 |
+      | s9 | 18.0707 / 17.0263 / 14.7424 | 11.3739 / 10.1343 / 12.8399 | 16.6131 (+0.0 %) | 11.4494 (-31.1 %) | 3.3283 |
+      | s10 | 17.4427 / 15.9026 / 15.8961 | 12.3026 / 12.7640 / 11.2206 | 16.4138 (+0.0 %) | 12.0957 (-26.3 %) | 1.5466 |
+      | s11 | 1.1342 / 1.0427 / 1.1077 | 1.0547 / 1.0810 / 1.1209 | 1.0949 (+0.0 %) | 1.0855 (-0.9 %) | 0.0915 |
+
+    - fc1 −31.1 % and fc2 −26.3 % through the class mechanism; s7 (conv5) −4.1 % and s8 −4.4 % beyond their spreads; no
+      stage slower beyond its spread.
+  - The committed code differs from the gated build only by clang-tidy's `misc-misplaced-const` fixes in
+    `sequence.cpp`/`vma_pmr.cpp` (dropping `const` from a `VkBuffer`/`VmaAllocation` local); group 3's gates re-run
+    everything.
+- [x] 2.5 If 2.4 landed and 1.4's stage→buffer declarations exist: compute GPU-local activations from the schedule (B3). Verify: a unit test asserts that every buffer a CPU chunk touches stays in the default class; the hybrid `test-pipeline-e2e-*-vk` suites pass on the rocky gate and phone gate.
+  - *Evidence:* each cifar AppData buffer declares at construction the stages that touch it (`bt::PlaceBuffer`), and
+    `runtime/placement.hpp` places a buffer in the weights/GPU-local class only when every declared accessor is a GPU
+    stage of the schedule (design B3 "As implemented"). `run_pipeline`, `bm-gen-logs`, `bm-prof`'s GPU cells, the GPU
+    baseline and `bm-cifar-*-vk` build their items this way.
+  - `Placement.CpuChunkBuffersStayBoundary` (`test-cifar-{dense,sparse}-omp`, hardware-free, recording resources):
+    for all 66 schedules with one GPU stage range of the 11 stages, every buffer a CPU stage or host code touches is
+    boundary, and every GPU-only buffer is in the class of its kind. Passes; `ctest -L omp` locally 9/9.
+    *Mutation:* with the policy's boundary branch removed it fails.
+  - The declarations are checked against reality: `Placement.DeclaredStagesMatchBindings` (`test-cifar-{dense,sparse}-vk`)
+    runs stages 1..11 and requires the buffers each dispatch binds (the Sequence's touched set) to equal the buffers
+    declaring that stage. OK on rocky, the Pixel 7a and the Samsung. *Mutation:* with `u_fc1_out` declared `{9}`
+    instead of `{9, 10}` it fails at stage 10.
+  - Hybrid e2e suites (`test-pipeline-e2e{,-cifar-dense,-cifar-sparse}-vk`):
+    - rocky: 3/3, 2/2, 2/2 in `ctest -L vulkan`; with `BT_VK_WEIGHTS_PLACEMENT=uncached` (weights actually moved, WC
+      writes) cifar-dense 2/2 and cifar-sparse 2/2;
+    - Samsung: 3/3, 2/2, 2/2, script exit 0 (run before the oracle fix below; its weights do not move);
+    - Pixel 7a (weights moved): 3/3, then cifar-dense 2/2 (42 s and 43 s) and cifar-sparse 2/2 (257 s and 271 s),
+      script exit 0.
+  - *Found by the Pixel run:* the e2e oracle `CheckFinalPipeline` computed its double-precision reference by
+    re-reading every weight many times straight from the AppData. Once the GPU-only weights were uncached for the CPU,
+    the first cifar-dense test was still running after ~25 min (killed). The oracle now reads one host-cached copy
+    of each weight (same reference, same tolerances).
 
 ## 3. Queue selection and several GPU chunks (topic C)
 
