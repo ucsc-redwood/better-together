@@ -229,8 +229,8 @@ bool has_integrated_gpu() noexcept {
 // (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) need. Only these are enabled.
 namespace {
 struct RequiredFeature {
-  const char* name;
-  vk::Bool32 vk::PhysicalDeviceVulkan12Features::* member;
+  const char* name = nullptr;
+  vk::Bool32 vk::PhysicalDeviceVulkan12Features::* member = nullptr;
 };
 
 constexpr std::array<RequiredFeature, 3> kRequiredVulkan12Features{{
