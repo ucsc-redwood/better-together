@@ -25,7 +25,7 @@ inline constexpr uint32_t kSubgroupSizeSpecId = 0;
 // What Algorithm needs from a compute shader's SPIR-V, found by a scan of the module's
 // OpDecorate SpecId, OpExecutionMode LocalSize and OpExecutionModeId LocalSizeId.
 struct SpirvReflection {
-  std::set<uint32_t> spec_ids;  // every SpecId the module declares
+  std::set<uint32_t> spec_ids{};  // every SpecId the module declares
   // Workgroup size: the LocalSize literals, or the LocalSizeId constants' (default) values.
   std::array<uint32_t, 3> local_size{};
   // The SpecId behind each LocalSizeId operand (`local_size_{x,y,z}_id`), if any.
@@ -152,7 +152,7 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   vk::PipelineCache pipeline_cache_;  // the Engine's
   vk::PipelineLayout pipeline_layout_ = nullptr;
   vk::DescriptorSetLayout descriptor_set_layout_ = nullptr;
-  PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_;
+  PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_ = nullptr;
 
   std::string shader_name_;
   ComputeLimits limits_;
