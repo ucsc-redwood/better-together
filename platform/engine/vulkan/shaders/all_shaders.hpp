@@ -52,10 +52,6 @@ namespace shaders {
 #include "h/new_cifar_sparse_conv2d_spv.h"
 #include "h/new_cifar_sparse_linear_spv.h"
 #include "h/new_cifar_sparse_maxpool_spv.h"
-#include "h/octree_build_octree_nodes_spv.h"
-#include "h/octree_build_radix_tree_spv.h"
-#include "h/octree_edge_count_spv.h"
-#include "h/octree_morton_spv.h"
 
 // new shaders
 #include "h/stressor_spv.h"
@@ -121,10 +117,6 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(new_cifar_sparse_conv2d_k3s1p1),
         SHADER_ENTRY(new_cifar_sparse_linear),
         SHADER_ENTRY(new_cifar_sparse_maxpool),
-        SHADER_ENTRY(octree_build_radix_tree),
-        SHADER_ENTRY(octree_build_octree_nodes),
-        SHADER_ENTRY(octree_edge_count),
-        SHADER_ENTRY(octree_morton),
         // new shaders
         SHADER_ENTRY(stressor),
         // engine self-test (test-kiss-vk)

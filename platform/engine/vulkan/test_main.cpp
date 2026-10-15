@@ -68,7 +68,7 @@ TEST(VulkanDeviceFeatures, MissingShaderInt8IsReported) {
 }
 
 // Pipeline-config (design D5): the SPIR-V scan reads spec ids and workgroup size from
-// committed *_spv.h. Hardware-free.
+// the compiled shaders. Hardware-free.
 TEST(SpirvReflection, CommittedShaders) {
   const auto radix = kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("multi_radixsort"));
   EXPECT_EQ(radix.spec_ids, std::set<uint32_t>{kiss_vk::kSubgroupSizeSpecId});

@@ -1,3 +1,5 @@
+#version 460
+
 /**
  * Multi-workgroup (device-wide) LSD radix sort - scatter pass.
  * VkRadixSort written by Mirco Werner: https://github.com/MircoWerner/VkRadixSort
@@ -13,7 +15,6 @@
  * RADIX_SORT_BINS / SUBGROUP_SIZE subgroup-sum array matches the width the shader runs at.
  * It replaces the former per-width copies multi_radixsort_warp{16,32,64}.comp.
  */
-#version 460
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_arithmetic : enable

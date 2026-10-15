@@ -1,9 +1,10 @@
+#version 460
+
 /**
  * kiss-vk engine self-test (test-kiss-vk), not an app kernel: the workgroup size is three
  * specialization constants, so Algorithm::work_group_size() sets it. Every invocation counts
  * itself into g_out[0]; invocation 0 records gl_WorkGroupSize into g_out[1..3].
  */
-#version 460
 
 layout(local_size_x_id = 100, local_size_y_id = 101, local_size_z_id = 102) in;
 
