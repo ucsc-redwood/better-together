@@ -7,6 +7,8 @@
 #include <string_view>
 #include <vulkan/vulkan.hpp>
 
+#include "env.hpp"
+
 namespace kiss_vk {
 
 namespace {
@@ -14,11 +16,6 @@ uint64_t now_ns() {
   return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                    std::chrono::steady_clock::now().time_since_epoch())
                                    .count());
-}
-
-bool env_is_1(const char* name) {
-  const char* v = std::getenv(name);
-  return v != nullptr && std::string_view(v) == "1";
 }
 
 void hash_combine(size_t& h, const size_t v) {
@@ -52,8 +49,8 @@ Sequence::Sequence(const vk::Device device_ref,
       submit_mutex_(submit_mutex) {
   spdlog::trace("Sequence constructor");
 
-  barrier_all_ = env_is_1("BT_VK_BARRIER_ALL");
-  phases_enabled_ = env_is_1("BT_VK_PHASES");
+  barrier_all_ = env::flag(env::kBarrierAll);
+  phases_enabled_ = env::flag(env::kPhases);
 
   command_pool_ = device_ref_.createCommandPool(vk::CommandPoolCreateInfo{
       .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,

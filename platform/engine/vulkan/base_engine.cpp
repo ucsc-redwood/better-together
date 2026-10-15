@@ -12,6 +12,8 @@
 #include <string_view>
 #include <vector>
 
+#include "env.hpp"
+
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
@@ -299,8 +301,7 @@ void BaseEngine::create_device() {
   if (!universal) throw std::runtime_error("No queue family supports compute operations.");
   compute_queue_family_index_ = *universal;
 
-  const char* queue_env = std::getenv("BT_VK_QUEUE");
-  const std::string_view queue_kind = queue_env != nullptr ? queue_env : "universal";
+  const std::string_view queue_kind = env::get(env::kQueue).value_or("universal");
   if (queue_kind != "universal" && queue_kind != "compute") {
     throw std::runtime_error("BT_VK_QUEUE must be universal or compute, got " +
                              std::string(queue_kind));
@@ -401,8 +402,7 @@ void BaseEngine::create_device() {
     });
   };
   const bool has_push_descriptor = has_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-  const char* force_env = std::getenv("BT_VK_FORCE_DESCRIPTOR_FALLBACK");
-  const bool force_fallback = force_env != nullptr && std::string_view(force_env) == "1";
+  const bool force_fallback = env::flag(env::kForceDescriptorFallback);
   const bool use_push_descriptor = has_push_descriptor && !force_fallback;
   std::vector<const char*> extensions;
   if (use_push_descriptor) extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
@@ -438,8 +438,8 @@ void BaseEngine::create_device() {
   // priority when the device lacks it or the driver refuses it (VK_ERROR_NOT_PERMITTED).
   std::optional<vk::QueueGlobalPriorityKHR> priority;
   std::string_view priority_name = "default";
-  if (const char* v = std::getenv("BT_VK_QUEUE_PRIORITY")) {
-    priority_name = v;
+  if (const auto v = env::get(env::kQueuePriority)) {
+    priority_name = *v;
     if (priority_name == "low") {
       priority = vk::QueueGlobalPriorityKHR::eLow;
     } else if (priority_name == "medium") {
