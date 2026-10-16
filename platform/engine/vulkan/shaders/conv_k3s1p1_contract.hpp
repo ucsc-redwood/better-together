@@ -14,7 +14,7 @@ namespace kiss_vk {
 // Output channels per invocation of the dense shader (OC_TILE), on every path.
 inline constexpr int kDenseConvChannelsPerInvocation = 4;
 // Adjacent output pixels of a row per invocation on the subgroup < 32 path (PX in each shader).
-inline constexpr int kDenseConvMaliPixels = 1;
+inline constexpr int kDenseConvMaliPixels = 4;
 inline constexpr int kSparseConvMaliPixels = 1;
 
 // Invocations for an N x K x H x W output; grid.x = div_ceil(this, 256).

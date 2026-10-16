@@ -79,8 +79,33 @@ Gates used below:
 
 ## 3. Dense conv: output blocking (D2.1)
 
-- [ ] 3.1 On the dense Mali path, compute `PX` adjacent output pixels per invocation (try `PX = 4` and `2`), loading each input window and weight once for all of them, with a masked tail for ragged widths. Verify: `DenseConvK3S1P1` (6x6, 7x5, 8x8) and `test-cifar-dense-vk` pass on the Pixel, and local and rocky correctness are green.
-- [ ] 3.2 Run the phone A/B for cifar-dense (previous kernel vs the best `PX`) and apply the spec's ship gate. Verify: design.md records the per-stage table for both phones and the decision, the Samsung's conv stages are unchanged within noise, and the Mali branch stays enabled only if the gate passed.
+- [x] 3.1 On the dense Mali path, compute `PX` adjacent output pixels per invocation (try `PX = 4` and `2`), loading each input window and weight once for all of them, with a masked tail for ragged widths. Verify: `DenseConvK3S1P1` (6x6, 7x5, 8x8) and `test-cifar-dense-vk` pass on the Pixel, and local and rocky correctness are green.
+  - *Evidence:* `new_cifar_dense_conv2d_k3s1p1.comp` `main_mali()`, entered when `SUBGROUP_SIZE < 32`. One invocation
+    is (n, k/4, oh, ow/PX rounded up). Per input channel it makes guarded loads of the 3 x (PX+2) window (no load
+    outside the map) and loads 4 x 9 weights once, each reused PX times. The writes are masked for `ow0 + j >= W`.
+    `[[unroll]]` keeps the arrays in registers. `accumulate_branchy` (the previous Mali kernel) is removed, and the
+    subgroup >= 32 code is untouched. `kDenseConvMaliPixels = 4` in the contract.
+    - PX 4 (this tree) and PX 2 (a scratch worktree with PX and the contract both set to 2) each pass
+      `test-cifar-dense-vk` 16/16 on the Pixel 7a, `DenseConvK3S1P1` 6x6 / 8x8 / 7x5 included. PX 4 also passes 16/16
+      with real weights.
+    - Local: `test-cifar-dense-vk` 16/16 (RADV, wide path); `ctest --test-dir build/pc -L omp` 10/10.
+    - Rocky correctness: kiss 30, cifar-dense 16 + 16, cifar-sparse 17 + 17, all passed.
+    - `malioc`: PX 2 and 4 use 62 and 64 registers (50 % occupancy, as before) with no stack; PX 8 spills 148 B and
+      was not built (design.md "Measured decisions").
+- [x] 3.2 Run the phone A/B for cifar-dense (previous kernel vs the best `PX`) and apply the spec's ship gate. Verify: design.md records the per-stage table for both phones and the decision, the Samsung's conv stages are unchanged within noise, and the Mali branch stays enabled only if the gate passed.
+  - *Evidence:* the Pixel ran 3 arms interleaved (368a884 / PX 2 / PX 4, 3 rounds, 20 s cooldown) and the Samsung
+    368a884 vs PX 4. The tables and the decision are in design.md "Measured decisions".
+    - Pixel 7a medians, previous → PX 4: stage 1 7.09 → 2.57, 3 24.46 → 14.56, 5 36.36 → 18.27, 6 48.81 → 20.32,
+      7 32.56 → 15.77 ms (-64 / -40 / -50 / -58 / -52 %), with non-overlapping spreads. App sum 165.0 → 87.2 ms (-47 %).
+      PX 2 gains less on every conv (-35..-46 %).
+    - **Gate passed → the PX 4 Mali branch is enabled.**
+    - Samsung (wide path): convs 1 / 3 / 5 / 6 within ±0.3 %. Stage 7 is -21.9 %, the Baseline's bimodal 2.14 / 2.75 ms,
+      seen in both arms. So unchanged within noise.
+    - Same outputs: on the Samsung the conv-output hashes (scratch test, see 2.1) of 368a884 and this tree match, 20/20.
+      Statically, the specialized and optimized SPIR-V at subgroup 64 and 32 is instruction-identical to the previous
+      shader.
+    - Phone gate (both phones): kiss 29 + 1 skip, tree 18, cifar-dense 16, cifar-sparse 17, plus the cifar suites with
+      real weights; exit 0.
 
 ## 4. Sparse conv: output blocking (D2.1)
 

@@ -243,6 +243,76 @@ Both Mali paths are load/store-bound by a factor of 4-6 over arithmetic. This ma
 over the program, with the loop body counted once, so they compare variants of one shader and are not
 cycles per output. The dense path already runs at half occupancy (64 work registers).
 
+## Measured decisions
+
+### Dense conv, output blocking (D2.1, tasks 3.1-3.2): **shipped, PX = 4**
+
+The Mali path computes PX = 4 adjacent output pixels x OC_TILE = 4 channels per invocation, with a masked
+tail (`main_mali` in the shader, `kDenseConvMaliPixels = 4` in the contract). It replaces the previous
+`accumulate_branchy` kernel on subgroup < 32.
+
+`malioc` (Mali-G710, `-S 0=16`), static totals as in Baseline:
+
+| variant | work registers | occupancy | stack | A / LS |
+|---|---|---|---|---|
+| previous (PX 1) | 64 | 50 % | none | 4.21 / 26.00 |
+| PX 2 | 62 | 50 % | none | 6.11 / 36.00 |
+| PX 4 | 64 | 50 % | none | 9.22 / 50.00 |
+| PX 8 (not built) | 64 | 50 % | 148 B spilled | 15.59 / 104.00 |
+
+Per output that is LS 6.5 → 4.5 → 3.1 cycles. PX 8 spills, so it was not tried on the device.
+
+Phone A/B (method of Baseline, 3 rounds interleaved), arms built from two worktrees: A = previous kernel
+(368a884), B = PX 2, C = PX 4 (this tree). Pixel 7a, cifar-dense (ms):
+
+| stage | A median (min-max) ms | B median (min-max) ms | C median (min-max) ms | B vs A | C vs A |
+|---|---|---|---|---|---|
+| 1 | 7.087 (7.087-7.087, n=3x140) | 4.003 (4.001-4.003, n=3x250) | 2.571 (2.560-2.572, n=3x392) | -43.5 % | -63.7 % |
+| 2 | 0.496 (0.495-0.499, n=3x1994) | 0.494 (0.493-0.496, n=3x2000) | 0.493 (0.491-0.494, n=3x2000) | -0.3 % | -0.6 % |
+| 3 | 24.464 (24.459-24.465, n=3x40) | 15.802 (15.802-15.812, n=3x51) | 14.564 (12.360-15.769, n=3x55) | -35.4 % | -40.5 % |
+| 4 | 0.386 (0.384-0.386, n=3x2000) | 0.384 (0.382-0.384, n=3x2000) | 0.381 (0.380-0.385, n=3x2000) | -0.5 % | -1.3 % |
+| 5 | 36.357 (36.355-36.361, n=3x27) | 19.658 (19.657-19.661, n=3x45) | 18.270 (16.529-18.289, n=3x49) | -45.9 % | -49.7 % |
+| 6 | 48.812 (48.807-48.818, n=3x20) | 27.907 (27.892-27.918, n=3x35) | 20.324 (20.293-20.328, n=3x49) | -42.8 % | -58.4 % |
+| 7 | 32.559 (32.553-32.561, n=3x30) | 17.986 (17.985-17.989, n=3x55) | 15.771 (15.746-15.805, n=3x68) | -44.8 % | -51.6 % |
+| 8 | 0.194 (0.193-0.198, n=3x2000) | 0.196 (0.193-0.196, n=3x2000) | 0.191 (0.179-0.192, n=3x2000) | +1.0 % | -1.6 % |
+| 9 | 6.886 (6.837-8.423, n=3x107) | 6.908 (6.834-7.805, n=3x78) | 6.852 (6.779-8.379, n=3x118) | +0.3 % | -0.5 % |
+| 10 | 6.812 (6.677-7.906, n=3x122) | 6.727 (6.705-6.729, n=3x148) | 6.762 (6.719-7.299, n=3x122) | -1.3 % | -0.7 % |
+| 11 | 0.992 (0.988-0.996, n=3x1279) | 0.980 (0.881-0.990, n=3x1354) | 0.990 (0.876-0.995, n=3x1333) | -1.2 % | -0.2 % |
+| sum | 165.045 | 101.045 | 87.169 | -38.8 % | -47.2 % |
+
+Samsung, cifar-dense (ms), A = 368a884, B = PX 4. The Samsung takes the unchanged subgroup >= 32 path:
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 0.909 (0.908-0.914, n=3x1110) | 0.906 (0.902-0.913, n=3x1116) | -0.3 % |
+| 2 | 1.299 (1.285-1.301, n=3x792) | 1.269 (1.269-1.284, n=3x848) | -2.3 % |
+| 3 | 3.394 (3.081-3.401, n=3x472) | 3.396 (3.081-3.400, n=3x473) | +0.1 % |
+| 4 | 0.967 (0.965-0.969, n=3x1145) | 0.969 (0.943-0.971, n=3x1136) | +0.3 % |
+| 5 | 2.702 (2.444-3.135, n=3x319) | 2.705 (2.704-3.136, n=3x334) | +0.1 % |
+| 6 | 3.375 (3.373-3.376, n=3x327) | 3.370 (3.370-3.373, n=3x327) | -0.1 % |
+| 7 | 2.744 (2.143-2.769, n=3x420) | 2.145 (2.143-2.746, n=3x418) | -21.9 % |
+| 8 | 0.325 (0.325-0.326, n=3x2000) | 0.320 (0.318-0.321, n=3x2000) | -1.7 % |
+| 9 | 2.788 (1.981-2.834, n=3x355) | 2.781 (2.745-2.847, n=3x352) | -0.2 % |
+| 10 | 2.012 (1.980-2.020, n=3x371) | 2.724 (2.723-2.944, n=3x341) | +35.4 % |
+| 11 | 0.656 (0.644-0.670, n=3x2000) | 0.649 (0.645-0.670, n=3x1391) | -1.0 % |
+| sum | 21.170 | 21.235 | +0.3 % |
+
+**Gate (spec "A Mali path ships only if it is measured faster"): passed for PX 4.**
+- On the Pixel, stages 3 / 5 / 6 / 7 are -40.5 / -49.7 / -58.4 / -51.6 %. Each new spread (12.36-15.77 /
+  16.53-18.29 / 20.29-20.33 / 15.75-15.81 ms) lies entirely below the previous one (24.46 / 36.36 / 48.81 /
+  32.55-32.56 ms).
+- Stage 1 is -63.7 %, so no conv stage is slower. The app sum is 165.0 → 87.2 ms (-47 %).
+- PX 2 also passes but gains less on every conv, so PX 4 ships.
+- The Samsung's convs 1, 3, 5, 6 are within 0.3 %. Stage 7 reads -21.9 %, which is the bimodal 2.14 / 2.75 ms
+  noise of the Baseline (both arms show both values).
+
+**The wide path is unchanged.**
+- glslc output of the previous and the new shader, specialized at 64 and at 32, then folded, optimized and
+  canonicalized (`spirv-opt --set-spec-const-default-value --freeze-spec-const --fold-spec-const-op-composite
+  -O --canonicalize-ids`), has the same instructions (0 lines of sorted diff).
+- The conv-output hashes of both apps (5 convs x synthetic / real weights) on the Samsung are identical between
+  368a884 and this tree (20 of 20).
+
 ## Open Questions
 
 - ~~Whether Arm Performance Studio can be installed on the build box (licence acceptance, offline
