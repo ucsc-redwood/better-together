@@ -15,18 +15,25 @@ namespace {
 
 using Cores = std::vector<int>;
 
-// Pixel 7a: 4 little, 2 medium, 2 big. Samsung: 4 little, 3 medium, 2 big and one super core.
-const std::map<ProcessorType, Cores> kPixel = {{ProcessorType::kLittleCore, {0, 1, 2, 3}},
-                                               {ProcessorType::kMediumCore, {4, 5}},
-                                               {ProcessorType::kBigCore, {6, 7}}};
-const std::map<ProcessorType, Cores> kSamsung = {{ProcessorType::kLittleCore, {0, 1, 2, 3}},
-                                                 {ProcessorType::kMediumCore, {4, 5, 6}},
-                                                 {ProcessorType::kBigCore, {7, 8}},
-                                                 {ProcessorType::kSuperCore, {9}}};
-// A single-tier CPU (a Jetson, a PC): everything is "big".
-const std::map<ProcessorType, Cores> kOneTier = {{ProcessorType::kBigCore, {0, 1, 2, 3, 4, 5}}};
+using Topology = std::map<ProcessorType, Cores>;
 
-Cores choose(const std::map<ProcessorType, Cores>& topology, const std::set<ProcessorType>& busy) {
+// Pixel 7a: 4 little, 2 medium, 2 big. Samsung: 4 little, 3 medium, 2 big and one super core.
+// A single-tier CPU (a Jetson, a PC): everything is "big". Functions, not globals: building a
+// std::map can throw, which a static initializer cannot report.
+Topology pixel() {
+  return {{ProcessorType::kLittleCore, {0, 1, 2, 3}},
+          {ProcessorType::kMediumCore, {4, 5}},
+          {ProcessorType::kBigCore, {6, 7}}};
+}
+Topology samsung() {
+  return {{ProcessorType::kLittleCore, {0, 1, 2, 3}},
+          {ProcessorType::kMediumCore, {4, 5, 6}},
+          {ProcessorType::kBigCore, {7, 8}},
+          {ProcessorType::kSuperCore, {9}}};
+}
+Topology one_tier() { return {{ProcessorType::kBigCore, {0, 1, 2, 3, 4, 5}}}; }
+
+Cores choose(const Topology& topology, const std::set<ProcessorType>& busy) {
   return bt::choose_gpu_host_cores(busy, [&](const ProcessorType t) {
     const auto it = topology.find(t);
     return it == topology.end() ? Cores{} : it->second;
@@ -36,30 +43,30 @@ Cores choose(const std::map<ProcessorType, Cores>& topology, const std::set<Proc
 }  // namespace
 
 TEST(GpuHostCores, PrefersMediumThenBig) {
-  EXPECT_EQ(choose(kPixel, {}), (Cores{4, 5}));
-  EXPECT_EQ(choose(kPixel, {ProcessorType::kBigCore}), (Cores{4, 5}));
-  EXPECT_EQ(choose(kPixel, {ProcessorType::kMediumCore}), (Cores{6, 7}));
-  EXPECT_EQ(choose(kSamsung, {ProcessorType::kBigCore}), (Cores{4, 5, 6}));
+  EXPECT_EQ(choose(pixel(), {}), (Cores{4, 5}));
+  EXPECT_EQ(choose(pixel(), {ProcessorType::kBigCore}), (Cores{4, 5}));
+  EXPECT_EQ(choose(pixel(), {ProcessorType::kMediumCore}), (Cores{6, 7}));
+  EXPECT_EQ(choose(samsung(), {ProcessorType::kBigCore}), (Cores{4, 5, 6}));
 }
 
 // Pinned to a little core the Pixel's tree pipeline measured 71 % slower than unpinned, so
 // with the medium and big tiers taken the thread stays unpinned.
 TEST(GpuHostCores, NeverALittleCore) {
-  EXPECT_EQ(choose(kPixel, {ProcessorType::kMediumCore, ProcessorType::kBigCore}), Cores{});
-  const std::map<ProcessorType, Cores> little_only = {{ProcessorType::kLittleCore, {0, 1}}};
+  EXPECT_EQ(choose(pixel(), {ProcessorType::kMediumCore, ProcessorType::kBigCore}), Cores{});
+  const Topology little_only = {{ProcessorType::kLittleCore, {0, 1}}};
   EXPECT_EQ(choose(little_only, {}), Cores{});
 }
 
 TEST(GpuHostCores, NeverTheSuperCoreAndNothingWhenEveryTierIsBusy) {
-  EXPECT_EQ(choose(kSamsung, {ProcessorType::kMediumCore, ProcessorType::kBigCore}), Cores{});
+  EXPECT_EQ(choose(samsung(), {ProcessorType::kMediumCore, ProcessorType::kBigCore}), Cores{});
   // The super core is not offered even when it is the only free one.
-  const std::map<ProcessorType, Cores> super_only = {{ProcessorType::kSuperCore, {9}}};
+  const Topology super_only = {{ProcessorType::kSuperCore, {9}}};
   EXPECT_EQ(choose(super_only, {}), Cores{});
 }
 
 TEST(GpuHostCores, SingleTierCpuPinsOnlyWhenNoCpuChunkUsesIt) {
-  EXPECT_EQ(choose(kOneTier, {}), (Cores{0, 1, 2, 3, 4, 5}));
-  EXPECT_EQ(choose(kOneTier, {ProcessorType::kBigCore}), Cores{});
+  EXPECT_EQ(choose(one_tier(), {}), (Cores{0, 1, 2, 3, 4, 5}));
+  EXPECT_EQ(choose(one_tier(), {ProcessorType::kBigCore}), Cores{});
 }
 
 TEST(GpuHostCores, CoreListParsing) {
@@ -85,6 +92,8 @@ class ScopedCoresEnv {
   }
   ScopedCoresEnv(const ScopedCoresEnv&) = delete;
   ScopedCoresEnv& operator=(const ScopedCoresEnv&) = delete;
+  ScopedCoresEnv(ScopedCoresEnv&&) = delete;
+  ScopedCoresEnv& operator=(ScopedCoresEnv&&) = delete;
 
  private:
   std::optional<std::string> old_;

@@ -75,7 +75,9 @@ namespace bt {
   if (value == "auto") {
     std::set<ProcessorType> busy;
     for (const auto& chunk : sched.chunks) {
-      if (chunk.exec_model == ExecutionModel::kOMP) busy.insert(chunk.cpu_proc_type.value());
+      if (chunk.exec_model == ExecutionModel::kOMP && chunk.cpu_proc_type.has_value()) {
+        busy.insert(*chunk.cpu_proc_type);
+      }
     }
     return choose_gpu_host_cores(busy, [](const ProcessorType t) { return get_cores_by_type(t); });
   }

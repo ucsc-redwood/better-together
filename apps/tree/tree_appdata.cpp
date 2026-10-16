@@ -39,6 +39,11 @@ namespace tree {
 AppData::AppData(std::pmr::memory_resource* mr, const size_t n_input)
     : AppData(bt::place_all_in(mr), n_input) {}
 
+namespace {
+// n * kMemoryRatio, truncated: the octree buffers are sized as a fraction of the input.
+size_t scaled(const size_t n) { return static_cast<size_t>(static_cast<float>(n) * kMemoryRatio); }
+}  // namespace
+
 // The stages are the ones that touch the buffer on ANY backend (the data flow of the table
 // above): a buffer produced by stage k and consumed by k+1.. lists all of them, so a
 // schedule that puts any of them on a CPU chunk keeps the buffer in the boundary class.
@@ -60,11 +65,11 @@ AppData::AppData(const bt::PlaceBuffer& place, const size_t n_input)
       u_brt_parents_s4(n_input, place(bt::BufferKind::kActivation, {4, 5, 7})),
       u_edge_count_s5(n_input, place(bt::BufferKind::kActivation, {5, 6, 7})),
       u_edge_offset_s6(n_input, place(bt::BufferKind::kActivation, {0, 6, 7})),
-      u_oct_children_s7(n_input * 8 * kMemoryRatio, place(bt::BufferKind::kActivation, {0, 7})),
-      u_oct_corner_s7(n_input * kMemoryRatio, place(bt::BufferKind::kActivation, {0, 7})),
-      u_oct_cell_size_s7(n_input * kMemoryRatio, place(bt::BufferKind::kActivation, {0, 7})),
-      u_oct_child_node_mask_s7(n_input * kMemoryRatio, place(bt::BufferKind::kActivation, {0, 7})),
-      u_oct_child_leaf_mask_s7(n_input * kMemoryRatio, place(bt::BufferKind::kActivation, {0, 7})),
+      u_oct_children_s7(scaled(n_input * 8), place(bt::BufferKind::kActivation, {0, 7})),
+      u_oct_corner_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
+      u_oct_cell_size_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
+      u_oct_child_node_mask_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
+      u_oct_child_leaf_mask_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
       u_num_selected_out(1, place(bt::BufferKind::kActivation, {0})) {
   // BT_TREE_DATA_DIR set -> real Octomap-derived corpus (points.npy), a fixed-size
   // prefix loaded via bt::npy::load_prefix; fails loud on any problem, never a
