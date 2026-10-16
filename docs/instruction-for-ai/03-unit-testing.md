@@ -177,6 +177,11 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
   decorations (a binding the module declares no variable for counts as unused). `just check-shaders`
   (`scripts/check_shader_access.py`, needs glslc and spirv-dis; run in CI) compares each declaration with what
   the optimized SPIR-V does with the buffer; glslang does not catch a `writeonly` buffer that is read.
+- `BT_VK_GPU_LOCAL_PLACEMENT=default|device_local|uncached` overrides the memory type of the GPU-local buffer class,
+  which holds the buffers every accessor of which is a GPU stage of the schedule (`runtime/placement.hpp`; the tree
+  app now declares its buffers like cifar does). [Unset: `uncached` on the Pixel 7a's Mali-G710 (a whole tree GPU
+  chunk -7 %, cifar-dense and -sparse -3 %), host-cached elsewhere. The tree input points are declared as weights:
+  written once at construction, then only read by stage 1.]
 - `BT_VK_BOUNDARY_PLACEMENT=default|device_local|uncached` overrides the memory type of the boundary class (what
   `Engine::get_mr()` returns: every buffer of an AppData built without buffer classes, the tree app's, and the buffers
   a CPU chunk touches), to measure the host cache maintenance of buffers no CPU stage reads. An experiment knob.
@@ -191,8 +196,12 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
 - `BT_VK_PHASES=1` times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration
   first; `bm-phases-{tree,cifar-dense,cifar-sparse}-vk` turns it on and prints them per chunk, with the bytes the
   flush and invalidate walk and how the shaders use them (`SPDLOG_LEVEL=debug` lists the bound buffers). [Off.]
-- `BT_GPU_THREAD_CORES=<id>[,<id>...]` (`bm-gen-logs-*-vk` only) pins the thread that drives a Vulkan GPU chunk; the
-  runtime pins OMP chunks to their tier but not this thread. [Unset: left to the OS.]
+- `BT_GPU_THREAD_CORES=none|auto|<id>[,<id>...]` decides where the thread that drives a Vulkan GPU chunk (records,
+  flushes, submits, waits, invalidates) runs (`runtime/gpu_host_thread.hpp`; OMP chunks are pinned to their tier,
+  this thread is not). `<ids>` pin it to exactly those cores; `auto` picks a medium or big core tier no CPU chunk of
+  the schedule uses (medium first; none free: unpinned; never a little core). [Unset: the OS places it. Pinning
+  measured slower on the Pixel 7a (+3..+13 %) and unstable on the Samsung (-2..-43 %, runs 2x apart), so it is
+  opt-in; see `2026-10-16-vk-data-flow-fixes.md`.]
 - The solver's `allow_gpu_multi_chunk` (`02_gen_schedule_merged.py --allow-gpu-multi-chunk`) lets z3 give the GPU
   several chunks, priced as their sum. [Off: one chunk per PU.] `optimizer/tests/test_gpu_multi_chunk.py` (`uv run
   pytest -q optimizer`) checks both modes; `PipelineE2EVk.ThreeVulkanChunksAlternating` (`test-pipeline-e2e-vk`) runs
