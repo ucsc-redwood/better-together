@@ -313,6 +313,73 @@ Samsung, cifar-dense (ms), A = 368a884, B = PX 4. The Samsung takes the unchange
 - The conv-output hashes of both apps (5 convs x synthetic / real weights) on the Samsung are identical between
   368a884 and this tree (20 of 20).
 
+### Sparse conv, output blocking (D2.1, tasks 4.1-4.2): **shipped, PX = 4**
+
+The Mali path (`main_mali`) computes PX = 4 adjacent outputs of one output channel per invocation. It
+decodes each nonzero once, loads its weight once, and feeds the 4 contiguous inputs of that tap. A tap
+row in the padded border is skipped, and the columns outside the map are masked. The previous kernel's
+`row_sum` (the subgroup-uniform fast path and the per-lane fallback) stays the subgroup >= 32 path.
+
+`malioc` (Mali-G710, `-S 0=16`):
+
+| variant | work registers | occupancy | stack | A / LS |
+|---|---|---|---|---|
+| previous (per-output walk) | 26 | 100 % | none | 7.49 / 29.00 |
+| PX 2 | 22 | 100 % | none | 2.91 / 9.00 |
+| PX 4 | 24 | 100 % | none | 3.50 / 13.00 |
+| PX 8 | 30 | 100 % | none | 4.69 / 21.00 |
+
+The previous kernel's total counts its 4x-unrolled fast loop and the fallback loop. The new path has one
+loop that handles PX outputs per nonzero.
+
+Phone A/B, A = previous (8bd33e4), B / C / D = PX 2 / 4 / 8. Pixel 7a, cifar-sparse (ms):
+
+| stage | A median (min-max) ms | B median (min-max) ms | C median (min-max) ms | D median (min-max) ms | B vs A | C vs A | D vs A |
+|---|---|---|---|---|---|---|---|
+| 1 | 20.298 (19.447-20.305, n=3x45) | 18.187 (18.181-18.189, n=3x47) | 17.065 (17.037-17.073, n=3x58) | 18.267 (18.239-18.302, n=3x45) | -10.4 % | -15.9 % | -10.0 % |
+| 2 | 4.479 (4.467-4.532, n=3x447) | 4.470 (4.462-4.518, n=3x225) | 4.464 (4.462-4.537, n=3x226) | 4.484 (4.463-4.542, n=3x281) | -0.2 % | -0.3 % | +0.1 % |
+| 3 | 181.350 (181.335-181.359, n=3x5) | 115.658 (115.644-115.695, n=3x8) | 80.330 (80.309-80.398, n=3x12) | 90.106 (89.987-92.638, n=3x11) | -36.2 % | -55.7 % | -50.3 % |
+| 4 | 3.435 (3.416-3.504, n=3x642) | 3.519 (3.368-3.589, n=3x640) | 3.545 (3.401-3.764, n=3x643) | 3.415 (3.387-3.428, n=3x642) | +2.4 % | +3.2 % | -0.6 % |
+| 5 | 283.558 (283.323-284.577, n=3x3) | 175.887 (175.421-175.948, n=3x5) | 128.505 (128.432-128.926, n=3x7) | 148.073 (147.683-148.121, n=3x6) | -38.0 % | -54.7 % | -47.8 % |
+| 6 | 398.662 (398.244-398.689, n=3x2) | 249.452 (249.083-249.760, n=3x3) | 183.689 (183.291-183.960, n=3x5) | 216.609 (216.527-218.126, n=3x4) | -37.4 % | -53.9 % | -45.7 % |
+| 7 | 242.437 (242.277-242.502, n=3x4) | 148.925 (148.753-149.148, n=3x6) | 110.735 (110.531-110.841, n=3x9) | 134.761 (134.341-135.721, n=3x7) | -38.6 % | -54.3 % | -44.4 % |
+| 8 | 1.201 (1.172-1.208, n=3x1949) | 1.187 (1.185-1.204, n=3x1869) | 1.209 (1.193-1.269, n=3x1881) | 1.205 (1.200-1.264, n=3x1896) | -1.1 % | +0.7 % | +0.4 % |
+| 9 | 26.902 (26.890-26.923, n=3x37) | 26.878 (26.851-26.904, n=3x33) | 26.883 (26.843-26.892, n=3x33) | 26.902 (26.896-26.918, n=3x34) | -0.1 % | -0.1 % | -0.0 % |
+| 10 | 27.216 (27.189-27.253, n=3x36) | 27.158 (27.153-27.219, n=3x36) | 27.199 (27.180-27.258, n=3x36) | 27.234 (27.197-27.242, n=3x36) | -0.2 % | -0.1 % | +0.1 % |
+| 11 | 1.180 (1.159-1.244, n=3x1179) | 1.198 (1.015-1.228, n=3x1035) | 1.185 (1.182-1.244, n=3x1068) | 1.228 (1.179-1.234, n=3x1287) | +1.5 % | +0.4 % | +4.1 % |
+| sum | 1190.719 | 772.520 | 584.808 | 672.284 | -35.1 % | -50.9 % | -43.5 % |
+
+Samsung, cifar-sparse (ms), A = 8bd33e4, B = PX 4 (wide path unchanged):
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 4.102 (4.102-4.103, n=3x243) | 4.617 (4.102-4.620, n=3x243) | +12.6 % |
+| 2 | 2.397 (2.389-2.412, n=3x699) | 2.397 (2.369-2.400, n=3x690) | -0.0 % |
+| 3 | 39.268 (35.340-40.740, n=3x26) | 39.773 (38.727-43.201, n=3x26) | +1.3 % |
+| 4 | 1.841 (1.828-1.865, n=3x1308) | 1.836 (1.828-1.843, n=3x1345) | -0.3 % |
+| 5 | 70.452 (60.190-82.499, n=3x14) | 67.871 (65.209-78.342, n=3x14) | -3.7 % |
+| 6 | 94.720 (84.315-97.294, n=3x10) | 108.510 (93.673-113.011, n=3x6) | +14.6 % |
+| 7 | 57.100 (55.069-62.909, n=3x15) | 58.232 (54.313-65.648, n=3x15) | +2.0 % |
+| 8 | 2.677 (2.667-2.694, n=3x1176) | 2.647 (2.645-2.702, n=3x1204) | -1.1 % |
+| 9 | 10.051 (10.044-10.052, n=3x99) | 10.053 (10.052-10.054, n=3x98) | +0.0 % |
+| 10 | 10.046 (10.038-10.058, n=3x98) | 10.035 (10.034-10.037, n=3x98) | -0.1 % |
+| 11 | 1.153 (1.152-1.179, n=3x2000) | 1.156 (1.153-1.159, n=3x2000) | +0.3 % |
+| sum | 293.808 | 307.127 | +4.5 % |
+
+**Gate: passed for PX 4.**
+- On the Pixel, stages 3 / 5 / 6 / 7 are -55.7 / -54.7 / -53.9 / -54.3 %. The new spreads (80.31-80.40 /
+  128.43-128.93 / 183.29-183.96 / 110.53-110.84 ms) lie entirely below the previous ones.
+- Stage 1 is -15.9 %, so no conv stage is slower. The app sum is 1190.7 → 584.8 ms (-51 %).
+- PX 8 is slower than PX 4 on every conv. Its 30 registers still give full occupancy, so the likely cause is
+  more masked loads per tap at the 8-wide maps, where one tile covers a whole row. PX 2 gains less.
+- On the Samsung, conv medians read +12.6 / +1.3 / -3.7 / +14.6 / +2.0 % for stages 1/3/5/6/7. Every spread
+  overlaps the previous one. Stage 1's 4.10 / 4.62 ms are the two values the Baseline saw in a single binary,
+  and stage 6's spread (93.7-113.0 vs 84.3-97.3 ms) is within the Baseline's identical-arm medians 100.0
+  vs 109.4 ms. So they are unchanged within noise.
+- The specialized and optimized SPIR-V at 64 and 32 is instruction-identical to 8bd33e4's. At 64 it is also
+  the same 717-instruction multiset as the original shader of 62dfb81, before `row_sum` was extracted. The
+  Samsung conv-output hashes of 8bd33e4 and this tree match, 20/20.
+
 ## Open Questions
 
 - ~~Whether Arm Performance Studio can be installed on the build box (licence acceptance, offline

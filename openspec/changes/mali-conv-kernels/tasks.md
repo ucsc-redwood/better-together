@@ -109,8 +109,28 @@ Gates used below:
 
 ## 4. Sparse conv: output blocking (D2.1)
 
-- [ ] 4.1 On the sparse Mali path, compute `PX` adjacent output pixels per invocation, decoding each nonzero and loading its weight once for all `PX` inputs, with a masked tail. Verify: `SparseConvK3S1P1` (6x6, 7x5, 8x8, empty and border-only rows) and `test-cifar-sparse-vk` (synthetic and real weights) pass on the Pixel, and local and rocky correctness are green.
-- [ ] 4.2 Run the phone A/B for cifar-sparse and apply the ship gate. Verify: design.md records the per-stage table for both phones and the decision.
+- [x] 4.1 On the sparse Mali path, compute `PX` adjacent output pixels per invocation, decoding each nonzero and loading its weight once for all `PX` inputs, with a masked tail. Verify: `SparseConvK3S1P1` (6x6, 7x5, 8x8, empty and border-only rows) and `test-cifar-sparse-vk` (synthetic and real weights) pass on the Pixel, and local and rocky correctness are green.
+  - *Evidence:* `new_cifar_sparse_conv2d_k3s1p1.comp` `main_mali()`, entered when `SUBGROUP_SIZE < 32`. One
+    invocation is (b, out_c, oh, ow/PX rounded up). Per nonzero: one `col_idx` and one weight load and one decode, then
+    `PX` guarded input loads. A tap row in the padded border is skipped, and the writes are masked for `ow0 + j >= W`.
+    `kSparseConvMaliPixels = 4`. The subgroup >= 32 code (`row_sum`) is unchanged.
+    - Pixel 7a: `test-cifar-sparse-vk` 17/17 synthetic and 17/17 real weights, `SparseConvK3S1P1` 6x6 / 8x8 / 7x5 with
+      the empty and the border-only rows included. The PX 2 and PX 8 builds (scratch worktree, PX and contract both
+      changed) pass `SparseConvK3S1P1.*:*Diff*` 15/15 on the Pixel.
+    - Local: `test-cifar-sparse-vk` 17/17, `ctest --test-dir build/pc -L omp` 10/10.
+    - Rocky correctness: kiss 30, cifar-dense 16 + 16, cifar-sparse 17 + 17.
+- [x] 4.2 Run the phone A/B for cifar-sparse and apply the ship gate. Verify: design.md records the per-stage table for both phones and the decision.
+  - *Evidence:* the Pixel ran 4 arms interleaved (8bd33e4 / PX 2 / PX 4 / PX 8, 3 rounds, 20 s cooldown, no foreign
+    process on the phone before any run) and the Samsung 8bd33e4 vs PX 4. The tables are in design.md
+    "Measured decisions".
+    - Pixel 7a medians, previous → PX 4: stage 1 20.30 → 17.07, 3 181.35 → 80.33, 5 283.56 → 128.51, 6 398.66 → 183.69,
+      7 242.44 → 110.74 ms (-16 / -56 / -55 / -54 / -54 %), with non-overlapping spreads. App sum 1190.7 → 584.8 ms
+      (-51 %). PX 2: -36..-39 %, PX 8: -44..-50 % on the big four.
+    - **Gate passed → the PX 4 Mali branch is enabled.**
+    - Samsung: every conv spread overlaps the previous one, within the Baseline's identical-binary noise (stage 1
+      bimodal 4.10 / 4.62 ms; stage 6 +14.6 % against a Baseline identical-arm gap of +9.3 %).
+    - Outputs: hashes 20/20 identical to 8bd33e4. The specialized wide-path SPIR-V is identical to 8bd33e4's at 64 and 32.
+    - Phone gate on both phones green (kiss 29 + 1 skip, tree 18, cifar-dense 16, cifar-sparse 17, plus real weights).
 
 ## 5. Shared-memory staging (D2.2, D2.3), each kept only if it adds beyond group 3 / 4
 
