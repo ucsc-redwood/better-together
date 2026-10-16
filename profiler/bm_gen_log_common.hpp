@@ -22,6 +22,7 @@
 
 #include "platform/registry/device_registry.hpp"
 #include "runtime/config_reader.hpp"
+#include "runtime/gpu_host_thread.hpp"
 #include "runtime/placement.hpp"
 #include "runtime/schedule_source.hpp"
 
@@ -38,26 +39,6 @@ namespace bt_gen_log {
 // BT_VK_INFLIGHT items in flight (design D3); any other backend runs the plain synchronous
 // worker. With a logger, each item's time in the chunk is ticked (worker_with_record's
 // start/end ticks; for Vulkan at submit and at completion).
-// Experiment hook: BT_GPU_THREAD_CORES=<id>[,<id>...] pins the thread that drives a Vulkan GPU
-// chunk. Unset, the thread is left to the OS scheduler (which may put it on a little core,
-// where the host cache maintenance around each submission runs ~3x slower on a Pixel 7a).
-inline void pin_gpu_thread_from_env() {
-  const char* env = std::getenv("BT_GPU_THREAD_CORES");
-  if (env == nullptr || *env == '\0') return;
-  cpu_set_t set;
-  CPU_ZERO(&set);
-  for (const char* c = env; *c != '\0';) {
-    char* next = nullptr;
-    const long id = std::strtol(c, &next, 10);
-    if (next == c) break;
-    CPU_SET(static_cast<int>(id), &set);
-    c = *next == ',' ? next + 1 : next;
-  }
-  if (sched_setaffinity(0, sizeof(set), &set) != 0) {
-    spdlog::warn("BT_GPU_THREAD_CORES={}: sched_setaffinity failed", env);
-  }
-}
-
 template <class Disp>
 constexpr bool kHasSequences = requires(Disp& d) { d.make_seq(); };
 
@@ -71,6 +52,7 @@ static std::thread gpu_chunk_thread(Disp& disp,
                                     const size_t n_items,
                                     const bool is_last,
                                     const int chunk_id,
+                                    const std::vector<int>& host_cores,
                                     Logger<kNumToProcess>* logger) {
   const auto seq = disp.make_seq();
   std::function<uint64_t(AppDataT*)> submit = [&disp, seq, start, end](AppDataT* app) {
@@ -92,9 +74,10 @@ static std::thread gpu_chunk_thread(Disp& disp,
                       n_items,
                       is_last,
                       depth = vk_inflight_depth(),
+                      host_cores,
                       on_submit = std::move(on_submit),
                       on_complete = std::move(on_complete)] {
-    pin_gpu_thread_from_env();
+    bt::pin_gpu_host_thread(host_cores);
     inflight_worker<QueueT, AppDataT>(
         q_in, q_out, submit, complete, n_items, is_last, depth, on_submit, on_complete);
   });
@@ -109,6 +92,7 @@ static std::thread gpu_chunk_thread(Disp& disp,
                                     const size_t n_items,
                                     const bool is_last,
                                     const int chunk_id,
+                                    const std::vector<int>& host_cores,
                                     Logger<kNumToProcess>* logger) {
   std::function<void(AppDataT*)> fn = [&disp, start, end](AppDataT* app) {
     disp.dispatch_multi_stage(*app, start, end);
@@ -140,6 +124,7 @@ static void warmup(const Schedule& schedule,
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
 
   constexpr size_t num_warmup_items = 5;
+  const std::vector<int> host_cores = bt::gpu_host_cores(schedule, gpu_em);
   std::vector<std::thread> threads;
   for (size_t chunk_id = 0; chunk_id < n_chunks; ++chunk_id) {
     QueueT& q_in = queues[chunk_id];
@@ -158,6 +143,7 @@ static void warmup(const Schedule& schedule,
                                          num_warmup_items,
                                          is_last,
                                          static_cast<int>(chunk_id),
+                                         host_cores,
                                          nullptr));
     } else {  // kOMP (the warmup is constructed with only gpu_em + kOMP chunks)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
@@ -189,6 +175,7 @@ static void run_schedule(const Schedule& schedule,
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
 
   Logger<kNumToProcess> logger;
+  const std::vector<int> host_cores = bt::gpu_host_cores(schedule, gpu_em);
   std::vector<std::thread> threads;
   for (size_t chunk_id = 0; chunk_id < n_chunks; ++chunk_id) {
     QueueT& q_in = queues[chunk_id];
@@ -207,6 +194,7 @@ static void run_schedule(const Schedule& schedule,
                                          kNumToProcess,
                                          is_last,
                                          static_cast<int>(chunk_id),
+                                         host_cores,
                                          &logger));
     } else {  // kOMP (wrong-backend GPU chunks are filtered before we get here)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);

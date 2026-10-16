@@ -37,9 +37,10 @@
 
 #include "platform/registry/device_registry.hpp"  // get_cores_by_type, ProcessorType
 #include "runtime/app_traits.hpp"                 // AppTraits, BtRuntimeApp
-#include "runtime/pipeline.hpp"                   // make_dataset, worker
-#include "runtime/placement.hpp"                  // make_placed_dataset
-#include "runtime/schedule.hpp"  // Schedule, ExecutionModel, get_processor_type_from_chunk_config
+#include "runtime/gpu_host_thread.hpp"
+#include "runtime/pipeline.hpp"   // make_dataset, worker
+#include "runtime/placement.hpp"  // make_placed_dataset
+#include "runtime/schedule.hpp"   // Schedule, ExecutionModel, get_processor_type_from_chunk_config
 
 namespace bt_pipe_test {
 
@@ -115,6 +116,9 @@ inline void run_pipeline(const Schedule& sched,
   std::vector<AppDataTArg*> completed;
   std::mutex completed_mu;
 
+  // Where the thread that drives a Vulkan GPU chunk runs (runtime/gpu_host_thread.hpp).
+  const std::vector<int> host_cores = bt::gpu_host_cores(sched, gpu_em);
+
   std::vector<std::thread> threads;
   for (size_t chunk_id = 0; chunk_id < n_chunks; ++chunk_id) {
     QueueTArg& q_in = queues[chunk_id];
@@ -143,10 +147,12 @@ inline void run_pipeline(const Schedule& sched,
               disp.complete_multi_stage(*app, start, end, *seq, ticket);
               record_completion(app);
             };
-        threads.emplace_back([&q_in, &q_out, submit, complete, n_items, is_last, depth] {
-          inflight_worker<QueueTArg, AppDataTArg>(
-              q_in, q_out, submit, complete, n_items, is_last, depth);
-        });
+        threads.emplace_back(
+            [&q_in, &q_out, submit, complete, n_items, is_last, depth, host_cores] {
+              bt::pin_gpu_host_thread(host_cores);
+              inflight_worker<QueueTArg, AppDataTArg>(
+                  q_in, q_out, submit, complete, n_items, is_last, depth);
+            });
         continue;
       }
     }
@@ -166,6 +172,13 @@ inline void run_pipeline(const Schedule& sched,
         inner(app);
         record_completion(app);
       };
+    }
+    if (em == gpu_em && !host_cores.empty()) {
+      threads.emplace_back([&q_in, &q_out, fn = std::move(fn), n_items, is_last, host_cores] {
+        bt::pin_gpu_host_thread(host_cores);
+        worker<QueueTArg, AppDataTArg>(q_in, q_out, fn, n_items, is_last);
+      });
+      continue;
     }
     threads.emplace_back(worker<QueueTArg, AppDataTArg>,
                          std::ref(q_in),
