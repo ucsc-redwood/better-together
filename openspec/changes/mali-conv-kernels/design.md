@@ -132,7 +132,124 @@ The Mali path ships per kernel, behind the spec's gate. If a technique fails the
 the previous kernel for `SUBGROUP_SIZE < 32`, as the dense kernel does today, so rollback means "do not
 enable the new branch". No data, schedule or API format changes.
 
+## Baseline
+
+Measured 2026-10-16 (task 1.2) at 9a10ea0, before any kernel change.
+
+**Method (used by every phone A/B of this change).**
+- Binaries: `bm-prof-cifar-{dense,sparse}-vk` from `cmake --preset android` (NDK r30), pushed with
+  `libc++_shared.so` to `/data/local/tmp/bt-mali` on each phone, with the real weights
+  (`saved_params/export`) in `bt-mali/weights`.
+- Run: `BT_WEIGHTS_DIR=<dir>/weights BT_PROF_SCENARIO=isolated BT_PROF_BUDGET_S=1.0 BT_PROF_ABANDON_S=5
+  BT_PROF_MAX_CELL_S=3 BT_PROF_RUN=<round> ./bm-prof-cifar-<app>-vk.<arm> --device <serial>
+  --benchmark_filter='vulkan/'`. The budget knobs are raised from their defaults (0.3 / 0.25 / 2.0 s)
+  because, with the defaults, a stage above 0.25 s is sampled once (the Pixel's sparse stage 6, ~0.4 s).
+  With these values that stage gets 2 samples and the others 3 to 2000.
+- Order: arms alternated A, B (, C) per round, 3 rounds, 20 s sleep before every run, one app at a
+  time per phone. The two phones run at the same time, each on its own adb serial.
+- Per stage: the median over the 3 rounds of each run's p50 (GPU timestamps), and the spread
+  (min-max of the three p50s). `n = runs x samples per run`.
+- Here both arms are the **same binary**, so the B-vs-A column is the run-to-run noise.
+
+**Noise.**
+- Pixel 7a: dense conv stages within 0.1 %. Sparse convs 3, 5, 6, 7 within 0.5 %. Sparse stage 1
+  within 5 %.
+- Samsung: bimodal from run to run. The same binary's dense stage 7 reads 2.14 or 2.75 ms and stage 3
+  2.35 or 3.09 ms. Sparse convs spread 10-20 %, and medians differ by up to 22 % between identical
+  arms. A Samsung "no slowdown" check can therefore only rule out changes larger than that.
+
+Pixel 7a, cifar-dense (ms):
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 7.087 (7.085-7.088, n=3x140) | 7.086 (7.085-7.087, n=3x141) | -0.0 % |
+| 2 | 0.497 (0.494-0.501, n=3x2000) | 0.496 (0.496-0.497, n=3x2000) | -0.1 % |
+| 3 | 24.451 (24.450-24.465, n=3x40) | 24.462 (24.456-24.465, n=3x36) | +0.0 % |
+| 4 | 0.385 (0.382-0.385, n=3x2000) | 0.383 (0.381-0.385, n=3x2000) | -0.6 % |
+| 5 | 36.351 (36.346-36.353, n=3x27) | 36.352 (36.348-36.358, n=3x27) | +0.0 % |
+| 6 | 48.810 (48.809-48.814, n=3x20) | 48.815 (48.811-48.824, n=3x20) | +0.0 % |
+| 7 | 32.557 (32.555-32.562, n=3x30) | 32.555 (32.551-32.567, n=3x30) | -0.0 % |
+| 8 | 0.195 (0.183-0.199, n=3x2000) | 0.196 (0.193-0.196, n=3x2000) | +0.5 % |
+| 9 | 6.854 (6.284-8.313, n=3x78) | 7.901 (6.753-8.846, n=3x104) | +15.3 % |
+| 10 | 6.978 (6.717-7.273, n=3x129) | 6.916 (6.766-7.957, n=3x126) | -0.9 % |
+| 11 | 0.990 (0.989-0.991, n=3x1278) | 0.879 (0.870-0.989, n=3x1282) | -11.3 % |
+| sum | 165.156 | 166.041 | +0.5 % |
+
+Pixel 7a, cifar-sparse (ms):
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 21.382 (20.311-21.973, n=3x40) | 20.322 (19.318-21.297, n=3x43) | -5.0 % |
+| 2 | 4.483 (4.476-4.526, n=3x391) | 4.534 (4.476-4.534, n=3x390) | +1.1 % |
+| 3 | 181.314 (181.159-181.435, n=3x5) | 181.390 (181.320-181.442, n=3x5) | +0.0 % |
+| 4 | 3.471 (3.383-3.569, n=3x640) | 3.766 (3.389-3.770, n=3x643) | +8.5 % |
+| 5 | 283.459 (283.052-283.591, n=3x3) | 282.810 (282.077-283.380, n=3x3) | -0.2 % |
+| 6 | 398.295 (397.601-400.708, n=3x2) | 399.341 (396.474-400.082, n=3x2) | +0.3 % |
+| 7 | 242.435 (242.204-242.626, n=3x4) | 242.208 (241.921-242.462, n=3x4) | -0.1 % |
+| 8 | 1.201 (1.197-1.218, n=3x1942) | 1.205 (1.192-1.211, n=3x1914) | +0.3 % |
+| 9 | 26.882 (26.879-26.917, n=3x37) | 26.885 (26.870-26.917, n=3x37) | +0.0 % |
+| 10 | 27.222 (27.171-27.248, n=3x36) | 27.224 (27.175-27.249, n=3x36) | +0.0 % |
+| 11 | 1.180 (1.167-1.227, n=3x1161) | 1.201 (1.171-1.381, n=3x1134) | +1.8 % |
+| sum | 1191.323 | 1190.886 | -0.0 % |
+
+Samsung, cifar-dense (ms):
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 0.911 (0.911-0.916, n=3x1124) | 0.909 (0.908-0.913, n=3x1103) | -0.2 % |
+| 2 | 1.300 (1.268-1.304, n=3x776) | 1.300 (1.282-1.303, n=3x833) | -0.0 % |
+| 3 | 3.088 (2.348-3.089, n=3x511) | 3.084 (3.083-3.393, n=3x514) | -0.1 % |
+| 4 | 0.959 (0.953-0.982, n=3x1020) | 0.970 (0.966-0.980, n=3x1133) | +1.2 % |
+| 5 | 2.446 (2.445-2.453, n=3x451) | 2.703 (2.448-3.136, n=3x319) | +10.5 % |
+| 6 | 3.377 (3.373-3.377, n=3x327) | 3.375 (3.374-3.375, n=3x327) | -0.0 % |
+| 7 | 2.747 (2.144-2.748, n=3x417) | 2.143 (2.142-2.752, n=3x369) | -22.0 % |
+| 8 | 0.321 (0.317-0.324, n=3x2000) | 0.325 (0.322-0.326, n=3x2000) | +1.3 % |
+| 9 | 2.827 (2.019-2.896, n=3x345) | 2.848 (2.047-2.866, n=3x355) | +0.7 % |
+| 10 | 2.047 (2.046-2.990, n=3x337) | 2.731 (2.048-2.846, n=3x349) | +33.4 % |
+| 11 | 0.680 (0.624-0.681, n=3x1411) | 0.663 (0.643-0.668, n=3x1404) | -2.5 % |
+| sum | 20.703 | 21.052 | +1.7 % |
+
+Samsung, cifar-sparse (ms):
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 4.619 (4.104-4.620, n=3x175) | 4.103 (4.103-4.619, n=3x207) | -11.2 % |
+| 2 | 2.421 (2.411-2.440, n=3x695) | 2.433 (2.432-2.434, n=3x698) | +0.5 % |
+| 3 | 36.972 (34.033-43.383, n=3x23) | 39.050 (34.979-40.928, n=3x28) | +5.6 % |
+| 4 | 1.844 (1.830-1.865, n=3x1342) | 1.830 (1.827-1.838, n=3x1316) | -0.8 % |
+| 5 | 66.814 (66.076-74.688, n=3x15) | 69.960 (61.361-78.313, n=3x12) | +4.7 % |
+| 6 | 100.042 (100.020-105.674, n=3x8) | 109.362 (87.067-111.814, n=3x10) | +9.3 % |
+| 7 | 62.804 (55.044-62.852, n=3x17) | 56.848 (53.507-66.717, n=3x16) | -9.5 % |
+| 8 | 2.697 (2.695-2.698, n=3x1181) | 2.695 (2.688-2.696, n=3x1208) | -0.1 % |
+| 9 | 10.033 (10.024-10.073, n=3x98) | 10.038 (10.022-10.041, n=3x95) | +0.0 % |
+| 10 | 10.043 (10.039-10.044, n=3x99) | 10.040 (10.024-10.043, n=3x99) | -0.0 % |
+| 11 | 1.155 (1.154-1.156, n=3x2000) | 1.155 (1.152-1.155, n=3x2000) | +0.1 % |
+| sum | 299.442 | 307.513 | +2.7 % |
+
+The Pixel's sparse convs are slower than the proposal's table (181 vs 166 ms for stage 3, and so on)
+because this method uses the real pruned weights, whose CSR rows are longer for some channels than the
+synthetic ~25 % pattern. Every A/B of this change uses the real weights in both arms.
+
+**`malioc` (Mali-G710, driver r56p1, `-S 0=16` where the shader has spec constant 0), current kernels:**
+
+| shader path | work registers | occupancy | stack (spills) | A / LS cycles (static total) | bound |
+|---|---|---|---|---|---|
+| dense, `SUBGROUP_SIZE < 32` (`accumulate_branchy`) | 64 | 50 % | none | 4.21 / 26.00 | LS |
+| dense, `SUBGROUP_SIZE >= 32` (for comparison, `-S 0=64`) | 64 | 50 % | none | 6.20 / 47.00 | LS |
+| sparse (one path for every subgroup size today) | 26 | 100 % | none | 7.49 / 29.00 | LS |
+
+Both Mali paths are load/store-bound by a factor of 4-6 over arithmetic. This matches the
+"each lane re-loads the same weights" reading of the Context section. The figures are static totals
+over the program, with the loop body counted once, so they compare variants of one shader and are not
+cycles per output. The dense path already runs at half occupancy (64 work registers).
+
 ## Open Questions
 
-- Whether Arm Performance Studio can be installed on the build box (licence acceptance, offline
-  install). It does not change the approach (D5).
+- ~~Whether Arm Performance Studio can be installed on the build box (licence acceptance, offline
+  install). It does not change the approach (D5).~~ **Answered (task 1.1):** nothing has to be installed.
+  Arm Performance Studio 2026.5 is already on the build box, extracted under
+  `~/tools/arm-performance-studio/Arm_Performance_Studio_2026.5/` on 2026-09-26, before this change.
+  `mali_offline_compiler/malioc --version` prints `Mali Offline Compiler v2026.5.0 (Build 922df8)`. This
+  change installs nothing and accepts no licence. It calls that binary by its path, with
+  `-c Mali-G710 --vulkan` on the glslc output (the build's flags: `--target-env=vulkan1.3 -O`), and
+  `-S 0=16` to specialize the Mali path.
