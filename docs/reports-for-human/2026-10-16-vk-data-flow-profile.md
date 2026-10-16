@@ -5,8 +5,9 @@ bottleneck, and where? **Short answer.** There is no explicit transfer to optimi
 buffer, no `vkCmdCopy`; every buffer is host-visible, persistently mapped memory). The data cost is
 **host cache maintenance** (`vkFlushMappedMemoryRanges` before each submit, `vkInvalidate...` after
 each wait) and **where the thread that drives the GPU runs**. Both matter a lot on the Pixel 7a
-(Mali) with the tree app: the GPU chunk spends 51 % of its wall time on cache maintenance and the
-GPU itself only 35 %. On the Samsung (Xclipse) and for both cifar apps they do not matter: the cifar
+(Mali) with the tree app: of the 42.6 ms a whole GPU chunk (stages 1-7) takes, 11.4 ms (27 %) is
+cache maintenance and 23.5 ms (55 %) GPU compute; the rest is start/wake latency, recording and a host
+read-back between two submissions. On the Samsung (Xclipse) and for both cifar apps they do not matter: the cifar
 chunks are 92-99 % GPU compute, so there the bottleneck is the shaders.
 
 Everything was measured on the two phones, **not on rocky** (instruction: no profiler on rocky). The
@@ -32,6 +33,13 @@ flush/invalidate cost about 0 there.
   pinned to their core tier, **the thread that drives a GPU chunk is not pinned**.
 
 ## 2. Phases of a GPU chunk (`bm-phases-*-vk`, 100 submissions, medians, host thread unpinned)
+
+> **Correction (found while preparing the follow-up changes).** `bm-phases` prints the phases of the
+> *last submission* of a chunk. The tree app cannot run a chunk that crosses stage 3|4 as one
+> submission: stage 4's dispatch size depends on `n_unique`, which the host reads back from
+> `u_out_idx` after stage 3 (`submit_multi_stage` in `apps/tree/vulkan/dispatchers.cpp`). So the
+> tree rows labelled **1-7 below are stages 4-7**, the second of two submissions; the first (1-3) is
+> in the table after the next one. The whole-chunk time is `dispatch_wall`.
 
 `maint` = flush + invalidate (the invalidate time also holds the timestamp read-back). `touched` =
 MiB the two walk. On the Pixel the cifar weights must be in coherent memory (flushing 129 MiB took
@@ -71,10 +79,29 @@ Reading it:
 * `wait - GPU` (start latency plus wake-up) is about 20 % of a short tree chunk (Pixel 8.0 vs 6.4 ms,
   Samsung 3.0 vs 2.1 ms). Not much to gain there.
 
+### The tree chunk 1-7 is two submissions (Pixel 7a / Samsung, medians, ms)
+
+| device | host thread | whole chunk | batch 1-3: wall (flush + invalidate, GPU) | batch 4-7: wall (flush + invalidate, GPU) |
+|---|---|---|---|---|
+| Pixel 7a | unpinned | **42.63** | 27.59 (3.39 + 3.49, 17.83) | 12.20 (2.23 + 2.29, 5.70) |
+| Pixel 7a | big cores | 29.90 | 19.68 (1.09 + 1.25, 15.64) | 10.39 (1.34 + 1.65, 5.72) |
+| Samsung | unpinned | 9.66 | 4.42 (0.00 + 0.46, 2.65) | 2.28 (0.00 + 0.06, 1.44) |
+| Samsung | big cores | 8.97 | 5.38 (0.00 + 0.41, 3.84) | 3.87 (0.00 + 0.41, 2.12) |
+
+* Pixel, unpinned: GPU 23.5 ms (55 %), flush + invalidate 11.4 ms (27 %), the remaining 7.7 ms
+  (18 %) is start/wake latency, recording and the host read-back between the submissions. Pinned to
+  the big cores the chunk is 30 % shorter.
+* The GPU time of batch 1-3 inside the chunk (17.8 ms) is about twice the sum of its stages timed
+  alone (9.5 ms): after the host read-back the GPU has been idle and runs at a lower clock (the DVFS
+  effect of the vk-engine-runtime design, D1).
+* The cost of maintenance depends on the cache state, not only on the range: the same 15.5 MiB cost
+  2.2 + 2.3 ms when batch 4-7 runs alone and 4.4 + 4.5 ms inside the whole chunk, where batch 1-3
+  has just worked on the neighbouring buffers.
+
 ## 3. The core the host thread runs on changes the maintenance cost 3x
 
-Pixel 7a, tree stages 1-7, 100 submissions, process pinned with `taskset` (cores 0-3 little, 4-5
-medium, 6-7 big):
+Pixel 7a, tree chunk 1-7 (the columns are the last submission, stages 4-7), 100 submissions,
+process pinned with `taskset` (cores 0-3 little, 4-5 medium, 6-7 big):
 
 | host thread on | flush ms | invalidate ms | chunk wall ms | GPU ms |
 |---|---|---|---|---|
@@ -84,7 +111,8 @@ medium, 6-7 big):
 | big 6-7 | 1.48 | 1.68 | 10.66 | 5.76 |
 
 `bm-phases` blocks while the GPU runs; the likely reason is that the scheduler then parks its thread
-on a little core (the unpinned row is as slow as the little-core row). In the
+on a little core (the unpinned row is as slow as the little-core row). Whole chunk: 42.6 ms unpinned,
+29.9 ms on the big cores. In the
 real pipeline the GPU thread is not pinned either (section 1), so the same can happen there.
 
 ## 4. Pipeline: where the GPU-driving thread runs (`bm-gen-logs-*-vk`, `BT_GPU_THREAD_CORES`)
@@ -110,7 +138,19 @@ steady state (ticks of the logger's counter, tasks 20-99; 3 rounds interleaved, 
 ## 5. What the maintenance is worth: boundary buffers in coherent memory
 
 `BT_VK_BOUNDARY_PLACEMENT` (new experiment knob) moves the boundary class to a coherent memory type.
-Tree stages 1-7 as one GPU chunk, host thread on big cores, 100 submissions, 3 rounds interleaved:
+Tree stages 1-7 as one GPU chunk, host thread on big cores, 100 submissions, 3 rounds interleaved.
+`whole` is the whole chunk (both submissions); the other columns are the last submission (4-7):
+
+| device | placement | whole ms | last-submission wall ms | flush ms | invalidate ms | GPU ms |
+|---|---|---|---|---|---|---|
+| Pixel 7a | default (host-cached) | 29.97 | 10.55 | 1.48 | 1.64 | 5.76 |
+| Pixel 7a | uncached | **20.78 (-31 %)** | 6.50 | 0.00 | 0.04 | 4.74 |
+| Pixel 7a | device_local | **20.57 (-31 %)** | 6.44 | 0.00 | 0.04 | 4.66 |
+| Samsung | default | 9.18 | 3.75 | 0.00 | 0.41 | 2.11 |
+| Samsung | uncached | 9.03 (-2 %) | 3.64 | 0.00 | 0.40 | 2.11 |
+| Samsung | device_local | 9.01 (-2 %) | 3.64 | 0.00 | 0.40 | 2.11 |
+
+The older per-submission table follows (same data, last submission only):
 
 | device | placement | wall ms | flush ms | invalidate ms | GPU ms | wall vs default |
 |---|---|---|---|---|---|---|
@@ -121,8 +161,9 @@ Tree stages 1-7 as one GPU chunk, host thread on big cores, 100 submissions, 3 r
 | Samsung | uncached | 3.64 | 0.00 | 0.40 | 2.11 | -3 % |
 | Samsung | device_local | 3.64 | 0.00 | 0.40 | 2.11 | -3 % |
 
-On the Pixel the GPU time itself drops 18 % as well. The Samsung does not change (already coherent).
-Against the unpinned 17.6 ms of section 3, the chunk is 63 % shorter.
+On the Pixel the GPU time of the last submission drops 18 % as well. The Samsung does not change
+(already coherent). Together with pinning to the big cores (section 3) the whole chunk goes from
+42.6 ms to 20.8 ms.
 
 Caveat: this moves **all** boundary buffers, including any a CPU chunk reads, so it is a measurement,
 not a setting for schedules with CPU chunks (CPU reads of uncached memory are slow). The right
@@ -144,10 +185,11 @@ stages each buffer declares.)
 
 | # | change | evidence | expected gain | risk |
 |---|---|---|---|---|
-| 1 | Give the tree app buffer classes (`PlaceBuffer`) and put `gpu_local` in coherent memory on devices whose default is non-coherent | section 5: Pixel tree GPU chunk -38 % (GPU time -18 % too); Samsung neutral | tree on Pixel: about 4 ms per GPU chunk (10.55 -> 6.50 ms with the thread on a big core) | must measure per device; CPU never touches these buffers by construction of the class rules; uncached CPU access is slow if a rule is wrong |
+| 1 | Give the tree app buffer classes (`PlaceBuffer`) and put `gpu_local` in coherent memory on devices whose default is non-coherent | section 5: Pixel tree GPU chunk -38 % (GPU time -18 % too); Samsung neutral | tree on Pixel: whole chunk 29.97 -> 20.78 ms (-31 %) with the thread on a big core | must measure per device; CPU never touches these buffers by construction of the class rules; uncached CPU access is slow if a rule is wrong |
 | 2 | Pin, or at least steer, the thread that drives a GPU chunk (a medium core), and say so in the schedule | sections 3-4: +71 % if it lands on a little core (Pixel tree); -26 % when moved off the big cores (Samsung tree) | pipeline-level, up to 26 % on Samsung tree | which core is device-specific; needs a field in `devices/*.json` or the schedule |
 | 3 | Direction-aware maintenance: no invalidate for buffers no shader writes, no flush for write-only buffers, none for buffers that never leave the chunk | section 6: today everything is walked whole | recovers part of #1 on devices where #1 is not enough; little on top of #1 | needs qualifiers on the 29 tree bindings and per-buffer liveness from the app |
-| 4 | Nothing to do: submission overhead (record/submit <= 0.7 ms), wake-up latency, cifar data flow | section 2 | - | - |
+| 4 | Remove the host round trip at stage 3|4: write `n_unique` on the GPU and size stage 4 with `vkCmdDispatchIndirect`, so the chunk is one submission | section 2: two submissions, 2.8 ms of gap on the Pixel plus a second submit/wait; the GPU idles and its clock drops (batch 1-3 takes 17.8 ms inside the chunk vs 9.5 ms of stages alone) | several ms per chunk on the Pixel; not measured, an estimate | changes the tree dispatcher and the shader contract of stage 4; not in this study's scope |
+| 5 | Nothing to do: record/submit (<= 0.7 ms per submission), wake-up latency, cifar data flow | section 2 | - | - |
 
 Largest numbers outside data flow: the Pixel's cifar-sparse takes 1069 ms per item (Samsung 224 ms);
 its conv shaders (about 165-330 ms each) are untouched by the sparse-conv fix, which relies on scalar
@@ -156,6 +198,8 @@ loads Mali lacks. That is a shader job for Mali.
 ## 8. Limits of this study
 
 * Two phones plus a coherent local GPU; no Jetson (a different memory model) and no rocky.
+* `bm-phases` reports the last submission of a chunk (corrected above); the whole-chunk figures use
+  its `dispatch_wall`, which also holds the host read-back.
 * One schedule per app in section 4; phone clocks and temperature are not controlled (runs are
   interleaved, 15-20 s apart, and spreads are in the raw numbers above).
 * Logger ticks in section 4 are only compared as ratios.
