@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory_resource>
 #include <random>
@@ -10,6 +11,7 @@
 
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "runtime/tests/placement_check.hpp"
 
@@ -149,6 +151,64 @@ TEST(SparseConvK3S1P1, FallbackWhenSubgroupSpansChannels) {
 TEST(SparseConvK3S1P1, FastPathWhenMapIsSubgroupMultiple) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectSparseConvMatchesReference(8);
+}
+
+// new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtFeaturesPerGroup
+// output features and kLinearBtBatchTile images per workgroup. The model's layers are
+// multiples of both (4096 and 10 features at N = 16 or 128); this shape is not: an odd
+// output-feature count, a ragged last batch tile and a ragged last input chunk.
+TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  constexpr int kN = 21, kIn = 100, kOut = 37;  // 25 input vec4s: less than one 32-vec4 chunk
+  std::mt19937 rng(114514);
+  std::uniform_real_distribution<float> val(-1.0f, 1.0f);
+
+  kiss_vk::Engine engine;
+  auto* mr = engine.get_mr();
+  std::pmr::vector<float> in(static_cast<size_t>(kN) * kIn, 0.0f, mr);
+  std::pmr::vector<float> weight(static_cast<size_t>(kOut) * kIn, 0.0f, mr);
+  std::pmr::vector<float> bias(kOut, 0.0f, mr);
+  std::pmr::vector<float> out(static_cast<size_t>(kN) * kOut, -1.0f, mr);
+  for (auto& x : in) x = val(rng);
+  for (auto& x : weight) x = val(rng);
+  for (auto& x : bias) x = val(rng);
+
+  struct Pc {  // layout of the shader's push constants
+    int32_t N, in_features, out_features, apply_relu;
+  };
+  auto algo = engine.make_algo("new_cifar_dense_linear_bt")
+                  ->work_group_size(256, 1, 1)
+                  ->num_buffers(4)
+                  ->push_constant<Pc>()
+                  ->build();
+  auto seq = engine.make_seq();
+  seq->cmd_begin();
+  algo->record_bind(*seq,
+                    {engine.get_buffer_info(in),
+                     engine.get_buffer_info(weight),
+                     engine.get_buffer_info(bias),
+                     engine.get_buffer_info(out)});
+  algo->record_push_constants(*seq, Pc{kN, kIn, kOut, /*apply_relu=*/1});
+  algo->record_dispatch(
+      *seq,
+      {static_cast<uint32_t>(kiss_vk::div_ceil(kOut, kiss_vk::kLinearBtFeaturesPerGroup)),
+       static_cast<uint32_t>(kiss_vk::div_ceil(kN, kiss_vk::kLinearBtBatchTile)),
+       1});
+  seq->cmd_end();
+  seq->wait(seq->submit());
+
+  for (int n = 0; n < kN; ++n) {
+    for (int o = 0; o < kOut; ++o) {
+      double acc = bias[o];
+      for (int i = 0; i < kIn; ++i) {
+        acc += static_cast<double>(weight[static_cast<size_t>(o) * kIn + i]) *
+               in[static_cast<size_t>(n) * kIn + i];
+      }
+      const double want = std::max(acc, 0.0);
+      ASSERT_NEAR(out[static_cast<size_t>(n) * kOut + o], want, 1e-4 + 1e-3 * std::abs(want))
+          << "n " << n << " o " << o;
+    }
+  }
 }
 
 int main(int argc, char** argv) {

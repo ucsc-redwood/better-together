@@ -15,11 +15,20 @@ precision highp int;
 // of the workgroup, so weight traffic drops N-fold and input traffic
 // (rows-per-workgroup)-fold.
 //
+// Two changes on top of the one-row-per-feature scheme:
+//  * FPR = 2 output features per row-group: each input vec4 is read from shared memory
+//    once and feeds two weight rows (the shared-memory reads, not DRAM, were the limit).
+//  * the (x, y) workgroup grid is remapped so the batch tiles that share a weight
+//    row-group are adjacent in launch order and fetch that weight slice from L2 once.
+//    A bijection on workgroup ids; no kernel logic depends on launch order.
+//
 // Dispatcher contract (falls back to the generic shader otherwise):
 //   in_features % 4 == 0.
-//   grid.x = ceil(out_features / ROWS)
-//   grid.y = ceil(N / MAX_N) -- each workgroup handles one batch tile of up to
-//   MAX_N images (cifar-sparse runs N=128: 8 tiles; cifar-dense's N=16: 1).
+//   grid.x = ceil(out_features / kLinearBtFeaturesPerGroup)   (ROWS * FPR = 32)
+//   grid.y = ceil(N / kLinearBtBatchTile)                      (MAX_N = 16)
+//   -- the constants live in linear_bt_contract.hpp, shared by both apps' dispatchers.
+//   Each workgroup handles one batch tile of up to MAX_N images (cifar-sparse runs N=128:
+//   8 tiles; cifar-dense's N=16: 1).
 //
 // Portable GLSL: shared-memory reduction only (no subgroup ops), 12 KB shared
 // (<= the 16 KB Vulkan minimum), fixed local_size 256.
@@ -51,7 +60,8 @@ layout(push_constant) uniform Params {
 params;
 
 const int ROW_W = 16;    // lanes per output-feature row
-const int ROWS = 16;     // rows per workgroup (256 / ROW_W)
+const int ROWS = 16;     // row-groups per workgroup (256 / ROW_W)
+const int FPR = 2;       // output features per row-group: one LDS read feeds FPR weight rows
 const int CHUNK4 = 32;   // vec4s of input staged per image per iteration (128 floats)
 const int MAX_N = 16;    // accumulator registers per lane; loops over it unroll
 
@@ -62,20 +72,30 @@ void main() {
   const int tid = int(gl_LocalInvocationID.x);
   const int lane = tid % ROW_W;
   const int row = tid / ROW_W;
-  const int of = int(gl_WorkGroupID.x) * ROWS + row;
-  const bool live = of < params.out_features;
+  // Workgroups are launched x-fastest; remap the (x, y) grid so the batch tiles that share a
+  // weight row-group are ADJACENT in launch order (run concurrently, weights fetched ~once
+  // through L2 instead of once per tile).
+  const uint lin = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+  const uint wg_tile = lin % gl_NumWorkGroups.y;
+  const uint wg_rows = lin / gl_NumWorkGroups.y;
+  const int of0 = (int(wg_rows) * ROWS + row) * FPR;
+  const bool live0 = of0 < params.out_features;
+  const bool live1 = of0 + 1 < params.out_features;
+  const bool live = live0;
 
   // Batch-tile base: this workgroup handles images [nb, nb + MAX_N).
-  const int nb = int(gl_WorkGroupID.y) * MAX_N;
+  const int nb = int(wg_tile) * MAX_N;
 
   const int in_f4 = params.in_features / 4;
   // Inactive rows still walk the loop (uniform barriers); clamp their row base.
-  const int w_base = (live ? of : 0) * in_f4;
+  const int w_base0 = (live0 ? of0 : 0) * in_f4;
+  const int w_base1 = (live1 ? of0 + 1 : 0) * in_f4;
 
   // Accumulate MAX_N images unconditionally so the n-loops have constant bounds
   // (fully unrolled -> acc[] stays in registers); images >= N are staged as 0.
   float acc[MAX_N];
-  for (int n = 0; n < MAX_N; ++n) acc[n] = 0.0;
+  float accb[MAX_N];
+  for (int n = 0; n < MAX_N; ++n) { acc[n] = 0.0; accb[n] = 0.0; }
 
   for (int c4 = 0; c4 < in_f4; c4 += CHUNK4) {
     // Cooperative staging of input columns [c4, c4+CHUNK4) for the tile's images.
@@ -91,9 +111,12 @@ void main() {
     if (live) {
       for (int k = lane; k < CHUNK4; k += ROW_W) {
         if (c4 + k < in_f4) {
-          const vec4 w = weight_data4[w_base + c4 + k];
+          const vec4 w = weight_data4[w_base0 + c4 + k];
+          const vec4 w1 = weight_data4[w_base1 + c4 + k];
           for (int n = 0; n < MAX_N; ++n) {
-            acc[n] += dot(w, sh_in[n * CHUNK4 + k]);
+            const vec4 x = sh_in[n * CHUNK4 + k];
+            acc[n] += dot(w, x);
+            accb[n] += dot(w1, x);
           }
         }
       }
@@ -101,23 +124,27 @@ void main() {
     barrier();
   }
 
-  // Reduce the ROW_W lane partials of each row, four images per pass (vec4-packed).
-  for (int n0 = 0; n0 < MAX_N; n0 += 4) {
-    if (nb + n0 >= params.N) break;  // uniform (params.N, nb): all exit together
-    sh_red[tid] = vec4(acc[n0], acc[n0 + 1], acc[n0 + 2], acc[n0 + 3]);
-    barrier();
-    if (live && lane == 0) {
-      vec4 s = sh_red[row * ROW_W];
-      for (int i = 1; i < ROW_W; ++i) s += sh_red[row * ROW_W + i];
-      const float b = bias_data[of];
-      for (int m = 0; m < 4; ++m) {
-        if (nb + n0 + m < params.N) {
-          float v = s[m] + b;
-          if (params.apply_relu != 0 && v < 0.0) v = 0.0;
-          output_data[(nb + n0 + m) * params.out_features + of] = v;
+  // Reduce the ROW_W lane partials of each row, four images per pass (vec4-packed), per feature.
+  for (int f = 0; f < FPR; ++f) {
+    const int of = of0 + f;
+    for (int n0 = 0; n0 < MAX_N; n0 += 4) {
+      if (nb + n0 >= params.N) break;  // uniform (params.N, nb): all exit together
+      sh_red[tid] = (f == 0) ? vec4(acc[n0], acc[n0 + 1], acc[n0 + 2], acc[n0 + 3])
+                             : vec4(accb[n0], accb[n0 + 1], accb[n0 + 2], accb[n0 + 3]);
+      barrier();
+      if (of < params.out_features && lane == 0) {
+        vec4 s = sh_red[row * ROW_W];
+        for (int i = 1; i < ROW_W; ++i) s += sh_red[row * ROW_W + i];
+        const float b = bias_data[of];
+        for (int m = 0; m < 4; ++m) {
+          if (nb + n0 + m < params.N) {
+            float v = s[m] + b;
+            if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+            output_data[(nb + n0 + m) * params.out_features + of] = v;
+          }
         }
       }
+      barrier();
     }
-    barrier();
   }
 }

@@ -1,4 +1,6 @@
 #version 460
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
 
 precision highp float;
 precision highp int;
@@ -6,16 +8,28 @@ precision highp int;
 // 3x3 / stride-1 / pad-1 conv2d specialization (port of the CUDA k3s1p1 win) --
 // every conv in AlexNetCIFAR is this shape. The generic conv2d shader is
 // latency-bound: one accumulator dragging a serial FMA chain through C*9
-// iterations with per-tap bounds checks. Here the 3x3 taps are fully unrolled
-// with the edge masks hoisted out of the channel loop (constant per thread),
-// and each thread register-blocks OC_TILE=4 output channels: the 9 input taps
-// are loaded ONCE per input channel and reused across 4 weight rows (4x fewer
-// input loads, 4 independent FMA chains).
+// iterations with per-tap bounds checks. Here each thread register-blocks
+// OC_TILE=4 output channels: the 9 input taps are loaded ONCE per input channel
+// and reused across 4 weight rows.
+//
+// Two compile-time paths, chosen by the subgroup size (spec constant 0, set by the
+// engine; the algorithm is subgroup_size_dependent):
+//  * SUBGROUP_SIZE >= 32 (AMD-style GPUs: Radeon 780M, Xclipse; they have a scalar unit):
+//    every tap is loaded unconditionally on a clamped index (no divergent branch, no wait
+//    between taps), and when every active lane of the subgroup has the same output-channel
+//    block the weight base is made provably uniform (subgroupBroadcastFirst), so the weights
+//    load as scalar work. Any other subgroup takes the same loop with a per-lane base.
+//    Measured -52 % (780M) and -45 % (Xclipse 940) of the five convs.
+//  * SUBGROUP_SIZE < 32 (Mali, subgroup 16, no scalar unit): the previous kernel -- fully
+//    unrolled taps with hoisted edge masks and mask-guarded loads. The clamped-load form is
+//    12 % slower there (Pixel 7a), so it is not used.
 //
 // Dispatcher contract (falls back to the generic shader otherwise):
 //   R == S == 3, stride == 1, padding == 1, K % OC_TILE == 0.
 //   One invocation per (n, k/OC_TILE, p, q):
 //   grid.x = ceil(N * (K/OC_TILE) * P * Q / 256)
+
+layout(constant_id = 0) const uint SUBGROUP_SIZE = 32;  // engine-set: 16 Mali, 32/64 AMD
 
 layout(local_size_x = 256) in;
 
@@ -52,42 +66,61 @@ params;
 
 const int OC_TILE = 4;
 
-void main() {
-  const int H = params.H;
-  const int W = params.W;
+// Load at an already-clamped (always valid) index; zero when the tap is out of range.
+float tap(const int clamped_index, const bool in_range) {
+  const float v = input_data[clamped_index];
+  return in_range ? v : 0.0;
+}
+
+// All C input channels of the 3x3 window at (oh, ow) against OC_TILE weight rows starting at
+// weight offset w0 (weight rows oc .. oc+OC_TILE-1 are w0 + i*wrow).
+void accumulate(const int w0, const int p_base, const int hw, const bool t, const bool b,
+                const bool l, const bool r, out float acc[OC_TILE]) {
   const int C = params.C;
+  const int wrow = C * 9;  // one weight row = [C, 3, 3]
+  for (int i = 0; i < OC_TILE; ++i) acc[i] = 0.0;
 
-  const int oc_tiles = params.K / OC_TILE;
-  const int total = params.N * oc_tiles * H * W;
-  int idx = int(gl_GlobalInvocationID.x);
-  if (idx >= total) return;
+  for (int ic = 0; ic < C; ++ic) {
+    const int p0 = p_base + ic * hw;  // row oh-1, col ow-1
+    const int p1 = p0 + params.W;  // row oh
+    const int p2 = p1 + params.W;  // row oh+1
+    const int c1 = p1 + 1;             // centre tap: always in range
 
-  const int ow = idx % W;
-  idx /= W;
-  const int oh = idx % H;
-  idx /= H;
-  const int oct = idx % oc_tiles;
-  const int n = idx / oc_tiles;
-  const int oc = oct * OC_TILE;
+    // 9 taps, every load unconditional: an out-of-range tap loads the centre (always valid)
+    // through a clamped index and is then zeroed, so there is no divergent branch and no
+    // wait between taps.
+    const float x0 = tap((t && l) ? p0 : c1, t && l);
+    const float x1 = tap(t ? p0 + 1 : c1, t);
+    const float x2 = tap((t && r) ? p0 + 2 : c1, t && r);
+    const float x3 = tap(l ? p1 : c1, l);
+    const float x4 = input_data[c1];
+    const float x5 = tap(r ? p1 + 2 : c1, r);
+    const float x6 = tap((b && l) ? p2 : c1, b && l);
+    const float x7 = tap(b ? p2 + 1 : c1, b);
+    const float x8 = tap((b && r) ? p2 + 2 : c1, b && r);
 
-  // Edge masks, hoisted out of the channel loop (outH==H, outW==W for s1p1).
-  const bool t = oh > 0, b = oh < H - 1, l = ow > 0, r = ow < W - 1;
+    const int wa = w0 + ic * 9;
+    for (int i = 0; i < OC_TILE; ++i) {
+      const int w = wa + i * wrow;
+      acc[i] += x0 * weight_data[w] + x1 * weight_data[w + 1] + x2 * weight_data[w + 2] +
+                x3 * weight_data[w + 3] + x4 * weight_data[w + 4] + x5 * weight_data[w + 5] +
+                x6 * weight_data[w + 6] + x7 * weight_data[w + 7] + x8 * weight_data[w + 8];
+    }
+  }
+}
 
-  const int hw = H * W;
-  const int wrow = C * 9;         // one weight row = [C, 3, 3]
-  const int w0 = oc * wrow;       // weight rows oc .. oc+3 at w0 + i*wrow
-  // Top-left tap of the 3x3 window in channel 0 of image n.
-  const int p_base = n * C * hw + (oh - 1) * W + (ow - 1);
-
+// SUBGROUP_SIZE < 32: the previous kernel. Mask-guarded loads, per-lane weight base.
+void accumulate_branchy(const int w0, const int p_base, const int hw, const bool t, const bool b,
+                        const bool l, const bool r, out float acc[OC_TILE]) {
+  const int C = params.C;
+  const int wrow = C * 9;
   float acc0 = 0.0, acc1 = 0.0, acc2 = 0.0, acc3 = 0.0;
 
   for (int ic = 0; ic < C; ++ic) {
     const int p0 = p_base + ic * hw;  // row oh-1, col ow-1
-    const int p1 = p0 + W;            // row oh
-    const int p2 = p1 + W;            // row oh+1
+    const int p1 = p0 + params.W;     // row oh
+    const int p2 = p1 + params.W;     // row oh+1
 
-    // 9 taps into registers, mask-guarded loads at the edges (guards keep the
-    // out-of-range indices from ever being dereferenced).
     float x0 = 0.0, x1 = 0.0, x2 = 0.0, x3 = 0.0, x5 = 0.0, x6 = 0.0, x7 = 0.0, x8 = 0.0;
     if (t && l) x0 = input_data[p0];
     if (t) x1 = input_data[p0 + 1];
@@ -116,20 +149,53 @@ void main() {
             x3 * weight_data[wd + 3] + x4 * weight_data[wd + 4] + x5 * weight_data[wd + 5] +
             x6 * weight_data[wd + 6] + x7 * weight_data[wd + 7] + x8 * weight_data[wd + 8];
   }
+  acc[0] = acc0;
+  acc[1] = acc1;
+  acc[2] = acc2;
+  acc[3] = acc3;
+}
+
+void main() {
+  const int H = params.H;
+  const int W = params.W;
+  const int C = params.C;
+
+  const int oc_tiles = params.K / OC_TILE;
+  const int total = params.N * oc_tiles * H * W;
+  int idx = int(gl_GlobalInvocationID.x);
+  if (idx >= total) return;
+
+  const int ow = idx % W;
+  idx /= W;
+  const int oh = idx % H;
+  idx /= H;
+  const int oct = idx % oc_tiles;
+  const int n = idx / oc_tiles;
+  const int oc = oct * OC_TILE;
+
+  // Edge masks (outH==H, outW==W for s1p1).
+  const bool t = oh > 0, b = oh < H - 1, l = ow > 0, r = ow < W - 1;
+
+  const int hw = H * W;
+  const int wrow = C * 9;
+  // Top-left tap of the 3x3 window in channel 0 of image n.
+  const int p_base = n * C * hw + (oh - 1) * W + (ow - 1);
+
+  float acc[OC_TILE];
+  if (SUBGROUP_SIZE >= 32) {
+    if (subgroupAllEqual(oc)) {
+      accumulate(subgroupBroadcastFirst(oc) * wrow, p_base, hw, t, b, l, r, acc);
+    } else {
+      accumulate(oc * wrow, p_base, hw, t, b, l, r, acc);
+    }
+  } else {
+    accumulate_branchy(oc * wrow, p_base, hw, t, b, l, r, acc);
+  }
 
   const int out_base = ((n * params.K + oc) * H + oh) * W + ow;
-  float v0 = bias_data[oc] + acc0;
-  float v1 = bias_data[oc + 1] + acc1;
-  float v2 = bias_data[oc + 2] + acc2;
-  float v3 = bias_data[oc + 3] + acc3;
-  if (params.apply_relu != 0) {
-    v0 = max(v0, 0.0);
-    v1 = max(v1, 0.0);
-    v2 = max(v2, 0.0);
-    v3 = max(v3, 0.0);
+  for (int i = 0; i < OC_TILE; ++i) {
+    float v = bias_data[oc + i] + acc[i];
+    if (params.apply_relu != 0) v = max(v, 0.0);
+    output_data[out_base + i * hw] = v;
   }
-  output_data[out_base] = v0;
-  output_data[out_base + hw] = v1;
-  output_data[out_base + 2 * hw] = v2;
-  output_data[out_base + 3 * hw] = v3;
 }
