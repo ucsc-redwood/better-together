@@ -410,7 +410,7 @@ uint64_t Sequence::submit() {
     const bool list = spdlog::should_log(spdlog::level::debug);
     for (size_t i = 0; i < touched_.size(); ++i) {
       for (const VulkanMemoryResource* mr : resources_) {
-        const VmaAllocation a = mr->find_allocation(touched_[i]);
+        VmaAllocation a = mr->find_allocation(touched_[i]);
         if (a == nullptr) continue;
         VmaAllocationInfo info{};
         vmaGetAllocationInfo(g_vma_allocator, a, &info);
