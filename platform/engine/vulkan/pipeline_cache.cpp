@@ -13,14 +13,16 @@
 #include <new>
 #include <vector>
 
+#include "env.hpp"
+
 namespace kiss_vk {
 
 std::string pipeline_cache_path(const vk::PhysicalDeviceProperties& props) {
-  const char* dir = std::getenv("BT_VK_PIPELINE_CACHE_DIR");
+  const auto dir = env::get(env::kPipelineCacheDir).value_or("");
   std::string uuid;
   for (const uint8_t b : props.pipelineCacheUUID) uuid += fmt::format("{:02x}", b);
   return fmt::format("{}/bt-vk-pipeline-cache-{:04x}-{:04x}-{}.bin",
-                     dir && *dir ? dir : ".",
+                     dir.empty() ? "." : dir,
                      props.vendorID,
                      props.deviceID,
                      uuid);

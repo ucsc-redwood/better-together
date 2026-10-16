@@ -9,6 +9,7 @@
 
 #include "algorithm.hpp"
 #include "base_engine.hpp"
+#include "env.hpp"
 #include "pipeline_cache.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/buffer_placement.hpp"
@@ -32,9 +33,9 @@ class Engine final : public BaseEngine {
     spdlog::trace("Engine::Engine()");
     // Test hook (design D5): BT_VK_SUBGROUP_SIZE=<n> pins another size the device
     // supports, e.g. its minSubgroupSize; an unsupported value throws.
-    if (const char* v = std::getenv("BT_VK_SUBGROUP_SIZE")) {
+    if (const auto v = env::get(env::kSubgroupSize)) {
       uint32_t size = 0;
-      const std::string_view s(v);
+      const std::string_view s = *v;
       if (std::from_chars(s.data(), s.data() + s.size(), size).ptr != s.data() + s.size()) {
         throw std::runtime_error("BT_VK_SUBGROUP_SIZE is not a number: " + std::string(s));
       }
@@ -43,9 +44,7 @@ class Engine final : public BaseEngine {
     // The registry's subgroup size is a cross-check only (design D5).
     check_vulkan_subgroup_size(subgroup_size());
     // Phase timing (BT_VK_PHASES=1) relies on the calibration: verify it once (design D1).
-    if (const char* v = std::getenv("BT_VK_PHASES"); v != nullptr && std::string_view(v) == "1") {
-      check_calibration();
-    }
+    if (env::flag(env::kPhases)) check_calibration();
 
     // One pipeline cache for every Algorithm, persisted across runs (design D7). Created
     // last: nothing after it can throw, and ~Engine is what saves and destroys it.
@@ -146,10 +145,7 @@ class Engine final : public BaseEngine {
   }
 
  private:
-  [[nodiscard]] static bool validation_requested() {
-    const char* v = std::getenv("BT_VK_VALIDATION");
-    return v != nullptr && std::string_view(v) == "1";
-  }
+  [[nodiscard]] static bool validation_requested() { return env::flag(env::kValidation); }
 
   [[nodiscard]] std::vector<VulkanMemoryResource*> resources() const {
     return {mr_ptr_.get(), weights_mr_ptr_.get(), gpu_local_mr_ptr_.get()};

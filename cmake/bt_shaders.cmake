@@ -1,55 +1,64 @@
-# bt_shaders.cmake -- bake the Vulkan compute shaders into committed C headers.
+# bt_shaders.cmake -- compile the Vulkan compute shaders at build time.
 #
-# Replaces the standalone root Makefile (which CMake never invoked and which P5a
-# silently broke: it moved the shaders to platform/engine/vulkan/shaders/ but the
-# committed *_spv.h kept their old builtin-apps path-derived variable names, so a
-# re-bake from the new tree would have emitted different names and broken
-# all_shaders.hpp). The bake is now `xxd -i` run *from the spv/ dir*, so the
-# variable name is the bare basename (<name>_spv) -- path-independent.
+# Every platform/engine/vulkan/shaders/comp/*.comp is compiled with glslc to SPIR-V and
+# embedded as a C header (<name>_spv / <name>_spv_len) under the build tree; bt::vulkan
+# includes them through shaders/all_shaders.hpp as "h/<name>_spv.h". Nothing generated is
+# committed: glslc output is not byte-reproducible across versions, so committed .spv
+# files only produced noise diffs.
 #
-# Two deliberate properties:
-#  * Committed-header fallback: bt::vulkan compiles the committed *_spv.h directly,
-#    so a tree without glslc/xxd (e.g. the Android/NDK preset) builds fine. The bake
-#    is an explicit, opt-in `bake-shaders` target -- NOT part of ALL.
-#  * glslc is not byte-reproducible across versions (measured: 5 of 29 .spv differ
-#    when re-baked locally), so .comp->.spv must never run on a default build or it
-#    would dirty committed artifacts. Re-bake explicitly when a .comp changes:
-#        cmake --build <dir> --target bake-shaders
-function(bt_bake_shaders)
+# glslc is required whenever BT_ENABLE_VULKAN is ON. Where to get it:
+#   * Linux      apt install glslc  (or the LunarG Vulkan SDK)
+#   * Android    the NDK ships it under shader-tools/<host>/ (found below)
+#   * cross image  Dockerfile.cross* install it
+function(bt_build_shaders)
     set(sdir ${CMAKE_SOURCE_DIR}/platform/engine/vulkan/shaders)
-    find_program(BT_GLSLC glslc)
-    find_program(BT_XXD xxd)
-    if(NOT BT_GLSLC OR NOT BT_XXD)
+    set(gen ${CMAKE_BINARY_DIR}/generated/vk_shaders)
+
+    # glslc is a build-host tool: look it up on the host even when cross-compiling.
+    set(ndk_hints)
+    foreach(
+        ndk
+        "${ANDROID_NDK}"
+        "${CMAKE_ANDROID_NDK}"
+        "$ENV{ANDROID_NDK_HOME}"
+    )
+        if(ndk)
+            file(GLOB found_hints ${ndk}/shader-tools/*)
+            list(APPEND ndk_hints ${found_hints})
+        endif()
+    endforeach()
+    find_program(BT_GLSLC glslc HINTS ${ndk_hints} NO_CMAKE_FIND_ROOT_PATH)
+    if(NOT BT_GLSLC)
         message(
-            STATUS
-            "Shader bake: glslc/xxd not both found -> using committed *_spv.h as-is "
-            "(no `bake-shaders` target)"
+            FATAL_ERROR
+            "BT_ENABLE_VULKAN needs glslc to compile the shaders. Install it "
+            "(Ubuntu: `apt install glslc`; Android: it ships in the NDK) or pass "
+            "-DBT_GLSLC=/path/to/glslc."
         )
-        return()
     endif()
 
     file(GLOB comps CONFIGURE_DEPENDS ${sdir}/comp/*.comp)
     set(headers)
     foreach(comp ${comps})
         get_filename_component(name ${comp} NAME_WE)
-        set(spv ${sdir}/spv/${name}.spv)
-        set(hdr ${sdir}/h/${name}_spv.h)
+        set(spv ${gen}/spv/${name}.spv)
+        set(hdr ${gen}/h/${name}_spv.h)
         add_custom_command(
             OUTPUT ${hdr}
-            # 1) compile glsl -> spir-v;  2) `xxd -i` from spv/ so the C array is named
-            #    <name>_spv (path-independent), prefixed with #pragma once.
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${gen}/spv ${gen}/h
             COMMAND
                 ${BT_GLSLC} --target-env=vulkan1.3 -O -fshader-stage=compute -o
                 ${spv} ${comp}
             COMMAND
-                ${CMAKE_COMMAND} -E chdir ${sdir}/spv sh -c
-                "{ echo '#pragma once'; ${BT_XXD} -i ${name}.spv; } > ${hdr}"
-            DEPENDS ${comp}
-            COMMENT "Baking shader ${name}.comp -> .spv + ${name}_spv.h"
+                ${CMAKE_COMMAND} -DIN=${spv} -DOUT=${hdr} -DNAME=${name} -P
+                ${CMAKE_SOURCE_DIR}/cmake/bt_embed_spv.cmake
+            DEPENDS ${comp} ${CMAKE_SOURCE_DIR}/cmake/bt_embed_spv.cmake
+            COMMENT "Compiling shader ${name}.comp"
             VERBATIM
         )
         list(APPEND headers ${hdr})
     endforeach()
 
-    add_custom_target(bake-shaders DEPENDS ${headers}) # opt-in; not built by ALL
+    add_custom_target(bt_shaders DEPENDS ${headers})
+    set(BT_SHADER_GEN_DIR ${gen} PARENT_SCOPE)
 endfunction()

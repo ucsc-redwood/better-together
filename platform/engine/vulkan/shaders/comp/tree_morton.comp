@@ -1,3 +1,5 @@
+#version 460
+
 // ----------------------------------------------------------------------------
 // Purpose:
 //     Computes Morton codes (Z-order curve indices) for 3D points, enabling
@@ -20,8 +22,6 @@
 //     Uses magic bits method for fast Morton code computation.
 //     Each point is normalized to [0,1] range before encoding.
 // ----------------------------------------------------------------------------
-
-#version 460
 
 layout(local_size_x = 256) in;
 

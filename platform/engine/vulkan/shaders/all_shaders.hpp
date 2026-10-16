@@ -52,10 +52,6 @@ namespace shaders {
 #include "h/new_cifar_sparse_conv2d_spv.h"
 #include "h/new_cifar_sparse_linear_spv.h"
 #include "h/new_cifar_sparse_maxpool_spv.h"
-#include "h/octree_build_octree_nodes_spv.h"
-#include "h/octree_build_radix_tree_spv.h"
-#include "h/octree_edge_count_spv.h"
-#include "h/octree_morton_spv.h"
 
 // new shaders
 #include "h/stressor_spv.h"
@@ -65,9 +61,8 @@ namespace shaders {
 #include "h/engine_test_workgroup_size_spv.h"
 
 // Helper macro to create shader entry with proper naming convention
-// The baked-header variable name is the bare .spv basename (xxd -i run from the
-// spv/ dir), so it is independent of the source-tree path -- relocating the
-// shaders dir (as the P5a component move did) no longer breaks these references.
+// The generated header's variable name is the bare .comp basename (see
+// cmake/bt_embed_spv.cmake), so it is independent of the source-tree path.
 #define SHADER_ENTRY(name)                \
   {                                       \
     #name, { name##_spv, name##_spv_len } \
@@ -122,10 +117,6 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(new_cifar_sparse_conv2d_k3s1p1),
         SHADER_ENTRY(new_cifar_sparse_linear),
         SHADER_ENTRY(new_cifar_sparse_maxpool),
-        SHADER_ENTRY(octree_build_radix_tree),
-        SHADER_ENTRY(octree_build_octree_nodes),
-        SHADER_ENTRY(octree_edge_count),
-        SHADER_ENTRY(octree_morton),
         // new shaders
         SHADER_ENTRY(stressor),
         // engine self-test (test-kiss-vk)

@@ -149,10 +149,13 @@ jobs:
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
           restore-keys: cpm-${{ runner.os }}-
       - name: Install clang-tidy
-        # libomp-dev: Ubuntu's clang-tidy can't find GCC's omp.h.
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy libomp-dev
+        # libomp-dev: Ubuntu's clang-tidy can't find GCC's omp.h. glslc: the vulkan preset
+        # compiles the shaders (cmake/bt_shaders.cmake).
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy libomp-dev glslc
       - name: Configure (writes compile_commands.json)
         run: cmake --preset vulkan
+      - name: Generate the shader headers clang-tidy includes
+        run: cmake --build --preset vulkan --target bt_shaders
       - name: Fetch clang-tidy-diff helper
         run: |
           curl -fsSL -o clang-tidy-diff.py \

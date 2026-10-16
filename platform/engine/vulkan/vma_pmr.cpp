@@ -4,6 +4,8 @@
 #include <string>
 #include <string_view>
 
+#include "env.hpp"
+
 namespace kiss_vk {
 
 void CHECK_VK_RESULT(VkResult result, const char* msg) {
@@ -32,8 +34,8 @@ MemoryPlacement weights_class_placement(const vk::PhysicalDevice physical_device
       reason = "measured gain on this device";
     }
   }
-  if (const char* env = std::getenv("BT_VK_WEIGHTS_PLACEMENT")) {
-    arm = env;
+  if (const auto v = env::get(env::kWeightsPlacement)) {
+    arm = *v;
     reason = "BT_VK_WEIGHTS_PLACEMENT";
   }
   const MemoryPlacement fallback{.name = "weights"};

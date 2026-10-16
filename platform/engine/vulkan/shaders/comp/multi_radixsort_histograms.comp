@@ -1,3 +1,5 @@
+#version 460
+
 /**
  * Multi-workgroup (device-wide) LSD radix sort - histogram pass.
  * VkRadixSort written by Mirco Werner: https://github.com/MircoWerner/VkRadixSort
@@ -8,7 +10,6 @@
  * input and writes it to g_histograms[RADIX_SORT_BINS * #WORKGROUPS]. Paired
  * with multi_radixsort_warp{16,32,64} (the scatter pass). 4x8-bit passes.
  */
-#version 460
 #extension GL_GOOGLE_include_directive : enable
 
 #define WORKGROUP_SIZE 256
