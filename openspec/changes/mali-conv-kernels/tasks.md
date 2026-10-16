@@ -134,9 +134,29 @@ Gates used below:
 
 ## 5. Shared-memory staging (D2.2, D2.3), each kept only if it adds beyond group 3 / 4
 
-- [ ] 5.1 Dense: map each workgroup to one output-channel block and stage its weights in shared memory in chunks, on top of the best 3.x variant. Verify: the dense tests pass on the Pixel, and the phone A/B against 3.x is recorded in design.md, keeping the change only if the four large convs are faster beyond noise.
-- [ ] 5.2 Sparse: map each workgroup to one output channel and stage its CSR row in shared memory in chunks, on top of the best 4.x variant. Verify: as 5.1, for cifar-sparse (including real weights).
-- [ ] 5.3 Only if `malioc` or the 5.1 numbers show the dense Mali path still load-bound: stage an input tile with its halo in shared memory. Verify: as 5.1, or design.md notes why this step was skipped.
+- [x] 5.1 Dense: map each workgroup to one output-channel block and stage its weights in shared memory in chunks, on top of the best 3.x variant. Verify: the dense tests pass on the Pixel, and the phone A/B against 3.x is recorded in design.md, keeping the change only if the four large convs are faster beyond noise.
+  - *Evidence (rejected, not committed):* scratch worktree on 69954b0. `gl_WorkGroupID.y` is the channel block,
+    the weights are staged 32 input channels at a time (4.5 KiB), and the contract gains a `dense_conv_k3s1p1_grid`
+    that the dispatcher and test use. `test-cifar-dense-vk` 16/16 on the Pixel, synthetic and real weights.
+    - Pixel A/B against 69954b0 (PX 4), 3 rounds: stage 1 2.569 → 2.691 (+4.7 %, beyond spread); 3 15.79 → 14.84
+      (-6.0 %, spreads 14.55-18.00 vs 13.67-16.08 overlap); 5 / 6 / 7 -1.3 / -5.4 / -9.4 %, beyond spread.
+    - Gate not met (stage 3 not beyond noise, stage 1 slower) → **not kept**. Table in design.md "Shared-memory staging".
+- [x] 5.2 Sparse: map each workgroup to one output channel and stage its CSR row in shared memory in chunks, on top of the best 4.x variant. Verify: as 5.1, for cifar-sparse (including real weights).
+  - *Evidence (rejected, not committed):* scratch worktree on 69954b0. `gl_WorkGroupID.y` is the output channel, and
+    chunks of 256 nonzeros are decoded once per workgroup into a shared `ivec2` (offset with tap, weight bits). Plus
+    `sparse_conv_k3s1p1_grid` in the contract. `test-cifar-sparse-vk` 17/17 on the Pixel with synthetic and with
+    real weights.
+    - Pixel A/B against 69954b0: stage 3 80.29 → 54.38 ms (-32 %), but 5 / 6 / 7 +49 / +65 / +60 % and stage 1 +11 %,
+      all beyond spread. App sum 584.6 → 808.7 ms.
+    - **Not kept.**
+- [x] 5.3 Only if `malioc` or the 5.1 numbers show the dense Mali path still load-bound: stage an input tile with its halo in shared memory. Verify: as 5.1, or design.md notes why this step was skipped.
+  - *Evidence (rejected, not committed):* the condition held. `malioc` puts the shipped dense Mali path at LS 50.00
+    vs A 9.22, LS-bound, and 5.1 did not change that.
+    - Scratch worktree on 69954b0: a workgroup is (image, band of rows, channel blocks); the band's rows plus halo
+      are staged per channel chunk (16 KiB) and the window is read from shared memory. `test-cifar-dense-vk` 16/16
+      on the Pixel, synthetic and real weights.
+    - Pixel A/B against 69954b0: stage 1 +26.7 % and stage 3 +16.6 % (beyond spread), 5 / 6 / 7 -2.4 / -2.6 / -2.4 %.
+    - **Not kept.** The 3.x / 4.x kernels stay as shipped.
 
 ## 6. Documentation and final gate
 

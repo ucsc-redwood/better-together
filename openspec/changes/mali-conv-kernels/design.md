@@ -380,6 +380,103 @@ Samsung, cifar-sparse (ms), A = 8bd33e4, B = PX 4 (wide path unchanged):
   the same 717-instruction multiset as the original shader of 62dfb81, before `row_sum` was extracted. The
   Samsung conv-output hashes of 8bd33e4 and this tree match, 20/20.
 
+### Shared-memory staging (D2.2, D2.3, tasks 5.1-5.3): **all three rejected**
+
+Each variant was built in a scratch worktree on top of the shipped PX 4 kernels (69954b0). Each passed
+its app's Vulkan suite on the Pixel, with synthetic and real weights, and was A/B'd on the Pixel against
+69954b0 (A) with the method of Baseline. None was committed. The gate for each is the spec's: stages 3,
+5, 6 and 7 faster beyond their spreads, and no conv stage slower.
+
+`malioc` (Mali-G710, `-S 0=16`):
+
+| variant | work registers | occupancy | shared | A / LS |
+|---|---|---|---|---|
+| dense, shipped PX 4 | 64 | 50 % | 0 | 9.22 / 50.00 |
+| 5.1 dense + weights in shared memory | 64 | 50 % | 4608 B | 9.68 / 52.00 |
+| 5.3 dense + input rows with halo in shared memory | 64 | 50 % | 16384 B | 10.58 / 52.00 |
+| sparse, shipped PX 4 | 24 | 100 % | 0 | 3.50 / 13.00 |
+| 5.2 sparse + decoded CSR row in shared memory | 31 | 100 % | 2048 B | 3.45 / 14.00 |
+
+On Valhall a shared-memory load is issued by the same load/store unit as a global one. So staging does
+not lower the static LS count, and any gain would have to come from cache behaviour. The device
+numbers below show little or none.
+
+**5.1, dense weights in shared memory (D2.2).**
+- Design: `gl_WorkGroupID.y` is the 4-channel block. `x` covers the (image, row, 4-pixel tile) triples,
+  with idle lanes masked and kept in the barriers. The block's weights are staged 32 input channels at a
+  time (4 x 32 x 9 floats) and read from shared memory.
+- Rejected. Stages 5/6/7 are faster beyond their spreads, but stage 3's spreads overlap and stage 1 is
+  4.7 % slower beyond its spread.
+
+Pixel 7a, cifar-dense (ms), A = 69954b0, B = 5.1:
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 2.569 (2.553-2.570, n=3x391) | 2.691 (2.690-2.691, n=3x373) | +4.7 % |
+| 2 | 0.496 (0.492-0.497, n=3x2000) | 0.497 (0.496-0.498, n=3x2000) | +0.1 % |
+| 3 | 15.788 (14.552-17.995, n=3x55) | 14.835 (13.669-16.083, n=3x62) | -6.0 % |
+| 4 | 0.385 (0.384-0.385, n=3x2000) | 0.385 (0.385-0.386, n=3x2000) | +0.1 % |
+| 5 | 16.504 (16.456-16.523, n=3x63) | 16.287 (14.976-16.293, n=3x44) | -1.3 % |
+| 6 | 20.296 (20.285-20.348, n=3x49) | 19.199 (19.191-19.203, n=3x46) | -5.4 % |
+| 7 | 15.799 (15.771-15.802, n=3x68) | 14.308 (14.293-15.534, n=3x69) | -9.4 % |
+| 8 | 0.193 (0.193-0.196, n=3x2000) | 0.192 (0.190-0.194, n=3x2000) | -1.0 % |
+| 9 | 6.873 (6.831-7.860, n=3x125) | 6.736 (6.309-7.388, n=3x127) | -2.0 % |
+| 10 | 6.818 (6.720-7.269, n=3x126) | 6.732 (6.669-7.411, n=3x126) | -1.3 % |
+| 11 | 0.894 (0.876-0.993, n=3x1140) | 0.885 (0.878-0.992, n=3x1367) | -0.9 % |
+| sum | 86.616 | 82.746 | -4.5 % |
+
+**5.2, sparse CSR row in shared memory (D2.2).**
+- Design: `gl_WorkGroupID.y` is the output channel. Each chunk of 256 nonzeros is decoded once per
+  workgroup into one `ivec2`: the input offset times 16 plus `ky * 4 + kx`, and the weight's bits. The lanes
+  read it with one shared load per nonzero instead of `col_idx`, the weight and the decode.
+- Rejected. Stage 3 (16x16 maps) gains 32 %, but the 8x8 maps of stages 5/6/7 lose 49-65 %, and stage 1
+  loses 11 %.
+- Inferred, not measured: an 8x8 map gives only 8 workgroups per output channel at N = 128. The rows of those
+  layers are long (432-864 nonzeros), so each workgroup crosses 2-4 chunk barriers, and the whole
+  workgroup waits on its slowest lane at each one.
+
+Pixel 7a, cifar-sparse (ms), A = 69954b0, B = 5.2:
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 17.042 (16.975-17.096, n=3x58) | 18.933 (18.921-19.072, n=3x65) | +11.1 % |
+| 2 | 4.461 (4.461-4.464, n=3x225) | 4.464 (4.462-4.466, n=3x224) | +0.1 % |
+| 3 | 80.287 (80.232-80.333, n=3x12) | 54.377 (54.352-54.482, n=3x19) | -32.3 % |
+| 4 | 3.556 (3.397-3.577, n=3x642) | 3.407 (3.394-3.407, n=3x642) | -4.2 % |
+| 5 | 128.754 (128.752-128.922, n=3x7) | 192.347 (192.099-192.565, n=3x5) | +49.4 % |
+| 6 | 183.390 (183.285-183.836, n=3x5) | 302.140 (301.196-303.999, n=3x3) | +64.8 % |
+| 7 | 110.555 (110.357-110.561, n=3x8) | 176.586 (175.908-176.706, n=3x5) | +59.7 % |
+| 8 | 1.209 (1.206-1.241, n=3x1958) | 1.195 (1.193-1.209, n=3x1936) | -1.2 % |
+| 9 | 26.900 (26.887-26.913, n=3x36) | 26.891 (26.878-26.897, n=3x35) | -0.0 % |
+| 10 | 27.215 (27.182-27.219, n=3x36) | 27.229 (27.217-27.274, n=3x36) | +0.1 % |
+| 11 | 1.218 (1.163-1.220, n=3x1265) | 1.172 (1.162-1.174, n=3x1102) | -3.8 % |
+| sum | 584.588 | 808.742 | +38.3 % |
+
+**5.3, dense input rows with halo in shared memory (D2.3).** Tried because `malioc` still reports the
+shipped dense path LS-bound (LS 50 vs A 9.2), which is the task's condition. 5.1 did not change that.
+- Design: a workgroup is one image, a band of `rb` rows (as many as 256 lanes allow at 4 pixels per lane),
+  and the channel blocks that fill the remaining lanes. It stages `rb + 2` input rows (rows outside the
+  image zero-filled) of as many channels as fit in 16 KiB, then reads the window from shared memory. The
+  weights stay as in 3.x.
+- Rejected. Stages 5/6/7 gain 2-3 %, but stage 3 is 16.6 % and stage 1 26.7 % slower beyond their spreads.
+
+Pixel 7a, cifar-dense (ms), A = 69954b0, B = 5.3:
+
+| stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+|---|---|---|---|
+| 1 | 2.553 (2.551-2.570, n=3x391) | 3.234 (3.232-3.247, n=3x310) | +26.7 % |
+| 2 | 0.496 (0.496-0.497, n=3x2000) | 0.498 (0.495-0.498, n=3x2000) | +0.3 % |
+| 3 | 14.554 (14.553-15.773, n=3x55) | 16.968 (15.648-16.972, n=3x58) | +16.6 % |
+| 4 | 0.385 (0.384-0.386, n=3x2000) | 0.386 (0.385-0.386, n=3x2000) | +0.4 % |
+| 5 | 16.465 (15.220-16.492, n=3x49) | 16.076 (16.030-16.118, n=3x45) | -2.4 % |
+| 6 | 20.301 (20.242-20.302, n=3x49) | 19.781 (19.719-19.788, n=3x45) | -2.6 % |
+| 7 | 15.783 (15.756-15.796, n=3x68) | 15.400 (15.381-15.428, n=3x63) | -2.4 % |
+| 8 | 0.193 (0.191-0.196, n=3x2000) | 0.194 (0.183-0.195, n=3x2000) | +0.3 % |
+| 9 | 6.794 (6.773-7.245, n=3x131) | 6.884 (6.759-9.636, n=3x88) | +1.3 % |
+| 10 | 6.862 (6.665-7.219, n=3x160) | 7.181 (6.737-7.807, n=3x127) | +4.6 % |
+| 11 | 0.988 (0.946-0.992, n=3x1346) | 0.985 (0.982-0.986, n=3x1192) | -0.2 % |
+| sum | 85.376 | 87.588 | +2.6 % |
+
 ## Open Questions
 
 - ~~Whether Arm Performance Studio can be installed on the build box (licence acceptance, offline
