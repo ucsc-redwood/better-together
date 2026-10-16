@@ -165,7 +165,9 @@ BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned 
   size (`kDenseConvMaliPixels` / `kSparseConvMaliPixels` must equal `PX` in the shader). Both apps' dispatchers and
   `DenseConvK3S1P1` / `SparseConvK3S1P1` size `grid.x` from it with `engine.subgroup_size()`. A contract that counts
   more outputs per invocation than the shader computes leaves outputs at the tests' `-1` fill, so the tests fail;
-  this was checked by mutation on the build box and on the Pixel.
+  this was checked by mutation on the build box and on the Pixel. That only works while each test shape needs more
+  than one 256-wide workgroup on both paths, because the grid rounds up to whole workgroups and a shortfall inside
+  the last one goes unseen. Keep the tests' batch and channel counts large enough for that.
 - Those tests use 6x6, 8x8 and 7x5 maps (7x5 for an odd width, not a multiple of 4), and the sparse CSR has an empty
   row and a row whose taps all read the padded border at the right edge.
 - Static Mali analysis: `malioc -c Mali-G710 --vulkan -S 0=16 <shader>.spv` on the glslc output (Arm Performance

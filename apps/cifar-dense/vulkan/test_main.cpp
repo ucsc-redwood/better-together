@@ -73,7 +73,10 @@ struct DenseConvPc {  // layout of the shader's push constants
 };
 
 void ExpectDenseConvMatchesReference(const int h, const int w) {
-  constexpr int kN = 3, kC = 5, kK = 16;  // K % OC_TILE(4) == 0: four blocks
+  // K % OC_TILE(4) == 0: four blocks. N = 6 so every shape needs more than one 256-wide workgroup
+  // on the Mali path too (4 pixels per invocation): a contract that over-counts outputs per
+  // invocation then launches too few workgroups, and the missing outputs keep their -1 fill.
+  constexpr int kN = 6, kC = 5, kK = 16;
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 

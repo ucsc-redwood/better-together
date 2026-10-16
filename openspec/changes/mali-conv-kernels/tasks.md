@@ -73,6 +73,19 @@ Gates used below:
       `DenseConvK3S1P1` 3/3 FAILED and `SparseConvK3S1P1` 3/3 FAILED, each `got evaluates to -1`.
     - The opposite mismatch (the header counts fewer outputs than the shader computes) only launches surplus invocations,
       which exit on the shader's `idx >= total` guard. That costs time but computes every output.
+    - *Correction (found in review, after 3.1):* output blocking invalidated the dense check above. At N = 3, K = 16 the
+      PX 4 Mali path needs 144 / 192 / 168 invocations for 6x6 / 8x8 / 7x5. Each fits in one 256-wide workgroup, so a
+      header-only `kDenseConvMaliPixels` 4 → 8 still launched enough threads: `DenseConvK3S1P1.*` passed 3/3 on the
+      Pixel with that mutation. `DenseConvK3S1P1` now uses N = 6, giving 288 / 384 / 336 invocations, or 144 / 192 / 168
+      (a single workgroup) under the mutation.
+      - Re-checked on the final PX 4 kernels with header-only mutations built in the main tree and then restored (the
+        restored build is byte-identical to the unmutated one).
+      - Pixel 7a: the unmutated `DenseConvK3S1P1.*` and `SparseConvK3S1P1.*` pass 3/3 each.
+        `kDenseConvMaliPixels` 4 → 8 makes `DenseConvK3S1P1` fail 3/3, and `kSparseConvMaliPixels` 4 → 8 makes
+        `SparseConvK3S1P1` fail 3/3, every failure `got evaluates to -1`. (The sparse test, at N = 3, K = 9, already
+        needed 324 / 432 / 378 invocations.)
+      - Build box (wide path): the non-Mali count 1 → 2 still fails `DenseConvK3S1P1` 3/3.
+      - `03-unit-testing.md` now says the check only holds while each test shape needs more than one workgroup.
     - Unmutated tree: phone gate green on both phones (counts in 2.1). Rocky correctness: kiss 30, cifar-dense 16 + 16,
       cifar-sparse 17 + 17 (synthetic + real weights). Local: `test-cifar-dense-vk` 16/16, `test-cifar-sparse-vk`
       17/17. `just check-shaders`: OK.
@@ -195,3 +208,9 @@ Gates used below:
         (predicted 419.8 ms).
       - The 9a10ea0 binaries on the same schedules: 86.35 and 1148.42 ms/task, GPU chunk medians 83.25 and 1115.01 ms.
     - `openspec validate mali-conv-kernels --strict`: valid.
+    - After the 2.2 correction (dense test N 3 → 6) the affected gates were run again:
+      - local `test-kiss-vk` 30, `test-tree-vk` 18, `test-cifar-dense-vk` 16, `test-cifar-sparse-vk` 17;
+      - rocky kiss 30, cifar-dense 16 + 16, cifar-sparse 17 + 17;
+      - Pixel 7a and Samsung: kiss 29 + 1 skip, tree 18, cifar-dense 16, cifar-sparse 17, plus cifar-dense 16 and
+        cifar-sparse 17 with real weights; exit 0.
+      - `ctest -L omp` was not re-run: the change is in a Vulkan-only test file that the `pc` preset does not build.
