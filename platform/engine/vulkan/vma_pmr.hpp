@@ -44,6 +44,13 @@ struct MemoryPlacement {
 // device has no type for warns and keeps the default; any other value throws.
 [[nodiscard]] MemoryPlacement weights_class_placement(vk::PhysicalDevice physical_device);
 
+// The boundary class's placement (the class of Engine::get_mr()): today's (host-cached) unless
+// BT_VK_BOUNDARY_PLACEMENT (experiment knob, same values as BT_VK_WEIGHTS_PLACEMENT) says
+// otherwise. It exists to measure what the host cache maintenance of buffers no CPU stage touches
+// costs; the default class holds every buffer of an AppData built without buffer classes (the tree
+// app).
+[[nodiscard]] MemoryPlacement boundary_class_placement(vk::PhysicalDevice physical_device);
+
 // ----------------------------------------------------------------------------
 // VulkanMemoryResource
 // ----------------------------------------------------------------------------

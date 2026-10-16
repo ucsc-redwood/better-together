@@ -123,10 +123,12 @@ The knobs added by vk-engine-runtime, all unset by default (details in
 |---|---|---|
 | `BT_VK_BARRIER_ALL=1` | unset: barriers only where a stage touches a buffer written (or read) since the last one | a barrier before every dispatch |
 | `BT_VK_WEIGHTS_PLACEMENT=default\|device_local\|uncached` | unset: `uncached` on the Pixel 7a, host-cached elsewhere | memory type of the weights buffer class |
+| `BT_VK_BOUNDARY_PLACEMENT=default\|device_local\|uncached` | unset: host-cached | memory type of the boundary class (experiment; see `03-unit-testing.md`) |
 | `BT_VK_QUEUE=universal\|compute` | `universal` | queue family; `compute` falls back with a warning where none exists |
 | `BT_VK_QUEUE_PRIORITY=low\|medium\|high` | the driver's default priority | global queue priority; a refusal warns and keeps the default |
 | `BT_VK_INFLIGHT=<n>` | `1` | items in flight per Vulkan GPU chunk |
-| `BT_VK_PHASES=1` | off | times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration first; `bm-phases-{tree,cifar-dense}-vk` turns it on and prints them per chunk |
+| `BT_VK_PHASES=1` | off | times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration first; `bm-phases-{tree,cifar-dense,cifar-sparse}-vk` turns it on and prints them per chunk, with the bytes flushed and invalidated |
+| `BT_GPU_THREAD_CORES=<id>[,<id>...]` (`bm-gen-logs-*-vk`) | unset: the OS places the thread | pins the thread that drives a Vulkan GPU chunk |
 | `--allow-gpu-multi-chunk` (`02`, solver `allow_gpu_multi_chunk`) | off: one chunk per PU | the GPU may take several chunks (above) |
 
 At `BT_VK_INFLIGHT` > 1 a chunk's `Start`/`End` ticks bracket submit → complete, so they include

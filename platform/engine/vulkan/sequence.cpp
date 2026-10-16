@@ -109,6 +109,7 @@ void Sequence::cmd_begin() {
   // A fresh touched-buffer set: the stages described until submit() bind exactly the
   // buffers this task uses, so submit/wait flush and invalidate only those.
   touched_.clear();
+  touched_access_.clear();
   written_since_barrier_.clear();
   read_since_barrier_.clear();
   dispatches_ = 0;
@@ -137,7 +138,14 @@ void Sequence::bind(const vk::Pipeline pipeline,
     VkBuffer b = buffers[i].buffer;
     if (writes(i) && !contains(written_since_barrier_, b)) written_since_barrier_.push_back(b);
     if (reads(i) && !contains(read_since_barrier_, b)) read_since_barrier_.push_back(b);
-    if (!contains(touched_, b)) touched_.push_back(b);
+    const auto it = std::ranges::find(touched_, b);
+    if (it == touched_.end()) {
+      touched_.push_back(b);
+      touched_access_.push_back(static_cast<uint8_t>(access[i]));
+    } else {
+      touched_access_[static_cast<size_t>(it - touched_.begin())] |=
+          static_cast<uint8_t>(access[i]);
+    }
   }
   ++dispatches_;
 
@@ -394,6 +402,40 @@ vk::DescriptorSet Sequence::allocate_descriptor_set(Slot& slot,
 
 uint64_t Sequence::submit() {
   spdlog::trace("Sequence::submit()");
+  // BT_VK_PHASES: what the cache maintenance below will walk. Counted before t_submit is
+  // taken so it never lands in the flush time.
+  uint64_t touched_bytes = 0, gpu_written_bytes = 0, gpu_read_only_bytes = 0,
+           gpu_write_only_bytes = 0;
+  if (phases_enabled_) {
+    const bool list = spdlog::should_log(spdlog::level::debug);
+    for (size_t i = 0; i < touched_.size(); ++i) {
+      for (const VulkanMemoryResource* mr : resources_) {
+        const VmaAllocation a = mr->find_allocation(touched_[i]);
+        if (a == nullptr) continue;
+        VmaAllocationInfo info{};
+        vmaGetAllocationInfo(g_vma_allocator, a, &info);
+        const uint8_t acc = touched_access_[i];
+        if (list) {
+          VkMemoryPropertyFlags flags = 0;
+          vmaGetMemoryTypeProperties(g_vma_allocator, info.memoryType, &flags);
+          spdlog::debug(
+              "phases: submit {} bound buffer {}: {} bytes, {}, {}",
+              next_ticket_ + 1,
+              i,
+              info.size,
+              acc == 1   ? "read-only"
+              : acc == 2 ? "write-only"
+                         : "read-write",
+              (flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0 ? "coherent" : "NOT coherent");
+        }
+        touched_bytes += info.size;
+        if ((acc & 2) != 0) gpu_written_bytes += info.size;
+        if (acc == 1) gpu_read_only_bytes += info.size;
+        if (acc == 2) gpu_write_only_bytes += info.size;
+        break;
+      }
+    }
+  }
   Pending p{
       .ticket = ++next_ticket_,
       .slot = recipe_slot_,
@@ -402,6 +444,10 @@ uint64_t Sequence::submit() {
       .t_cmd_end = t_cmd_end_,
       .t_submit = phases_enabled_ ? now_ns() : 0,
       .recorded = recipe_recorded_,
+      .touched_bytes = touched_bytes,
+      .gpu_written_bytes = gpu_written_bytes,
+      .gpu_read_only_bytes = gpu_read_only_bytes,
+      .gpu_write_only_bytes = gpu_write_only_bytes,
   };
 
   // Make any pending host writes (inputs/weights) visible to the GPU before it runs.
@@ -498,6 +544,10 @@ void Sequence::wait(const uint64_t ticket) {
         .gpu_ns = last_gpu_ns_,
         .calibrated = calibrated && timestamp_valid_bits_ != 0,
         .recorded = it->recorded,
+        .touched_bytes = it->touched_bytes,
+        .gpu_written_bytes = it->gpu_written_bytes,
+        .gpu_read_only_bytes = it->gpu_read_only_bytes,
+        .gpu_write_only_bytes = it->gpu_write_only_bytes,
     };
     if (ph.calibrated) {
       // Device ticks -> CLOCK_MONOTONIC ns through the calibration pair, the tick difference

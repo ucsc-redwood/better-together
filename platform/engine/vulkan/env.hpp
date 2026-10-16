@@ -19,6 +19,8 @@ inline constexpr const char* kQueue = "BT_VK_QUEUE";  // universal | compute
 inline constexpr const char* kQueuePriority = "BT_VK_QUEUE_PRIORITY";  // low | medium | high
 inline constexpr const char* kWeightsPlacement =
     "BT_VK_WEIGHTS_PLACEMENT";  // default | device_local | uncached
+inline constexpr const char* kBoundaryPlacement =
+    "BT_VK_BOUNDARY_PLACEMENT";  // experiment: default | device_local | uncached (boundary class)
 inline constexpr const char* kPipelineCacheDir = "BT_VK_PIPELINE_CACHE_DIR";  // default: "."
 inline constexpr const char* kSubgroupSize = "BT_VK_SUBGROUP_SIZE";  // test hook: pin a size
 

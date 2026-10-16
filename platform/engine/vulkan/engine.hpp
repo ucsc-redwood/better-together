@@ -23,8 +23,8 @@ class Engine final : public BaseEngine {
   // The Khronos validation layer is opt-in: requested only when BT_VK_VALIDATION=1.
   explicit Engine()
       : BaseEngine(validation_requested()),
-        mr_ptr_(
-            std::make_unique<VulkanMemoryResource>(device_, MemoryPlacement{.name = "boundary"})),
+        mr_ptr_(std::make_unique<VulkanMemoryResource>(
+            device_, boundary_class_placement(get_physical_device()))),
         weights_mr_ptr_(std::make_unique<VulkanMemoryResource>(
             device_, weights_class_placement(get_physical_device()))),
         // No measurement has promoted the GPU-local class on any device (design B1/B2).
