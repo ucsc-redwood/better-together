@@ -96,6 +96,14 @@ and emits the union sorted by predicted makespan — the measured top-K sweep in
 then picks the true winner, hedging either model's blind spots. `--no-overhead`
 opts out entirely.
 
+**GPU in several chunks (opt-in, default off).** `02 … --allow-gpu-multi-chunk` lets z3
+place the GPU in more than one chunk of a schedule. The Vulkan runtime runs each with its own
+`Sequence`; CUDA schedules with two CUDA chunks are still rejected (`first_concurrent_gpu_chunk`)
+and `bm-gen-logs` skips them. The chunks share one device, so the solver bounds the period by
+the **sum** of the GPU's chunks (each with its per-chunk overhead), and the emitted
+`metrics.max_time` is the largest per-PU sum. Without the flag every PU gets one contiguous chunk,
+as before.
+
 ## Step 3 — run the schedule(s) on the device
 
 ```bash
@@ -104,6 +112,27 @@ uv run optimizer/orchestrate/03_run_schedule.py --device <dev> --app <app> --bac
   --table-type btpm --minimize-mode tmax --log-folder data/sched_logs/<dev>_<app>_<be> \
   --repeat 1 --n-schedules-to-run 0                                     # 0 = all candidates
 ```
+
+Engine knobs reach the device runs: the transport forwards every `BT_VK_*` variable set for
+the orchestrator (`00`/`01`/`03`) to the remote binary. For example `BT_VK_INFLIGHT=2 uv run
+optimizer/orchestrate/00_run_fleet.py …` runs the Vulkan GPU chunks with two items in flight.
+The knobs added by vk-engine-runtime, all unset by default (details in
+[`03-unit-testing.md`](03-unit-testing.md) "Engine knobs"):
+
+| knob | default | effect |
+|---|---|---|
+| `BT_VK_BARRIER_ALL=1` | unset: barriers only where a stage touches a buffer written (or read) since the last one | a barrier before every dispatch |
+| `BT_VK_WEIGHTS_PLACEMENT=default\|device_local\|uncached` | unset: `uncached` on the Pixel 7a, host-cached elsewhere | memory type of the weights buffer class |
+| `BT_VK_QUEUE=universal\|compute` | `universal` | queue family; `compute` falls back with a warning where none exists |
+| `BT_VK_QUEUE_PRIORITY=low\|medium\|high` | the driver's default priority | global queue priority; a refusal warns and keeps the default |
+| `BT_VK_INFLIGHT=<n>` | `1` | items in flight per Vulkan GPU chunk |
+| `BT_VK_PHASES=1` | off | times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration first; `bm-phases-{tree,cifar-dense}-vk` turns it on and prints them per chunk |
+| `--allow-gpu-multi-chunk` (`02`, solver `allow_gpu_multi_chunk`) | off: one chunk per PU | the GPU may take several chunks (above) |
+
+At `BT_VK_INFLIGHT` > 1 a chunk's `Start`/`End` ticks bracket submit → complete, so they include
+the time an item waits behind the others in flight. Its chunk durations, the "max chunk"
+makespan of `speedup_summary.py` and the residuals `fit_overhead.py` fits are then latency, not
+throughput: compare depths by the per-task makespan of step 4 (vk-engine-runtime 4.5).
 
 `03` deploys the prebuilt binary + schedule JSON, runs the executor with
 `--schedule-file` (local file; **no HTTP/curl** — that path is retired), and writes

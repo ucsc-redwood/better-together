@@ -30,6 +30,9 @@ struct ComputeLimits {
   // subgroupSizeControl is enabled and COMPUTE is in requiredSubgroupSizeStages, so
   // subgroup-dependent pipelines require subgroup_size instead of letting the driver pick.
   bool subgroup_size_pinned = false;
+  // computeFullSubgroups is enabled, so subgroup-dependent pipelines require full subgroups
+  // (design A5). Either way their X workgroup size must be a multiple of subgroup_size.
+  bool full_subgroups = false;
   uint32_t max_compute_workgroup_subgroups = 0;  // 0 unless pinned
   std::array<uint32_t, 3> max_work_group_size{};
   uint32_t max_work_group_invocations = 0;
@@ -64,6 +67,14 @@ class BaseEngine {
   [[nodiscard]] PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn() const {
     return push_descriptor_fn_;
   }
+  // One (device tick, CLOCK_MONOTONIC ns) pair via VK_KHR/EXT_calibrated_timestamps, with the
+  // driver's maximum deviation; false when the device lacks them (design D1).
+  [[nodiscard]] bool calibrate(uint64_t& device_ticks,
+                               uint64_t& host_ns,
+                               uint64_t& deviation_ns) const;
+  // Turns calibration off (with a warning) if a queue timestamp does not fall between two
+  // calibrated device ticks around it: the domains are then not correlated (design D1).
+  void check_calibration();
 
  protected:
   void initialize_dynamic_loader();
@@ -71,13 +82,15 @@ class BaseEngine {
 
   void create_instance();
   void create_physical_device(vk::PhysicalDeviceType type = vk::PhysicalDeviceType::eIntegratedGpu);
-  void create_device(vk::QueueFlags queue_flags = vk::QueueFlagBits::eCompute);
+  void create_device();
 
   void initialize_vma_allocator() const;
 
   // Pins subgroup-dependent pipelines to `size` instead of the device default. Throws
   // unless pinning is available and `size` is a power of two in [min, max].
   void override_subgroup_size(uint32_t size);
+
+  [[nodiscard]] uint32_t queue_family_timestamp_bits() const;
 
   // Handles
   vk::Instance instance_;
@@ -95,6 +108,7 @@ class BaseEngine {
   uint32_t compute_queue_family_index_;
   ComputeLimits compute_limits_;
   PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn_ = nullptr;
+  PFN_vkGetCalibratedTimestampsKHR calibrated_timestamps_fn_ = nullptr;
   std::vector<const char*> enabled_layers_;
 
   DynamicLoader dl_;

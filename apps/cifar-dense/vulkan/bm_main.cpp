@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <spdlog/cfg/env.h>
 
 #include <memory_resource>
 
@@ -7,6 +8,7 @@
 #include "apps/cifar-dense/appdata.hpp"
 #include "dispatchers.hpp"
 #include "platform/util/bm_manual_time.hpp"
+#include "runtime/placement.hpp"  // every stage runs on the GPU here
 
 // ----------------------------------------------------------------
 // Stage 1: Conv1
@@ -14,8 +16,7 @@
 
 static void BM_Stage1(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // warm up
   vk_dispatcher->run_stage_1(appdata);
@@ -37,8 +38,7 @@ BENCHMARK(BM_Stage1)
 
 static void BM_Stage2(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -63,8 +63,7 @@ BENCHMARK(BM_Stage2)
 
 static void BM_Stage3(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -90,8 +89,7 @@ BENCHMARK(BM_Stage3)
 
 static void BM_Stage4(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -118,8 +116,7 @@ BENCHMARK(BM_Stage4)
 
 static void BM_Stage5(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -147,8 +144,7 @@ BENCHMARK(BM_Stage5)
 
 static void BM_Stage6(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -177,8 +173,7 @@ BENCHMARK(BM_Stage6)
 
 static void BM_Stage7(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -208,8 +203,7 @@ BENCHMARK(BM_Stage7)
 
 static void BM_Stage8(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -240,8 +234,7 @@ BENCHMARK(BM_Stage8)
 
 static void BM_Stage9(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -273,8 +266,7 @@ BENCHMARK(BM_Stage9)
 
 static void BM_Stage10(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -307,8 +299,7 @@ BENCHMARK(BM_Stage10)
 
 static void BM_Stage11(benchmark::State& state) {
   auto vk_dispatcher = std::make_unique<cifar_dense::vulkan::VulkanDispatcher>();
-  auto mr = vk_dispatcher->get_mr();
-  cifar_dense::AppData appdata(mr);
+  cifar_dense::AppData appdata(schedule_placement(*vk_dispatcher, all_stages(11)));
 
   // Run all previous stages
   vk_dispatcher->run_stage_1(appdata);
@@ -339,7 +330,9 @@ BENCHMARK(BM_Stage11)
 int main(int argc, char** argv) {
   parse_args(argc, argv);
 
+  // Off by default; SPDLOG_LEVEL=debug shows e.g. each buffer's memoryTypeIndex (design B1).
   spdlog::set_level(spdlog::level::off);
+  spdlog::cfg::load_env_levels();
 
   ::benchmark::Initialize(&argc, argv);
   ::benchmark::RunSpecifiedBenchmarks();

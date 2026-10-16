@@ -42,4 +42,8 @@ if(BT_ENABLE_VULKAN AND BT_BUILD_BENCHMARKS)
             PRIVATE ${CMAKE_BINARY_DIR}/generated
         )
     endforeach()
+    # Per-chunk phase timing (submission overhead, design D1).
+    foreach(app tree cifar-dense)
+        bt_add_vk_app(bm-phases-${app}-vk ${app}-vk/bm_phases.cpp)
+    endforeach()
 endif()

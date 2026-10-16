@@ -119,6 +119,14 @@ def parse_arguments():
         "boosting when kept busy) is what we want to capture, not sanitize.",
     )
     parser.add_argument(
+        "--allow-gpu-multi-chunk",
+        action="store_true",
+        default=False,
+        help="opt-in: let the GPU appear in several chunks of a schedule (Vulkan runs each "
+        "with its own Sequence). Their summed time bounds the period. Default: one "
+        "contiguous chunk per PU.",
+    )
+    parser.add_argument(
         "--no-overhead",
         action="store_true",
         default=False,
@@ -205,7 +213,13 @@ def main():
         # GPU chunks get their schema-required "hardware" stamped inside the solver
         # (threaded through to get_detailed_solution), so the dump is self-validating.
         solutions = solve_optimization_problem(
-            stage_timings, args.num_solutions, app, solver_mode, gpu_backend, overhead
+            stage_timings,
+            args.num_solutions,
+            app,
+            solver_mode,
+            gpu_backend,
+            overhead,
+            args.allow_gpu_multi_chunk,
         )
 
         # Union-candidate hedge: ALSO solve with the plain kernel-sum model and append
@@ -223,7 +237,13 @@ def main():
 
             seen = {signature(s) for s in solutions}
             plain = solve_optimization_problem(
-                stage_timings, args.num_solutions, app, solver_mode, gpu_backend, None
+                stage_timings,
+                args.num_solutions,
+                app,
+                solver_mode,
+                gpu_backend,
+                None,
+                args.allow_gpu_multi_chunk,
             )
             added = 0
             for sol in plain:

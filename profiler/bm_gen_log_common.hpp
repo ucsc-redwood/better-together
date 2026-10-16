@@ -20,6 +20,7 @@
 
 #include "platform/registry/device_registry.hpp"
 #include "runtime/config_reader.hpp"
+#include "runtime/placement.hpp"
 #include "runtime/schedule_source.hpp"
 
 namespace bt_gen_log {
@@ -29,13 +30,88 @@ namespace bt_gen_log {
 // targeting the OTHER GPU backend is rejected up front (see run()), so the spawn
 // loop here only ever sees gpu_em or kOMP.
 
+// A GPU chunk's thread. Templated on the dispatcher, so only the overload a backend can
+// compile is instantiated: a Vulkan dispatcher (it has make_seq) gets its own Sequence per
+// chunk, so a schedule may place the GPU in several chunks (design C2), and keeps up to
+// BT_VK_INFLIGHT items in flight (design D3); any other backend runs the plain synchronous
+// worker. With a logger, each item's time in the chunk is ticked (worker_with_record's
+// start/end ticks; for Vulkan at submit and at completion).
+template <class Disp>
+constexpr bool kHasSequences = requires(Disp& d) { d.make_seq(); };
+
+template <class Disp>
+  requires kHasSequences<Disp>
+static std::thread gpu_chunk_thread(Disp& disp,
+                                    QueueT& q_in,
+                                    QueueT& q_out,
+                                    const int start,
+                                    const int end,
+                                    const size_t n_items,
+                                    const bool is_last,
+                                    const int chunk_id,
+                                    Logger<kNumToProcess>* logger) {
+  const auto seq = disp.make_seq();
+  std::function<uint64_t(AppDataT*)> submit = [&disp, seq, start, end](AppDataT* app) {
+    return disp.submit_multi_stage(*app, start, end, *seq);
+  };
+  std::function<void(AppDataT*, uint64_t)> complete = [&disp, seq, start, end](
+                                                          AppDataT* app, const uint64_t ticket) {
+    disp.complete_multi_stage(*app, start, end, *seq, ticket);
+  };
+  std::function<void(size_t)> on_submit, on_complete;
+  if (logger != nullptr) {
+    on_submit = [logger, chunk_id](const size_t item) { logger->start_tick(item, chunk_id); };
+    on_complete = [logger, chunk_id](const size_t item) { logger->end_tick(item, chunk_id); };
+  }
+  return std::thread([&q_in,
+                      &q_out,
+                      submit = std::move(submit),
+                      complete = std::move(complete),
+                      n_items,
+                      is_last,
+                      depth = vk_inflight_depth(),
+                      on_submit = std::move(on_submit),
+                      on_complete = std::move(on_complete)] {
+    inflight_worker<QueueT, AppDataT>(
+        q_in, q_out, submit, complete, n_items, is_last, depth, on_submit, on_complete);
+  });
+}
+
+template <class Disp>
+static std::thread gpu_chunk_thread(Disp& disp,
+                                    QueueT& q_in,
+                                    QueueT& q_out,
+                                    const int start,
+                                    const int end,
+                                    const size_t n_items,
+                                    const bool is_last,
+                                    const int chunk_id,
+                                    Logger<kNumToProcess>* logger) {
+  std::function<void(AppDataT*)> fn = [&disp, start, end](AppDataT* app) {
+    disp.dispatch_multi_stage(*app, start, end);
+  };
+  if (logger != nullptr) {
+    return std::thread(worker_with_record<QueueT, AppDataT, kNumToProcess>,
+                       chunk_id,
+                       std::ref(*logger),
+                       std::ref(q_in),
+                       std::ref(q_out),
+                       std::move(fn),
+                       n_items,
+                       is_last);
+  }
+  return std::thread(
+      worker<QueueT, AppDataT>, std::ref(q_in), std::ref(q_out), std::move(fn), n_items, is_last);
+}
+
 template <class OmpDispatch>
 static void warmup(const Schedule& schedule,
                    const ExecutionModel gpu_em,
                    const OmpDispatch& omp_dispatch) {
   const auto n_chunks = schedule.n_chunks();
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset =
+      make_placed_dataset<AppDataT>(disp, kPoolSize, gpu_stages_of(schedule, gpu_em));
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
@@ -51,13 +127,15 @@ static void warmup(const Schedule& schedule,
     const bool is_last = chunk_id == n_chunks - 1;
 
     if (em == gpu_em) {
-      threads.emplace_back(
-          worker<QueueT, AppDataT>,
-          std::ref(q_in),
-          std::ref(q_out),
-          [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-          num_warmup_items,
-          is_last);
+      threads.push_back(gpu_chunk_thread(disp,
+                                         q_in,
+                                         q_out,
+                                         start,
+                                         end,
+                                         num_warmup_items,
+                                         is_last,
+                                         static_cast<int>(chunk_id),
+                                         nullptr));
     } else {  // kOMP (the warmup is constructed with only gpu_em + kOMP chunks)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
@@ -81,7 +159,8 @@ static void run_schedule(const Schedule& schedule,
                          const OmpDispatch& omp_dispatch) {
   const auto n_chunks = schedule.n_chunks();
   DispatcherT disp;
-  const std::vector<AppDataPtr> dataset = make_dataset<AppDataT>(disp, kPoolSize);
+  const std::vector<AppDataPtr> dataset =
+      make_placed_dataset<AppDataT>(disp, kPoolSize, gpu_stages_of(schedule, gpu_em));
 
   std::vector<QueueT> queues(n_chunks);
   for (size_t i = 0; i < kPoolSize; ++i) queues[0].enqueue(dataset[i].get());
@@ -97,15 +176,15 @@ static void run_schedule(const Schedule& schedule,
     const bool is_last = chunk_id == n_chunks - 1;
 
     if (em == gpu_em) {
-      threads.emplace_back(
-          worker_with_record<QueueT, AppDataT, kNumToProcess>,
-          static_cast<int>(chunk_id),
-          std::ref(logger),
-          std::ref(q_in),
-          std::ref(q_out),
-          [&disp, start, end](AppDataT* app) { disp.dispatch_multi_stage(*app, start, end); },
-          kNumToProcess,
-          is_last);
+      threads.push_back(gpu_chunk_thread(disp,
+                                         q_in,
+                                         q_out,
+                                         start,
+                                         end,
+                                         kNumToProcess,
+                                         is_last,
+                                         static_cast<int>(chunk_id),
+                                         &logger));
     } else {  // kOMP (wrong-backend GPU chunks are filtered before we get here)
       const ProcessorType cpu_pt = get_processor_type_from_chunk_config(schedule.chunks[chunk_id]);
       threads.emplace_back(
@@ -221,6 +300,24 @@ inline int run(int argc,
     if (const auto reason = schedule_unrunnable_reason(schedules[i])) {
       spdlog::warn("Skipping schedule {} [{}]: {}", i, schedules[i].uid, *reason);
       continue;
+    }
+    if (const auto reason = first_concurrent_gpu_chunk(schedules[i])) {
+      spdlog::warn("Skipping schedule {} [{}]: {}", i, schedules[i].uid, *reason);
+      continue;
+    }
+    if constexpr (kHasSequences<DispatcherT>) {
+      size_t gpu_chunks = 0;
+      for (const auto& c : schedules[i].chunks) gpu_chunks += c.exec_model == gpu_em ? 1 : 0;
+      const size_t need =
+          min_pool_size(gpu_chunks, schedules[i].n_chunks() - gpu_chunks, vk_inflight_depth());
+      if (need > kPoolSize) {
+        spdlog::warn("Schedule {} [{}]: a pool of {} caps BT_VK_INFLIGHT={} (needs {} items)",
+                     i,
+                     schedules[i].uid,
+                     kPoolSize,
+                     vk_inflight_depth(),
+                     need);
+      }
     }
     if (!backend_matches(schedules[i], gpu_em)) {
       spdlog::warn("Skipping schedule {} [{}]: targets the other GPU backend", i, schedules[i].uid);

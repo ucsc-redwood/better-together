@@ -158,7 +158,7 @@ def get_detailed_solution(
                 "core_type": current_core_type,
                 # 1-based, inclusive [start_stage, end_stage] -- the schedule
                 # contract base (schemas/schedule.schema.json). chunk_stages is
-                # 0-based and contiguous (z3 contiguity constraint), so +1 once here.
+                # 0-based and contiguous (one maximal run of a PU), so +1 once here.
                 "start_stage": chunk_stages[0] + 1,
                 "end_stage": chunk_stages[-1] + 1,
                 "time": chunk_cost(current_core_type, chunk_time, len(chunk_stages)),
@@ -196,7 +196,13 @@ def finalize_solution(chunks):
     reprice_solution, so re-priced candidates stay indistinguishable in shape)."""
     chunk_times = [chunk["time"] for chunk in chunks]
     if chunk_times:
-        max_time = max(chunk_times)
+        # The period: one device serves all chunks of its PU, so a PU in several chunks
+        # (allow_gpu_multi_chunk) costs their sum. With one chunk per PU this is the
+        # largest chunk, as before.
+        per_pu = {}
+        for chunk in chunks:
+            per_pu[chunk["core_type"]] = per_pu.get(chunk["core_type"], 0.0) + chunk["time"]
+        max_time = max(per_pu.values())
         min_time = min(chunk_times)
         avg_time = sum(chunk_times) / len(chunk_times)
         load_balance_ratio = min_time / max_time

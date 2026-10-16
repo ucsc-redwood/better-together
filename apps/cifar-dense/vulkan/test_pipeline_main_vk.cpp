@@ -65,6 +65,17 @@ TEST(PipelineE2ECifarDenseVk, AllVulkan) {
   run_runtime_test<cifar_dense::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
+// Runtime gpu-chunks spec, "Two Vulkan chunks around a CPU chunk".
+TEST(PipelineE2ECifarDenseVk, TwoVulkanChunksAroundCpu) {
+  Schedule sched;
+  sched.uid = "cifar-dense-vk-omp-vk";
+  sched.chunks = {{ExecutionModel::kVulkan, 1, 2, std::nullopt},
+                  {ExecutionModel::kOMP, 3, 5, first_present_cpu_type()},
+                  {ExecutionModel::kVulkan, 6, 11, std::nullopt}};
+  validate_schedule_coverage(sched, kNumStages);
+  run_runtime_test<cifar_dense::vulkan::VulkanDispatcher>(sched, CheckItem);
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {

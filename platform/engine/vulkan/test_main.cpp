@@ -18,6 +18,7 @@
 #include <fstream>
 #include <future>
 #include <iterator>
+#include <map>
 #include <optional>
 #include <set>
 #include <thread>
@@ -58,6 +59,12 @@ TEST(VulkanDeviceFeatures, MissingShaderInt8IsReported) {
   supported_13.maintenance4 = VK_FALSE;
   EXPECT_EQ(kiss_vk::missing_required_features(supported, supported_13),
             std::vector<std::string>{"maintenance4"});
+
+  // synchronization2: the Sequence's barriers and timestamps (design A1).
+  supported_13.maintenance4 = VK_TRUE;
+  supported_13.synchronization2 = VK_FALSE;
+  EXPECT_EQ(kiss_vk::missing_required_features(supported, supported_13),
+            std::vector<std::string>{"synchronization2"});
 }
 
 // Pipeline-config (design D5): the SPIR-V scan reads spec ids and workgroup size from
@@ -112,11 +119,10 @@ TEST(VulkanWorkGroupSize, DeclaredSizeReachesShader) {
 
   seq->cmd_begin();
   algo->record_bind(*seq, {engine.get_buffer_info(out)});
-  algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+  algo->record_dispatch(*seq, {1, 1, 1});
   seq->cmd_end();
   seq->submit();
-  seq->wait_for_fence();
-  seq->reset_fence();
+  seq->wait();
 
   EXPECT_EQ(out[0], 128u);  // invocations in the one workgroup
   EXPECT_EQ(out[1], 64u);
@@ -195,14 +201,12 @@ TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
     }
     seq->cmd_begin();
     for (int i = 0; i < kRounds * kBuffers; ++i) {
-      if (i != 0) seq->cmd_memory_barrier();
       algo->record_bind(*seq, {engine.get_buffer_info(outs[i % kBuffers])});
-      algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+      algo->record_dispatch(*seq, {1, 1, 1});
     }
     seq->cmd_end();
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
 
     for (int b = 0; b < kBuffers; ++b) {
       EXPECT_EQ(outs[b][0], 1000u * (b + 1) + 128u * kRounds) << "buffer " << b;
@@ -215,6 +219,73 @@ TEST_P(VulkanBinding, SameKernelManyBuffersInOneCommandBuffer) {
 
 INSTANTIATE_TEST_SUITE_P(BothPaths,
                          VulkanBinding,
+                         ::testing::Values(BindingPath::kPushDescriptors, BindingPath::kFallback),
+                         [](const auto& info) {
+                           return info.param == BindingPath::kFallback ? "Fallback"
+                                                                       : "PushDescriptors";
+                         });
+
+// Submission spec, "Recorded work is reused per pooled item" (design D2): the same work
+// submitted again records nothing; changed push constants or buffers re-record; going back
+// to earlier work reuses its command buffer. The transient-pool fallback re-records every
+// submission (its sets live in pools the next recording resets). tree_morton turns `n`
+// input points into `n` Morton codes, so the outputs show which work actually ran.
+class VulkanPrerecord : public ::testing::TestWithParam<BindingPath> {};
+
+TEST_P(VulkanPrerecord, SecondPassRecordsNothingChangeReRecords) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const bool fallback = GetParam() == BindingPath::kFallback;
+  const ScopedEnv force("BT_VK_FORCE_DESCRIPTOR_FALLBACK", fallback ? "1" : nullptr);
+  kiss_vk::Engine engine;
+  if (!fallback && engine.push_descriptor_fn() == nullptr) {
+    GTEST_SKIP() << "VK_KHR_push_descriptor not supported";
+  }
+  auto seq = engine.make_seq();
+  ASSERT_EQ(seq->reuses_recordings(), !fallback);
+
+  struct MortonPushConstants {
+    uint32_t n;
+    float min_coord;
+    float range;
+  };
+  auto algo = engine.make_algo("tree_morton")
+                  ->work_group_size(256, 1, 1)
+                  ->num_buffers(2)
+                  ->push_constant<MortonPushConstants>()
+                  ->build();
+  constexpr uint32_t kN = 1024;
+  std::pmr::vector<float> points(4 * kN, 0.5f, engine.get_mr());
+  std::pmr::vector<uint32_t> out_a(kN, 0, engine.get_mr());
+  std::pmr::vector<uint32_t> out_b(kN, 0, engine.get_mr());
+
+  // Runs one submission; returns how many command buffers it recorded.
+  const auto pass = [&](std::pmr::vector<uint32_t>& out, const uint32_t n) {
+    std::ranges::fill(out, 0xFFFFFFFFu);
+    const uint64_t before = seq->recording_count();
+    seq->cmd_begin();
+    algo->record_bind(*seq, {engine.get_buffer_info(points), engine.get_buffer_info(out)});
+    algo->record_push_constants(*seq,
+                                MortonPushConstants{.n = n, .min_coord = 0.0f, .range = 1.0f});
+    algo->record_dispatch(*seq, {(n + 255) / 256, 1, 1});
+    seq->cmd_end();
+    seq->submit();
+    seq->wait();
+    EXPECT_NE(out[n - 1], 0xFFFFFFFFu) << "element " << n - 1 << " not written";
+    if (n < kN) EXPECT_EQ(out[n], 0xFFFFFFFFu) << "element " << n << " written";
+    return seq->recording_count() - before;
+  };
+
+  const uint64_t r = fallback ? 1 : 0;  // what an unchanged pass records
+  EXPECT_EQ(pass(out_a, kN), 1u);       // first time: recorded
+  EXPECT_EQ(pass(out_a, kN), r);        // same buffers and push constants
+  EXPECT_EQ(pass(out_a, kN / 2), 1u);   // push constants changed
+  EXPECT_EQ(pass(out_b, kN), 1u);       // buffers changed
+  EXPECT_EQ(pass(out_a, kN), r);        // the first work again: its command buffer is cached
+  EXPECT_EQ(pass(out_b, kN), r);
+}
+
+INSTANTIATE_TEST_SUITE_P(BothPaths,
+                         VulkanPrerecord,
                          ::testing::Values(BindingPath::kPushDescriptors, BindingPath::kFallback),
                          [](const auto& info) {
                            return info.param == BindingPath::kFallback ? "Fallback"
@@ -253,11 +324,10 @@ class PipelineCacheTest : public ::testing::Test {
                     ->build();
     seq->cmd_begin();
     algo->record_bind(*seq, {engine.get_buffer_info(out)});
-    algo->record_dispatch(seq->get_handle(), {1, 1, 1});
+    algo->record_dispatch(*seq, {1, 1, 1});
     seq->cmd_end();
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
     EXPECT_EQ(out, (std::pmr::vector<uint32_t>{128, 64, 2, 1}));
     if (path) *path = engine.pipeline_cache_path();
     return engine.pipeline_cache_load();
@@ -596,6 +666,195 @@ TEST(VulkanSubgroupSize, DependentPipelinesMatchTheShader) {
                       ->num_buffers(3)
                       ->push_constant_size(16)
                       ->build());
+}
+
+// Design A3: each binding's access comes from the shader's readonly/writeonly qualifiers;
+// a plain `buffer` is read and written. Hardware-free.
+TEST(SpirvReflection, BufferAccess) {
+  using kiss_vk::BufferAccess;
+  using Map = std::map<uint32_t, BufferAccess>;
+  EXPECT_EQ(kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("tree_scan_local")).binding_access,
+            (Map{{0, BufferAccess::kRead}, {1, BufferAccess::kWrite}, {2, BufferAccess::kWrite}}));
+  EXPECT_EQ(
+      kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("new_cifar_dense_linear")).binding_access,
+      (Map{{0, BufferAccess::kRead},
+           {1, BufferAccess::kRead},
+           {2, BufferAccess::kRead},
+           {3, BufferAccess::kWrite}}));
+  EXPECT_EQ(kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("multi_radixsort")).binding_access,
+            (Map{{0, BufferAccess::kReadWrite},
+                 {1, BufferAccess::kReadWrite},
+                 {2, BufferAccess::kReadWrite}}));
+  EXPECT_EQ(kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("tree_scan_add")).binding_access,
+            (Map{{0, BufferAccess::kReadWrite}, {1, BufferAccess::kRead}}));
+}
+
+// Execution-sync spec, "Dependencies only where stages depend" and "Inter-stage dependencies
+// cover RAW and WAW": consecutive dispatches on different buffers get no barrier; one that
+// touches a buffer written since the last barrier gets one. BT_VK_BARRIER_ALL=1 restores a
+// barrier before every dispatch but the first. The shader (binding 0 read and written) adds
+// its 128 invocations to g_out[0].
+TEST(VulkanStageDependency, OnlyWhereStagesDepend) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  for (const bool barrier_all : {false, true}) {
+    SCOPED_TRACE(barrier_all ? "BT_VK_BARRIER_ALL=1" : "tracked");
+    const ScopedEnv env("BT_VK_BARRIER_ALL", barrier_all ? "1" : nullptr);
+    kiss_vk::Engine engine;
+    auto seq = engine.make_seq();
+    auto algo = engine.make_algo("engine_test_workgroup_size")
+                    ->work_group_size(64, 2, 1)
+                    ->num_buffers(1)
+                    ->build();
+    std::pmr::vector<uint32_t> a(4, 0, engine.get_mr());
+    std::pmr::vector<uint32_t> b(4, 0, engine.get_mr());
+
+    const auto record = [&](std::pmr::vector<uint32_t>& buf) {
+      algo->record_bind(*seq, {engine.get_buffer_info(buf)});
+      algo->record_dispatch(*seq, {1, 1, 1});
+    };
+    seq->cmd_begin();
+    record(a);  // first dispatch: nothing to order
+    record(b);  // independent of a
+    EXPECT_EQ(seq->barrier_count(), barrier_all ? 1u : 0u);
+    record(a);  // a was written since the last barrier
+    EXPECT_EQ(seq->barrier_count(), barrier_all ? 2u : 1u);
+    seq->cmd_end();
+    seq->submit();
+    seq->wait();
+
+    EXPECT_EQ(seq->dispatch_count(), 3u);
+    EXPECT_EQ(a[0], 256u);
+    EXPECT_EQ(b[0], 128u);
+  }
+}
+
+// Design A4: the Sequence's two COMPUTE_SHADER timestamps bracket the command buffer's
+// compute work, so the GPU time is positive and no longer than the host's submit-to-wait.
+TEST(VulkanTimestamps, GpuTimeIsPositiveAndWithinWallTime) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  auto seq = engine.make_seq();
+  if (!seq->gpu_timestamps_supported()) GTEST_SKIP() << "no timestamps on the compute queue";
+  auto algo = engine.make_algo("engine_test_workgroup_size")
+                  ->work_group_size(64, 2, 1)
+                  ->num_buffers(1)
+                  ->build();
+  std::pmr::vector<uint32_t> out(4, 0, engine.get_mr());
+
+  for (int rep = 0; rep < 3; ++rep) {
+    seq->cmd_begin();
+    for (int i = 0; i < 16; ++i) {
+      algo->record_bind(*seq, {engine.get_buffer_info(out)});
+      algo->record_dispatch(*seq, {256, 1, 1});
+    }
+    seq->cmd_end();
+    const auto t0 = std::chrono::steady_clock::now();
+    seq->submit();
+    seq->wait();
+    const double wall_ns =
+        std::chrono::duration<double, std::nano>(std::chrono::steady_clock::now() - t0).count();
+
+    const double gpu_ns = seq->get_last_gpu_time_ns();
+    EXPECT_GT(gpu_ns, 0.0) << "rep " << rep;
+    EXPECT_LE(gpu_ns, wall_ns) << "rep " << rep;
+  }
+  EXPECT_EQ(out[0], 3u * 16u * 256u * 128u);
+}
+
+// Memory-placement spec (design B2): every buffer class allocates host-mapped memory whose
+// pointer resolves to its own VkBuffer, the host's writes reach the GPU and the GPU's writes
+// reach the host -- also with the weights class forced into write-combined memory
+// ("Weights written through a write-combined mapping").
+TEST(VulkanBufferClass, EachClassAllocatesAndResolves) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  for (const char* weights : {static_cast<const char*>(nullptr), "uncached", "device_local"}) {
+    SCOPED_TRACE(weights ? weights : "weights placement unset");
+    const ScopedEnv env("BT_VK_WEIGHTS_PLACEMENT", weights);
+    kiss_vk::Engine engine;
+    auto seq = engine.make_seq();
+    auto algo = engine.make_algo("engine_test_workgroup_size")
+                    ->work_group_size(64, 2, 1)
+                    ->num_buffers(1)
+                    ->build();
+
+    std::set<VkBuffer> buffers;
+    std::vector<std::pmr::vector<uint32_t>> alive;  // all three at once: distinct handles
+    alive.reserve(3);
+    for (const auto c :
+         {bt::BufferClass::kBoundary, bt::BufferClass::kWeights, bt::BufferClass::kGpuLocal}) {
+      auto& v = alive.emplace_back(4, 0, engine.get_mr(c));
+      v[0] = 1000;  // written through the class's mapping
+      const vk::Buffer b = engine.get_buffer(v.data());
+      ASSERT_TRUE(b);
+      EXPECT_EQ(engine.get_mr(c)->find_buffer(v.data()), b);
+      buffers.insert(b);
+
+      seq->cmd_begin();
+      algo->record_bind(*seq, {engine.get_buffer_info(v)});
+      algo->record_dispatch(*seq, {1, 1, 1});
+      seq->cmd_end();
+      seq->submit();
+      seq->wait();
+      EXPECT_EQ(v[0], 1128u) << "class " << static_cast<int>(c);
+      EXPECT_EQ(v[1], 64u) << "class " << static_cast<int>(c);
+    }
+    EXPECT_EQ(buffers.size(), 3u);
+  }
+}
+
+// Pipeline-config spec, "Full subgroups available": a subgroup-dependent pipeline whose X
+// size is a multiple of the subgroup size runs with that size, and with computeFullSubgroups
+// every subgroup is launched full.
+TEST(VulkanSubgroupSize, FullSubgroupsDispatch) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  const auto& limits = engine.compute_limits();
+  auto seq = engine.make_seq();
+  std::pmr::vector<uint32_t> out(3, 0, engine.get_mr());
+  out[2] = ~0u;
+
+  auto algo = engine.make_algo("engine_test_subgroup")
+                  ->work_group_size(4 * limits.subgroup_size, 1, 1)
+                  ->subgroup_size_dependent()
+                  ->num_buffers(1)
+                  ->build();
+  seq->cmd_begin();
+  algo->record_bind(*seq, {engine.get_buffer_info(out)});
+  algo->record_dispatch(*seq, {8, 1, 1});
+  seq->cmd_end();
+  seq->submit();
+  seq->wait();
+
+  EXPECT_EQ(out[1], limits.subgroup_size);  // specialized
+  if (limits.subgroup_size_pinned) EXPECT_EQ(out[0], limits.subgroup_size);
+  if (limits.full_subgroups) EXPECT_EQ(out[2], out[0]) << "a subgroup was launched partial";
+}
+
+// Pipeline-config spec, "Full subgroups unavailable and size mismatched": with
+// computeFullSubgroups forced off, a subgroup-dependent pipeline whose X size is not a
+// multiple of the subgroup size fails to build, naming both sizes.
+TEST(VulkanSubgroupSize, NonMultipleWorkgroupFailsWithoutFullSubgroups) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  kiss_vk::ComputeLimits limits = engine.compute_limits();
+  limits.full_subgroups = false;
+  const uint32_t x = limits.subgroup_size + limits.subgroup_size / 2;
+  const auto make = [&](const uint32_t wg_x) {
+    return std::make_shared<kiss_vk::Algorithm>(engine.get_mr(),
+                                                "engine_test_subgroup",
+                                                limits,
+                                                engine.push_descriptor_fn(),
+                                                vk::PipelineCache{})
+        ->work_group_size(wg_x, 1, 1)
+        ->subgroup_size_dependent()
+        ->num_buffers(1);
+  };
+
+  const auto err = build_error(make(x));
+  EXPECT_NE(err.find(fmt::format("workgroup X size {}", x)), std::string::npos) << err;
+  EXPECT_NE(err.find(fmt::format("subgroup size {}", limits.subgroup_size)), std::string::npos)
+      << err;
+  EXPECT_EQ(build_error(make(2 * limits.subgroup_size)), "");  // a multiple still builds
 }
 
 // Pipeline-config spec, "Registry subgroup value is a cross-check only": a registry

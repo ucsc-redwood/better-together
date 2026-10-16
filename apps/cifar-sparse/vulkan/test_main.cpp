@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <memory_resource>
+#include <set>
 
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
 // cifar-sparse × Vulkan differential oracle. Vulkan uses the same AppData as
@@ -32,6 +35,29 @@ struct VulkanRunner {
 }  // namespace
 
 BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(CifarSparseDiffVulkan, VulkanRunner)
+
+// Memory-placement spec, design B3: the stages each AppData buffer declares (what the
+// schedule-driven placement trusts) are exactly the stages whose dispatches bind it.
+TEST(Placement, DeclaredStagesMatchBindings) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  auto* vk_mr = static_cast<kiss_vk::VulkanMemoryResource*>(disp.get_mr());
+  bt_placement_test::RecordingDispatcher rec(vk_mr);
+  cifar_sparse::AppData app(rec.placement(all_stages(11)));
+
+  for (int s = 1; s <= 11; ++s) {
+    disp.dispatch_multi_stage(app, s, s);
+    const auto& touched = disp.get_seq()->touched_buffers();
+    std::set<VkBuffer> bound(touched.begin(), touched.end());
+    std::set<VkBuffer> declared;
+    for (const auto& [ptr, alloc] : rec.log) {
+      if (std::ranges::find(alloc.stages, s) != alloc.stages.end()) {
+        declared.insert(vk_mr->find_buffer(ptr));
+      }
+    }
+    EXPECT_EQ(bound, declared) << "stage " << s;
+  }
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

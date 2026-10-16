@@ -2,6 +2,11 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
 #include "apps/tree/tree_diff_oracle.hpp"
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
@@ -37,6 +42,71 @@ TEST(VulkanDispatcherLifetime, ConstructDestroyReconstruct) {
     SCOPED_TRACE(round);
     tree::testing::RunAndCheckStage<VulkanTreeRunner>(7);
   }
+}
+
+// Runtime gpu-chunks spec / design C2: two threads, each with its own Sequence, record and
+// submit full chunks (stages 1-7) through ONE dispatcher at the same time -- 1000 chunks in
+// all, on two items per thread. Every item must still match the oracle; under
+// BT_VK_VALIDATION=1 the gate also requires 0 validation errors (incl. queue
+// external-synchronization ones, which the Engine's submit mutex prevents).
+TEST(VulkanConcurrentSequences, TwoThreadsOneDispatcher) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  tree::vulkan::VulkanDispatcher disp;
+  constexpr int kThreads = 2;
+  constexpr int kItemsPerThread = 2;
+  constexpr int kChunksPerThread = 500;
+  std::vector<std::unique_ptr<tree::vulkan::VkAppData_Safe>> items;
+  items.reserve(kThreads * kItemsPerThread);
+  for (int i = 0; i < kThreads * kItemsPerThread; ++i) {
+    items.push_back(std::make_unique<tree::vulkan::VkAppData_Safe>(disp.get_mr()));
+  }
+
+  std::vector<std::thread> threads;
+  threads.reserve(kThreads);
+  for (int t = 0; t < kThreads; ++t) {
+    threads.emplace_back([&disp, &items, t] {
+      const auto seq = disp.make_seq();
+      for (int i = 0; i < kChunksPerThread; ++i) {
+        disp.dispatch_multi_stage(*items[t * kItemsPerThread + i % kItemsPerThread], 1, 7, *seq);
+      }
+    });
+  }
+  for (auto& th : threads) th.join();
+
+  for (size_t i = 0; i < items.size(); ++i) {
+    SCOPED_TRACE("item " + std::to_string(i));
+    tree::testing::CheckStage1(*items[i]);
+    tree::testing::CheckStage2(*items[i]);
+    tree::testing::CheckStage3(*items[i]);
+    tree::testing::CheckStage4(*items[i]);
+    tree::testing::CheckStage5(*items[i]);
+    tree::testing::CheckStage6(*items[i]);
+    tree::testing::CheckStage7(*items[i]);
+  }
+}
+
+// Submission spec, "Steady-state execution" (design D2): the same pooled item through the
+// same chunk a second time records no command buffer and still matches the oracle; another
+// item (other buffers) records its own. On the transient-pool fallback every pass records.
+TEST(VulkanPrerecord, SameItemSecondPassRecordsNothing) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  tree::vulkan::VulkanDispatcher disp;
+  const auto seq = disp.make_seq();
+  tree::vulkan::VkAppData_Safe a(disp.get_mr());
+  tree::vulkan::VkAppData_Safe b(disp.get_mr());
+  const uint64_t again = seq->reuses_recordings() ? 0 : 1;
+
+  const auto pass = [&](tree::vulkan::VkAppData_Safe& item) {
+    const uint64_t before = seq->recording_count();
+    disp.dispatch_multi_stage(item, 1, 7, *seq);
+    return seq->recording_count() - before;
+  };
+  EXPECT_EQ(pass(a), 1u);
+  EXPECT_EQ(pass(a), again);
+  EXPECT_EQ(pass(b), 1u);
+  EXPECT_EQ(pass(a), again);
+  tree::testing::CheckStage7(a);
+  tree::testing::CheckStage7(b);
 }
 
 // ----------------------------------------------------------------------------

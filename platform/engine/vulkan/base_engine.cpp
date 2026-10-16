@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -231,7 +232,9 @@ bool has_integrated_gpu() noexcept {
 // The device features the engine requires -- exactly what the committed shaders' SPIR-V
 // capabilities (Int8, StorageBuffer8BitAccess), the VMA allocator
 // (VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT) and LocalSizeId (the SPIR-V 1.6 form of
-// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need. Only these are enabled.
+// `local_size_*_id`, VUID-RuntimeSpirv-LocalSizeId-06434) need, plus synchronization2 and
+// timelineSemaphore for the Sequence's barriers, timestamps and tickets. Only these are
+// enabled.
 namespace {
 template <typename Features>
 struct RequiredFeature {
@@ -239,16 +242,20 @@ struct RequiredFeature {
   vk::Bool32 Features::* member = nullptr;
 };
 
-constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 3>
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan12Features>, 4>
     kRequiredVulkan12Features{{
         {"storageBuffer8BitAccess", &vk::PhysicalDeviceVulkan12Features::storageBuffer8BitAccess},
         {"shaderInt8", &vk::PhysicalDeviceVulkan12Features::shaderInt8},
         {"bufferDeviceAddress", &vk::PhysicalDeviceVulkan12Features::bufferDeviceAddress},
+        // The Sequence's per-submission tickets (design D3).
+        {"timelineSemaphore", &vk::PhysicalDeviceVulkan12Features::timelineSemaphore},
     }};
 
-constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 1>
+constexpr std::array<RequiredFeature<vk::PhysicalDeviceVulkan13Features>, 2>
     kRequiredVulkan13Features{{
         {"maintenance4", &vk::PhysicalDeviceVulkan13Features::maintenance4},
+        // vkCmdPipelineBarrier2 / vkCmdWriteTimestamp2 (Sequence, design A1).
+        {"synchronization2", &vk::PhysicalDeviceVulkan13Features::synchronization2},
     }};
 }  // namespace
 
@@ -265,26 +272,54 @@ std::vector<std::string> missing_required_features(
   return missing;
 }
 
-void BaseEngine::create_device(vk::QueueFlags queue_flags) {
+void BaseEngine::create_device() {
   if (!physical_device_) {
     throw std::runtime_error("Physical device is not valid");
   }
 
-  auto queueFamilyProperties = physical_device_.getQueueFamilyProperties();
+  // Queue family (design C1). Every family is logged; BT_VK_QUEUE=universal (default, today's
+  // choice: the first family with compute) or compute (the first with compute and no
+  // graphics, falling back with a warning where none exists).
+  const auto families = physical_device_.getQueueFamilyProperties();
+  for (uint32_t i = 0; i < families.size(); ++i) {
+    spdlog::debug("Queue family {}: flags {}, queueCount {}, timestampValidBits {}",
+                  i,
+                  vk::to_string(families[i].queueFlags),
+                  families[i].queueCount,
+                  families[i].timestampValidBits);
+  }
+  const auto first_family = [&](const auto& pred) -> std::optional<uint32_t> {
+    for (uint32_t i = 0; i < families.size(); ++i) {
+      if (pred(families[i].queueFlags)) return i;
+    }
+    return std::nullopt;
+  };
+  const auto universal = first_family(
+      [](const vk::QueueFlags f) { return static_cast<bool>(f & vk::QueueFlagBits::eCompute); });
+  if (!universal) throw std::runtime_error("No queue family supports compute operations.");
+  compute_queue_family_index_ = *universal;
 
-  compute_queue_family_index_ = std::distance(
-      queueFamilyProperties.begin(),
-      std::find_if(queueFamilyProperties.begin(),
-                   queueFamilyProperties.end(),
-                   [queue_flags](const auto& qfp) { return qfp.queueFlags & queue_flags; }));
-
-  if (compute_queue_family_index_ == queueFamilyProperties.size()) {
-    throw std::runtime_error("No queue family supports compute operations.");
+  const char* queue_env = std::getenv("BT_VK_QUEUE");
+  const std::string_view queue_kind = queue_env != nullptr ? queue_env : "universal";
+  if (queue_kind != "universal" && queue_kind != "compute") {
+    throw std::runtime_error("BT_VK_QUEUE must be universal or compute, got " +
+                             std::string(queue_kind));
+  }
+  if (queue_kind == "compute") {
+    if (const auto compute_only = first_family([](const vk::QueueFlags f) {
+          return (f & vk::QueueFlagBits::eCompute) && !(f & vk::QueueFlagBits::eGraphics);
+        })) {
+      compute_queue_family_index_ = *compute_only;
+    } else {
+      spdlog::warn("BT_VK_QUEUE=compute: no compute-only queue family; using family {} ({})",
+                   compute_queue_family_index_,
+                   vk::to_string(families[compute_queue_family_index_].queueFlags));
+    }
   }
 
   // Create a logical device with a compute queue
   constexpr float queuePriority = 1.0f;
-  const vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
+  vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
       .queueFamilyIndex = compute_queue_family_index_,
       .queueCount = 1,
       .pQueuePriorities = &queuePriority,
@@ -320,11 +355,13 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
   const bool pinnable =
       supported_13.subgroupSizeControl == VK_TRUE &&
       (size_control.requiredSubgroupSizeStages & vk::ShaderStageFlagBits::eCompute);
+  const bool full_subgroups = supported_13.computeFullSubgroups == VK_TRUE;
   compute_limits_ = ComputeLimits{
       .subgroup_size = subgroup.subgroupSize,
       .min_subgroup_size = is_vulkan_13 ? size_control.minSubgroupSize : subgroup.subgroupSize,
       .max_subgroup_size = is_vulkan_13 ? size_control.maxSubgroupSize : subgroup.subgroupSize,
       .subgroup_size_pinned = pinnable,
+      .full_subgroups = full_subgroups,
       .max_compute_workgroup_subgroups = pinnable ? size_control.maxComputeWorkgroupSubgroups : 0,
       .max_work_group_size = device_props.limits.maxComputeWorkGroupSize,
       .max_work_group_invocations = device_props.limits.maxComputeWorkGroupInvocations,
@@ -342,32 +379,138 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
       size_control.maxComputeWorkgroupSubgroups);
 
   // Optional features are enabled only when supported (design D3).
-  vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable};
+  vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable,
+                                                .computeFullSubgroups = full_subgroups};
   vk::PhysicalDeviceVulkan12Features enabled_12{.pNext = &enabled_13};
   for (const auto& f : kRequiredVulkan12Features) enabled_12.*f.member = VK_TRUE;
   for (const auto& f : kRequiredVulkan13Features) enabled_13.*f.member = VK_TRUE;
+  spdlog::debug(
+      "Vulkan 1.3 features: synchronization2 supported {} enabled {}, computeFullSubgroups "
+      "supported {} enabled {}",
+      supported_13.synchronization2 == VK_TRUE,
+      enabled_13.synchronization2 == VK_TRUE,
+      supported_13.computeFullSubgroups == VK_TRUE,
+      enabled_13.computeFullSubgroups == VK_TRUE);
 
   // VK_KHR_push_descriptor is optional (design D6): enabled when the device has it, unless
   // BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 asks for the transient-pool path.
-  const bool has_push_descriptor = std::ranges::any_of(
-      physical_device_.enumerateDeviceExtensionProperties(), [](const auto& ext) {
-        return std::strcmp(ext.extensionName.data(), VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME) == 0;
-      });
+  const auto device_extensions = physical_device_.enumerateDeviceExtensionProperties();
+  const auto has_extension = [&](const char* name) {
+    return std::ranges::any_of(device_extensions, [name](const auto& ext) {
+      return std::strcmp(ext.extensionName.data(), name) == 0;
+    });
+  };
+  const bool has_push_descriptor = has_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
   const char* force_env = std::getenv("BT_VK_FORCE_DESCRIPTOR_FALLBACK");
   const bool force_fallback = force_env != nullptr && std::string_view(force_env) == "1";
   const bool use_push_descriptor = has_push_descriptor && !force_fallback;
   std::vector<const char*> extensions;
   if (use_push_descriptor) extensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 
-  const vk::DeviceCreateInfo deviceCreateInfo{
-      .pNext = &enabled_12,
-      .queueCreateInfoCount = 1,
-      .pQueueCreateInfos = &deviceQueueCreateInfo,
-      .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-      .ppEnabledExtensionNames = extensions.data(),
+  // Calibrated timestamps (design D1) correlate the GPU's timestamps with the host's
+  // CLOCK_MONOTONIC for the phase timing; optional, KHR or the older EXT.
+  const char* calibrated_extension = has_extension(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)
+                                         ? VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+                                     : has_extension(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)
+                                         ? VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+                                         : nullptr;
+  bool calibrated_domains = false;
+  if (calibrated_extension != nullptr) {
+    const bool khr =
+        calibrated_extension == std::string_view(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+    const auto get_domains = reinterpret_cast<PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsKHR>(
+        instance_.getProcAddr(khr ? "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR"
+                                  : "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT"));
+    uint32_t n = 0;
+    std::vector<VkTimeDomainKHR> domains;
+    if (get_domains != nullptr && get_domains(physical_device_, &n, nullptr) == VK_SUCCESS) {
+      domains.resize(n);
+      get_domains(physical_device_, &n, domains.data());
+    }
+    calibrated_domains =
+        std::ranges::find(domains, VK_TIME_DOMAIN_DEVICE_KHR) != domains.end() &&
+        std::ranges::find(domains, VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR) != domains.end();
+    if (calibrated_domains) extensions.push_back(calibrated_extension);
+  }
+
+  // Global queue priority (design C1), best-effort: BT_VK_QUEUE_PRIORITY=low|medium|high
+  // through VK_KHR_global_priority (or the EXT), warning and continuing at the default
+  // priority when the device lacks it or the driver refuses it (VK_ERROR_NOT_PERMITTED).
+  std::optional<vk::QueueGlobalPriorityKHR> priority;
+  std::string_view priority_name = "default";
+  if (const char* v = std::getenv("BT_VK_QUEUE_PRIORITY")) {
+    priority_name = v;
+    if (priority_name == "low") {
+      priority = vk::QueueGlobalPriorityKHR::eLow;
+    } else if (priority_name == "medium") {
+      priority = vk::QueueGlobalPriorityKHR::eMedium;
+    } else if (priority_name == "high") {
+      priority = vk::QueueGlobalPriorityKHR::eHigh;
+    } else {
+      throw std::runtime_error("BT_VK_QUEUE_PRIORITY must be low, medium or high, got " +
+                               std::string(priority_name));
+    }
+  }
+  const char* priority_extension =
+      has_extension(VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME)   ? VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME
+      : has_extension(VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME) ? VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME
+                                                             : nullptr;
+  if (priority && priority_extension == nullptr) {
+    spdlog::warn(
+        "BT_VK_QUEUE_PRIORITY={}: the device has no global queue priority extension; "
+        "using the default priority",
+        priority_name);
+    priority.reset();
+    priority_name = "default";
+  }
+  const vk::DeviceQueueGlobalPriorityCreateInfoKHR priority_info{
+      .globalPriority = priority.value_or(vk::QueueGlobalPriorityKHR::eMedium),
   };
 
-  device_ = physical_device_.createDevice(deviceCreateInfo);
+  const auto create = [&](const bool with_priority) {
+    std::vector<const char*> exts = extensions;
+    if (with_priority) exts.push_back(priority_extension);
+    deviceQueueCreateInfo.pNext = with_priority ? &priority_info : nullptr;
+    const vk::DeviceCreateInfo deviceCreateInfo{
+        .pNext = &enabled_12,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &deviceQueueCreateInfo,
+        .enabledExtensionCount = static_cast<uint32_t>(exts.size()),
+        .ppEnabledExtensionNames = exts.data(),
+    };
+    return physical_device_.createDevice(deviceCreateInfo);
+  };
+  try {
+    device_ = create(priority.has_value());
+  } catch (const vk::SystemError& e) {
+    if (!priority || e.code().value() != static_cast<int>(VK_ERROR_NOT_PERMITTED_KHR)) throw;
+    spdlog::warn(
+        "BT_VK_QUEUE_PRIORITY={}: the driver refused that global queue priority "
+        "(VK_ERROR_NOT_PERMITTED); using the default priority",
+        priority_name);
+    priority_name = "default";
+    device_ = create(false);
+  }
+  spdlog::debug("Compute queue: family {} ({}, BT_VK_QUEUE={}), priority {}",
+                compute_queue_family_index_,
+                vk::to_string(families[compute_queue_family_index_].queueFlags),
+                queue_kind,
+                priority_name);
+
+  if (calibrated_domains) {
+    calibrated_timestamps_fn_ =
+        reinterpret_cast<PFN_vkGetCalibratedTimestampsKHR>(device_.getProcAddr(
+            calibrated_extension == std::string_view(VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME)
+                ? "vkGetCalibratedTimestampsKHR"
+                : "vkGetCalibratedTimestampsEXT"));
+  }
+  spdlog::debug(
+      "Calibrated timestamps: {}",
+      calibrated_timestamps_fn_ != nullptr
+          ? std::string(calibrated_extension) + " (device + CLOCK_MONOTONIC)"
+      : calibrated_extension != nullptr
+          ? std::string(calibrated_extension) + " lacks the device/CLOCK_MONOTONIC domains"
+          : std::string("not supported; GPU and host phases stay uncorrelated"));
 
   if (use_push_descriptor) {
     // From the device, not the instance-level dispatcher: an extension command.
@@ -381,8 +524,105 @@ void BaseEngine::create_device(vk::QueueFlags queue_flags) {
                     ? "transient descriptor pool (forced by BT_VK_FORCE_DESCRIPTOR_FALLBACK=1)"
                     : "transient descriptor pool (VK_KHR_push_descriptor not supported)");
 
+  // Memory placement (design B1): every heap and memory type, for the per-device tables.
+  const auto mem = physical_device_.getMemoryProperties();
+  for (uint32_t h = 0; h < mem.memoryHeapCount; ++h) {
+    spdlog::debug("Memory heap {}: {} MiB, flags {}",
+                  h,
+                  mem.memoryHeaps[h].size >> 20,
+                  vk::to_string(mem.memoryHeaps[h].flags));
+  }
+  for (uint32_t t = 0; t < mem.memoryTypeCount; ++t) {
+    spdlog::debug("Memory type {}: heap {}, flags {}",
+                  t,
+                  mem.memoryTypes[t].heapIndex,
+                  vk::to_string(mem.memoryTypes[t].propertyFlags));
+  }
+
   // looks like I don't need this
   compute_queue_ = device_.getQueue(compute_queue_family_index_, 0);
+}
+
+void BaseEngine::check_calibration() {
+  if (calibrated_timestamps_fn_ == nullptr) return;
+  // A queue timestamp written between two calibration pairs must lie between their device
+  // ticks. RADV 25.2.7 on the 780M (PHOENIX) puts it ~2.9e9 ticks (29 s) later, a constant
+  // offset between the two counters; mapping through it would make every latency garbage.
+  const uint32_t valid_bits = queue_family_timestamp_bits();
+  if (valid_bits == 0) return;
+  const vk::QueryPool query = device_.createQueryPool(
+      vk::QueryPoolCreateInfo{.queryType = vk::QueryType::eTimestamp, .queryCount = 1});
+  const vk::CommandPool pool = device_.createCommandPool(
+      vk::CommandPoolCreateInfo{.queueFamilyIndex = compute_queue_family_index_});
+  const vk::Fence fence = device_.createFence({});
+  const vk::CommandBuffer cmd = device_
+                                    .allocateCommandBuffers(vk::CommandBufferAllocateInfo{
+                                        .commandPool = pool,
+                                        .level = vk::CommandBufferLevel::ePrimary,
+                                        .commandBufferCount = 1,
+                                    })
+                                    .front();
+  cmd.begin(vk::CommandBufferBeginInfo{});
+  cmd.resetQueryPool(query, 0, 1);
+  cmd.writeTimestamp2(vk::PipelineStageFlagBits2::eAllCommands, query, 0);
+  cmd.end();
+
+  uint64_t before = 0, after = 0, host = 0, deviation = 0, ts = 0;
+  bool ok = calibrate(before, host, deviation);
+  compute_queue_.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &cmd}, fence);
+  ok = ok && device_.waitForFences(1, &fence, VK_TRUE, UINT64_MAX) == vk::Result::eSuccess;
+  ok = ok && calibrate(after, host, deviation);
+  ok = ok &&
+       device_.getQueryPoolResults(query,
+                                   0,
+                                   1,
+                                   sizeof(ts),
+                                   &ts,
+                                   sizeof(ts),
+                                   vk::QueryResultFlagBits::e64 | vk::QueryResultFlagBits::eWait) ==
+           vk::Result::eSuccess;
+  device_.destroyFence(fence);
+  device_.destroyCommandPool(pool);
+  device_.destroyQueryPool(query);
+
+  const uint64_t mask = valid_bits >= 64 ? ~uint64_t{0} : (uint64_t{1} << valid_bits) - 1;
+  ts &= mask;
+  if (ok && ts >= (before & mask) && ts <= (after & mask)) return;
+  spdlog::warn(
+      "Calibrated timestamps: a queue timestamp ({}) lies outside the calibrated device ticks "
+      "around it ({}..{}, offset {} ticks); GPU and host phases stay uncorrelated",
+      ts,
+      before & mask,
+      after & mask,
+      static_cast<int64_t>(ts - (before & mask)));
+  calibrated_timestamps_fn_ = nullptr;
+}
+
+uint32_t BaseEngine::queue_family_timestamp_bits() const {
+  return physical_device_.getQueueFamilyProperties()[compute_queue_family_index_]
+      .timestampValidBits;
+}
+
+bool BaseEngine::calibrate(uint64_t& device_ticks,
+                           uint64_t& host_ns,
+                           uint64_t& deviation_ns) const {
+  if (calibrated_timestamps_fn_ == nullptr) return false;
+  const std::array<VkCalibratedTimestampInfoKHR, 2> infos{{
+      {.sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
+       .pNext = nullptr,
+       .timeDomain = VK_TIME_DOMAIN_DEVICE_KHR},
+      {.sType = VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_KHR,
+       .pNext = nullptr,
+       .timeDomain = VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR},
+  }};
+  std::array<uint64_t, 2> stamps{};
+  if (calibrated_timestamps_fn_(device_, 2, infos.data(), stamps.data(), &deviation_ns) !=
+      VK_SUCCESS) {
+    return false;
+  }
+  device_ticks = stamps[0];
+  host_ns = stamps[1];
+  return true;
 }
 
 void BaseEngine::override_subgroup_size(const uint32_t size) {
