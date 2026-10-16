@@ -50,8 +50,32 @@ Gates used below:
 
 ## 2. Path selection and dispatch geometry (D1, D3)
 
-- [ ] 2.1 Make the sparse conv `subgroup_size_dependent` (shader spec constant 0, its dispatcher, its test) with a `SUBGROUP_SIZE < 32` branch that still runs today's code. Verify: the phone gate is green, and the Samsung's sparse suite outputs are unchanged.
-- [ ] 2.2 Add one conv contract header giving each kernel's outputs per invocation for a subgroup size, and size the grid from it in both apps' dispatchers and in the conv tests. Verify: a mutation that makes the header disagree with the shader fails `DenseConvK3S1P1` / `SparseConvK3S1P1` (the outputs stay at their `-1` fill), and the unmutated tree passes the phone gate.
+- [x] 2.1 Make the sparse conv `subgroup_size_dependent` (shader spec constant 0, its dispatcher, its test) with a `SUBGROUP_SIZE < 32` branch that still runs today's code. Verify: the phone gate is green, and the Samsung's sparse suite outputs are unchanged.
+  - *Evidence:* `new_cifar_sparse_conv2d_k3s1p1.comp` declares `constant_id = 0 SUBGROUP_SIZE`. Today's per-output
+    walk moved unchanged into `row_sum()`, which `main()` calls from both the `SUBGROUP_SIZE < 32` and the other branch.
+    The dispatcher and `SparseConvK3S1P1` build it with `->subgroup_size_dependent()` (the engine throws if the two
+    disagree).
+    - Phone gate (both phones): kiss 29 + 1 skip, tree 18, cifar-dense 16, cifar-sparse 17, plus cifar-dense 16 and
+      cifar-sparse 17 with real weights; exit 0.
+    - "Outputs unchanged": scratch-only test (never committed, `/tmp/mali-work/scripts/add-hash-test.py`). It runs
+      stages 1-11 on Vulkan from the seeded AppData and prints an FNV-1a hash of each conv output buffer. It was added to
+      62dfb81 and to this group's tree, built in two worktrees and run on each phone with synthetic and real weights.
+      On the Samsung all 20 hashes match (2 apps × 5 convs × 2 weight sets; e.g. sparse real conv3
+      `6fee95125cbcdac2` both), and on the Pixel 7a all 20 match too.
+- [x] 2.2 Add one conv contract header giving each kernel's outputs per invocation for a subgroup size, and size the grid from it in both apps' dispatchers and in the conv tests. Verify: a mutation that makes the header disagree with the shader fails `DenseConvK3S1P1` / `SparseConvK3S1P1` (the outputs stay at their `-1` fill), and the unmutated tree passes the phone gate.
+  - *Evidence:* `platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp`: `kDenseConvChannelsPerInvocation` (4),
+    `kDenseConvMaliPixels` / `kSparseConvMaliPixels` (1 for now), and `{dense,sparse}_conv_k3s1p1_invocations(n, k, h,
+    w, subgroup_size)`. The five conv sites of each dispatcher and both conv tests size `grid.x` from it with
+    `engine.subgroup_size()`, which is the value the engine specializes constant 0 with.
+    - Mutation, wide path (build box, RADV, subgroup 64): the contract's non-Mali pixel count 1 → 2. Every
+      `DenseConvK3S1P1` and `SparseConvK3S1P1` case fails with `got evaluates to -1`.
+    - Mutation, Mali path (Pixel 7a): `kDenseConvMaliPixels = kSparseConvMaliPixels = 2`, built in a scratch worktree.
+      `DenseConvK3S1P1` 3/3 FAILED and `SparseConvK3S1P1` 3/3 FAILED, each `got evaluates to -1`.
+    - The opposite mismatch (the header counts fewer outputs than the shader computes) only launches surplus invocations,
+      which exit on the shader's `idx >= total` guard. That costs time but computes every output.
+    - Unmutated tree: phone gate green on both phones (counts in 2.1). Rocky correctness: kiss 30, cifar-dense 16 + 16,
+      cifar-sparse 17 + 17 (synthetic + real weights). Local: `test-cifar-dense-vk` 16/16, `test-cifar-sparse-vk`
+      17/17. `just check-shaders`: OK.
 
 ## 3. Dense conv: output blocking (D2.1)
 

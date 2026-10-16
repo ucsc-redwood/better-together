@@ -11,6 +11,10 @@ precision highp int;
 // `% kernel_size` per nonzero; here the literal 9/3 lets the compiler strength-reduce
 // the decode.
 //
+// The algorithm is subgroup_size_dependent (spec constant 0, set by the engine). SUBGROUP_SIZE < 32
+// (Mali, subgroup 16, no scalar unit) has its own branch in main(); today it runs the same code as
+// every other GPU.
+//
 // Two paths, chosen per subgroup:
 //  * Fast, when every active lane of the subgroup has the same output channel (always
 //    the case when out_height*out_width is a multiple of the subgroup size: 32x32,
@@ -24,6 +28,8 @@ precision highp int;
 // Same descriptor layout and push constants as new_cifar_sparse_conv2d.
 // Dispatcher contract (falls back to the generic shader otherwise):
 //   kernel_size == 3, stride == 1, padding == 1.
+
+layout(constant_id = 0) const uint SUBGROUP_SIZE = 32;  // engine-set: 16 Mali, 32/64 AMD
 
 layout(local_size_x = 256) in;
 
@@ -98,21 +104,8 @@ float tap_fast(int nz, int in_base, int oh, int ow) {
   return ok ? v * weight_vals[nz] : 0.0;
 }
 
-void main() {
-  const int total =
-      params.batch_size * params.out_channels * params.out_height * params.out_width;
-  int idx = int(gl_GlobalInvocationID.x);
-  if (idx >= total) return;
-
-  const int ow = idx % params.out_width;
-  idx /= params.out_width;
-  const int oh = idx % params.out_height;
-  idx /= params.out_height;
-  const int out_c = idx % params.out_channels;
-  const int b = idx / params.out_channels;
-
-  const int in_base = b * params.in_channels * params.in_height * params.in_width;
-
+// One output (b, out_c, oh, ow): the CSR walk of row out_c, with the fast or the fallback path.
+float row_sum(const int out_c, const int in_base, const int oh, const int ow) {
   float sum;
   if (subgroupAllEqual(out_c)) {
     // Every active lane walks the same CSR row: make its bounds provably uniform.
@@ -141,6 +134,30 @@ void main() {
     }
     if (nz < row_end) s0 += tap_generic(nz, in_base, oh, ow);
     sum = s0 + s1;
+  }
+  return sum;
+}
+
+void main() {
+  const int total =
+      params.batch_size * params.out_channels * params.out_height * params.out_width;
+  int idx = int(gl_GlobalInvocationID.x);
+  if (idx >= total) return;
+
+  const int ow = idx % params.out_width;
+  idx /= params.out_width;
+  const int oh = idx % params.out_height;
+  idx /= params.out_height;
+  const int out_c = idx % params.out_channels;
+  const int b = idx / params.out_channels;
+
+  const int in_base = b * params.in_channels * params.in_height * params.in_width;
+
+  float sum;
+  if (SUBGROUP_SIZE < 32) {
+    sum = row_sum(out_c, in_base, oh, ow);  // Mali: no path of its own yet
+  } else {
+    sum = row_sum(out_c, in_base, oh, ow);
   }
   if (params.bias_size > 0 && out_c < params.bias_size) sum += bias_data[out_c];
   if (params.relu != 0 && sum < 0.0) sum = 0.0;

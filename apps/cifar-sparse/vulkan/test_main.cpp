@@ -11,6 +11,7 @@
 
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "runtime/tests/placement_check.hpp"
@@ -105,6 +106,7 @@ void ExpectSparseConvMatchesReference(const int h, const int w) {
 
   auto algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
                   ->work_group_size(256, 1, 1)
+                  ->subgroup_size_dependent()
                   ->num_buffers(6)
                   ->push_constant<ConvPc>()
                   ->build();
@@ -119,7 +121,9 @@ void ExpectSparseConvMatchesReference(const int h, const int w) {
                      engine.get_buffer_info(col_idx),
                      engine.get_buffer_info(bias)});
   algo->record_push_constants(*seq, pc);
-  algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(out.size(), 256)), 1, 1});
+  const size_t invocations =
+      kiss_vk::sparse_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
+  algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
   seq->cmd_end();
   seq->wait(seq->submit());
 

@@ -10,6 +10,7 @@
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "runtime/tests/placement_check.hpp"
 
@@ -101,7 +102,8 @@ void ExpectDenseConvMatchesReference(const int h, const int w) {
                      engine.get_buffer_info(bias),
                      engine.get_buffer_info(out)});
   algo->record_push_constants(*seq, pc);
-  const size_t invocations = static_cast<size_t>(kN) * (kK / 4) * h * w;
+  const size_t invocations =
+      kiss_vk::dense_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
   algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
   seq->cmd_end();
   seq->wait(seq->submit());

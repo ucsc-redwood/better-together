@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/util/debug_logger.hpp"
 
@@ -150,9 +151,11 @@ void VulkanDispatcher::record_stage_1(AppData& appdata, kiss_vk::Sequence& seq) 
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
-  const int total_output =
-      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
+  // spec: invocations from the conv contract (OC_TILE channels, and on the Mali path PX pixels).
+  const size_t total_output =
+      spec ? kiss_vk::dense_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
@@ -237,9 +240,11 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, kiss_vk::Sequence& seq) 
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
-  const int total_output =
-      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
+  // spec: invocations from the conv contract (OC_TILE channels, and on the Mali path PX pixels).
+  const size_t total_output =
+      spec ? kiss_vk::dense_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
@@ -324,9 +329,11 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, kiss_vk::Sequence& seq) 
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
-  const int total_output =
-      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
+  // spec: invocations from the conv contract (OC_TILE channels, and on the Mali path PX pixels).
+  const size_t total_output =
+      spec ? kiss_vk::dense_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
@@ -372,9 +379,11 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, kiss_vk::Sequence& seq) 
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
-  const int total_output =
-      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
+  // spec: invocations from the conv contract (OC_TILE channels, and on the Mali path PX pixels).
+  const size_t total_output =
+      spec ? kiss_vk::dense_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
@@ -420,9 +429,11 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, kiss_vk::Sequence& seq) 
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 && out_channels % 4 == 0;
   auto algo = cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
-  // spec: one thread per (n, k/4, p, q) -- 4 output channels per thread.
-  const int total_output =
-      batch_size * (spec ? out_channels / 4 : out_channels) * out_height * out_width;
+  // spec: invocations from the conv contract (OC_TILE channels, and on the Mali path PX pixels).
+  const size_t total_output =
+      spec ? kiss_vk::dense_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
