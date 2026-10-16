@@ -81,14 +81,23 @@ struct VkAppData final : public tree::AppData {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit VkAppData(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr,
                      const size_t n_input = tree::kDefaultInputSize)
-      : tree::AppData(vk_mr, n_input),
-        u_contributes(n_input, vk_mr),
-        u_out_idx(n_input, vk_mr),
-        u_sums(n_input, vk_mr),
-        u_prefix_sums(n_input, vk_mr),
-        u_sort_tmp(n_input, vk_mr),
-        u_sort_histograms(kRadixBins * kRadixNumWorkgroups, vk_mr),
-        u_scan_block_sums((n_input + kScanElementsPerWg - 1) / kScanElementsPerWg + 1, vk_mr) {
+      : VkAppData(bt::place_all_in(vk_mr), n_input) {}
+
+  // The scratch buffers declare the GPU stages that bind them; u_out_idx is also read by the
+  // host (the n_unique read-back after stage 3). u_sums and u_prefix_sums are not bound by any
+  // stage.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+  explicit VkAppData(const bt::PlaceBuffer& place, const size_t n_input = tree::kDefaultInputSize)
+      : tree::AppData(place, n_input),
+        u_contributes(n_input, place(bt::BufferKind::kActivation, {3})),
+        u_out_idx(n_input, place(bt::BufferKind::kActivation, {0, 3})),
+        u_sums(n_input, place(bt::BufferKind::kActivation, {0})),
+        u_prefix_sums(n_input, place(bt::BufferKind::kActivation, {0})),
+        u_sort_tmp(n_input, place(bt::BufferKind::kActivation, {2})),
+        u_sort_histograms(kRadixBins * kRadixNumWorkgroups,
+                          place(bt::BufferKind::kActivation, {2})),
+        u_scan_block_sums((n_input + kScanElementsPerWg - 1) / kScanElementsPerWg + 1,
+                          place(bt::BufferKind::kActivation, {3, 6})) {
     spdlog::trace("VkAppData constructor, address: {}", (void*)this);
   }
 

@@ -14,6 +14,7 @@
 #include "func_edge.hpp"
 #include "func_octree.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
 // Tree × OMP differential oracle. OMP is both the reference and the backend
@@ -517,6 +518,14 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
 }
 
 }  // namespace
+
+// Memory-placement spec, "Boundary buffers keep host-cached placement" (design B3): under
+// every schedule with one GPU stage range, each buffer a CPU stage or host code touches is
+// placed in the boundary class; only buffers every accessor of which is a GPU stage go to the
+// GPU-local class. Hardware-free: the classes are recording host resources.
+TEST(Placement, CpuChunkBuffersStayBoundary) {
+  bt_placement_test::ExpectCpuBuffersStayBoundary<tree::AppData>(7);
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -16,6 +16,10 @@ class VulkanDispatcher final {
   VulkanDispatcher& operator=(VulkanDispatcher&&) = delete;
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() { return engine.get_mr(); }
+  // The memory resource of a buffer class (runtime/placement.hpp, design B2).
+  kiss_vk::VulkanMemoryResource::memory_resource* get_mr(const bt::BufferClass c) {
+    return engine.get_mr(c);
+  }
 
   // Sequence handle, used by benchmarks to read device-side GPU time per stage.
   kiss_vk::Sequence* get_seq() { return default_seq.get(); }
