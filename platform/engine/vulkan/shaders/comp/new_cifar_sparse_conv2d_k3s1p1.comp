@@ -18,7 +18,9 @@ precision highp int;
 // lane): main_mali. One invocation computes PX adjacent output pixels of a row; it decodes each
 // nonzero of the CSR row and loads its weight once, then feeds the PX contiguous inputs of that
 // tap. Taps in the padded border, and the masked tail of a row whose width is not a multiple of
-// PX, load and write nothing.
+// PX, load and write nothing. Measured on the Pixel 7a (mali-conv-kernels): stages 3/5/6/7
+// -54..-56 % and stage 1 -16 % with PX 4 (PX 2 and PX 8 gain less). A CSR row staged in shared
+// memory per output channel was 49-65 % slower on the 8x8 maps, so it is not used.
 //
 // SUBGROUP_SIZE >= 32: two paths, chosen per subgroup:
 //  * Fast, when every active lane of the subgroup has the same output channel (always

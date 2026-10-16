@@ -27,6 +27,9 @@ precision highp int;
 //    weights once and reuses each weight PX times. Loads are mask-guarded (the clamped-load
 //    form above is 12 % slower on the Pixel 7a); a row whose width is not a multiple of PX
 //    ends in a masked tail that loads nothing outside the map and writes nothing.
+//    Measured on the Pixel 7a (mali-conv-kernels): the five convs -40..-64 % with PX 4 (PX 2
+//    gains less, PX 8 spills). Weights or input rows staged in shared memory were slower or
+//    within noise there, so neither is used.
 //
 // Dispatcher contract (falls back to the generic shader otherwise):
 //   R == S == 3, stride == 1, padding == 1, K % OC_TILE == 0.

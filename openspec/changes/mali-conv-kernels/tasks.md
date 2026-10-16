@@ -160,10 +160,38 @@ Gates used below:
 
 ## 6. Documentation and final gate
 
-- [ ] 6.1 Document the Mali paths:
+- [x] 6.1 Document the Mali paths:
   - the header comments of both shaders;
   - the knob or contract notes in `docs/instruction-for-ai/03-unit-testing.md`;
   - a decision record with every measurement table under `docs/reports-for-human/`.
 
   Verify: each shipped and each rejected technique appears with its numbers.
-- [ ] 6.2 Final gate at the last commit: local, rocky correctness, phone gate, and one `bm-gen-logs` schedule run per cifar app on the Pixel (reported, not gated). Verify: all green, with the results listed in the PR.
+  - *Evidence:*
+    - Shader headers: `new_cifar_dense_conv2d_k3s1p1.comp` and `new_cifar_sparse_conv2d_k3s1p1.comp` describe the
+      Mali path, the dispatcher contract for each subgroup size (keep `PX` in step with the contract), and the
+      measured result. They also say why the shared-memory variants are not used.
+    - `docs/instruction-for-ai/03-unit-testing.md` gains "Mali conv paths and the conv grid contract": which GPU takes
+      the path (only the Pixel tests it), `conv_k3s1p1_contract.hpp` and its mutation-checked failure mode, the test
+      shapes, and the `malioc` command line.
+    - Decision record `docs/reports-for-human/2026-10-16-mali-conv-kernels.md` (indexed in its README). It has every
+      measurement table: the 4 baseline tables, dense PX 2 / 4 (both phones), sparse PX 2 / 4 / 8 (both phones),
+      5.1 / 5.2 / 5.3 (Pixel), the `malioc` figures and the end-to-end runs. Shipped: dense PX 4, sparse PX 4.
+      Rejected: dense PX 2, sparse PX 2 and PX 8 (slower than PX 4), and 5.1, 5.2, 5.3. Each is listed with its numbers.
+- [x] 6.2 Final gate at the last commit: local, rocky correctness, phone gate, and one `bm-gen-logs` schedule run per cifar app on the Pixel (reported, not gated). Verify: all green, with the results listed in the PR.
+  - *Evidence:* run on the tree of this group's commit. Code is identical to 69954b0 apart from the shader header
+    comments; the binaries were rebuilt after those edits. No PR is opened in this run, so the results are listed
+    here and in the decision record.
+    - Local: `ctest --test-dir build/pc -L omp` 10/10. On the build box's RADV iGPU, `test-kiss-vk` 30, `test-tree-vk` 18,
+      `test-cifar-dense-vk` 16, `test-cifar-sparse-vk` 17, all passed. `just check-shaders` OK.
+    - Rocky correctness (`~/bt-mali-gate`, native `vulkan` preset, NDK r29 glslc, `--device minipc`): kiss 30,
+      cifar-dense 16 + 16 (real weights), cifar-sparse 17 + 17 (real weights), all passed.
+    - Phone gate: the Pixel 7a and the Samsung each run kiss 29 + 1 skip, tree 18, cifar-dense 16, cifar-sparse 17,
+      then cifar-dense 16 and cifar-sparse 17 with `BT_WEIGHTS_DIR`; exit 0 on both.
+    - `bm-gen-logs` on the Pixel, best z3 schedule from a fresh isolated all-PU profile with the final kernels, 32 tasks,
+      one run, reported:
+      - cifar-dense `Little 1-2 | Big 3-5 | GPU 6-8 | Medium 9-11`: **42.41 ms/task**, GPU chunk median 35.82 ms
+        (predicted max chunk 33.5 ms).
+      - cifar-sparse `Little 1 | Big 2-4 | GPU 5-7 | Medium 8-11`: **436.72 ms/task**, GPU chunk median 418.90 ms
+        (predicted 419.8 ms).
+      - The 9a10ea0 binaries on the same schedules: 86.35 and 1148.42 ms/task, GPU chunk medians 83.25 and 1115.01 ms.
+    - `openspec validate mali-conv-kernels --strict`: valid.
