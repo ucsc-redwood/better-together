@@ -153,5 +153,13 @@ gate passes. Rollback means selecting `per-stage`. No existing store or schedule
 
 ## Open Questions
 
-- The exact sampling stride for the clock reader (D5), if sysfs reads turn out to cost measurable time
-  on short ranges. It is measured in task 1.2; it does not change the approach.
+- ~~The exact sampling stride for the clock reader (D5), if sysfs reads turn out to cost measurable time
+  on short ranges. It is measured in task 1.2; it does not change the approach.~~ **Resolved in task 1.2:**
+  - one `read_gpu_clock_mhz()` costs **30.3 us** on the Pixel 7a (`test-gpu-clock-omp`
+    `GpuClockDevice.ReadCost`, 2000 reads, 2026-10-16; it includes the failed probes of the sources
+    listed before Mali). The Samsung skips that test: its GPU reads 0 while idle;
+  - the reader therefore runs on its own thread (`GpuClockSampler`), every **5 ms**
+    (`BT_PROF_CLOCK_PERIOD_MS`), for the duration of a GPU cell's or range's measured loop, instead of
+    every Nth iteration of that loop. The measuring thread blocks on the GPU fence, so a read taken
+    there lands between kernels, when the Samsung's GPU may already read 0. At 5 ms the reads take
+    about 0.6 % of one core, outside every timed region.

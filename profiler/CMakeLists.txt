@@ -7,6 +7,12 @@
 # so a new app is added in exactly one place (no runner/foreach drift).
 set(BT_PROFILED_APPS tree cifar-dense cifar-sparse)
 
+if(BT_BUILD_TESTS)
+    # The provenance GPU-clock reader on fake sysfs trees (hardware-free).
+    bt_add_omp_test(test-gpu-clock-omp tests/test_gpu_clock.cpp)
+    set_tests_properties(test-gpu-clock-omp PROPERTIES LABELS "omp;unit")
+endif()
+
 if(BT_ENABLE_CUDA)
     foreach(app ${BT_PROFILED_APPS})
         bt_add_cuda_app(run-pipe-${app}-cu ${app}-cu/main.cu)

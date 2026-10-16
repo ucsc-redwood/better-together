@@ -11,8 +11,41 @@ Gates used below:
 
 ## 1. Clock provenance (profiling/cost-table: frequency)
 
-- [ ] 1.1 Add Mali (`/sys/class/misc/mali0/device/cur_freq`, kHz) and Exynos (`/sys/kernel/gpu/gpu_clock`, devfreq `*sgpu*/cur_freq`) readers to `read_gpu_clock_mhz()`, and a unit test of the parsing on sample file contents. Verify: the test passes under local.
-- [ ] 1.2 Sample the clock during each GPU cell's measured loop and record the median of the non-zero samples, -1 if there are none (D5); measure the reader's cost per call on the Pixel. Verify: a `bm-prof-tree-vk` run on each phone writes positive `gpu_clock_mhz` on every GPU record, and design.md records the read cost and the chosen stride.
+- [x] 1.1 Add Mali (`/sys/class/misc/mali0/device/cur_freq`, kHz) and Exynos (`/sys/kernel/gpu/gpu_clock`, devfreq `*sgpu*/cur_freq`) readers to `read_gpu_clock_mhz()`, and a unit test of the parsing on sample file contents. Verify: the test passes under local.
+  - *Evidence:* the reader moved to `profiler/gpu_clock.hpp` (no benchmark/JSON dependencies, so a plain gtest can
+    include it) and takes a root prefix for tests. Units as read on the phones (2026-10-16, `adb shell` as `shell`):
+    Pixel `mali0/device/cur_freq` 202000 (kHz, idle); Samsung `gpu_clock`, `22200000.sgpu/cur_freq`,
+    `gpu_freq_table` and `available_frequencies` all in kHz (252000..1095000), `gpu_clock` and `cur_freq` 0 while
+    idle. A 0, or anything below one MHz, counts as unknown and the next source is tried; the existing Hz sources keep
+    their units.
+  - `test-gpu-clock-omp` (`profiler/tests/test_gpu_clock.cpp`, labels `omp;unit`): fake sysfs trees for AMD
+    `pp_dpm_sclk`, Tegra devfreq (Hz), Mali (kHz), Exynos `gpu_clock` (kHz), the `*sgpu*` devfreq beside a non-GPU
+    devfreq node, the idle 0 on both Exynos nodes (-1), garbage (-1), and no source (-1).
+  - Local: `ctest --test-dir build/pc -L omp` → 100 % of 11 passed (`test-gpu-clock-omp` 9/9, of which
+    `GpuClockDevice.ReadCost` measures, not checks); `uv run pytest -q optimizer` → 21 passed.
+- [x] 1.2 Sample the clock during each GPU cell's measured loop and record the median of the non-zero samples, -1 if there are none (D5); measure the reader's cost per call on the Pixel. Verify: a `bm-prof-tree-vk` run on each phone writes positive `gpu_clock_mhz` on every GPU record, and design.md records the read cost and the chosen stride.
+  - *Evidence:* `GpuClockSampler` (`profiler/gpu_clock.hpp`) reads on its own thread every `BT_PROF_CLOCK_PERIOD_MS`
+    (5) while `measure_calibrated` runs a GPU cell; `emit_jsonl` writes its median of the positive samples as the GPU
+    record's `provenance.gpu_clock_mhz` (-1 if none) and their count as `gpu_clock_samples`. CPU records keep the
+    run-level snapshot as before.
+  - Read cost on the Pixel: 30.3 us per call (`./test-gpu-clock-omp --device 3A021JEHN02756`,
+    `GpuClockDevice.ReadCost`); design.md "Open Questions" records it and the 5 ms stride.
+  - Android build at f820476 + this group, pushed to `/data/local/tmp/bt-costmodel`;
+    `BT_PROF_SCENARIO=isolated BT_PROF_RUN=1 ./bm-prof-tree-vk --device <serial>`, 28 records each. Every GPU record
+    has a positive clock (stage: p50 ms, MHz, samples):
+
+    | stage | Pixel 7a | Samsung |
+    |---|---|---|
+    | 1 | 1.364, 202, 164 | 1.585, 252, 432 |
+    | 2 | 6.773, 400, 84 | 1.374, 800, 92 |
+    | 3 | 2.164, 202, 163 | 3.069, 350, 499 |
+    | 4 | 2.628, 202, 111 | 1.377, 252, 209 |
+    | 5 | 0.293, 202, 283 | 0.564, 252, 556 |
+    | 6 | 1.631, 202, 122 | 1.212, 252, 342 |
+    | 7 | 1.294, 202, 181 | 2.880, 315, 513 |
+
+    Isolated single-stage cells mostly run at the lowest operating point of each GPU (Pixel 202 MHz, Samsung
+    252 MHz); only the radix sort (stage 2) raises it.
 
 ## 2. Range records (profiling/cost-table: ranges)
 
