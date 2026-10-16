@@ -449,3 +449,42 @@ interleaved base/new, `gpu_busy_percent` 0 before each run, run spread < 1 %):
 | **sum of stages** | **121.71** | **66.44** | **-45 %** |
 
 The FC stages (9, 10: 6.4 ms each) are untouched; they are item 3 of the ranking.
+
+On the phones (`bm-prof-cifar-sparse-vk`, same method, 3 rounds interleaved, 20 s between runs;
+both phones' conv numbers compare the commit before this change with the commit after it):
+Samsung (Xclipse 940, subgroup 64) **-42 %** (convs -40..-50 %, 485.5 -> 279.8 ms);
+Pixel 7a (Mali-G710, subgroup 16) **no change** (984.9 -> 981.8 ms). So the win is the scalar
+weight/row loads of AMD-style GPUs, not a general one.
+
+
+## 9. Applied: dense conv, linear_bt, radix sort (items 2-4 of the ranking), measured per device
+
+All three were measured on the two phones (the profiler is not run on rocky any more) with the
+method of section 8, base = the commit before them. Numbers are medians over 3 interleaved rounds.
+
+| change | Pixel 7a (Mali, sub 16) | Samsung (Xclipse 940, sub 64) |
+|---|---|---|
+| dense conv k3s1p1 | **unchanged** (the old kernel runs when subgroup < 32) | stages 1/3/5/6/7 -5/-24/-50/-45/-55 %, app sum 30.1 -> 18.8 ms (-38 %) |
+| linear_bt FC1/FC2 (dense, N=16) | -15 % / -11 % (noisy) | -36 % / -40 % |
+| linear_bt FC1/FC2 (sparse, N=128) | -33 % / -32 % | -47 % / -47 % |
+| linear_bt FC3 (10 outputs) | **+28..32 % (+0.2 ms)** | **+29..40 % (+0.15..0.3 ms)** |
+| radix sort (tree stage 2) | -20 % | -42 % |
+
+What the measurements changed:
+
+* The dense conv prototype of section 4.1 (OC_TILE 8, branchless taps, uniform weights) is -52 %
+  on the 780M but **+9 % on the Samsung and -2 % on the Pixel**; OC_TILE 4 with the same
+  branchless/uniform code is **-45 % on the Samsung but +12 % on the Pixel**. Mali has no scalar
+  unit, so the scalar-weight form buys nothing there and the unconditional loads cost. The shipped
+  shader therefore picks its path from the subgroup size (spec constant 0): >= 32 gets the new
+  path with OC_TILE 4, < 32 keeps the previous kernel verbatim.
+* `subgroupBroadcastFirst` is guarded by `subgroupAllEqual` in both conv shaders, so correctness
+  does not depend on the subgroup size or the map size. The tests `DenseConvK3S1P1.*` and
+  `SparseConvK3S1P1.*` use 6x6 maps (no subgroup size divides 36) to force the fallback.
+* `linear_bt` now computes 32 output features per workgroup (was 16); the two apps' dispatchers
+  take that from `linear_bt_contract.hpp` and `LinearBt.RaggedFeatureBatchAndChunkEdges` fails if
+  they disagree with the shader. FC3 (10 outputs) is slower because only 5 of the 16 row-groups
+  have work (was 10); a variant with one feature per row-group for `out_features <= 16` would fix it.
+  Not done: the loss is 0.15-0.3 ms against gains of 1.5-9 ms on the same pipeline.
+* The radix workgroup count is 64 (was 256) on every device; the plateau 32..128 was measured on
+  the 780M only (4.4), the phones confirm the direction (-20 %, -42 %).

@@ -2,7 +2,10 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
 #include <memory_resource>
+#include <random>
 #include <set>
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
@@ -54,6 +57,88 @@ TEST(Placement, DeclaredStagesMatchBindings) {
     }
     EXPECT_EQ(bound, declared) << "stage " << s;
   }
+}
+
+// new_cifar_dense_conv2d_k3s1p1 (subgroup >= 32) reads its weights as scalar work when every
+// lane of a subgroup has the same output-channel block, and with a per-lane base otherwise;
+// on narrower subgroups (Mali) it runs the previous branchy kernel, which these also cover. The
+// model's maps (32, 16, 8) are all subgroup multiples, so the differential suite only reaches
+// the uniform case; 6x6 maps (36 outputs per block, which no subgroup size divides) force the
+// per-lane one. Checked against a double-precision reference, relu on.
+namespace {
+struct DenseConvPc {  // layout of the shader's push constants
+  int32_t N, C, H, W, K, R, S, stride, padding, apply_relu;
+};
+
+void ExpectDenseConvMatchesReference(const int hw) {
+  constexpr int kN = 3, kC = 5, kK = 16;  // K % OC_TILE(4) == 0: four blocks
+  std::mt19937 rng(114514);
+  std::uniform_real_distribution<float> val(-1.0f, 1.0f);
+
+  kiss_vk::Engine engine;
+  auto* mr = engine.get_mr();
+  std::pmr::vector<float> in(static_cast<size_t>(kN) * kC * hw * hw, 0.0f, mr);
+  std::pmr::vector<float> weight(static_cast<size_t>(kK) * kC * 9, 0.0f, mr);
+  std::pmr::vector<float> bias(kK, 0.0f, mr);
+  std::pmr::vector<float> out(static_cast<size_t>(kN) * kK * hw * hw, -1.0f, mr);
+  for (auto& x : in) x = val(rng);
+  for (auto& x : weight) x = val(rng);
+  for (auto& x : bias) x = val(rng);
+
+  auto algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1")
+                  ->work_group_size(256, 1, 1)
+                  ->subgroup_size_dependent()
+                  ->num_buffers(4)
+                  ->push_constant<DenseConvPc>()
+                  ->build();
+  const DenseConvPc pc{kN, kC, hw, hw, kK, 3, 3, 1, 1, /*apply_relu=*/1};
+  auto seq = engine.make_seq();
+  seq->cmd_begin();
+  algo->record_bind(*seq,
+                    {engine.get_buffer_info(in),
+                     engine.get_buffer_info(weight),
+                     engine.get_buffer_info(bias),
+                     engine.get_buffer_info(out)});
+  algo->record_push_constants(*seq, pc);
+  const size_t invocations = static_cast<size_t>(kN) * (kK / 4) * hw * hw;
+  algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
+  seq->cmd_end();
+  seq->wait(seq->submit());
+
+  for (int n = 0; n < kN; ++n) {
+    for (int k = 0; k < kK; ++k) {
+      for (int y = 0; y < hw; ++y) {
+        for (int x = 0; x < hw; ++x) {
+          double acc = bias[k];
+          for (int c = 0; c < kC; ++c) {
+            for (int ky = 0; ky < 3; ++ky) {
+              for (int kx = 0; kx < 3; ++kx) {
+                const int iy = y + ky - 1, ix = x + kx - 1;
+                if (iy < 0 || iy >= hw || ix < 0 || ix >= hw) continue;
+                acc += static_cast<double>(weight[((k * kC + c) * 3 + ky) * 3 + kx]) *
+                       in[((static_cast<size_t>(n) * kC + c) * hw + iy) * hw + ix];
+              }
+            }
+          }
+          const double want = std::max(acc, 0.0);
+          const float got = out[((static_cast<size_t>(n) * kK + k) * hw + y) * hw + x];
+          ASSERT_NEAR(got, want, 1e-4 + 1e-3 * std::abs(want))
+              << "hw " << hw << " n " << n << " k " << k << " y " << y << " x " << x;
+        }
+      }
+    }
+  }
+}
+}  // namespace
+
+TEST(DenseConvK3S1P1, PerLaneWeightsWhenSubgroupSpansBlocks) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectDenseConvMatchesReference(6);
+}
+
+TEST(DenseConvK3S1P1, UniformWeightsWhenMapIsSubgroupMultiple) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectDenseConvMatchesReference(8);
 }
 
 int main(int argc, char** argv) {

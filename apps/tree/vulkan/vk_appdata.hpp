@@ -10,8 +10,12 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // Multi-workgroup (device-wide) radix sort scratch sizing.
   // 256 bins; a fixed number of workgroups so the per-workgroup histogram
   // buffer has a deterministic size (RADIX_SORT_BINS * kRadixNumWorkgroups).
+  // 64, not 256: every scatter workgroup re-reads the whole bins x workgroups histogram
+  // table, so the table (and that L2 traffic) grows with the workgroup count; a plateau of
+  // 32..128 sorts 307k keys ~1.9x faster than 256 on the Radeon 780M (see
+  // docs/reports-for-human/2026-10-15-vk-shader-profile.md 4.4).
   static constexpr uint32_t kRadixBins = 256;
-  static constexpr uint32_t kRadixNumWorkgroups = 256;
+  static constexpr uint32_t kRadixNumWorkgroups = 64;
 
   // Device-wide scan tile size (must match ELEMENTS_PER_WG in the
   // tree_scan_*.comp shaders). One block per tile; the per-block totals are
@@ -69,7 +73,7 @@ struct VkAppData_Safe final : public tree::SafeAppData {
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 struct VkAppData final : public tree::AppData {
   static constexpr uint32_t kRadixBins = 256;
-  static constexpr uint32_t kRadixNumWorkgroups = 256;
+  static constexpr uint32_t kRadixNumWorkgroups = 64;  // see VkAppData_Safe
   static constexpr uint32_t kScanElementsPerWg = 256 * 8;
 
   // Every pmr vector member below IS initialized, in the initializer list; clang-tidy

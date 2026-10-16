@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/util/debug_logger.hpp"
 
 namespace cifar_dense::vulkan {
@@ -71,8 +72,10 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
   // unrolled taps with hoisted edge masks, register-blocked OC_TILE=4 output
   // channels per thread so the 9 input taps are reused across 4 weight rows.
   // Selected per stage when R==S==3, stride==1, padding==1 and K % 4 == 0.
+  // subgroup_size_dependent: the shader picks its path from the subgroup size (spec const 0).
   auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1")
                                 ->work_group_size(256, 1, 1)
+                                ->subgroup_size_dependent()
                                 ->num_buffers(4)  // Input, Weight, Bias, Output
                                 ->push_constant<Conv2dPushConstants_v2>()
                                 ->build();
@@ -97,7 +100,7 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
 
   cached_algorithms.try_emplace("linear", std::move(linear_algo));
 
-  // Batch-tiled linear: a 16-lane workgroup row owns ONE output feature, strides its
+  // Batch-tiled linear: a 16-lane workgroup row owns TWO output features, strides their
   // weight row coalesced, and accumulates ALL N (<= 16) images while the row is
   // streamed ONCE -- the generic thread-per-(n,of) shader re-streams the whole weight
   // matrix once per image and each lane scans a different 16 KB row (uncoalesced).
@@ -502,12 +505,12 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, kiss_vk::Sequence& seq) 
   const int out_features = appdata.u_fc1_w.d0();  // Expected: 4096
 
   // Batch-tiled shader when the batch fits its accumulator file; generic fallback.
-  const bool bt = batch_size <= 16 && input_features % 4 == 0;
+  const bool bt = batch_size <= kiss_vk::kLinearBtBatchTile && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  // bt: one 16-lane row per output feature, 16 rows per workgroup.
-  const size_t num_groups =
-      bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
+  // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup.
+  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtFeaturesPerGroup)
+                               : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
@@ -541,12 +544,12 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, kiss_vk::Sequence& seq)
   const int out_features = appdata.u_fc2_w.d0();  // Expected: 4096
 
   // Batch-tiled shader when the batch fits its accumulator file; generic fallback.
-  const bool bt = batch_size <= 16 && input_features % 4 == 0;
+  const bool bt = batch_size <= kiss_vk::kLinearBtBatchTile && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  // bt: one 16-lane row per output feature, 16 rows per workgroup.
-  const size_t num_groups =
-      bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
+  // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup.
+  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtFeaturesPerGroup)
+                               : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
@@ -580,12 +583,12 @@ void VulkanDispatcher::record_stage_11(AppData& appdata, kiss_vk::Sequence& seq)
   const int out_features = appdata.u_fc3_w.d0();  // Expected: 10
 
   // Batch-tiled shader when the batch fits its accumulator file; generic fallback.
-  const bool bt = batch_size <= 16 && input_features % 4 == 0;
+  const bool bt = batch_size <= kiss_vk::kLinearBtBatchTile && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  // bt: one 16-lane row per output feature, 16 rows per workgroup.
-  const size_t num_groups =
-      bt ? kiss_vk::div_ceil(out_features, 16) : kiss_vk::div_ceil(batch_size * out_features, 256);
+  // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup.
+  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtFeaturesPerGroup)
+                               : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
