@@ -172,6 +172,11 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
   re-measuring placement. [Unset: `uncached` on the Pixel 7a's Mali-G710, where fc1/fc2 measured 31–35 % faster, and
   today's host-cached placement on every other device. Only weights no CPU chunk reads move, and only through a
   schedule-aware placement (`runtime/placement.hpp`); the differential tests keep everything host-cached.]
+- **Shader buffer qualifiers** (`readonly` / `writeonly`) are load-bearing: `Sequence` flushes only buffers
+  some dispatch accesses and invalidates only those some dispatch writes, and takes that from the SPIR-V
+  decorations (a binding the module declares no variable for counts as unused). `just check-shaders`
+  (`scripts/check_shader_access.py`, needs glslc and spirv-dis; run in CI) compares each declaration with what
+  the optimized SPIR-V does with the buffer; glslang does not catch a `writeonly` buffer that is read.
 - `BT_VK_BOUNDARY_PLACEMENT=default|device_local|uncached` overrides the memory type of the boundary class (what
   `Engine::get_mr()` returns: every buffer of an AppData built without buffer classes, the tree app's, and the buffers
   a CPU chunk touches), to measure the host cache maintenance of buffers no CPU stage reads. An experiment knob.

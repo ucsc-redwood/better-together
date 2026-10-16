@@ -682,9 +682,14 @@ TEST(SpirvReflection, BufferAccess) {
            {2, BufferAccess::kRead},
            {3, BufferAccess::kWrite}}));
   EXPECT_EQ(kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("multi_radixsort")).binding_access,
-            (Map{{0, BufferAccess::kReadWrite},
-                 {1, BufferAccess::kReadWrite},
-                 {2, BufferAccess::kReadWrite}}));
+            (Map{{0, BufferAccess::kRead}, {1, BufferAccess::kWrite}, {2, BufferAccess::kRead}}));
+  // A buffer the shader both reads and writes has no qualifier.
+  EXPECT_EQ(
+      kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("tree_scan_block_sums")).binding_access,
+      (Map{{0, BufferAccess::kReadWrite}}));
+  // The unused third binding of the cache-maintenance test shader has no variable at all.
+  EXPECT_EQ(kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("engine_test_copy")).binding_access,
+            (Map{{0, BufferAccess::kRead}, {1, BufferAccess::kWrite}}));
   EXPECT_EQ(kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("tree_scan_add")).binding_access,
             (Map{{0, BufferAccess::kReadWrite}, {1, BufferAccess::kRead}}));
 }
@@ -828,6 +833,47 @@ TEST(VulkanSubgroupSize, FullSubgroupsDispatch) {
   EXPECT_EQ(out[1], limits.subgroup_size);  // specialized
   if (limits.subgroup_size_pinned) EXPECT_EQ(out[0], limits.subgroup_size);
   if (limits.full_subgroups) EXPECT_EQ(out[2], out[0]) << "a subgroup was launched partial";
+}
+
+// Cache maintenance is directional: a buffer no dispatch accesses is neither flushed nor
+// invalidated, one that is only read is flushed but not invalidated, one that is written is
+// both. Counted by BT_VK_PHASES, which does not depend on the memory being non-coherent.
+TEST(CacheMaintenance, IsDirectional) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ScopedEnv phases("BT_VK_PHASES", "1");
+  kiss_vk::Engine engine;
+  constexpr uint32_t kN = 1024;
+  std::pmr::vector<uint32_t> in(kN, 0, engine.get_mr());
+  std::pmr::vector<uint32_t> out(kN, 0, engine.get_mr());
+  std::pmr::vector<uint32_t> unused(1 << 16, 0, engine.get_mr());  // the largest buffer
+  for (uint32_t i = 0; i < kN; ++i) in[i] = i * 3u;
+
+  struct Pc {
+    uint32_t n;
+  };
+  auto algo = engine.make_algo("engine_test_copy")
+                  ->work_group_size(64, 1, 1)
+                  ->num_buffers(3)
+                  ->push_constant<Pc>()
+                  ->build();
+  auto seq = engine.make_seq();
+  seq->cmd_begin();
+  algo->record_bind(
+      *seq,
+      {engine.get_buffer_info(in), engine.get_buffer_info(out), engine.get_buffer_info(unused)});
+  algo->record_push_constants(*seq, Pc{kN});
+  algo->record_dispatch(*seq, {kN / 64, 1, 1});
+  seq->cmd_end();
+  seq->wait(seq->submit());
+
+  for (uint32_t i = 0; i < kN; ++i) ASSERT_EQ(out[i], i * 3u + 1u) << "at " << i;
+
+  const kiss_vk::PhaseTimes& p = seq->last_phases();
+  EXPECT_GT(p.gpu_read_only_bytes, 0u);
+  EXPECT_GT(p.gpu_write_only_bytes, 0u);
+  EXPECT_EQ(p.flushed_bytes, p.gpu_read_only_bytes + p.gpu_write_only_bytes);  // not the unused one
+  EXPECT_EQ(p.invalidated_bytes, p.gpu_write_only_bytes);                      // only the output
+  EXPECT_GT(p.touched_bytes, p.flushed_bytes);  // the unused buffer is bound but not walked
 }
 
 // Pipeline-config spec, "Full subgroups unavailable and size mismatched": with

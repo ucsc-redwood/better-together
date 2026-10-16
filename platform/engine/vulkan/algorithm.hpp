@@ -25,7 +25,8 @@ inline constexpr uint32_t kMaxBindingBuffers = 16;
 inline constexpr uint32_t kSubgroupSizeSpecId = 0;
 
 // How a shader accesses one storage-buffer binding: from its GLSL `readonly` (NonWritable)
-// or `writeonly` (NonReadable) qualifier; a plain `buffer` is read and written.
+// or `writeonly` (NonReadable) qualifier; a plain `buffer` is read and written. kNone: the
+// module declares no variable for the binding (an unused binding the optimizer removed).
 enum class BufferAccess : std::uint8_t { kNone = 0, kRead = 1, kWrite = 2, kReadWrite = 3 };
 
 // What Algorithm needs from a compute shader's SPIR-V, found by a scan of the module's

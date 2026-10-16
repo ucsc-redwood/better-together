@@ -1,0 +1,20 @@
+#version 460
+
+// Engine self-test (test-kiss-vk): dst[i] = src[i] + 1. Binding 0 is only read, binding 1 only
+// written, binding 2 is declared but never accessed (the optimizer drops it), so a Sequence
+// that binds all three has one buffer per kind of cache maintenance: flush only, flush and
+// invalidate, neither.
+
+layout(local_size_x = 64) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer In { uint src[]; };
+layout(std430, set = 0, binding = 1) writeonly buffer Out { uint dst[]; };
+layout(std430, set = 0, binding = 2) buffer Unused { uint never[]; };
+
+layout(push_constant) uniform Params { uint n; }
+params;
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if (i < params.n) dst[i] = src[i] + 1u;
+}

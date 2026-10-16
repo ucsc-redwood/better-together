@@ -72,6 +72,12 @@ build-android:
     ANDROID_NDK_HOME={{ndk}} cmake --preset android
     cmake --build --preset android --target {{omp_vk_bins}}
 
+# Check that every shader buffer binding is declared (readonly / writeonly) the way the shader
+# uses it: the engine flushes and invalidates host caches only where the GPU reads / writes.
+# Needs glslc and spirv-dis (apt install glslc spirv-tools).
+check-shaders:
+    python3 scripts/check_shader_access.py
+
 # Build all three packages.
 build: build-jetson build-x86 build-android
 

@@ -57,6 +57,7 @@ namespace shaders {
 #include "h/stressor_spv.h"
 
 // engine self-test (test-kiss-vk)
+#include "h/engine_test_copy_spv.h"
 #include "h/engine_test_subgroup_spv.h"
 #include "h/engine_test_workgroup_size_spv.h"
 
@@ -120,6 +121,7 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         // new shaders
         SHADER_ENTRY(stressor),
         // engine self-test (test-kiss-vk)
+        SHADER_ENTRY(engine_test_copy),
         SHADER_ENTRY(engine_test_subgroup),
         SHADER_ENTRY(engine_test_workgroup_size),
 };

@@ -5,20 +5,20 @@
 #define morton_bits 30
 
 // Instead of OctNode struct, we'll use separate buffers
-layout(set = 0, binding = 0) buffer Children {
+layout(set = 0, binding = 0) writeonly buffer Children {
   int children[];
 };  // [8 * n_nodes]
-layout(set = 0, binding = 1) buffer Corners { vec4 corners[]; };
-layout(set = 0, binding = 2) buffer CellSizes { float cell_sizes[]; };
+layout(set = 0, binding = 1) writeonly buffer Corners { vec4 corners[]; };
+layout(set = 0, binding = 2) writeonly buffer CellSizes { float cell_sizes[]; };
 layout(set = 0, binding = 3) buffer ChildNodeMasks { int child_node_masks[]; };
 layout(set = 0, binding = 4) buffer ChildLeafMasks { int child_leaf_masks[]; };
 
 // Original buffers
-layout(set = 0, binding = 5) buffer NodeOffsets { uint node_offsets[]; };
-layout(set = 0, binding = 6) buffer RtNodeCounts { int rt_node_counts[]; };
-layout(set = 0, binding = 7) buffer Codes { uint codes[]; };
-layout(set = 0, binding = 8) buffer PrefixN { uint8_t rt_prefixN[]; };
-layout(set = 0, binding = 9) buffer Parents { int rt_parents[]; };
+layout(set = 0, binding = 5) readonly buffer NodeOffsets { uint node_offsets[]; };
+layout(set = 0, binding = 6) readonly buffer RtNodeCounts { int rt_node_counts[]; };
+layout(set = 0, binding = 7) readonly buffer Codes { uint codes[]; };
+layout(set = 0, binding = 8) readonly buffer PrefixN { uint8_t rt_prefixN[]; };
+layout(set = 0, binding = 9) readonly buffer Parents { int rt_parents[]; };
 layout(set = 0, binding = 10) buffer RtLeftChild { int rt_leftChild[]; };
 // Host buffers are std::pmr::vector<uint8_t> (1 byte/elem); a GLSL `bool` SSBO
 // element is a 32-bit word, so reading them as bool[] used a 4x-wrong stride.

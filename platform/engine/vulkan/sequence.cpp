@@ -402,19 +402,25 @@ vk::DescriptorSet Sequence::allocate_descriptor_set(Slot& slot,
 
 uint64_t Sequence::submit() {
   spdlog::trace("Sequence::submit()");
-  // BT_VK_PHASES: what the cache maintenance below will walk. Counted before t_submit is
-  // taken so it never lands in the flush time.
+  // Cache maintenance is directional: a buffer no dispatch accesses is neither flushed nor
+  // invalidated, and one no dispatch writes is flushed but not invalidated (the host copy is
+  // still current). With BT_VK_PHASES the bytes are counted here, before t_submit is taken, so
+  // the counting never lands in the flush time.
+  std::vector<VmaAllocation> flush, invalidate;
+  flush.reserve(touched_.size());
   uint64_t touched_bytes = 0, gpu_written_bytes = 0, gpu_read_only_bytes = 0,
-           gpu_write_only_bytes = 0;
-  if (phases_enabled_) {
-    const bool list = spdlog::should_log(spdlog::level::debug);
-    for (size_t i = 0; i < touched_.size(); ++i) {
-      for (const VulkanMemoryResource* mr : resources_) {
-        VmaAllocation a = mr->find_allocation(touched_[i]);
-        if (a == nullptr) continue;
+           gpu_write_only_bytes = 0, flushed_bytes = 0, invalidated_bytes = 0;
+  const bool list = phases_enabled_ && spdlog::should_log(spdlog::level::debug);
+  for (size_t i = 0; i < touched_.size(); ++i) {
+    for (const VulkanMemoryResource* mr : resources_) {
+      VmaAllocation a = mr->find_allocation(touched_[i]);
+      if (a == nullptr) continue;
+      const uint8_t acc = touched_access_[i];
+      if (acc != 0) flush.push_back(a);
+      if ((acc & 2) != 0) invalidate.push_back(a);
+      if (phases_enabled_) {
         VmaAllocationInfo info{};
         vmaGetAllocationInfo(g_vma_allocator, a, &info);
-        const uint8_t acc = touched_access_[i];
         if (list) {
           VkMemoryPropertyFlags flags = 0;
           vmaGetMemoryTypeProperties(g_vma_allocator, info.memoryType, &flags);
@@ -423,23 +429,29 @@ uint64_t Sequence::submit() {
               next_ticket_ + 1,
               i,
               info.size,
-              acc == 1   ? "read-only"
+              acc == 0   ? "unused"
+              : acc == 1 ? "read-only"
               : acc == 2 ? "write-only"
                          : "read-write",
               (flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != 0 ? "coherent" : "NOT coherent");
         }
         touched_bytes += info.size;
-        if ((acc & 2) != 0) gpu_written_bytes += info.size;
+        if (acc != 0) flushed_bytes += info.size;
+        if ((acc & 2) != 0) {
+          gpu_written_bytes += info.size;
+          invalidated_bytes += info.size;
+        }
         if (acc == 1) gpu_read_only_bytes += info.size;
         if (acc == 2) gpu_write_only_bytes += info.size;
-        break;
       }
+      break;
     }
   }
   Pending p{
       .ticket = ++next_ticket_,
       .slot = recipe_slot_,
-      .touched = touched_allocations(),
+      .flush = std::move(flush),
+      .invalidate = std::move(invalidate),
       .t_begin = t_begin_,
       .t_cmd_end = t_cmd_end_,
       .t_submit = phases_enabled_ ? now_ns() : 0,
@@ -448,12 +460,14 @@ uint64_t Sequence::submit() {
       .gpu_written_bytes = gpu_written_bytes,
       .gpu_read_only_bytes = gpu_read_only_bytes,
       .gpu_write_only_bytes = gpu_write_only_bytes,
+      .flushed_bytes = flushed_bytes,
+      .invalidated_bytes = invalidated_bytes,
   };
 
   // Make any pending host writes (inputs/weights) visible to the GPU before it runs.
   // No-op on coherent memory; required on HOST_CACHED (see do_allocate). Scoped to the
-  // buffers this chunk bound -- not the whole pool.
-  for (VmaAllocation a : p.touched) vmaFlushAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
+  // buffers this chunk's dispatches access -- not the whole pool, not unused bindings.
+  for (VmaAllocation a : p.flush) vmaFlushAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
   p.t_flushed = phases_enabled_ ? now_ns() : 0;
 
   const vk::CommandBufferSubmitInfo cmd_info{.commandBuffer = slots_[p.slot].cmd};
@@ -508,8 +522,9 @@ void Sequence::wait(const uint64_t ticket) {
 
   // GPU work is done: invalidate host caches so subsequent CPU reads see the freshly
   // written results. No-op on coherent memory; required on HOST_CACHED (this is the cache
-  // maintenance BUGS-FOUND.md §7 originally lacked). Scoped to the buffers this chunk bound.
-  for (VmaAllocation a : it->touched) {
+  // maintenance BUGS-FOUND.md §7 originally lacked). Scoped to the buffers this chunk's
+  // dispatches write: a buffer the GPU only read still holds the host's current copy.
+  for (VmaAllocation a : it->invalidate) {
     vmaInvalidateAllocation(g_vma_allocator, a, 0, VK_WHOLE_SIZE);
   }
 
@@ -548,6 +563,8 @@ void Sequence::wait(const uint64_t ticket) {
         .gpu_written_bytes = it->gpu_written_bytes,
         .gpu_read_only_bytes = it->gpu_read_only_bytes,
         .gpu_write_only_bytes = it->gpu_write_only_bytes,
+        .flushed_bytes = it->flushed_bytes,
+        .invalidated_bytes = it->invalidated_bytes,
     };
     if (ph.calibrated) {
       // Device ticks -> CLOCK_MONOTONIC ns through the calibration pair, the tick difference
@@ -570,20 +587,6 @@ void Sequence::wait(const uint64_t ticket) {
 
 uint64_t Sequence::mask(const uint64_t ticks) const {
   return timestamp_valid_bits_ >= 64 ? ticks : ticks & ((uint64_t{1} << timestamp_valid_bits_) - 1);
-}
-
-std::vector<VmaAllocation> Sequence::touched_allocations() const {
-  std::vector<VmaAllocation> allocations;
-  allocations.reserve(touched_.size());
-  for (VkBuffer b : touched_) {
-    for (const VulkanMemoryResource* mr : resources_) {
-      if (VmaAllocation a = mr->find_allocation(b)) {
-        allocations.push_back(a);
-        break;
-      }
-    }
-  }
-  return allocations;
 }
 
 }  // namespace kiss_vk

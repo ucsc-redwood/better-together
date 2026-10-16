@@ -189,13 +189,13 @@ void Algorithm::record_bind(Sequence& seq,
                              std::to_string(internal_.num_buffers));
   }
 
-  // Order this dispatch after the earlier ones it depends on (design A3). A binding the
-  // scan did not find counts as read and written.
+  // Order this dispatch after the earlier ones it depends on (design A3), and tell the
+  // Sequence which buffers the GPU reads or writes (what it flushes and invalidates). A
+  // binding the module declares no variable for is never accessed by the shader.
   std::array<BufferAccess, kMaxBindingBuffers> access{};
   for (uint32_t binding = 0; binding < buffers.size(); ++binding) {
     const auto it = reflection_.binding_access.find(binding);
-    access[binding] =
-        it == reflection_.binding_access.end() ? BufferAccess::kReadWrite : it->second;
+    access[binding] = it == reflection_.binding_access.end() ? BufferAccess::kNone : it->second;
   }
   seq.bind(pipeline_,
            pipeline_layout_,

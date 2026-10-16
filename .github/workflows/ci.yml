@@ -151,11 +151,13 @@ jobs:
       - name: Install clang-tidy
         # libomp-dev: Ubuntu's clang-tidy can't find GCC's omp.h. glslc: the vulkan preset
         # compiles the shaders (cmake/bt_shaders.cmake).
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy libomp-dev glslc
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy libomp-dev glslc spirv-tools
       - name: Configure (writes compile_commands.json)
         run: cmake --preset vulkan
       - name: Generate the shader headers clang-tidy includes
         run: cmake --build --preset vulkan --target bt_shaders
+      - name: Check the shader buffer qualifiers
+        run: python3 scripts/check_shader_access.py
       - name: Fetch clang-tidy-diff helper
         run: |
           curl -fsSL -o clang-tidy-diff.py \
