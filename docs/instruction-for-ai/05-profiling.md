@@ -81,6 +81,52 @@ much larger `BT_TREE_INPUT_SIZE` anywhere.
 (Budget: ~30% of total device RAM ÷ 4,224 bytes/point. Single-instance tools have no
 such ceiling — even the full 12.15M-point file is fine there on any of these targets.)
 
+## GPU stage ranges as whole chunks (`bm-ranges-<app>-vk`)
+
+`bm-prof` times each stage alone. A GPU chunk of a pipeline is more than the sum of those:
+several submissions (the tree's host read-back of `n_unique` between stages 3 and 4), host
+cache maintenance, and a GPU clock that falls while the GPU idles. `bm-ranges-<app>-vk`
+(`profiler/bm_ranges_vulkan.hpp`, gpu-chunk-cost-model D2/D3) measures every contiguous stage
+range [a, b] as **one GPU chunk** through the pipeline's own path (`submit_multi_stage` +
+`complete_multi_stage` on the chunk's own `Sequence`, items placed as for a pipeline whose GPU
+runs exactly [a, b]), host wall time per chunk:
+
+- twice per range: back-to-back (`gap_ms` 0, the range's **t0**), then with the host idle for t0
+  before every chunk (**t1**, a 50 % GPU duty cycle);
+- ranges in a shuffled order (fixed seed); `bm-prof`'s calibrated sampling and knobs
+  (`BT_PROF_BUDGET_S`, `BT_PROF_MIN_ITERS`, `BT_PROF_ABANDON_S`, ...), `--items` pooled items
+  per range (4);
+- `BT_PROF_SCENARIO=interference`: every present CPU tier loops over the stages of the range
+  being measured, on its own data (`bm-prof`'s background load);
+- the GPU clock is sampled every `BT_PROF_CLOCK_PERIOD_MS` (5) while each range runs.
+
+Output: one `bt.profiling-range/v0` JSONL record per (range, gap) on stdout
+([`schemas/profiling-range.schema.json`](../../schemas/profiling-range.schema.json): the
+per-stage fields with `start_stage`/`end_stage`, `gap_ms`, `submissions`, and the clock in
+provenance). The store keeps them in `range-NNN.jsonl` **beside** the per-stage `run-NNN.jsonl`
+of the same scenario directory; per-stage readers glob `run-*.jsonl` and never see them.
+`n(n+1)/2` ranges: 28 for tree, 66 for the cifar apps. Sweep times measured on the phones
+(2026-10-16): [`openspec/changes/gpu-chunk-cost-model/design.md`](../../openspec/changes/gpu-chunk-cost-model/design.md)
+("Sweep durations").
+
+```bash
+cmake --build --preset android --target bm-ranges-tree-vk
+adb -s <serial> push build/android/bm-ranges-tree-vk <libc++_shared.so> /data/local/tmp/<dir>/ </dev/null
+adb -s <serial> shell 'cd /data/local/tmp/<dir> && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=isolated \
+  BT_PROF_RUN=1 ./bm-ranges-tree-vk --device <serial> 2>/dev/null' </dev/null | tr -d '\r' > range-001.jsonl
+```
+
+Or through step 01 of the optimizer, which writes the store
+([`06-end-to-end-scheduling.md`](06-end-to-end-scheduling.md) Step 1).
+
+**GPU clock in provenance.** Every GPU record (`bm-prof` and `bm-ranges`) carries
+`provenance.gpu_clock_mhz`, the median of the positive clock samples taken while it ran (-1 if
+there is no readable source or the GPU never read busy), and `gpu_clock_samples`.
+`profiler/gpu_clock.hpp` reads AMD `pp_dpm_sclk`, Adreno/Tegra devfreq (Hz), the Pixel 7a's
+`/sys/class/misc/mali0/device/cur_freq` and the Samsung's `/sys/kernel/gpu/gpu_clock` or
+`/sys/class/devfreq/*sgpu*/cur_freq` (kHz; 0 while the GPU is idle and power-gated, so it is
+skipped). A read costs 30 us on the Pixel (`test-gpu-clock-omp`, `GpuClockDevice.ReadCost`).
+
 ## The agent rule: prefer tools whose output is JSON / CSV / SQL
 
 ## Tier S — works today, zero install, output is already structured

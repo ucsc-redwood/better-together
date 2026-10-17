@@ -69,6 +69,21 @@ items, `dispatch_multi_stage`, calibrated sample count). It sweeps all n(n+1)/2 
 A range's time is the median of whole-chunk wall times, `dispatch_wall`, so a two-submission tree
 range is priced with its read-back.
 
+*As built (task 2.2):*
+- each range runs on its own `Sequence` (`make_seq`, as a pipeline chunk) through
+  `submit_multi_stage` + `complete_multi_stage`, the path of `inflight_worker`; a sample is the
+  host wall time of that pair (submit to completion, the gap not included); `submissions` is the
+  difference of consecutive tickets;
+- each range gets its own pool of `--items` (4) items placed for a GPU that runs exactly [a, b]
+  (`make_placed_dataset`), and they are primed for stages 1..a-1 **on the GPU**: priming with
+  OMP on a big core would take minutes per cifar-sparse range, and in the measured loop no
+  host write touches those buffers either way;
+- before sampling, every item's chunk runs once (command-buffer recording) and the GPU is warmed
+  back-to-back for `BT_PROF_GPU_WARM_MS` (150), as in `bm-prof`;
+- interference: one background thread per present CPU tier runs for the whole sweep, on its own
+  fully primed item, cycling one stage per dispatch through the stages of the range currently
+  measured; a range switch therefore takes effect after one stage of the previous range.
+
 ### D3. Two cadences, and how the solver combines them
 Each range is measured back-to-back (`gap 0`, giving t0) and after an idle gap equal to its own
 back-to-back time (`gap = t0`, giving t1: a 50 % GPU duty cycle). The gap is chosen per range
@@ -145,6 +160,26 @@ the default, and the numbers are recorded.
   available.
 - **[The existing GPU per-chunk overhead becomes double-counted]** → The range model drops the fitted
   GPU overhead (spec). `fit_overhead.py` keeps fitting it for the per-stage model.
+
+## Sweep durations (task 2.3)
+
+Wall time of one `01_collect_profiling.py` run (deploy excluded, 20 s cooldowns not counted), on
+2026-10-16/17, with the commands of `06-end-to-end-scheduling.md` Step 1 (`bm-ranges` with
+`BT_PROF_MIN_ITERS=3 BT_PROF_ABANDON_S=2.5`). The two phones were collected at the same time from
+the build box, each phone's runs one after another. Seconds per run (run 1 / run 2):
+
+| tool | scenario | Pixel tree | Pixel dense | Pixel sparse | Samsung tree | Samsung dense | Samsung sparse |
+|---|---|---|---|---|---|---|---|
+| bm-prof | isolated | 15 / 14 | 30 / 29 | 125 / 106 | 22 / 21 | 35 / 30 | 99 / 89 |
+| bm-prof | interference | 21 / 21 | 81 / 82 | 631 / 635 | 17 / 19 | 62 / 64 | 459 / 457 |
+| bm-ranges | isolated | 39 / 40 | 137 / 131 | 476 / 474 | 41 / 41 | 114 / 114 | 303 / 309 |
+| bm-ranges | interference | 42 / 44 | 186 / 176 | 846 / 861 | 42 / 41 | 234 / 239 | 852 / 845 |
+
+A whole cell (both tools, both scenarios, 2 runs each, cooldowns included): Pixel tree 6.6 min,
+cifar-dense 16.9 min, cifar-sparse 72 min; Samsung tree 6.8 min, cifar-dense 17.5 min, cifar-sparse
+59.6 min. The cifar-sparse range sweep is within the 10-15 min per scenario and run estimated above
+isolated (5-8 min), and above it under interference (14 min; not analysed, presumably the CPU
+background load slowing the host side of each chunk).
 
 ## Migration Plan
 

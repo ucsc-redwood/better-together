@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ucsc-redwood/better-together/schemas/profiling-range.schema.json",
+  "title": "BetterTogether Profiling Range Record",
+  "description": "One measurement of a contiguous stage range [start_stage, end_stage] dispatched as ONE GPU chunk, through the path a pipeline's GPU chunk uses (its submissions, host cache maintenance and any host read-back between stages), after a stated idle gap. Stored as JSON Lines in range-NNN.jsonl next to the per-stage run-NNN.jsonl of the same (device, app, backend, scenario) directory; readers of run-*.jsonl never see these records. Emitted by bm-ranges-<app>-vk; read by optimizer/smt/profiling_loader.load_ranges.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "device",
+    "app",
+    "backend",
+    "scenario",
+    "run",
+    "start_stage",
+    "end_stage",
+    "pu",
+    "gap_ms",
+    "submissions",
+    "timing",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "bt.profiling-range/v0",
+      "description": "Format tag of range records; distinct from the per-stage 'bt.profiling/v0'."
+    },
+    "device": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Device id, matching a devices/<id>.json stem (e.g. 'minipc', '3A021JEHN02756')."
+    },
+    "app": {
+      "type": "string",
+      "enum": ["cifar-dense", "cifar-sparse", "tree", "octree"],
+      "description": "Application whose stage was measured."
+    },
+    "backend": {
+      "type": "string",
+      "enum": ["vulkan", "cuda"],
+      "description": "GPU backend the binary was built for."
+    },
+    "scenario": {
+      "type": "string",
+      "enum": ["isolated", "interference"],
+      "description": "'isolated' = the GPU runs the range alone. 'interference' = every present CPU tier runs the range's stages in a busy loop meanwhile (bm-prof's background load)."
+    },
+    "run": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Run number. Also encoded in the filename (run-NNN.jsonl); duplicated here so a record is self-contained once detached from its file."
+    },
+    "start_stage": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "First stage of the range (1-based, inclusive)."
+    },
+    "end_stage": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Last stage of the range (1-based, inclusive, >= start_stage)."
+    },
+    "pu": {
+      "type": "string",
+      "enum": ["vulkan", "cuda"],
+      "description": "The GPU processing unit that ran the range."
+    },
+    "gap_ms": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Idle time before every measured chunk, in milliseconds: 0 = back-to-back; otherwise the host slept this long before each chunk (design D3: the range's own back-to-back p50)."
+    },
+    "submissions": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Queue submissions one chunk of this range takes (e.g. 2 for a tree range crossing stage 3|4, which reads n_unique back on the host in between)."
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "count",
+        "p50",
+        "p95",
+        "p99",
+        "mean",
+        "cv",
+        "min",
+        "max"
+      ],
+      "description": "Whole-chunk host wall time per chunk (dispatch_wall: submit to completion, every submission and read-back included), not GPU timestamps.",
+      "properties": {
+        "unit": {
+          "const": "ms"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of measured (post-warmup) iterations."
+        },
+        "p50": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p99": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mean": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cv": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Coefficient of variation (stddev/mean); the noise gate the loader filters on."
+        },
+        "min": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "git_sha",
+        "ts",
+        "host",
+        "freq_governor",
+        "freq_locked",
+        "warmup_iters",
+        "harness",
+        "gpu_clock_mhz",
+        "gpu_clock_samples"
+      ],
+      "description": "As for per-stage records, plus the GPU clock sampled while the range ran.",
+      "properties": {
+        "git_sha": {
+          "type": "string",
+          "description": "Short git sha of the binary, stamped at build time. 'unknown' if built outside a git tree."
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC ISO-8601 timestamp of the run."
+        },
+        "host": {
+          "type": "string",
+          "description": "Hostname the binary ran on."
+        },
+        "freq_governor": {
+          "type": "string",
+          "description": "cpu0 scaling_governor read from /sys at runtime; 'unknown' where unreadable."
+        },
+        "freq_locked": {
+          "type": "boolean",
+          "description": "Derived: governor is 'performance' or 'userspace' (DVFS effectively pinned)."
+        },
+        "warmup_iters": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Iterations discarded before measurement."
+        },
+        "harness": {
+          "type": "string",
+          "description": "Profiler harness id+version, e.g. 'bt.prof/v0'."
+        },
+        "gpu_clock_mhz": {
+          "type": "integer",
+          "description": "Median of the positive GPU clock samples taken while the range was measured (MHz); -1 if the device exposes no readable clock or never read busy."
+        },
+        "gpu_clock_samples": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of positive clock samples behind gpu_clock_mhz."
+        },
+        "gpu_clock_min_mhz": {
+          "type": "integer",
+          "description": "Lowest positive clock sample (MHz), -1 if none."
+        },
+        "gpu_clock_max_mhz": {
+          "type": "integer",
+          "description": "Highest positive clock sample (MHz), -1 if none."
+        }
+      }
+    }
+  }
+}

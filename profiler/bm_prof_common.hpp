@@ -175,6 +175,46 @@ inline std::vector<Cell> make_cells(int n_stages, const std::string& gpu_pu) {
   return cells;
 }
 
+// Provenance shared by every record of a run; `gpu_clock_mhz` is a run-level snapshot here
+// (-1 if unknown) that GPU records replace with their sampled clock.
+inline nlohmann::json base_provenance(int warmup, const char* harness) {
+  const std::string gov = read_governor();
+  return {
+      {"git_sha", BT_GIT_SHA},
+      {"ts", iso8601_utc_now()},
+      {"host", hostname()},
+      {"freq_governor", gov},
+      {"freq_locked", gov == "performance" || gov == "userspace"},
+      {"gpu_clock_mhz", read_gpu_clock_mhz()},  // DVFS state (audit): clock vs contention
+      {"warmup_iters", warmup},
+      {"harness", harness},
+  };
+}
+
+// A record's `timing` block from raw per-iteration seconds (ms; nearest-rank percentiles).
+inline nlohmann::json timing_json(const std::vector<double>& samples_s) {
+  std::vector<double> ms;
+  ms.reserve(samples_s.size());
+  for (double s : samples_s) ms.push_back(s * 1e3);
+  std::sort(ms.begin(), ms.end());
+
+  const double sum = std::accumulate(ms.begin(), ms.end(), 0.0);
+  const double mean = sum / ms.size();
+  double var = 0.0;
+  for (double v : ms) var += (v - mean) * (v - mean);
+  var /= ms.size();
+  const double stddev = std::sqrt(var);
+  return {{"unit", "ms"},
+          {"count", ms.size()},
+          {"p50", percentile(ms, 0.50)},
+          {"p95", percentile(ms, 0.95)},
+          {"p99", percentile(ms, 0.99)},
+          {"mean", mean},
+          {"cv", mean > 0 ? stddev / mean : 0.0},
+          {"min", ms.front()},
+          {"max", ms.back()}};
+}
+
 // Emit one self-describing JSONL record per non-empty cell to stdout. stdout is
 // reserved for data -- callers route logs to stderr.
 inline void emit_jsonl(const std::vector<Cell>& cells,
@@ -183,39 +223,16 @@ inline void emit_jsonl(const std::vector<Cell>& cells,
                        const char* scenario,
                        int run_id,
                        int warmup) {
-  const std::string gov = read_governor();
-  const int gpu_mhz = read_gpu_clock_mhz();  // run-level snapshot (CPU cells); -1 if unknown
-  const nlohmann::json base_provenance = {
-      {"git_sha", BT_GIT_SHA},
-      {"ts", iso8601_utc_now()},
-      {"host", hostname()},
-      {"freq_governor", gov},
-      {"freq_locked", gov == "performance" || gov == "userspace"},
-      {"gpu_clock_mhz", gpu_mhz},  // DVFS state (audit): disentangle clock from contention
-      {"warmup_iters", warmup},
-      {"harness", "bt.prof/v0"},
-  };
+  const nlohmann::json run_provenance = base_provenance(warmup, "bt.prof/v0");
 
   for (const Cell& cell : cells) {
     if (cell.samples_s.empty()) continue;
-    nlohmann::json provenance = base_provenance;
+    nlohmann::json provenance = run_provenance;
     if (cell.abandoned) provenance["abandoned"] = true;  // deep-sampling cost-capped
     if (cell.pu == "vulkan" || cell.pu == "cuda") {      // sampled while the kernel ran (D5)
       provenance["gpu_clock_mhz"] = cell.clock.mhz;
       provenance["gpu_clock_samples"] = cell.clock.samples;
     }
-    std::vector<double> ms;
-    ms.reserve(cell.samples_s.size());
-    for (double s : cell.samples_s) ms.push_back(s * 1e3);
-    std::sort(ms.begin(), ms.end());
-
-    const double sum = std::accumulate(ms.begin(), ms.end(), 0.0);
-    const double mean = sum / ms.size();
-    double var = 0.0;
-    for (double v : ms) var += (v - mean) * (v - mean);
-    var /= ms.size();
-    const double stddev = std::sqrt(var);
-
     const nlohmann::json rec = {
         {"schema", "bt.profiling/v0"},
         {"device", g_device_id},
@@ -225,16 +242,7 @@ inline void emit_jsonl(const std::vector<Cell>& cells,
         {"run", run_id},
         {"stage", cell.stage},
         {"pu", cell.pu},
-        {"timing",
-         {{"unit", "ms"},
-          {"count", ms.size()},
-          {"p50", percentile(ms, 0.50)},
-          {"p95", percentile(ms, 0.95)},
-          {"p99", percentile(ms, 0.99)},
-          {"mean", mean},
-          {"cv", mean > 0 ? stddev / mean : 0.0},
-          {"min", ms.front()},
-          {"max", ms.back()}}},
+        {"timing", timing_json(cell.samples_s)},
         {"provenance", provenance},
     };
     std::cout << rec.dump() << "\n";

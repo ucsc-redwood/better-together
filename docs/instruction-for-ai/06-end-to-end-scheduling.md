@@ -19,7 +19,10 @@ is no longer a wide-CSV export step.
 
 Canonical store layout (one record per line, schema
 [`schemas/profiling-table.schema.json`](../../schemas/profiling-table.schema.json)):
-`data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl`.
+`data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl`. GPU stage-range records
+(`bm-ranges-<app>-vk`, schema
+[`schemas/profiling-range.schema.json`](../../schemas/profiling-range.schema.json)) sit beside
+them as `range-NNN.jsonl`; only the range cost models of Step 2 read them.
 
 ---
 
@@ -54,6 +57,27 @@ ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference BT_PRO
 # android (adb on rocky for BOTH phones; adb -s <serial>) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
 ```
 
+**Step 01 does the deploy, the runs and the store layout** (it pushes only the binaries: the
+device directory must already hold `libc++_shared.so` on a phone, and the weights in
+`<dest>/weights`, `scripts/deploy-weights.sh`). `--tools ranges` collects the GPU stage-range
+records (every range as one GPU chunk, back-to-back and after an idle gap; see
+[`05-profiling.md`](05-profiling.md) "GPU stage ranges as whole chunks") into `range-NNN.jsonl`
+beside the per-stage runs; `--tools prof` (the default) the per-stage `run-NNN.jsonl`. Each
+invocation replaces only the kind it collects. `BT_PROF_*` knobs set for 01 reach the device.
+The tables of the gpu-chunk-cost-model change (2026-10-16) were collected per phone and app with:
+
+```bash
+uv run optimizer/orchestrate/01_collect_profiling.py --device <serial> --app <app> --backend vk \
+  --adb-serial <serial> --build-dir build/android --dest /data/local/tmp/<dir> \
+  --tools prof --runs 2 --scenarios isolated,interference --cooldown-s 20
+BT_PROF_MIN_ITERS=3 BT_PROF_ABANDON_S=2.5 uv run optimizer/orchestrate/01_collect_profiling.py \
+  --device <serial> --app <app> --backend vk --adb-serial <serial> --build-dir build/android \
+  --dest /data/local/tmp/<dir> --tools ranges --runs 2 --scenarios isolated,interference --cooldown-s 20
+```
+
+(`BT_PROF_ABANDON_S=2.5` lets a range up to 2.5 s long take the `BT_PROF_MIN_ITERS` samples
+instead of one; at the default 0.25 s most cifar-sparse ranges on the Pixel would be sampled once.)
+
 **Parallelism rule:** Jetson is independent → run it concurrently with the rocky
 side, but **serialize everything on rocky-ryzen — MiniPC (Vulkan) ↔ Pixel ↔ Samsung**.
 All three now hang off rocky (the iGPU runs + both phones' adb); concurrent runs
@@ -62,7 +86,7 @@ contend (CPU + USB) and produce empty/erratic output.
 Validate + view:
 
 ```bash
-uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate
+uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate (+ ranges, if any)
 uv run optimizer/analysis/render_isolated_table.py --scenario interference --metric p50       # per-app table
 uv run optimizer/analysis/coverage.py --scenario interference                                 # what's collected vs MISSING
 ```

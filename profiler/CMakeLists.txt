@@ -52,4 +52,13 @@ if(BT_ENABLE_VULKAN AND BT_BUILD_BENCHMARKS)
     foreach(app tree cifar-dense cifar-sparse)
         bt_add_vk_app(bm-phases-${app}-vk ${app}-vk/bm_phases.cpp)
     endforeach()
+    # GPU stage-range records: every range as one GPU chunk (gpu-chunk-cost-model D2).
+    foreach(app ${BT_PROFILED_APPS})
+        bt_add_vk_app(bm-ranges-${app}-vk ${app}-vk/bm_ranges.cpp benchmark::benchmark nlohmann_json::nlohmann_json)
+        add_dependencies(bm-ranges-${app}-vk bt_git_sha)
+        target_include_directories(
+            bm-ranges-${app}-vk
+            PRIVATE ${CMAKE_BINARY_DIR}/generated
+        )
+    endforeach()
 endif()

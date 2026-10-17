@@ -26,10 +26,13 @@ from collections import defaultdict
 SCHEMA_PATH = os.path.normpath(
     os.path.join(os.path.dirname(__file__), "..", "..", "schemas", "profiling-table.schema.json")
 )
+# GPU stage-range records (range-NNN.jsonl, bm-ranges-*): their own files and schema, so a
+# reader of run-*.jsonl never sees one (design D1).
+RANGE_SCHEMA_PATH = os.path.join(os.path.dirname(SCHEMA_PATH), "profiling-range.schema.json")
 
 
-def _load_schema():
-    with open(SCHEMA_PATH) as f:
+def _load_schema(path=SCHEMA_PATH):
+    with open(path) as f:
         return json.load(f)
 
 
@@ -49,17 +52,16 @@ def read_records(paths):
     return records
 
 
-def validate(records):
+def validate(records, schema_path=SCHEMA_PATH):
     """Validate every record against the schema; raise with all errors if any fail."""
     from jsonschema import Draft202012Validator
 
-    validator = Draft202012Validator(_load_schema())
+    validator = Draft202012Validator(_load_schema(schema_path))
     errors = []
     for i, r in enumerate(records):
+        where = r.get("stage", f"{r.get('start_stage', '?')}-{r.get('end_stage', '?')}")
         for e in validator.iter_errors(r):
-            errors.append(
-                f"  record {i} ({r.get('pu', '?')}/stage{r.get('stage', '?')}): {e.message}"
-            )
+            errors.append(f"  record {i} ({r.get('pu', '?')}/stage{where}): {e.message}")
     if errors:
         raise ValueError("schema validation failed:\n" + "\n".join(errors))
 
@@ -129,6 +131,57 @@ def load_profiling(
     return table, report
 
 
+def load_ranges(root, device, app, backend, scenario, metric="p50", min_runs=1):
+    """Return (ranges, report) from the cell's range-*.jsonl (schema-validated).
+
+    ranges: {(start_stage, end_stage): {"t0", "t1", "gap_ms", "submissions", "n_runs"}}
+    with t0 the back-to-back time (gap_ms == 0) and t1 the time after the idle gap
+    (gap_ms > 0), each the count-weighted ``metric`` over the runs; gap_ms is the mean
+    gap of the t1 records. A range needs both cadences from >= ``min_runs`` runs
+    (explicitly throttled records dropped), else it is listed in report["insufficient"].
+    No CV gate: the GPU p50 is what the solver uses (cf. cv_exempt_pus above).
+
+    A cell without range files yields ({}, report) -- an old store is not an error.
+    """
+    pattern = os.path.join(root, device, app, backend, scenario, "range-*.jsonl")
+    paths = sorted(glob.glob(pattern))
+    records = read_records(paths)
+    validate(records, RANGE_SCHEMA_PATH)
+
+    cells = defaultdict(list)
+    for r in records:
+        if not r["provenance"].get("throttled", False):
+            kind = "t0" if r["gap_ms"] == 0 else "t1"
+            cells[(r["start_stage"], r["end_stage"], kind)].append(r)
+
+    def weighted(rs, key):
+        weight = sum(r["timing"]["count"] for r in rs)
+        return sum(key(r) * r["timing"]["count"] for r in rs) / weight
+
+    ranges, insufficient = {}, []
+    for a, b in sorted({(a, b) for a, b, _ in cells}):
+        hot, idle = cells.get((a, b, "t0"), []), cells.get((a, b, "t1"), [])
+        if len(hot) < min_runs or len(idle) < min_runs:
+            insufficient.append((a, b, len(hot), len(idle)))
+            continue
+        ranges[(a, b)] = {
+            "t0": weighted(hot, lambda r: r["timing"][metric]),
+            "t1": weighted(idle, lambda r: r["timing"][metric]),
+            "gap_ms": sum(r["gap_ms"] for r in idle) / len(idle),
+            "submissions": max(r["submissions"] for r in hot + idle),
+            "n_runs": min(len(hot), len(idle)),
+        }
+
+    report = {
+        "paths": paths,
+        "n_records": len(records),
+        "metric": metric,
+        "min_runs": min_runs,
+        "insufficient": insufficient,
+    }
+    return ranges, report
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default="data/profiling")
@@ -176,6 +229,29 @@ def main():
             "INSUFFICIENT (< min_runs survived, omitted from table): "
             + ", ".join(f"stage{s}/{p}({n})" for s, p, n in rep["insufficient"])
         )
+
+    ranges, rrep = load_ranges(
+        args.root,
+        args.device,
+        args.app,
+        args.backend,
+        args.scenario,
+        metric=args.metric,
+        min_runs=args.min_runs,
+    )
+    if rrep["paths"]:
+        print(f"\nloaded {rrep['n_records']} range records from {len(rrep['paths'])} range file(s)")
+        print("range       t0 (gap 0)  t1 (after gap)    gap_ms  submissions  runs")
+        for (a, b), r in ranges.items():
+            print(
+                f"{a:>2}-{b:<2} {r['t0']:>14.4f} {r['t1']:>15.4f} {r['gap_ms']:>9.4f} "
+                f"{r['submissions']:>12} {r['n_runs']:>5}"
+            )
+        if rrep["insufficient"]:
+            print(
+                "INSUFFICIENT ranges (runs with gap 0 / gap > 0): "
+                + ", ".join(f"{a}-{b}({h}/{i})" for a, b, h, i in rrep["insufficient"])
+            )
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 from orchestrate.case import Case
 
-from smt.profiling_loader import load_profiling
+from smt.profiling_loader import load_profiling, load_ranges
 
 from .baselines import get_num_stages_for_app
 from .bt_vocab import CORE_TYPES
@@ -169,6 +169,32 @@ def load_stage_timings(
         )
 
     return avg_timings, backend == "cu"
+
+
+def load_range_timings(root, device, app, backend, scenario, metric="p50", min_runs=None):
+    """The GPU stage-range costs of a cell for the range cost models (design D3/D4):
+    ``{(i, j): (t0, t1)}`` with 0-based inclusive stage indices (the solver's), t0 the
+    back-to-back and t1 the after-idle whole-chunk time in ms. Reads the
+    ``range-*.jsonl`` beside the cell's per-stage runs with the scenario's min_runs gate.
+    Empty when the cell has no range files: every GPU chunk is then priced per stage.
+    """
+    gates = SCENARIO_GATES.get(scenario, {"max_cv": 1.0, "min_runs": 1})
+    ranges, report = load_ranges(
+        root,
+        device,
+        app,
+        Case(device, app, backend).backend_long,
+        scenario,
+        metric=metric,
+        min_runs=gates["min_runs"] if min_runs is None else min_runs,
+    )
+    if report["insufficient"]:
+        print(
+            f"WARNING [gate]: {device}/{app}/{backend}/{scenario}: {len(report['insufficient'])} "
+            "range(s) lack both cadences from enough runs -> priced per stage: "
+            + ", ".join(f"{a}-{b}" for a, b, _, _ in report["insufficient"])
+        )
+    return {(a - 1, b - 1): (r["t0"], r["t1"]) for (a, b), r in ranges.items()}
 
 
 def define_data(stage_timings=None, app_name=None):
