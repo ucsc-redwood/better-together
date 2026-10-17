@@ -41,6 +41,14 @@ Clamp the quantized integer to `[0, 1023]` (`min(uint(v), 1023u)`) after the cas
 - **Atomic clear:** `set_leaf`'s clear becomes atomic: `#pragma omp atomic` on OMP, `atomicAnd` on CUDA and in the shader's `SetLeaf`. The child slot store stays plain; it's last-writer-wins by contract.
 - **Vulkan leaf linking:** a separate dispatch after a compute→compute barrier, reusing the same shader through a push-constant phase selector, or a second entry. The leaf pass reads masks and offsets that the `MakeOctNodes` pass of *other* workgroups wrote, so a barrier inside the dispatch isn't enough.
   - *Alternative:* both passes in one dispatch with a grid-wide barrier. Rejected: Vulkan has no grid barrier.
+- **Why the Vulkan stage-7 test passed without leaf links (task 1.4).** Nothing ever set the leaf masks to all-ones:
+  every mask buffer is a value-initialized `std::pmr::vector<int32_t>` (the golden's `tree::AppData` buffer and
+  `SafeAppData`'s `_out`), so it starts at 0, and `set_leaf` only clears bits. The OMP golden's masks stayed all zeros
+  (0 of 146,708 non-zero on the default input), and so did Vulkan's, which never writes binding 4. `OctreeEdgeSet` reads
+  a zero bit as a leaf, so both sides listed every octant without a child node as a leaf slot and agreed. The oracle
+  fix (task 3.2) therefore starts at the data: the masks are initialized to 0xFF where they are allocated, which is
+  the contract this design already assumed. With that alone, both Vulkan stage-7 tests fail with every leaf slot
+  missing on the Vulkan side.
 
 ## Decisions — B. Performance
 

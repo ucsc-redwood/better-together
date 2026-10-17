@@ -131,6 +131,11 @@ struct VulkanChainedTreeRunner {
 
 BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffVulkanChained, VulkanChainedTreeRunner)
 
+// Morton-codes spec, "Boundary input on all backends" (see tree_diff_oracle.hpp).
+TEST(TreeDiffVulkanChained, DISABLED_Stage1_MortonBoundary) {
+  tree::testing::RunAndCheckMortonBoundary<VulkanChainedTreeRunner>();
+}
+
 // Memory-placement spec, design B3: the stages each VkAppData buffer declares (what the
 // schedule-driven placement trusts) are exactly the stages whose dispatches bind it. Stages
 // run in order, so the dispatcher's read-backs (n_unique after stage 3) happen as in a pipeline.

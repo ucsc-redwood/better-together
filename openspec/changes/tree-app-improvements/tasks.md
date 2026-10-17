@@ -15,10 +15,66 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 1. Correctness reproducers (topic A, design A1)
 
-- [ ] 1.1 Add a Morton boundary test: points at `kMinCoord + kRange` and at a value whose scaled product rounds to 1024.0. Assert each axis quantizes to 1023 on OMP, and compare the CUDA/VK codes with OMP. Verify: it FAILS on the current code (record the failing values), and lives in the tree test files.
-- [ ] 1.2 Add a leaf-race test: a constructed input where many BRT nodes link leaves into the same octree node. Run OMP and CUDA stage 7 repeatedly (≥ 100×) and compare the leaf masks with a serial reference. Verify: a lost bit is observed at least once on the current code, or record that the race couldn't be triggered, with the iteration count.
-- [ ] 1.3 Add an oracle self-test: give `CheckStage7Topology` an output whose leaf masks are reset to "no leaves". Verify: on the current code it either fails (good, the check works) or passes (the check is vacuous). Record which.
-- [ ] 1.4 Explain why `TreeDiffVulkan.Stage7_Octree` passes though Vulkan never runs `k_LinkLeafNodes`: inspect `u_oct_child_leaf_mask_s7_out`'s initial value and what Vulkan writes to it. Verify: the explanation is written under this task and in design A3, and the test from 1.3 or 3.2 now fails for Vulkan on the current code.
+- [x] 1.1 Add a Morton boundary test: points at `kMinCoord + kRange` and at a value whose scaled product rounds to 1024.0. Assert each axis quantizes to 1023 on OMP, and compare the CUDA/VK codes with OMP. Verify: it FAILS on the current code (record the failing values), and lives in the tree test files.
+  - *How the reproducers are committed (all of group 1):* each test that fails on the code before its fix is
+    committed with a `DISABLED_` prefix, so every commit's gate stays green, and the group that fixes it removes the
+    prefix (2.1, 3.1, 3.2). The failing runs below are `--gtest_also_run_disabled_tests` (or the same tests before
+    the prefix was added) on 583080c plus the group 1 tests.
+  - *Tests:* `RunAndCheckMortonBoundary<Runner>` (`apps/tree/tree_diff_oracle.hpp`) runs stage 1 on a 4096-point input
+    whose first points are (1024, 1024, 1024), (0, 0, 0), (1023.99994, ...), (1025, -1, 512) and (512, 1024, 0); it
+    asserts the OMP codes 0x3fffffff, 0, 0x3fffffff, 0x29249249, 0x1a492492 and compares the backend's codes with
+    OMP's as a multiset. It runs as `TreeDiffOmp.Stage1_MortonBoundary`, `TreeDiffCuda.Stage1_MortonBoundary` and
+    `TreeDiffVulkanChained.Stage1_MortonBoundary`. `TreeMortonOmp.UpperBoundQuantizesTo1023` decodes the code of
+    (1024, 1024, 1024). `TreeMortonOmp.ScaledValueRoundingTo1024QuantizesTo1023` uses min -512 / range 1024 and
+    x = 511.99997f < 512, for which `(x - min) / range * 1024 == 1024.0f`. With the app's own constants (min 0, range
+    1024, a power of two) no coordinate below the top rounds to 1024.0f, so that case is OMP-only.
+  - *Fails on the current code:*
+    - OMP (build box): both `TreeMortonOmp` tests decode 0 on every axis instead of 1023; `Stage1_MortonBoundary`
+      gets 0 for point 0 (want 1073741823), 843654291 for point 3 (want 690262601), 134217728 for point 4 (want
+      441001106).
+    - Vulkan (rocky-ryzen, `test-tree-vk --device minipc`): the same three OMP codes, and the multiset differs from OMP
+      (`element mismatch at index 2033 of 4096 (ref=537029823, out=536870913)`): x86 OMP turns the -1 coordinate into
+      1023, the 780M into 0 (a negative float to `uint` is undefined in both C++ and GLSL).
+    - CUDA (duck-stable): point 0 0, point 3 536870913 (aarch64 OMP turns -1 into 0, unlike x86), point 4 134217728;
+      CUDA and OMP agree with each other there.
+- [x] 1.2 Add a leaf-race test: a constructed input where many BRT nodes link leaves into the same octree node. Run OMP and CUDA stage 7 repeatedly (≥ 100×) and compare the leaf masks with a serial reference. Verify: a lost bit is observed at least once on the current code, or record that the race couldn't be triggered, with the iteration count.
+  - *Test:* `CountLostLeafBits<Runner>(runner, reps)` (`tree_diff_oracle.hpp`). Input: one point per finest-level
+    cell of a 32^3 block, i.e. 4096 clusters of 8 points, one per octant of a 2x2x2 cell. Stages 1-6 run on OMP:
+    32768 unique codes, 4681 octree nodes, 4096 of which get 8 leaf links each from 4 BRT nodes with adjacent indices
+    (32768 cleared bits in the single-threaded reference). Each repetition resets the masks to 0xFF, runs the backend's
+    stage 7 and counts bits the reference cleared but the backend did not. (Spreading the clusters out instead
+    overflowed the octree buffers, which hold 0.5 x n_input nodes.)
+  - *CUDA* (`TreeLeafRaceCuda.ConcurrentLeafLinksKeepEveryBit`, duck-stable, 100 runs): **2,457,600 of 3,276,800 bits
+    lost**, i.e. 6 of 8 bits per node in every run.
+  - *OMP, `run_stage_7` as shipped* (`TreeLeafRaceOmp.ConcurrentLeafLinksKeepEveryBit`, 12 threads on the build box):
+    0 lost bits in 100 runs, and 0 in 30 x 100 = 3000 runs. Its static schedule gives each thread one contiguous range,
+    so links into one node meet only at the 11 range ends: the race could not be triggered through `run_stage_7`.
+  - *OMP, interleaved* (`TreeLeafRaceOmp.InterleavedLeafLinksKeepEveryBit`: `process_link_leaf` under
+    `schedule(static, 1)`, which hands adjacent BRT nodes to different threads): 2,323,527 / 2,338,911 / 2,336,529 of
+    3,276,800 bits lost in three 100-run invocations. A scratch `schedule(static, 1)` on `run_stage_7` itself (not
+    committed) lost 373,945 / 198,153 / 183,819.
+- [x] 1.3 Add an oracle self-test: give `CheckStage7Topology` an output whose leaf masks are reset to "no leaves". Verify: on the current code it either fails (good, the check works) or passes (the check is vacuous). Record which.
+  - *Tests* (`apps/tree/omp/test_main.cpp`): two OMP outputs of the same input must pass `CheckStage7Topology`; then
+    one output's leaf masks are reset and the check must fail. `TreeOracleSelfTest.MissingLeafLinksFail` resets them
+    to 0xFF ("no leaves", a leaf slot is a zero bit). `TreeOracleSelfTest.SpuriousLeafLinksFail` resets them to 0
+    (every free octant a leaf).
+  - *Result on the current code:* **MissingLeafLinksFail passes** (the check fails, as it should), but
+    **SpuriousLeafLinksFail fails**: the check accepts an output that marks every free octant a leaf. The leaf check
+    is vacuous, because the golden's masks are themselves all zero (see 1.4).
+- [x] 1.4 Explain why `TreeDiffVulkan.Stage7_Octree` passes though Vulkan never runs `k_LinkLeafNodes`: inspect `u_oct_child_leaf_mask_s7_out`'s initial value and what Vulkan writes to it. Verify: the explanation is written under this task and in design A3, and the test from 1.3 or 3.2 now fails for Vulkan on the current code.
+  - *Explanation:* no backend ever sets the leaf masks to all-ones. Every mask buffer is a value-initialized
+    `std::pmr::vector<int32_t>` (`tree::AppData`'s `u_oct_child_leaf_mask_s7`, which the golden is built in, and
+    `SafeAppData`'s `u_oct_child_leaf_mask_s7_out`), so it starts at 0, and `set_leaf` only clears bits. On OMP and CUDA
+    the leaf links therefore change nothing in the mask; on Vulkan `main` never calls `k_LinkLeafNodes`, and the
+    optimized SPIR-V (`glslc -O`) has no variable for `ChildLeafMasks` (binding 4, nor for 10-12), so the `_out` mask also stays 0. Both sides are
+    all zeros, and `OctreeEdgeSet` reads a zero bit as a leaf, so ref and out both list every octant without a child
+    node as a leaf slot, and they agree. Measured on the default input (scratch probe, not committed): 146,708 octree
+    nodes, **0 non-zero leaf masks** in the golden, 307,151 leaf links that clear nothing, 1,026,957 octants listed
+    as leaf slots on each side.
+  - *Now fails for Vulkan:* with the masks initialized to 0xFF (a scratch edit of the two constructors, the 3.2 fix, not
+    committed in this group), on rocky `TreeDiffVulkan.Stage7_Octree` fails with `LEAF child slots differ (307151
+    only-in-ref, 0 only-in-out; ref_leaf_slots=307151 out_leaf_slots=0)` and `TreeDiffVulkanChained.Stage7_Octree`
+    with `307144 only-in-ref, 0 only-in-out`. The explanation is also in design A3.
 
 ## 2. Morton clamp (topic A, design A2)
 
