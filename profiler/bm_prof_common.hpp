@@ -199,10 +199,11 @@ inline nlohmann::json timing_json(const std::vector<double>& samples_s) {
   std::sort(ms.begin(), ms.end());
 
   const double sum = std::accumulate(ms.begin(), ms.end(), 0.0);
-  const double mean = sum / ms.size();
+  const auto n = static_cast<double>(ms.size());
+  const double mean = sum / n;
   double var = 0.0;
   for (double v : ms) var += (v - mean) * (v - mean);
-  var /= ms.size();
+  var /= n;
   const double stddev = std::sqrt(var);
   return {{"unit", "ms"},
           {"count", ms.size()},

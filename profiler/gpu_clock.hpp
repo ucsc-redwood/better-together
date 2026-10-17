@@ -94,6 +94,8 @@ class GpuClockSampler {
         }) {}
   GpuClockSampler(const GpuClockSampler&) = delete;
   GpuClockSampler& operator=(const GpuClockSampler&) = delete;
+  GpuClockSampler(GpuClockSampler&&) = delete;
+  GpuClockSampler& operator=(GpuClockSampler&&) = delete;
   ~GpuClockSampler() { (void)stop(); }
 
   Summary stop() {
