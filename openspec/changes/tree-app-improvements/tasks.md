@@ -302,8 +302,29 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 7. Full subgroups (topic B, design B5)
 
-- [ ] 7.1 Confirm that the sort pipelines (`multi_radixsort`, plus any new subgroup-dependent sort/scan kernel from groups 4–8) are created as subgroup-size-dependent, so they get `REQUIRE_FULL_SUBGROUPS` from the engine-wide mechanism that `vk-engine-runtime` lands first (that change owns the feature enablement and the `Algorithm` flag; do not re-implement it here). Verify: the debug log on each VK target shows the flag on the sort pipelines, and `BT_VK_VALIDATION=1 test-tree-vk` on rocky reports 0 validation errors.
-- [ ] 7.2 Check that the tree suites pass exactly on a device path without `computeFullSubgroups`, using the engine change's fallback. Verify: on rocky, force the fallback with the engine's test hook (or note the device coverage if no such hook exists), then run `test-tree-vk` 15/15.
+- [x] 7.1 Confirm that the sort pipelines (`multi_radixsort`, plus any new subgroup-dependent sort/scan kernel from groups 4–8) are created as subgroup-size-dependent, so they get `REQUIRE_FULL_SUBGROUPS` from the engine-wide mechanism that `vk-engine-runtime` lands first (that change owns the feature enablement and the `Algorithm` flag; do not re-implement it here). Verify: the debug log on each VK target shows the flag on the sort pipelines, and `BT_VK_VALIDATION=1 test-tree-vk` on rocky reports 0 validation errors.
+  - *Which sort pipelines are subgroup dependent:* after groups 5 and 6, only `multi_radixsort_scan` (spec constant 0,
+    a `gl_SubgroupID`-indexed shared array) is; `multi_radixsort` and `multi_radixsort_histograms` use no subgroup
+    operations, and the engine refuses to build a pipeline whose `subgroup_size_dependent()` flag disagrees with the
+    shader's constant 0. Group 8 adds no subgroup-dependent kernel. Nothing in the engine was changed for the flag;
+    `test-tree-vk` now applies `SPDLOG_LEVEL` (`spdlog::cfg::load_env_levels()` after the default `off`), so its debug
+    log can be read.
+  - *Debug log* (`SPDLOG_LEVEL=debug test-tree-vk --gtest_filter=TreeDiffVulkan.Stage2_Sort`): `Pipeline
+    [multi_radixsort_scan] created successfully (subgroup size N, pinned, full subgroups; ...)` with N = 64 and 32
+    (`BT_VK_SUBGROUP_SIZE=32`) on rocky-ryzen, 16 on the Pixel 7a, 64 and 32 on the Samsung; each also logs
+    `computeFullSubgroups supported true enabled true`.
+  - *Validation:* `BT_VK_VALIDATION=1 ./test-tree-vk --device minipc` on rocky: 20/20, 0 `Validation Error` lines (layer
+    loaded, per `VK_LOADER_DEBUG=layer`).
+- [x] 7.2 Check that the tree suites pass exactly on a device path without `computeFullSubgroups`, using the engine change's fallback. Verify: on rocky, force the fallback with the engine's test hook (or note the device coverage if no such hook exists), then run `test-tree-vk` 15/15.
+  - *Hook:* the engine has no switch that turns full subgroups off for a whole suite (kiss-vk's
+    `NonMultipleWorkgroupFailsWithoutFullSubgroups` builds an `Algorithm` with edited `ComputeLimits`), and all three
+    fleet GPUs support `computeFullSubgroups`. So the fallback was forced with a scratch edit of `base_engine.cpp` (not
+    committed): `full_subgroups = false`.
+  - *Result on rocky:* `test-tree-vk --device minipc` 20/20 at 64 and 20/20 with `BT_VK_SUBGROUP_SIZE=32` (the task's
+    15/15 predates the tests added here). The engine logs `computeFullSubgroups supported true enabled false`, and every
+    `multi_radixsort_scan` pipeline `(subgroup size 64|32, pinned, full subgroups not guaranteed: computeFullSubgroups
+    unsupported; ...)`. That wording is new: the pipeline line said "full subgroups not required", and the tree-sort
+    spec asks for a line saying full subgroups are not guaranteed (`platform/engine/vulkan/algorithm.cpp`).
 
 ## 8. Stage-3 compaction (topic B, design B6)
 

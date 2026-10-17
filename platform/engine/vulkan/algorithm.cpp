@@ -471,7 +471,7 @@ void Algorithm::create_pipeline() {
         shader_name_,
         limits_.subgroup_size,
         pin ? "pinned" : "not pinned",
-        full ? "full subgroups" : "full subgroups not required",
+        full ? "full subgroups" : "full subgroups not guaranteed: computeFullSubgroups unsupported",
         cache_result);
   } else {
     spdlog::debug(

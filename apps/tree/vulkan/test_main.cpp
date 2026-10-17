@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <omp.h>
+#include <spdlog/cfg/env.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -173,6 +174,7 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   parse_args_test(argc, argv);
   spdlog::set_level(spdlog::level::off);
+  spdlog::cfg::load_env_levels();  // SPDLOG_LEVEL=debug logs each pipeline's subgroup setup
   // Host-side golden uses OMP; pin single-threaded so the radix-tree/octree
   // reference is deterministic (matches the OMP/CUDA suites).
   omp_set_num_threads(1);
