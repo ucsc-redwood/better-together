@@ -265,7 +265,7 @@ Shaders are compiled at build time; nothing generated is committed.
     any grouping of the loop's invocations, so the kernel needed no specialization.
   - *VK gate (6.1 + 6.2):* rocky `ctest -L vulkan` 7/7, `test-tree-vk` 20/20 at 64 and pinned 32; Pixel 7a 20/20 and
     29/29; Samsung 20/20 and 29/29, also pinned 32.
-- [x] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
+- [ ] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
   - *Method:* as 4.1 session 2, five arms rotated in one session: A = 5477c56 (the 4.1 baseline), G5 = fce8948
     (group 5), S1 = G5 + 6.1, S2 = G5 + 6.2, S12 = G5 + 6.1 + 6.2. Stage 2 (ms):
 
@@ -299,6 +299,9 @@ Shaders are compiled at build time; nothing generated is committed.
   - *Outcome for the spec:* the requirement "The sort is faster on the phones" is **not met** by this change. B1 (64,
     PR #26) is the baseline, B2 is neutral, B4 is slower, B3 (Onesweep) was rejected. Recorded in design (Open
     Questions) for the owner to settle before the change is archived.
+  - *Status: BLOCKED, pending the owner's decision* (design Follow-ups): relax or drop the phone sort-speed requirement,
+    or authorize a different sort design. The measurements and the reversion above stand; the task stays unticked until
+    that decision is made.
 
 ## 7. Full subgroups (topic B, design B5)
 
@@ -356,5 +359,44 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 9. Final gate and profile refresh
 
-- [ ] 9.1 Run the OMP, VK and CUDA gates at the final commit, plus `BT_VK_VALIDATION=1` runs of `test-tree-vk` on rocky. Verify: all green, with 0 validation errors.
-- [ ] 9.2 Refresh tree × VK profiling on the phones (`bm-prof-tree-vk`, isolated and interference, 2 runs each, into `data/profiling/<serial>/tree/vulkan/`). Verify: the new per-stage times are recorded, with the run noted here.
+- [x] 9.1 Run the OMP, VK and CUDA gates at the final commit, plus `BT_VK_VALIDATION=1` runs of `test-tree-vk` on rocky. Verify: all green, with 0 validation errors.
+  - *Code at cc21490* (group 8; the group 9 commit only adds this record).
+  - *OMP:* `ctest --test-dir build/pc -L omp` 10/10 (`test-tree-omp` 21 tests, none disabled).
+  - *VK, rocky-ryzen* (`~/bt-tree-gate`, native `vulkan` preset): `ctest -L vulkan` 7/7; `test-tree-vk --device minipc`
+    20/20, and 20/20 with `BT_VK_SUBGROUP_SIZE=32`; also `test-kiss-vk` 30, `test-cifar-dense-vk` 16,
+    `test-cifar-sparse-vk` 17 passed. `BT_VK_VALIDATION=1 ./test-tree-vk --device minipc`: 20/20, **0** `Validation Error`
+    lines, at 64 and with `BT_VK_SUBGROUP_SIZE=32` (layer loaded, per `VK_LOADER_DEBUG=layer`).
+  - *VK, phones:* Pixel 7a `test-tree-vk` 20/20, `test-kiss-vk` 29/29; Samsung 20/20 and 29/29, and 20/20 and 29/29 with
+    `BT_VK_SUBGROUP_SIZE=32`.
+  - *CUDA, duck-stable* (`bt-cross:7.2` on rocky, `-DBT_ENABLE_VULKAN=OFF`, `scripts/run-on-jetson.sh`): `test-tree-cu`
+    9/9, `test-cifar-dense-cu` 12/12, `test-cifar-sparse-cu` 12/12. The first invocation exited 255 at ssh before any
+    test ran; duck-stable answered right after and the rerun is the result above.
+- [x] 9.2 Refresh tree × VK profiling on the phones (`bm-prof-tree-vk`, isolated and interference, 2 runs each, into `data/profiling/<serial>/tree/vulkan/`). Verify: the new per-stage times are recorded, with the run noted here.
+  - *Run (2026-10-17, 13:53-13:58):* `bm-prof-tree-vk` of the final code (built from b292b4b plus group 8, identical to
+    cc21490; the records say `git_sha` b292b4b), default sampling knobs, unpinned, `BT_PROF_SCENARIO=isolated|interference`
+    and `BT_PROF_RUN=1|2`, stdout to `data/profiling/<serial>/tree/vulkan/<scenario>/run-00{1,2}.jsonl`; one phone
+    after the other, 20 s before every run, no other `bm-`/`test-` process. 28 records per run (7 stages x Vulkan,
+    big, medium, little). The previous `run-00{1,2}.jsonl` (harness 12e895f, before this change) were moved to
+    `superseded-2026-10-17/` in each scenario directory, which the loader does not read; the `range-*.jsonl` files there
+    are another change's and were left alone. `data/` is not versioned.
+  - *New Vulkan p50 per stage, run 1 / run 2 (ms), with the superseded runs for comparison:*
+
+    | phone, scenario | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+    |---|---|---|---|---|---|---|---|
+    | Pixel 7a, isolated | 0.918 / 1.362 | 7.610 / 6.816 | 1.722 / 1.718 | 2.638 / 2.639 | 0.292 / 0.296 | 1.617 / 1.591 | 3.023 / 3.021 |
+    | (superseded) | 0.472 / 0.470 | 3.623 / 5.388 | 1.342 / 1.392 | 2.600 / 2.114 | 0.289 / 0.288 | 1.495 / 1.497 | 1.285 / 1.284 |
+    | Pixel 7a, interference | 0.379 / 0.380 | 4.592 / 6.299 | 1.167 / 1.371 | 2.612 / 2.609 | 0.287 / 0.287 | 1.208 / 1.213 | 3.007 / 2.994 |
+    | (superseded) | 0.462 / 0.468 | 7.203 / 7.217 | 2.000 / 1.621 | 2.621 / 2.125 | 0.305 / 0.290 | 1.500 / 1.495 | 1.292 / 1.292 |
+    | Samsung, isolated | 1.585 / 1.570 | 2.526 / 2.414 | 1.779 / 1.802 | 1.378 / 1.372 | 0.517 / 0.580 | 1.203 / 1.213 | 1.736 / 1.820 |
+    | (superseded) | 1.586 / 1.585 | 1.323 / 1.944 | 3.056 / 3.109 | 1.376 / 1.379 | 0.607 / 0.605 | 1.211 / 1.222 | 2.818 / 2.788 |
+    | Samsung, interference | 0.186 / 0.135 | 1.894 / 1.751 | 0.542 / 0.566 | 0.501 / 0.501 | 0.086 / 0.086 | 0.490 / 0.479 | 0.865 / 0.919 |
+    | (superseded) | 0.190 / 0.143 | 1.323 / 1.254 | 0.727 / 0.737 | 0.363 / 0.408 | 0.074 / 0.087 | 0.487 / 0.482 | 0.392 / 0.370 |
+
+    Stage 7 carries the new leaf pass (Pixel 1.29 → 3.02 ms in both scenarios); stage 3 is the new compaction (Samsung
+    3.08 → 1.79 ms isolated). With the default knobs single runs still land on the phones' levels (e.g. the Pixel's
+    isolated stage 1 at 0.92 / 1.36 ms, its stage 2 at 6.8-7.6), see 4.1.
+  - *Loader check* (`uv run optimizer/smt/profiling_loader.py --device <serial> --app tree --backend vulkan`, isolated,
+    `max_cv=0.1`): both phones load 56 records from 2 runs. Many cells are dropped as noisy (cv > 0.1): on the Pixel 7a
+    every Vulkan stage survives in at least one run, on the Samsung only stage 1's Vulkan cell. The superseded runs
+    fare no better under the same check (Pixel: Vulkan stages 2, 6 and 7 only; Samsung: 1 and 2), so the drop rate is
+    a property of these short stages at default sampling, not of this change. Not addressed here.

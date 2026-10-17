@@ -128,3 +128,12 @@ Topic A lands first, each fix behind its reproducer, with the full gate includin
     drop or relax that requirement, or to fund a different sort (e.g. bigger tiles per workgroup, a different digit
     width). Both phones run these stages mostly at their lowest GPU clock, and their runs land on discrete levels
     10-50 % apart (4.1), so a gain also has to be large to be seen.
+
+## Follow-ups
+
+- **Owner decision before archiving:** the `gpu-kernels/tree-sort` requirement "The sort is faster on the phones" is
+  not met (Open Questions; tasks 5.3 and 6.3). Every other requirement of the change is met.
+- CUDA stage 7 is 53 % slower on duck-stable because of the required `atomicAnd` on zero-copy memory (Risks); a
+  warp-aggregated clear could recover part of it.
+- The tree × VK profiles on the phones lose most cells to the loader's `max_cv=0.1` filter at the default sampling
+  knobs, before and after this change (task 9.2).
