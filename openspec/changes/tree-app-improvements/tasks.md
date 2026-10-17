@@ -78,8 +78,27 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 2. Morton clamp (topic A, design A2)
 
-- [ ] 2.1 Clamp the quantized coordinate to `[0, 1023]` in OMP `func_morton.hpp`, CUDA `func_morton.cuh` and `tree_morton.comp`, identically. Verify: 1.1 passes on all three backends, and stage-1 output on the default input is byte-identical to before (diff recorded).
-- [ ] 2.2 Run the OMP gate, the VK gate and the CUDA gate. Verify: all green.
+- [x] 2.1 Clamp the quantized coordinate to `[0, 1023]` in OMP `func_morton.hpp`, CUDA `func_morton.cuh` and `tree_morton.comp`, identically. Verify: 1.1 passes on all three backends, and stage-1 output on the default input is byte-identical to before (diff recorded).
+  - *Change:* OMP `quantize_coord` = `static_cast<uint32_t>(std::clamp(v_scaled, 0.0f, 1023.0f))`, CUDA the same with
+    `fminf(fmaxf(...))`, the shader `uint(clamp(a, 0.0, 1023.0))`; the test reference `MortonRef` (`tree_ref.hpp`)
+    clamps too. The clamp is on the float, before the cast, rather than design A2's `min(uint(v), 1023u)` after it:
+    the two agree for every v >= 0, and the float clamp also gives 0 below the bottom, as the spec requires, where the
+    cast of a negative float is undefined (1.1 saw x86 give 1023 and the 780M 0). Recorded in design A2.
+  - *1.1 passes on all three backends* (its five tests enabled): OMP on the build box (`test-tree-omp` 19 passed),
+    `TreeDiffVulkanChained.Stage1_MortonBoundary` on rocky (64 and pinned 32), the Pixel 7a and the Samsung (64 and
+    pinned 32), `TreeDiffCuda.Stage1_MortonBoundary` on duck-stable.
+  - *Default input unchanged:* a scratch probe (not committed) ran OMP stage 1 on the default input (307,200 points, the
+    first `tree::AppData` of the process, max coordinate 1023.99866) and hashed `u_morton_keys_s1` in order:
+    FNV-1a `2adb067305d8595a` before (4619d05) and after; min/max code 12019 / 1073741425 both times.
+- [x] 2.2 Run the OMP gate, the VK gate and the CUDA gate. Verify: all green.
+  - *OMP:* `ctest --test-dir build/pc -L omp` 10/10 (`test-tree-omp` 19 passed, 2 disabled: 3.1 and 3.2).
+  - *VK, rocky-ryzen* (`~/bt-tree-gate`, native `vulkan` preset, `VK_LOADER_LAYERS_DISABLE='~all~'`): `ctest -L vulkan`
+    7/7; `test-tree-vk --device minipc` 19/19, and 19/19 with `BT_VK_SUBGROUP_SIZE=32`.
+  - *VK, phones* (`android` preset, NDK r30; pushed to `/data/local/tmp/bt-tree` with `libc++_shared.so`, run with
+    `--device <serial>`, the same steps as `scripts/run-on-android.sh`): Pixel 7a `test-tree-vk` 19/19 and
+    `test-kiss-vk` 29/29; Samsung 19/19 and 29/29, and 19/19 and 29/29 with `BT_VK_SUBGROUP_SIZE=32`.
+  - *CUDA, duck-stable* (`bt-cross:7.2` on rocky with `-DBT_ENABLE_VULKAN=OFF`, `scripts/run-on-jetson.sh`):
+    `test-tree-cu` 8 passed (1 disabled: 3.1), `test-cifar-dense-cu` 12, `test-cifar-sparse-cu` 12.
 
 ## 3. Atomic leaf masks and Vulkan leaf linking (topic A, design A3)
 

@@ -32,7 +32,7 @@ struct CudaTreeRunner {
 BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffCuda, CudaTreeRunner)
 
 // Reproducers of the tree-app-improvements change (see tree_diff_oracle.hpp).
-TEST(TreeDiffCuda, DISABLED_Stage1_MortonBoundary) {
+TEST(TreeDiffCuda, Stage1_MortonBoundary) {
   tree::testing::RunAndCheckMortonBoundary<CudaTreeRunner>();
 }
 

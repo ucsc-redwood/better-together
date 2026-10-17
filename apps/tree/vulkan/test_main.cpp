@@ -132,7 +132,7 @@ struct VulkanChainedTreeRunner {
 BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffVulkanChained, VulkanChainedTreeRunner)
 
 // Morton-codes spec, "Boundary input on all backends" (see tree_diff_oracle.hpp).
-TEST(TreeDiffVulkanChained, DISABLED_Stage1_MortonBoundary) {
+TEST(TreeDiffVulkanChained, Stage1_MortonBoundary) {
   tree::testing::RunAndCheckMortonBoundary<VulkanChainedTreeRunner>();
 }
 

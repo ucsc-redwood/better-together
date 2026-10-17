@@ -36,6 +36,9 @@ Each fix lands with a test that fails without it:
 
 ### A2. Clamp, not widen
 Clamp the quantized integer to `[0, 1023]` (`min(uint(v), 1023u)`) after the cast, identically on all three backends, so the oracle and the GPU codes stay equal. Using 1023.999 as the scale was considered and rejected: it changes every code, not just the wrapping ones.
+*As implemented (task 2.1):* the clamp is applied to the scaled float before the cast, `uint(clamp(v, 0, 1023))`. For
+every v >= 0 that equals `min(uint(v), 1023u)`; below the bottom it gives 0 as the morton-codes spec requires, where
+casting a negative float to an unsigned integer is undefined (x86 gave 1023, the Radeon 780M 0).
 
 ### A3. Atomic leaf-mask clear; Vulkan links leaves in a second dispatch
 - **Atomic clear:** `set_leaf`'s clear becomes atomic: `#pragma omp atomic` on OMP, `atomicAnd` on CUDA and in the shader's `SetLeaf`. The child slot store stays plain; it's last-writer-wins by contract.

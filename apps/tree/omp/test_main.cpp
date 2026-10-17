@@ -530,7 +530,7 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
 // ----------------------------------------------------------------------------
 
 // Morton-codes spec, "Point at the upper bound".
-TEST(TreeMortonOmp, DISABLED_UpperBoundQuantizesTo1023) {
+TEST(TreeMortonOmp, UpperBoundQuantizesTo1023) {
   const glm::vec4 top(tree::kMinCoord + tree::kRange,
                       tree::kMinCoord + tree::kRange,
                       tree::kMinCoord + tree::kRange,
@@ -545,7 +545,7 @@ TEST(TreeMortonOmp, DISABLED_UpperBoundQuantizesTo1023) {
 // Morton-codes spec, "Point just below the upper bound". With the app's range (a power of
 // two, from 0) no coordinate below the top scales to 1024.0f, so this uses min -512: the
 // subtraction 511.99997f - (-512) rounds up to 1024.0f.
-TEST(TreeMortonOmp, DISABLED_ScaledValueRoundingTo1024QuantizesTo1023) {
+TEST(TreeMortonOmp, ScaledValueRoundingTo1024QuantizesTo1023) {
   constexpr float kMin = -512.0f;
   constexpr float kRangeHere = 1024.0f;
   const float x = std::nextafter(kMin + kRangeHere, 0.0f);
@@ -559,7 +559,7 @@ TEST(TreeMortonOmp, DISABLED_ScaledValueRoundingTo1024QuantizesTo1023) {
   EXPECT_EQ(xyz[2], 1023u);
 }
 
-TEST(TreeDiffOmp, DISABLED_Stage1_MortonBoundary) {
+TEST(TreeDiffOmp, Stage1_MortonBoundary) {
   tree::testing::RunAndCheckMortonBoundary<OmpTreeRunner>();
 }
 
