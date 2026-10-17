@@ -213,4 +213,27 @@ Gates used below:
 
 ## 5. Final gate
 
-- [ ] 5.1 Final gate at the last commit: local and phone gate green, and the summary from 4.2 regenerated from the committed code. Verify: the results are listed in the PR.
+- [x] 5.1 Final gate at the last commit: local and phone gate green, and the summary from 4.2 regenerated from the committed code. Verify: the results are listed in the PR.
+  - *Evidence (code of the group 4 commit 40217a0; this commit adds only this text and `BT_ANDROID_DEST`):*
+    - local, on this commit's tree: `uv run pytest -q optimizer` → **41 passed**; `cmake --build --preset pc`
+      then `ctest --test-dir build/pc -L omp` → **100 % tests passed, 0 failed out of 11**; `just fmt-check` clean;
+    - phone gate: `cmake --preset android -DBT_BUILD_BENCHMARKS=ON`, the four targets rebuilt, then
+      `BT_ANDROID_DEST=/data/local/tmp/bt-costmodel scripts/run-on-android.sh <serial> test-kiss-vk test-tree-vk
+      test-cifar-dense-vk test-cifar-sparse-vk` (`BT_ANDROID_DEST`, new in this commit, keeps the run in this
+      change's own phone directory; default unchanged), exit 0 on both:
+
+      | phone | test-kiss-vk | test-tree-vk | test-cifar-dense-vk | test-cifar-sparse-vk |
+      |---|---|---|---|---|
+      | Pixel 7a | 29 passed, 1 skipped (FIFO) | 18 passed | 16 passed | 17 passed |
+      | Samsung | 29 passed, 1 skipped (FIFO) | 18 passed | 16 passed | 17 passed |
+
+      It ran on 2026-10-17 before the 4.1 review fix was folded into group 4. That fix changed only
+      `optimizer/analysis/{accuracy,speedup_summary}.py`, `optimizer/tests/test_accuracy.py`, the decision record
+      and the tasks text; the C++, CMake and script sources of the binaries it ran equal this commit's;
+    - summary: `uv run optimizer/analysis/speedup_summary.py --sched-logs data/sched_logs --schedules-root data` on
+      this commit's code → 6 speedup rows, 310 executed schedules, the same 36 accuracy cells as 4.2, and the
+      decision record's gate table unchanged when recomputed from it;
+    - `openspec validate gpu-chunk-cost-model --strict` → valid.
+  - No PR is opened in this run (its instructions); the list above is the PR's results section. Nothing ran on
+    rocky-ryzen in this run (no `~/bt-costmodel-gate` there to remove); the phones' `/data/local/tmp/bt-costmodel`
+    was removed after the gate.

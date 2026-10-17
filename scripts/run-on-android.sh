@@ -13,16 +13,17 @@
 #   - Samsung  (R5CY21Y3VEV,    Xclipse 940, subgroup 64; 32..64)
 # `adb devices` lists both, so `adb -s <serial>` (used throughout) picks one. Run
 # this script on the build box, where build/android is.
-# Deploy goes to the Android tmp: /data/local/tmp/bt.
+# Deploy goes to the Android tmp: /data/local/tmp/bt (BT_ANDROID_DEST overrides it).
 #
 # Usage:   scripts/run-on-android.sh <serial> [test-target ...]
-# Env:     BT_ANDROID_BUILD (default build/android), ANDROID_NDK_HOME / ANDROID_HOME
+# Env:     BT_ANDROID_BUILD (default build/android), BT_ANDROID_DEST (default /data/local/tmp/bt),
+#          ANDROID_NDK_HOME / ANDROID_HOME
 set -euo pipefail
 
 serial=${1:?usage: run-on-android.sh <serial> [test-target ...]}
 shift || true
 BUILD=${BT_ANDROID_BUILD:-build/android}
-DEST=/data/local/tmp/bt
+DEST=${BT_ANDROID_DEST:-/data/local/tmp/bt}
 # Per-cell coverage markers (RAN/SKIP/FAIL) for scripts/check_fleet_coverage.py.
 # Map the adb serial -> the fleet-coverage hardware token (pixel/samsung); override
 # with BT_CELL_HW for a new phone. CELL_LOG defaults to fleet-coverage.log at the repo root.
@@ -69,13 +70,13 @@ adb -s "$serial" push "${paths[@]}" "$libcxx" "$DEST/" </dev/null
 echo ">> running on $serial (--device $serial)"
 # Deployed real weights (scripts/deploy-weights.sh android <serial>) are picked up
 # automatically; without a deploy the apps keep their synthetic seeded init.
-WEIGHTS=/data/local/tmp/bt/weights
+WEIGHTS=$DEST/weights
 envp=""
 if adb -s "$serial" shell "[ -d $WEIGHTS/dense ]" </dev/null; then
   envp="BT_WEIGHTS_DIR=$WEIGHTS "
 fi
 # Same for the real tree corpus (scripts/deploy-tree-data.sh android <serial>).
-TREE_DATA=/data/local/tmp/bt/tree-data
+TREE_DATA=$DEST/tree-data
 if adb -s "$serial" shell "[ -e $TREE_DATA/points.npy ]" </dev/null; then
   envp="${envp}BT_TREE_DATA_DIR=$TREE_DATA "
 fi
