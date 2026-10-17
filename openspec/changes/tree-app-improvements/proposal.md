@@ -18,7 +18,7 @@ A review of the tree app's GPU kernels found two kinds of problems. The correctn
    Several BRT nodes can link leaves into the same octree node, so bits can be lost. The neighbouring `set_child` was already made atomic for exactly this reason (`func_octree.hpp:21-24`).
 3. **Vulkan stage 7 never links leaves.** `tree_build_octree.comp`'s `main` only calls `k_MakeOctNodes`; `k_LinkLeafNodes` is dead code. Yet `TreeDiffVulkan.Stage7_Octree`, whose `CheckStage7Topology` includes a leaf-slot comparison, passes (confirmed locally 2026-10-15, not skipped). Why is not yet explained (to verify). The oracle should catch missing leaf links and, apparently, doesn't here.
 
-### B. Performance (tree stages 2–3, measured on rocky-ryzen / Radeon 780M)
+### B. Performance (tree stages 2–3; the numbers below were measured on rocky-ryzen / Radeon 780M before this change and motivate it, while its gates now run on the phones)
 - **Stage 2, the radix sort:** 0.785 ms for n = 307,200 keys, half of tree's ≈1.57 ms GPU total. The floor is ≈0.18 ms (4 passes × 12 B/key over DRAM). Two causes:
   - In every scatter pass, each of the 256 workgroups re-reads the whole 256 × 256 histogram table (≈64 MB of L2 per pass, plus a 256-iteration serial loop per thread), while each workgroup sorts only ≈1,200 keys.
   - There are 8 dispatches with 7 global barriers.
@@ -59,13 +59,14 @@ A review of the tree app's GPU kernels found two kinds of problems. The correctn
 - **Code:**
   - `apps/tree/omp/{func_morton.hpp,func_octree.hpp}`;
   - `apps/tree/cuda/{func_morton.cuh,07_octree.cu}`;
-  - `platform/engine/vulkan/shaders/comp/{tree_morton,tree_build_octree,multi_radixsort,multi_radixsort_histograms,tree_find_dups,tree_scan_*,tree_move_dups}.comp` and their baked `*_spv.h`;
+  - `platform/engine/vulkan/shaders/comp/{tree_morton,tree_build_octree,multi_radixsort,multi_radixsort_histograms,tree_find_dups,tree_scan_*,tree_move_dups}.comp` (compiled at build time);
   - `apps/tree/vulkan/{dispatchers.cpp,vk_appdata.hpp}`;
   - `apps/tree/tree_diff_oracle.hpp` and the tree tests;
   - `platform/engine/vulkan/{base_engine,algorithm}.{hpp,cpp}` (full-subgroups flag).
 - **Gates:**
   - local `ctest -L omp`;
-  - rocky-ryzen `ctest -L vulkan` plus the tree suites at subgroup 64 and forced 32;
+  - rocky-ryzen `ctest -L vulkan` plus the tree suites at subgroup 64 and forced 32 (correctness only, nothing is profiled there);
+  - performance: per-stage A/B on the Pixel 7a and the Samsung against a recorded baseline;
   - Pixel 7a (16) and Samsung (64 and forced 32);
   - `ctest -L cuda` on duck-stable for the CUDA fixes.
-- **Profiling:** stage 7 gets slower on VK (it does more work), and stages 2–3 get faster. Refresh the tree × VK profile after landing.
+- **Profiling:** stage 7 gets slower on VK (it does more work), and stages 2–3 get faster. Refresh the tree × VK profile on the phones after landing.

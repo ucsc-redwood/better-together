@@ -4,7 +4,7 @@
 
 Defines the contract for the device-wide sort (tree stage 2) and stream compaction (tree stage 3)
 GPU kernels: they reproduce the OMP oracle exactly at every subgroup width the fleet runs, and they
-stay within a stated bound of the memory-bandwidth floor.
+get measurably faster on the phones than the baseline recorded at the start of this work.
 
 ## ADDED Requirements
 
@@ -28,21 +28,25 @@ the OMP oracle.
 - **WHEN** the tree VK suites run on any fleet VK target
 - **THEN** `n_unique` and the first `n_unique` unique keys equal the oracle's exactly
 
-### Requirement: Sort time is bounded relative to the bandwidth floor
-On rocky-ryzen, at the default input size (n = 307,200), the stage-2 sort SHALL take no more than
-0.40 ms of GPU time (the baseline is 0.785 ms; the 4-pass DRAM floor is ≈0.18 ms).
+### Requirement: The sort is faster on the phones
+On the Pixel 7a and on the Samsung, at the default input size (n = 307,200), the stage-2 sort's GPU
+time SHALL be lower than its baseline beyond run-to-run noise. The baseline is recorded before any
+sort change of this work, with the 64 radix workgroups that are already in place.
 
-#### Scenario: Stage-2 GPU time on rocky-ryzen
-- **WHEN** `bm-tree-vk --benchmark_filter='Tree/Stage2/'` runs on rocky-ryzen under the same governor and clock conditions as the baseline
-- **THEN** the median stage-2 GPU timestamp time is ≤ 0.40 ms
+#### Scenario: Stage-2 A/B on both phones
+- **WHEN** `bm-prof-tree-vk` (isolated scenario) runs alternately with the baseline and the changed
+  sort on each phone, 3 rounds, 20 s apart
+- **THEN** the changed sort's stage-2 median is lower on both phones, with non-overlapping run spreads
 
 ### Requirement: Compaction is not dispatch-bound
 The stage-3 compaction SHALL use fewer dispatches than today's five, and it SHALL NOT be slower than
-the 0.179 ms baseline on rocky-ryzen.
+its baseline beyond run-to-run noise on the Pixel 7a or on the Samsung.
 
-#### Scenario: Stage-3 GPU time on rocky-ryzen
-- **WHEN** `bm-tree-vk --benchmark_filter='Tree/Stage3/'` runs on rocky-ryzen before and after
-- **THEN** the after median is ≤ the before median, and the recorded dispatch count is below 5
+#### Scenario: Stage-3 A/B on both phones
+- **WHEN** `bm-prof-tree-vk` (isolated scenario) runs alternately with the baseline and the changed
+  compaction on each phone, 3 rounds, 20 s apart
+- **THEN** the after median is not higher beyond the spread on either phone, and the recorded dispatch
+  count is below 5
 
 ### Requirement: The sort runs with full subgroups where the device can guarantee it
 Subgroup-dependent sort kernels index shared memory by `gl_SubgroupID`, so they SHALL be created with

@@ -6,8 +6,12 @@ Gates used below:
   - **rocky-ryzen:** rsync tracked files to `doremy@100.97.77.80:bt-vk-campaign/`, then on rocky `bash -s` → `cmake --preset vulkan && cmake --build --preset vulkan`. There `ctest -L vulkan` (NOT `-L vk`) and `test-tree-vk --device minipc` pass, also with `BT_VK_SUBGROUP_SIZE=32`.
   - **Phones:** `scripts/run-on-android.sh <serial> test-tree-vk test-kiss-vk` passes on the Pixel 7a (`3A021JEHN02756`) and the Samsung (`R5CY21Y3VEV`), and on the Samsung also with `BT_VK_SUBGROUP_SIZE=32`.
 - **CUDA gate:** `just build-jetson` (`bt-cross:7.2`) then `scripts/run-on-jetson.sh` pass on duck-stable (all `test-*-cu`).
+- **Phone A/B:** build `bm-prof-tree-vk` for the baseline and the change from two worktrees (Android preset), push
+  both to each phone, and run them alternately with `BT_PROF_SCENARIO=isolated`, 3 rounds, 20 s apart. Report each
+  stage's median and min-max per phone. The Samsung's `taskset` takes a hex mask.
+- **rocky-ryzen is for correctness only:** no profiler, benchmark or timing run there (the owner's rule).
 
-Bake shaders locally and commit the `*_spv.h` files before any rocky or phone run.
+Shaders are compiled at build time; nothing generated is committed.
 
 ## 1. Correctness reproducers (topic A, design A1)
 
@@ -26,26 +30,29 @@ Bake shaders locally and commit the `*_spv.h` files before any rocky or phone ru
 - [ ] 3.1 Make `set_leaf`'s clear atomic: `#pragma omp atomic` in `func_octree.hpp`, `atomicAnd` in `07_octree.cu`. Verify: 1.2 shows no lost bits over ≥ 100 repetitions on OMP and CUDA; the OMP gate and CUDA gate are green.
 - [ ] 3.2 If 1.3/1.4 showed the leaf-slot check is vacuous, fix `CheckStage7Topology` so missing leaf links fail. Verify: the oracle self-test fails on a no-leaves output, and OMP and CUDA still pass.
 - [ ] 3.3 Wire leaf linking into Vulkan stage 7: a second dispatch after a compute→compute barrier, with `SetLeaf` using `atomicAnd` (design A3). Verify: `TreeDiffVulkan.Stage7_Octree` and `TreeDiffVulkanChained.Stage7_Octree` pass with the fixed oracle on rocky and both phones.
-- [ ] 3.4 Measure stage-7 time before and after on rocky (`bm-tree-vk --benchmark_filter='Tree/Stage7/'`) and on duck-stable CUDA. Verify: the numbers are recorded; any increase comes from the added leaf work.
+- [ ] 3.4 Measure stage-7 time before and after with the phone A/B (both phones) and on duck-stable CUDA. Verify: the numbers are recorded; any increase comes from the added leaf work.
 - [ ] 3.5 Add entries to `docs/reports-for-human/bugs-found.md` for the Morton wrap, the leaf race and the missing Vulkan leaf links. Verify: each entry links its reproducer and fix commit.
 
 ## 4. Sort baseline and workgroup-count knob (topic B, design B1)
 
-- [ ] 4.1 Record the baseline on rocky: `bm-tree-vk --device minipc --benchmark_filter='Tree/Stage[23]/' --benchmark_repetitions=10`, 3× interleaved, recording the governor, `gpu_busy_percent` and load. Verify: the stage-2/3 medians and spread are written here (expected ≈0.785 / ≈0.179 ms).
-- [ ] 4.2 Sweep `kRadixNumWorkgroups` ∈ {32, 64, 128, 256} in both `VkAppData_Safe` and `VkAppData` (`apps/tree/vulkan/vk_appdata.hpp`), measuring as in 4.1. Verify: there is a table of stage-2 medians per value, and `test-tree-vk` passes at each.
-- [ ] 4.3 Keep the best value if it beats 256 beyond the spread. Verify: the VK gate is green and the decision recorded. If stage 2 is already ≤ 0.40 ms, record it and confirm with the owner whether groups 5–6 are still wanted.
+- [ ] 4.1 Record the baseline on the phones: the phone A/B with the same binary in both arms (this change's tree after group 3, `kRadixNumWorkgroups` 64), recording each phone's governor and GPU clock. Verify: the stage-2/3/7 medians and the identical-binary spread of both phones are written here.
+- [x] 4.2 Sweep `kRadixNumWorkgroups` and keep the best value in both `VkAppData_Safe` and `VkAppData`.
+  - *Evidence (done before this change was applied, PR #26):* 256 → 64. The 780M sweep (32 / 64 / 128 / 256: stage 2
+    0.408 / 0.404 / 0.421 / 0.773 ms) is in `docs/reports-for-human/2026-10-15-vk-shader-profile.md` 4.4; on the phones
+    stage 2 measured -20 % (Pixel 7a) and -42 % (Samsung), same report section 9. `test-tree-vk` passed on rocky and
+    both phones at 64.
 
 ## 5. Global prefix once per pass (topic B, design B2/B3)
 
 - [ ] 5.1 Add the per-pass histogram-table scan, or the upfront all-digit histogram (whichever 4.x favours; record the choice in design B2), and make `multi_radixsort.comp` read only its own offsets. Verify: `test-tree-vk` is exact on rocky at 64 and forced 32.
 - [ ] 5.2 Run the full VK gate. Verify: green, including the Pixel 7a at subgroup 16.
-- [ ] 5.3 Measure stage 2 as in 4.1. Verify: before/after recorded, with no regression beyond the spread.
+- [ ] 5.3 Measure stage 2 with the phone A/B against 4.1. Verify: before/after recorded for both phones, with no regression beyond the spread.
 
 ## 6. Scatter and histogram efficiency (topic B, design B4)
 
 - [ ] 6.1 Add a local LDS sort by digit before the scatter, sized for the smallest `maxComputeSharedMemorySize` across the three GPUs (log each value). Verify: the VK gate is green, and the sizes are recorded.
 - [ ] 6.2 Add subgroup-aggregated histogram atomics in `multi_radixsort_histograms.comp`. Verify: the VK gate is green.
-- [ ] 6.3 Measure stage 2 as in 4.1. Verify: the median is ≤ 0.40 ms (spec "Sort time is bounded"), or the remaining gap is explained and recorded.
+- [ ] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
 
 ## 7. Full subgroups (topic B, design B5)
 
@@ -55,9 +62,9 @@ Bake shaders locally and commit the `*_spv.h` files before any rocky or phone ru
 ## 8. Stage-3 compaction (topic B, design B6)
 
 - [ ] 8.1 Implement compaction in fewer than 5 dispatches. Keep `record_device_scan` unchanged for stage 6 unless both stages re-verify. Verify: `test-tree-vk` stage 3 and stage 6 are exact on all VK targets.
-- [ ] 8.2 Measure stage 3 as in 4.1. Verify: the after median is ≤ the before median, and the dispatch count is recorded (spec "Compaction is not dispatch-bound").
+- [ ] 8.2 Measure stage 3 with the phone A/B against 4.1. Verify: the after median is not higher beyond the spread on either phone, and the dispatch count is recorded (spec "Compaction is not dispatch-bound").
 
 ## 9. Final gate and profile refresh
 
 - [ ] 9.1 Run the OMP, VK and CUDA gates at the final commit, plus `BT_VK_VALIDATION=1` runs of `test-tree-vk` on rocky. Verify: all green, with 0 validation errors.
-- [ ] 9.2 Refresh tree × VK profiling on rocky (`optimizer/orchestrate/00_run_fleet.py --only minipc --fresh --phases profile`). Verify: the new per-stage times are recorded, with the run noted here.
+- [ ] 9.2 Refresh tree × VK profiling on the phones (`bm-prof-tree-vk`, isolated and interference, 2 runs each, into `data/profiling/<serial>/tree/vulkan/`). Verify: the new per-stage times are recorded, with the run noted here.

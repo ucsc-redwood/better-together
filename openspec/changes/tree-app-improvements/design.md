@@ -19,7 +19,7 @@ See proposal.md (Why). The facts below were read from the code on 2026-10-15.
 
 **Goals:**
 - A: boundary-safe Morton codes, race-free mask updates, Vulkan leaf links, and an oracle that catches missing leaf links.
-- B: stage 2 at ≤ 0.40 ms on rocky-ryzen; stage 3 in fewer than 5 dispatches and no slower. Both exact at subgroup 16, 32 and 64.
+- B: stage 2 faster than its recorded baseline beyond noise on the Pixel 7a and the Samsung; stage 3 in fewer than 5 dispatches and not slower on either phone. Both exact at subgroup 16, 32 and 64. Performance is measured on the phones only; rocky-ryzen runs correctness tests (the owner does not allow profiling there).
 
 **Non-Goals:**
 - Changing the key width (30-bit Morton in `uint`), the digit order seen by stage 4, or the stage boundaries.
@@ -46,6 +46,11 @@ Clamp the quantized integer to `[0, 1023]` (`min(uint(v), 1023u)`) after the cas
 
 ### B1. Measure the cheap knob first
 Sweep `kRadixNumWorkgroups` ∈ {32, 64, 128, 256} and keep the best. The O(WG²) histogram re-read falls quadratically. The sweep shows how much of the 0.785 ms is re-read versus scatter or dispatch, which decides whether B2–B4 are needed.
+
+*Done before this change was applied (PR #26):* 256 → 64 in both appdata classes. On the 780M the 32..128 plateau
+sorted 307k keys ~1.9x faster than 256 (`docs/reports-for-human/2026-10-15-vk-shader-profile.md` 4.4); measured on
+the phones, stage 2 was -20 % on the Pixel 7a and -42 % on the Samsung (same report, section 9). The phone baseline
+of task 4.1 is taken with 64.
 
 ### B2. Global prefix once per pass (reduce-then-scan)
 Add a small per-pass scan of the 256 × WG table into per-workgroup offsets, or compute all 4 digits' histograms in one upfront read (FidelityFX ParallelSort structure). The scatter then reads only its own offsets.
@@ -79,4 +84,4 @@ Topic A lands first, each fix behind its reproducer, with the full gate includin
 
 ## Open Questions
 
-- Whether B1 alone reaches the 0.40 ms target. If it does, B2/B4 become optional and should be re-scoped with the owner.
+- Whether B2/B4 still give a gain beyond noise on the phones on top of B1 (already 64). If neither does, record it; the spec's phone gate decides, not a fixed target.
