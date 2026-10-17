@@ -19,7 +19,10 @@ is no longer a wide-CSV export step.
 
 Canonical store layout (one record per line, schema
 [`schemas/profiling-table.schema.json`](../../schemas/profiling-table.schema.json)):
-`data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl`.
+`data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl`. GPU stage-range records
+(`bm-ranges-<app>-vk`, schema
+[`schemas/profiling-range.schema.json`](../../schemas/profiling-range.schema.json)) sit beside
+them as `range-NNN.jsonl`; only the range cost models of Step 2 read them.
 
 ---
 
@@ -54,6 +57,27 @@ ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference BT_PRO
 # android (adb on rocky for BOTH phones; adb -s <serial>) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
 ```
 
+**Step 01 does the deploy, the runs and the store layout** (it pushes only the binaries: the
+device directory must already hold `libc++_shared.so` on a phone, and the weights in
+`<dest>/weights`, `scripts/deploy-weights.sh`). `--tools ranges` collects the GPU stage-range
+records (every range as one GPU chunk, back-to-back and after an idle gap; see
+[`05-profiling.md`](05-profiling.md) "GPU stage ranges as whole chunks") into `range-NNN.jsonl`
+beside the per-stage runs; `--tools prof` (the default) the per-stage `run-NNN.jsonl`. Each
+invocation replaces only the kind it collects. `BT_PROF_*` knobs set for 01 reach the device.
+The tables of the gpu-chunk-cost-model change (2026-10-16) were collected per phone and app with:
+
+```bash
+uv run optimizer/orchestrate/01_collect_profiling.py --device <serial> --app <app> --backend vk \
+  --adb-serial <serial> --build-dir build/android --dest /data/local/tmp/<dir> \
+  --tools prof --runs 2 --scenarios isolated,interference --cooldown-s 20
+BT_PROF_MIN_ITERS=3 BT_PROF_ABANDON_S=2.5 uv run optimizer/orchestrate/01_collect_profiling.py \
+  --device <serial> --app <app> --backend vk --adb-serial <serial> --build-dir build/android \
+  --dest /data/local/tmp/<dir> --tools ranges --runs 2 --scenarios isolated,interference --cooldown-s 20
+```
+
+(`BT_PROF_ABANDON_S=2.5` lets a range up to 2.5 s long take the `BT_PROF_MIN_ITERS` samples
+instead of one; at the default 0.25 s most cifar-sparse ranges on the Pixel would be sampled once.)
+
 **Parallelism rule:** Jetson is independent → run it concurrently with the rocky
 side, but **serialize everything on rocky-ryzen — MiniPC (Vulkan) ↔ Pixel ↔ Samsung**.
 All three now hang off rocky (the iGPU runs + both phones' adb); concurrent runs
@@ -62,7 +86,7 @@ contend (CPU + USB) and produce empty/erratic output.
 Validate + view:
 
 ```bash
-uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate
+uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate (+ ranges, if any)
 uv run optimizer/analysis/render_isolated_table.py --scenario interference --metric p50       # per-app table
 uv run optimizer/analysis/coverage.py --scenario interference                                 # what's collected vs MISSING
 ```
@@ -103,6 +127,42 @@ and `bm-gen-logs` skips them. The chunks share one device, so the solver bounds 
 the **sum** of the GPU's chunks (each with its per-chunk overhead), and the emitted
 `metrics.max_time` is the largest per-PU sum. Without the flag every PU gets one contiguous chunk,
 as before.
+
+**GPU cost model (`--cost-model`, default `per-stage`).** How `02` prices a GPU chunk
+(gpu-chunk-cost-model; `optimizer/smt/constraints.py`):
+
+| model | a GPU chunk [a, b] costs | needs |
+|---|---|---|
+| `per-stage` (default) | the sum of its stages + the fitted GPU overhead, as above | `run-*.jsonl` |
+| `range-hot` | t0: the measured back-to-back time of [a, b] as one chunk; no stage sum, no GPU overhead | `range-*.jsonl` of the scenario |
+| `range-idle` | t0 raised toward t1 (the time after an idle gap of t0) by the chunk's idle time per period, `min(t1, (t0 + k·T)/(1 + k))`, `k = (t1 - t0)/t0` | same |
+
+- CPU chunks are priced per stage, with their overhead, under every model.
+- Under the range models only the actual chunks (maximal GPU segments) are constrained: a
+  measured range time need not be monotone in the range. A range without a record, and every
+  chunk of a store without range files, falls back to its per-stage price (02 warns).
+- With `--allow-gpu-multi-chunk` the GPU's chunks are bounded by the sum of their t0.
+- `range-idle` cannot raise the predicted period above `range-hot`'s: the price stays below the
+  period whenever t0 does. It changes the GPU chunk's reported time, and so the gap objective.
+- A range model writes `schedules_<table>_<mode>_<model>.json` beside the per-stage file; every
+  schedule records `metrics.cost_model` and `metrics.table`.
+- z3 time on the phones' tree tables (2026-10-16): `range-hot` 0.9-1.1x and `range-idle`
+  1.1-1.7x the `per-stage` solve.
+
+To compare models on a cell, solve each one on the same table, execute their candidates
+(Step 3; the accuracy join matches runs to schedules by chunk assignment, so an assignment two
+models propose runs once), and read the "Prediction accuracy" section of `speedup_summary.py`:
+the median `|measured / predicted - 1|` and the best measured period per (device, app, backend,
+cost model, table). `validate_btpm.py` prints the same join per cost model.
+
+```bash
+for m in per-stage range-hot range-idle; do
+  uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
+    --device <dev> --app <app> --backend vk --table_type btpm --minimize_mode tmax \
+    --num_solutions 10 --output_folder data/schedules_btpm --cost-model $m
+done
+uv run optimizer/analysis/speedup_summary.py --sched-logs data/sched_logs --schedules-root data
+```
 
 ## Step 3 — run the schedule(s) on the device
 

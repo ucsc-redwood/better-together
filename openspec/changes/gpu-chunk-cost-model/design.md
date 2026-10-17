@@ -69,6 +69,21 @@ items, `dispatch_multi_stage`, calibrated sample count). It sweeps all n(n+1)/2 
 A range's time is the median of whole-chunk wall times, `dispatch_wall`, so a two-submission tree
 range is priced with its read-back.
 
+*As built (task 2.2):*
+- each range runs on its own `Sequence` (`make_seq`, as a pipeline chunk) through
+  `submit_multi_stage` + `complete_multi_stage`, the path of `inflight_worker`; a sample is the
+  host wall time of that pair (submit to completion, the gap not included); `submissions` is the
+  difference of consecutive tickets;
+- each range gets its own pool of `--items` (4) items placed for a GPU that runs exactly [a, b]
+  (`make_placed_dataset`), and they are primed for stages 1..a-1 **on the GPU**: priming with
+  OMP on a big core would take minutes per cifar-sparse range, and in the measured loop no
+  host write touches those buffers either way;
+- before sampling, every item's chunk runs once (command-buffer recording) and the GPU is warmed
+  back-to-back for `BT_PROF_GPU_WARM_MS` (150), as in `bm-prof`;
+- interference: one background thread per present CPU tier runs for the whole sweep, on its own
+  fully primed item, cycling one stage per dispatch through the stages of the range currently
+  measured; a range switch therefore takes effect after one stage of the previous range.
+
 ### D3. Two cadences, and how the solver combines them
 Each range is measured back-to-back (`gap 0`, giving t0) and after an idle gap equal to its own
 back-to-back time (`gap = t0`, giving t1: a 50 % GPU duty cycle). The gap is chosen per range
@@ -85,6 +100,14 @@ model's default is decided by the accuracy gate (task 4.3):
   `t = t0 + k * min(g, t0)` with `k = (t1 - t0) / t0`, clamped to [t0, t1]. With `g = T_max - t` this
   is linear in (t, T_max) piecewise, so it stays in z3's linear real arithmetic:
   `t >= t0`, `t >= (t0 + k*T_max) / (1 + k)` while below t1, `t <= T_max`.
+
+*As built (task 3.3):* the price is never asserted as such. `t <= T_max` holds exactly when
+`t0 <= T_max`, so the encoding is `maximal -> t0 <= T_max` plus `min(lin, t1) >= T_min` as two
+linear constraints; the price is evaluated in the model for the schedule's chunk time. One
+consequence: the idle-aware price never exceeds the period when t0 does not, so with
+`--minimize_mode tmax` `range-idle` reaches the same optimum, and predicts the same period for
+an assignment, as `range-hot`. It only changes the GPU chunk's reported time (and so `min_time`
+and the gap objective).
 
 *Alternatives:*
 - Fixed gaps (1, 5, 20 ms, as in vk-engine-runtime D1). Rejected because they mean nothing for a 1-s
@@ -146,6 +169,26 @@ the default, and the numbers are recorded.
 - **[The existing GPU per-chunk overhead becomes double-counted]** → The range model drops the fitted
   GPU overhead (spec). `fit_overhead.py` keeps fitting it for the per-stage model.
 
+## Sweep durations (task 2.3)
+
+Wall time of one `01_collect_profiling.py` run (deploy excluded, 20 s cooldowns not counted), on
+2026-10-16/17, with the commands of `06-end-to-end-scheduling.md` Step 1 (`bm-ranges` with
+`BT_PROF_MIN_ITERS=3 BT_PROF_ABANDON_S=2.5`). The two phones were collected at the same time from
+the build box, each phone's runs one after another. Seconds per run (run 1 / run 2):
+
+| tool | scenario | Pixel tree | Pixel dense | Pixel sparse | Samsung tree | Samsung dense | Samsung sparse |
+|---|---|---|---|---|---|---|---|
+| bm-prof | isolated | 15 / 14 | 30 / 29 | 125 / 106 | 22 / 21 | 35 / 30 | 99 / 89 |
+| bm-prof | interference | 21 / 21 | 81 / 82 | 631 / 635 | 17 / 19 | 62 / 64 | 459 / 457 |
+| bm-ranges | isolated | 39 / 40 | 137 / 131 | 476 / 474 | 41 / 41 | 114 / 114 | 303 / 309 |
+| bm-ranges | interference | 42 / 44 | 186 / 176 | 846 / 861 | 42 / 41 | 234 / 239 | 852 / 845 |
+
+A whole cell (both tools, both scenarios, 2 runs each, cooldowns included): Pixel tree 6.6 min,
+cifar-dense 16.9 min, cifar-sparse 72 min; Samsung tree 6.8 min, cifar-dense 17.5 min, cifar-sparse
+59.6 min. The cifar-sparse range sweep is within the 10-15 min per scenario and run estimated above
+isolated (5-8 min), and above it under interference (14 min; not analysed, presumably the CPU
+background load slowing the host side of each chunk).
+
 ## Migration Plan
 
 Additive. New files and a new schema; the old model stays available and stays the default until the
@@ -153,5 +196,13 @@ gate passes. Rollback means selecting `per-stage`. No existing store or schedule
 
 ## Open Questions
 
-- The exact sampling stride for the clock reader (D5), if sysfs reads turn out to cost measurable time
-  on short ranges. It is measured in task 1.2; it does not change the approach.
+- ~~The exact sampling stride for the clock reader (D5), if sysfs reads turn out to cost measurable time
+  on short ranges. It is measured in task 1.2; it does not change the approach.~~ **Resolved in task 1.2:**
+  - one `read_gpu_clock_mhz()` costs **30.3 us** on the Pixel 7a (`test-gpu-clock-omp`
+    `GpuClockDevice.ReadCost`, 2000 reads, 2026-10-16; it includes the failed probes of the sources
+    listed before Mali). The Samsung skips that test: its GPU reads 0 while idle;
+  - the reader therefore runs on its own thread (`GpuClockSampler`), every **5 ms**
+    (`BT_PROF_CLOCK_PERIOD_MS`), for the duration of a GPU cell's or range's measured loop, instead of
+    every Nth iteration of that loop. The measuring thread blocks on the GPU fence, so a read taken
+    there lands between kernels, when the Samsung's GPU may already read 0. At 5 ms the reads take
+    about 0.6 % of one core, outside every timed region.
