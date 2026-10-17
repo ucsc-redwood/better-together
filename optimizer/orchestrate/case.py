@@ -53,13 +53,18 @@ class Case:
         return os.path.join(self.profiling_dir(root, scenario), "run-*.jsonl")
 
     # --- z3 schedule JSON (short backend name) ---
-    def schedule_path(self, root: str, table_type: str, minimize_mode: str) -> str:
+    def schedule_path(
+        self, root: str, table_type: str, minimize_mode: str, cost_model: str = "per-stage"
+    ) -> str:
+        """The per-stage model keeps the historical name; the range models
+        (optimizer/cost-model) append theirs: schedules_<table>_<mode>_<model>.json."""
+        suffix = "" if cost_model == "per-stage" else f"_{cost_model}"
         return os.path.join(
             root,
             self.device,
             self.app,
             self.backend,
-            f"schedules_{table_type}_{minimize_mode}.json",
+            f"schedules_{table_type}_{minimize_mode}{suffix}.json",
         )
 
     @classmethod

@@ -94,11 +94,62 @@ Gates used below:
 
 ## 3. Solver cost models (optimizer/cost-model)
 
-- [ ] 3.1 Add a `--cost-model {per-stage,range-hot,range-idle}` option to `02_gen_schedule_merged.py` (default `per-stage`) and record it in each schedule's `metrics.cost_model`. Verify: pytest shows that `per-stage` on a store with range files gives byte-identical schedule JSON to today's, apart from the new field.
-- [ ] 3.2 Implement `range-hot`: a GPU maximal segment costs t0 from its range record, with no stage sum and no GPU overhead, and the constraint applies to maximal segments only (D4). CPU chunks are unchanged. Verify: pytest on a hand-made table with a non-monotone range (a sub-range dearer than its parent) gets the expected optimum, and a mixed schedule's CPU chunk keeps its per-stage price.
-- [ ] 3.3 Implement `range-idle` (D3's piecewise-linear interpolation between t0 and t1 with `g = T_max - t`). Verify: pytest checks a single-GPU-chunk case at the bottleneck (price t0) and one with slack (price above t0, at most t1), and solve time on the tree phone tables stays within 2x of `per-stage` (recorded).
-- [ ] 3.4 Price several GPU chunks by the sum of their maximal segments' t0 under `--allow-gpu-multi-chunk` (D4). Verify: pytest with a two-GPU-chunk schedule checks the period is at least the sum.
-- [ ] 3.5 Document the option and the models in `06-end-to-end-scheduling.md` (Step 2). Verify: the doc names the default and how to compare models.
+- [x] 3.1 Add a `--cost-model {per-stage,range-hot,range-idle}` option to `02_gen_schedule_merged.py` (default `per-stage`) and record it in each schedule's `metrics.cost_model`. Verify: pytest shows that `per-stage` on a store with range files gives byte-identical schedule JSON to today's, apart from the new field.
+  - *Evidence:* `02 --cost-model` (choices `constraints.COST_MODELS`, default `per-stage`). Every schedule gets
+    `metrics.cost_model` and `metrics.table` (design D6). A range model reads `load_range_timings` of the scenario
+    and writes `schedules_<table>_<mode>_<model>.json` (`Case.schedule_path`); without range files it warns and
+    prices per stage. Under `per-stage` the range records are never loaded and `add_chunk_time_constraint` emits
+    today's constraints.
+  - `test_gen_schedule_per_stage_is_unchanged_on_a_store_with_ranges`: `02 --cost-model per-stage` as a subprocess
+    on a store with range files; with the two new fields removed, its JSON equals byte for byte what the pre-change
+    load → solve → dump path writes. `test_per_stage_ignores_range_records`: per-stage with range costs, and the
+    range models without any, give today's candidates.
+  - Also on the real phone tables (2026-10-16 store of 2.3, tree, both phones x both tables): HEAD's (12e895f)
+    `02_gen_schedule_merged.py`, exported with `git archive`, against this one with `--cost-model per-stage`,
+    `--num_solutions 10`: all four outputs byte-identical apart from `metrics.cost_model`/`metrics.table`.
+- [x] 3.2 Implement `range-hot`: a GPU maximal segment costs t0 from its range record, with no stage sum and no GPU overhead, and the constraint applies to maximal segments only (D4). CPU chunks are unchanged. Verify: pytest on a hand-made table with a non-monotone range (a sub-range dearer than its parent) gets the expected optimum, and a mixed schedule's CPU chunk keeps its per-stage price.
+  - *Evidence:* `constraints.add_chunk_time_constraint(cost_model="range-hot", range_costs=...)`: for the GPU,
+    `maximal(i..j) -> t0(i, j) <= T_max` and `>= T_min`; the per-sub-segment constraint is not emitted for it; a
+    GPU range without a record keeps its per-stage price on its maximal segment. The solver reports the price
+    (`gpu_prices`, evaluated in the model) as the chunk's `time`; `reprice_solution` reproduces it.
+  - `test_range_hot_prices_the_chunk_not_its_sub_ranges`: [1, 7] at 6 ms, its sub-range [1, 3] at 9 ms; the
+    optimum is `GPU[1-7]` at 6 ms (the per-stage model's optimum on the same table: 12 ms).
+    `test_range_hot_cpu_chunks_keep_their_per_stage_price_and_gpu_drops_its_overhead`: with fitted overheads on Big
+    and the GPU, every Big chunk of 15 candidates (mixed ones included) costs stage sum + Big overhead, every GPU
+    chunk its t0. `test_range_price_does_not_depend_on_per_stage_records`: the [4, 7] chunk's price is the same for
+    GPU stage times of 1 and 50 ms and lies in [t0, t1] (spec "Range data present").
+- [x] 3.3 Implement `range-idle` (D3's piecewise-linear interpolation between t0 and t1 with `g = T_max - t`). Verify: pytest checks a single-GPU-chunk case at the bottleneck (price t0) and one with slack (price above t0, at most t1), and solve time on the tree phone tables stays within 2x of `per-stage` (recorded).
+  - *Evidence:* price `min(t1, (t0 + k*T_max)/(1 + k))`, `k = (t1 - t0)/t0` (`constraints.idle_price`), at t0
+    when the GPU has several chunks. It is not asserted as a constraint: `price <= T_max` holds exactly when
+    `t0 <= T_max`, and `price >= T_min` is `lin >= T_min and t1 >= T_min`, so everything stays linear.
+  - `test_range_idle_at_the_bottleneck_is_t0` (t0 5, t1 10, Big 3 ms: price 5, period 5);
+    `test_range_idle_with_slack_rises_toward_t1` (Big 8 ms: price 6.5 = `idle_price(5, 10, 8)`, period 8; Big 40 ms:
+    price 10 = t1); `test_reprice_matches_the_solver_under_both_range_models`.
+  - Solve time, `solve_optimization_problem(..., 10 solutions, tmax)` in-process on the 2.3 tree tables, median of 5
+    (`/tmp` script, build box):
+
+    | device | table | per-stage ms | range-hot ms | range-idle ms | range-idle / per-stage |
+    |---|---|---|---|---|---|
+    | Pixel 7a | btpm | 61.7 | 55.7 | 68.2 | 1.11x |
+    | Pixel 7a | isolated | 91.3 | 89.4 | 107.5 | 1.18x |
+    | Samsung | btpm | 89.0 | 90.1 | 150.0 | 1.69x |
+    | Samsung | isolated | 104.2 | 112.2 | 134.0 | 1.29x |
+
+    Whole `02` invocations (Python start included): 0.15-0.24 s for every model.
+  - A consequence of D3, recorded in design.md (D3 "As built"): the price stays below the period whenever t0 does,
+    so in `tmax` mode `range-idle` finds the same optimum and predicts the same period as `range-hot`.
+- [x] 3.4 Price several GPU chunks by the sum of their maximal segments' t0 under `--allow-gpu-multi-chunk` (D4). Verify: pytest with a two-GPU-chunk schedule checks the period is at least the sum.
+  - *Evidence:* for a shared GPU under a range model, `sum over (i, j) of If(maximal(i..j), t0(i, j), 0) <= T_max`
+    (a range without a record adds its per-stage price); `range-idle` prices each chunk at t0 when there are
+    several. `test_two_gpu_chunks_bound_the_period_by_their_sum`: GPU [1, 2] at 3 ms and [5, 7] at 4 ms around
+    `Big[3-4]`; under both range models the optimum is `GPU[1-2] | Big[3-4] | GPU[5-7]` with chunk times 3 and 4
+    and a period of 7, and every one of the 10 candidates has a period >= the sum of its GPU chunks. Without the
+    option the best schedule has one GPU chunk.
+- [x] 3.5 Document the option and the models in `06-end-to-end-scheduling.md` (Step 2). Verify: the doc names the default and how to compare models.
+  - *Evidence:* Step 2 "GPU cost model (`--cost-model`, default `per-stage`)": a table of the three models, the CPU,
+    maximal-segment, fallback and multi-chunk rules, the output file names and recorded fields, the measured solve
+    times, and "To compare models on a cell": solve each on the same table, execute (Step 3), read the "Prediction
+    accuracy" section of `speedup_summary.py` (or `validate_btpm.py`), with the commands.
 
 ## 4. Accuracy reporting and the acceptance gate (optimizer/cost-model)
 

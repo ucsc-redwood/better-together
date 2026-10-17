@@ -128,6 +128,42 @@ the **sum** of the GPU's chunks (each with its per-chunk overhead), and the emit
 `metrics.max_time` is the largest per-PU sum. Without the flag every PU gets one contiguous chunk,
 as before.
 
+**GPU cost model (`--cost-model`, default `per-stage`).** How `02` prices a GPU chunk
+(gpu-chunk-cost-model; `optimizer/smt/constraints.py`):
+
+| model | a GPU chunk [a, b] costs | needs |
+|---|---|---|
+| `per-stage` (default) | the sum of its stages + the fitted GPU overhead, as above | `run-*.jsonl` |
+| `range-hot` | t0: the measured back-to-back time of [a, b] as one chunk; no stage sum, no GPU overhead | `range-*.jsonl` of the scenario |
+| `range-idle` | t0 raised toward t1 (the time after an idle gap of t0) by the chunk's idle time per period, `min(t1, (t0 + k·T)/(1 + k))`, `k = (t1 - t0)/t0` | same |
+
+- CPU chunks are priced per stage, with their overhead, under every model.
+- Under the range models only the actual chunks (maximal GPU segments) are constrained: a
+  measured range time need not be monotone in the range. A range without a record, and every
+  chunk of a store without range files, falls back to its per-stage price (02 warns).
+- With `--allow-gpu-multi-chunk` the GPU's chunks are bounded by the sum of their t0.
+- `range-idle` cannot raise the predicted period above `range-hot`'s: the price stays below the
+  period whenever t0 does. It changes the GPU chunk's reported time, and so the gap objective.
+- A range model writes `schedules_<table>_<mode>_<model>.json` beside the per-stage file; every
+  schedule records `metrics.cost_model` and `metrics.table`.
+- z3 time on the phones' tree tables (2026-10-16): `range-hot` 0.9-1.1x and `range-idle`
+  1.1-1.7x the `per-stage` solve.
+
+To compare models on a cell, solve each one on the same table, execute their candidates
+(Step 3; the accuracy join matches runs to schedules by chunk assignment, so an assignment two
+models propose runs once), and read the "Prediction accuracy" section of `speedup_summary.py`:
+the median `|measured / predicted - 1|` and the best measured period per (device, app, backend,
+cost model, table). `validate_btpm.py` prints the same join per cost model.
+
+```bash
+for m in per-stage range-hot range-idle; do
+  uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
+    --device <dev> --app <app> --backend vk --table_type btpm --minimize_mode tmax \
+    --num_solutions 10 --output_folder data/schedules_btpm --cost-model $m
+done
+uv run optimizer/analysis/speedup_summary.py --sched-logs data/sched_logs --schedules-root data
+```
+
 ## Step 3 — run the schedule(s) on the device
 
 ```bash

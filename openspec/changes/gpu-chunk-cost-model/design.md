@@ -101,6 +101,14 @@ model's default is decided by the accuracy gate (task 4.3):
   is linear in (t, T_max) piecewise, so it stays in z3's linear real arithmetic:
   `t >= t0`, `t >= (t0 + k*T_max) / (1 + k)` while below t1, `t <= T_max`.
 
+*As built (task 3.3):* the price is never asserted as such. `t <= T_max` holds exactly when
+`t0 <= T_max`, so the encoding is `maximal -> t0 <= T_max` plus `min(lin, t1) >= T_min` as two
+linear constraints; the price is evaluated in the model for the schedule's chunk time. One
+consequence: the idle-aware price never exceeds the period when t0 does not, so with
+`--minimize_mode tmax` `range-idle` reaches the same optimum, and predicts the same period for
+an assignment, as `range-hot`. It only changes the GPU chunk's reported time (and so `min_time`
+and the gap objective).
+
 *Alternatives:*
 - Fixed gaps (1, 5, 20 ms, as in vk-engine-runtime D1). Rejected because they mean nothing for a 1-s
   chunk.

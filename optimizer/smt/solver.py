@@ -13,6 +13,7 @@ from .constraints import (
 )
 from .data_loader import UNAVAILABLE, define_data
 from .solution_analyzer import (
+    finalize_solution,
     get_detailed_solution,
     get_solution_representation,
 )
@@ -27,6 +28,8 @@ def solve_optimization_problem(
     gpu_backend=None,
     overhead=None,
     allow_gpu_multi_chunk=False,
+    cost_model="per-stage",
+    range_costs=None,
 ):
     """Solve the optimization problem and return the solutions.
 
@@ -45,6 +48,11 @@ def solve_optimization_problem(
     runtime gives each its own Sequence); they share one device, so their summed time,
     per-chunk overheads included, bounds the period. Default False: one contiguous block
     per PU, as before.
+
+    cost_model: "per-stage" (default: every chunk is the sum of its stages + overhead),
+    "range-hot" or "range-idle" (a GPU chunk with a record in range_costs
+    {(i, j): (t0, t1)}, 0-based, costs its measured range time; constraints.py). Without
+    range_costs every model prices per stage, exactly as "per-stage".
     """
     # Initialize data
     num_stages, core_types, stage_timings_data = define_data(stage_timings, app_name)
@@ -66,8 +74,17 @@ def solve_optimization_problem(
     add_availability_constraints(opt, x, core_types, num_stages, stage_timings_data, UNAVAILABLE)
 
     shared = ("GPU",) if allow_gpu_multi_chunk and "GPU" in core_types else ()
-    T_max, T_min, Gapness = add_chunk_time_constraint(
-        opt, x, core_types, num_stages, stage_timings_data, minimize_mode, overhead, shared
+    T_max, T_min, Gapness, gpu_prices = add_chunk_time_constraint(
+        opt,
+        x,
+        core_types,
+        num_stages,
+        stage_timings_data,
+        minimize_mode,
+        overhead,
+        shared,
+        cost_model,
+        range_costs,
     )
 
     add_contiguity_constraints(opt, x, core_types, num_stages, shared)
@@ -93,6 +110,14 @@ def solve_optimization_problem(
         detailed_solution = get_detailed_solution(
             m, x, num_stages, core_types, stage_timings_data, gpu_backend, overhead
         )
+        if gpu_prices:  # range-priced GPU chunks report the price the solver used
+            chunks = detailed_solution["chunks"]
+            for chunk in chunks:
+                ij = (chunk["start_stage"] - 1, chunk["end_stage"] - 1)
+                if chunk["core_type"] == "GPU" and ij in gpu_prices:
+                    price = m.evaluate(gpu_prices[ij], model_completion=True)
+                    chunk["time"] = float(price.as_fraction())
+            detailed_solution = finalize_solution(chunks)
         detailed_solution["solution_id"] = solution_count + 1
         detailed_solution["metrics"]["max_time"] = max_time
         detailed_solution["metrics"]["min_time"] = min_time

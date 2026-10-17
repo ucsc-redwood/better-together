@@ -247,12 +247,22 @@ def finalize_solution(chunks):
     }
 
 
-def reprice_solution(solution, core_types, stage_timings, overhead):
+def reprice_solution(
+    solution, core_types, stage_timings, overhead, cost_model="per-stage", range_costs=None
+):
     """Re-express a solution under the overhead cost model: rebuild every chunk's
     predicted "time" from the stage timings + overhead constants, then regenerate
     metrics and uid to match. Used by the union-candidate sweep in
     02_gen_schedule_merged so candidates discovered by the PLAIN model carry the
-    same prediction semantics as the overhead-model candidates in the same file."""
+    same prediction semantics as the overhead-model candidates in the same file.
+
+    Under a range model (cost_model "range-hot"/"range-idle" with range_costs
+    {(i, j): (t0, t1)}) a GPU chunk with a record costs t0, as the solver prices it; under
+    range-idle a lone GPU chunk is then interpolated toward t1 by its idle time in the
+    resulting period (constraints.idle_price)."""
+    from .constraints import idle_price
+
+    ranges = range_costs if cost_model != "per-stage" else None
     new_chunks = []
     for chunk in solution["chunks"]:
         col = core_types.index(chunk["core_type"])
@@ -263,7 +273,16 @@ def reprice_solution(solution, core_types, stage_timings, overhead):
         oh_chunk, oh_stage = (overhead or {}).get(chunk["core_type"], (0.0, 0.0))
         new_chunk = dict(chunk)
         new_chunk["time"] = kernel + oh_chunk + n * oh_stage
+        ij = (chunk["start_stage"] - 1, chunk["end_stage"] - 1)
+        if ranges and chunk["core_type"] == "GPU" and ij in ranges:
+            new_chunk["time"] = ranges[ij][0]
         new_chunks.append(new_chunk)
+    gpu = [c for c in new_chunks if c["core_type"] == "GPU"]
+    if ranges and cost_model == "range-idle" and len(gpu) == 1:
+        ij = (gpu[0]["start_stage"] - 1, gpu[0]["end_stage"] - 1)
+        if ij in ranges:
+            period = finalize_solution(new_chunks)["metrics"]["max_time"]
+            gpu[0]["time"] = idle_price(*ranges[ij], period)
     return finalize_solution(new_chunks)
 
 
