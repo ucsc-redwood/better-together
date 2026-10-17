@@ -499,6 +499,71 @@ Verified: green on rocky-ryzen, Pixel 7a and Samsung. `test-kiss-vk` (which runs
 passes with `BT_VK_VALIDATION=1` on the discrete-GPU build box, where the probe throws. No
 test forces a mid-construction failure on a real device.
 
+## 13. Morton quantization wrapped the top of the range to 0 — **FIXED (commit 3d6d919)**
+
+**Found by:** review of the tree kernels (OpenSpec change `tree-app-improvements`, proposal A1).
+
+**Root cause.** All three backends quantized a coordinate with `(x - min) / range * 1024`, cast to an unsigned int,
+and masked it with `& 0x3ff` while spreading the bits. A coordinate at the top of the range gives 1024, which the mask
+turns into 0, so the point lands at the opposite edge of the domain. A coordinate below the bottom was worse: casting
+a negative float to an unsigned integer is undefined, and the backends disagreed (x86 gave 1023, aarch64 and the
+Radeon 780M 0). The default input is drawn from the half-open range, so only boundary points and float rounding hit it,
+and the oracle shared the bug.
+
+**Reproducers (commit 4619d05).** `RunAndCheckMortonBoundary` (`apps/tree/tree_diff_oracle.hpp`, run as
+`TreeDiff{Omp,Cuda,VulkanChained}.Stage1_MortonBoundary`) encodes points on, just inside and just outside both bounds;
+`TreeMortonOmp.UpperBoundQuantizesTo1023` and `TreeMortonOmp.ScaledValueRoundingTo1024QuantizesTo1023` check the OMP
+encoder, the second with a range where `511.99997f` scales to exactly 1024.0f. Before the fix the point (1024, 1024,
+1024) encoded to 0 instead of 0x3fffffff on every backend.
+
+**Fix (3d6d919).** The scaled value is clamped to [0, 1023] before the cast, identically in
+`apps/tree/omp/func_morton.hpp`, `apps/tree/cuda/func_morton.cuh`, `tree_morton.comp` and the test reference
+`MortonRef`. The default input's stage-1 output is byte-identical before and after.
+
+## 14. Octree leaf-mask clears raced, and the masks were never initialized — **FIXED (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links")**
+
+**Found by:** review of the tree kernels (proposal A2), then the reproducers.
+
+**Root cause, two parts.**
+- `set_leaf` cleared the leaf bit with a plain `&=` inside the parallel stage-7 loops (OMP `func_octree.hpp`, CUDA
+  `07_octree.cu`), while up to 8 leaves of one octree node are linked by different BRT nodes. The neighbouring
+  `set_child` had already been made atomic for the same reason (§8).
+- No backend ever set the leaf masks to all-ones. They are value-initialized `std::pmr::vector<int32_t>`s, so they
+  started at 0 and the clear was a no-op: the golden's masks were all zeros (0 of 146,708 non-zero on the default
+  input), every free octant read as a leaf slot, and the oracle's leaf comparison could not fail (see §15).
+
+**Reproducers (commit 4619d05).** `CountLostLeafBits` (`tree_diff_oracle.hpp`) builds an input where 4 BRT nodes with
+adjacent indices link 8 leaves into each of 4096 octree nodes and counts bits a backend leaves set that a serial run
+cleared. CUDA (`TreeLeafRaceCuda.ConcurrentLeafLinksKeepEveryBit`, duck-stable) lost 2,457,600 of 3,276,800 bits per
+100 runs; OMP with interleaved iterations (`TreeLeafRaceOmp.InterleavedLeafLinksKeepEveryBit`) about 2.3 million;
+OMP's own `run_stage_7` none in 3000 runs (its static schedule only meets at range ends).
+`TreeOracleSelfTest.SpuriousLeafLinksFail` showed the check accepting an output that marks every free octant a leaf.
+
+**Fix (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links").** `#pragma omp atomic` on OMP and `atomicAnd` on CUDA (and in the Vulkan shader); the leaf masks are
+initialized to 0xFF where they are allocated (`tree::AppData`, `SafeAppData::u_oct_child_leaf_mask_s7_out`). The
+oracle's leaf-slot failure now names the missing and spurious slots. Cost: CUDA stage 7 on duck-stable 4.43 → 6.80 ms,
+all of it the atomic on the zero-copy buffers (a non-atomic control with the same masks is 4.44 ms); OMP stage 7 on
+the Jetson's six cores +6 %, within the spread.
+
+## 15. Vulkan stage 7 never linked leaves, and its differential test still passed — **FIXED (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links")**
+
+**Found by:** review (proposal A3); confirmed in the `vk-data-flow-fixes` profile, which saw that the engine skips
+cache maintenance for `tree_build_octree.comp`'s bindings 4 and 10-12 because the module never uses them.
+
+**Root cause.** `tree_build_octree.comp`'s `main` only called `k_MakeOctNodes`; `k_LinkLeafNodes` was dead code, so the
+Vulkan octree had no leaf children and its leaf masks kept their initial value. `TreeDiffVulkan.Stage7_Octree` passed
+because of §14: the golden's masks were all zeros too, so both sides listed every free octant as a leaf slot.
+
+**Reproducer.** With only the mask initialization of §14 applied, both `TreeDiffVulkan.Stage7_Octree` and
+`TreeDiffVulkanChained.Stage7_Octree` fail on rocky-ryzen with `LEAF child slots differ (307151 only-in-ref, 0
+only-in-out ...)` and name the missing slots (run recorded under task 3.2 of `tree-app-improvements`).
+
+**Fix (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links").** Stage 7 is two dispatches of the same pipeline, selected by a push-constant `phase`: phase 0 makes the
+nodes, phase 1 links the leaves with an atomic `SetLeaf`. Phase 1 writes the children buffer phase 0 wrote, so the
+`Sequence` records a barrier between them. All Vulkan stage-7 tests and `TreeLeafRaceVulkan` pass on rocky-ryzen (64
+and pinned 32), the Pixel 7a and the Samsung (64 and pinned 32); sync validation reports 0 hazards. Stage 7 on the
+Pixel 7a takes 1.29 → 3.01 ms, all of it the leaf pass (without it: 1.30 ms).
+
 ## Latent issue noticed (not fixed)
 
 `SETUP_DEFAULT_LAUNCH_PARAMS` (`builtin-apps/common/cuda/helpers.cuh`) declares

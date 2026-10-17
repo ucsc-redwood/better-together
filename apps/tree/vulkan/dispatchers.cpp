@@ -91,6 +91,7 @@ struct OctreePushConstants {
   float min_coord;
   float range;
   int32_t n_brt_nodes;
+  int32_t phase;  // 0: make the octree nodes, 1: link the leaves (tree_build_octree.comp)
 };
 
 // ----------------------------------------------------------------------------
@@ -489,33 +490,38 @@ void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, kiss_vk::Sequence
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  const auto algo_pc = OctreePushConstants{
-      .min_coord = tree::kMinCoord,
-      .range = tree::kRange,
-      .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  };
-
-  algo->record_bind(seq,
-                    {
-                        engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
-                        engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
-                        engine.get_buffer_info(appdata.u_oct_cell_size_s7_out),        // output
-                        engine.get_buffer_info(appdata.u_oct_child_node_mask_s7_out),  // output
-                        engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7_out),  // output
-                        engine.get_buffer_info(appdata.u_edge_offset_s6),              // input
-                        engine.get_buffer_info(appdata.u_edge_count_s5),               // input
-                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),       // input
-                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),             // input
-                        engine.get_buffer_info(appdata.u_brt_parents_s4),              // input
-                        engine.get_buffer_info(appdata.u_brt_left_child_s4),           // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
-                    });
-  algo->record_push_constants(seq, algo_pc);
-  // The shader loops over brt node indices [1, n_brt_nodes); size the grid for
-  // n_brt_nodes (the grid-stride loop covers the rest).
-  algo->record_dispatch(
-      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  // Two dispatches (design A3): phase 0 makes the octree nodes, phase 1 links the leaves.
+  // Phase 1 writes the children buffer phase 0 wrote, so the Sequence records a barrier
+  // between them.
+  for (const int32_t phase : {0, 1}) {
+    algo->record_bind(seq,
+                      {
+                          engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
+                          engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
+                          engine.get_buffer_info(appdata.u_oct_cell_size_s7_out),        // output
+                          engine.get_buffer_info(appdata.u_oct_child_node_mask_s7_out),  // output
+                          engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7_out),  // output
+                          engine.get_buffer_info(appdata.u_edge_offset_s6),              // input
+                          engine.get_buffer_info(appdata.u_edge_count_s5),               // input
+                          engine.get_buffer_info(appdata.u_morton_keys_unique_s3),       // input
+                          engine.get_buffer_info(appdata.u_brt_prefix_n_s4),             // input
+                          engine.get_buffer_info(appdata.u_brt_parents_s4),              // input
+                          engine.get_buffer_info(appdata.u_brt_left_child_s4),           // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
+                      });
+    algo->record_push_constants(seq,
+                                OctreePushConstants{
+                                    .min_coord = tree::kMinCoord,
+                                    .range = tree::kRange,
+                                    .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
+                                    .phase = phase,
+                                });
+    // The shader loops over brt node indices [0, n_brt_nodes); size the grid for
+    // n_brt_nodes (the grid-stride loop covers the rest).
+    algo->record_dispatch(
+        seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -720,31 +726,33 @@ void VulkanDispatcher::record_stage_7(VkAppData& appdata, kiss_vk::Sequence& seq
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  const auto algo_pc = OctreePushConstants{
-      .min_coord = tree::kMinCoord,
-      .range = tree::kRange,
-      .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  };
-
-  algo->record_bind(seq,
-                    {
-                        engine.get_buffer_info(appdata.u_oct_children_s7),         // output
-                        engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
-                        engine.get_buffer_info(appdata.u_oct_cell_size_s7),        // output
-                        engine.get_buffer_info(appdata.u_oct_child_node_mask_s7),  // output
-                        engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7),  // output
-                        engine.get_buffer_info(appdata.u_edge_offset_s6),          // input
-                        engine.get_buffer_info(appdata.u_edge_count_s5),           // input
-                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),   // input
-                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),         // input
-                        engine.get_buffer_info(appdata.u_brt_parents_s4),          // input
-                        engine.get_buffer_info(appdata.u_brt_left_child_s4),       // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
-                    });
-  algo->record_push_constants(seq, algo_pc);
-  algo->record_dispatch(
-      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  for (const int32_t phase : {0, 1}) {  // see the VkAppData_Safe overload
+    algo->record_bind(seq,
+                      {
+                          engine.get_buffer_info(appdata.u_oct_children_s7),         // output
+                          engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
+                          engine.get_buffer_info(appdata.u_oct_cell_size_s7),        // output
+                          engine.get_buffer_info(appdata.u_oct_child_node_mask_s7),  // output
+                          engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7),  // output
+                          engine.get_buffer_info(appdata.u_edge_offset_s6),          // input
+                          engine.get_buffer_info(appdata.u_edge_count_s5),           // input
+                          engine.get_buffer_info(appdata.u_morton_keys_unique_s3),   // input
+                          engine.get_buffer_info(appdata.u_brt_prefix_n_s4),         // input
+                          engine.get_buffer_info(appdata.u_brt_parents_s4),          // input
+                          engine.get_buffer_info(appdata.u_brt_left_child_s4),       // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
+                      });
+    algo->record_push_constants(seq,
+                                OctreePushConstants{
+                                    .min_coord = tree::kMinCoord,
+                                    .range = tree::kRange,
+                                    .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
+                                    .phase = phase,
+                                });
+    algo->record_dispatch(
+        seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  }
 }
 
 // ----------------------------------------------------------------------------

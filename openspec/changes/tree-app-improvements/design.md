@@ -44,6 +44,12 @@ casting a negative float to an unsigned integer is undefined (x86 gave 1023, the
 - **Atomic clear:** `set_leaf`'s clear becomes atomic: `#pragma omp atomic` on OMP, `atomicAnd` on CUDA and in the shader's `SetLeaf`. The child slot store stays plain; it's last-writer-wins by contract.
 - **Vulkan leaf linking:** a separate dispatch after a compute→compute barrier, reusing the same shader through a push-constant phase selector, or a second entry. The leaf pass reads masks and offsets that the `MakeOctNodes` pass of *other* workgroups wrote, so a barrier inside the dispatch isn't enough.
   - *Alternative:* both passes in one dispatch with a grid-wide barrier. Rejected: Vulkan has no grid barrier.
+  - *As implemented (task 3.3):* a push-constant `phase` (0: nodes, 1: leaves), the pipeline recorded twice. Phase 1
+    writes the children buffer phase 0 wrote, so the `Sequence` records the barrier itself. Correction to the rationale
+    above: once the masks are initialized at allocation (task 3.2), the leaf pass reads nothing the node pass writes
+    (both only write disjoint child slots), so running both per brt node in one dispatch, as OMP's `run_stage_7` does,
+    would also be correct. The second dispatch costs about a barrier; the measured +1.7 ms on the Pixel 7a is the leaf
+    pass itself (task 3.4).
 - **Why the Vulkan stage-7 test passed without leaf links (task 1.4).** Nothing ever set the leaf masks to all-ones:
   every mask buffer is a value-initialized `std::pmr::vector<int32_t>` (the golden's `tree::AppData` buffer and
   `SafeAppData`'s `_out`), so it starts at 0, and `set_leaf` only clears bits. The OMP golden's masks stayed all zeros
@@ -86,6 +92,10 @@ Per-workgroup flags plus a subgroup/LDS scan, one scan of workgroup totals, and 
 
 - **[Risk]** Clamping changes codes, and so the downstream tree, for boundary points. **→ Mitigation:** it's applied to all backends and the oracle at once; existing inputs never hit the boundary (half-open range), so the current test data is unchanged (to verify by diffing stage-1 output before/after).
 - **[Risk]** Atomic leaf clears cost a little on CUDA/OMP stage 7. **→ Mitigation:** measure stage 7 before/after on duck-stable and the CPU tiers; the contention is low.
+  *Measured (task 3.4):* not a little on CUDA. Stage 7 on duck-stable went 4.43 → 6.80 ms (+53 %), all of it the
+  `atomicAnd` on the zero-copy pinned buffers (a non-atomic control is 4.44 ms). OMP on the Jetson's cores +6 %, within
+  the spread. The spec requires the atomic, so it stays. Combining a warp's clears to one node (`__match_any_sync`
+  plus one `atomicAnd` per node) could recover part of it; not done here.
 - **[Risk]** New LDS footprints exceed the smallest `maxComputeSharedMemorySize`. **→ Mitigation:** log it on all three GPUs and size for the minimum.
 - **[Risk]** Faster stages 2–3 and a slower Vulkan stage 7 shift the hybrid schedules. **→ Mitigation:** refresh the tree × VK profile (a task).
 

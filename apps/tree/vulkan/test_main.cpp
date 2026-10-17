@@ -136,6 +136,15 @@ TEST(TreeDiffVulkanChained, Stage1_MortonBoundary) {
   tree::testing::RunAndCheckMortonBoundary<VulkanChainedTreeRunner>();
 }
 
+// Octree-build spec, "Many leaves linked into one node concurrently": stage 7 (both
+// phases) 100 times on an input where 4 brt nodes link 8 leaves into each node.
+TEST(TreeLeafRaceVulkan, ConcurrentLeafLinksKeepEveryBit) {
+  if (!VulkanChainedTreeRunner::Available()) GTEST_SKIP() << "no integrated GPU";
+  VulkanChainedTreeRunner runner;
+  EXPECT_EQ(tree::testing::CountLostLeafBits(runner, 100), 0u)
+      << "leaf-mask bits lost over 100 runs";
+}
+
 // Memory-placement spec, design B3: the stages each VkAppData buffer declares (what the
 // schedule-driven placement trusts) are exactly the stages whose dispatches bind it. Stages
 // run in order, so the dispatcher's read-backs (n_unique after stage 3) happen as in a pipeline.

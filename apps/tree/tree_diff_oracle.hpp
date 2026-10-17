@@ -42,6 +42,7 @@
 #include <cstdint>
 #include <iterator>
 #include <span>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -135,6 +136,20 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
 // missing/spurious/misplaced leaf link, independent of last-writer-wins.
 [[nodiscard]] inline OctEdge LeafSlotKey(const OctEdge& e) {
   return OctEdge{e[0], e[1], e[2], e[3], e[4], 0, 0, 0, 0, e[9]};
+}
+
+// Names up to `max` leaf slots of `d` (a set difference of LeafSlotKeys) for a failure message.
+[[nodiscard]] inline std::string DescribeLeafSlots(const std::vector<OctEdge>& d,
+                                                   const std::size_t max = 5) {
+  std::string s;
+  for (std::size_t i = 0; i < d.size() && i < max; ++i) {
+    const auto& e = d[i];
+    s += " (node corner " + std::to_string(e[1]) + "," + std::to_string(e[2]) + "," +
+         std::to_string(e[3]) + " cell " + std::to_string(e[4]) + ", octant " +
+         std::to_string(e[9]) + ")";
+  }
+  if (d.size() > max) s += " and " + std::to_string(d.size() - max) + " more";
+  return d.empty() ? " none" : s;
 }
 
 [[nodiscard]] inline std::vector<OctEdge> OctreeEdgeSet(
@@ -243,22 +258,20 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
     return keys;
   };
   const auto ref_keys = slot_keys(ref_leaf), out_keys = slot_keys(out_leaf);
-  std::size_t leaf_only_ref = 0, leaf_only_out = 0;
-  {
-    std::vector<OctEdge> d1, d2;
-    std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(d1));
-    std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(d2));
-    leaf_only_ref = d1.size();
-    leaf_only_out = d2.size();
-  }
-  if (leaf_only_ref != 0 || leaf_only_out != 0) {
+  std::vector<OctEdge> leaf_only_ref, leaf_only_out;
+  std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(leaf_only_ref));
+  std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(leaf_only_out));
+  if (!leaf_only_ref.empty() || !leaf_only_out.empty()) {
     return ::testing::AssertionFailure()
-           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref << " only-in-ref, "
-           << leaf_only_out << " only-in-out; ref_leaf_slots=" << ref_keys.size()
+           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref.size()
+           << " only-in-ref, " << leaf_only_out.size()
+           << " only-in-out; ref_leaf_slots=" << ref_keys.size()
            << " out_leaf_slots=" << out_keys.size()
            << ") -- a real missing/spurious/misplaced leaf link (the slot key set, parent "
               "geometry + octant, is deterministic; only the resolved point index is "
-              "last-writer-wins and is excluded)";
+              "last-writer-wins and is excluded). Missing leaf slots:"
+           << DescribeLeafSlots(leaf_only_ref)
+           << ". Spurious leaf slots:" << DescribeLeafSlots(leaf_only_out);
   }
   // Slot key sets match; the only residual difference is the resolved point index
   // of a contended (octnode, octant) slot (last-writer-wins, order-sensitive).
@@ -469,22 +482,20 @@ inline void CheckStage6(const tree::AppData& ref, const tree::AppData& out) {
     return keys;
   };
   const auto ref_keys = slot_keys(ref_leaf), out_keys = slot_keys(out_leaf);
-  std::size_t leaf_only_ref = 0, leaf_only_out = 0;
-  {
-    std::vector<OctEdge> d1, d2;
-    std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(d1));
-    std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(d2));
-    leaf_only_ref = d1.size();
-    leaf_only_out = d2.size();
-  }
-  if (leaf_only_ref != 0 || leaf_only_out != 0) {
+  std::vector<OctEdge> leaf_only_ref, leaf_only_out;
+  std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(leaf_only_ref));
+  std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(leaf_only_out));
+  if (!leaf_only_ref.empty() || !leaf_only_out.empty()) {
     return ::testing::AssertionFailure()
-           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref << " only-in-ref, "
-           << leaf_only_out << " only-in-out; ref_leaf_slots=" << ref_keys.size()
+           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref.size()
+           << " only-in-ref, " << leaf_only_out.size()
+           << " only-in-out; ref_leaf_slots=" << ref_keys.size()
            << " out_leaf_slots=" << out_keys.size()
            << ") -- a real missing/spurious/misplaced leaf link (the slot key set, parent "
               "geometry + octant, is deterministic; only the resolved point index is "
-              "last-writer-wins and is excluded)";
+              "last-writer-wins and is excluded). Missing leaf slots:"
+           << DescribeLeafSlots(leaf_only_ref)
+           << ". Spurious leaf slots:" << DescribeLeafSlots(leaf_only_out);
   }
   if (ref_leaf == out_leaf) return ::testing::AssertionSuccess();
   return ::testing::AssertionSuccess()

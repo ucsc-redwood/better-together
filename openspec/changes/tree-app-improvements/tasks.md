@@ -102,11 +102,73 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 3. Atomic leaf masks and Vulkan leaf linking (topic A, design A3)
 
-- [ ] 3.1 Make `set_leaf`'s clear atomic: `#pragma omp atomic` in `func_octree.hpp`, `atomicAnd` in `07_octree.cu`. Verify: 1.2 shows no lost bits over ≥ 100 repetitions on OMP and CUDA; the OMP gate and CUDA gate are green.
-- [ ] 3.2 If 1.3/1.4 showed the leaf-slot check is vacuous, fix `CheckStage7Topology` so missing leaf links fail. Verify: the oracle self-test fails on a no-leaves output, and OMP and CUDA still pass.
-- [ ] 3.3 Wire leaf linking into Vulkan stage 7: a second dispatch after a compute→compute barrier, with `SetLeaf` using `atomicAnd` (design A3). Verify: `TreeDiffVulkan.Stage7_Octree` and `TreeDiffVulkanChained.Stage7_Octree` pass with the fixed oracle on rocky and both phones.
-- [ ] 3.4 Measure stage-7 time before and after with the phone A/B (both phones) and on duck-stable CUDA. Verify: the numbers are recorded; any increase comes from the added leaf work.
-- [ ] 3.5 Add entries to `docs/reports-for-human/bugs-found.md` for the Morton wrap, the leaf race and the missing Vulkan leaf links. Verify: each entry links its reproducer and fix commit.
+- [x] 3.1 Make `set_leaf`'s clear atomic: `#pragma omp atomic` in `func_octree.hpp`, `atomicAnd` in `07_octree.cu`. Verify: 1.2 shows no lost bits over ≥ 100 repetitions on OMP and CUDA; the OMP gate and CUDA gate are green.
+  - *Change:* `set_leaf`'s clear is `#pragma omp atomic` (`func_octree.hpp`) and `atomicAnd` (`07_octree.cu`); the
+    child slot store stays plain. `TreeLeafRaceOmp.InterleavedLeafLinksKeepEveryBit` and
+    `TreeLeafRaceCuda.ConcurrentLeafLinksKeepEveryBit` are enabled.
+  - *1.2 now:* 0 lost bits in 100 runs each: OMP through `run_stage_7` and interleaved (12 threads, build box), CUDA
+    `k_LinkLeafNodes` (duck-stable). Before: CUDA 2,457,600, OMP interleaved ~2.3 million (task 1.2).
+  - *Gates:* OMP `ctest -L omp` 10/10 (`test-tree-omp` 21/21, nothing disabled); CUDA on duck-stable `test-tree-cu`
+    9/9, `test-cifar-dense-cu` 12/12, `test-cifar-sparse-cu` 12/12.
+- [x] 3.2 If 1.3/1.4 showed the leaf-slot check is vacuous, fix `CheckStage7Topology` so missing leaf links fail. Verify: the oracle self-test fails on a no-leaves output, and OMP and CUDA still pass.
+  - *Change:* 1.3/1.4 showed the leaf check vacuous because the masks were never initialized, so the fix starts there:
+    `tree::AppData::u_oct_child_leaf_mask_s7` and `SafeAppData::u_oct_child_leaf_mask_s7_out` are allocated filled with
+    0xFF. `CheckStage7Topology` (both overloads) now also names up to 5 missing and 5 spurious leaf slots (parent
+    corner, cell, octant) in its failure. `TreeOracleSelfTest.SpuriousLeafLinksFail` is enabled, and
+    `MissingLeafLinksFail` also requires `Missing leaf slots: (node corner` in the message.
+  - *Self-tests:* both pass on OMP: removing the leaf links fails the check, and so does marking every free octant a
+    leaf.
+  - *Vulkan before 3.3* (rocky, this oracle, the old shader): 5 tests fail, `TreeDiffVulkan.Stage7_Octree`,
+    `TreeDiffVulkanChained.Stage7_Octree`, and the three tests that run `CheckStage7` (lifetime, concurrent sequences,
+    prerecord), e.g. `LEAF child slots differ (307151 only-in-ref, 0 only-in-out; ref_leaf_slots=307151
+    out_leaf_slots=0) ... Missing leaf slots: (node corner 0,0,0 cell 32, octant 2) (node corner 0,0,0 cell 32,
+    octant 3) ...`.
+  - *OMP and CUDA still pass:* `test-tree-omp` 21/21, `test-tree-cu` 9/9 (gates of 3.1).
+- [x] 3.3 Wire leaf linking into Vulkan stage 7: a second dispatch after a compute→compute barrier, with `SetLeaf` using `atomicAnd` (design A3). Verify: `TreeDiffVulkan.Stage7_Octree` and `TreeDiffVulkanChained.Stage7_Octree` pass with the fixed oracle on rocky and both phones.
+  - *Change:* `tree_build_octree.comp` gets a push-constant `phase`; `main` runs `k_MakeOctNodes` in phase 0 and
+    `k_LinkLeafNodes` in phase 1. `SetLeaf` uses `atomicAnd`; the radix-tree walk is shared by both leaves and capped
+    like OMP's; bindings 10-12 are now `readonly` (`just check-shaders`: OK). Both `record_stage_7` overloads record
+    the pipeline twice (bind, push constants with the phase, dispatch). Phase 1 writes the children buffer phase 0 wrote,
+    so the `Sequence`'s tracking records the compute→compute barrier between them. New
+    `TreeLeafRaceVulkan.ConcurrentLeafLinksKeepEveryBit` (the 1.2 input, 100 runs) covers the spec's Vulkan case.
+  - *rocky-ryzen:* `test-tree-vk --device minipc` 20/20 at 64 and with `BT_VK_SUBGROUP_SIZE=32`; `ctest -L vulkan`
+    7/7; `test-pipeline-chained-vk` (compares the leaf masks element-wise) 1/1. Sync validation
+    (`BT_VK_VALIDATION=1`, synchronization validation with `VK_KHRONOS_VALIDATION_SYNCVAL_SHADER_ACCESSES_HEURISTIC=true`,
+    layer loaded per `VK_LOADER_DEBUG=layer`): 20/20, 0 `Validation Error`, 0 `SYNC-HAZARD`.
+  - *Phones:* Pixel 7a `test-tree-vk` 20/20, `test-kiss-vk` 29/29; Samsung 20/20 and 29/29, also with
+    `BT_VK_SUBGROUP_SIZE=32`.
+  - *Mutation (scratch, not committed):* a plain `&=` in `SetLeaf` loses 2,457,600 bits in `TreeLeafRaceVulkan` on rocky
+    (3 of 3 invocations), and both Vulkan stage-7 differential tests fail.
+- [x] 3.4 Measure stage-7 time before and after with the phone A/B (both phones) and on duck-stable CUDA. Verify: the numbers are recorded; any increase comes from the added leaf work.
+  - *Method:* `bm-prof-tree-vk`, `BT_PROF_SCENARIO=isolated`, `--benchmark_filter='vulkan/'`, Android preset (NDK r30),
+    arms built from worktrees and pushed to `/data/local/tmp/bt-tree`; process pinned to the big cores (`taskset -c 6,7`
+    Pixel, `taskset 180` Samsung); arms rotated, 3 rounds, 20 s sleep before every run, no other `bm-`/`test-` process
+    on the phone. Reported per stage: median over runs of each run's p50 (GPU timestamps), min-max of the p50s,
+    n = runs x samples. A = 3d6d919 (before group 3), B = group 3, C = group 3 without the phase-1 dispatch (scratch,
+    to attribute the change). Governor `sched_pixel` (Pixel) / `energy_aware` (Samsung); the GPU clock is not readable
+    (`gpu_clock_mhz` -1) on either.
+  - *Phones, stage 7 (ms):*
+
+    | phone | A median (min-max) | B median (min-max) | C median (min-max) | B vs A | C vs A |
+    |---|---|---|---|---|---|
+    | Pixel 7a | 1.294 (1.292-1.294, n=3x230-232) | 3.014 (3.011-3.014, n=3x99) | 1.304 (1.304-1.304, n=3x224-233) | +133.0 % | +0.8 % |
+    | Samsung | 0.822 (0.340-2.919, n=3x392-727) | 2.049 (1.073-2.939, n=3x145-315) | 0.834 (0.475-2.908, n=3x202-627) | +149.3 % | +1.4 % |
+
+    The increase is the leaf pass: without it (C) stage 7 is A's time. The Samsung is bimodal as in earlier
+    reports, so its spreads overlap. An earlier A/B session (A and B only) gave the Pixel 1.296 → 2.429 ms and the
+    Samsung 1.985 → 1.602 ms (spreads 0.552-2.765 / 1.226-1.783); in that session the Pixel's unchanged stages 1 and 3-6
+    also differed by 16-55 % between arms, while in the three-arm session above they agree within 5 %: between-session
+    noise on the Pixel, which 4.1 quantifies.
+  - *CUDA, duck-stable* (`bm-prof-tree-cu`, cross-built with `-DBT_ENABLE_VULKAN=OFF`, isolated, `--benchmark_filter='cuda/'`,
+    3 rounds rotated, 20 s apart, governor `schedutil`; C = group 3 with a plain `&=` in `set_leaf`): stage 7
+    A 4.434 (4.433-4.458, n=3x64-67), B 6.801 (6.766-6.809, n=3x43-44), C 4.440 (4.429-4.476, n=3x66-67) ms; B +53.4 %,
+    C +0.1 %; stages 1-6 within 1.1 %. CUDA links no extra leaves: the whole increase is the `atomicAnd` on the zero-copy
+    pinned buffers, i.e. the race fix itself. The OMP stage 7 on the Jetson's six cores (`little` tier, same runs without
+    the filter): A 2.146 (2.021-2.390), B 2.268 (2.263-2.703) ms, +5.7 %, spreads overlapping.
+- [x] 3.5 Add entries to `docs/reports-for-human/bugs-found.md` for the Morton wrap, the leaf race and the missing Vulkan leaf links. Verify: each entry links its reproducer and fix commit.
+  - *Evidence:* `docs/reports-for-human/bugs-found.md` §13 (Morton wrap: reproducers 4619d05, fix 3d6d919), §14 (leaf
+    race and uninitialized masks: reproducers 4619d05, fix the group 3 commit ("tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links")) and §15 (missing Vulkan leaf links: reproducer run
+    under 3.2, fix the same commit). The group 3 commit cannot name its own hash; §14/§15 cite it by subject.
 
 ## 4. Sort baseline and workgroup-count knob (topic B, design B1)
 

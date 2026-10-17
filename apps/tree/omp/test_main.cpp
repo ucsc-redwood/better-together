@@ -604,7 +604,7 @@ void ExpectNoLostLeafBits() {
 
 TEST(TreeLeafRaceOmp, ConcurrentLeafLinksKeepEveryBit) { ExpectNoLostLeafBits<OmpTreeRunner>(); }
 
-TEST(TreeLeafRaceOmp, DISABLED_InterleavedLeafLinksKeepEveryBit) {
+TEST(TreeLeafRaceOmp, InterleavedLeafLinksKeepEveryBit) {
   ExpectNoLostLeafBits<OmpInterleavedLeafRunner>();
 }
 
@@ -629,9 +629,11 @@ namespace {
 TEST(TreeOracleSelfTest, MissingLeafLinksFail) {
   const auto r = Stage7CheckAfterLeafMaskReset(0xFF);
   EXPECT_FALSE(r) << r.message();
+  EXPECT_NE(std::string(r.message()).find("Missing leaf slots: (node corner"), std::string::npos)
+      << r.message();
 }
 
-TEST(TreeOracleSelfTest, DISABLED_SpuriousLeafLinksFail) {
+TEST(TreeOracleSelfTest, SpuriousLeafLinksFail) {
   const auto r = Stage7CheckAfterLeafMaskReset(0);
   EXPECT_FALSE(r) << r.message();
 }

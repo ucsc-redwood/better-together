@@ -37,7 +37,7 @@ TEST(TreeDiffCuda, Stage1_MortonBoundary) {
 }
 
 // Octree-build spec, "Many leaves linked into one node concurrently": k_LinkLeafNodes 100 times.
-TEST(TreeLeafRaceCuda, DISABLED_ConcurrentLeafLinksKeepEveryBit) {
+TEST(TreeLeafRaceCuda, ConcurrentLeafLinksKeepEveryBit) {
   if (!CudaTreeRunner::Available()) GTEST_SKIP() << "no CUDA device";
   CudaTreeRunner runner;
   EXPECT_EQ(tree::testing::CountLostLeafBits(runner, 100), 0u)

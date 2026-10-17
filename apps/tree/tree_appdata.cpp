@@ -69,7 +69,9 @@ AppData::AppData(const bt::PlaceBuffer& place, const size_t n_input)
       u_oct_corner_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
       u_oct_cell_size_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
       u_oct_child_node_mask_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
-      u_oct_child_leaf_mask_s7(scaled(n_input), place(bt::BufferKind::kActivation, {0, 7})),
+      // All-ones: a leaf link CLEARS its octant's bit, so a zero bit is a leaf slot. (Left at
+      // 0, every link was a no-op and every free octant read as a leaf.)
+      u_oct_child_leaf_mask_s7(scaled(n_input), 0xFF, place(bt::BufferKind::kActivation, {0, 7})),
       u_num_selected_out(1, place(bt::BufferKind::kActivation, {0})) {
   // BT_TREE_DATA_DIR set -> real Octomap-derived corpus (points.npy), a fixed-size
   // prefix loaded via bt::npy::load_prefix; fails loud on any problem, never a
