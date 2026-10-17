@@ -13,6 +13,8 @@
 // residual of each sum). Include after the cell's const.hpp (DispatcherT, AppDataT).
 // ---------------------------------------------------------------------------
 
+#include <spdlog/cfg/env.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -52,6 +54,7 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
   PARSE_ARGS_END
 
   spdlog::set_level(spdlog::level::warn);  // e.g. an uncorrelated calibration (stderr)
+  spdlog::cfg::load_env_levels();          // SPDLOG_LEVEL=debug lists the bound buffers
   setenv("BT_VK_PHASES", "1", 1);          // read by every Sequence at construction
 
   DispatcherT disp;
@@ -159,6 +162,27 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
       median(c_gpu),
       median(c_lat),
       median(c_wake));
+  // Bytes the cache maintenance walks (constant for a chunk shape) and what the shaders do
+  // with them: an invalidate is only needed for buffers some shader writes, a flush only for
+  // buffers some shader reads. Rates are bytes over the median phase time.
+  if (!c_flush.empty()) {
+    const kiss_vk::PhaseTimes& p = seq->last_phases();
+    const double mb = 1.0 / (1024.0 * 1024.0);
+    const double touched = static_cast<double>(p.touched_bytes);
+    const double flush_s = median(c_flush) * 1e-3;
+    const double inval_s = median(c_inval) * 1e-3;
+    std::printf(
+        "# bytes_MiB touched=%.2f gpu_written=%.2f gpu_read_only=%.2f gpu_write_only=%.2f\n",
+        touched * mb,
+        static_cast<double>(p.gpu_written_bytes) * mb,
+        static_cast<double>(p.gpu_read_only_bytes) * mb,
+        static_cast<double>(p.gpu_write_only_bytes) * mb);
+    std::printf(
+        "# maintenance_rate_GiBps flush=%.2f invalidate=%.2f (invalidate time also holds the "
+        "timestamp read-back)\n",
+        flush_s > 0 ? touched / flush_s / (1024.0 * 1024.0 * 1024.0) : 0.0,
+        inval_s > 0 ? touched / inval_s / (1024.0 * 1024.0 * 1024.0) : 0.0);
+  }
   std::printf("# stage_gpu_ms");
   for (size_t k = 0; k < stage_gpu_ms.size(); ++k) {
     std::printf(" s%d=%.4f", start + static_cast<int>(k), stage_gpu_ms[k]);

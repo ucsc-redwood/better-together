@@ -15,6 +15,60 @@ void CHECK_VK_RESULT(VkResult result, const char* msg) {
   }
 }
 
+// Resolves one placement arm (default | device_local | uncached) to a MemoryPlacement for the
+// class `class_name` on this device; an arm the device has no memory type for warns and keeps
+// today's placement.
+static MemoryPlacement resolve_placement(const vk::PhysicalDevice physical_device,
+                                         const char* class_name,
+                                         const char* env_name,
+                                         const std::string_view arm,
+                                         const char* reason) {
+  const MemoryPlacement fallback{.name = class_name};
+  if (arm != "default" && arm != "device_local" && arm != "uncached") {
+    throw std::runtime_error(std::string(env_name) +
+                             " must be default, device_local or uncached, got " + std::string(arm));
+  }
+  if (arm == "default") {
+    spdlog::debug("Buffer class {}: default placement ({})", class_name, reason);
+    return fallback;
+  }
+
+  const auto mem = physical_device.getMemoryProperties();
+  const auto types_with = [&](const vk::MemoryPropertyFlags required,
+                              const vk::MemoryPropertyFlags excluded) {
+    uint32_t bits = 0;
+    for (uint32_t t = 0; t < mem.memoryTypeCount; ++t) {
+      const auto f = mem.memoryTypes[t].propertyFlags;
+      if ((f & required) == required && !(f & excluded)) bits |= 1u << t;
+    }
+    return bits;
+  };
+  using F = vk::MemoryPropertyFlagBits;
+  const vk::MemoryPropertyFlags amd = F::eDeviceCoherentAMD | F::eDeviceUncachedAMD;
+
+  MemoryPlacement p{.name = class_name, .preferred = 0};
+  if (arm == "device_local") {
+    p.required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    p.memory_type_bits = types_with(F::eHostVisible | F::eDeviceLocal, F::eHostCached | amd);
+  } else {
+    p.memory_type_bits = types_with(F::eHostVisible, F::eHostCached | F::eDeviceLocal | amd);
+    if (p.memory_type_bits == 0) {
+      p.memory_type_bits = types_with(F::eHostVisible, F::eHostCached | amd);
+    }
+  }
+  if (p.memory_type_bits == 0) {
+    spdlog::warn(
+        "Buffer class {}: no {} memory type on this device, keeping the default", class_name, arm);
+    return fallback;
+  }
+  spdlog::debug("Buffer class {}: {} placement ({}), memory type bits {:#x}",
+                class_name,
+                arm,
+                reason,
+                p.memory_type_bits);
+  return p;
+}
+
 MemoryPlacement weights_class_placement(const vk::PhysicalDevice physical_device) {
   const auto props = physical_device.getProperties();
   // Devices where moving the weights off the default placement measured faster beyond noise
@@ -38,50 +92,17 @@ MemoryPlacement weights_class_placement(const vk::PhysicalDevice physical_device
     arm = *v;
     reason = "BT_VK_WEIGHTS_PLACEMENT";
   }
-  const MemoryPlacement fallback{.name = "weights"};
-  if (arm != "default" && arm != "device_local" && arm != "uncached") {
-    throw std::runtime_error(
-        "BT_VK_WEIGHTS_PLACEMENT must be default, device_local or uncached, got " +
-        std::string(arm));
-  }
-  if (arm == "default") {
-    spdlog::debug("Buffer class weights: default placement ({})", reason);
-    return fallback;
-  }
+  return resolve_placement(physical_device, "weights", env::kWeightsPlacement, arm, reason);
+}
 
-  const auto mem = physical_device.getMemoryProperties();
-  const auto types_with = [&](const vk::MemoryPropertyFlags required,
-                              const vk::MemoryPropertyFlags excluded) {
-    uint32_t bits = 0;
-    for (uint32_t t = 0; t < mem.memoryTypeCount; ++t) {
-      const auto f = mem.memoryTypes[t].propertyFlags;
-      if ((f & required) == required && !(f & excluded)) bits |= 1u << t;
-    }
-    return bits;
-  };
-  using F = vk::MemoryPropertyFlagBits;
-  const vk::MemoryPropertyFlags amd = F::eDeviceCoherentAMD | F::eDeviceUncachedAMD;
-
-  MemoryPlacement p{.name = "weights", .preferred = 0};
-  if (arm == "device_local") {
-    p.required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    p.memory_type_bits = types_with(F::eHostVisible | F::eDeviceLocal, F::eHostCached | amd);
-  } else {
-    p.memory_type_bits = types_with(F::eHostVisible, F::eHostCached | F::eDeviceLocal | amd);
-    if (p.memory_type_bits == 0) {
-      p.memory_type_bits = types_with(F::eHostVisible, F::eHostCached | amd);
-    }
+MemoryPlacement boundary_class_placement(const vk::PhysicalDevice physical_device) {
+  std::string_view arm = "default";
+  const char* reason = "no override";
+  if (const auto v = env::get(env::kBoundaryPlacement)) {
+    arm = *v;
+    reason = env::kBoundaryPlacement;
   }
-  if (p.memory_type_bits == 0) {
-    spdlog::warn("Buffer class weights: no {} memory type on this device, keeping the default",
-                 arm);
-    return fallback;
-  }
-  spdlog::debug("Buffer class weights: {} placement ({}), memory type bits {:#x}",
-                arm,
-                reason,
-                p.memory_type_bits);
-  return p;
+  return resolve_placement(physical_device, "boundary", env::kBoundaryPlacement, arm, reason);
 }
 
 VulkanMemoryResource::VulkanMemoryResource(const vk::Device device, const MemoryPlacement placement)

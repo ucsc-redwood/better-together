@@ -172,6 +172,11 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
   re-measuring placement. [Unset: `uncached` on the Pixel 7a's Mali-G710, where fc1/fc2 measured 31–35 % faster, and
   today's host-cached placement on every other device. Only weights no CPU chunk reads move, and only through a
   schedule-aware placement (`runtime/placement.hpp`); the differential tests keep everything host-cached.]
+- `BT_VK_BOUNDARY_PLACEMENT=default|device_local|uncached` overrides the memory type of the boundary class (what
+  `Engine::get_mr()` returns: every buffer of an AppData built without buffer classes, the tree app's, and the buffers
+  a CPU chunk touches), to measure the host cache maintenance of buffers no CPU stage reads. An experiment knob.
+  [Unset: host-cached. On the Pixel 7a the tree GPU chunk is 38 % shorter with `uncached`; the Samsung does not
+  change. Do not use it with a schedule that has CPU chunks: they would read uncached memory.]
 - `BT_VK_QUEUE=universal|compute` picks the queue family; `compute` falls back to the universal family, with a
   warning, where none exists (the Pixel). [`universal`: the first family with compute.]
 - `BT_VK_QUEUE_PRIORITY=low|medium|high` requests a global queue priority; a missing extension or
@@ -179,7 +184,10 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
 - `BT_VK_INFLIGHT=<n>` lets each Vulkan GPU chunk of `run_pipeline` / `bm-gen-logs` keep n items in flight, handed on
   in order; `run_pipeline` asserts pool ≥ n × GPU chunks + CPU chunks. [1: submit, wait, hand on.]
 - `BT_VK_PHASES=1` times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration
-  first; `bm-phases-{tree,cifar-dense}-vk` turns it on and prints them per chunk. [Off.]
+  first; `bm-phases-{tree,cifar-dense,cifar-sparse}-vk` turns it on and prints them per chunk, with the bytes the
+  flush and invalidate walk and how the shaders use them (`SPDLOG_LEVEL=debug` lists the bound buffers). [Off.]
+- `BT_GPU_THREAD_CORES=<id>[,<id>...]` (`bm-gen-logs-*-vk` only) pins the thread that drives a Vulkan GPU chunk; the
+  runtime pins OMP chunks to their tier but not this thread. [Unset: left to the OS.]
 - The solver's `allow_gpu_multi_chunk` (`02_gen_schedule_merged.py --allow-gpu-multi-chunk`) lets z3 give the GPU
   several chunks, priced as their sum. [Off: one chunk per PU.] `optimizer/tests/test_gpu_multi_chunk.py` (`uv run
   pytest -q optimizer`) checks both modes; `PipelineE2EVk.ThreeVulkanChunksAlternating` (`test-pipeline-e2e-vk`) runs
