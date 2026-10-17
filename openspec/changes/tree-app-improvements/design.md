@@ -98,6 +98,11 @@ Onesweep's decoupled look-back needs forward progress between workgroups, which 
 ### B6. Stage-3 compaction
 Per-workgroup flags plus a subgroup/LDS scan, one scan of workgroup totals, and a fused scatter: 2–3 dispatches instead of 5. Leave `record_device_scan` unchanged for stage 6 unless both stages re-verify exactly.
 
+*As implemented (task 8.1):* 2 dispatches. Pass 1 flags and scans each 2048-key tile in shared memory (no subgroup
+ops); pass 2 lets every tile sum the totals of the tiles before it (150 for the default input), so the separate scan
+of the tile totals disappears, then scatters. `record_device_scan` is unchanged for stage 6. *Measured (task 8.2):*
+stage 3 -16 % on the Pixel 7a, -42 % on the Samsung.
+
 ## Risks / Trade-offs
 
 - **[Risk]** Clamping changes codes, and so the downstream tree, for boundary points. **→ Mitigation:** it's applied to all backends and the oracle at once; existing inputs never hit the boundary (half-open range), so the current test data is unchanged (to verify by diffing stage-1 output before/after).

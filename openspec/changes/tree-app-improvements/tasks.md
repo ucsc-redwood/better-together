@@ -328,8 +328,31 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 8. Stage-3 compaction (topic B, design B6)
 
-- [ ] 8.1 Implement compaction in fewer than 5 dispatches. Keep `record_device_scan` unchanged for stage 6 unless both stages re-verify. Verify: `test-tree-vk` stage 3 and stage 6 are exact on all VK targets.
-- [ ] 8.2 Measure stage 3 with the phone A/B against 4.1. Verify: the after median is not higher beyond the spread on either phone, and the dispatch count is recorded (spec "Compaction is not dispatch-bound").
+- [x] 8.1 Implement compaction in fewer than 5 dispatches. Keep `record_device_scan` unchanged for stage 6 unless both stages re-verify. Verify: `test-tree-vk` stage 3 and stage 6 are exact on all VK targets.
+  - *Change (design B6), 2 dispatches instead of 5:* `tree_unique_local.comp` flags the run heads of a 2048-key tile
+    straight from the sorted keys and scans them (the Blelloch scan of `tree_scan_local`), writing each key's in-tile
+    count to `u_out_idx` and the tile total to `u_scan_block_sums`; `tree_unique_scatter.comp` sums the totals of the
+    tiles before its own (at most a few hundred: 150 for 307,200 keys), writes each key's global count back to
+    `u_out_idx` (so `u_out_idx[n-1]` is still n_unique for the chained read-back) and writes each run head to its slot.
+    Both `record_stage_3` overloads call one helper, `record_unique`. Removed as orphans of this change:
+    `tree_find_dups.comp`, `tree_move_dups.comp`, their pipelines and push-constant structs, and the `u_contributes`
+    buffer of both appdata classes. `record_device_scan` is unchanged and now serves stage 6 only.
+  - *Exact on every VK target:* rocky `test-tree-vk` 20/20 at 64 and pinned 32 (`Stage3_Unique`, `Stage6_EdgeOffset`
+    of both suites and `Placement.DeclaredStagesMatchBindings` among them), `ctest -L vulkan` 7/7, sync validation
+    (shader-access heuristic on) 20/20 with 0 errors and 0 hazards; Pixel 7a 20/20 and `test-kiss-vk` 29/29; Samsung
+    20/20 and 29/29, also with `BT_VK_SUBGROUP_SIZE=32`.
+- [x] 8.2 Measure stage 3 with the phone A/B against 4.1. Verify: the after median is not higher beyond the spread on either phone, and the dispatch count is recorded (spec "Compaction is not dispatch-bound").
+  - *Method:* as 4.1 session 2 (A = 5477c56, B = group 8, same session). Stage 3 (ms):
+
+    | phone | A median (min-max) | B median (min-max) | B vs A |
+    |---|---|---|---|
+    | Pixel 7a | 1.666 (1.659-1.678, n=3x607-801) | 1.396 (1.395-1.692, n=3x723-1016) | -16.3 % |
+    | Samsung | 3.185 (3.179-3.197, n=3x312-486) | 1.843 (1.843-1.844, n=3x535-792) | -42.2 % |
+
+    Not higher on either phone; on the Samsung lower with disjoint spreads, on the Pixel two of three runs lower (the
+    third sat on the upper level). Stage 6 (same `record_device_scan` as before) -1.4 % / -0.3 %, the other stages within
+    4 %. GPU clock median 251 / 252 MHz in both arms.
+  - *Dispatch count:* 2 (`tree_unique_local`, `tree_unique_scatter`), was 5 (find_dups, 3-pass scan, move_dups).
 
 ## 9. Final gate and profile refresh
 
