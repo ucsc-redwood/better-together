@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/util/debug_logger.hpp"
 
@@ -112,8 +113,10 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
   // decode -- the generic shader pays a runtime div/mod per nonzero -- plus two
   // interleaved accumulators to break the serial FMA chain (CUDA-win port).
   // Selected per stage when kernel_size==3, stride==1, padding==1.
+  // subgroup_size_dependent: the shader picks its path from the subgroup size (spec const 0).
   auto conv2d_k3s1p1_algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
                                 ->work_group_size(256, 1, 1)
+                                ->subgroup_size_dependent()
                                 ->num_buffers(6)
                                 ->push_constant<Conv2dPushConstants>()
                                 ->build();
@@ -211,7 +214,11 @@ void VulkanDispatcher::record_stage_1(cifar_sparse::AppData& appdata, kiss_vk::S
   const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
 
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: invocations from the conv contract (on the Mali path, PX pixels each).
+  const size_t total_output =
+      spec ? kiss_vk::sparse_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants{
       .batch_size = batch_size,
@@ -302,7 +309,11 @@ void VulkanDispatcher::record_stage_3(cifar_sparse::AppData& appdata, kiss_vk::S
   const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
 
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: invocations from the conv contract (on the Mali path, PX pixels each).
+  const size_t total_output =
+      spec ? kiss_vk::sparse_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants{
       .batch_size = batch_size,
@@ -393,7 +404,11 @@ void VulkanDispatcher::record_stage_5(cifar_sparse::AppData& appdata, kiss_vk::S
   const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
 
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: invocations from the conv contract (on the Mali path, PX pixels each).
+  const size_t total_output =
+      spec ? kiss_vk::sparse_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants{
       .batch_size = batch_size,
@@ -444,7 +459,11 @@ void VulkanDispatcher::record_stage_6(cifar_sparse::AppData& appdata, kiss_vk::S
   const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
 
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: invocations from the conv contract (on the Mali path, PX pixels each).
+  const size_t total_output =
+      spec ? kiss_vk::sparse_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants{
       .batch_size = batch_size,
@@ -495,7 +514,11 @@ void VulkanDispatcher::record_stage_7(cifar_sparse::AppData& appdata, kiss_vk::S
   const int out_height = (in_height + 2 * kPadding - kKernelSize) / kStride + 1;
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
 
-  const int total_output = batch_size * out_channels * out_height * out_width;
+  // spec: invocations from the conv contract (on the Mali path, PX pixels each).
+  const size_t total_output =
+      spec ? kiss_vk::sparse_conv_k3s1p1_invocations(
+                 batch_size, out_channels, out_height, out_width, engine.subgroup_size())
+           : static_cast<size_t>(batch_size) * out_channels * out_height * out_width;
 
   const auto algo_pc = Conv2dPushConstants{
       .batch_size = batch_size,

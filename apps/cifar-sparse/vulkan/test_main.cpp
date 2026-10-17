@@ -11,6 +11,7 @@
 
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "runtime/tests/placement_check.hpp"
@@ -68,23 +69,25 @@ TEST(Placement, DeclaredStagesMatchBindings) {
 // output channel; row bounds are subgroup-uniform) and a fallback for a subgroup that
 // spans channels. The model's maps (32, 16, 8) are all subgroup multiples, so the
 // differential suite only reaches the fast path; 6x6 maps (36 outputs per channel, which
-// no subgroup size divides) force the fallback. A hand-made CSR with an empty row, checked
-// against a double-precision reference.
+// no subgroup size divides) force the fallback, and 7x5 maps (odd width) a ragged row as well.
+// A hand-made CSR with an empty row and a row whose nonzeros all sit in the kernel's right
+// column (at the right edge every tap reads the padded border), checked against a
+// double-precision reference.
 namespace {
 struct ConvPc {  // same layout as Conv2dPushConstants in dispatchers.cpp
   int32_t batch_size, in_channels, in_height, in_width, out_channels, out_height, out_width,
       kernel_size, stride, padding, relu, bias_size;
 };
 
-void ExpectSparseConvMatchesReference(const int hw) {
-  constexpr int kN = 3, kC = 4, kK = 9, kEmptyRow = 4;
+void ExpectSparseConvMatchesReference(const int h, const int w) {
+  constexpr int kN = 3, kC = 4, kK = 9, kEmptyRow = 4, kBorderRow = 6;
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 
   kiss_vk::Engine engine;
   auto* mr = engine.get_mr();
-  std::pmr::vector<float> in(static_cast<size_t>(kN) * kC * hw * hw, 0.0f, mr);
-  std::pmr::vector<float> out(static_cast<size_t>(kN) * kK * hw * hw, -1.0f, mr);
+  std::pmr::vector<float> in(static_cast<size_t>(kN) * kC * h * w, 0.0f, mr);
+  std::pmr::vector<float> out(static_cast<size_t>(kN) * kK * h * w, -1.0f, mr);
   std::pmr::vector<float> bias(kK, 0.0f, mr);
   std::pmr::vector<float> values(mr);
   std::pmr::vector<int> row_ptr(1, 0, mr);
@@ -93,7 +96,8 @@ void ExpectSparseConvMatchesReference(const int hw) {
   for (auto& x : bias) x = val(rng);
   for (int k = 0; k < kK; ++k) {
     for (int flat = 0; flat < kC * 9 && k != kEmptyRow; ++flat) {
-      if (val(rng) > 0.2f) continue;  // ~40% density
+      // kBorderRow keeps only kx == 2; the others ~40% density.
+      if (k == kBorderRow ? flat % 3 != 2 : val(rng) > 0.2f) continue;
       values.push_back(val(rng));
       col_idx.push_back(flat);
     }
@@ -102,10 +106,11 @@ void ExpectSparseConvMatchesReference(const int hw) {
 
   auto algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
                   ->work_group_size(256, 1, 1)
+                  ->subgroup_size_dependent()
                   ->num_buffers(6)
                   ->push_constant<ConvPc>()
                   ->build();
-  const ConvPc pc{kN, kC, hw, hw, kK, hw, hw, 3, 1, 1, /*relu=*/1, kK};
+  const ConvPc pc{kN, kC, h, w, kK, h, w, 3, 1, 1, /*relu=*/1, kK};
   auto seq = engine.make_seq();
   seq->cmd_begin();
   algo->record_bind(*seq,
@@ -116,26 +121,32 @@ void ExpectSparseConvMatchesReference(const int hw) {
                      engine.get_buffer_info(col_idx),
                      engine.get_buffer_info(bias)});
   algo->record_push_constants(*seq, pc);
-  algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(out.size(), 256)), 1, 1});
+  const size_t invocations =
+      kiss_vk::sparse_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
+  algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
   seq->cmd_end();
   seq->wait(seq->submit());
 
   for (int n = 0; n < kN; ++n) {
     for (int k = 0; k < kK; ++k) {
-      for (int y = 0; y < hw; ++y) {
-        for (int x = 0; x < hw; ++x) {
+      for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
           double acc = bias[k];
           for (int nz = row_ptr[k]; nz < row_ptr[k + 1]; ++nz) {
             const int c = col_idx[nz] / 9, ky = (col_idx[nz] % 9) / 3, kx = col_idx[nz] % 3;
             const int iy = y + ky - 1, ix = x + kx - 1;
-            if (iy < 0 || iy >= hw || ix < 0 || ix >= hw) continue;
+            if (iy < 0 || iy >= h || ix < 0 || ix >= w) continue;
             acc += static_cast<double>(values[nz]) *
-                   in[((static_cast<size_t>(n) * kC + c) * hw + iy) * hw + ix];
+                   in[((static_cast<size_t>(n) * kC + c) * h + iy) * w + ix];
+          }
+          // Rows that contribute nothing here: bias plus ReLU only.
+          if (k == kEmptyRow || (k == kBorderRow && x == w - 1)) {
+            ASSERT_EQ(acc, static_cast<double>(bias[k]));
           }
           const double want = std::max(acc, 0.0);
-          const float got = out[((static_cast<size_t>(n) * kK + k) * hw + y) * hw + x];
+          const float got = out[((static_cast<size_t>(n) * kK + k) * h + y) * w + x];
           ASSERT_NEAR(got, want, 1e-4 + 1e-3 * std::abs(want))
-              << "hw " << hw << " n " << n << " k " << k << " y " << y << " x " << x;
+              << h << "x" << w << " n " << n << " k " << k << " y " << y << " x " << x;
         }
       }
     }
@@ -145,12 +156,17 @@ void ExpectSparseConvMatchesReference(const int hw) {
 
 TEST(SparseConvK3S1P1, FallbackWhenSubgroupSpansChannels) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectSparseConvMatchesReference(6);
+  ExpectSparseConvMatchesReference(6, 6);
 }
 
 TEST(SparseConvK3S1P1, FastPathWhenMapIsSubgroupMultiple) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectSparseConvMatchesReference(8);
+  ExpectSparseConvMatchesReference(8, 8);
+}
+
+TEST(SparseConvK3S1P1, RaggedOddWidthMap) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectSparseConvMatchesReference(7, 5);
 }
 
 // new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtFeaturesPerGroup

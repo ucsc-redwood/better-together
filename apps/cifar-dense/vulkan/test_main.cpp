@@ -10,6 +10,7 @@
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "runtime/tests/placement_check.hpp"
 
@@ -64,23 +65,27 @@ TEST(Placement, DeclaredStagesMatchBindings) {
 // on narrower subgroups (Mali) it runs the previous branchy kernel, which these also cover. The
 // model's maps (32, 16, 8) are all subgroup multiples, so the differential suite only reaches
 // the uniform case; 6x6 maps (36 outputs per block, which no subgroup size divides) force the
-// per-lane one. Checked against a double-precision reference, relu on.
+// per-lane one, and 7x5 maps (odd width, 35 outputs per block) a ragged row as well. Checked
+// against a double-precision reference, relu on.
 namespace {
 struct DenseConvPc {  // layout of the shader's push constants
   int32_t N, C, H, W, K, R, S, stride, padding, apply_relu;
 };
 
-void ExpectDenseConvMatchesReference(const int hw) {
-  constexpr int kN = 3, kC = 5, kK = 16;  // K % OC_TILE(4) == 0: four blocks
+void ExpectDenseConvMatchesReference(const int h, const int w) {
+  // K % OC_TILE(4) == 0: four blocks. N = 6 so every shape needs more than one 256-wide workgroup
+  // on the Mali path too (4 pixels per invocation): a contract that over-counts outputs per
+  // invocation then launches too few workgroups, and the missing outputs keep their -1 fill.
+  constexpr int kN = 6, kC = 5, kK = 16;
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 
   kiss_vk::Engine engine;
   auto* mr = engine.get_mr();
-  std::pmr::vector<float> in(static_cast<size_t>(kN) * kC * hw * hw, 0.0f, mr);
+  std::pmr::vector<float> in(static_cast<size_t>(kN) * kC * h * w, 0.0f, mr);
   std::pmr::vector<float> weight(static_cast<size_t>(kK) * kC * 9, 0.0f, mr);
   std::pmr::vector<float> bias(kK, 0.0f, mr);
-  std::pmr::vector<float> out(static_cast<size_t>(kN) * kK * hw * hw, -1.0f, mr);
+  std::pmr::vector<float> out(static_cast<size_t>(kN) * kK * h * w, -1.0f, mr);
   for (auto& x : in) x = val(rng);
   for (auto& x : weight) x = val(rng);
   for (auto& x : bias) x = val(rng);
@@ -91,7 +96,7 @@ void ExpectDenseConvMatchesReference(const int hw) {
                   ->num_buffers(4)
                   ->push_constant<DenseConvPc>()
                   ->build();
-  const DenseConvPc pc{kN, kC, hw, hw, kK, 3, 3, 1, 1, /*apply_relu=*/1};
+  const DenseConvPc pc{kN, kC, h, w, kK, 3, 3, 1, 1, /*apply_relu=*/1};
   auto seq = engine.make_seq();
   seq->cmd_begin();
   algo->record_bind(*seq,
@@ -100,30 +105,31 @@ void ExpectDenseConvMatchesReference(const int hw) {
                      engine.get_buffer_info(bias),
                      engine.get_buffer_info(out)});
   algo->record_push_constants(*seq, pc);
-  const size_t invocations = static_cast<size_t>(kN) * (kK / 4) * hw * hw;
+  const size_t invocations =
+      kiss_vk::dense_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
   algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
   seq->cmd_end();
   seq->wait(seq->submit());
 
   for (int n = 0; n < kN; ++n) {
     for (int k = 0; k < kK; ++k) {
-      for (int y = 0; y < hw; ++y) {
-        for (int x = 0; x < hw; ++x) {
+      for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
           double acc = bias[k];
           for (int c = 0; c < kC; ++c) {
             for (int ky = 0; ky < 3; ++ky) {
               for (int kx = 0; kx < 3; ++kx) {
                 const int iy = y + ky - 1, ix = x + kx - 1;
-                if (iy < 0 || iy >= hw || ix < 0 || ix >= hw) continue;
+                if (iy < 0 || iy >= h || ix < 0 || ix >= w) continue;
                 acc += static_cast<double>(weight[((k * kC + c) * 3 + ky) * 3 + kx]) *
-                       in[((static_cast<size_t>(n) * kC + c) * hw + iy) * hw + ix];
+                       in[((static_cast<size_t>(n) * kC + c) * h + iy) * w + ix];
               }
             }
           }
           const double want = std::max(acc, 0.0);
-          const float got = out[((static_cast<size_t>(n) * kK + k) * hw + y) * hw + x];
+          const float got = out[((static_cast<size_t>(n) * kK + k) * h + y) * w + x];
           ASSERT_NEAR(got, want, 1e-4 + 1e-3 * std::abs(want))
-              << "hw " << hw << " n " << n << " k " << k << " y " << y << " x " << x;
+              << h << "x" << w << " n " << n << " k " << k << " y " << y << " x " << x;
         }
       }
     }
@@ -133,12 +139,17 @@ void ExpectDenseConvMatchesReference(const int hw) {
 
 TEST(DenseConvK3S1P1, PerLaneWeightsWhenSubgroupSpansBlocks) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectDenseConvMatchesReference(6);
+  ExpectDenseConvMatchesReference(6, 6);
 }
 
 TEST(DenseConvK3S1P1, UniformWeightsWhenMapIsSubgroupMultiple) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectDenseConvMatchesReference(8);
+  ExpectDenseConvMatchesReference(8, 8);
+}
+
+TEST(DenseConvK3S1P1, RaggedOddWidthMap) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectDenseConvMatchesReference(7, 5);
 }
 
 int main(int argc, char** argv) {

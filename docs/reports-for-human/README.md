@@ -7,7 +7,8 @@ instructions; for how to actually build/test/deploy, see
 
 | Doc | What it is |
 |---|---|
-| [`2026-10-16-vk-data-flow-profile.md`](2026-10-16-vk-data-flow-profile.md) | **Latest:** where the Vulkan data-flow time goes: host cache maintenance, GPU-thread placement, a coherent-memory experiment, per device (two phones, not rocky) |
+| [`2026-10-16-mali-conv-kernels.md`](2026-10-16-mali-conv-kernels.md) | **Latest:** the Mali (Pixel 7a) paths of the two cifar 3x3 convs: output blocking shipped (dense -47 %, sparse -51 % of the stage sum), three shared-memory variants measured and rejected, with every table |
+| [`2026-10-16-vk-data-flow-profile.md`](2026-10-16-vk-data-flow-profile.md) | where the Vulkan data-flow time goes: host cache maintenance, GPU-thread placement, a coherent-memory experiment, per device (two phones, not rocky) |
 | [`2026-10-15-vk-shader-profile.md`](2026-10-15-vk-shader-profile.md) | Vulkan shader profile and the ranked optimization plan, with the per-device results of the three that were applied |
 | [`2026-10-15-vk-engine-runtime-decisions.md`](2026-10-15-vk-engine-runtime-decisions.md) | the vk-engine-runtime change's decisions with their measurements: conditional barriers, Pixel weights placement, queue defaults, several Vulkan GPU chunks, phase timing, in-flight depth, the overhead refit |
 | [`session-2026-07-02-jetpack72-fresh-start-and-overhead-model.md`](session-2026-07-02-jetpack72-fresh-start-and-overhead-model.md) | JetPack 7.2 fleet refresh (duck-stable/naughty), fresh-start archive + 12/12 matrix re-verified, CUDA-13 CUB port + `bt-cross:7.2` default, fresh baseline, and the fitted per-chunk overhead cost model (P2) |
