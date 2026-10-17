@@ -153,9 +153,63 @@ Gates used below:
 
 ## 4. Accuracy reporting and the acceptance gate (optimizer/cost-model)
 
-- [ ] 4.1 Move `validate_btpm.py`'s measured/predicted join into a library function, and add the per-schedule ratio table and the per-(device, app, backend, cost model, table) median absolute error to `speedup_summary.py`. Keep the script as a CLI. Verify: pytest on fixture schedule JSON and fixture `sched_logs` gives the expected ratios and medians.
-- [ ] 4.2 For each phone and app, solve with all three models on both tables and execute the candidates with `bm-gen-logs` (top-10; cifar-sparse top-5). Verify: the summary lists every model's error and best measured period for every cell.
-- [ ] 4.3 Apply the spec's gate. Make the best range variant the default only if, on both phones and for all three apps, its median absolute error is lower than `per-stage`'s on the same table and its best measured period is not worse beyond noise. Verify: a decision record with every table is in `docs/reports-for-human/`, the default in `02_gen_schedule_merged.py` matches it, and local passes.
+- [x] 4.1 Move `validate_btpm.py`'s measured/predicted join into a library function, and add the per-schedule ratio table and the per-(device, app, backend, cost model, table) median absolute error to `speedup_summary.py`. Keep the script as a CLI. Verify: pytest on fixture schedule JSON and fixture `sched_logs` gives the expected ratios and medians.
+  - *Evidence:* `optimizer/analysis/accuracy.py`: `accuracy_rows` (one row per executed schedule of every
+    `schedules_<table>_<tmax|gapness>[_<model>].json`: predicted `metrics.max_time`, measured period = per log each
+    chunk's mean duration summed per PU and maxed over PUs, median over the logs, ratio) and `summarize` (per device,
+    app, backend, cost model, table: n, median |ratio - 1|, best measured with its spread). Runs are matched to
+    schedules by chunk assignment, not uid (the uid hashes predicted times, so two models' files name one pipeline
+    differently). A schedule's cost model and table are its recorded `metrics.cost_model` / `metrics.table` (`02`
+    writes a range model's no-range fallback as `schedules_<table>_<mode>_range-hot.json` with `metrics.cost_model`
+    `per-stage`); the file name names them only for schedules without those fields. One row per (model, table,
+    assignment), kept from the first file (tmax before gapness, then per-stage, range-hot, range-idle), so a fallback
+    file beside the per-stage one, or one assignment in both modes, counts once. Rows carry `mode`.
+    `speedup_summary.py` gains the "Prediction accuracy" section (the medians, then every executed schedule's ratio,
+    mode and number of pooled logs); `validate_btpm.py` is a CLI over `accuracy_rows`, now per cost model;
+    `dashboard/generate.py` does not read the accuracy tables as speedup rows (checked: 6 speedup rows parsed from
+    the 4.2 summary).
+  - `optimizer/tests/test_accuracy.py` (fixture schedule files for two models and two tables, fixture logs at a
+    1 kHz tick): `test_ratios_per_executed_schedule` (ratios 1.2, 1.1, 0.88; an assignment proposed under another
+    uid; two GPU chunks summed on one device; an unknown uid ignored), `test_median_abs_error_and_best_per_model_and_table`
+    (0.15 / 0.0 / 0.12, best 12 and 8 ms), `test_summary_markdown_lists_ratios_and_medians`,
+    `test_gapness_schedules_alone`, `test_both_modes_are_kept_and_a_shared_assignment_counts_once` (3 schedules,
+    n 3, median 0.1), `test_a_range_model_without_range_records_is_reported_as_per_stage` (`02 --cost-model
+    per-stage` and `--cost-model range-hot` as subprocesses on the store without range files: the fallback warning,
+    `metrics.cost_model` `per-stage`; the executed fallback schedules are reported under `per-stage` only, once per
+    assignment). Local: `uv run pytest -q optimizer` → 41 passed.
+  - *Review fix (folded into this group):* a first version read only `tmax` files, keyed them by (model, table), so
+    a second mode's file would have overwritten the first, and took the cost model from the file name, so the
+    fallback above was reported as `range-hot` (reproduced through `02` on the per-stage-only fixture store). The
+    last three tests fail on that version (no gapness row; a shared assignment counted twice;
+    `{'per-stage', 'range-hot'}`).
+- [x] 4.2 For each phone and app, solve with all three models on both tables and execute the candidates with `bm-gen-logs` (top-10; cifar-sparse top-5). Verify: the summary lists every model's error and best measured period for every cell.
+  - *Evidence:* schedules from 965e294 (`02 --minimize_mode tmax --num_solutions 10 --cost-model <model>`, both
+    tables, both phones, three apps: 36 files under `data/schedules_{btpm,isolated}/`). Executions 2026-10-17
+    00:11-02:25 from `/data/local/tmp/bt-costmodel`: per (phone, app, table) the distinct assignments among the
+    three models' top 10 (cifar-sparse: top 5), each alone in a `bm-gen-logs-<app>-vk` process, 3 rounds in the same
+    order, 20 s before every run; 170 assignments, 510 runs, none failed (`data/sched_logs/<serial>_<app>_vk_<table>/`).
+  - Run-time estimate before the cifar-sparse sweep on the Pixel: 12 + 11 assignments, 230 s + 148 s of predicted
+    pipeline time per round plus 20 s gaps and warm-up, so 1-2 h for 3 rounds; it took 54 min (btpm 29.3 min,
+    isolated 24.7 min).
+  - `uv run optimizer/analysis/speedup_summary.py --sched-logs data/sched_logs --schedules-root data` →
+    `data/sched_logs/speedup-summary.md`: 6 speedup rows and 310 executed (model, table, schedule) rows; its
+    accuracy table has all 36 (phone, app, table, model) cells, each with n, the median abs error and the best
+    measured period [min-max] (the 36 rows are in the decision record, section 2).
+  - The first version of the join (4.1 review fix) gave the same 310 rows, medians and gate table: this store has
+    no gapness or fallback file. An assignment's runs are pooled over both tables' log folders: 6 Pixel assignments
+    proposed under both tables have 6 runs (16 of the 310 rows, three of them best schedules of the gate), all
+    others 3; the decision record, section 1, lists them.
+- [x] 4.3 Apply the spec's gate. Make the best range variant the default only if, on both phones and for all three apps, its median absolute error is lower than `per-stage`'s on the same table and its best measured period is not worse beyond noise. Verify: a decision record with every table is in `docs/reports-for-human/`, the default in `02_gen_schedule_merged.py` matches it, and local passes.
+  - *Evidence:* `docs/reports-for-human/2026-10-17-gpu-chunk-cost-model-gate.md`. Noise = the larger min-max
+    spread over the runs (3, or 6 where pooled) of the two best schedules. Neither range variant passes: each wins 2 of the 6
+    (phone, app) cells per table (btpm: Pixel tree, Samsung tree; isolated: Samsung tree, Pixel cifar-sparse).
+    Failures: cifar-dense on both phones (Samsung: error 0.111 / 0.140 vs 0.056 / 0.035; Pixel: lower error, but the
+    best schedule 5.54 / 3.38 ms slower against 0.40 / 0.12 ms of noise), cifar-sparse btpm on both phones (best
+    +200 ms Pixel, +176 ms Samsung), Pixel tree isolated and Samsung cifar-sparse isolated (higher error).
+    `range-idle` gives the same errors as `range-hot` in every cell (design D3 "As built").
+  - **`per-stage` stays the default**: `02_gen_schedule_merged.py --cost-model` default `per-stage` (unchanged);
+    06 Step 2 names it. Local: `uv run pytest -q optimizer` → 41 passed; `ctest --test-dir build/pc -L omp` → 100 %
+    of 11 passed.
 
 ## 5. Final gate
 
