@@ -520,7 +520,7 @@ encoder, the second with a range where `511.99997f` scales to exactly 1024.0f. B
 `apps/tree/omp/func_morton.hpp`, `apps/tree/cuda/func_morton.cuh`, `tree_morton.comp` and the test reference
 `MortonRef`. The default input's stage-1 output is byte-identical before and after.
 
-## 14. Octree leaf-mask clears raced, and the masks were never initialized — **FIXED (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links")**
+## 14. Octree leaf-mask clears raced, and the masks were never initialized — **FIXED (commit 5477c56)**
 
 **Found by:** review of the tree kernels (proposal A2), then the reproducers.
 
@@ -539,13 +539,13 @@ cleared. CUDA (`TreeLeafRaceCuda.ConcurrentLeafLinksKeepEveryBit`, duck-stable) 
 OMP's own `run_stage_7` none in 3000 runs (its static schedule only meets at range ends).
 `TreeOracleSelfTest.SpuriousLeafLinksFail` showed the check accepting an output that marks every free octant a leaf.
 
-**Fix (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links").** `#pragma omp atomic` on OMP and `atomicAnd` on CUDA (and in the Vulkan shader); the leaf masks are
+**Fix (commit 5477c56).** `#pragma omp atomic` on OMP and `atomicAnd` on CUDA (and in the Vulkan shader); the leaf masks are
 initialized to 0xFF where they are allocated (`tree::AppData`, `SafeAppData::u_oct_child_leaf_mask_s7_out`). The
 oracle's leaf-slot failure now names the missing and spurious slots. Cost: CUDA stage 7 on duck-stable 4.43 → 6.80 ms,
 all of it the atomic on the zero-copy buffers (a non-atomic control with the same masks is 4.44 ms); OMP stage 7 on
 the Jetson's six cores +6 %, within the spread.
 
-## 15. Vulkan stage 7 never linked leaves, and its differential test still passed — **FIXED (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links")**
+## 15. Vulkan stage 7 never linked leaves, and its differential test still passed — **FIXED (commit 5477c56)**
 
 **Found by:** review (proposal A3); confirmed in the `vk-data-flow-fixes` profile, which saw that the engine skips
 cache maintenance for `tree_build_octree.comp`'s bindings 4 and 10-12 because the module never uses them.
@@ -558,7 +558,7 @@ because of §14: the golden's masks were all zeros too, so both sides listed eve
 `TreeDiffVulkanChained.Stage7_Octree` fail on rocky-ryzen with `LEAF child slots differ (307151 only-in-ref, 0
 only-in-out ...)` and name the missing slots (run recorded under task 3.2 of `tree-app-improvements`).
 
-**Fix (commit "tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links").** Stage 7 is two dispatches of the same pipeline, selected by a push-constant `phase`: phase 0 makes the
+**Fix (commit 5477c56).** Stage 7 is two dispatches of the same pipeline, selected by a push-constant `phase`: phase 0 makes the
 nodes, phase 1 links the leaves with an atomic `SetLeaf`. Phase 1 writes the children buffer phase 0 wrote, so the
 `Sequence` records a barrier between them. All Vulkan stage-7 tests and `TreeLeafRaceVulkan` pass on rocky-ryzen (64
 and pinned 32), the Pixel 7a and the Samsung (64 and pinned 32); sync validation reports 0 hazards. Stage 7 on the

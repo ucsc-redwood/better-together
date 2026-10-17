@@ -167,12 +167,43 @@ Shaders are compiled at build time; nothing generated is committed.
     the filter): A 2.146 (2.021-2.390), B 2.268 (2.263-2.703) ms, +5.7 %, spreads overlapping.
 - [x] 3.5 Add entries to `docs/reports-for-human/bugs-found.md` for the Morton wrap, the leaf race and the missing Vulkan leaf links. Verify: each entry links its reproducer and fix commit.
   - *Evidence:* `docs/reports-for-human/bugs-found.md` §13 (Morton wrap: reproducers 4619d05, fix 3d6d919), §14 (leaf
-    race and uninitialized masks: reproducers 4619d05, fix the group 3 commit ("tree: atomic leaf-mask clears, initialized leaf masks and Vulkan leaf links")) and §15 (missing Vulkan leaf links: reproducer run
-    under 3.2, fix the same commit). The group 3 commit cannot name its own hash; §14/§15 cite it by subject.
+    race and uninitialized masks: reproducers 4619d05, fix 5477c56) and §15 (missing Vulkan leaf links: reproducer run
+    under 3.2, fix 5477c56). The group 3 commit could not name its own hash, so it cited itself by subject; the group 4
+    commit put in 5477c56.
 
 ## 4. Sort baseline and workgroup-count knob (topic B, design B1)
 
-- [ ] 4.1 Record the baseline on the phones: the phone A/B with the same binary in both arms (this change's tree after group 3, `kRadixNumWorkgroups` 64), recording each phone's governor and GPU clock. Verify: the stage-2/3/7 medians and the identical-binary spread of both phones are written here.
+- [x] 4.1 Record the baseline on the phones: the phone A/B with the same binary in both arms (this change's tree after group 3, `kRadixNumWorkgroups` 64), recording each phone's governor and GPU clock. Verify: the stage-2/3/7 medians and the identical-binary spread of both phones are written here.
+  - *Binary:* `bm-prof-tree-vk` at 5477c56 (group 3, `kRadixNumWorkgroups` 64) in both arms; same method as 3.4 (isolated,
+    `--benchmark_filter='vulkan/'`, big cores pinned, 3 rounds, 20 s before every run, no other `bm-`/`test-` process).
+    The GPU clock was sampled every 0.2 s during each run (Pixel `/sys/class/misc/mali0/device/cur_freq`, Samsung
+    `/sys/kernel/gpu/gpu_clock`; bm-prof's own `gpu_clock_mhz` is -1 on both).
+  - *Session 1, default sampling knobs:* identical arms differed by up to 50 % in a stage's median (Pixel stage 5
+    0.194 vs 0.291 ms, stage 7 2.026 vs 2.998; Samsung stage 5 0.194 vs 0.127). Stage 2: Pixel 4.945 (3.425-4.998) vs
+    5.002 (4.985-6.317) ms, Samsung 1.765 (1.732-1.933) vs 1.954 (1.285-2.296). GPU clock Pixel 202-762 MHz (median
+    302 / 251), Samsung 252-900 MHz (median 252). With the defaults (0.3 s per cell, 150 ms GPU warm-up) a short stage
+    gets few samples while the GPU clock moves, so each run's p50 moves with it.
+  - *Session 2, the knobs used from here on:* `BT_PROF_BUDGET_S=1.0 BT_PROF_MAX_CELL_S=3 BT_PROF_GPU_WARM_MS=500` (the
+    budget knobs as in the Mali conv report, and a longer GPU warm-up), so a stage gets 3-7x the samples. This is the
+    4.1 baseline the later A/Bs compare with; every later A/B runs a 5477c56 arm in the same session with these knobs.
+
+    | phone | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|---|
+    | Pixel 7a | 2 | 7.200 (6.323-7.214, n=3x138-158) | 6.326 (6.310-7.226, n=3x138-158) | -12.1 % |
+    | Pixel 7a | 3 | 1.651 (1.645-1.659, n=3x601-712) | 1.744 (1.674-2.013, n=3x592-603) | +5.6 % |
+    | Pixel 7a | 7 | 3.015 (3.014-3.017, n=3x330-333) | 3.014 (3.010-3.017, n=3x331-333) | -0.0 % |
+    | Samsung | 2 | 2.528 (2.415-3.068, n=3x328-414) | 2.495 (1.327-2.535, n=3x391-743) | -1.3 % |
+    | Samsung | 3 | 1.131 (0.990-3.254, n=3x308-902) | 2.158 (1.296-3.201, n=3x306-1213) | +90.8 % |
+    | Samsung | 7 | 1.914 (1.840-5.152, n=3x197-544) | 1.925 (1.915-2.111, n=3x472-929) | +0.6 % |
+
+    Other stages: Pixel 1, 4, 5, 6 within 0.5 %; Samsung 1 +90 %, 5 -35 %, 4 and 6 within 2 %.
+  - *Identical-binary spread (session 2, all six runs):* Pixel stage 2 6.310-7.226 ms, bimodal (each run's p50 is near
+    6.32 or near 7.21, 14 % apart), stage 3 1.645-2.013, stage 7 3.010-3.017. Samsung stage 2 1.327-3.068, stage 3
+    0.990-3.254, stage 7 1.840-5.152: bimodal by up to 2x, as in earlier reports. So the Pixel can show a stage-2 change
+    beyond noise only if it is larger than the 14 % mode gap, and the Samsung only one larger than about 2x.
+  - *Governor and GPU clock:* Pixel CPU governor `sched_pixel`, GPU clock 202-400 MHz (median 202, 367 samples); Samsung
+    `energy_aware`, GPU governor `conservative`, GPU clock 252-900 MHz (median 252, 380 samples). Neither phone lets the
+    shell user lock clocks, so the GPU runs these short stages mostly at its lowest clock.
 - [x] 4.2 Sweep `kRadixNumWorkgroups` and keep the best value in both `VkAppData_Safe` and `VkAppData`.
   - *Evidence (done before this change was applied, PR #26):* 256 → 64. The 780M sweep (32 / 64 / 128 / 256: stage 2
     0.408 / 0.404 / 0.421 / 0.773 ms) is in `docs/reports-for-human/2026-10-15-vk-shader-profile.md` 4.4; on the phones
