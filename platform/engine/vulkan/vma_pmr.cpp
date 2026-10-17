@@ -1,6 +1,7 @@
 #include "vma_pmr.hpp"
 
 #include <cstdlib>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -69,30 +70,53 @@ static MemoryPlacement resolve_placement(const vk::PhysicalDevice physical_devic
   return p;
 }
 
-MemoryPlacement weights_class_placement(const vk::PhysicalDevice physical_device) {
-  const auto props = physical_device.getProperties();
-  // Devices where moving the weights off the default placement measured faster beyond noise
-  // (memory-placement spec "Placement is decided by measurement"; tasks 2.3).
-  constexpr struct {
-    uint32_t vendor_id, device_id;
-    const char* placement;
-  } kMeasuredGo[] = {
-      {0x13B5, 0xa8620000, "uncached"},  // Pixel 7a, Mali-G710: fc1/fc2 -31..-35 %
-  };
+namespace {
 
+// A device on which moving a class off the default placement measured faster beyond noise
+// (memory-placement spec "Placement is decided by measurement").
+struct MeasuredGo {
+  uint32_t vendor_id, device_id;
+  const char* placement;
+};
+
+// The class's arm on this device: the measured one if the device is listed, else `default`; the
+// class's environment variable overrides both.
+MemoryPlacement class_placement(const vk::PhysicalDevice physical_device,
+                                const char* class_name,
+                                const char* env_name,
+                                const std::span<const MeasuredGo> measured) {
+  const auto props = physical_device.getProperties();
   std::string_view arm = "default";
   const char* reason = "no measured gain on this device";
-  for (const auto& d : kMeasuredGo) {
+  for (const auto& d : measured) {
     if (props.vendorID == d.vendor_id && props.deviceID == d.device_id) {
       arm = d.placement;
       reason = "measured gain on this device";
     }
   }
-  if (const auto v = env::get(env::kWeightsPlacement)) {
+  if (const auto v = env::get(env_name)) {
     arm = *v;
-    reason = "BT_VK_WEIGHTS_PLACEMENT";
+    reason = env_name;
   }
-  return resolve_placement(physical_device, "weights", env::kWeightsPlacement, arm, reason);
+  return resolve_placement(physical_device, class_name, env_name, arm, reason);
+}
+
+}  // namespace
+
+MemoryPlacement weights_class_placement(const vk::PhysicalDevice physical_device) {
+  constexpr MeasuredGo kMeasuredGo[] = {
+      {0x13B5, 0xa8620000, "uncached"},  // Pixel 7a, Mali-G710: fc1/fc2 -31..-35 %
+  };
+  return class_placement(physical_device, "weights", env::kWeightsPlacement, kMeasuredGo);
+}
+
+MemoryPlacement gpu_local_class_placement(const vk::PhysicalDevice physical_device) {
+  constexpr MeasuredGo kMeasuredGo[] = {
+      // Pixel 7a, Mali-G710 (placed tree, cifar-dense, cifar-sparse GPU chunks, 3 rounds):
+      // -4 / -3 / -3 %; the Samsung (Xclipse 940) does not change.
+      {0x13B5, 0xa8620000, "uncached"},
+  };
+  return class_placement(physical_device, "gpu_local", env::kGpuLocalPlacement, kMeasuredGo);
 }
 
 MemoryPlacement boundary_class_placement(const vk::PhysicalDevice physical_device) {

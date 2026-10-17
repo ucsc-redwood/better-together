@@ -171,17 +171,22 @@ inline int run(int argc, char** argv, const OmpDispatch& omp_dispatch) {
     const double touched = static_cast<double>(p.touched_bytes);
     const double flush_s = median(c_flush) * 1e-3;
     const double inval_s = median(c_inval) * 1e-3;
+    const double flushed = static_cast<double>(p.flushed_bytes);
+    const double invalidated = static_cast<double>(p.invalidated_bytes);
     std::printf(
-        "# bytes_MiB touched=%.2f gpu_written=%.2f gpu_read_only=%.2f gpu_write_only=%.2f\n",
+        "# bytes_MiB touched=%.2f gpu_written=%.2f gpu_read_only=%.2f gpu_write_only=%.2f "
+        "flushed=%.2f invalidated=%.2f\n",
         touched * mb,
         static_cast<double>(p.gpu_written_bytes) * mb,
         static_cast<double>(p.gpu_read_only_bytes) * mb,
-        static_cast<double>(p.gpu_write_only_bytes) * mb);
+        static_cast<double>(p.gpu_write_only_bytes) * mb,
+        static_cast<double>(p.flushed_bytes) * mb,
+        static_cast<double>(p.invalidated_bytes) * mb);
     std::printf(
         "# maintenance_rate_GiBps flush=%.2f invalidate=%.2f (invalidate time also holds the "
         "timestamp read-back)\n",
-        flush_s > 0 ? touched / flush_s / (1024.0 * 1024.0 * 1024.0) : 0.0,
-        inval_s > 0 ? touched / inval_s / (1024.0 * 1024.0 * 1024.0) : 0.0);
+        flush_s > 0 ? flushed / flush_s / (1024.0 * 1024.0 * 1024.0) : 0.0,
+        inval_s > 0 ? invalidated / inval_s / (1024.0 * 1024.0 * 1024.0) : 0.0);
   }
   std::printf("# stage_gpu_ms");
   for (size_t k = 0; k < stage_gpu_ms.size(); ++k) {

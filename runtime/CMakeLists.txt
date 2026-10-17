@@ -12,4 +12,7 @@ if(BT_BUILD_TESTS)
             BT_SCHEDULE_FIXTURE="${CMAKE_SOURCE_DIR}/tests/fixtures/schedule.contract.json"
     )
     set_tests_properties(test-schedule-omp PROPERTIES LABELS "omp;unit")
+    # Which cores the thread that drives a Vulkan GPU chunk is pinned to (hardware-free).
+    bt_add_omp_test(test-gpu-host-thread-omp tests/test_gpu_host_thread.cpp)
+    set_tests_properties(test-gpu-host-thread-omp PROPERTIES LABELS "omp;unit")
 endif()

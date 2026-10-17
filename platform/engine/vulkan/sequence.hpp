@@ -36,13 +36,15 @@ struct PhaseTimes {
   double wake_ns = 0;
   double calibration_deviation_ns = 0;  // the driver's bound on the calibration pair's error
   bool recorded = false;  // this submission recorded its command buffer (no cached reuse)
-  // What the flush and the invalidate walked (whole allocations of the bound buffers), and
-  // how the chunk's shaders use them. A buffer no shader writes needs no invalidate (the
-  // host copy is still current); a buffer no shader reads needs no flush for the GPU's sake.
+  // The whole allocations of the bound buffers (touched), how the chunk's shaders use them,
+  // and what the cache maintenance walked: a buffer no shader writes is not invalidated (the
+  // host copy is still current) and a buffer no shader accesses is not flushed either.
   uint64_t touched_bytes = 0;
   uint64_t gpu_written_bytes = 0;     // bound read-write or write-only by some dispatch
   uint64_t gpu_read_only_bytes = 0;   // bound only for reading
   uint64_t gpu_write_only_bytes = 0;  // bound only for writing
+  uint64_t flushed_bytes = 0;         // walked by the flush
+  uint64_t invalidated_bytes = 0;     // walked by the invalidate
 };
 
 class Sequence {
@@ -161,11 +163,13 @@ class Sequence {
   struct Pending {
     uint64_t ticket = 0;
     size_t slot = 0;
-    std::vector<VmaAllocation> touched;
+    std::vector<VmaAllocation> flush;       // buffers some dispatch reads or writes
+    std::vector<VmaAllocation> invalidate;  // buffers some dispatch writes
     uint64_t t_begin = 0, t_cmd_end = 0, t_submit = 0, t_flushed = 0, t_submitted = 0;
     bool recorded = false;
     uint64_t touched_bytes = 0, gpu_written_bytes = 0, gpu_read_only_bytes = 0,
-             gpu_write_only_bytes = 0;  // PhaseTimes' byte counts, filled with BT_VK_PHASES=1
+             gpu_write_only_bytes = 0, flushed_bytes = 0,
+             invalidated_bytes = 0;  // PhaseTimes' byte counts, filled with BT_VK_PHASES=1
   };
 
   [[nodiscard]] size_t acquire_slot();
@@ -173,7 +177,6 @@ class Sequence {
   [[nodiscard]] vk::DescriptorSet allocate_descriptor_set(Slot& slot,
                                                           vk::DescriptorSetLayout layout);
   [[nodiscard]] vk::DescriptorPool create_descriptor_pool() const;
-  [[nodiscard]] std::vector<VmaAllocation> touched_allocations() const;
   [[nodiscard]] uint64_t mask(uint64_t ticks) const;
 
   vk::Device device_ref_;

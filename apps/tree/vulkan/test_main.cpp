@@ -2,7 +2,9 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include <algorithm>
 #include <memory>
+#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -10,6 +12,7 @@
 #include "apps/tree/tree_diff_oracle.hpp"
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "runtime/tests/placement_check.hpp"
 #include "vk_appdata.hpp"
 
 // ----------------------------------------------------------------------------
@@ -127,6 +130,30 @@ struct VulkanChainedTreeRunner {
 }  // namespace
 
 BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffVulkanChained, VulkanChainedTreeRunner)
+
+// Memory-placement spec, design B3: the stages each VkAppData buffer declares (what the
+// schedule-driven placement trusts) are exactly the stages whose dispatches bind it. Stages
+// run in order, so the dispatcher's read-backs (n_unique after stage 3) happen as in a pipeline.
+TEST(Placement, DeclaredStagesMatchBindings) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  tree::vulkan::VulkanDispatcher disp;
+  auto* vk_mr = static_cast<kiss_vk::VulkanMemoryResource*>(disp.get_mr());
+  bt_placement_test::RecordingDispatcher rec(vk_mr);
+  tree::vulkan::VkAppData app(rec.placement(all_stages(7)));
+
+  for (int s = 1; s <= 7; ++s) {
+    disp.dispatch_multi_stage(app, s, s);
+    const auto& touched = disp.get_seq()->touched_buffers();
+    std::set<VkBuffer> bound(touched.begin(), touched.end());
+    std::set<VkBuffer> declared;
+    for (const auto& [ptr, alloc] : rec.log) {
+      if (std::ranges::find(alloc.stages, s) != alloc.stages.end()) {
+        declared.insert(vk_mr->find_buffer(ptr));
+      }
+    }
+    EXPECT_EQ(bound, declared) << "stage " << s;
+  }
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

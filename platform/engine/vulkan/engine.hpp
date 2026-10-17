@@ -27,9 +27,8 @@ class Engine final : public BaseEngine {
             device_, boundary_class_placement(get_physical_device()))),
         weights_mr_ptr_(std::make_unique<VulkanMemoryResource>(
             device_, weights_class_placement(get_physical_device()))),
-        // No measurement has promoted the GPU-local class on any device (design B1/B2).
-        gpu_local_mr_ptr_(
-            std::make_unique<VulkanMemoryResource>(device_, MemoryPlacement{.name = "gpu_local"})) {
+        gpu_local_mr_ptr_(std::make_unique<VulkanMemoryResource>(
+            device_, gpu_local_class_placement(get_physical_device()))) {
     spdlog::trace("Engine::Engine()");
     // Test hook (design D5): BT_VK_SUBGROUP_SIZE=<n> pins another size the device
     // supports, e.g. its minSubgroupSize; an unsupported value throws.

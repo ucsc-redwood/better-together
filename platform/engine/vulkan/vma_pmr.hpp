@@ -44,6 +44,12 @@ struct MemoryPlacement {
 // device has no type for warns and keeps the default; any other value throws.
 [[nodiscard]] MemoryPlacement weights_class_placement(vk::PhysicalDevice physical_device);
 
+// The GPU-local class's placement (buffers every accessor of which is a GPU stage of the
+// schedule, runtime/placement.hpp): same arms and the same measured-go rule as the weights
+// class; BT_VK_GPU_LOCAL_PLACEMENT overrides. A buffer only the GPU touches needs no host cache
+// maintenance in coherent memory.
+[[nodiscard]] MemoryPlacement gpu_local_class_placement(vk::PhysicalDevice physical_device);
+
 // The boundary class's placement (the class of Engine::get_mr()): today's (host-cached) unless
 // BT_VK_BOUNDARY_PLACEMENT (experiment knob, same values as BT_VK_WEIGHTS_PLACEMENT) says
 // otherwise. It exists to measure what the host cache maintenance of buffers no CPU stage touches

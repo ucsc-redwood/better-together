@@ -12,10 +12,10 @@ layout(set = 0, binding = 1) writeonly buffer PrefixN { uint8_t prefix_n[]; };
 // SSBO is laid out as a 32-bit word (std430), so writing `bool` here scattered
 // the flags at a 4x stride and corrupted has_leaf_{left,right}. Use uint8_t to
 // match the host 1-byte FakeBool, exactly like prefix_n.
-layout(set = 0, binding = 2) buffer HasLeafLeft { uint8_t has_leaf_left[]; };
-layout(set = 0, binding = 3) buffer HasLeafRight { uint8_t has_leaf_right[]; };
+layout(set = 0, binding = 2) writeonly buffer HasLeafLeft { uint8_t has_leaf_left[]; };
+layout(set = 0, binding = 3) writeonly buffer HasLeafRight { uint8_t has_leaf_right[]; };
 layout(set = 0, binding = 4) writeonly buffer LeftChild { int left_child[]; };
-layout(set = 0, binding = 5) buffer Parent { int parent[]; };
+layout(set = 0, binding = 5) writeonly buffer Parent { int parent[]; };
 
 layout(local_size_x = 256) in;
 

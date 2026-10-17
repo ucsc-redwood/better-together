@@ -33,11 +33,11 @@ layout(push_constant, std430) uniform PushConstants {
   uint g_num_blocks_per_workgroup;
 };
 
-layout(std430, set = 0, binding = 0) buffer elements_in { uint g_elements_in[]; };
+layout(std430, set = 0, binding = 0) readonly buffer elements_in { uint g_elements_in[]; };
 
-layout(std430, set = 0, binding = 1) buffer elements_out { uint g_elements_out[]; };
+layout(std430, set = 0, binding = 1) writeonly buffer elements_out { uint g_elements_out[]; };
 
-layout(std430, set = 0, binding = 2) buffer histograms {
+layout(std430, set = 0, binding = 2) readonly buffer histograms {
   uint g_histograms[];  // RADIX_SORT_BINS * g_num_workgroups
 };
 

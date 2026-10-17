@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include "platform/util/buffer_placement.hpp"
+
 namespace tree {
 
 // From empirical observation, 50% memory is a good ratio for octree
@@ -80,7 +82,13 @@ constexpr auto kRealDataDefaultInputSize = 500'000;
 // clang-format on
 
 struct AppData {
+  // Every buffer from one resource.
   explicit AppData(std::pmr::memory_resource* mr, const size_t n_input = kDefaultInputSize);
+  // Each buffer placed by the caller from the stages that touch it (platform/util/
+  // buffer_placement.hpp): the stages that read or write it, 0 for host code outside any
+  // stage (the input written at construction, a count the dispatcher reads back, the final
+  // output). A buffer only GPU stages touch can live in memory the host never needs to see.
+  explicit AppData(const bt::PlaceBuffer& place, const size_t n_input = kDefaultInputSize);
 
   // --------------------------------------------------------------------------
   // Essential data
