@@ -247,9 +247,58 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 6. Scatter and histogram efficiency (topic B, design B4)
 
-- [ ] 6.1 Add a local LDS sort by digit before the scatter, sized for the smallest `maxComputeSharedMemorySize` across the three GPUs (log each value). Verify: the VK gate is green, and the sizes are recorded.
-- [ ] 6.2 Add subgroup-aggregated histogram atomics in `multi_radixsort_histograms.comp`. Verify: the VK gate is green.
-- [ ] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
+- [x] 6.1 Add a local LDS sort by digit before the scatter, sized for the smallest `maxComputeSharedMemorySize` across the three GPUs (log each value). Verify: the VK gate is green, and the sizes are recorded.
+  - *Change (reverted in 6.3, see there):* `multi_radixsort.comp` ranked each 256-key block by digit with the existing
+    `bin_flags`, scanned the block's 256 bin counts (subgroup scan, so the scatter was subgroup-size dependent again),
+    placed the keys in shared memory in digit order and wrote them out so that invocations with consecutive slots of a
+    bin write consecutive addresses. Shared memory ~11 KiB (bin flags 8 KiB, offsets, block offsets and keys 1 KiB
+    each).
+  - *maxComputeSharedMemorySize* (now in the engine's `Subgroup size ...` debug line, `SPDLOG_LEVEL=debug test-kiss-vk
+    --gtest_filter=VulkanEngineTest.EngineInitialization`): Radeon 780M (RADV) 65536, Mali-G710 32768, Xclipse 940
+    32768. Sized for 32 KiB; it used ~11 KiB.
+  - *VK gate (with 6.1):* rocky `test-tree-vk` 20/20 and `test-kiss-vk` 30/30 at 64 and pinned 32; Pixel 7a 20/20 and
+    29/29; Samsung 20/20 and 29/29, also pinned 32.
+- [x] 6.2 Add subgroup-aggregated histogram atomics in `multi_radixsort_histograms.comp`. Verify: the VK gate is green.
+  - *Change (reverted in 6.3):* in `multi_radixsort_histograms.comp`, each invocation looped: take the bin of the first
+    invocation still looping (`subgroupBroadcastFirst`), ballot the invocations with that bin, one `atomicAdd` of the
+    ballot's bit count by an elected invocation, and the counted invocations leave. Correct for any subgroup size and
+    any grouping of the loop's invocations, so the kernel needed no specialization.
+  - *VK gate (6.1 + 6.2):* rocky `ctest -L vulkan` 7/7, `test-tree-vk` 20/20 at 64 and pinned 32; Pixel 7a 20/20 and
+    29/29; Samsung 20/20 and 29/29, also pinned 32.
+- [x] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
+  - *Method:* as 4.1 session 2, five arms rotated in one session: A = 5477c56 (the 4.1 baseline), G5 = fce8948
+    (group 5), S1 = G5 + 6.1, S2 = G5 + 6.2, S12 = G5 + 6.1 + 6.2. Stage 2 (ms):
+
+    | phone | A | G5 | S1 (6.1) | S2 (6.2) | S12 (both) |
+    |---|---|---|---|---|---|
+    | Pixel 7a | 5.469 (4.990-5.902) | 5.529 (5.474-5.927), +1.1 % | 6.759 (6.199-7.287), +23.6 % | 9.676 (8.242-9.692), +76.9 % | 7.140 (6.476-8.801), +30.6 % |
+    | Samsung | 2.562 (2.556-2.574) | 2.473 (1.814-2.623), -3.5 % | 2.621 (2.486-2.771), +2.3 % | 2.848 (2.846-3.104), +11.2 % | 2.870 (2.869-2.871), +12.0 % |
+
+    n = 3 x 101-198 (Pixel), 3 x 318-548 (Samsung). Other stages within 1.3 % except the Pixel's stage 6, which sat on
+    its 1.25 ms level in the three S arms and on its 1.04 ms level in A and G5 (its code is the same in all five).
+    GPU clock median 251 MHz (Pixel) / 252 MHz (Samsung) in every arm.
+  - *Verdict:* neither change makes stage 2 faster; both make it slower on both phones (6.2 beyond the spread on both).
+    Reverted: `multi_radixsort.comp`, `multi_radixsort_histograms.comp` and the dispatcher are back at fce8948. Kept: the
+    `maxComputeSharedMemorySize` value in the engine's debug line (6.1's sizing record). Inferred, not measured: with
+    256 keys per block and 256 bins a bin run in a block is about one key long, so the local sort buys no coalescing
+    and costs two more barriers per block; the Morton digits are close to uniform, so a subgroup rarely holds equal
+    bins and the ballot loop runs about once per invocation.
+  - *Workgroup count re-swept on top of group 5 (design B1 "keep the best"; scratch builds of fce8948 with
+    `kRadixNumWorkgroups` 32 / 128 / 256 in both appdata classes; `test-tree-vk` stages 2, 3 and 7 pass with each on both
+    phones).* The 64 was chosen on the 780M while every scatter workgroup re-read the whole table; group 5 removed that
+    cost, so more workgroups might have paid now. Stage 2 (ms), same method, one session:
+
+    | phone | A (5477c56, 64) | G5 (64) | 32 | 128 | 256 |
+    |---|---|---|---|---|---|
+    | Pixel 7a | 5.425 (5.417-5.893) | 5.487 (4.532-5.494), +1.1 % | 7.425 (6.858-8.484), +36.9 % | 5.525 (5.120-5.957), +1.9 % | 6.048 (4.590-7.090), +11.5 % |
+    | Samsung | 2.621 (2.620-2.622) | 2.521 (1.891-2.616), -3.8 % | 2.342 (1.697-2.350), -10.7 % | 1.939 (1.939-2.607), -26.0 % | 3.000 (2.941-3.006), +14.4 % |
+
+    No count is lower beyond the spread on both phones (on the Pixel none is lower at all); 64 stays. On the Samsung,
+    128's and even G5's spreads end just below A's, but A's three runs happened to sit on one of the Samsung's two
+    levels (4.1), so that is not read as a gain.
+  - *Outcome for the spec:* the requirement "The sort is faster on the phones" is **not met** by this change. B1 (64,
+    PR #26) is the baseline, B2 is neutral, B4 is slower, B3 (Onesweep) was rejected. Recorded in design (Open
+    Questions) for the owner to settle before the change is archived.
 
 ## 7. Full subgroups (topic B, design B5)
 

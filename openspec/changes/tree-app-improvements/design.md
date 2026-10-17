@@ -85,6 +85,9 @@ Onesweep's decoupled look-back needs forward progress between workgroups, which 
 ### B4. LDS local sort and aggregated atomics
 - **Local sort:** rank keys by digit within each workgroup's block (reusing the `bin_flags` ranking), then write in digit order, so writes within a bin run are contiguous.
 - **Aggregated atomics:** in the histogram kernel, combine equal bins per subgroup via `GL_KHR_shader_subgroup_ballot` before the shared `atomicAdd`.
+- *Measured (task 6.3) and reverted:* on top of B2, the local sort made stage 2 +24 % (Pixel 7a) / +2 % (Samsung), the
+  aggregated atomics +77 % / +11 %. With 256-key blocks and 256 bins a bin run is about one key long, and the Morton
+  digits are nearly uniform, so neither has anything to win and both add work.
 
 ### B5. Full subgroups
 - **Engine:** owned by `vk-engine-runtime`, which runs before this change. It enables `computeFullSubgroups` as an optional feature and gives every subgroup-size-dependent pipeline `REQUIRE_FULL_SUBGROUPS` (its `vulkan-engine/pipeline-config` delta). This change does not touch the engine side.
@@ -113,3 +116,10 @@ Topic A lands first, each fix behind its reproducer, with the full gate includin
 ## Open Questions
 
 - Whether B2/B4 still give a gain beyond noise on the phones on top of B1 (already 64). If neither does, record it; the spec's phone gate decides, not a fixed target.
+  - *Answer (tasks 5.3 and 6.3):* neither does. B2 is neutral (Pixel 7a level for level 0.2-1.3 % slower, Samsung
+    -2..-4 %, within the spread), B4 is slower on both phones and was reverted, and re-sweeping the workgroup count on
+    top of B2 (32 / 128 / 256) found nothing faster on both phones. So the spec requirement "The sort is faster on the
+    phones" (`gpu-kernels/tree-sort`) is not met by this change. Before archiving, the owner has to decide whether to
+    drop or relax that requirement, or to fund a different sort (e.g. bigger tiles per workgroup, a different digit
+    width). Both phones run these stages mostly at their lowest GPU clock, and their runs land on discrete levels
+    10-50 % apart (4.1), so a gain also has to be large to be seen.
