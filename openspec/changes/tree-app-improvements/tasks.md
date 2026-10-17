@@ -212,9 +212,38 @@ Shaders are compiled at build time; nothing generated is committed.
 
 ## 5. Global prefix once per pass (topic B, design B2/B3)
 
-- [ ] 5.1 Add the per-pass histogram-table scan, or the upfront all-digit histogram (whichever 4.x favours; record the choice in design B2), and make `multi_radixsort.comp` read only its own offsets. Verify: `test-tree-vk` is exact on rocky at 64 and forced 32.
-- [ ] 5.2 Run the full VK gate. Verify: green, including the Pixel 7a at subgroup 16.
-- [ ] 5.3 Measure stage 2 with the phone A/B against 4.1. Verify: before/after recorded for both phones, with no regression beyond the spread.
+- [x] 5.1 Add the per-pass histogram-table scan, or the upfront all-digit histogram (whichever 4.x favours; record the choice in design B2), and make `multi_radixsort.comp` read only its own offsets. Verify: `test-tree-vk` is exact on rocky at 64 and forced 32.
+  - *Choice (design B2):* the per-pass scan. An upfront all-digit histogram only gives each digit's global bin totals;
+    a workgroup's offset inside a bin still needs the counts of the workgroups before it, for every pass, so it would
+    not remove the per-pass table read. New `multi_radixsort_scan.comp` (one workgroup, one invocation per bin) turns
+    the 256 x 64 histogram table into every workgroup's global offsets in place; it carries the subgroup scan over the
+    bins that each scatter workgroup used to run, so it is the subgroup-size-dependent sort kernel now (spec constant 0,
+    `subgroup_size_dependent()`). `multi_radixsort.comp` reads only its own 256 offsets and no longer uses subgroups.
+    Stage 2 is 12 dispatches (histogram, scan, scatter per digit). `test-kiss-vk`'s reflection and subgroup tests that
+    used `multi_radixsort` as the subgroup-dependent example use `multi_radixsort_scan` now; `01-hardware.md` names it.
+  - *rocky-ryzen:* `test-tree-vk --device minipc` 20/20 at 64 and with `BT_VK_SUBGROUP_SIZE=32`; `test-kiss-vk` 30/30
+    at both.
+- [x] 5.2 Run the full VK gate. Verify: green, including the Pixel 7a at subgroup 16.
+  - rocky-ryzen: `ctest -L vulkan` 7/7, `test-tree-vk` 20/20 at 64 and pinned 32. Pixel 7a (subgroup 16) `test-tree-vk`
+    20/20, `test-kiss-vk` 29/29; Samsung 20/20 and 29/29, also with `BT_VK_SUBGROUP_SIZE=32`.
+- [x] 5.3 Measure stage 2 with the phone A/B against 4.1. Verify: before/after recorded for both phones, with no regression beyond the spread.
+  - *Method:* as 4.1 session 2 (A = 5477c56, B = group 5, same session, knobs `BT_PROF_BUDGET_S=1.0
+    BT_PROF_MAX_CELL_S=3 BT_PROF_GPU_WARM_MS=500`). Stage 2 (ms):
+
+    | phone | A median (min-max) | B median (min-max) | B vs A |
+    |---|---|---|---|
+    | Pixel 7a, session 1 | 7.212 (6.330-7.304, n=3x135-158) | 8.359 (6.414-8.477, n=3x117-151) | +15.9 % |
+    | Pixel 7a, session 2 | 7.214 (7.209-8.344, n=3x119-139) | 8.363 (7.231-8.366, n=3x119-138) | +15.9 % |
+    | Samsung | 2.557 (2.548-2.562, n=3x389-730) | 2.510 (1.900-2.523, n=3x416-549) | -1.9 % |
+
+  - *Reading the Pixel:* each run's samples are tight (cv 0.2-1.3 %), but a run lands on one of three levels. Over both
+    sessions A's six p50s are 6.33 / 7.21 / 7.21 / 7.21 / 7.30 / 8.34 and B's 6.41 / 7.23 / 8.36 / 8.36 / 8.36 / 8.48: the
+    same levels, B more often on the top one. Level for level B is 0.2-1.3 % slower. The GPU clock read 202 MHz (median)
+    in both arms; the memory-interface clock is not readable by the shell user, so what picks the level is not known.
+    The Samsung was quiet in this session (all stages within 1 %, stage 2 A spread 2.548-2.562).
+  - *Verdict:* no regression beyond the spread on either phone (the spreads overlap), so group 5 stays. It also gives
+    no measurable gain: at 64 workgroups the table re-read is too small to show on the phones. Other stages unchanged
+    (Pixel stage 4 and 6 moved between levels in session 1 only, within 0.3 % in session 2).
 
 ## 6. Scatter and histogram efficiency (topic B, design B4)
 

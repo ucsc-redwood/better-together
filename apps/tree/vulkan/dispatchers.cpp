@@ -33,7 +33,7 @@ struct InputSizePushConstantsUnsigned {
 };
 
 // Multi-workgroup (device-wide) radix sort push constants (shared by the
-// histogram and scatter passes); see multi_radixsort{,_histograms}.comp.
+// histogram, scan and scatter passes); see multi_radixsort{,_histograms,_scan}.comp.
 struct RadixSortPushConstants {
   uint32_t g_num_elements;
   uint32_t g_shift;
@@ -119,9 +119,10 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
   cached_algorithms.try_emplace("morton", std::move(morton_algo));
 
   // Multi-workgroup (device-wide) LSD radix sort: histogram pass (in,
-  // histograms) + scatter pass (in, out, histograms), 4x8-bit, ping-pong. The 4
-  // radix passes are recorded into one command buffer (one submit); record_bind
-  // captures each pass's ping-pong buffers per dispatch.
+  // histograms) + scan pass (histograms -> each workgroup's global offsets, in place)
+  // + scatter pass (in, out, offsets), 4x8-bit, ping-pong. The 4 radix passes are
+  // recorded into one command buffer (one submit); record_bind captures each pass's
+  // ping-pong buffers per dispatch.
   auto radix_histograms_algo = engine.make_algo("multi_radixsort_histograms")
                                    ->work_group_size(256, 1, 1)
                                    ->num_buffers(2)
@@ -130,11 +131,19 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
 
   cached_algorithms.try_emplace("radix_histograms", std::move(radix_histograms_algo));
 
-  // The scatter pass's subgroup-sum array is sized by the subgroup width: one shader,
+  // The scan pass's subgroup-sum array is sized by the subgroup width: one shader,
   // specialized with the device's subgroup size (pinned where supported).
+  auto radix_scan_algo = engine.make_algo("multi_radixsort_scan")
+                             ->work_group_size(256, 1, 1)
+                             ->subgroup_size_dependent()
+                             ->num_buffers(1)
+                             ->push_constant<RadixSortPushConstants>()
+                             ->build();
+
+  cached_algorithms.try_emplace("radix_scan", std::move(radix_scan_algo));
+
   auto radix_scatter_algo = engine.make_algo("multi_radixsort")
                                 ->work_group_size(256, 1, 1)
-                                ->subgroup_size_dependent()
                                 ->num_buffers(3)
                                 ->push_constant<RadixSortPushConstants>()
                                 ->build();
@@ -256,14 +265,16 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, kiss_vk::Sequence
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
   // Device-wide multi-workgroup LSD radix sort (Mirco Werner / Embree). Each of
-  // the 4 8-bit passes runs two dispatches: a histogram pass (per-workgroup
-  // 256-bin counts) and a scatter pass (global offsets + reorder). Buffers
+  // the 4 8-bit passes runs three dispatches: a histogram pass (per-workgroup
+  // 256-bin counts), a scan pass (one workgroup: every workgroup's global offsets)
+  // and a scatter pass (reorder). Buffers
   // ping-pong so the result lands in u_morton_keys_sorted_s2_out after 4 passes:
   //   src/dst:  s1->tmp -> out -> tmp -> out  (final = out).
-  // The 8 dispatches are recorded into the chunk's single command buffer; the
+  // The 12 dispatches are recorded into the chunk's single command buffer; the
   // fence wait is once per chunk, not per pass.
 
   auto* hist_algo = cached_algorithms.at("radix_histograms").get();
+  auto* scan_algo = cached_algorithms.at("radix_scan").get();
   auto* scatter_algo = cached_algorithms.at("radix_scatter").get();
 
   const uint32_t n = appdata.get_n_input();
@@ -289,7 +300,7 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, kiss_vk::Sequence
       &appdata.u_morton_keys_sorted_s2_out,
   };
 
-  // Every dispatch depends on the one before it: histogram->scatter shares the
+  // Every dispatch depends on the one before it: histogram->scan->scatter share the
   // histograms buffer, and pass i's scatter output is pass i+1's histogram/scatter
   // input (ping-pong). The Sequence records a dependency (RAW + WAW) before each
   // (design A3). A fence-wait between separate submits guarantees execution order
@@ -314,7 +325,12 @@ void VulkanDispatcher::record_stage_2(VkAppData_Safe& appdata, kiss_vk::Sequence
     hist_algo->record_push_constants(seq, pc);
     hist_algo->record_dispatch(seq, {num_workgroups, 1, 1});
 
-    // scatter pass (src + histograms -> dst)
+    // scan pass (histograms -> each workgroup's global offsets, in place)
+    scan_algo->record_bind(seq, {engine.get_buffer_info(appdata.u_sort_histograms)});
+    scan_algo->record_push_constants(seq, pc);
+    scan_algo->record_dispatch(seq, {1, 1, 1});
+
+    // scatter pass (src + offsets -> dst)
     scatter_algo->record_bind(seq,
                               {
                                   engine.get_buffer_info(*src_seq[pass]),
@@ -568,6 +584,7 @@ void VulkanDispatcher::record_stage_2(VkAppData& appdata, kiss_vk::Sequence& seq
   LOG_KERNEL(LogKernelType::kVK, 2, &appdata);
 
   auto* hist_algo = cached_algorithms.at("radix_histograms").get();
+  auto* scan_algo = cached_algorithms.at("radix_scan").get();
   auto* scatter_algo = cached_algorithms.at("radix_scatter").get();
 
   const uint32_t n = appdata.get_n_input();
@@ -607,6 +624,10 @@ void VulkanDispatcher::record_stage_2(VkAppData& appdata, kiss_vk::Sequence& seq
                            });
     hist_algo->record_push_constants(seq, pc);
     hist_algo->record_dispatch(seq, {num_workgroups, 1, 1});
+
+    scan_algo->record_bind(seq, {engine.get_buffer_info(appdata.u_sort_histograms)});
+    scan_algo->record_push_constants(seq, pc);
+    scan_algo->record_dispatch(seq, {1, 1, 1});
 
     scatter_algo->record_bind(seq,
                               {

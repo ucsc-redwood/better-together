@@ -72,6 +72,13 @@ of task 4.1 is taken with 64.
 ### B2. Global prefix once per pass (reduce-then-scan)
 Add a small per-pass scan of the 256 × WG table into per-workgroup offsets, or compute all 4 digits' histograms in one upfront read (FidelityFX ParallelSort structure). The scatter then reads only its own offsets.
 
+*Chosen (task 5.1): the per-pass scan.* The upfront all-digit histogram gives each digit's global bin totals, but a
+workgroup's offset inside a bin also needs the counts of the workgroups before it, and those change every pass, so it
+does not remove the per-pass table read. `multi_radixsort_scan.comp` (one workgroup) writes every workgroup's 256
+offsets in place; it carries the subgroup scan over the bins, so it is the subgroup-size-dependent kernel and the
+scatter no longer uses subgroups. *Measured (task 5.3):* no gain on the phones (Pixel 7a level for level 0.2-1.3 %
+slower, Samsung -1.9 %, all within the spread); at 64 workgroups the re-read was already small.
+
 ### B3. Not Onesweep
 Onesweep's decoupled look-back needs forward progress between workgroups, which Vulkan doesn't guarantee. A waiting workgroup can deadlock on a never-scheduled predecessor, a particular risk on Mali (to verify). Reduce-then-scan is portable at the cost of one extra key read per pass.
 

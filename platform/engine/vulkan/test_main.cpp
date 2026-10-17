@@ -70,7 +70,7 @@ TEST(VulkanDeviceFeatures, MissingShaderInt8IsReported) {
 // Pipeline-config (design D5): the SPIR-V scan reads spec ids and workgroup size from
 // the compiled shaders. Hardware-free.
 TEST(SpirvReflection, CommittedShaders) {
-  const auto radix = kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("multi_radixsort"));
+  const auto radix = kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv("multi_radixsort_scan"));
   EXPECT_EQ(radix.spec_ids, std::set<uint32_t>{kiss_vk::kSubgroupSizeSpecId});
   EXPECT_EQ(radix.local_size, (std::array<uint32_t, 3>{256, 1, 1}));
   for (const auto& id : radix.local_size_spec_id) EXPECT_FALSE(id.has_value());
@@ -648,9 +648,9 @@ TEST(VulkanWorkGroupSize, ExceedsDeviceLimitsThrows) {
 TEST(VulkanSubgroupSize, DependentPipelinesMatchTheShader) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   kiss_vk::Engine engine;
-  auto err = build_error(engine.make_algo("multi_radixsort")
+  auto err = build_error(engine.make_algo("multi_radixsort_scan")
                              ->work_group_size(256, 1, 1)
-                             ->num_buffers(3)
+                             ->num_buffers(1)
                              ->push_constant_size(16));
   EXPECT_NE(err.find("is not subgroup_size_dependent()"), std::string::npos) << err;
 
@@ -660,10 +660,10 @@ TEST(VulkanSubgroupSize, DependentPipelinesMatchTheShader) {
                         ->num_buffers(2));
   EXPECT_NE(err.find("has no constant_id = 0"), std::string::npos) << err;
 
-  EXPECT_NO_THROW((void)engine.make_algo("multi_radixsort")
+  EXPECT_NO_THROW((void)engine.make_algo("multi_radixsort_scan")
                       ->work_group_size(256, 1, 1)
                       ->subgroup_size_dependent()
-                      ->num_buffers(3)
+                      ->num_buffers(1)
                       ->push_constant_size(16)
                       ->build());
 }
