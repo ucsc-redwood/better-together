@@ -638,10 +638,13 @@ inline std::size_t CountLostLeafBits(Runner& runner, const int reps) {
       for (int c = 0; c < kAxisClusters; ++c) {
         for (int o = 0; o < 8; ++o) {
           // Cluster base (2a, 2b, 2c), then one point per octant, centred in its cell.
-          out.u_input_points_s0[p++] = glm::vec4(tree::kMinCoord + 2.0f * a + (o & 1) + 0.5f,
-                                                 tree::kMinCoord + 2.0f * b + (o >> 1 & 1) + 0.5f,
-                                                 tree::kMinCoord + 2.0f * c + (o >> 2 & 1) + 0.5f,
-                                                 1.0f);
+          out.u_input_points_s0[p++] = glm::vec4(
+              tree::kMinCoord + 2.0f * static_cast<float>(a) + static_cast<float>((o & 1)) + 0.5f,
+              tree::kMinCoord + 2.0f * static_cast<float>(b) + static_cast<float>((o >> 1 & 1)) +
+                  0.5f,
+              tree::kMinCoord + 2.0f * static_cast<float>(c) + static_cast<float>((o >> 2 & 1)) +
+                  0.5f,
+              1.0f);
         }
       }
     }
