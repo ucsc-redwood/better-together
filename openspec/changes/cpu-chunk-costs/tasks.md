@@ -91,9 +91,44 @@ Gates used below:
 
 ## 3. Acceptance gate (optimizer/cost-model)
 
-- [ ] 3.1 Solve top-10 (cifar-sparse top-5) per phone, app and table with the per-stage model, the refreshed store and the overhead, and execute them as in the 2026-10-17 gate. Verify: every cell has executions in `data/sched_logs`.
-- [ ] 3.2 Compute per-chunk CPU errors on the new executions with and without the overhead, and compare with the 2026-10-17 values (gate report section 3, per-stage rows). Verify: a decision record in `docs/reports-for-human/` lists every (phone, app, table) with before / after CPU error and best measured period, and states whether each spec bound holds. If the overhead fails the held-out check, `overhead.json` is not shipped for that phone and the reason is recorded.
-- [ ] 3.3 Update `docs/instruction-for-ai/05-profiling.md` (input-pure stages) and `06-end-to-end-scheduling.md` (the shipped overhead). Verify: the documented commands reproduce one cell of 3.1.
+- [x] 3.1 Solve top-10 (cifar-sparse top-5) per phone, app and table with the per-stage model, the refreshed store and the overhead, and execute them as in the 2026-10-17 gate. Verify: every cell has executions in `data/sched_logs`.
+  - The 2026-10-17 executions and schedule files were moved to `data/archive/2026-10-17-gpu-chunk-cost-model/`
+    first, so that their logs (old stage-2 kernel) do not pool with the new ones by assignment.
+  - *Solve:* `02_gen_schedule_merged.py --profiling_root data/profiling --device <serial> --app <app> --backend vk
+    --table_type <btpm|isolated> --minimize_mode tmax --num_solutions 10 --output_folder data/schedules_<table>`
+    (per-stage, the 2.2 `overhead.json` in the store; the union sweep added 0-2 candidates per file), 12 files.
+  - *Execute* (2026-10-18 00:52-01:59 PDT): per cell the top 10 by `metrics.max_time` (cifar-sparse top 5), each as a
+    one-schedule JSON in its own `bm-gen-logs-<app>-vk` process from `/data/local/tmp/cpucost` with the real
+    weights, 3 rounds in the same order, 20 s idle before every run, both phones at once. 300 runs (50 per round per
+    phone), none failed.
+  - Every cell has executions: `data/sched_logs/<serial>_<app>_vk_<table>/`, 30 logs for each tree and cifar-dense
+    cell and 15 for each cifar-sparse cell, on both phones.
+- [x] 3.2 Compute per-chunk CPU errors on the new executions with and without the overhead, and compare with the 2026-10-17 values (gate report section 3, per-stage rows). Verify: a decision record in `docs/reports-for-human/` lists every (phone, app, table) with before / after CPU error and best measured period, and states whether each spec bound holds. If the overhead fails the held-out check, `overhead.json` is not shipped for that phone and the reason is recorded.
+  - Decision record: `docs/reports-for-human/2026-10-18-cpu-chunk-costs-gate.md` (all 12 cells, before / after CPU
+    error with and without the overhead, best measured period against the noise, each bound's verdict). The
+    computing script reproduces the 2026-10-17 report's per-stage rows exactly on that report's data.
+  - *Tree CPU error lower on both tables, both phones:* holds (Pixel 0.372 to 0.218 btpm, 0.376 to 0.297
+    isolated; Samsung 1.531 to 0.366, 3.028 to 1.165).
+  - *cifar CPU error not higher:* **fails** in 5 of 8 cells (Pixel cifar-dense btpm 0.401 to 0.409, isolated 0.245
+    to 0.260, cifar-sparse btpm 0.134 to 0.215; Samsung cifar-dense btpm 0.072 to 0.186, cifar-sparse isolated
+    0.113 to 0.157). The Pixel's three are the same schedules at the same prices as on 2026-10-17 (session variation).
+  - *Best measured period not worse beyond noise:* holds in all 12 cells.
+  - *Held-out check:* **fails** on both phones (median CPU-chunk error over all new executions, with / without:
+    Pixel 0.315 / 0.315, the fit being zero; Samsung 0.307 / 0.244). Neither `overhead.json` is shipped: both moved
+    to `data/archive/2026-10-18-cpu-chunk-costs-rejected-overhead/<serial>/`, and `data/profiling/<serial>/` holds
+    none. The reasons are in the record, section 3.
+- [x] 3.3 Update `docs/instruction-for-ai/05-profiling.md` (input-pure stages) and `06-end-to-end-scheduling.md` (the shipped overhead). Verify: the documented commands reproduce one cell of 3.1.
+  - 05: new section "A stage is profiled on unmodified input (input-pure stages)": the rule, the
+    `InputPurityOmp` guard, and that tree's CPU tiers are nominal, with how to pin with `taskset`. 06: the phones
+    ship no `overhead.json`, why, where the rejected fits are, and the held-out check a refit must pass. The report
+    lists the 3.1 commands (section 6).
+  - *Reproduction*, with the store as shipped (the Pixel's fit was zero, so its prices are 3.1's):
+    - Pixel tree btpm: the 06 Step 2 command returns 3.1's 10 executed assignments with the same uids and prices.
+      Its best schedule SCH-L2G5-G160-4fd8, run 3 times by the report's command 20 s apart, measured 9.84 / 21.17 /
+      28.78 ms (3.1: 11.54 [10.44-21.44]). The median is inside 3.1's range, the third run above it: the cell is
+      bimodal (the Little `[1,2]` chunk holds the unpinned sort).
+    - Pixel cifar-dense btpm: 10 of 10 assignments with the same uids and prices. SCH-M4B1G5L1-G4821-09d0
+      measured 43.25 / 42.98 / 43.26 ms (3.1: 43.19 [42.90-43.43]).
 
 ## 4. Final gate
 

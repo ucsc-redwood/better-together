@@ -7,7 +7,8 @@ instructions; for how to actually build/test/deploy, see
 
 | Doc | What it is |
 |---|---|
-| [`2026-10-17-gpu-chunk-cost-model-gate.md`](2026-10-17-gpu-chunk-cost-model-gate.md) | **Latest:** the gpu-chunk-cost-model acceptance gate on both phones: range-priced GPU chunks vs the per-stage sum, every (phone, app, table) cell; the per-stage model stays the default |
+| [`2026-10-18-cpu-chunk-costs-gate.md`](2026-10-18-cpu-chunk-costs-gate.md) | **Latest:** the cpu-chunk-costs acceptance gate on both phones: tree stage 2 profiled on intact input lowers tree's CPU-chunk error in every cell; the fitted CPU overhead fails the held-out check on both phones and is not shipped; the cifar bound fails as written in 5 cells |
+| [`2026-10-17-gpu-chunk-cost-model-gate.md`](2026-10-17-gpu-chunk-cost-model-gate.md) | the gpu-chunk-cost-model acceptance gate on both phones: range-priced GPU chunks vs the per-stage sum, every (phone, app, table) cell; the per-stage model stays the default |
 | [`2026-10-16-mali-conv-kernels.md`](2026-10-16-mali-conv-kernels.md) | the Mali (Pixel 7a) paths of the two cifar 3x3 convs: output blocking shipped (dense -47 %, sparse -51 % of the stage sum), three shared-memory variants measured and rejected, with every table |
 | [`2026-10-16-vk-data-flow-profile.md`](2026-10-16-vk-data-flow-profile.md) | where the Vulkan data-flow time goes: host cache maintenance, GPU-thread placement, a coherent-memory experiment, per device (two phones, not rocky) |
 | [`2026-10-15-vk-shader-profile.md`](2026-10-15-vk-shader-profile.md) | Vulkan shader profile and the ranked optimization plan, with the per-device results of the three that were applied |

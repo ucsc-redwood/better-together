@@ -81,6 +81,28 @@ much larger `BT_TREE_INPUT_SIZE` anywhere.
 (Budget: ~30% of total device RAM ÷ 4,224 bytes/point. Single-instance tools have no
 such ceiling — even the full 12.15M-point file is fine there on any of these targets.)
 
+## A stage is profiled on unmodified input (input-pure stages)
+
+`bm-prof` times a cell by running one stage again and again on one AppData, with no reset between
+samples (`profiler/bm_prof_common.hpp`, `time_once`). Its numbers are what a pipeline item costs only
+if the stage leaves the buffers it reads as they were. Until cpu-chunk-costs, tree's OMP stage 2 sorted
+`u_morton_keys_s1` in place, so from the second sample on it sorted sorted keys: the Pixel's Medium
+tier was priced 0.64 ms for a stage that takes 9.1 ms on fresh input.
+
+- **Rule.** An OMP stage kernel does not write the buffers it reads. Scratch space goes in its output
+  or a dedicated scratch buffer (tree stage 2 copies the keys into `u_morton_keys_sorted_s2` and sorts
+  there).
+- **Guard.** `bt::testing::ExpectStageInputPure` (`platform/util/testing/input_purity.hpp`) runs a
+  stage twice on one AppData and fails if any buffer the stage does not write changed, or if the two runs
+  wrote different outputs. `InputPurityOmp.*` runs it for every stage of tree (both AppData paths),
+  cifar-dense and cifar-sparse in `ctest -L omp`. A new stage or app lists its regions (every buffer and
+  scalar field) and, per stage, the names of the ones it writes; see `apps/*/omp/test_main.cpp`.
+- **Tree's CPU tiers are nominal.** The `tree::AppData` OMP path that `bm-prof-tree-vk` and
+  `bm-gen-logs-tree-vk` call ignores the core list (`apps/tree/omp/dispatchers.hpp`), so its `big` /
+  `medium` / `little` cells are unpinned. To time a tree stage on one tier, pin the whole process:
+  `taskset <hex mask> ./bm-prof-tree-vk --device <serial> --benchmark_filter='^medium/stage2/'` (the Pixel's
+  Medium cores 4-5 are mask `30`). The cifar apps pin.
+
 ## GPU stage ranges as whole chunks (`bm-ranges-<app>-vk`)
 
 `bm-prof` times each stage alone. A GPU chunk of a pipeline is more than the sum of those:

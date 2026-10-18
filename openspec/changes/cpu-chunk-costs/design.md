@@ -101,6 +101,18 @@ over the two runs), and a tree CPU chunk runs wherever the scheduler puts it. Th
 does not alter it (kernel input purity is its scope); it bounds how well any tree CPU-chunk price can match.
 Task 1.3 pins the process with `taskset` so that its numbers are from the Medium tier.
 
+### Outcome (tasks 3.1-3.2)
+
+The executed gate is in `docs/reports-for-human/2026-10-18-cpu-chunk-costs-gate.md`.
+
+- **Tree CPU-chunk error falls in every cell, and no best period is worse.**
+- **The fitted overhead fails the held-out check on both phones, so no `overhead.json` is shipped.** On the Pixel
+  the fit is zero; on the Samsung it raises the error from 0.244 to 0.307.
+- **The cifar "not higher" bound fails as written in 5 of 8 cells.** On the Pixel those are the same schedules at
+  the same prices as on 2026-10-17.
+
+The tree error that remains comes from co-running unpinned work (see "Tree CPU stages are not pinned").
+
 ## Open Questions
 
 - ~~Whether other stages beyond tree stage 2 mutate their input~~: answered by task 1.1, only tree stage 2 does

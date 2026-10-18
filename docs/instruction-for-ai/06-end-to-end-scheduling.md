@@ -114,7 +114,22 @@ uv run optimizer/analysis/fit_overhead.py        # reads data/sched_logs -> writ
 ```
 
 (model-selected per PU class — classes whose residuals a constant can't explain fall
-back to zero; see the script docstring). `02` also runs a **union sweep**: it solves
+back to zero; see the script docstring).
+
+**The phones ship no `overhead.json` (cpu-chunk-costs, 2026-10-18).** Fitted on the 2026-10-17
+executions, the Pixel 7a's CPU class came out zero and the Samsung's at 0.553 ms per chunk (no GPU
+overhead on either). Neither passed the held-out check, so `02` prices both phones' chunks as
+plain stage sums. The fits are kept in `data/archive/2026-10-18-cpu-chunk-costs-rejected-overhead/`, and
+the measurements are in
+[`../reports-for-human/2026-10-18-cpu-chunk-costs-gate.md`](../reports-for-human/2026-10-18-cpu-chunk-costs-gate.md).
+A refit has to pass the same check before it goes into the store:
+
+1. Fit on one set of executions (`fit_overhead.py --dry-run --sched-logs <set A>`).
+2. With the file in place, solve and execute a second, new set.
+3. Compute the second set's median CPU-chunk `|measured / predicted - 1|` with and without the
+   constants. Ship only if "with" is lower.
+
+`02` also runs a **union sweep**: it solves
 under both cost models, re-prices the plain-model extras under the overhead model,
 and emits the union sorted by predicted makespan — the measured top-K sweep in step 3
 then picks the true winner, hedging either model's blind spots. `--no-overhead`
