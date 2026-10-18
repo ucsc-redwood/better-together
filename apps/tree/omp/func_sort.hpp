@@ -32,9 +32,8 @@ inline void parallel_sort(const std::pmr::vector<uint32_t>& buffer_input,
 
   // Step 1: Each thread copies its segment into the output and sorts it there
   if (start < end) {
-    std::copy(
-        buffer_input.begin() + start, buffer_input.begin() + end, buffer_output.begin() + start);
-    std::sort(buffer_output.begin() + start, buffer_output.begin() + end);
+    std::copy(buffer_input.data() + start, buffer_input.data() + end, buffer_output.data() + start);
+    std::sort(buffer_output.data() + start, buffer_output.data() + end);
   }
 
 #pragma omp barrier
@@ -47,7 +46,7 @@ inline void parallel_sort(const std::pmr::vector<uint32_t>& buffer_input,
         const size_t mid = std::min(i + width, N);
         const size_t last = std::min(i + 2 * width, N);
         std::inplace_merge(
-            buffer_output.begin() + i, buffer_output.begin() + mid, buffer_output.begin() + last);
+            buffer_output.data() + i, buffer_output.data() + mid, buffer_output.data() + last);
       }
     }
   }
