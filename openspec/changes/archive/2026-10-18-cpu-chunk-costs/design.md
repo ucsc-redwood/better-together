@@ -17,7 +17,8 @@
 
 **Goals:**
 - CPU stage times that match what a pipeline item costs.
-- A fitted, validated CPU overhead on both phones.
+- A fitted, validated CPU overhead on both phones (not reached: both fits failed the held-out check; dropped by
+  the owner on 2026-10-18).
 - A measured before/after of the CPU-chunk error and of the best measured period.
 
 **Non-Goals:**
@@ -117,3 +118,13 @@ The tree error that remains comes from co-running unpinned work (see "Tree CPU s
 
 - ~~Whether other stages beyond tree stage 2 mutate their input~~: answered by task 1.1, only tree stage 2 does
   (on both tree AppData paths).
+
+## Owner decision (2026-10-18)
+
+- The requirement "Each phone ships a fitted CPU chunk overhead" is dropped: both fits failed the held-out check
+  (decision record, section 3), so no `overhead.json` ships. A per-tier fit is a possible follow-up.
+- The cifar bound of "CPU chunk predictions are checked against executed schedules" gets a 0.1 allowance, the
+  session-to-session variation the Pixel 7a showed on identical cifar-sparse schedules at identical prices (0.134 to
+  0.215), priced as the store ships. Under it every cell holds: the largest cifar rise is +0.081 (Pixel cifar-sparse
+  btpm); the Samsung's cifar-dense btpm is +0.021 and cifar-sparse isolated +0.042 without the rejected overhead.
+

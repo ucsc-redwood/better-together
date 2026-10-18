@@ -42,7 +42,8 @@ Without these fixed, tree schedules are chosen on wrong prices, and any later co
 
 ### Modified Capabilities
 - `profiling/cost-table`: adds "A stage is profiled on unmodified input".
-- `optimizer/cost-model`: adds the CPU-chunk accuracy gate and the shipped per-device CPU overhead.
+- `optimizer/cost-model`: adds the CPU-chunk accuracy gate. (A shipped per-device CPU overhead was planned too; it failed
+  its held-out check on both phones and the requirement was dropped by the owner on 2026-10-18.)
 
 ## Impact
 
