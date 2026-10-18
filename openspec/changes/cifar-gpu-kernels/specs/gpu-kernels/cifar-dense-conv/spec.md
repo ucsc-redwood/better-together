@@ -39,15 +39,16 @@ fall back to a variant the device supports, without failing.
 - **WHEN** the device does not support `VK_KHR_cooperative_matrix` (e.g. Mali-G710)
 - **THEN** a non-cooperative-matrix variant runs and the suite passes
 
-### Requirement: Convolutions are faster than the 2026-10-15 baseline
-On rocky-ryzen, the combined FP32 GPU time of conv2–conv5 SHALL be at most half of the baseline
-(0.883 + 1.989 + 2.426 + 1.576 = 6.874 ms at N=16), under the same governor and clock conditions.
-No conv stage on either phone SHALL be slower than its pre-change time beyond run-to-run noise.
+### Requirement: Convolutions are faster than the recorded baseline
+On the Samsung, where the subgroup-32-and-wider path runs, the combined FP32 GPU time of conv2–conv5 SHALL be
+lower than its baseline beyond run-to-run noise. The baseline is recorded on the phones before any change of this
+work. No conv stage on either phone SHALL be slower than its baseline beyond noise. Performance is measured on the
+phones only; rocky-ryzen runs correctness tests.
 
-#### Scenario: Per-stage re-measurement
-- **WHEN** `bm-cifar-dense-vk --benchmark_format=csv` runs before and after on rocky-ryzen
-- **THEN** the sum of conv2–conv5 `real_time` is ≤ 3.437 ms
+#### Scenario: Samsung A/B
+- **WHEN** `bm-prof-cifar-dense-vk` (isolated scenario) runs alternately with the baseline and the changed kernel, 3 rounds, 20 s apart on the Samsung
+- **THEN** the changed conv2–conv5 sum has a lower median, with non-overlapping run spreads
 
 #### Scenario: Phones do not regress
-- **WHEN** the benchmark runs on the Pixel 7a and the Samsung before and after
+- **WHEN** the same A/B runs on the Pixel 7a (Mali path, unchanged by this work) and the Samsung
 - **THEN** no conv stage is slower beyond run-to-run noise

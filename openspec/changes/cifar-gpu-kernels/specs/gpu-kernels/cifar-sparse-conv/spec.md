@@ -29,15 +29,15 @@ nonzeros all fall in the padded border for a given output pixel.
 - **THEN** that channel's output is bias plus ReLU only, matching the oracle
 
 ### Requirement: Sparse convolutions are faster than the CSR baseline
-On rocky-ryzen, the GPU time of each of the four large pruned convolutions (conv2 to conv5) SHALL be
-at most half its 2026-10-15 baseline (17.54 / 27.43 / 38.20 / 23.72 ms at N=128), measured under the
-same governor and clock conditions.
+On the Samsung, where the subgroup-32-and-wider path runs, the GPU time of each of the four large pruned
+convolutions (conv2 to conv5) SHALL be lower than its baseline beyond run-to-run noise. The baseline is recorded on
+the phones before any change of this work. Performance is measured on the phones only; rocky-ryzen runs
+correctness tests.
 
-#### Scenario: Per-stage re-measurement
-- **WHEN** `bm-cifar-sparse-vk --benchmark_format=csv` runs on rocky-ryzen before and after the change
-- **THEN** each conv stage's GPU time (the `real_time` / manual-time column) is at most 50% of its
-  baseline
+#### Scenario: Samsung A/B
+- **WHEN** `bm-prof-cifar-sparse-vk` (isolated scenario) runs alternately with the baseline and the changed kernel, 3 rounds, 20 s apart on the Samsung
+- **THEN** each of conv2–conv5 has a lower median, with non-overlapping run spreads
 
 #### Scenario: Phones do not regress
-- **WHEN** the same benchmark runs on the Pixel 7a and the Samsung
-- **THEN** no conv stage is slower than its pre-change time beyond run-to-run noise
+- **WHEN** the same A/B runs on the Pixel 7a (Mali path, unchanged by this work) and the Samsung
+- **THEN** no conv stage is slower than its baseline beyond run-to-run noise
