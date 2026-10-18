@@ -50,6 +50,12 @@ TEST(Placement, CpuChunkBuffersStayBoundary) {
   bt_placement_test::ExpectCpuBuffersStayBoundary<cifar_sparse::AppData>(11);
 }
 
+// Memory-placement spec, "Undeclared host access keeps today's placement": no declaration here
+// uses bt::kHostSparse, so every buffer gets the class it had before the marker existed.
+TEST(Placement, UndeclaredHostAccessKeepsPlacement) {
+  bt_placement_test::ExpectPlacementUnchanged<cifar_sparse::AppData>(11);
+}
+
 // Shipped-path regression guard: the shipped AppData must build real CSR indices
 // (CSRMatrix::build_from_dense in the ctor). A regression to the old behavior --
 // leaving row_ptr/col_idx all-zero (nnz=0) -- would make the sparse pipeline

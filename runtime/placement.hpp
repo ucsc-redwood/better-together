@@ -4,8 +4,9 @@
 // (memory-placement spec, design B3). A buffer whose every accessor is a GPU stage of the
 // schedule goes to the dispatcher's weights or GPU-local class; anything a CPU chunk or host
 // code touches stays in the boundary class (host-cached), so CPU chunks never read a
-// write-combined mapping. Dispatchers without buffer classes, or AppData without a
-// PlaceBuffer constructor, get the plain AppData(get_mr()) as before.
+// write-combined mapping. Host reads declared bt::kHostSparse do not count. Dispatchers without
+// buffer classes, or AppData without a PlaceBuffer constructor, get the plain AppData(get_mr()) as
+// before.
 // ---------------------------------------------------------------------------
 
 #include <algorithm>
@@ -42,8 +43,12 @@ template <class Dispatcher>
   return [&disp, gpu_stages = std::move(gpu_stages)](
              const bt::BufferKind kind,
              const std::initializer_list<int> stages) -> std::pmr::memory_resource* {
+    const auto on_gpu = [&](const int s) { return gpu_stages.contains(s); };
+    const auto sparse = [](const int s) { return s == bt::kHostSparse; };
+    // kHostSparse is ignored, but a buffer only it touches (no stage) stays boundary.
     const bool gpu_only =
-        std::ranges::all_of(stages, [&](const int s) { return gpu_stages.contains(s); });
+        std::ranges::all_of(stages, [&](const int s) { return sparse(s) || on_gpu(s); }) &&
+        (std::ranges::any_of(stages, on_gpu) || std::ranges::none_of(stages, sparse));
     if (!gpu_only) return disp.get_mr(bt::BufferClass::kBoundary);
     return disp.get_mr(kind == bt::BufferKind::kWeights ? bt::BufferClass::kWeights
                                                         : bt::BufferClass::kGpuLocal);

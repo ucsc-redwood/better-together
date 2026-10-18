@@ -11,8 +11,18 @@ Gates used below:
 
 ## 1. The marker and the rule
 
-- [ ] 1.1 Add `bt::kHostSparse` to `platform/util/buffer_placement.hpp`, documenting what qualifies (host reads outside the stages that are rare or a few elements per item), and make `schedule_placement` ignore it. Verify: `ExpectCpuBuffersStayBoundary`, extended with the marker (D3), passes for tree and both cifar apps under local.
-- [ ] 1.2 Add a hardware-free test that the cifar apps get the same class for every buffer under every one-GPU-range schedule as before the change. Verify: it passes under local, and it fails when the marker is wrongly treated as a GPU stage for an undeclared accessor (a mutation).
+- [x] 1.1 Add `bt::kHostSparse` to `platform/util/buffer_placement.hpp`, documenting what qualifies (host reads outside the stages that are rare or a few elements per item), and make `schedule_placement` ignore it. Verify: `ExpectCpuBuffersStayBoundary`, extended with the marker (D3), passes for tree and both cifar apps under local.
+  - Evidence (2026-10-18, build box): `kHostSparse = -1`; `schedule_placement` ignores it, except that a buffer
+    only the marker touches (no stage) stays boundary (spec: "A buffer that no stage touches is not affected").
+    The helper now treats the marker the same way. `Placement.CpuChunkBuffersStayBoundary` passes in
+    `test-tree-omp`, `test-cifar-dense-omp`, `test-cifar-sparse-omp`; `ctest -L omp` 11/11; `test-tree-vk` 20/20
+    and `test-pipeline-e2e-vk` 5/5 on the build box's RADV iGPU, no skips.
+- [x] 1.2 Add a hardware-free test that the cifar apps get the same class for every buffer under every one-GPU-range schedule as before the change. Verify: it passes under local, and it fails when the marker is wrongly treated as a GPU stage for an undeclared accessor (a mutation).
+  - Evidence (2026-10-18, build box): `bt_placement_test::ExpectPlacementUnchanged` (asserts no declaration uses
+    the marker, then compares every buffer with the pre-change rule) as `Placement.UndeclaredHostAccessKeepsPlacement`
+    in both cifar OMP suites: passes; same local gate as 1.1. Mutation: `schedule_placement` treating an undeclared
+    host accessor (0) like the marker (`s == bt::kHostSparse || s == 0`) makes it fail in both suites (and
+    `CpuChunkBuffersStayBoundary` with it); reverted.
 
 ## 2. Tree declarations and the gate
 

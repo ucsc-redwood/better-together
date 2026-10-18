@@ -4,6 +4,13 @@
 // or write it, with 0 standing for host code outside any stage (e.g. the input written at
 // construction, the final output read by a check). The caller decides the memory resource;
 // a GPU backend maps a BufferClass to memory, others ignore it.
+//
+// kHostSparse replaces 0 when that host code only reads the buffer sparsely: rarely (checks,
+// final results) or a few elements per item (a count the dispatcher reads back). It does not
+// keep the buffer in the boundary class; the stages that touch it decide, as for a buffer no
+// host code touches. Every class is host-mapped and the completion wait makes the GPU's writes
+// visible in each, so the reads stay correct; they are only slower per element where the class
+// is uncached. A host reader that scans the buffer every item must declare 0.
 
 #include <cstdint>
 #include <functional>
@@ -13,6 +20,9 @@
 namespace bt {
 
 enum class BufferKind : std::uint8_t { kActivation, kWeights };
+
+// Negative, so it collides with neither a stage nor 0.
+inline constexpr int kHostSparse = -1;
 
 // Boundary: host-cached, today's placement (anything host code or a CPU chunk touches).
 // Weights / GPU-local: may live in another host-visible memory type on a device where that
