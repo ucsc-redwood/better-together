@@ -1,0 +1,23 @@
+{
+  "_provenance": {
+    "fitted_from": "data/sched_logs",
+    "n_samples": 181,
+    "ts": "2026-10-18T07:49:00Z"
+  },
+  "cpu": {
+    "mean_abs_resid_after_ms": 9.812,
+    "mean_abs_resid_before_ms": 9.91,
+    "model": "median",
+    "n_samples": 131,
+    "per_chunk_ms": 0.5528,
+    "per_stage_ms": 0.0
+  },
+  "gpu_vulkan": {
+    "mean_abs_resid_after_ms": 21.499,
+    "mean_abs_resid_before_ms": 21.499,
+    "model": "none",
+    "n_samples": 50,
+    "per_chunk_ms": 0.0,
+    "per_stage_ms": 0.0
+  }
+}

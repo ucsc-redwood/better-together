@@ -43,8 +43,51 @@ Gates used below:
 
 ## 2. Refresh the store and fit the overhead (optimizer/cost-model)
 
-- [ ] 2.1 Re-profile tree on both phones (isolated and interference, 2 runs each) into `data/profiling/<serial>/tree/vulkan/`. Verify: the loaders accept the store, and the old vs new stage-2 CPU times per tier are recorded here.
-- [ ] 2.2 Fit `overhead.json` for each phone with `fit_overhead.py` from the existing executions (D4). Verify: the fitted constants are recorded here, and pytest still passes.
+- [x] 2.1 Re-profile tree on both phones (isolated and interference, 2 runs each) into `data/profiling/<serial>/tree/vulkan/`. Verify: the loaders accept the store, and the old vs new stage-2 CPU times per tier are recorded here.
+  - *Run (2026-10-18 07:45 UTC, both phones at once, each phone's runs in sequence):* `uv run
+    optimizer/orchestrate/01_collect_profiling.py --device <serial> --app tree --backend vk --adb-serial <serial>
+    --build-dir build/android --dest /data/local/tmp/cpucost --tools prof --runs 2 --scenarios isolated,interference
+    --cooldown-s 20`, the binary of ef8026a. 8 runs, 28 records each, none failed. The range records
+    (`range-*.jsonl`) were not re-collected (GPU only, unchanged).
+  - *Loaders accept it:* `profiling_loader.py --device <serial> --app tree --backend vulkan` loads 56 records from 2
+    runs (and the 112 range records) on both phones, exit 0; `smt.data_loader.load_stage_timings` builds both tables.
+    Under the interference gate (`min_runs` 2) some sub-ms CPU cells of stages 3 and 6 are UNAVAILABLE as before
+    (cv > 1; the 2026-10-17 store lost the same cells and also stage 2 little/big on the Pixel).
+  - *Old vs new stage-2 p50 per tier, run 1 / run 2 (ms).* "Old" is the store the 2026-10-17 gate solved on
+    (`superseded-2026-10-17/`, collected 2026-10-16 22:43). `data/` is git-ignored, and step 01 replaced the
+    tree-app-improvements refresh of 2026-10-17 20:53 in place; its Pixel values (read before the re-run) were
+    isolated little 0.394 / 0.397, medium 1.926 / 0.397, big 2.015 / 2.029, interference little 0.478 / 0.528,
+    medium 0.447 / 0.498, big 0.492 / 0.494. The Samsung's are lost.
+
+    | phone, scenario | little old | little new | medium old | medium new | big old | big new |
+    |---|---|---|---|---|---|---|
+    | Pixel 7a, isolated | 0.467 / 0.491 | 7.020 / 7.148 | 0.461 / 0.493 | 7.006 / 7.074 | 0.456 / 0.505 | 15.904 / 16.318 |
+    | Pixel 7a, interference | 0.601 / 0.623 | 7.933 / 8.405 | 0.670 / 0.615 | 7.888 / 7.881 | 0.572 / 0.623 | 9.038 / 7.876 |
+    | Samsung, isolated | 0.317 / 0.318 | 5.654 / 5.616 | 0.304 / 0.317 | 5.440 / 5.459 | 1.188 / 1.188 | 6.465 / 7.925 |
+    | Samsung, interference | 0.372 / 0.376 | 6.294 / 6.488 | 0.376 / 0.379 | 6.053 / 6.448 | 0.389 / 0.351 | 7.091 / 8.127 |
+
+    Stage 2 on a CPU now costs 5.4-16 ms instead of 0.3-1.2 ms (12-35x): on the Pixel about what its GPU takes
+    (6.7-7.6 ms isolated, 4.0-4.9 interference), on the Samsung 4-6x its GPU (1.1-1.6 ms). The tiers are nominal on tree (design.md, "Tree CPU stages are not
+    pinned"): the Pixel's `big` cells (cv 0.52) are the unpinned single-threaded sort landing on slower cores part of
+    the time, and the pinned Medium measurement of task 1.3 (9.1 ms) is slower than the unpinned `medium` cell (7.0).
+- [x] 2.2 Fit `overhead.json` for each phone with `fit_overhead.py` from the existing executions (D4). Verify: the fitted constants are recorded here, and pytest still passes.
+  - `uv run optimizer/analysis/fit_overhead.py` (the 2026-10-17 executions in `data/sched_logs`, re-priced on the
+    refreshed tree table and the unchanged cifar tables; 367 chunk samples) wrote
+    `data/profiling/<serial>/overhead.json`:
+
+    | phone | class | n | model | per_chunk_ms | per_stage_ms | mean abs residual before / after (ms) |
+    |---|---|---|---|---|---|---|
+    | Pixel 7a | cpu | 136 | none | 0 | 0 | 20.755 / 20.755 |
+    | Pixel 7a | gpu_vulkan | 50 | none | 0 | 0 | 7.286 / 7.286 |
+    | Samsung | cpu | 131 | median | 0.5528 | 0 | 9.910 / 9.812 |
+    | Samsung | gpu_vulkan | 50 | none | 0 | 0 | 21.499 / 21.499 |
+
+  - The Pixel's CPU fit is zero: its median residual over all CPU chunks is -0.575 ms (clamped to 0), because the
+    cifar tables over-price CPU chunks (cifar-dense btpm median measured/priced 0.62, isolated 0.77) while tree's
+    chunks run over their price (tree isolated 1.64); a single constant pooled over apps and tiers cannot serve both.
+    The fit is shipped or not by the held-out check of task 3.2. No GPU overhead is fitted on either phone, so GPU
+    chunk prices are unchanged.
+  - `uv run pytest -q optimizer`: 41 passed.
 
 ## 3. Acceptance gate (optimizer/cost-model)
 
