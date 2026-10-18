@@ -3,8 +3,8 @@
 ## Purpose
 
 Defines the contract for the device-wide sort (tree stage 2) and stream compaction (tree stage 3)
-GPU kernels: they reproduce the OMP oracle exactly at every subgroup width the fleet runs, and they
-get measurably faster on the phones than the baseline recorded at the start of this work.
+GPU kernels: they reproduce the OMP oracle exactly at every subgroup width the fleet runs, and the
+compaction is not dispatch-bound.
 
 ## ADDED Requirements
 
@@ -27,16 +27,6 @@ the OMP oracle.
 #### Scenario: Unique keys and count
 - **WHEN** the tree VK suites run on any fleet VK target
 - **THEN** `n_unique` and the first `n_unique` unique keys equal the oracle's exactly
-
-### Requirement: The sort is faster on the phones
-On the Pixel 7a and on the Samsung, at the default input size (n = 307,200), the stage-2 sort's GPU
-time SHALL be lower than its baseline beyond run-to-run noise. The baseline is recorded before any
-sort change of this work, with the 64 radix workgroups that are already in place.
-
-#### Scenario: Stage-2 A/B on both phones
-- **WHEN** `bm-prof-tree-vk` (isolated scenario) runs alternately with the baseline and the changed
-  sort on each phone, 3 rounds, 20 s apart
-- **THEN** the changed sort's stage-2 median is lower on both phones, with non-overlapping run spreads
 
 ### Requirement: Compaction is not dispatch-bound
 The stage-3 compaction SHALL use fewer dispatches than today's five, and it SHALL NOT be slower than

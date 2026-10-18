@@ -19,7 +19,7 @@ See proposal.md (Why). The facts below were read from the code on 2026-10-15.
 
 **Goals:**
 - A: boundary-safe Morton codes, race-free mask updates, Vulkan leaf links, and an oracle that catches missing leaf links.
-- B: stage 2 faster than its recorded baseline beyond noise on the Pixel 7a and the Samsung; stage 3 in fewer than 5 dispatches and not slower on either phone. Both exact at subgroup 16, 32 and 64. Performance is measured on the phones only; rocky-ryzen runs correctness tests (the owner does not allow profiling there).
+- B: stage 2 faster than its recorded baseline beyond noise on the Pixel 7a and the Samsung (not reached; dropped by the owner, see Follow-ups); stage 3 in fewer than 5 dispatches and not slower on either phone. Both exact at subgroup 16, 32 and 64. Performance is measured on the phones only; rocky-ryzen runs correctness tests (the owner does not allow profiling there).
 
 **Non-Goals:**
 - Changing the key width (30-bit Morton in `uint`), the digit order seen by stage 4, or the stage boundaries.
@@ -131,8 +131,9 @@ Topic A lands first, each fix behind its reproducer, with the full gate includin
 
 ## Follow-ups
 
-- **Owner decision before archiving:** the `gpu-kernels/tree-sort` requirement "The sort is faster on the phones" is
-  not met (Open Questions; tasks 5.3 and 6.3). Every other requirement of the change is met.
+- **Owner decision (2026-10-17):** the requirement "The sort is faster on the phones" was dropped and B2 reverted
+  (tasks 5.3 and 6.3); a faster phone sort needs a different design (bigger tiles per workgroup, another digit width)
+  and is not planned.
 - CUDA stage 7 is 53 % slower on duck-stable because of the required `atomicAnd` on zero-copy memory (Risks); a
   warp-aggregated clear could recover part of it.
 - The tree × VK profiles on the phones lose most cells to the loader's `max_cv=0.1` filter at the default sampling

@@ -265,7 +265,7 @@ Shaders are compiled at build time; nothing generated is committed.
     any grouping of the loop's invocations, so the kernel needed no specialization.
   - *VK gate (6.1 + 6.2):* rocky `ctest -L vulkan` 7/7, `test-tree-vk` 20/20 at 64 and pinned 32; Pixel 7a 20/20 and
     29/29; Samsung 20/20 and 29/29, also pinned 32.
-- [ ] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
+- [x] 6.3 Measure stage 2 with the phone A/B against 4.1. Verify: the median is lower beyond noise on both phones (spec "The sort is faster on the phones"); if not, the change that did not help is reverted and the numbers are recorded.
   - *Method:* as 4.1 session 2, five arms rotated in one session: A = 5477c56 (the 4.1 baseline), G5 = fce8948
     (group 5), S1 = G5 + 6.1, S2 = G5 + 6.2, S12 = G5 + 6.1 + 6.2. Stage 2 (ms):
 
@@ -302,6 +302,9 @@ Shaders are compiled at build time; nothing generated is committed.
   - *Status: BLOCKED, pending the owner's decision* (design Follow-ups): relax or drop the phone sort-speed requirement,
     or authorize a different sort design. The measurements and the reversion above stand; the task stays unticked until
     that decision is made.
+  - *Owner decision (2026-10-17):* the requirement "The sort is faster on the phones" is dropped from this change, and
+    B2 (group 5, neutral) is reverted too, so the sort code is as it was before this change (`kRadixNumWorkgroups` 64
+    from #26). The measurements above stay as the record.
 
 ## 7. Full subgroups (topic B, design B5)
 
