@@ -18,14 +18,13 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   static constexpr uint32_t kRadixNumWorkgroups = 64;
 
   // Device-wide scan tile size (must match ELEMENTS_PER_WG in the
-  // tree_scan_*.comp shaders). One block per tile; the per-block totals are
+  // tree_scan_*.comp and tree_unique_*.comp shaders). One block per tile; the per-block totals are
   // scanned by a single workgroup in pass 2, so #blocks must stay <= the tile
   // size (640x480 -> 150 blocks, FHD 2M -> ~977; well within 2048).
   static constexpr uint32_t kScanElementsPerWg = 256 * 8;
 
   explicit VkAppData_Safe(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr)
       : SafeAppData(vk_mr),
-        u_contributes(n_input, vk_mr),
         u_out_idx(n_input, vk_mr),
         u_sums(n_input, vk_mr),
         u_prefix_sums(n_input, vk_mr),
@@ -41,8 +40,7 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // intergrated tmp storage
   // --------------------------------------------------------------------------
 
-  // for remove duplicates
-  std::pmr::vector<uint32_t> u_contributes;
+  // for remove duplicates: each key's inclusive count of run heads (u_out_idx[n-1] = n_unique)
   std::pmr::vector<uint32_t> u_out_idx;
 
   // for prefix sum
@@ -89,7 +87,6 @@ struct VkAppData final : public tree::AppData {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit VkAppData(const bt::PlaceBuffer& place, const size_t n_input = tree::kDefaultInputSize)
       : tree::AppData(place, n_input),
-        u_contributes(n_input, place(bt::BufferKind::kActivation, {3})),
         u_out_idx(n_input, place(bt::BufferKind::kActivation, {0, 3})),
         u_sums(n_input, place(bt::BufferKind::kActivation, {0})),
         u_prefix_sums(n_input, place(bt::BufferKind::kActivation, {0})),
@@ -103,7 +100,6 @@ struct VkAppData final : public tree::AppData {
 
   ~VkAppData() { spdlog::trace("VkAppData destructor, address: {}", (void*)this); }
 
-  std::pmr::vector<uint32_t> u_contributes;
   std::pmr::vector<uint32_t> u_out_idx;
   std::pmr::vector<uint32_t> u_sums;
   std::pmr::vector<uint32_t> u_prefix_sums;

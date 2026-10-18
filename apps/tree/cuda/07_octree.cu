@@ -30,7 +30,9 @@ __device__ __forceinline__ void set_leaf(const int node_idx,
                                          const unsigned int which_child,
                                          const int leaf_idx) {
   u_children[node_idx][which_child] = leaf_idx;
-  u_child_leaf_mask[node_idx] &= ~(1 << which_child);
+  // Same race as set_child: brt nodes in one warp clear bits of the same node's mask, and a
+  // plain &= kept 2 of 8 bits per node in the leaf-race test. Matches OMP and Vulkan.
+  atomicAnd(&u_child_leaf_mask[node_idx], ~(1 << which_child));
 }
 
 // processing for index 'i'

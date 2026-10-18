@@ -113,15 +113,24 @@ class VulkanDispatcher final {
 
   // Record a device-wide INCLUSIVE prefix scan of `src` (n uints) into `dst`,
   // using `block_sums` as scratch, into the already-open command buffer `cmd`.
-  // Shared by stage 3 (flag scan) and stage 6 (edge-count scan), and by both
-  // the VkAppData_Safe and VkAppData (chained) record bodies below -- this
-  // helper only takes buffer infos, not an AppData type, so it needs no
-  // chained-specific overload.
+  // Used by stage 6 (edge-count scan), by both the VkAppData_Safe and VkAppData
+  // (chained) record bodies below -- this helper only takes buffer infos, not an
+  // AppData type, so it needs no chained-specific overload.
   void record_device_scan(kiss_vk::Sequence& seq,
                           vk::DescriptorBufferInfo src,
                           vk::DescriptorBufferInfo dst,
                           vk::DescriptorBufferInfo block_sums,
                           uint32_t n);
+
+  // Record stage 3, the compaction of the n sorted keys into their unique keys, in two
+  // dispatches (tree_unique_local, tree_unique_scatter). `index` ends as each key's
+  // inclusive count of unique keys, so index[n-1] is n_unique; `block_sums` is scratch.
+  void record_unique(kiss_vk::Sequence& seq,
+                     vk::DescriptorBufferInfo sorted,
+                     vk::DescriptorBufferInfo index,
+                     vk::DescriptorBufferInfo block_sums,
+                     vk::DescriptorBufferInfo unique,
+                     uint32_t n);
 
  public:
   // --------------------------------------------------------------------------

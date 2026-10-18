@@ -74,7 +74,7 @@ found", which is why the build box's RTX 4070 Ti never runs Vulkan.
 **Subgroup size comes from the device, at runtime** (since 2026-10, Phase B of the
 `vulkan-engine-campaign` change). The engine queries `VkPhysicalDeviceSubgroupProperties`
 and the 1.3 subgroup-size-control properties, specializes subgroup-dependent shaders
-(today only `multi_radixsort.comp`) with the device's default size, and pins it with
+(the radix sort's `multi_radixsort_scan.comp` and the cifar 3x3 convs) with the device's default size, and pins it with
 `requiredSubgroupSize` where the device allows. Neither `--device` nor `devices/*.json`
 selects a shader variant any more: `gpu.subgroup_size` there is an informational
 cross-check, and a disagreement logs a warning. `SPDLOG_LEVEL=debug ./test-kiss-vk` prints
@@ -162,7 +162,7 @@ pre-2026-07 Jetson numbers are from that old software stack and are **not compar
 - **Run** `scripts/run-on-android.sh 3A021JEHN02756` (on the build box; pushes binary +
   `libc++_shared.so` to `/data/local/tmp/bt`, runs with `</dev/null` on each `adb shell`).
 - **Role** the only target that runs the subgroup-dependent radix sort
-  (`multi_radixsort.comp`) at **subgroup 16** — the Jetson cannot.
+  (`multi_radixsort_scan.comp`) at **subgroup 16** — the Jetson cannot.
 
 ## Samsung Galaxy — `R5CY21Y3VEV`
 

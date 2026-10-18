@@ -34,14 +34,14 @@ namespace shaders {
 #include "h/tree_build_octree_spv.h"
 #include "h/tree_build_radix_tree_spv.h"
 #include "h/tree_edge_count_spv.h"
-#include "h/tree_find_dups_spv.h"
 #include "h/tree_merge_sort_spv.h"
 #include "h/tree_morton_spv.h"
-#include "h/tree_move_dups_spv.h"
 #include "h/tree_naive_prefix_sum_spv.h"
 #include "h/tree_scan_add_spv.h"
 #include "h/tree_scan_block_sums_spv.h"
 #include "h/tree_scan_local_spv.h"
+#include "h/tree_unique_local_spv.h"
+#include "h/tree_unique_scatter_spv.h"
 // new shaders
 #include "h/new_cifar_dense_conv2d_k3s1p1_spv.h"
 #include "h/new_cifar_dense_conv2d_spv.h"
@@ -100,14 +100,14 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(tree_build_octree),
         SHADER_ENTRY(tree_build_radix_tree),
         SHADER_ENTRY(tree_edge_count),
-        SHADER_ENTRY(tree_find_dups),
         SHADER_ENTRY(tree_merge_sort),
         SHADER_ENTRY(tree_morton),
-        SHADER_ENTRY(tree_move_dups),
         SHADER_ENTRY(tree_naive_prefix_sum),
         SHADER_ENTRY(tree_scan_local),
         SHADER_ENTRY(tree_scan_block_sums),
         SHADER_ENTRY(tree_scan_add),
+        SHADER_ENTRY(tree_unique_local),
+        SHADER_ENTRY(tree_unique_scatter),
         // new shaders
         SHADER_ENTRY(new_cifar_dense_conv2d),
         SHADER_ENTRY(new_cifar_dense_conv2d_k3s1p1),

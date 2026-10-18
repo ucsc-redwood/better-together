@@ -41,8 +41,9 @@ struct RadixSortPushConstants {
   uint32_t g_num_blocks_per_workgroup;
 };
 
-struct FindDupsPushConstants {
-  int32_t n;
+// Stage 3: tree_unique_local / tree_unique_scatter.
+struct UniquePushConstants {
+  uint32_t n;
 };
 
 // // layout(push_constant) uniform PushConstants {
@@ -61,10 +62,6 @@ struct FindDupsPushConstants {
 
 struct PrefixSumPushConstants {
   uint32_t inputSize;
-};
-
-struct MoveDupsPushConstants {
-  uint32_t n;
 };
 
 // --------------------------------------------------------------------------
@@ -91,6 +88,7 @@ struct OctreePushConstants {
   float min_coord;
   float range;
   int32_t n_brt_nodes;
+  int32_t phase;  // 0: make the octree nodes, 1: link the leaves (tree_build_octree.comp)
 };
 
 // ----------------------------------------------------------------------------
@@ -100,10 +98,8 @@ struct OctreePushConstants {
 // SHADER_ENTRY(tree_build_octree),
 // SHADER_ENTRY(tree_build_radix_tree),
 // SHADER_ENTRY(tree_edge_count),
-// SHADER_ENTRY(tree_find_dups),
 // SHADER_ENTRY(tree_merge_sort),
 // SHADER_ENTRY(tree_morton),
-// SHADER_ENTRY(tree_move_dups),
 // SHADER_ENTRY(tree_naive_prefix_sum),
 //
 VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) {
@@ -140,16 +136,26 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
 
   cached_algorithms.try_emplace("radix_scatter", std::move(radix_scatter_algo));
 
-  auto find_dups_algo = engine.make_algo("tree_find_dups")
-                            ->work_group_size(256, 1, 1)
-                            ->num_buffers(2)
-                            ->push_constant<FindDupsPushConstants>()
-                            ->build();
+  // Stage 3 (unique) in two dispatches: per-tile run-head flags + scan, then each tile adds
+  // the tiles before it and scatters the run heads (tree_unique_*.comp).
+  auto unique_local_algo = engine.make_algo("tree_unique_local")
+                               ->work_group_size(256, 1, 1)
+                               ->num_buffers(3)
+                               ->push_constant<UniquePushConstants>()
+                               ->build();
 
-  cached_algorithms.try_emplace("find_dups", std::move(find_dups_algo));
+  cached_algorithms.try_emplace("unique_local", std::move(unique_local_algo));
 
-  // Device-wide inclusive scan (3 passes), used by stage 3 (flags) and stage 6
-  // (edge counts). See tree_scan_*.comp. Each pass is its own algo; all three
+  auto unique_scatter_algo = engine.make_algo("tree_unique_scatter")
+                                 ->work_group_size(256, 1, 1)
+                                 ->num_buffers(4)
+                                 ->push_constant<UniquePushConstants>()
+                                 ->build();
+
+  cached_algorithms.try_emplace("unique_scatter", std::move(unique_scatter_algo));
+
+  // Device-wide inclusive scan (3 passes), used by stage 6 (edge counts). See
+  // tree_scan_*.comp. Each pass is its own algo; all three
   // are recorded into one command buffer, each ordered after the pass it reads
   // (the Sequence's dependency tracking). Stage 3 and stage 6 can share one command buffer (a
   // whole-pipeline chunk); record_bind keeps each scan's bindings its own.
@@ -176,14 +182,6 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
                            ->build();
 
   cached_algorithms.try_emplace("scan_add", std::move(scan_add_algo));
-
-  auto move_dups_algo = engine.make_algo("tree_move_dups")
-                            ->work_group_size(256, 1, 1)
-                            ->num_buffers(4)
-                            ->push_constant<MoveDupsPushConstants>()
-                            ->build();
-
-  cached_algorithms.try_emplace("move_dups", std::move(move_dups_algo));
 
   auto build_radix_tree_algo = engine.make_algo("tree_build_radix_tree")
                                    ->work_group_size(256, 1, 1)
@@ -365,49 +363,42 @@ void VulkanDispatcher::record_device_scan(kiss_vk::Sequence& seq,
   add_algo->record_dispatch(seq, {num_blocks, 1, 1});
 }
 
+void VulkanDispatcher::record_unique(kiss_vk::Sequence& seq,
+                                     vk::DescriptorBufferInfo sorted,
+                                     vk::DescriptorBufferInfo index,
+                                     vk::DescriptorBufferInfo block_sums,
+                                     vk::DescriptorBufferInfo unique,
+                                     uint32_t n) {
+  auto* local_algo = cached_algorithms.at("unique_local").get();
+  auto* scatter_algo = cached_algorithms.at("unique_scatter").get();
+
+  // Both passes take the same tiles of kScanElementsPerWg keys.
+  const auto num_tiles =
+      static_cast<uint32_t>(kiss_vk::div_ceil(n, VkAppData_Safe::kScanElementsPerWg));
+  const auto pc = UniquePushConstants{.n = n};
+
+  // Pass 1: run-head flags, scanned per tile -> index (in-tile counts), tile totals.
+  local_algo->record_bind(seq, {sorted, index, block_sums});
+  local_algo->record_push_constants(seq, pc);
+  local_algo->record_dispatch(seq, {num_tiles, 1, 1});
+
+  // Pass 2: add the tiles before each tile -> index (global counts), scatter the run heads.
+  scatter_algo->record_bind(seq, {sorted, index, block_sums, unique});
+  scatter_algo->record_push_constants(seq, pc);
+  scatter_algo->record_dispatch(seq, {num_tiles, 1, 1});
+}
+
 void VulkanDispatcher::record_stage_3(VkAppData_Safe& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
-  // Stream compaction on the GPU: find_dups (run-head flags) -> device-wide
-  // inclusive scan of the flags (compacted index) -> move_dups (scatter the
-  // kept keys). All recorded into one command buffer / one submit; the Sequence
-  // orders each dispatch after the ones it depends on.
-  const uint32_t n = appdata.get_n_input();
-
-  auto* find_algo = cached_algorithms.at("find_dups").get();
-  auto* move_algo = cached_algorithms.at("move_dups").get();
-
-  // Flags -> u_contributes; inclusive scan -> u_out_idx.
-  const auto find_algo_pc = FindDupsPushConstants{.n = static_cast<int32_t>(n)};
-
-  const auto move_algo_pc = MoveDupsPushConstants{.n = n};
-
-  // find_dups: flags into u_contributes.
-  find_algo->record_bind(seq,
-                         {
-                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                             engine.get_buffer_info(appdata.u_contributes),
-                         });
-  find_algo->record_push_constants(seq, find_algo_pc);
-  find_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
-
-  // device-wide inclusive scan of the flags -> u_out_idx.
-  record_device_scan(seq,
-                     engine.get_buffer_info(appdata.u_contributes),
-                     engine.get_buffer_info(appdata.u_out_idx),
-                     engine.get_buffer_info(appdata.u_scan_block_sums),
-                     n);
-
-  // move_dups: scatter kept keys to their compacted positions.
-  move_algo->record_bind(seq,
-                         {
-                             engine.get_buffer_info(appdata.u_contributes),
-                             engine.get_buffer_info(appdata.u_out_idx),
-                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                             engine.get_buffer_info(appdata.u_morton_keys_unique_s3_out),
-                         });
-  move_algo->record_push_constants(seq, move_algo_pc);
-  move_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  // Stream compaction on the GPU in two dispatches (tree-app-improvements B6), one
+  // submit; the Sequence orders the second after the first.
+  record_unique(seq,
+                engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                engine.get_buffer_info(appdata.u_out_idx),
+                engine.get_buffer_info(appdata.u_scan_block_sums),
+                engine.get_buffer_info(appdata.u_morton_keys_unique_s3_out),
+                appdata.get_n_input());
 }
 
 // ----------------------------------------------------------------------------
@@ -489,33 +480,38 @@ void VulkanDispatcher::record_stage_7(VkAppData_Safe& appdata, kiss_vk::Sequence
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  const auto algo_pc = OctreePushConstants{
-      .min_coord = tree::kMinCoord,
-      .range = tree::kRange,
-      .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  };
-
-  algo->record_bind(seq,
-                    {
-                        engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
-                        engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
-                        engine.get_buffer_info(appdata.u_oct_cell_size_s7_out),        // output
-                        engine.get_buffer_info(appdata.u_oct_child_node_mask_s7_out),  // output
-                        engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7_out),  // output
-                        engine.get_buffer_info(appdata.u_edge_offset_s6),              // input
-                        engine.get_buffer_info(appdata.u_edge_count_s5),               // input
-                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),       // input
-                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),             // input
-                        engine.get_buffer_info(appdata.u_brt_parents_s4),              // input
-                        engine.get_buffer_info(appdata.u_brt_left_child_s4),           // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
-                    });
-  algo->record_push_constants(seq, algo_pc);
-  // The shader loops over brt node indices [1, n_brt_nodes); size the grid for
-  // n_brt_nodes (the grid-stride loop covers the rest).
-  algo->record_dispatch(
-      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  // Two dispatches (design A3): phase 0 makes the octree nodes, phase 1 links the leaves.
+  // Phase 1 writes the children buffer phase 0 wrote, so the Sequence records a barrier
+  // between them.
+  for (const int32_t phase : {0, 1}) {
+    algo->record_bind(seq,
+                      {
+                          engine.get_buffer_info(appdata.u_oct_children_s7_out),         // output
+                          engine.get_buffer_info(appdata.u_oct_corner_s7_out),           // output
+                          engine.get_buffer_info(appdata.u_oct_cell_size_s7_out),        // output
+                          engine.get_buffer_info(appdata.u_oct_child_node_mask_s7_out),  // output
+                          engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7_out),  // output
+                          engine.get_buffer_info(appdata.u_edge_offset_s6),              // input
+                          engine.get_buffer_info(appdata.u_edge_count_s5),               // input
+                          engine.get_buffer_info(appdata.u_morton_keys_unique_s3),       // input
+                          engine.get_buffer_info(appdata.u_brt_prefix_n_s4),             // input
+                          engine.get_buffer_info(appdata.u_brt_parents_s4),              // input
+                          engine.get_buffer_info(appdata.u_brt_left_child_s4),           // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),        // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),       // input
+                      });
+    algo->record_push_constants(seq,
+                                OctreePushConstants{
+                                    .min_coord = tree::kMinCoord,
+                                    .range = tree::kRange,
+                                    .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
+                                    .phase = phase,
+                                });
+    // The shader loops over brt node indices [0, n_brt_nodes); size the grid for
+    // n_brt_nodes (the grid-stride loop covers the rest).
+    algo->record_dispatch(
+        seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -616,44 +612,16 @@ void VulkanDispatcher::record_stage_2(VkAppData& appdata, kiss_vk::Sequence& seq
 void VulkanDispatcher::record_stage_3(VkAppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 3, &appdata);
 
-  const uint32_t n = appdata.get_n_input();
-
-  auto* find_algo = cached_algorithms.at("find_dups").get();
-  auto* move_algo = cached_algorithms.at("move_dups").get();
-
-  const auto find_algo_pc = FindDupsPushConstants{.n = static_cast<int32_t>(n)};
-
-  const auto move_algo_pc = MoveDupsPushConstants{.n = n};
-
-  find_algo->record_bind(seq,
-                         {
-                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                             engine.get_buffer_info(appdata.u_contributes),
-                         });
-  find_algo->record_push_constants(seq, find_algo_pc);
-  find_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
-
-  // Device-wide inclusive scan of the flags -> u_out_idx. u_out_idx[n-1] after
-  // this is exactly n_unique (the running total of "is a new unique value"
-  // flags) -- dispatch_multi_stage's VkAppData overload reads this back after
-  // stage 3 completes (see its comment for why: stage 4's dispatch size is a
-  // host-side vkCmdDispatch argument, so n_unique must be known before stage 4
-  // is recorded).
-  record_device_scan(seq,
-                     engine.get_buffer_info(appdata.u_contributes),
-                     engine.get_buffer_info(appdata.u_out_idx),
-                     engine.get_buffer_info(appdata.u_scan_block_sums),
-                     n);
-
-  move_algo->record_bind(seq,
-                         {
-                             engine.get_buffer_info(appdata.u_contributes),
-                             engine.get_buffer_info(appdata.u_out_idx),
-                             engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
-                             engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
-                         });
-  move_algo->record_push_constants(seq, move_algo_pc);
-  move_algo->record_dispatch(seq, {static_cast<uint32_t>(kiss_vk::div_ceil(n, 256)), 1, 1});
+  // u_out_idx[n-1] after this is exactly n_unique -- dispatch_multi_stage's VkAppData
+  // overload reads this back after stage 3 completes (see its comment for why: stage 4's
+  // dispatch size is a host-side vkCmdDispatch argument, so n_unique must be known before
+  // stage 4 is recorded).
+  record_unique(seq,
+                engine.get_buffer_info(appdata.u_morton_keys_sorted_s2),
+                engine.get_buffer_info(appdata.u_out_idx),
+                engine.get_buffer_info(appdata.u_scan_block_sums),
+                engine.get_buffer_info(appdata.u_morton_keys_unique_s3),
+                appdata.get_n_input());
 }
 
 void VulkanDispatcher::record_stage_4(VkAppData& appdata, kiss_vk::Sequence& seq) {
@@ -720,31 +688,33 @@ void VulkanDispatcher::record_stage_7(VkAppData& appdata, kiss_vk::Sequence& seq
 
   auto algo = cached_algorithms.at("build_octree").get();
 
-  const auto algo_pc = OctreePushConstants{
-      .min_coord = tree::kMinCoord,
-      .range = tree::kRange,
-      .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
-  };
-
-  algo->record_bind(seq,
-                    {
-                        engine.get_buffer_info(appdata.u_oct_children_s7),         // output
-                        engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
-                        engine.get_buffer_info(appdata.u_oct_cell_size_s7),        // output
-                        engine.get_buffer_info(appdata.u_oct_child_node_mask_s7),  // output
-                        engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7),  // output
-                        engine.get_buffer_info(appdata.u_edge_offset_s6),          // input
-                        engine.get_buffer_info(appdata.u_edge_count_s5),           // input
-                        engine.get_buffer_info(appdata.u_morton_keys_unique_s3),   // input
-                        engine.get_buffer_info(appdata.u_brt_prefix_n_s4),         // input
-                        engine.get_buffer_info(appdata.u_brt_parents_s4),          // input
-                        engine.get_buffer_info(appdata.u_brt_left_child_s4),       // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
-                        engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
-                    });
-  algo->record_push_constants(seq, algo_pc);
-  algo->record_dispatch(
-      seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  for (const int32_t phase : {0, 1}) {  // see the VkAppData_Safe overload
+    algo->record_bind(seq,
+                      {
+                          engine.get_buffer_info(appdata.u_oct_children_s7),         // output
+                          engine.get_buffer_info(appdata.u_oct_corner_s7),           // output
+                          engine.get_buffer_info(appdata.u_oct_cell_size_s7),        // output
+                          engine.get_buffer_info(appdata.u_oct_child_node_mask_s7),  // output
+                          engine.get_buffer_info(appdata.u_oct_child_leaf_mask_s7),  // output
+                          engine.get_buffer_info(appdata.u_edge_offset_s6),          // input
+                          engine.get_buffer_info(appdata.u_edge_count_s5),           // input
+                          engine.get_buffer_info(appdata.u_morton_keys_unique_s3),   // input
+                          engine.get_buffer_info(appdata.u_brt_prefix_n_s4),         // input
+                          engine.get_buffer_info(appdata.u_brt_parents_s4),          // input
+                          engine.get_buffer_info(appdata.u_brt_left_child_s4),       // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_left_s4),    // input
+                          engine.get_buffer_info(appdata.u_brt_has_leaf_right_s4),   // input
+                      });
+    algo->record_push_constants(seq,
+                                OctreePushConstants{
+                                    .min_coord = tree::kMinCoord,
+                                    .range = tree::kRange,
+                                    .n_brt_nodes = static_cast<int32_t>(appdata.get_n_brt_nodes()),
+                                    .phase = phase,
+                                });
+    algo->record_dispatch(
+        seq, {static_cast<uint32_t>(kiss_vk::div_ceil(appdata.get_n_brt_nodes(), 256)), 1, 1});
+  }
 }
 
 // ----------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <omp.h>
+#include <spdlog/cfg/env.h>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -131,6 +132,20 @@ struct VulkanChainedTreeRunner {
 
 BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffVulkanChained, VulkanChainedTreeRunner)
 
+// Morton-codes spec, "Boundary input on all backends" (see tree_diff_oracle.hpp).
+TEST(TreeDiffVulkanChained, Stage1_MortonBoundary) {
+  tree::testing::RunAndCheckMortonBoundary<VulkanChainedTreeRunner>();
+}
+
+// Octree-build spec, "Many leaves linked into one node concurrently": stage 7 (both
+// phases) 100 times on an input where 4 brt nodes link 8 leaves into each node.
+TEST(TreeLeafRaceVulkan, ConcurrentLeafLinksKeepEveryBit) {
+  if (!VulkanChainedTreeRunner::Available()) GTEST_SKIP() << "no integrated GPU";
+  VulkanChainedTreeRunner runner;
+  EXPECT_EQ(tree::testing::CountLostLeafBits(runner, 100), 0u)
+      << "leaf-mask bits lost over 100 runs";
+}
+
 // Memory-placement spec, design B3: the stages each VkAppData buffer declares (what the
 // schedule-driven placement trusts) are exactly the stages whose dispatches bind it. Stages
 // run in order, so the dispatcher's read-backs (n_unique after stage 3) happen as in a pipeline.
@@ -159,6 +174,7 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   parse_args_test(argc, argv);
   spdlog::set_level(spdlog::level::off);
+  spdlog::cfg::load_env_levels();  // SPDLOG_LEVEL=debug logs each pipeline's subgroup setup
   // Host-side golden uses OMP; pin single-threaded so the radix-tree/octree
   // reference is deterministic (matches the OMP/CUDA suites).
   omp_set_num_threads(1);

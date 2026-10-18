@@ -23,6 +23,7 @@
 // golden is wrong -- do not weaken the anchor to match.
 // ----------------------------------------------------------------------------
 
+#include <algorithm>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <vector>
@@ -43,9 +44,12 @@ namespace tree::testing {
 // min_coord/range affine map match tree::omp::xyz_to_morton32 by construction.
 [[nodiscard]] inline uint32_t MortonRef(const glm::vec4& p, float min_coord, float range) {
   constexpr float bit_scale = 1024.0f;
-  const auto i = static_cast<uint32_t>((p.x - min_coord) / range * bit_scale);
-  const auto j = static_cast<uint32_t>((p.y - min_coord) / range * bit_scale);
-  const auto k = static_cast<uint32_t>((p.z - min_coord) / range * bit_scale);
+  auto q = [&](const float v) {
+    return static_cast<uint32_t>(std::clamp((v - min_coord) / range * bit_scale, 0.0f, 1023.0f));
+  };
+  const auto i = q(p.x);
+  const auto j = q(p.y);
+  const auto k = q(p.z);
   // m3D_e_for interleaves x into bit 0, y into bit 1, z into bit 2 -- the same
   // axis order as the kernel's m3D_e_magicbits, but via the naive loop.
   return libmorton::m3D_e_for<uint32_t, uint32_t>(i, j, k);

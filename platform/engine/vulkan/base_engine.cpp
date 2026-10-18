@@ -369,7 +369,8 @@ void BaseEngine::create_device() {
   };
   spdlog::debug(
       "Subgroup size {} ({}): device default {}, min {}, max {}, subgroupSizeControl {}, "
-      "requiredSubgroupSizeStages {}, maxComputeWorkgroupSubgroups {}",
+      "requiredSubgroupSizeStages {}, maxComputeWorkgroupSubgroups {}, "
+      "maxComputeSharedMemorySize {}",
       compute_limits_.subgroup_size,
       pinnable ? "pinned" : "not pinned",
       subgroup.subgroupSize,
@@ -377,7 +378,8 @@ void BaseEngine::create_device() {
       size_control.maxSubgroupSize,
       supported_13.subgroupSizeControl == VK_TRUE,
       vk::to_string(size_control.requiredSubgroupSizeStages),
-      size_control.maxComputeWorkgroupSubgroups);
+      size_control.maxComputeWorkgroupSubgroups,
+      device_props.limits.maxComputeSharedMemorySize);
 
   // Optional features are enabled only when supported (design D3).
   vk::PhysicalDeviceVulkan13Features enabled_13{.subgroupSizeControl = pinnable,

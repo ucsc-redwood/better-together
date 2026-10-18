@@ -141,7 +141,9 @@ SafeAppData::SafeAppData(std::pmr::memory_resource* mr)
       u_oct_corner_s7_out(n_input * kMemoryRatio, mr),
       u_oct_cell_size_s7_out(n_input * kMemoryRatio, mr),
       u_oct_child_node_mask_s7_out(n_input * kMemoryRatio, mr),
-      u_oct_child_leaf_mask_s7_out(n_input * kMemoryRatio, mr) {
+      u_oct_child_leaf_mask_s7_out(static_cast<size_t>(static_cast<float>(n_input) * kMemoryRatio),
+                                   0xFF,
+                                   mr) {  // all-ones, see AppData
   if (!HostTreeManager::getInstance().getAppData()) {
     throw std::runtime_error(
         "Tree data not initialized. Call HostTreeManager::getInstance().initialize() first.");
