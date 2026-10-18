@@ -190,9 +190,10 @@ void run_stage_1(tree::AppData& appdata) {
   }
 }
 
+// Sorts a copy: stage 1's keys stay as they are, so a re-run sorts the same input.
 void run_stage_2(tree::AppData& appdata) {
-  std::ranges::sort(appdata.u_morton_keys_s1);
   std::ranges::copy(appdata.u_morton_keys_s1, appdata.u_morton_keys_sorted_s2.begin());
+  std::ranges::sort(appdata.u_morton_keys_sorted_s2);
 }
 
 void run_stage_3(tree::AppData& appdata) {

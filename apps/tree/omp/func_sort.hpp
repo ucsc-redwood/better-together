@@ -17,26 +17,10 @@ namespace tree::omp {
 // Merge sort version (new)
 // ----------------------------------------------------------------------------
 
-// Helper function to merge sorted segments
-inline void merge_segments(const std::pmr::vector<uint32_t>& input,
-                           std::pmr::vector<uint32_t>& output,
-                           size_t start1,
-                           size_t end1,
-                           size_t start2,
-                           size_t end2,
-                           size_t output_start) {
-  size_t i = start1, j = start2, k = output_start;
-  while (i < end1 && j < end2) {
-    if (input[i] <= input[j])
-      output[k++] = input[i++];
-    else
-      output[k++] = input[j++];
-  }
-  while (i < end1) output[k++] = input[i++];
-  while (j < end2) output[k++] = input[j++];
-}
-
-inline void parallel_sort(std::pmr::vector<uint32_t>& buffer_input,
+// Sorts `buffer_input` into `buffer_output` and leaves the input as it is, so that a stage
+// run again on the same AppData (bm-prof's samples) sorts the same keys a pipeline item
+// brings (profiling/cost-table spec, "A stage is profiled on unmodified input").
+inline void parallel_sort(const std::pmr::vector<uint32_t>& buffer_input,
                           std::pmr::vector<uint32_t>& buffer_output,
                           int thread_id,
                           int num_threads) {
@@ -46,33 +30,24 @@ inline void parallel_sort(std::pmr::vector<uint32_t>& buffer_input,
   size_t start = thread_id * segment_size;
   size_t end = std::min(start + segment_size, N);
 
-  // Step 1: Each thread sorts its segment
+  // Step 1: Each thread copies its segment into the output and sorts it there
   if (start < end) {
-    std::sort(buffer_input.begin() + start, buffer_input.begin() + end);
+    std::copy(buffer_input.data() + start, buffer_input.data() + end, buffer_output.data() + start);
+    std::sort(buffer_output.data() + start, buffer_output.data() + end);
   }
 
 #pragma omp barrier
 
-  // Step 2: Iterative merging performed by a single thread after sorting
+  // Step 2: Iterative merging of adjacent sorted segments, in the output, by a single thread
   if (thread_id == 0) {
-    std::pmr::vector<uint32_t>* src = &buffer_input;
-    std::pmr::vector<uint32_t>* dst = &buffer_output;
-
     for (size_t width = segment_size; width < N; width *= 2) {
 #pragma omp parallel for schedule(static)
       for (size_t i = 0; i < N; i += 2 * width) {
-        size_t start1 = i;
-        size_t end1 = std::min(start1 + width, N);
-        size_t start2 = end1;
-        size_t end2 = std::min(start2 + width, N);
-
-        merge_segments(*src, *dst, start1, end1, start2, end2, start1);
+        const size_t mid = std::min(i + width, N);
+        const size_t last = std::min(i + 2 * width, N);
+        std::inplace_merge(
+            buffer_output.data() + i, buffer_output.data() + mid, buffer_output.data() + last);
       }
-      std::swap(src, dst);
-    }
-
-    if (src != &buffer_output) {
-      buffer_output = *src;
     }
   }
 
