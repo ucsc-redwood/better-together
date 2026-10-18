@@ -32,7 +32,7 @@ On the phones, push `bm-<app>-vk` with `run-on-android.sh`.
 - [ ] 1.11 Remove the old-kernel flag if the new kernel wins on every device; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
 - [ ] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
 
-## 2. Dense conv optimization (gpu-kernels/cifar-dense-conv; design C1–C6)
+## 2. Dense conv optimization (gpu-kernels/cifar-dense-conv; design C1–C5)
 
 - [ ] 2.1 Record the pre-change cifar-dense per-stage GPU times on rocky, the Pixel 7a and the Samsung. Verify: an 11-stage table per device; rocky's conv2–conv5 should be close to 0.883/1.989/2.426/1.576 ms.
 - [ ] 2.2 Probe each device's optional capabilities with a debug-logged query added to `test-kiss-vk`: `shaderFloat16`, `storageBuffer16BitAccess`, `cooperativeMatrix` and its shapes, CLUSTERED subgroup support, `maxComputeSharedMemorySize`. Verify: the logged values for all three devices replace the "to verify" marks in design.md Context (this also serves groups 1 and 3).
@@ -44,8 +44,7 @@ On the phones, push `bm-<app>-vk` with `run-on-android.sh`.
 - [ ] 2.8 C4: optional-feature enablement for `shaderFloat16` and `storageBuffer16BitAccess` (enabled if supported, never required) plus a precision mode (`BT_VK_PRECISION=fp16`). Verify: `test-kiss-vk` logs the enabled features on all devices, and default runs are unchanged.
 - [ ] 2.9 C4: the FP16 conv variant (FP32 accumulate), with a per-stage tolerance, and a new VK end-task accuracy test on the real weights mirroring the OMP `CifarDenseAppData.RealWeights_EndTaskAccuracy`. Verify: `test-cifar-dense-vk` with `BT_VK_PRECISION=fp16` passes on supporting devices; FP16 accuracy is within 0.5 points of FP32 (printed); timing is recorded.
 - [ ] 2.10 C5: query cooperative-matrix shapes and add the implicit-GEMM conv (FP16 in, FP32 accumulate), selected only when supported. Verify: it passes on rocky with the FP16 tolerance and the 2.9 accuracy bound; timing is recorded. If it doesn't beat 2.7/2.9, it stays disabled by default and that's documented.
-- [ ] 2.11 C6: measure Mali register use and occupancy with `malioc` for the default and a Mali-tuned build. Verify: registers per thread and occupancy are in the evidence note.
-- [ ] 2.12 C6: device-based variant selection with the Mali-tuned configuration. Verify: `test-cifar-dense-vk` passes on the Pixel 7a, and its conv stages are no slower than 2.1.
+- 2.11-2.12 (C6, Mali variant): removed 2026-10-18; owned and shipped by `mali-conv-kernels` (archived 2026-10-17).
 - [ ] 2.13 Run the group gate at the final commit (local, rocky, phones), in default FP32 and in each opt-in mode on supporting devices. Add a dated perf-results note with before/after tables and per-device variant choices. Verify: all green; the note is linked from the perf-results README.
 
 ## 3. FC weight bandwidth (gpu-kernels/fully-connected; design F1–F4)

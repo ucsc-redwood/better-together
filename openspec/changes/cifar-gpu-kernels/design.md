@@ -129,8 +129,8 @@ topic letter. Motivation and measurements are in proposal.md (Why).
 - **How:** the workgroup cooperatively copies `(value, packed offset)` for its row into shared
   memory in chunks of ≤ 1024 nonzeros (8 KB), loops, and re-stages.
 - **Why chunk:** it bounds shared memory under the 16 KB Vulkan minimum, whatever the row length.
-- **Mali:** on Mali, shared memory is ordinary cached memory, so the benefit is smaller. Keep a
-  compile-time `STAGE_ROW` spec constant so the Mali variant can turn it off if measurement says so.
+- **Mali:** not here. The Mali sparse conv path is owned by `mali-conv-kernels` (main spec
+  `gpu-kernels/mali-conv`); S3 changes only the subgroup-32-and-wider path.
 
 #### S4. Sparsity format stays unstructured CSR in this change (decision recorded)
 **Alternatives considered:**
@@ -183,13 +183,10 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
 - **When:** only when the device lists a usable shape. Otherwise C1–C4.
 - **Alternative:** hand-written WMMA via vendor intrinsics. Rejected: not portable Vulkan.
 
-#### C6. Mali variant
-- **Why:** on Mali-G710, shared memory has no dedicated on-chip storage like RDNA's LDS, and
-  register use above a threshold halves the threads per core (to verify against Arm's Valhall
-  guidance and Mali Offline Compiler output). So C2's tiling may not help there.
-- **How:** select a variant by device (vendor id), with a smaller register tile and possibly no
-  LDS staging, chosen by measurement on the Pixel 7a. The Samsung (Xclipse, RDNA-based) is measured
-  separately; it may prefer the RDNA path.
+#### C6. Mali variant (removed 2026-10-18)
+Owned by `mali-conv-kernels`, which shipped a Mali conv path selected by `SUBGROUP_SIZE` < 32 (main spec
+`gpu-kernels/mali-conv`). C1-C5 change only the subgroup-32-and-wider path, and must keep the Mali path's
+selection and outputs unchanged.
 ### FC (F)
 
 #### F1. Stream weights once per batch
@@ -248,7 +245,7 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
 ### Dense conv
 
 - **[Risk]** Each step must be measured separately, or gains get misattributed.
-  → **Mitigation:** a gate plus timing after each step (C1–C6), in the proposal's order (task group 2).
+  → **Mitigation:** a gate plus timing after each step (C1–C5), in the proposal's order (task group 2).
 - **[Risk]** The FP16 tolerance hides real accuracy loss.
   → **Mitigation:** the end-task accuracy requirement on real weights, not just per-stage tolerance.
 - **[Risk]** The cooperative-matrix path adds a third precision/format and doubles test time.
@@ -256,7 +253,7 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
   meet the spec.
 - **[Trade-off]** More variants mean more shaders to bake and keep in sync.
   → **Mitigation:** spec constants first, separate sources only for genuinely different algorithms
-  (cooperative matrix, Mali).
+  (cooperative matrix).
 ### FC
 
 - **[Risk]** Layout F1(a)'s LDS partials or F1(b)'s broadcast weights hurt occupancy, especially on

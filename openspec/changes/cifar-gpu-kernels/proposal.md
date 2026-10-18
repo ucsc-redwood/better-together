@@ -46,7 +46,8 @@ Incremental, each step gated:
 3. an 8 oc × 2–4 px register tile;
 4. opt-in FP16 packed math;
 5. an optional RDNA3 `VK_KHR_cooperative_matrix` implicit-GEMM path;
-6. a Mali-tuned variant.
+6. ~~a Mali-tuned variant~~: removed 2026-10-18. The Mali conv path is owned and shipped by `mali-conv-kernels`
+   (archived 2026-10-17, main spec `gpu-kernels/mali-conv`); steps 1-5 change the subgroup-32-and-wider path only.
 
 **Non-goal:** conv+pool fusion, because the 11 stages are the scheduler's units.
 
@@ -85,7 +86,7 @@ Incremental, each step gated:
 ## Impact
 
 - **Shaders:** `new_cifar_sparse_conv2d_k3s1p1.comp`, `new_cifar_dense_conv2d_k3s1p1.comp` and
-  `new_cifar_dense_linear_bt.comp`, plus new variants (tiled, FP16, cooperative-matrix, Mali, INT8
+  `new_cifar_dense_linear_bt.comp`, plus new variants (tiled, FP16, cooperative-matrix, INT8
   FC), all under `platform/engine/vulkan/shaders/comp/`, with their baked `*_spv.h`.
 - **Dispatchers and appdata:**
   - `apps/cifar-{dense,sparse}/vulkan/dispatchers.{hpp,cpp}` (grid shapes, variant selection);
