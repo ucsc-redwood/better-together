@@ -30,7 +30,6 @@ namespace shaders {
 // #include "h/tmp_local_inclusive_scan_v2_32_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_64_spv.h"
 #include "h/multi_radixsort_histograms_spv.h"
-#include "h/multi_radixsort_scan_spv.h"
 #include "h/multi_radixsort_spv.h"
 #include "h/tree_build_octree_spv.h"
 #include "h/tree_build_radix_tree_spv.h"
@@ -97,7 +96,6 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_32),
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_64),
         SHADER_ENTRY(multi_radixsort_histograms),
-        SHADER_ENTRY(multi_radixsort_scan),
         SHADER_ENTRY(multi_radixsort),
         SHADER_ENTRY(tree_build_octree),
         SHADER_ENTRY(tree_build_radix_tree),

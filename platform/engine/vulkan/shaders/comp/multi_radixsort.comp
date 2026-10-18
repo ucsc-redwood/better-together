@@ -6,15 +6,23 @@
  * Based on Intel's Embree:
  * https://github.com/embree/embree/blob/v4.0.0-ploc/kernels/rthwif/builder/gpu/sort.h
  *
- * Reads this workgroup's global bin offsets (computed by multi_radixsort_scan from the
- * per-workgroup histograms of multi_radixsort_histograms) and scatters keys from
- * g_elements_in into g_elements_out for the current 8-bit digit (g_shift). 4 passes
- * ping-pong in<->out on the host side.
+ * Reads per-workgroup histograms (multi_radixsort_histograms), computes global
+ * bin offsets, and scatters keys from g_elements_in into g_elements_out for the
+ * current 8-bit digit (g_shift). 4 passes ping-pong in<->out on the host side.
+ *
+ * SUBGROUP_SIZE is specialization constant 0, set by the engine to the running device's
+ * subgroup size (and pinned with requiredSubgroupSize where supported), so the
+ * RADIX_SORT_BINS / SUBGROUP_SIZE subgroup-sum array matches the width the shader runs at.
+ * It replaces the former per-width copies multi_radixsort_warp{16,32,64}.comp.
  */
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_KHR_shader_subgroup_ballot : enable
 
 #define WORKGROUP_SIZE 256
 #define RADIX_SORT_BINS 256
+layout(constant_id = 0) const uint SUBGROUP_SIZE = 32;  // engine-set: 16 Mali, 32/64 AMD
 
 layout(local_size_x = WORKGROUP_SIZE) in;
 
@@ -30,10 +38,11 @@ layout(std430, set = 0, binding = 0) readonly buffer elements_in { uint g_elemen
 layout(std430, set = 0, binding = 1) writeonly buffer elements_out { uint g_elements_out[]; };
 
 layout(std430, set = 0, binding = 2) readonly buffer histograms {
-  uint g_histograms[];  // RADIX_SORT_BINS * g_num_workgroups global offsets (scan pass)
+  uint g_histograms[];  // RADIX_SORT_BINS * g_num_workgroups
 };
 
-shared uint[RADIX_SORT_BINS] global_offsets;  // this workgroup's, advanced per block
+shared uint[RADIX_SORT_BINS / SUBGROUP_SIZE] sums;  // subgroup reductions
+shared uint[RADIX_SORT_BINS] global_offsets;        // global exclusive scan
 
 struct BinFlags {
   uint flags[WORKGROUP_SIZE / 32];
@@ -41,10 +50,32 @@ struct BinFlags {
 shared BinFlags[RADIX_SORT_BINS] bin_flags;
 
 void main() {
-  // === this workgroup's global offsets (multi_radixsort_scan) ===
+  // === global offsets (prefix sum) ===
+  uint local_histogram = 0;
+  uint histogram_count = 0;
   if (gl_LocalInvocationID.x < RADIX_SORT_BINS) {
-    global_offsets[gl_LocalInvocationID.x] =
-        g_histograms[RADIX_SORT_BINS * gl_WorkGroupID.x + gl_LocalInvocationID.x];
+    for (uint j = 0; j < g_num_workgroups; j++) {
+      const uint t = g_histograms[RADIX_SORT_BINS * j + gl_LocalInvocationID.x];
+      local_histogram = (j == gl_WorkGroupID.x) ? histogram_count : local_histogram;
+      histogram_count += t;
+    }
+  }
+
+  const uint sum = subgroupAdd(histogram_count);
+  const uint prefix_sum = subgroupExclusiveAdd(histogram_count);
+  if (subgroupElect()) {
+    if (gl_SubgroupID < (RADIX_SORT_BINS / SUBGROUP_SIZE)) {
+      sums[gl_SubgroupID] = sum;
+    }
+  }
+  barrier();
+
+  if (gl_LocalInvocationID.x < RADIX_SORT_BINS) {
+    uint sums_prefix_sum = 0;
+    for (uint i = 0; i < gl_SubgroupID; i++) {
+      sums_prefix_sum += sums[i];
+    }
+    global_offsets[gl_LocalInvocationID.x] = sums_prefix_sum + prefix_sum + local_histogram;
   }
 
   // === scatter keys according to global offsets ===
