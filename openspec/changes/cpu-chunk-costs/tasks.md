@@ -132,4 +132,9 @@ Gates used below:
 
 ## 4. Final gate
 
-- [ ] 4.1 local and phone gate green at the last commit. Verify: results listed in the PR.
+- [x] 4.1 local and phone gate green at the last commit. Verify: results listed in the PR.
+  - At 5161488 (the commit after it changes only this file): `ctest --test-dir build/pc -L omp` 11/11 passed
+    (`InputPurityOmp.*` included); `uv run pytest -q optimizer` 41 passed; phone gate from a fresh `android` build,
+    `BT_ANDROID_DEST=/data/local/tmp/cpucost scripts/run-on-android.sh <serial> test-tree-vk test-cifar-dense-vk
+    test-cifar-sparse-vk`: Pixel 7a and Samsung each 20 / 16 / 17 passed, 0 skipped, exit 0.
+  - No PR is opened in this run (its instructions forbid it); these results are for the PR description.
