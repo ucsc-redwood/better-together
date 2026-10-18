@@ -68,6 +68,40 @@ design, not a permanent tool.
 
 Kernel fix plus refreshed data. Rollback: revert the commits; old stores stay in git history.
 
+## Measurements
+
+### Stage 2 on fresh input (task 1.3)
+
+- **Harness variant (one-off, not committed).** `profiler/bm_prof_common.hpp` was patched for one build only: with
+  `BT_PROF_FRESH_INPUT` set, a CPU cell's `time_once` re-runs stages 1..s-1 (`prep`) before every sample, outside the
+  timed region. The binary was copied aside as `bm-prof-tree-vk-fresh` and the source restored; the rebuilt
+  `bm-prof-tree-vk` is byte-identical to the one built before the patch.
+- **Run.** Pixel 7a, both binaries from the fixed code, `BT_PROF_SCENARIO=isolated`, `--benchmark_filter='^medium/stage2/'`,
+  the whole process pinned to the Medium cores 4-5 with `taskset 30` (see "Tree CPU stages are not pinned" below),
+  3 rounds alternating the two binaries, 20 s apart. 32-33 samples per run, cv 0.3-0.9 %.
+
+| | run 1 | run 2 | run 3 | median | spread |
+|---|---|---|---|---|---|
+| `bm-prof-tree-vk` (repeated samples on one AppData) | 9.110 | 9.156 | 9.116 | 9.116 | 9.110-9.156 |
+| fresh input before every sample | 9.108 | 9.126 | 9.114 | 9.114 | 9.108-9.126 |
+| price before this change (`Medium [2,2]`, proposal) | | | | 0.64 | |
+
+p50 in ms. The medians differ by 0.002 ms and each lies inside the other's spread: with the input left intact,
+repeated samples on one AppData cost what a fresh item does, 14x the old price.
+
+### Tree CPU stages are not pinned
+
+`tree::omp::dispatch_multi_stage(cores, n, tree::AppData&, ...)` ignores `cores` (`apps/tree/omp/dispatchers.hpp`:
+"Core-pinning intentionally unsupported for the AppData path"), and that is the overload both `bm-prof-tree-vk` and
+`bm-gen-logs-tree-vk` call for an OMP cell or chunk. Stages 2, 3 and 6 are single-threaded on that path and run
+on whatever core the scheduler gives the calling thread; stages 1, 4, 5 and 7 open an unpinned OMP team. So the
+tree table's `big` / `medium` / `little` columns are the same unpinned measurement taken three times (e.g. the
+Pixel's isolated stage 3 before this change: big 1.066 / 0.243, medium 0.193 / 0.194, little 0.194 / 0.194 ms
+over the two runs), and a tree CPU chunk runs wherever the scheduler puts it. The cifar apps pin. This change
+does not alter it (kernel input purity is its scope); it bounds how well any tree CPU-chunk price can match.
+Task 1.3 pins the process with `taskset` so that its numbers are from the Medium tier.
+
 ## Open Questions
 
-- Whether other stages beyond tree stage 2 mutate their input; the D2 test answers it in task 1.1.
+- ~~Whether other stages beyond tree stage 2 mutate their input~~: answered by task 1.1, only tree stage 2 does
+  (on both tree AppData paths).

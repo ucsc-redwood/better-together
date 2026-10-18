@@ -11,6 +11,7 @@
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/npy_loader.hpp"
+#include "platform/util/testing/input_purity.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -78,6 +79,54 @@ TEST(CifarDenseAppData, RealWeights_EndTaskAccuracy) {
   const double acc = static_cast<double>(correct) / n;
   std::printf("cifar-dense real-weight accuracy: %.4f (%d/%d)\n", acc, correct, n);
   EXPECT_GE(acc, 0.75) << "end-task accuracy regressed on the real weights";
+}
+
+// profiling/cost-table spec, "A stage is profiled on unmodified input": each stage, run
+// twice on one AppData, leaves every buffer it does not write unchanged and writes the same
+// output both times. Stage k writes the k-th activation after the input, nothing else.
+namespace {
+std::vector<bt::testing::Region> Regions(const cifar_dense::AppData& a) {
+  using bt::testing::Buf;
+  std::vector<bt::testing::Region> r = {
+      Buf("u_input", a.u_input.pmr_vec()),         Buf("u_conv1_out", a.u_conv1_out.pmr_vec()),
+      Buf("u_pool1_out", a.u_pool1_out.pmr_vec()), Buf("u_conv2_out", a.u_conv2_out.pmr_vec()),
+      Buf("u_pool2_out", a.u_pool2_out.pmr_vec()), Buf("u_conv3_out", a.u_conv3_out.pmr_vec()),
+      Buf("u_conv4_out", a.u_conv4_out.pmr_vec()), Buf("u_conv5_out", a.u_conv5_out.pmr_vec()),
+      Buf("u_pool3_out", a.u_pool3_out.pmr_vec()), Buf("u_fc1_out", a.u_fc1_out.pmr_vec()),
+      Buf("u_fc2_out", a.u_fc2_out.pmr_vec()),     Buf("u_fc3_out", a.u_fc3_out.pmr_vec()),
+      Buf("u_conv1_w", a.u_conv1_w.pmr_vec()),     Buf("u_conv1_b", a.u_conv1_b.pmr_vec()),
+      Buf("u_conv2_w", a.u_conv2_w.pmr_vec()),     Buf("u_conv2_b", a.u_conv2_b.pmr_vec()),
+      Buf("u_conv3_w", a.u_conv3_w.pmr_vec()),     Buf("u_conv3_b", a.u_conv3_b.pmr_vec()),
+      Buf("u_conv4_w", a.u_conv4_w.pmr_vec()),     Buf("u_conv4_b", a.u_conv4_b.pmr_vec()),
+      Buf("u_conv5_w", a.u_conv5_w.pmr_vec()),     Buf("u_conv5_b", a.u_conv5_b.pmr_vec()),
+      Buf("u_fc1_w", a.u_fc1_w.pmr_vec()),         Buf("u_fc1_b", a.u_fc1_b.pmr_vec()),
+      Buf("u_fc2_w", a.u_fc2_w.pmr_vec()),         Buf("u_fc2_b", a.u_fc2_b.pmr_vec()),
+      Buf("u_fc3_w", a.u_fc3_w.pmr_vec()),         Buf("u_fc3_b", a.u_fc3_b.pmr_vec())};
+  return r;
+}
+}  // namespace
+
+TEST(InputPurityOmp, CifarDense) {
+  const char* outputs[] = {"u_conv1_out",
+                           "u_pool1_out",
+                           "u_conv2_out",
+                           "u_pool2_out",
+                           "u_conv3_out",
+                           "u_conv4_out",
+                           "u_conv5_out",
+                           "u_pool3_out",
+                           "u_fc1_out",
+                           "u_fc2_out",
+                           "u_fc3_out"};
+  cifar_dense::AppData app(std::pmr::new_delete_resource());
+  for (int s = 1; s <= 11; ++s) {
+    bt::testing::ExpectStageInputPure(
+        app,
+        s,
+        [](cifar_dense::AppData& a, const int st) { cifar_dense::omp::dispatch_stage(a, st); },
+        Regions,
+        {outputs[s - 1]});
+  }
 }
 
 int main(int argc, char** argv) {

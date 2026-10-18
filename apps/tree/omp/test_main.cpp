@@ -14,6 +14,7 @@
 #include "func_edge.hpp"
 #include "func_octree.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/testing/input_purity.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -640,6 +641,144 @@ TEST(TreeOracleSelfTest, SpuriousLeafLinksFail) {
 
 TEST(Placement, CpuChunkBuffersStayBoundary) {
   bt_placement_test::ExpectCpuBuffersStayBoundary<tree::AppData>(7);
+}
+
+// profiling/cost-table spec, "A stage is profiled on unmodified input": each stage, run
+// twice on one AppData, leaves every buffer it does not write unchanged and writes the same
+// output both times. Both AppData paths: tree::AppData is what bm-prof and the pipeline
+// run, SafeAppData the oracle's.
+namespace {
+std::vector<bt::testing::Region> TreeRegions(const tree::AppData& a) {
+  using bt::testing::Buf;
+  using bt::testing::Scalar;
+  return {Scalar("n_unique", a.n_unique),
+          Scalar("n_brt_nodes", a.n_brt_nodes),
+          Scalar("n_octree_nodes", a.n_octree_nodes),
+          Buf("u_input_points_s0", a.u_input_points_s0),
+          Buf("u_morton_keys_s1", a.u_morton_keys_s1),
+          Buf("u_morton_keys_sorted_s2", a.u_morton_keys_sorted_s2),
+          Buf("u_morton_keys_unique_s3", a.u_morton_keys_unique_s3),
+          Buf("u_brt_prefix_n_s4", a.u_brt_prefix_n_s4),
+          Buf("u_brt_has_leaf_left_s4", a.u_brt_has_leaf_left_s4),
+          Buf("u_brt_has_leaf_right_s4", a.u_brt_has_leaf_right_s4),
+          Buf("u_brt_left_child_s4", a.u_brt_left_child_s4),
+          Buf("u_brt_parents_s4", a.u_brt_parents_s4),
+          Buf("u_edge_count_s5", a.u_edge_count_s5),
+          Buf("u_edge_offset_s6", a.u_edge_offset_s6),
+          Buf("u_oct_children_s7", a.u_oct_children_s7),
+          Buf("u_oct_corner_s7", a.u_oct_corner_s7),
+          Buf("u_oct_cell_size_s7", a.u_oct_cell_size_s7),
+          Buf("u_oct_child_node_mask_s7", a.u_oct_child_node_mask_s7),
+          Buf("u_oct_child_leaf_mask_s7", a.u_oct_child_leaf_mask_s7),
+          Buf("u_num_selected_out", a.u_num_selected_out)};
+}
+
+const std::set<std::string> kTreeOutputs[] = {
+    {"u_morton_keys_s1"},
+    {"u_morton_keys_sorted_s2"},
+    {"u_morton_keys_unique_s3", "n_unique", "n_brt_nodes"},
+    {"u_brt_prefix_n_s4",
+     "u_brt_has_leaf_left_s4",
+     "u_brt_has_leaf_right_s4",
+     "u_brt_left_child_s4",
+     "u_brt_parents_s4"},
+    {"u_edge_count_s5"},
+    {"u_edge_offset_s6", "n_octree_nodes"},
+    {"u_oct_children_s7",
+     "u_oct_corner_s7",
+     "u_oct_cell_size_s7",
+     "u_oct_child_node_mask_s7",
+     "u_oct_child_leaf_mask_s7"},
+};
+
+std::vector<bt::testing::Region> SafeTreeRegions(const tree::SafeAppData& a) {
+  using bt::testing::Buf;
+  return {Buf("u_input_points_s0", a.u_input_points_s0),
+          Buf("u_morton_keys_s1", a.u_morton_keys_s1),
+          Buf("u_morton_keys_s1_out", a.u_morton_keys_s1_out),
+          Buf("u_morton_keys_sorted_s2", a.u_morton_keys_sorted_s2),
+          Buf("u_morton_keys_sorted_s2_out", a.u_morton_keys_sorted_s2_out),
+          Buf("u_morton_keys_unique_s3", a.u_morton_keys_unique_s3),
+          Buf("u_morton_keys_unique_s3_out", a.u_morton_keys_unique_s3_out),
+          Buf("u_num_selected_out", a.u_num_selected_out),
+          Buf("u_brt_prefix_n_s4", a.u_brt_prefix_n_s4),
+          Buf("u_brt_has_leaf_left_s4", a.u_brt_has_leaf_left_s4),
+          Buf("u_brt_has_leaf_right_s4", a.u_brt_has_leaf_right_s4),
+          Buf("u_brt_left_child_s4", a.u_brt_left_child_s4),
+          Buf("u_brt_parents_s4", a.u_brt_parents_s4),
+          Buf("u_brt_prefix_n_s4_out", a.u_brt_prefix_n_s4_out),
+          Buf("u_brt_has_leaf_left_s4_out", a.u_brt_has_leaf_left_s4_out),
+          Buf("u_brt_has_leaf_right_s4_out", a.u_brt_has_leaf_right_s4_out),
+          Buf("u_brt_left_child_s4_out", a.u_brt_left_child_s4_out),
+          Buf("u_brt_parents_s4_out", a.u_brt_parents_s4_out),
+          Buf("u_edge_count_s5", a.u_edge_count_s5),
+          Buf("u_edge_count_s5_out", a.u_edge_count_s5_out),
+          Buf("u_edge_offset_s6", a.u_edge_offset_s6),
+          Buf("u_edge_offset_s6_out", a.u_edge_offset_s6_out),
+          Buf("u_oct_children_s7", a.u_oct_children_s7),
+          Buf("u_oct_corner_s7", a.u_oct_corner_s7),
+          Buf("u_oct_cell_size_s7", a.u_oct_cell_size_s7),
+          Buf("u_oct_child_node_mask_s7", a.u_oct_child_node_mask_s7),
+          Buf("u_oct_child_leaf_mask_s7", a.u_oct_child_leaf_mask_s7),
+          Buf("u_oct_children_s7_out", a.u_oct_children_s7_out),
+          Buf("u_oct_corner_s7_out", a.u_oct_corner_s7_out),
+          Buf("u_oct_cell_size_s7_out", a.u_oct_cell_size_s7_out),
+          Buf("u_oct_child_node_mask_s7_out", a.u_oct_child_node_mask_s7_out),
+          Buf("u_oct_child_leaf_mask_s7_out", a.u_oct_child_leaf_mask_s7_out)};
+}
+
+const std::set<std::string> kSafeTreeOutputs[] = {
+    {"u_morton_keys_s1_out"},
+    {"u_morton_keys_sorted_s2_out"},
+    {"u_morton_keys_unique_s3_out"},
+    {"u_brt_prefix_n_s4_out",
+     "u_brt_has_leaf_left_s4_out",
+     "u_brt_has_leaf_right_s4_out",
+     "u_brt_left_child_s4_out",
+     "u_brt_parents_s4_out"},
+    {"u_edge_count_s5_out"},
+    {"u_edge_offset_s6_out"},
+    {"u_oct_children_s7_out",
+     "u_oct_corner_s7_out",
+     "u_oct_cell_size_s7_out",
+     "u_oct_child_node_mask_s7_out",
+     "u_oct_child_leaf_mask_s7_out"},
+};
+}  // namespace
+
+TEST(InputPurityOmp, TreeAppData) {
+  tree::AppData app(std::pmr::new_delete_resource());
+  for (int s = 1; s <= 7; ++s) {
+    bt::testing::ExpectStageInputPure(
+        app,
+        s,
+        [](tree::AppData& a, const int st) { tree::omp::dispatch_stage(a, st); },
+        TreeRegions,
+        kTreeOutputs[s - 1]);
+  }
+}
+
+TEST(InputPurityOmp, TreeSafeAppData) {
+  tree::SafeAppData app(std::pmr::new_delete_resource());
+  for (int s = 1; s <= 7; ++s) {
+    bt::testing::ExpectStageInputPure(
+        app,
+        s,
+        [](tree::SafeAppData& a, const int st) { tree::omp::dispatch_stage(a, st); },
+        SafeTreeRegions,
+        kSafeTreeOutputs[s - 1]);
+  }
+  // main() runs one thread; stage 2 merges per-thread segments only with several. Stage 1
+  // first, so that stage 2 sees unsorted keys again.
+  omp_set_num_threads(4);
+  tree::omp::dispatch_stage(app, 1);
+  bt::testing::ExpectStageInputPure(
+      app,
+      2,
+      [](tree::SafeAppData& a, const int st) { tree::omp::dispatch_stage(a, st); },
+      SafeTreeRegions,
+      kSafeTreeOutputs[1]);
+  omp_set_num_threads(1);
 }
 
 int main(int argc, char** argv) {
