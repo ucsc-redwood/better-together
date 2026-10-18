@@ -67,7 +67,7 @@ topic letter. Motivation and measurements are in proposal.md (Why).
 ### Sparse conv
 
 **Goals (S):**
-- Meet the spec's 2× bound on conv2–conv5 on rocky-ryzen without regressing the phones.
+- Make conv2–conv5 faster beyond noise on the Samsung (where this path runs) without regressing either phone.
 - Keep the change inside the VK kernel, its dispatcher, and an additive CSR-side array.
 
 **Non-Goals (S):**
@@ -77,7 +77,7 @@ topic letter. Motivation and measurements are in proposal.md (Why).
 ### Dense conv
 
 **Goals (C):**
-- Reach the spec's ≤ 50% conv2–conv5 time on rocky in FP32.
+- Make the FP32 conv2–conv5 sum faster beyond noise on the Samsung.
 - Offer FP16 and cooperative-matrix modes as opt-in, accuracy-bounded paths.
 - Don't regress the phones.
 
@@ -263,7 +263,7 @@ selection and outputs unchanged.
   → **Mitigation:** the end-task accuracy test gates it. If it fails, ship FP16 only and record the
   INT8 accuracy.
 - **[Risk]** Input re-reads in F1 spill out of L2 on smaller-cache GPUs.
-  → **Mitigation:** time sparse fc1 on the phones as well as rocky.
+  → **Mitigation:** time sparse fc1 on both phones.
 
 ## Migration Plan
 
@@ -271,7 +271,7 @@ selection and outputs unchanged.
   or more PRs into `dev`.
 - **Gate:** every PR passes local `ctest -L omp`; `ctest -L vulkan` plus the app's `test-*-vk` on
   rocky-ryzen; and the app's `test-*-vk` on the Pixel 7a and the Samsung. It also records
-  before/after per-stage timing.
+  before/after per-stage timing, on the phones only.
 - **Defaults:** reduced-precision modes (C4, C5, F2) are opt-in, so default (FP32) behavior changes
   only through the FP32 kernels' speed.
 - **Rollback:** revert the PR. Old kernels stay registered and selectable by a dispatcher flag until

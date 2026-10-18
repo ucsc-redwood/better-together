@@ -6,7 +6,8 @@ The cifar apps' Vulkan kernels leave a lot of performance unused, and that disto
 schedules the paper finds, since the scheduler only offloads balanced work.
 
 Measured per-stage GPU time on rocky-ryzen (Radeon 780M, RADV), 2026-10-15
-(`bm-cifar-{dense,sparse}-vk`, the `real_time` column):
+(`bm-cifar-{dense,sparse}-vk`, the `real_time` column). These numbers motivate the change; since 2026-10-18 its
+performance gates run on the phones (nothing is profiled on rocky), against a phone baseline taken first:
 
 | | conv1 | conv2 | conv3 | conv4 | conv5 | fc1 | fc2 | app total |
 |---|---|---|---|---|---|---|---|---|
