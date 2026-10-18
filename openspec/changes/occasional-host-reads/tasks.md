@@ -26,6 +26,27 @@ Gates used below:
 
 ## 2. Tree declarations and the gate
 
-- [ ] 2.1 Declare the five octree outputs `{kHostSparse, 7}`, `u_out_idx` `{kHostSparse, 3}` and `u_edge_offset_s6` `{kHostSparse, 6, 7}` (D2). Verify: `Placement.DeclaredStagesMatchBindings` and the pipeline tests pass under local, rocky correctness and the phone gate.
-- [ ] 2.2 Run the whole-chunk A/B (D4) on both phones and apply the spec's gate. Verify: the medians and spreads are in design.md, and the declarations stay only if the gate passed (else 2.1 is reverted and the numbers are recorded).
-- [ ] 2.3 Document the marker in `docs/instruction-for-ai/03-unit-testing.md` next to the placement knobs, and add the result to `docs/reports-for-human/2026-10-16-vk-data-flow-fixes.md` (follow-up 1). Verify: both docs name the marker and the measured effect.
+- [x] 2.1 Declare the five octree outputs `{kHostSparse, 7}`, `u_out_idx` `{kHostSparse, 3}` and `u_edge_offset_s6` `{kHostSparse, 6, 7}` (D2). Verify: `Placement.DeclaredStagesMatchBindings` and the pipeline tests pass under local, rocky correctness and the phone gate.
+  - D2 re-checked against the current code first (design D2): unchanged.
+  - New hardware-free tests in `test-tree-vk`: `Placement.SparseHostReadsDoNotForceBoundary` (spec "Tree on the GPU
+    alone" and "A CPU chunk still reads it": all seven buffers GPU-local under GPU 1-7, the octree boundary under
+    GPU 1-6) and `Placement.CpuChunkBuffersStayBoundary` on `VkAppData`. Mutation: the declarations back at `0` make
+    the first fail; restored.
+  - Local (2026-10-18): `ctest -L omp` 11/11; on the RADV iGPU `test-tree-vk` 22/22, `test-pipeline-e2e-vk` 5/5,
+    `test-pipeline-chained-vk` 1/1, no skips.
+  - Rocky correctness (native build in `~/bt-ohr-gate`; rocky's HTTPS to GitHub returned a self-signed certificate,
+    so CPM got the build box's `build/.cpm-cache` via rsync): `test-kiss-vk` 30/30, `test-tree-vk` 22/22,
+    `test-pipeline-e2e-vk` 5/5, `test-pipeline-chained-vk` 1/1 with `--device minipc`. Nothing was timed there.
+  - Phone gate (`scripts/run-on-android.sh`, dest `/data/local/tmp/bt-ohr`), both phones exit 0: `test-kiss-vk` 29
+    passed + 1 skipped (`PipelineCacheTest.FifoAtCachePathIsIgnoredWithoutBlocking`, the OS forbids creating a FIFO in that dir; unrelated to this change),
+    `test-tree-vk` 22, `test-cifar-dense-vk` 16, `test-cifar-sparse-vk` 17, `test-pipeline-e2e-vk` 5,
+    `test-pipeline-chained-vk` 1. `PipelineE2EVk.AllVulkan` runs stages 1-7 on the GPU, so on the Pixel the counts
+    and the octree are in the uncached GPU-local class and each item's `n_octree_nodes` and octree match the oracle;
+    `PipelineChainedVk` asserts `n_unique`, `n_brt_nodes` and `n_octree_nodes` against the oracle.
+- [x] 2.2 Run the whole-chunk A/B (D4) on both phones and apply the spec's gate. Verify: the medians and spreads are in design.md, and the declarations stay only if the gate passed (else 2.1 is reverted and the numbers are recorded).
+  - 2026-10-18, design D4 "Measured": Pixel 7a `dispatch_wall` 29.54 ms (21.30..29.58) -> 17.79 ms (17.71..19.01),
+    spreads disjoint; Samsung 9.98 ms (7.22..10.37) -> 9.91 ms (8.35..10.50). Gate passed; the declarations stay.
+- [x] 2.3 Document the marker in `docs/instruction-for-ai/03-unit-testing.md` next to the placement knobs, and add the result to `docs/reports-for-human/2026-10-16-vk-data-flow-fixes.md` (follow-up 1). Verify: both docs name the marker and the measured effect.
+  - `03-unit-testing.md`: a `bt::kHostSparse` bullet after `BT_VK_BOUNDARY_PLACEMENT` (what qualifies, the rule, the
+    tree declarations, Pixel 29.54 -> 17.79 ms, Samsung unchanged, the tests). The data-flow report's follow-up 1
+    is marked done with the A/B medians and spreads of both phones.

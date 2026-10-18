@@ -206,6 +206,15 @@ BT_VK_FORCE_DESCRIPTOR_FALLBACK=1 ./test-tree-vk --device minipc
   a CPU chunk touches), to measure the host cache maintenance of buffers no CPU stage reads. An experiment knob.
   [Unset: host-cached. On the Pixel 7a the tree GPU chunk is 38 % shorter with `uncached`; the Samsung does not
   change. Do not use it with a schedule that has CPU chunks: they would read uncached memory.]
+- **`bt::kHostSparse`** (`platform/util/buffer_placement.hpp`) is not a knob but a declaration: in a buffer's accessor
+  list it replaces `0` when host code outside the stages only reads the buffer rarely (checks, final results) or a few
+  elements per item (a read-back count). It does not keep the buffer in the boundary class; the stages that touch it
+  decide (a buffer only the marker touches stays boundary). Reads stay correct in every class, just slower per element
+  on an uncached mapping, so a host reader that scans the buffer every item keeps `0`. The tree app declares its
+  final octree and the `u_out_idx` / `u_edge_offset_s6` counts this way: a whole tree GPU chunk (stages 1-7, big
+  cores) on the Pixel 7a went 29.54 -> 17.79 ms, the Samsung (host-cached GPU-local class) did not change
+  (occasional-host-reads, design D4). Hardware-free tests: `Placement.SparseHostReadsDoNotForceBoundary`
+  (`test-tree-vk`), `Placement.UndeclaredHostAccessKeepsPlacement` (cifar OMP suites).
 - `BT_VK_QUEUE=universal|compute` picks the queue family; `compute` falls back to the universal family, with a
   warning, where none exists (the Pixel). [`universal`: the first family with compute.]
 - `BT_VK_QUEUE_PRIORITY=low|medium|high` requests a global queue priority; a missing extension or
