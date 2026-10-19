@@ -44,11 +44,11 @@ class BaseEngine {
 
   ~BaseEngine();
 
-  // Owns vk::Instance/Device + the VMA allocator, all torn down by hand in ~BaseEngine
-  // (and a single shared g_vma_allocator). Copying would double-free those handles; there
-  // is no meaningful move (the derived Engine is held by value in each dispatcher and
-  // never relocated). Make both ill-formed so a stray by-value use is a compile error,
-  // not a runtime VK_ERROR_DEVICE_LOST.
+  // Owns vk::Device + the VMA allocator, torn down by hand in ~BaseEngine (and a single
+  // shared g_vma_allocator); the vk::Instance is shared process-wide (create_instance). Copying
+  // would double-free those handles; there is no meaningful move (the derived Engine is held by
+  // value in each dispatcher and never relocated). Make both ill-formed so a stray by-value use is
+  // a compile error, not a runtime VK_ERROR_DEVICE_LOST.
   BaseEngine(const BaseEngine&) = delete;
   BaseEngine& operator=(const BaseEngine&) = delete;
   BaseEngine(BaseEngine&&) = delete;
