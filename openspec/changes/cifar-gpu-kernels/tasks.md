@@ -155,7 +155,27 @@ no-regression check. FC changes run on both phones.
     --device minipc` 21 passed, the three new tests among them.
   - *It can fail:* with the right-edge bit of the tap mask forced on (a local mutation of the shader, reverted), all
     three fail on the build box's RADV iGPU.
-- [ ] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.
+- [x] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.
+  - rocky-ryzen (780M, Mesa 25.2.7), d3022eb's tree, the 1.2 command. `new_cifar_sparse_conv2d_k3s1p1_oc` is the
+    third of the six compute shaders in the dump (descriptors: input 0x0, weights 0x20, row_ptr 0x30, taps 0x40).
+    All CSR metadata is scalar. The row bounds are one `s_buffer_load_b64` (no vector load and no
+    `v_readfirstlane` any more), and the unrolled loop loads 8 taps and 8 weights with one scalar load each:
+
+        s_load_b128 s[16:19], s[2:3], 0x30
+        s_buffer_load_b64 s[16:17], s[16:19], s15           ; row_ptr[out_c], row_ptr[out_c+1]
+        ...
+        s_buffer_load_b256 s[32:39], s[20:23], s16          ; weight_taps[nz .. nz+7]
+        buffer_load_b32 v10, v10, s[24:27], 0 offen         ; input, tap 0
+        s_clause 0x6
+        buffer_load_b32 v12, v12, s[24:27], 0 offen         ; input, taps 1-7 back to back
+        ...
+        buffer_load_b32 v26, v26, s[24:27], 0 offen
+        s_load_b128 s[24:27], s[2:3], 0x20
+        s_buffer_load_b256 s[32:39], s[24:27], s16          ; weight_vals[nz .. nz+7]
+        s_waitcnt vmcnt(7) lgkmcnt(0)                       ; first wait: all 8 input loads in flight
+
+    The remainder loop (row length mod 8) loads one tap and one weight per nonzero with `s_buffer_load_b32`. There
+    is no exec-mask branch in either loop (the 1.2 kernel had one per tap).
 - [ ] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
 - [ ] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
 - [ ] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
