@@ -100,6 +100,14 @@ class VulkanDispatcher final {
   void record_stage_10(AppData& appdata, kiss_vk::Sequence& seq);
   void record_stage_11(AppData& appdata, kiss_vk::Sequence& seq);
 
+  // Stages 1, 3, 5, 6, 7: the 3x3 CSR conv of `in` into `out`.
+  void record_conv(kiss_vk::Sequence& seq,
+                   Ndarray4D& in,
+                   Ndarray4D& out,
+                   CSRMatrix& csr,
+                   std::pmr::vector<int>& taps,
+                   Ndarray1D& bias);
+
   using RecordFn = void (VulkanDispatcher::*)(AppData&, kiss_vk::Sequence&);
 
   static constexpr std::array<RecordFn, 11> record_functions = {
@@ -118,6 +126,8 @@ class VulkanDispatcher final {
 
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
+  // False with BT_VK_SPARSE_CONV=flat: the convs keep new_cifar_sparse_conv2d_k3s1p1 on every GPU.
+  const bool conv_per_channel;
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
 };
 

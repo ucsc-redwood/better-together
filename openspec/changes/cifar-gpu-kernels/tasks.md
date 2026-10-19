@@ -126,7 +126,25 @@ no-regression check. FC changes run on both phones.
     The real export's rows differ from the synthetic pattern (conv1 row 0 is `[3]` vs `[0, 4, …, 24]`; its rows 4-6
     are empty). Same build: `Placement.DeclaredStagesMatchBindings` passes; local gate `ctest --test-dir build/pc -L
     omp` 11/11 passed.
-- [ ] 1.4 Write the uniform-channel kernel (S1): `out_c = gl_WorkGroupID.y`, grid `(ceil(N·P·Q/256), K, 1)`, a per-invocation 9-bit tap-valid mask; old kernel kept behind a dispatcher flag. Verify: the rocky gate passes with the new kernel and with the old one.
+- [x] 1.4 Write the uniform-channel kernel (S1): `out_c = gl_WorkGroupID.y`, grid `(ceil(N·P·Q/256), K, 1)`, a per-invocation 9-bit tap-valid mask; old kernel kept behind a dispatcher flag. Verify: the rocky gate passes with the new kernel and with the old one.
+  - *Kernel:* `new_cifar_sparse_conv2d_k3s1p1_oc.comp`. One invocation per output pixel of channel
+    `gl_WorkGroupID.y`; it builds its 9-bit tap-valid mask once, then walks the row 8 nonzeros per iteration (8
+    accumulators). A nonzero is a tap load, a weight load, a mask test and an input load from `pixel + offset`, or
+    from the pixel itself when the tap is in the border, with the weight selected to 0: no division and no branch.
+    Binding 4 is the layer's taps instead of `col_idx`.
+  - *Dispatcher:* the five conv stages now share `record_conv` (the five copies differed only in their buffers). It
+    takes the new kernel, grid `(ceil(N·H·W/256), K, 1)`, when the subgroup is 32 or more, and the previous
+    `new_cifar_sparse_conv2d_k3s1p1` otherwise (so the Pixel's Mali path is selected exactly as before) or with
+    `BT_VK_SPARSE_CONV=flat` (the old-kernel flag, read once per dispatcher).
+  - *rocky gate*, the tree at c4a8032 plus this change, synced to `~/bt-sparse-gate`: `cmake --preset vulkan`
+    (glslc of NDK r29), build exit 0, `ctest -L vulkan` 7/7 passed and `./test-cifar-sparse-vk --device minipc` 18
+    passed, both with the new kernel and with `BT_VK_SPARSE_CONV=flat`. `just check-shaders`: OK.
+  - *The flag routes:* with the new kernel's output scaled by 0.5 (a local mutation, reverted),
+    `test-cifar-sparse-vk --gtest_filter='*Stage6*:*Stage1_*'` fails both stages, and passes both with
+    `BT_VK_SPARSE_CONV=flat` (build box RADV iGPU).
+  - *Exploratory, not a gate* (Samsung, 1 round, base vs this binary, otherwise the 1.1 method; its
+    `test-cifar-sparse-vk` passes 18/18): conv1 4.102 → 3.079 ms (-24.9 %), conv2 34.023 → 19.065 (-44.0 %), conv3
+    51.653 → 36.715 (-28.9 %), conv4 68.541 → 48.666 (-29.0 %), conv5 45.762 → 30.386 (-33.6 %).
 - [ ] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
 - [ ] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.
 - [ ] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
