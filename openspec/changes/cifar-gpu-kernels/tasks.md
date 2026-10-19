@@ -71,7 +71,39 @@ no-regression check. FC changes run on both phones.
     | 10 | 10.052 (10.040-10.058, n=3x99) | 10.039 (10.032-10.041, n=3x98-99) | -0.1 % |
     | 11 | 1.155 (1.151-1.176, n=3x2000) | 1.178 (1.153-1.178, n=3x2000) | +2.0 % |
     | sum | 232.347 | 232.332 | -0.0 % |
-- [ ] 1.2 Dump the current kernel's ACO disassembly on rocky (`RADV_DEBUG=shaders ./test-cifar-sparse-vk --device minipc --gtest_filter='*Stage6*'`). Verify: the evidence note quotes the CSR `buffer_load`/`s_load` lines, confirming or refuting S1's premise.
+- [x] 1.2 Dump the current kernel's ACO disassembly on rocky (`RADV_DEBUG=shaders ./test-cifar-sparse-vk --device minipc --gtest_filter='*Stage6*'`). Verify: the evidence note quotes the CSR `buffer_load`/`s_load` lines, confirming or refuting S1's premise.
+  - rocky-ryzen (Radeon 780M, Mesa 25.2.7), ee4c68d, `BT_VK_PIPELINE_CACHE_DIR=<empty dir>
+    MESA_SHADER_CACHE_DISABLE=true RADV_DEBUG=shaders ./test-cifar-sparse-vk --device minipc
+    --gtest_filter='*Stage6*'` (1 test passed). The k3s1p1 shader is the second of the five compute shaders in the
+    dump (it has the `v_readfirstlane_b32` of `subgroupBroadcastFirst` and the `0x38e38e39` divide-by-9). The
+    descriptor of binding k is at `s[0:1] + 16·k`: input 0x0 (`null`), `weight_vals` 0x20, `weight_row_ptr` 0x30,
+    `weight_col_idx` 0x40.
+  - *S1's premise is refuted for the model's shapes.* They all take the fast path (a 32², 16² or 8² map is a
+    multiple of the subgroup), and there the CSR metadata is already scalar. Per nonzero, `col_idx` and the weight
+    are `s_buffer_load_b32` and only the input is a vector load:
+
+        s_load_b128 s[12:15], s[0:1], 0x40          ; col_idx descriptor
+        s_buffer_load_b32 s17, s[12:15], s16        ; col_idx[nz], scalar
+        s_mul_hi_i32 s18, s17, 0x38e38e39           ; the /9, /3 decode runs on the SALU (15 ops)
+        ...
+        s_and_saveexec_b64 s[18:19], vcc            ; tap in the padded border: branch
+        s_cbranch_execz BB10
+        s_load_b128 s[24:27], s[0:1], 0x20          ; weight_vals descriptor
+        buffer_load_b32 v5, v5, s[20:23], 0 offen   ; input, the one vector load
+        s_buffer_load_b32 s16, s[24:27], s16        ; weight_vals[nz], scalar
+        s_waitcnt vmcnt(0) lgkmcnt(0)
+        v_mul_f32_e32 v5, s16, v5
+
+    The row bounds are one vector load per invocation, made uniform after it: `buffer_load_b64 v[0:1], v0,
+    s[12:15], 0 offen` (row_ptr, 0x30), `v_readfirstlane_b32 s3, v0`, `v_readfirstlane_b32 s4, v1`. Only the
+    fallback path (a subgroup spanning two channels, never taken by the model) loads the CSR per lane:
+    `buffer_load_b32 v5, v4, s[16:19], 0 offen` (col_idx, 0x40) and `buffer_load_b32 v6, v4, s[24:27], 0 offen`
+    (weight_vals, 0x20).
+  - *What the dump shows instead:* the `ok ? v * weight_vals[nz] : 0.0` of every tap compiles to an exec-mask
+    branch with `s_waitcnt vmcnt(0) lgkmcnt(0)` before the multiply, so each of the four unrolled taps waits for
+    its own input load: one input load in flight per wave. S1 and S2 still remove the decode and the
+    `subgroupAllEqual` test, and the new kernel must load unconditionally (clamped address, weight selected to 0)
+    so that loads overlap.
 - [ ] 1.3 Add the VK-only packed `(offset, tap)` array (S2), filled per CSR matrix after `build_from_dense()` and `load_real_weights()` with that layer's H and W. Verify: a `test-cifar-sparse-vk` unit test decodes every entry back to its `col_idx` for all five layers, on synthetic and real weights, and prints each layer's maximum offset within the reserved bit width.
 - [ ] 1.4 Write the uniform-channel kernel (S1): `out_c = gl_WorkGroupID.y`, grid `(ceil(N·P·Q/256), K, 1)`, a per-invocation 9-bit tap-valid mask; old kernel kept behind a dispatcher flag. Verify: the rocky gate passes with the new kernel and with the old one.
 - [ ] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
