@@ -4,13 +4,19 @@
 //
 // ExpectCpuBuffersStayBoundary<AppData>(n): for every schedule that runs one contiguous
 // stage range on the GPU and the rest on CPU chunks, every buffer a CPU stage (or host
-// code) is declared to touch is allocated from the boundary class.
+// code) is declared to touch is allocated from the boundary class. Sparse host reads
+// (bt::kHostSparse) do not count, unless no stage touches the buffer.
+//
+// ExpectPlacementUnchanged<AppData>(n): for an AppData that declares no sparse host reads,
+// every buffer under every such schedule gets the class of the rule before bt::kHostSparse
+// existed (GPU class iff every accessor is a GPU stage).
 //
 // RecordingResource: tags each allocation with the stages its buffer declared, so a
 // hardware test can compare the declarations with what a dispatcher actually binds.
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <map>
 #include <memory_resource>
 #include <set>
@@ -92,8 +98,10 @@ struct RecordingDispatcher {
   RecordingResource boundary, weights, gpu_local;
 };
 
-template <class AppData>
-void ExpectCpuBuffersStayBoundary(const int n_stages) {
+// Calls check(gpu, alloc, where) for every buffer of an AppData placed for each schedule
+// that runs one contiguous stage range on the GPU.
+template <class AppData, class Check>
+void ForEachOneRangePlacement(const int n_stages, const Check& check) {
   for (int a = 1; a <= n_stages; ++a) {
     for (int b = a; b <= n_stages; ++b) {
       const std::set<int> gpu = [&] {
@@ -106,21 +114,46 @@ void ExpectCpuBuffersStayBoundary(const int n_stages) {
         const AppData app(disp.placement(gpu));
       }  // allocate, log, free
       ASSERT_FALSE(disp.log.empty());
-      for (const auto& [ptr, alloc] : disp.log) {
-        bool cpu_touched = false;
-        for (const int s : alloc.stages) cpu_touched |= !gpu.contains(s);
-        const std::string where = "GPU stages " + std::to_string(a) + "-" + std::to_string(b);
-        if (cpu_touched) {
-          EXPECT_EQ(alloc.cls, bt::BufferClass::kBoundary) << where;
-        } else {
-          EXPECT_EQ(alloc.cls,
-                    alloc.kind == bt::BufferKind::kWeights ? bt::BufferClass::kWeights
-                                                           : bt::BufferClass::kGpuLocal)
-              << where;
-        }
-      }
+      const std::string where = "GPU stages " + std::to_string(a) + "-" + std::to_string(b);
+      for (const auto& [ptr, alloc] : disp.log) check(gpu, alloc, where);
     }
   }
+}
+
+[[nodiscard]] inline bt::BufferClass gpu_class_of(const bt::BufferKind kind) {
+  return kind == bt::BufferKind::kWeights ? bt::BufferClass::kWeights : bt::BufferClass::kGpuLocal;
+}
+
+template <class AppData>
+void ExpectCpuBuffersStayBoundary(const int n_stages) {
+  ForEachOneRangePlacement<AppData>(
+      n_stages, [](const std::set<int>& gpu, const Allocation& alloc, const std::string& where) {
+        bool cpu_touched = false, gpu_touched = false, sparse = false;
+        for (const int s : alloc.stages) {
+          if (s == bt::kHostSparse) {
+            sparse = true;
+          } else {
+            (gpu.contains(s) ? gpu_touched : cpu_touched) = true;
+          }
+        }
+        if (cpu_touched || (sparse && !gpu_touched)) {
+          EXPECT_EQ(alloc.cls, bt::BufferClass::kBoundary) << where;
+        } else {
+          EXPECT_EQ(alloc.cls, gpu_class_of(alloc.kind)) << where;
+        }
+      });
+}
+
+template <class AppData>
+void ExpectPlacementUnchanged(const int n_stages) {
+  ForEachOneRangePlacement<AppData>(
+      n_stages, [](const std::set<int>& gpu, const Allocation& alloc, const std::string& where) {
+        ASSERT_EQ(std::ranges::count(alloc.stages, bt::kHostSparse), 0) << "declares the marker";
+        const bool gpu_only =
+            std::ranges::all_of(alloc.stages, [&](const int s) { return gpu.contains(s); });
+        EXPECT_EQ(alloc.cls, gpu_only ? gpu_class_of(alloc.kind) : bt::BufferClass::kBoundary)
+            << where;
+      });
 }
 
 }  // namespace bt_placement_test

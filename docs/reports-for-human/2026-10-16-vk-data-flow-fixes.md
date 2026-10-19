@@ -105,6 +105,14 @@ So `BT_GPU_THREAD_CORES` is **opt-in**: unset = the OS places the thread (behavi
 
 1. A way to declare "the host reads this buffer occasionally" so the final octree can sit in coherent
    memory and stop being invalidated per item (the remaining gap to the -31 % of the profile experiment).
+   *Done (occasional-host-reads, 2026-10-18):* the `bt::kHostSparse` marker. The tree app declares the five
+   octree buffers and the two read-back counts with it, so on a GPU-only chunk they are GPU-local. Whole tree
+   chunk 1-7 on the big cores, 3 rounds A/B, `dispatch_wall` median (spread): Pixel 7a 29.54 (21.30..29.58) ->
+   **17.79 ms** (17.71..19.01), -40 %; Samsung 9.98 (7.22..10.37) -> 9.91 ms (8.35..10.50), noise. On the Pixel
+   the flush and invalidate of the second submission drop from ~1.5 ms each to ~0. Two of the three "before"
+   runs also had the GPU at a lower clock; the clock-matched pair is 21.30 -> 17.79 ms (-16 %). These runs come
+   after tree-app-improvements (stages 3 and 7 changed), so they are not comparable with the 27.51 / 20.78 ms
+   above. Details: `openspec/changes/occasional-host-reads/design.md` (D4).
 2. Remove the stage 3|4 round trip (`vkCmdDispatchIndirect` sized by a GPU-written `n_unique`).
 3. Write the octree leaf masks in `tree_build_octree.comp` and add them to the Vulkan oracle.
 4. Per-device GPU-thread placement only if a stable effect is found (e.g. record the Samsung's

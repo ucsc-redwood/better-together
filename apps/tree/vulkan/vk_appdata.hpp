@@ -82,12 +82,12 @@ struct VkAppData final : public tree::AppData {
       : VkAppData(bt::place_all_in(vk_mr), n_input) {}
 
   // The scratch buffers declare the GPU stages that bind them; u_out_idx is also read by the
-  // host (the n_unique read-back after stage 3). u_sums and u_prefix_sums are not bound by any
-  // stage.
+  // host, one element per item (the n_unique read-back after stage 3: bt::kHostSparse). u_sums
+  // and u_prefix_sums are not bound by any stage.
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit VkAppData(const bt::PlaceBuffer& place, const size_t n_input = tree::kDefaultInputSize)
       : tree::AppData(place, n_input),
-        u_out_idx(n_input, place(bt::BufferKind::kActivation, {0, 3})),
+        u_out_idx(n_input, place(bt::BufferKind::kActivation, {bt::kHostSparse, 3})),
         u_sums(n_input, place(bt::BufferKind::kActivation, {0})),
         u_prefix_sums(n_input, place(bt::BufferKind::kActivation, {0})),
         u_sort_tmp(n_input, place(bt::BufferKind::kActivation, {2})),

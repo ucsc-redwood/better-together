@@ -48,6 +48,12 @@ TEST(Placement, CpuChunkBuffersStayBoundary) {
   bt_placement_test::ExpectCpuBuffersStayBoundary<cifar_dense::AppData>(11);
 }
 
+// Memory-placement spec, "Undeclared host access keeps today's placement": no declaration here
+// uses bt::kHostSparse, so every buffer gets the class it had before the marker existed.
+TEST(Placement, UndeclaredHostAccessKeepsPlacement) {
+  bt_placement_test::ExpectPlacementUnchanged<cifar_dense::AppData>(11);
+}
+
 // End-task accuracy on the REAL trained weights + real normalized CIFAR-10 test
 // batch (04-alexnet-cifar-spec.md §7). Skips unless BT_WEIGHTS_DIR is set, so
 // hermetic runs are unaffected. The PyTorch dense reference is ~92% on the full

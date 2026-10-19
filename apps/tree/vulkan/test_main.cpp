@@ -170,6 +170,38 @@ TEST(Placement, DeclaredStagesMatchBindings) {
   }
 }
 
+// Memory-placement spec, "Sparse host reads do not force the boundary class": with every stage
+// on the GPU, the final octree and the two read-back counts (declared bt::kHostSparse) are
+// GPU-local; with stage 7 on a CPU chunk, the octree is boundary. Hardware-free.
+TEST(Placement, SparseHostReadsDoNotForceBoundary) {
+  using bt_placement_test::RecordingDispatcher;
+  const auto octree = [](const tree::vulkan::VkAppData& a) -> std::vector<const void*> {
+    return {a.u_oct_children_s7.data(),
+            a.u_oct_corner_s7.data(),
+            a.u_oct_cell_size_s7.data(),
+            a.u_oct_child_node_mask_s7.data(),
+            a.u_oct_child_leaf_mask_s7.data()};
+  };
+  {
+    RecordingDispatcher rec;
+    const tree::vulkan::VkAppData app(rec.placement(all_stages(7)));
+    std::vector<const void*> seven = octree(app);
+    seven.push_back(app.u_out_idx.data());
+    seven.push_back(app.u_edge_offset_s6.data());
+    for (const void* p : seven) EXPECT_EQ(rec.log.at(p).cls, bt::BufferClass::kGpuLocal);
+  }
+  {
+    RecordingDispatcher rec;
+    const tree::vulkan::VkAppData app(rec.placement(all_stages(6)));  // stage 7 on a CPU chunk
+    for (const void* p : octree(app)) EXPECT_EQ(rec.log.at(p).cls, bt::BufferClass::kBoundary);
+  }
+}
+
+// The same rule check as test-tree-omp's, on VkAppData (adds the Vulkan scratch buffers).
+TEST(Placement, CpuChunkBuffersStayBoundary) {
+  bt_placement_test::ExpectCpuBuffersStayBoundary<tree::vulkan::VkAppData>(7);
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   parse_args_test(argc, argv);
