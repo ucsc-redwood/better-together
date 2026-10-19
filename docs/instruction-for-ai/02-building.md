@@ -59,7 +59,8 @@ ctest --test-dir build/pc --output-on-failure
 The Jetson Orin Nano is slow to build on, so we cross-compile on x86 and copy the
 aarch64 binaries to the device.
 
-> **Default since 2026-07-02: `bt-cross:7.2`**
+> **Default: `bt-cross:7.2-glslc`** (since 2026-10-18; the same Dockerfile as `bt-cross:7.2`, the default since
+> 2026-07-02, rebuilt so it carries `glslc` for the build-time shader compile)
 > ([`Dockerfile.cross-7.2`](../../Dockerfile.cross-7.2)) — CUDA **13.2 matching the
 > JetPack 7.2 fleet**, via NVIDIA's official public SBSA cross toolchain
 > (`cuda-cross-sbsa-13-2` debs) + arm64 multiarch libvulkan. Fully validated: CUDA +
@@ -73,7 +74,7 @@ aarch64 binaries to the device.
 
 ```bash
 # one-time: build the cross image
-docker build -t bt-cross:7.2 -f Dockerfile.cross-7.2 .
+docker build -t bt-cross:7.2-glslc -f Dockerfile.cross-7.2 .
 
 # build everything for the Jetson (native x86 speed, no emulation)
 scripts/cross-build-jetson.sh         # == cmake --preset jetson && cmake --build --preset jetson
@@ -108,7 +109,7 @@ scripts/run-on-rocky.sh               # all Vulkan tests; or pass targets to nar
 Every Vulkan build compiles `platform/engine/vulkan/shaders/comp/*.comp` with **`glslc`** at build
 time (`cmake/bt_shaders.cmake`; nothing generated is committed). Install it on the build host
 (`apt install glslc`); the Android preset finds the NDK's copy, and `Dockerfile.cross-7.2` ships it
-(rebuild `bt-cross:7.2` once to pick it up). Configure fails with a clear message if it is missing.
+(`bt-cross:7.2-glslc` is that image; the older `bt-cross:7.2` lacks it and fails a Vulkan configure). Configure fails with a clear message if it is missing.
 (rocky-ryzen is also fish — the script uses `ssh … bash -s`; see [`01-hardware.md`](01-hardware.md).)
 
 ## `android` — arm64-v8a (OpenMP + Vulkan), cross-compiled

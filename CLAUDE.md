@@ -34,7 +34,7 @@ Status, audits, decision logs, and roadmaps (the *why* and *where we are*) are i
   CUDA is **cross-compiled to the Jetsons** — two Orin Nano Super devkits,
   `duck-stable`/`duck-naughty` (`ssh doremy@duck-{stable,naughty}`), **reflashed to
   JetPack 7.2 / CUDA 13.2 on 2026-07-01**; pre-reflash results are archived and not
-  comparable. Default cross image: `bt-cross:7.2` (CUDA 13.2, official SBSA cross
+  comparable. Default cross image: `bt-cross:7.2-glslc` (CUDA 13.2, official SBSA cross
   toolchain + arm64 Vulkan — matches the fleet; validated 2026-07-02).
   `bt-cross:6.1` (CUDA 12.6) is the legacy image for JetPack-6 targets.
   Vulkan needs an **integrated GPU** — `kiss-vk` hard-selects
