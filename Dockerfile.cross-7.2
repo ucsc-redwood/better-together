@@ -2,10 +2,10 @@
 # NVIDIA's official (public) SBSA cross toolchain. Candidate replacement for the
 # JetPack-6-era bt-cross:6.1 (Dockerfile.cross).
 #
-#   podman build -t bt-cross:7.2 -f Dockerfile.cross-7.2 .        # (or docker)
+#   podman build -t bt-cross:7.2-glslc -f Dockerfile.cross-7.2 .        # (or docker)
 #   # CUDA-only validation build (no aarch64 Vulkan libs in this image yet):
 #   podman run --rm --userns=keep-id -e HOME=/workspace/build \
-#     -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2 bash -lc \
+#     -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2-glslc bash -lc \
 #     'cmake --preset jetson -B build/jetson72 -DBT_ENABLE_VULKAN=OFF &&
 #      cmake --build build/jetson72 --target test-tree-cu -j'
 #

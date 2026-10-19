@@ -1,6 +1,6 @@
 # Cross-compile toolchain for NVIDIA Jetson Orin (aarch64, sm_87).
 # Use INSIDE a cross container:
-#   bt-cross:7.2 (Dockerfile.cross-7.2, CUDA 13.2 -- the default, matches the
+#   bt-cross:7.2-glslc (Dockerfile.cross-7.2, CUDA 13.2 -- the default, matches the
 #   JetPack 7.2 fleet) or the legacy bt-cross:6.1 (Dockerfile.cross, CUDA 12.6).
 # Also works for a NATIVE build on the Jetsons themselves (Ubuntu aarch64 ships the
 # aarch64-linux-gnu-* compiler names; nvcc resolves to the on-device CUDA 13.2).
@@ -13,7 +13,7 @@ set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc)
 set(CMAKE_CXX_COMPILER aarch64-linux-gnu-g++)
 
 # CUDA: x86 nvcc emitting aarch64 host code via the cross g++; statically links cudart.
-# Resolve nvcc from $CUDACXX, else CUDA 13.2 (bt-cross:7.2, or a native build on the
+# Resolve nvcc from $CUDACXX, else CUDA 13.2 (bt-cross:7.2-glslc, or a native build on the
 # JetPack 7.2 Jetsons), else the legacy bt-cross:6.1 container's CUDA 12.6, else leave
 # it for CMake to find on PATH.
 if(DEFINED ENV{CUDACXX})

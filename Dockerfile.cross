@@ -1,5 +1,5 @@
 # LEGACY cross-compile environment (JetPack-6-era, CUDA 12.6) for the Jetson Orin
-# CUDA backend. Since 2026-07-02 the DEFAULT is bt-cross:7.2 (Dockerfile.cross-7.2,
+# CUDA backend. Since 2026-07-02 the DEFAULT is bt-cross:7.2-glslc (Dockerfile.cross-7.2,
 # CUDA 13.2 matching the reflashed fleet); keep this image for JetPack-6 targets or
 # users still on L4T r36.
 #

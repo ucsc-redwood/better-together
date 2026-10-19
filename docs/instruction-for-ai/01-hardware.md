@@ -99,7 +99,7 @@ The old i9/RTX build box is **no longer part of the workflow**. All builds run o
 - **x86 Vulkan** (`vulkan` preset): builds **natively on rocky** (gcc 14 + cmake,
   verified 2026-07-02) — then runs right there (it *is* the minipc target).
 - **Jetson CUDA+Vulkan** (`jetson` preset): cross-compiles on rocky inside the
-  `bt-cross:7.2` **podman** image (`just build-jetson` with `BT_CONTAINER=podman`,
+  `bt-cross:7.2-glslc` **podman** image (`just build-jetson` with `BT_CONTAINER=podman`,
   or `scripts/build-bench-jetson.sh`); `bt-cross:6.1` remains the legacy image for
   JetPack-6 targets.
 - **Android** (`android` preset): needs an NDK on the building machine (the build
@@ -127,7 +127,7 @@ pre-2026-07 Jetson numbers are from that old software stack and are **not compar
 - **Access** `ssh doremy@duck-stable` / `ssh doremy@duck-naughty`. Login shell is
   **bash** (the old fish gotcha no longer applies here — it still does on rocky).
   Passwordless sudo is available (`nvpmodel`, clock locking).
-- **Build** **cross-compile** in the `bt-cross:7.2` container (CUDA 13.2, matching
+- **Build** **cross-compile** in the `bt-cross:7.2-glslc` container (CUDA 13.2, matching
   the fleet — official SBSA cross toolchain, default since 2026-07-02; all six
   `test-*-{cu,vk}` suites green on duck-stable from it), then `scp` aarch64 binaries
   over ([`02-building.md`](02-building.md)). Legacy `bt-cross:6.1` (CUDA 12.6) also
