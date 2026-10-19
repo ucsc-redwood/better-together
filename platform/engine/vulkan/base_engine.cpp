@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -27,6 +28,37 @@ VmaAllocator g_vma_allocator = nullptr;
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 namespace kiss_vk {
+
+namespace {
+
+// NVIDIA's Tegra Vulkan driver (JetPack 7.2) stops enumerating the Orin after the 16th
+// vkCreateInstance in one process, even when every instance is destroyed: a plain C
+// create/destroy loop shows it, and the test suites then failed with "No integrated GPU
+// found". So engines share one instance per layer set for the life of the process.
+//
+// Each is destroyed at exit by a handler registered with std::atexit right after the
+// instance is created, i.e. after the driver and the instance's layers have loaded and
+// registered their own exit handlers, so ours runs first (exit runs handlers in reverse
+// order). A static destructor would run after that teardown and crashed in
+// vkDestroyInstance on Tegra (and in the validation layer on RADV); leaking the instance
+// made the loader's teardown segfault on Tegra (see destroy()).
+vk::Instance g_instance_with_layers;
+vk::Instance g_instance_without_layers;
+// Keeps libvulkan open until the exit handlers below have run (engines dlclose theirs).
+DynamicLoader* g_process_loader = nullptr;
+
+// One handler per instance, each registered right after that instance's creation: the
+// layers an instance loads (e.g. validation) register their own exit handlers then too.
+void destroy_instance_with_layers() {
+  if (g_instance_with_layers) g_instance_with_layers.destroy();
+  g_instance_with_layers = nullptr;
+}
+void destroy_instance_without_layers() {
+  if (g_instance_without_layers) g_instance_without_layers.destroy();
+  g_instance_without_layers = nullptr;
+}
+
+}  // namespace
 
 // ----------------------------------------------------------------------------
 // Constructor
@@ -91,10 +123,8 @@ void BaseEngine::destroy() noexcept {
     device_.destroy();
     device_ = nullptr;
   }
-  if (instance_) {
-    instance_.destroy();
-    instance_ = nullptr;
-  }
+  // The instance is the process-wide one (create_instance); it outlives this engine.
+  instance_ = nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -137,8 +167,20 @@ void BaseEngine::create_instance() {
     layers += (layers.empty() ? "" : ", ") + std::string(layer);
   spdlog::debug("Vulkan instance layers enabled: {}", layers.empty() ? "none" : layers);
 
-  // Create the instance using the default dispatcher
-  instance_ = createInstance(instance_create_info);
+  // One instance per layer set per process (see g_instance_without_layers). Engines are created one
+  // at a time in practice, but the mutex keeps the first creation race-free.
+  static std::mutex mutex;
+  {
+    const std::lock_guard lock(mutex);
+    const bool layers = !enabled_layers_.empty();
+    auto& shared = layers ? g_instance_with_layers : g_instance_without_layers;
+    if (!shared) {
+      if (g_process_loader == nullptr) g_process_loader = new DynamicLoader();  // never freed
+      shared = createInstance(instance_create_info);
+      std::atexit(layers ? destroy_instance_with_layers : destroy_instance_without_layers);
+    }
+    instance_ = shared;
+  }
 
   // Initialize instance-specific function pointers
   VULKAN_HPP_DEFAULT_DISPATCHER.init(instance_);

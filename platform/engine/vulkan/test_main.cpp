@@ -30,6 +30,16 @@ TEST(VulkanEngineTest, EngineInitialization) {
   EXPECT_NO_THROW({ kiss_vk::Engine engine; });
 }
 
+// More engines in one process than the Tegra driver allows instances (16): every one must
+// still find the integrated GPU, since engines share one instance.
+TEST(VulkanEngineTest, ManyEnginesInOneProcess) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  for (int i = 0; i < 20; ++i) {
+    SCOPED_TRACE(i);
+    EXPECT_NO_THROW({ kiss_vk::Engine engine; });
+  }
+}
+
 TEST(VulkanEngineTest, SequenceCreation) {
   kiss_vk::Engine engine;
 
