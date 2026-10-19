@@ -4,10 +4,10 @@ Measured speedup = fastest single-PU whole-pipeline baseline (ms/task, summed fr
 
 | Device | App | Backend | Baseline | Best | Speedup |
 |---|---|---|---|---|---|
-| samsung | tree | VK | VK 9.47 | btpm 4.18 | 2.26x |
+| samsung | tree | VK | VK 8.98 | btpm 3.91 | 2.30x |
 | samsung | cifar-dense | VK | VK 20.39 | isolated 10.98 | 1.86x |
 | samsung | cifar-sparse | VK | VK 284.62 | isolated 183.72 | 1.55x |
-| pixel | tree | VK | VK 17.76 | btpm 12.42 | 1.43x |
+| pixel | tree | VK | OMP 16.36 | isolated 6.86 | 2.38x |
 | pixel | cifar-dense | VK | VK 81.75 | isolated 39.59 | 2.06x |
 | pixel | cifar-sparse | VK | VK 580.43 | btpm 421.31 | 1.38x |
 
@@ -28,14 +28,14 @@ Measured period = per run log, each chunk's mean duration summed per PU, maxed o
 
 | Device | App | Backend | Cost model | Table | Executed | Median abs error | Best measured ms [min-max] |
 |---|---|---|---|---|---|---|---|
-| samsung | tree | VK | per-stage | btpm | 10 | 0.085 | 3.88 [3.83-4.84] |
-| samsung | tree | VK | per-stage | isolated | 10 | 1.403 | 7.11 [6.84-9.55] |
+| samsung | tree | VK | per-stage | btpm | 10 | 0.575 | 3.95 [3.83-4.23] |
+| samsung | tree | VK | per-stage | isolated | 10 | 0.161 | 3.94 [3.78-4.51] |
 | samsung | cifar-dense | VK | per-stage | btpm | 10 | 0.060 | 11.26 [11.22-11.45] |
 | samsung | cifar-dense | VK | per-stage | isolated | 10 | 0.049 | 10.99 [10.92-11.02] |
 | samsung | cifar-sparse | VK | per-stage | btpm | 5 | 0.344 | 213.92 [211.10-215.12] |
 | samsung | cifar-sparse | VK | per-stage | isolated | 5 | 0.162 | 183.20 [182.14-194.23] |
-| pixel | tree | VK | per-stage | btpm | 10 | 0.615 | 11.54 [10.44-21.44] |
-| pixel | tree | VK | per-stage | isolated | 10 | 2.818 | 26.55 [24.96-26.70] |
+| pixel | tree | VK | per-stage | btpm | 10 | 0.701 | 8.60 [8.46-8.98] |
+| pixel | tree | VK | per-stage | isolated | 10 | 0.027 | 6.87 [6.85-6.87] |
 | pixel | cifar-dense | VK | per-stage | btpm | 10 | 0.116 | 43.19 [42.90-43.43] |
 | pixel | cifar-dense | VK | per-stage | isolated | 10 | 0.120 | 39.59 [39.55-39.63] |
 | pixel | cifar-sparse | VK | per-stage | btpm | 6 | 0.009 | 431.24 [419.81-451.62] |
@@ -45,26 +45,26 @@ Measured period = per run log, each chunk's mean duration summed per PU, maxed o
 
 | Device | App | Backend | Cost model | Table | Mode | Schedule | Predicted ms | Measured ms [min-max] | Logs | Measured / predicted |
 |---|---|---|---|---|---|---|---|---|---|---|
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-M1G6-G150-d41e | 3.80 | 5.46 [5.21-5.46] | 3 | 1.435 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-L1G6-G175-d87b | 3.80 | 3.88 [3.83-4.84] | 3 | 1.019 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-B1G6-G146-6d6e | 3.80 | 5.53 [4.05-5.82] | 3 | 1.456 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-G7-G000-360c | 3.96 | 11.16 [11.13-11.59] | 3 | 2.822 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-B1M1G5-G446-141d | 6.81 | 16.23 [7.13-19.25] | 3 | 2.386 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-B1M1L1G4-G605-5f5e | 6.81 | 7.15 [7.10-7.48] | 3 | 1.050 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-L1M1G5-G475-a3b6 | 6.81 | 7.15 [5.75-7.56] | 3 | 1.050 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-M1L1G5-G465-fc35 | 6.95 | 7.53 [7.38-10.46] | 3 | 1.084 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-B1L1G5-G461-fd27 | 6.95 | 7.55 [7.11-16.67] | 3 | 1.086 |
-| samsung | tree | VK | per-stage | btpm | tmax | SCH-M1L2G4-G526-cefc | 7.15 | 7.69 [7.25-16.87] | 3 | 1.075 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2M2L2B1-G282-1e19 | 3.83 | 9.68 [9.42-9.70] | 3 | 2.527 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2M2B2L1-G252-2cc2 | 3.90 | 9.73 [6.85-9.86] | 3 | 2.493 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2L2B1M2-G303-5245 | 3.93 | 8.28 [7.54-8.78] | 3 | 2.106 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2L2B2M1-G256-e8cd | 3.93 | 8.92 [8.28-9.46] | 3 | 2.267 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2L2M2B1-G286-87e3 | 3.93 | 9.43 [8.81-9.49] | 3 | 2.397 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2M2B1L2-G310-a60a | 4.01 | 8.28 [8.25-10.28] | 3 | 2.067 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2M1B2L2-G335-881a | 4.03 | 9.72 [6.60-9.80] | 3 | 2.410 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-M1G2B2L2-G247-6bad | 4.03 | 12.86 [7.49-12.98] | 3 | 3.189 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2L1B2M2-G334-d4eb | 4.03 | 7.11 [6.84-9.55] | 3 | 1.763 |
-| samsung | tree | VK | per-stage | isolated | tmax | SCH-L1G2B2M2-G247-9bdd | 4.03 | 9.88 [9.49-12.86] | 3 | 2.450 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-M1G6-G271-ed0c | 3.44 | 8.69 [8.58-8.72] | 3 | 2.526 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-B1G6-G229-dec2 | 3.44 | 8.66 [8.52-8.76] | 3 | 2.517 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-G7-G000-766f | 3.63 | 11.17 [10.26-11.32] | 3 | 3.079 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-L1G6-G038-0ff0 | 3.82 | 6.42 [6.23-6.67] | 3 | 1.679 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-G6M1-G224-136a | 4.80 | 7.73 [7.57-7.93] | 3 | 1.612 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-G4L2M1-G271-4f2f | 4.80 | 4.96 [4.80-5.11] | 3 | 1.033 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-G3B1L2M1-G319-90a3 | 4.80 | 4.27 [4.25-4.29] | 3 | 0.890 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-G2B2L2M1-G353-179e | 4.80 | 4.48 [4.45-4.51] | 3 | 0.934 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-G4B2M1-G432-1266 | 4.80 | 7.37 [7.03-7.40] | 3 | 1.537 |
+| samsung | tree | VK | per-stage | btpm | tmax | SCH-L1G3B2M1-G432-3b83 | 4.80 | 3.95 [3.83-4.23] | 6 | 0.823 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2M2L2B1-G226-3f74 | 3.66 | 4.24 [4.21-4.81] | 3 | 1.161 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2L1M3B1-G297-2279 | 3.66 | 4.08 [4.04-4.11] | 3 | 1.116 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-L1G2M3B1-G121-a8fc | 3.66 | 4.55 [4.23-4.60] | 3 | 1.246 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-G2M3L1B1-G323-2fd1 | 3.71 | 3.98 [3.93-4.13] | 3 | 1.071 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-B1G3L1M2-G291-7bf8 | 3.82 | 4.52 [4.42-4.58] | 3 | 1.185 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-B1G3L2M1-G291-d80b | 3.82 | 3.94 [3.78-4.51] | 3 | 1.033 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-L1G3B2M1-G335-370b | 3.82 | 3.95 [3.83-4.23] | 6 | 1.034 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-L1G3B1M2-G351-b36e | 3.82 | 4.43 [3.64-4.55] | 3 | 1.161 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-L1G3M3-G123-ec79 | 3.82 | 4.99 [4.81-5.05] | 3 | 1.308 |
+| samsung | tree | VK | per-stage | isolated | tmax | SCH-B1G3M3-G291-a7df | 3.82 | 6.54 [6.40-6.86] | 3 | 1.713 |
 | samsung | cifar-dense | VK | per-stage | btpm | tmax | SCH-L2M1G7B1-G1169-f0bd | 12.28 | 11.52 [11.41-11.85] | 3 | 0.938 |
 | samsung | cifar-dense | VK | per-stage | btpm | tmax | SCH-B2M1G7L1-G1165-89b6 | 12.28 | 11.65 [11.36-11.68] | 3 | 0.949 |
 | samsung | cifar-dense | VK | per-stage | btpm | tmax | SCH-L2M1B1G7-G1060-853e | 12.30 | 11.26 [11.22-11.45] | 3 | 0.915 |
@@ -95,26 +95,26 @@ Measured period = per run log, each chunk's mean duration summed per PU, maxed o
 | samsung | cifar-sparse | VK | per-stage | isolated | tmax | SCH-M4G4B3-G1607-12f5 | 219.88 | 183.20 [182.14-194.23] | 3 | 0.833 |
 | samsung | cifar-sparse | VK | per-stage | isolated | tmax | SCH-M3G5B3-G2029-c7b7 | 219.88 | 184.34 [182.46-186.80] | 3 | 0.838 |
 | samsung | cifar-sparse | VK | per-stage | isolated | tmax | SCH-M3G4L1B3-G21390-d58f | 219.88 | 187.55 [185.67-193.19] | 3 | 0.853 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-L1M1G5-G652-537e | 8.26 | 15.37 [15.36-16.04] | 3 | 1.860 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-B1M1G5-G622-fadf | 8.26 | 20.89 [16.99-24.37] | 3 | 2.529 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-M1L1G5-G598-6cd4 | 8.26 | 24.60 [10.35-24.62] | 3 | 2.977 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-B1L1G5-G622-af2d | 8.26 | 13.98 [10.08-18.65] | 3 | 1.691 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-L1B1G5-G652-dc10 | 8.26 | 19.68 [13.42-23.71] | 3 | 2.382 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-M1B1G5-G598-bf19 | 8.26 | 12.71 [10.28-20.03] | 3 | 1.538 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-L2G5-G160-4fd8 | 9.86 | 11.54 [10.44-21.44] | 3 | 1.170 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-M2G5-G191-ca75 | 10.17 | 13.00 [10.26-28.27] | 3 | 1.278 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-B2G5-G195-63a8 | 10.21 | 12.85 [10.36-28.48] | 3 | 1.258 |
-| pixel | tree | VK | per-stage | btpm | tmax | SCH-G6M1-G019-7a83 | 10.23 | 15.08 [14.89-15.23] | 3 | 1.473 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1M1B3G2-G589-6026 | 7.04 | 27.19 [26.91-27.84] | 3 | 3.862 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1M1B2G3-G589-acdb | 7.04 | 27.08 [26.49-27.38] | 3 | 3.847 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1M1B4G1-G589-b0af | 7.04 | 27.08 [26.86-27.66] | 3 | 3.847 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-B1M1L3G2-G590-3301 | 7.04 | 26.78 [26.69-27.25] | 3 | 3.804 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-B1M1L2G3-G590-40f7 | 7.04 | 26.93 [26.76-27.77] | 3 | 3.826 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-B1M1L4G1-G590-c1af | 7.04 | 26.55 [24.96-26.70] | 3 | 3.771 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-M1L1B4G1-G593-25ba | 7.08 | 26.99 [26.23-27.50] | 3 | 3.810 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-M1L1B3G2-G593-fac9 | 7.08 | 26.97 [25.75-28.07] | 3 | 3.807 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-M1L1B2G3-G593-e636 | 7.08 | 26.69 [26.50-27.64] | 3 | 3.768 |
-| pixel | tree | VK | per-stage | isolated | tmax | SCH-B1L1M4G1-G594-3839 | 7.08 | 27.56 [26.84-27.70] | 3 | 3.890 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G2L1M3B1-G474-6538 | 5.97 | 11.07 [11.04-11.51] | 3 | 1.854 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G2M2L2B1-G386-46ae | 5.97 | 8.60 [8.46-8.98] | 3 | 1.440 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G2M3L1B1-G542-647a | 5.97 | 11.29 [11.16-11.39] | 3 | 1.891 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-L1G2M3B1-G303-4143 | 5.97 | 9.01 [8.60-9.84] | 3 | 1.509 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G3M3B1-G031-240f | 5.97 | 10.99 [10.63-10.99] | 3 | 1.840 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G3M1L2B1-G386-b48b | 5.97 | 9.33 [9.07-9.34] | 3 | 1.562 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G3M2L1B1-G542-bc97 | 5.97 | 11.14 [10.95-11.42] | 3 | 1.866 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G2B2L2M1-G386-804e | 5.98 | 8.85 [8.43-9.12] | 3 | 1.482 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-G2B3L1M1-G543-2f33 | 5.98 | 11.13 [11.07-11.16] | 3 | 1.863 |
+| pixel | tree | VK | per-stage | btpm | tmax | SCH-L1G1B4M1-G303-8435 | 5.98 | 9.19 [8.23-9.96] | 3 | 1.538 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B1G2M3-G428-9f2d | 6.74 | 7.03 [6.93-7.07] | 3 | 1.043 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B1G3M2-G428-cfdd | 6.74 | 6.87 [6.85-6.87] | 3 | 1.019 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B1G4M1-G428-3a07 | 6.74 | 7.21 [7.01-7.84] | 3 | 1.070 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B1M2G3-G428-fcdf | 6.74 | 6.99 [6.96-7.00] | 3 | 1.036 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B1M3G2-G428-1081 | 6.74 | 6.91 [6.85-6.92] | 3 | 1.025 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B1M4G1-G428-25e4 | 6.74 | 6.92 [6.91-6.94] | 3 | 1.026 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B2M3G1-G446-087c | 6.92 | 7.12 [7.10-7.15] | 3 | 1.028 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B2M2G2-G446-1278 | 6.92 | 7.02 [7.02-7.15] | 3 | 1.015 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B2M1G3-G446-ed30 | 6.92 | 7.04 [7.02-7.09] | 3 | 1.018 |
+| pixel | tree | VK | per-stage | isolated | tmax | SCH-L1B2G1M3-G446-d188 | 6.92 | 7.18 [7.15-7.20] | 3 | 1.038 |
 | pixel | cifar-dense | VK | per-stage | btpm | tmax | SCH-M4B1G5L1-G4821-09d0 | 48.73 | 43.19 [42.90-43.43] | 6 | 0.886 |
 | pixel | cifar-dense | VK | per-stage | btpm | tmax | SCH-M3B2G5L1-G4821-014f | 48.73 | 43.30 [42.89-43.31] | 6 | 0.889 |
 | pixel | cifar-dense | VK | per-stage | btpm | tmax | SCH-M4B1G6-G850-500d | 49.62 | 44.07 [44.04-44.14] | 3 | 0.888 |

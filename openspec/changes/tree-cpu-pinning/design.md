@@ -84,6 +84,16 @@ samples per stage-1 run (cv 0.05-0.07), 11 per stage-2 run (cv 0.002-0.007). p50
 Each median lies inside the other's spread. The store's unpinned `little` stage 2 was 7.020 / 7.148 ms
 (2026-10-18 runs 1 / 2): the sort ran on faster cores than its label.
 
+### Outcome (tasks 2.1-2.3)
+
+The executed gate is in `docs/reports-for-human/2026-10-19-tree-cpu-pinning-gate.md`.
+
+- **Both bounds hold in all four (phone, table) cells.** Tree's CPU-chunk error falls to 0.06-0.27 (was 0.22-1.78),
+  and no best period is worse; the isolated ones are better beyond the noise (Pixel 26.55 to 6.87 ms, Samsung 7.11
+  to 3.94 ms).
+- **What remains is the btpm GPU column**, whose interference GPU cells are below the isolated ones: the btpm
+  candidates' GPU chunks run 1.7-3.5x their price.
+
 ## Open Questions
 
 - ~~Whether libgomp pool reuse defeats D1's inheritance~~: it does (Measurements, "D1's inheritance"); tree binds
