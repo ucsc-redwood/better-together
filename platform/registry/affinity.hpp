@@ -119,10 +119,12 @@ class ScopedThreadAffinity {
   }
   ScopedThreadAffinity(const ScopedThreadAffinity&) = delete;
   ScopedThreadAffinity& operator=(const ScopedThreadAffinity&) = delete;
+  ScopedThreadAffinity(ScopedThreadAffinity&&) = delete;
+  ScopedThreadAffinity& operator=(ScopedThreadAffinity&&) = delete;
 
  private:
 #if !defined(_WIN32) && !defined(_WIN64) && !defined(__APPLE__)
-  cpu_set_t prev_;
+  cpu_set_t prev_{};
   bool saved_ = false;
 #endif
 };

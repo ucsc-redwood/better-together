@@ -55,9 +55,9 @@ inline std::string Join(const std::vector<int>& v) {
 }
 
 struct PinnedRun {
-  std::vector<int> cores;
-  std::vector<pin_probe::Seen> seen;
-  std::vector<Bytes> regions;
+  std::vector<int> cores{};
+  std::vector<pin_probe::Seen> seen{};
+  std::vector<Bytes> regions{};
 };
 
 }  // namespace detail
