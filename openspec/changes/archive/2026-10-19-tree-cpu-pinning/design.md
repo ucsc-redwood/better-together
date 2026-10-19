@@ -58,6 +58,43 @@ against a `taskset`-pinned process.
 
 Code fix plus a refreshed tree store. Rollback: revert; the superseded store stays beside the new one.
 
+## Measurements
+
+### D1's inheritance (task 1.2)
+
+Binding only the calling thread (and setting its thread count) does not pin the inner teams. With that variant,
+`CpuPinningOmp.TreeAppData` saw 6 threads run stage work for cores {0-5}: the caller with mask {0-5}, and 5 pool
+threads with {0-11}. libgomp created them during the test's unpinned run, from the unbound caller, and reused
+them for every later region. The profiler's main thread is in that position, moving from one tier's cells to the
+next. So every tree parallel region binds its own threads (D1's fallback), as the SafeAppData path does.
+
+### A tree stage on the little tier (task 1.3)
+
+Pixel 7a, the binary of task 1.2, `BT_PROF_SCENARIO=isolated`, `--benchmark_filter='^little/stage[12]/'`, 3 rounds
+alternating `bm-prof-tree-vk` as is and under `taskset f` (little cores 0-3), 20 s before every run. 125-129
+samples per stage-1 run (cv 0.05-0.07), 11 per stage-2 run (cv 0.002-0.007). p50 in ms:
+
+| | run 1 | run 2 | run 3 | median | spread |
+|---|---|---|---|---|---|
+| stage 1, `bm-prof-tree-vk` | 2.472 | 2.424 | 2.432 | 2.432 | 2.424-2.472 |
+| stage 1, `taskset f` | 2.468 | 2.446 | 2.391 | 2.446 | 2.391-2.468 |
+| stage 2, `bm-prof-tree-vk` | 26.220 | 26.253 | 26.194 | 26.220 | 26.194-26.253 |
+| stage 2, `taskset f` | 26.238 | 26.270 | 26.242 | 26.242 | 26.238-26.270 |
+
+Each median lies inside the other's spread. The store's unpinned `little` stage 2 was 7.020 / 7.148 ms
+(2026-10-18 runs 1 / 2): the sort ran on faster cores than its label.
+
+### Outcome (tasks 2.1-2.3)
+
+The executed gate is in `docs/reports-for-human/2026-10-19-tree-cpu-pinning-gate.md`.
+
+- **Both bounds hold in all four (phone, table) cells.** Tree's CPU-chunk error falls to 0.06-0.27 (was 0.22-1.78),
+  and no best period is worse; the isolated ones are better beyond the noise (Pixel 26.55 to 6.87 ms, Samsung 7.11
+  to 3.94 ms).
+- **What remains is the btpm GPU column**, whose interference GPU cells are below the isolated ones: the btpm
+  candidates' GPU chunks run 1.7-3.5x their price.
+
 ## Open Questions
 
-- Whether libgomp pool reuse defeats D1's inheritance (task 1.1 answers it).
+- ~~Whether libgomp pool reuse defeats D1's inheritance~~: it does (Measurements, "D1's inheritance"); tree binds
+  per region.

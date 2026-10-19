@@ -43,8 +43,7 @@ constexpr int kNumStages = 7;
 
 void OmpDispatch(
     const std::vector<int>& /*cores*/, int /*n*/, tree::AppData& app, int start, int end) {
-  // Core-pinning intentionally unsupported for this proof-of-correctness --
-  // see apps/tree/omp/dispatchers.hpp's AppData overload comment.
+  // Unpinned: this proof-of-correctness does not need the tiers.
   tree::omp::dispatch_multi_stage(app, start, end);
 }
 

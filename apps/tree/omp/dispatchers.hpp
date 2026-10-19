@@ -93,15 +93,25 @@ static inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
 // worksharing construct and would race if forced into a shared parallel team.
 // --------------------------------------------------------------------------
 
-void run_stage_1(tree::AppData& appdata);
-void run_stage_2(tree::AppData& appdata);
-void run_stage_3(tree::AppData& appdata);
-void run_stage_4(tree::AppData& appdata);
-void run_stage_5(tree::AppData& appdata);
-void run_stage_6(tree::AppData& appdata);
-void run_stage_7(tree::AppData& appdata);
+// Where the threads of a tree::AppData stage run (runtime/cpu-chunks). With `cores`, each of the
+// stage's parallel regions has `num_threads` threads, and each binds itself to `cores` at the top
+// of the region: OpenMP reuses pool threads across regions, and a pool thread keeps the mask it
+// was created with, so binding the calling thread alone does not reach them. Without `cores`:
+// the default team, unpinned.
+struct CpuPin {
+  const std::vector<int>* cores = nullptr;
+  int num_threads = 0;
+};
 
-using DispatchFnBatchAppData = void (*)(tree::AppData&);
+void run_stage_1(tree::AppData& appdata, const CpuPin& pin = {});
+void run_stage_2(tree::AppData& appdata, const CpuPin& pin = {});
+void run_stage_3(tree::AppData& appdata, const CpuPin& pin = {});
+void run_stage_4(tree::AppData& appdata, const CpuPin& pin = {});
+void run_stage_5(tree::AppData& appdata, const CpuPin& pin = {});
+void run_stage_6(tree::AppData& appdata, const CpuPin& pin = {});
+void run_stage_7(tree::AppData& appdata, const CpuPin& pin = {});
+
+using DispatchFnBatchAppData = void (*)(tree::AppData&, const CpuPin&);
 
 const DispatchFnBatchAppData dispatch_fns_batch_appdata[] = {
     run_stage_1,
@@ -115,7 +125,7 @@ const DispatchFnBatchAppData dispatch_fns_batch_appdata[] = {
 
 static inline void dispatch_stage(tree::AppData& appdata, const int stage) {
   assert(stage >= 1 && stage <= 7);
-  dispatch_fns_batch_appdata[stage - 1](appdata);
+  dispatch_fns_batch_appdata[stage - 1](appdata, {});
 }
 
 static inline void dispatch_multi_stage(tree::AppData& appdata,
@@ -123,21 +133,31 @@ static inline void dispatch_multi_stage(tree::AppData& appdata,
                                         const int end_stage) {
   assert(start_stage >= 1 && end_stage <= 7);
   for (int stage = start_stage; stage <= end_stage; stage++) {
-    dispatch_fns_batch_appdata[stage - 1](appdata);
+    dispatch_fns_batch_appdata[stage - 1](appdata, {});
   }
 }
 
-// Core-pinning intentionally unsupported for the AppData path -- each
-// run_stage_N(AppData&) manages its own parallelism internally (its own
-// #pragma omp parallel for where needed), so there's no single outer team to
-// pin. Cores/num_threads are accepted (and ignored) only so call sites shared
-// with the SafeAppData path don't need a separate signature.
-static inline void dispatch_multi_stage(const std::vector<int>& /*cores_to_use*/,
-                                        const int /*num_threads*/,
+// Runs the stages on `cores_to_use` with `num_threads` threads: the single-threaded stages
+// (2, 3, 6) on this thread, bound to the cores until the call returns; each parallel stage on
+// a team that binds itself (CpuPin).
+static inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
+                                        const int num_threads,
                                         tree::AppData& appdata,
                                         const int start_stage,
                                         const int end_stage) {
-  dispatch_multi_stage(appdata, start_stage, end_stage);
+  assert(start_stage >= 1 && end_stage <= 7);
+  const ScopedThreadAffinity bound(cores_to_use);
+  const CpuPin pin{&cores_to_use, num_threads};
+  for (int stage = start_stage; stage <= end_stage; stage++) {
+    dispatch_fns_batch_appdata[stage - 1](appdata, pin);
+  }
+}
+
+static inline void dispatch_stage(const std::vector<int>& cores_to_use,
+                                  const int num_threads,
+                                  tree::AppData& appdata,
+                                  const int stage) {
+  dispatch_multi_stage(cores_to_use, num_threads, appdata, stage, stage);
 }
 
 }  // namespace tree::omp

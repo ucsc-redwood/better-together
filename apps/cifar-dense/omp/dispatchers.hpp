@@ -4,6 +4,7 @@
 
 #include "apps/cifar-dense/appdata.hpp"
 #include "platform/registry/affinity.hpp"
+#include "platform/util/pin_probe.hpp"
 
 namespace cifar_dense::omp {
 
@@ -67,6 +68,7 @@ static inline void dispatch_stage(const std::vector<int>& cores_to_use,
   {
     bind_thread_to_cores(cores_to_use);
 
+    BT_PIN_PROBE_HERE();
     dispatch_fns_batch[stage - 1](appdata);
   }
 }
@@ -83,6 +85,7 @@ static inline void dispatch_multi_stage(const std::vector<int>& cores_to_use,
     bind_thread_to_cores(cores_to_use);
 
     for (int stage = start_stage; stage <= end_stage; stage++) {
+      BT_PIN_PROBE_HERE();
       dispatch_fns_batch[stage - 1](appdata);
     }
   }

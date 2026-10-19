@@ -97,11 +97,14 @@ tier was priced 0.64 ms for a stage that takes 9.1 ms on fresh input.
   wrote different outputs. `InputPurityOmp.*` runs it for every stage of tree (both AppData paths),
   cifar-dense and cifar-sparse in `ctest -L omp`. A new stage or app lists its regions (every buffer and
   scalar field) and, per stage, the names of the ones it writes; see `apps/*/omp/test_main.cpp`.
-- **Tree's CPU tiers are nominal.** The `tree::AppData` OMP path that `bm-prof-tree-vk` and
-  `bm-gen-logs-tree-vk` call ignores the core list (`apps/tree/omp/dispatchers.hpp`), so its `big` /
-  `medium` / `little` cells are unpinned. To time a tree stage on one tier, pin the whole process:
-  `taskset <hex mask> ./bm-prof-tree-vk --device <serial> --benchmark_filter='^medium/stage2/'` (the Pixel's
-  Medium cores 4-5 are mask `30`). The cifar apps pin.
+- **CPU cells run on their tier, in every app.** `bm-prof` and `bm-gen-logs` run a CPU cell or chunk
+  through the app's `dispatch_multi_stage(cores, n, …)`, which runs the stages on exactly that tier's cores
+  with its thread count. Tree pins like the cifar apps; since its stages 2, 3 and 6 are single-threaded and
+  the others open their own parallel region, it binds the calling thread and every stage's team
+  (`apps/tree/omp/dispatchers.hpp`, tree-cpu-pinning; before 2026-10-19 tree ignored the core list and its
+  `big` / `medium` / `little` cells were the same unpinned measurement). `CpuPinningOmp.*`
+  (`platform/util/testing/cpu_pinning.hpp`, in `ctest -L omp`) checks it for all three apps from inside
+  the stages: every thread that runs stage work is on a core of the list, and there are at most n of them.
 
 ## GPU stage ranges as whole chunks (`bm-ranges-<app>-vk`)
 

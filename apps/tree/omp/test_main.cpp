@@ -14,6 +14,7 @@
 #include "func_edge.hpp"
 #include "func_octree.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/testing/cpu_pinning.hpp"
 #include "platform/util/testing/input_purity.hpp"
 #include "runtime/tests/placement_check.hpp"
 
@@ -779,6 +780,20 @@ TEST(InputPurityOmp, TreeSafeAppData) {
       SafeTreeRegions,
       kSafeTreeOutputs[1]);
   omp_set_num_threads(1);
+}
+
+// runtime/cpu-chunks spec, "Tree on one tier": stages 1 to 7 through the pinned tree::AppData
+// dispatch run only on the given cores, with at most the given thread count, and compute what
+// the unpinned run does.
+TEST(CpuPinningOmp, TreeAppData) {
+  tree::AppData app(std::pmr::new_delete_resource());
+  bt::testing::ExpectChunkPinned(
+      app,
+      [](tree::AppData& a) { tree::omp::dispatch_multi_stage(a, 1, 7); },
+      [](const std::vector<int>& cores, const int n, tree::AppData& a) {
+        tree::omp::dispatch_multi_stage(cores, n, a, 1, 7);
+      },
+      TreeRegions);
 }
 
 int main(int argc, char** argv) {
