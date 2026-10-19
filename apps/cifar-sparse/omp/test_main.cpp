@@ -12,6 +12,7 @@
 #include "dispatchers.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/npy_loader.hpp"
+#include "platform/util/testing/cpu_pinning.hpp"
 #include "platform/util/testing/input_purity.hpp"
 #include "runtime/tests/placement_check.hpp"
 
@@ -158,6 +159,19 @@ TEST(InputPurityOmp, CifarSparse) {
         Regions,
         {outputs[s - 1]});
   }
+}
+
+// runtime/cpu-chunks spec, "Every app": stages 1 to 11 through the pinned dispatch run only on
+// the given cores, with at most the given thread count, and compute what the unpinned run does.
+TEST(CpuPinningOmp, CifarSparse) {
+  cifar_sparse::AppData app(std::pmr::new_delete_resource());
+  bt::testing::ExpectChunkPinned(
+      app,
+      [](cifar_sparse::AppData& a) { cifar_sparse::omp::dispatch_multi_stage(a, 1, 11); },
+      [](const std::vector<int>& cores, const int n, cifar_sparse::AppData& a) {
+        cifar_sparse::omp::dispatch_multi_stage(cores, n, a, 1, 11);
+      },
+      Regions);
 }
 
 int main(int argc, char** argv) {

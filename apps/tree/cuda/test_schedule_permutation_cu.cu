@@ -151,9 +151,7 @@ RunResult run_schedule_once(const Schedule& sched) {
           kNumToProcess,
           is_last);
     } else {
-      // Core-pinning intentionally unsupported for the AppData path (see
-      // apps/tree/omp/dispatchers.hpp) -- dispatch_multi_stage(AppData&, ...)
-      // manages its own parallelism internally.
+      // The sweep runs its OMP chunks unpinned: dispatch_multi_stage(AppData&, ...).
       threads.emplace_back(
           worker_with_record<QueueT, tree::AppData, 100>,
           static_cast<int>(chunk_id),

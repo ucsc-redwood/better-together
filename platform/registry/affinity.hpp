@@ -100,3 +100,29 @@ inline void bind_thread_to_cores(const std::vector<int>& core_ids) {
   }
 #endif
 }
+
+// Binds the calling thread to `core_ids` until destroyed, then gives it back the mask it had
+// (Linux and Android; elsewhere it only binds).
+class ScopedThreadAffinity {
+ public:
+  explicit ScopedThreadAffinity(const std::vector<int>& core_ids) {
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__APPLE__)
+    CPU_ZERO(&prev_);
+    saved_ = sched_getaffinity(0, sizeof(prev_), &prev_) == 0;
+#endif
+    bind_thread_to_cores(core_ids);
+  }
+  ~ScopedThreadAffinity() {
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__APPLE__)
+    if (saved_) sched_setaffinity(0, sizeof(prev_), &prev_);
+#endif
+  }
+  ScopedThreadAffinity(const ScopedThreadAffinity&) = delete;
+  ScopedThreadAffinity& operator=(const ScopedThreadAffinity&) = delete;
+
+ private:
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__APPLE__)
+  cpu_set_t prev_;
+  bool saved_ = false;
+#endif
+};

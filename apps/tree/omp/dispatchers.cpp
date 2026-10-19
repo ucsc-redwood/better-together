@@ -1,5 +1,7 @@
 #include "dispatchers.hpp"
 
+#include <omp.h>
+
 #include <numeric>
 
 #include "func_brt.hpp"
@@ -8,6 +10,7 @@
 #include "func_octree.hpp"
 #include "func_sort.hpp"
 #include "platform/util/debug_logger.hpp"
+#include "platform/util/pin_probe.hpp"
 
 namespace tree::omp {
 
@@ -179,24 +182,43 @@ void run_stage_7(tree::SafeAppData& appdata) {
 // SafeAppData overloads above are.
 // ----------------------------------------------------------------------------
 
-void run_stage_1(tree::AppData& appdata) {
+namespace {
+
+// A tree::AppData stage's parallel region: the pin's thread count, else the default team.
+int team_size(const CpuPin& pin) { return pin.cores ? pin.num_threads : omp_get_max_threads(); }
+
+// At the top of the region, in every team thread.
+void bind_team_thread(const CpuPin& pin) {
+  if (pin.cores) bind_thread_to_cores(*pin.cores);
+}
+
+}  // namespace
+
+void run_stage_1(tree::AppData& appdata, const CpuPin& pin) {
   const int start = 0;
   const int end = static_cast<int>(appdata.get_n_input());
 
-#pragma omp parallel for
-  for (int i = start; i < end; ++i) {
-    appdata.u_morton_keys_s1[i] =
-        xyz_to_morton32(appdata.u_input_points_s0[i], tree::kMinCoord, tree::kRange);
+#pragma omp parallel num_threads(team_size(pin))
+  {
+    bind_team_thread(pin);
+#pragma omp for
+    for (int i = start; i < end; ++i) {
+      BT_PIN_PROBE_HERE();
+      appdata.u_morton_keys_s1[i] =
+          xyz_to_morton32(appdata.u_input_points_s0[i], tree::kMinCoord, tree::kRange);
+    }
   }
 }
 
 // Sorts a copy: stage 1's keys stay as they are, so a re-run sorts the same input.
-void run_stage_2(tree::AppData& appdata) {
+void run_stage_2(tree::AppData& appdata, const CpuPin& /*pin*/) {
+  BT_PIN_PROBE_HERE();
   std::ranges::copy(appdata.u_morton_keys_s1, appdata.u_morton_keys_sorted_s2.begin());
   std::ranges::sort(appdata.u_morton_keys_sorted_s2);
 }
 
-void run_stage_3(tree::AppData& appdata) {
+void run_stage_3(tree::AppData& appdata, const CpuPin& /*pin*/) {
+  BT_PIN_PROBE_HERE();
   const auto last = std::unique_copy(appdata.u_morton_keys_sorted_s2.data(),
                                      appdata.u_morton_keys_sorted_s2.data() + appdata.get_n_input(),
                                      appdata.u_morton_keys_unique_s3.data());
@@ -206,37 +228,48 @@ void run_stage_3(tree::AppData& appdata) {
   appdata.set_n_brt_nodes(n_unique - 1);
 }
 
-void run_stage_4(tree::AppData& appdata) {
+void run_stage_4(tree::AppData& appdata, const CpuPin& pin) {
   const int start = 0;
   const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
-#pragma omp parallel for
-  for (int i = start; i < end; ++i) {
-    v1::process_radix_tree_i(i,
-                             static_cast<int>(appdata.get_n_brt_nodes()),
-                             appdata.u_morton_keys_unique_s3.data(),
-                             appdata.u_brt_prefix_n_s4.data(),
-                             appdata.u_brt_has_leaf_left_s4.data(),
-                             appdata.u_brt_has_leaf_right_s4.data(),
-                             appdata.u_brt_left_child_s4.data(),
-                             appdata.u_brt_parents_s4.data());
+#pragma omp parallel num_threads(team_size(pin))
+  {
+    bind_team_thread(pin);
+#pragma omp for
+    for (int i = start; i < end; ++i) {
+      BT_PIN_PROBE_HERE();
+      v1::process_radix_tree_i(i,
+                               static_cast<int>(appdata.get_n_brt_nodes()),
+                               appdata.u_morton_keys_unique_s3.data(),
+                               appdata.u_brt_prefix_n_s4.data(),
+                               appdata.u_brt_has_leaf_left_s4.data(),
+                               appdata.u_brt_has_leaf_right_s4.data(),
+                               appdata.u_brt_left_child_s4.data(),
+                               appdata.u_brt_parents_s4.data());
+    }
   }
 }
 
-void run_stage_5(tree::AppData& appdata) {
+void run_stage_5(tree::AppData& appdata, const CpuPin& pin) {
   const int start = 0;
   const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
-#pragma omp parallel for
-  for (int i = start; i < end; ++i) {
-    v1::process_edge_count_i(i,
-                             appdata.u_brt_prefix_n_s4.data(),
-                             appdata.u_brt_parents_s4.data(),
-                             appdata.u_edge_count_s5.data());
+#pragma omp parallel num_threads(team_size(pin))
+  {
+    bind_team_thread(pin);
+#pragma omp for
+    for (int i = start; i < end; ++i) {
+      BT_PIN_PROBE_HERE();
+      v1::process_edge_count_i(i,
+                               appdata.u_brt_prefix_n_s4.data(),
+                               appdata.u_brt_parents_s4.data(),
+                               appdata.u_edge_count_s5.data());
+    }
   }
 }
 
-void run_stage_6(tree::AppData& appdata) {
+void run_stage_6(tree::AppData& appdata, const CpuPin& /*pin*/) {
+  BT_PIN_PROBE_HERE();
   const int start = 0;
   const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
@@ -248,36 +281,41 @@ void run_stage_6(tree::AppData& appdata) {
   appdata.set_n_octree_nodes(num_octree_nodes);
 }
 
-void run_stage_7(tree::AppData& appdata) {
+void run_stage_7(tree::AppData& appdata, const CpuPin& pin) {
   const int start = 0;
   const int end = static_cast<int>(appdata.get_n_brt_nodes());
 
-#pragma omp parallel for
-  for (int i = start; i < end; ++i) {
-    process_oct_node(i,
-                     reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
-                     appdata.u_oct_corner_s7.data(),
-                     appdata.u_oct_cell_size_s7.data(),
-                     appdata.u_oct_child_node_mask_s7.data(),
-                     appdata.u_edge_offset_s6.data(),
-                     appdata.u_edge_count_s5.data(),
-                     appdata.u_morton_keys_unique_s3.data(),
-                     appdata.u_brt_prefix_n_s4.data(),
-                     appdata.u_brt_parents_s4.data(),
-                     tree::kMinCoord,
-                     tree::kRange);
+#pragma omp parallel num_threads(team_size(pin))
+  {
+    bind_team_thread(pin);
+#pragma omp for
+    for (int i = start; i < end; ++i) {
+      BT_PIN_PROBE_HERE();
+      process_oct_node(i,
+                       reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
+                       appdata.u_oct_corner_s7.data(),
+                       appdata.u_oct_cell_size_s7.data(),
+                       appdata.u_oct_child_node_mask_s7.data(),
+                       appdata.u_edge_offset_s6.data(),
+                       appdata.u_edge_count_s5.data(),
+                       appdata.u_morton_keys_unique_s3.data(),
+                       appdata.u_brt_prefix_n_s4.data(),
+                       appdata.u_brt_parents_s4.data(),
+                       tree::kMinCoord,
+                       tree::kRange);
 
-    process_link_leaf(i,
-                      reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
-                      appdata.u_oct_child_leaf_mask_s7.data(),
-                      appdata.u_edge_offset_s6.data(),
-                      appdata.u_edge_count_s5.data(),
-                      appdata.u_morton_keys_unique_s3.data(),
-                      appdata.u_brt_has_leaf_left_s4.data(),
-                      appdata.u_brt_has_leaf_right_s4.data(),
-                      appdata.u_brt_prefix_n_s4.data(),
-                      appdata.u_brt_parents_s4.data(),
-                      appdata.u_brt_left_child_s4.data());
+      process_link_leaf(i,
+                        reinterpret_cast<int (*)[8]>(appdata.u_oct_children_s7.data()),
+                        appdata.u_oct_child_leaf_mask_s7.data(),
+                        appdata.u_edge_offset_s6.data(),
+                        appdata.u_edge_count_s5.data(),
+                        appdata.u_morton_keys_unique_s3.data(),
+                        appdata.u_brt_has_leaf_left_s4.data(),
+                        appdata.u_brt_has_leaf_right_s4.data(),
+                        appdata.u_brt_prefix_n_s4.data(),
+                        appdata.u_brt_parents_s4.data(),
+                        appdata.u_brt_left_child_s4.data());
+    }
   }
 }
 
