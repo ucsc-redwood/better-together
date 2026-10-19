@@ -104,7 +104,28 @@ no-regression check. FC changes run on both phones.
     its own input load: one input load in flight per wave. S1 and S2 still remove the decode and the
     `subgroupAllEqual` test, and the new kernel must load unconditionally (clamped address, weight selected to 0)
     so that loads overlap.
-- [ ] 1.3 Add the VK-only packed `(offset, tap)` array (S2), filled per CSR matrix after `build_from_dense()` and `load_real_weights()` with that layer's H and W. Verify: a `test-cifar-sparse-vk` unit test decodes every entry back to its `col_idx` for all five layers, on synthetic and real weights, and prints each layer's maximum offset within the reserved bit width.
+- [x] 1.3 Add the VK-only packed `(offset, tap)` array (S2), filled per CSR matrix after `build_from_dense()` and `load_real_weights()` with that layer's H and W. Verify: a `test-cifar-sparse-vk` unit test decodes every entry back to its `col_idx` for all five layers, on synthetic and real weights, and prints each layer's maximum offset within the reserved bit width.
+  - `cifar_sparse::pack_k3s1p1_taps` stores `offset·2^4 + tap` with `offset = in_c·H·W + (ky−1)·W + (kx−1)` (signed;
+    decode `tap = v & 15`, `offset = v >> 4`); `kTapOffsetBits = 27` is the reserved width (|offset| < 2^27).
+    `AppData::conv{1..5}_taps` (placed as weights of stages 1, 3, 5, 6, 7) are filled by `pack_conv_taps()` after
+    `build_from_dense()` and after `load_real_weights()`, with maps 32, 16, 8, 8, 8. Where they live and what they
+    cost: design.md S2, "As built". `InputPurityOmp` lists them as regions, and
+    `Placement.DeclaredStagesMatchBindings` now requires a Vulkan conv to bind exactly one of its `col_idx` and taps
+    (the old kernel binds `col_idx`).
+  - *Test:* `SparseConvTaps.DecodeToColIdx` (`test-cifar-sparse-vk`, host only) decodes every tap of the five convs
+    back to `in_c·9 + tap == col_idx` and prints the largest |offset|. Build box, `build/vulkan`: passes without
+    `BT_WEIGHTS_DIR` (synthetic) and with `BT_WEIGHTS_DIR=saved_params/export` (real), with the same output for
+    both (each layer is pruned to exactly 25 %, and both have a nonzero at tap 8 of the last input channel):
+
+        conv1: nnz 432, max |offset| 2081 < 2^27
+        conv2: nnz 27648, max |offset| 16145 < 2^27
+        conv3: nnz 165888, max |offset| 12233 < 2^27
+        conv4: nnz 221184, max |offset| 24521 < 2^27
+        conv5: nnz 147456, max |offset| 16329 < 2^27
+
+    The real export's rows differ from the synthetic pattern (conv1 row 0 is `[3]` vs `[0, 4, …, 24]`; its rows 4-6
+    are empty). Same build: `Placement.DeclaredStagesMatchBindings` passes; local gate `ctest --test-dir build/pc -L
+    omp` 11/11 passed.
 - [ ] 1.4 Write the uniform-channel kernel (S1): `out_c = gl_WorkGroupID.y`, grid `(ceil(N·P·Q/256), K, 1)`, a per-invocation 9-bit tap-valid mask; old kernel kept behind a dispatcher flag. Verify: the rocky gate passes with the new kernel and with the old one.
 - [ ] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
 - [ ] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.

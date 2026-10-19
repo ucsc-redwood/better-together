@@ -4,9 +4,13 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
 #include <memory_resource>
 #include <random>
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
@@ -43,13 +47,21 @@ struct VulkanRunner {
 BT_DECLARE_CIFAR_SPARSE_DIFF_TESTS(CifarSparseDiffVulkan, VulkanRunner)
 
 // Memory-placement spec, design B3: the stages each AppData buffer declares (what the
-// schedule-driven placement trusts) are exactly the stages whose dispatches bind it.
+// schedule-driven placement trusts) are exactly the stages whose dispatches bind it. A conv
+// declares both its CSR col_idx (OMP, CUDA, the Mali path) and its Vulkan taps; a Vulkan
+// conv binds exactly one of the two.
 TEST(Placement, DeclaredStagesMatchBindings) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   cifar_sparse::vulkan::VulkanDispatcher disp;
   auto* vk_mr = static_cast<kiss_vk::VulkanMemoryResource*>(disp.get_mr());
   bt_placement_test::RecordingDispatcher rec(vk_mr);
   cifar_sparse::AppData app(rec.placement(all_stages(11)));
+  const std::map<int, std::pair<const int*, const int*>> csr_index = {
+      {1, {app.conv1_sparse.col_idx.data(), app.conv1_taps.data()}},
+      {3, {app.conv2_sparse.col_idx.data(), app.conv2_taps.data()}},
+      {5, {app.conv3_sparse.col_idx.data(), app.conv3_taps.data()}},
+      {6, {app.conv4_sparse.col_idx.data(), app.conv4_taps.data()}},
+      {7, {app.conv5_sparse.col_idx.data(), app.conv5_taps.data()}}};
 
   for (int s = 1; s <= 11; ++s) {
     disp.dispatch_multi_stage(app, s, s);
@@ -60,6 +72,12 @@ TEST(Placement, DeclaredStagesMatchBindings) {
       if (std::ranges::find(alloc.stages, s) != alloc.stages.end()) {
         declared.insert(vk_mr->find_buffer(ptr));
       }
+    }
+    if (const auto it = csr_index.find(s); it != csr_index.end()) {
+      const VkBuffer col_idx = vk_mr->find_buffer(it->second.first);
+      const VkBuffer taps = vk_mr->find_buffer(it->second.second);
+      EXPECT_NE(bound.contains(col_idx), bound.contains(taps)) << "stage " << s;
+      declared.erase(bound.contains(col_idx) ? taps : col_idx);
     }
     EXPECT_EQ(bound, declared) << "stage " << s;
   }
@@ -167,6 +185,43 @@ TEST(SparseConvK3S1P1, FastPathWhenMapIsSubgroupMultiple) {
 TEST(SparseConvK3S1P1, RaggedOddWidthMap) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectSparseConvMatchesReference(7, 5);
+}
+
+// The Vulkan conv taps (cifar-gpu-kernels S2) decode back to their CSR's col_idx for every
+// nonzero of the five convs, and each layer's largest offset fits the reserved width. The
+// weights are the synthetic ones, or the real export when BT_WEIGHTS_DIR is set.
+TEST(SparseConvTaps, DecodeToColIdx) {
+  const cifar_sparse::AppData app(std::pmr::new_delete_resource());
+  const struct {
+    const char* name;
+    const cifar_sparse::CSRMatrix& csr;
+    const std::pmr::vector<int>& taps;
+    int hw;
+  } layers[] = {{"conv1", app.conv1_sparse, app.conv1_taps, 32},
+                {"conv2", app.conv2_sparse, app.conv2_taps, 16},
+                {"conv3", app.conv3_sparse, app.conv3_taps, 8},
+                {"conv4", app.conv4_sparse, app.conv4_taps, 8},
+                {"conv5", app.conv5_sparse, app.conv5_taps, 8}};
+  std::printf("taps of the %s weights:\n", std::getenv("BT_WEIGHTS_DIR") ? "real" : "synthetic");
+  for (const auto& l : layers) {
+    ASSERT_GT(l.csr.nnz, 0) << l.name;
+    int max_offset = 0;
+    for (int nz = 0; nz < l.csr.nnz; ++nz) {
+      const int tap = l.taps[nz] & ((1 << cifar_sparse::kTapBits) - 1);
+      const int offset = l.taps[nz] >> cifar_sparse::kTapBits;  // arithmetic: offsets go negative
+      const int plane = offset - (tap / 3 - 1) * l.hw - (tap % 3 - 1);
+      ASSERT_LT(tap, 9) << l.name << " nz " << nz;
+      ASSERT_EQ(plane % (l.hw * l.hw), 0) << l.name << " nz " << nz;
+      ASSERT_EQ(plane / (l.hw * l.hw) * 9 + tap, l.csr.col_idx[nz]) << l.name << " nz " << nz;
+      max_offset = std::max(max_offset, std::abs(offset));
+    }
+    std::printf("  %s: nnz %d, max |offset| %d < 2^%d\n",
+                l.name,
+                l.csr.nnz,
+                max_offset,
+                cifar_sparse::kTapOffsetBits);
+    EXPECT_LT(max_offset, 1 << cifar_sparse::kTapOffsetBits) << l.name;
+  }
 }
 
 // new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtFeaturesPerGroup

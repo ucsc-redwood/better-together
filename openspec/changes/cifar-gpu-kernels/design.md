@@ -122,6 +122,11 @@ topic letter. Motivation and measurements are in proposal.md (Why).
   `build_from_dense()` / `load_real_weights()`.
   - *Alternative:* add it to `CSRMatrix` for all backends. Rejected: it costs memory on OMP and
     CUDA, which don't read it.
+  - *As built (task 1.3):* `AppData::conv{1..5}_taps`, filled by `pack_conv_taps()` and read only by
+    the Vulkan kernel. `AppData` is shared by every backend and does not know which one it serves,
+    so OMP and CUDA allocate the arrays too. Each is sized like its CSR's `col_idx` (rows·cols),
+    because a buffer is placed when it allocates, before nnz is known: 9.0 MB per `AppData`, about
+    3 % of its ≈263 MB.
 - **Risk:** offset width. conv4's largest offset is `383·64 + …`, far below 2^27, so 27 bits of
   offset plus 4 bits of tap fit a signed 32-bit int (to verify per layer in a unit test).
 

@@ -134,6 +134,11 @@ std::vector<bt::testing::Region> Regions(const cifar_sparse::AppData& a) {
   csr("conv3_sparse", a.conv3_sparse);
   csr("conv4_sparse", a.conv4_sparse);
   csr("conv5_sparse", a.conv5_sparse);
+  r.push_back(Buf("conv1_taps", a.conv1_taps));
+  r.push_back(Buf("conv2_taps", a.conv2_taps));
+  r.push_back(Buf("conv3_taps", a.conv3_taps));
+  r.push_back(Buf("conv4_taps", a.conv4_taps));
+  r.push_back(Buf("conv5_taps", a.conv5_taps));
   return r;
 }
 }  // namespace
