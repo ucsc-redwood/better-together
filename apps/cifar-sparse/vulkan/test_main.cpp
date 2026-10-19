@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "apps/cifar-sparse/cifar_sparse_diff_oracle.hpp"
+#include "apps/cifar-sparse/omp/all_kernels.hpp"
 #include "dispatchers.hpp"
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
@@ -185,6 +186,116 @@ TEST(SparseConvK3S1P1, FastPathWhenMapIsSubgroupMultiple) {
 TEST(SparseConvK3S1P1, RaggedOddWidthMap) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectSparseConvMatchesReference(7, 5);
+}
+
+// cifar-gpu-kernels spec "Empty and border-only rows": the per-channel kernel
+// (new_cifar_sparse_conv2d_k3s1p1_oc, the subgroup >= 32 path) against the OMP kernel, on a CSR
+// with an empty row, a row whose taps all sit in the kernel's right column and one whose taps all
+// sit in its top row: at the right edge, resp. the top edge, every tap of those rows reads the
+// padded border, so the output there is bias plus ReLU only. 13x11 maps need two workgroups per
+// channel, the last one ragged.
+namespace {
+void ExpectPerChannelConvMatchesOmp(const int h, const int w) {
+  constexpr int kN = 3, kC = 4, kK = 9, kEmptyRow = 4, kRightRow = 6, kTopRow = 7;
+  std::mt19937 rng(114514);
+  std::uniform_real_distribution<float> val(-1.0f, 1.0f);
+
+  kiss_vk::Engine engine;
+  auto* mr = engine.get_mr();
+  std::pmr::vector<float> in(static_cast<size_t>(kN) * kC * h * w, 0.0f, mr);
+  std::pmr::vector<float> out(static_cast<size_t>(kN) * kK * h * w, -1.0f, mr);
+  std::pmr::vector<float> bias(kK, 0.0f, mr);
+  std::pmr::vector<float> values(mr);
+  std::pmr::vector<int> row_ptr(1, 0, mr);
+  std::pmr::vector<int> col_idx(mr);
+  for (auto& x : in) x = val(rng);
+  for (auto& x : bias) x = val(rng);
+  for (int k = 0; k < kK; ++k) {
+    for (int flat = 0; flat < kC * 9 && k != kEmptyRow; ++flat) {
+      const int tap = flat % 9;
+      const bool keep = k == kRightRow ? tap % 3 == 2
+                        : k == kTopRow ? tap / 3 == 0
+                                       : val(rng) > 0.2f;
+      if (!keep) continue;
+      values.push_back(val(rng));
+      col_idx.push_back(flat);
+    }
+    row_ptr.push_back(static_cast<int>(values.size()));
+  }
+  std::pmr::vector<int> taps(col_idx.size(), 0, mr);
+  cifar_sparse::pack_k3s1p1_taps(
+      col_idx.data(), static_cast<int>(col_idx.size()), h, w, taps.data());
+
+  auto algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1_oc")
+                  ->work_group_size(256, 1, 1)
+                  ->num_buffers(6)
+                  ->push_constant<ConvPc>()
+                  ->build();
+  const ConvPc pc{kN, kC, h, w, kK, h, w, 3, 1, 1, /*relu=*/1, kK};
+  auto seq = engine.make_seq();
+  seq->cmd_begin();
+  algo->record_bind(*seq,
+                    {engine.get_buffer_info(in),
+                     engine.get_buffer_info(out),
+                     engine.get_buffer_info(values),
+                     engine.get_buffer_info(row_ptr),
+                     engine.get_buffer_info(taps),
+                     engine.get_buffer_info(bias)});
+  algo->record_push_constants(*seq, pc);
+  algo->record_dispatch(
+      *seq,
+      {static_cast<uint32_t>(kiss_vk::div_ceil(kN * h * w, 256)), static_cast<uint32_t>(kK), 1});
+  seq->cmd_end();
+  seq->wait(seq->submit());
+
+  std::vector<float> ref(out.size());
+  cifar_sparse::omp::conv2d_omp_batched(in.data(),
+                                        kN,
+                                        kC,
+                                        h,
+                                        w,
+                                        values.data(),
+                                        row_ptr.data(),
+                                        col_idx.data(),
+                                        kK,
+                                        bias.data(),
+                                        kK,
+                                        3,
+                                        1,
+                                        1,
+                                        /*relu=*/true,
+                                        ref.data());
+  for (int n = 0; n < kN; ++n) {
+    for (int k = 0; k < kK; ++k) {
+      for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+          const size_t i = ((static_cast<size_t>(n) * kK + k) * h + y) * w + x;
+          if (k == kEmptyRow || (k == kRightRow && x == w - 1) || (k == kTopRow && y == 0)) {
+            ASSERT_EQ(out[i], std::max(bias[k], 0.0f))
+                << h << "x" << w << " n " << n << " k " << k << " y " << y << " x " << x;
+          }
+          ASSERT_NEAR(out[i], ref[i], 1e-4 + 1e-3 * std::abs(ref[i]))
+              << h << "x" << w << " n " << n << " k " << k << " y " << y << " x " << x;
+        }
+      }
+    }
+  }
+}
+}  // namespace
+
+TEST(SparseConvPerChannel, EmptyAndBorderRows8x8) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectPerChannelConvMatchesOmp(8, 8);
+}
+
+TEST(SparseConvPerChannel, EmptyAndBorderRowsOddWidth) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectPerChannelConvMatchesOmp(7, 5);
+}
+
+TEST(SparseConvPerChannel, EmptyAndBorderRowsTwoWorkgroups) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectPerChannelConvMatchesOmp(13, 11);
 }
 
 // The Vulkan conv taps (cifar-gpu-kernels S2) decode back to their CSR's col_idx for every

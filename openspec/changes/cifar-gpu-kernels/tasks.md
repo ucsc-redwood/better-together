@@ -145,7 +145,16 @@ no-regression check. FC changes run on both phones.
   - *Exploratory, not a gate* (Samsung, 1 round, base vs this binary, otherwise the 1.1 method; its
     `test-cifar-sparse-vk` passes 18/18): conv1 4.102 → 3.079 ms (-24.9 %), conv2 34.023 → 19.065 (-44.0 %), conv3
     51.653 → 36.715 (-28.9 %), conv4 68.541 → 48.666 (-29.0 %), conv5 45.762 → 30.386 (-33.6 %).
-- [ ] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
+- [x] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
+  - `SparseConvPerChannel.EmptyAndBorderRows{8x8,OddWidth,TwoWorkgroups}` (`test-cifar-sparse-vk`): the new kernel on
+    N 3, C 4, K 9 with 8x8, 7x5 and 13x11 maps (13x11 needs two workgroups per channel, the last ragged) against
+    `cifar_sparse::omp::conv2d_omp_batched` on the same CSR, rtol 1e-3 / atol 1e-4. Row 4 is empty, row 6 keeps only
+    the kernel's right column (all its taps read the border at the right edge) and row 7 only its top row (the top
+    edge); there the output must equal `max(bias, 0)` exactly.
+  - rocky gate at 6453f58 plus this test: build exit 0, `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk
+    --device minipc` 21 passed, the three new tests among them.
+  - *It can fail:* with the right-edge bit of the tap mask forced on (a local mutation of the shader, reverted), all
+    three fail on the build box's RADV iGPU.
 - [ ] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.
 - [ ] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
 - [ ] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
