@@ -30,10 +30,20 @@ precision highp int;
 //   Each workgroup handles one batch tile of up to MAX_N images (cifar-sparse runs N=128:
 //   8 tiles; cifar-dense's N=16: 1).
 //
-// Portable GLSL: shared-memory reduction only (no subgroup ops), 12 KB shared
-// (<= the 16 KB Vulkan minimum), fixed local_size 256.
+// The 16 lane partials of a row are summed with subgroupClusteredAdd (cluster 16, cifar-gpu-kernels
+// F3): the pipeline is subgroup-size dependent, so the size is pinned (>= 16 on every fleet GPU) and
+// subgroups are full, and a row's 16 lanes are one aligned cluster. CLUSTERED = 0 (a device
+// without clustered subgroup operations, or a subgroup narrower than a row) keeps the shared-memory
+// reduction. 8 KB shared with CLUSTERED, 12 KB without (<= the 16 KB Vulkan minimum); fixed
+// local_size 256.
+
+#extension GL_KHR_shader_subgroup_clustered : require
 
 layout(local_size_x = 256) in;
+
+layout(constant_id = 0) const int SUBGROUP_SIZE = 16;  // the device's, set by the engine
+layout(constant_id = 1) const int CLUSTERED = 1;      // 1 or 0, set by the dispatcher
+const bool CLUSTER_ROWS = CLUSTERED != 0 && SUBGROUP_SIZE >= 16;  // ROW_W
 
 layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
   vec4 input_data4[];  // [N, in_features/4]
@@ -66,7 +76,7 @@ const int CHUNK4 = 32;   // vec4s of input staged per image per iteration (128 f
 const int MAX_N = 16;    // accumulator registers per lane; loops over it unroll
 
 shared vec4 sh_in[MAX_N * CHUNK4];  // staged input columns, 8 KB
-shared vec4 sh_red[256];            // cross-lane reduction scratch, 4 KB
+shared vec4 sh_red[CLUSTER_ROWS ? 1 : 256];  // cross-lane reduction scratch, 4 KB without CLUSTERED
 
 void main() {
   const int tid = int(gl_LocalInvocationID.x);
@@ -122,6 +132,35 @@ void main() {
       }
     }
     barrier();
+  }
+
+  if (CLUSTER_ROWS) {
+    // Every lane of a row gets the row's sums; lane n writes image nb + n of both features.
+    float out0 = 0.0, out1 = 0.0;
+    for (int n0 = 0; n0 < MAX_N; n0 += 4) {
+      const vec4 s0 =
+          subgroupClusteredAdd(vec4(acc[n0], acc[n0 + 1], acc[n0 + 2], acc[n0 + 3]), ROW_W);
+      const vec4 s1 =
+          subgroupClusteredAdd(vec4(accb[n0], accb[n0 + 1], accb[n0 + 2], accb[n0 + 3]), ROW_W);
+      for (int m = 0; m < 4; ++m) {
+        if (lane == n0 + m) {
+          out0 = s0[m];
+          out1 = s1[m];
+        }
+      }
+    }
+    const int n = nb + lane;
+    if (n < params.N) {
+      for (int f = 0; f < FPR; ++f) {
+        const int of = of0 + f;
+        if (of < params.out_features) {
+          float v = (f == 0 ? out0 : out1) + bias_data[of];
+          if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+          output_data[n * params.out_features + of] = v;
+        }
+      }
+    }
+    return;
   }
 
   // Reduce the ROW_W lane partials of each row, four images per pass (vec4-packed), per feature.

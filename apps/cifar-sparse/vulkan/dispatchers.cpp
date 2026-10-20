@@ -159,8 +159,11 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
   // matrix once per image and each lane scans a different 16 KB row (uncoalesced).
   // grid.y tiles sparse's N=128 batch in groups of 16 (weights read 8x, not 128x).
   // Selected per stage when in_features % 4 == 0.
+  // Rows reduce with subgroupClusteredAdd where the device has it (cifar-gpu-kernels F3).
   auto linear_bt_algo = engine.make_algo("new_cifar_dense_linear_bt")
                             ->work_group_size(256, 1, 1)
+                            ->subgroup_size_dependent()
+                            ->spec_constant(1, engine.compute_limits().subgroup_clustered ? 1 : 0)
                             ->num_buffers(4)  // Input, Weight, Bias, Output
                             ->push_constant<LinearPushConstants>()
                             ->build();

@@ -406,6 +406,9 @@ void BaseEngine::create_device() {
       .subgroup_size_pinned = pinnable,
       .full_subgroups = full_subgroups,
       .max_compute_workgroup_subgroups = pinnable ? size_control.maxComputeWorkgroupSubgroups : 0,
+      .subgroup_clustered =
+          (subgroup.supportedOperations & vk::SubgroupFeatureFlagBits::eClustered) &&
+          (subgroup.supportedStages & vk::ShaderStageFlagBits::eCompute),
       .max_work_group_size = device_props.limits.maxComputeWorkGroupSize,
       .max_work_group_invocations = device_props.limits.maxComputeWorkGroupInvocations,
   };

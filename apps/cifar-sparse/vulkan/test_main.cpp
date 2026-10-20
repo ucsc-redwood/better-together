@@ -339,14 +339,18 @@ TEST(SparseConvTaps, DecodeToColIdx) {
 // new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtFeaturesPerGroup
 // output features and kLinearBtBatchTile images per workgroup. The model's layers are
 // multiples of both (4096 and 10 features at N = 16 or 128); this shape is not: an odd
-// output-feature count, a ragged last batch tile and a ragged last input chunk.
-TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
-  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+// output-feature count, a ragged last batch tile and a ragged last input chunk. Both row
+// reductions: subgroupClusteredAdd (what every fleet GPU runs) and the shared-memory fallback.
+namespace {
+void ExpectLinearBtMatchesReference(const bool clustered) {
   constexpr int kN = 21, kIn = 100, kOut = 37;  // 25 input vec4s: less than one 32-vec4 chunk
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 
   kiss_vk::Engine engine;
+  if (clustered && !engine.compute_limits().subgroup_clustered) {
+    GTEST_SKIP() << "no clustered subgroup operations";
+  }
   auto* mr = engine.get_mr();
   std::pmr::vector<float> in(static_cast<size_t>(kN) * kIn, 0.0f, mr);
   std::pmr::vector<float> weight(static_cast<size_t>(kOut) * kIn, 0.0f, mr);
@@ -361,6 +365,8 @@ TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
   };
   auto algo = engine.make_algo("new_cifar_dense_linear_bt")
                   ->work_group_size(256, 1, 1)
+                  ->subgroup_size_dependent()
+                  ->spec_constant(1, clustered ? 1 : 0)
                   ->num_buffers(4)
                   ->push_constant<Pc>()
                   ->build();
@@ -392,6 +398,17 @@ TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
           << "n " << n << " o " << o;
     }
   }
+}
+}  // namespace
+
+TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/true);
+}
+
+TEST(LinearBt, RaggedFeatureBatchAndChunkEdgesSharedMemoryReduction) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/false);
 }
 
 int main(int argc, char** argv) {
