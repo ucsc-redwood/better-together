@@ -198,6 +198,8 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
 - **Selection:** an engine-level precision mode (e.g. `BT_VK_PRECISION=fp16`), FP32 by default.
 - **Spec:** separate tolerance plus end-task accuracy within 0.5 points on the real weights (dense
   test accuracy is 90.48% in FP32).
+- **As built:** not built (optional tasks 2.8, 2.9). The FP32 tiles met the requirement, and on the
+  Samsung cycles saved mostly lower the GPU clock rather than the wall time (C3, "As built").
 
 #### C5. Cooperative-matrix implicit GEMM (RDNA3), optional
 - **How:** the conv is an implicit GEMM `[K] × [C·9] · [C·9] × [N·P·Q]`, using
@@ -206,6 +208,8 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
   scope, task 2.2).
 - **When:** only when the device lists a usable shape. Otherwise C1–C4.
 - **Alternative:** hand-written WMMA via vendor intrinsics. Rejected: not portable Vulkan.
+- **As built:** not built (task 2.10). Neither phone has `VK_KHR_cooperative_matrix`, so it could
+  only run on rocky, where nothing is timed.
 
 #### C6. Mali variant (removed 2026-10-18)
 Owned by `mali-conv-kernels`, which shipped a Mali conv path selected by `SUBGROUP_SIZE` < 32 (main spec

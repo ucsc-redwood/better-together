@@ -769,8 +769,18 @@ no-regression check. FC changes run on both phones.
     | sum | 81.683 | 81.311 | -0.5 % |
     | conv2-conv5 (3+5+6+7), per-run sum | 63.668 (63.599-65.945, 3 runs) | 65.805 (64.724-65.936, 3 runs) | +3.4 % |
 - [ ] 2.8 C4: optional-feature enablement for `shaderFloat16` and `storageBuffer16BitAccess` (enabled if supported, never required) plus a precision mode (`BT_VK_PRECISION=fp16`). Verify: `test-kiss-vk` logs the enabled features on all devices, and default runs are unchanged.
+  - *Not done* (optional; 2.7 is met without it). FP16 math would save GPU cycles, and on the Samsung, the only
+    phone that runs this path, cycles saved mostly lower the GPU clock rather than the wall time the spec measures:
+    the 8x4x0 tile took 43 % fewer cycles than `base` for conv2-conv5 at about the same time (2.6). Enabling 16-bit
+    features changes device creation for every app, so it needs the whole fleet gate for a gain that the 2.6
+    measurements do not promise. Group 3's FP16 FC weights (F2) need the same features and can add them.
 - [ ] 2.9 C4: the FP16 conv variant (FP32 accumulate), with a per-stage tolerance, and a new VK end-task accuracy test on the real weights mirroring the OMP `CifarDenseAppData.RealWeights_EndTaskAccuracy`. Verify: `test-cifar-dense-vk` with `BT_VK_PRECISION=fp16` passes on supporting devices; FP16 accuracy is within 0.5 points of FP32 (printed); timing is recorded.
-- [ ] 2.10 C5: query cooperative-matrix shapes and add the implicit-GEMM conv (FP16 in, FP32 accumulate), selected only when supported. Verify: it passes on rocky with the FP16 tolerance and the 2.9 accuracy bound. Timing is on the Samsung only if 2.2 shows it supports cooperative matrix; if no phone does, C5 is not built (it could not be measured) and that is recorded. If it doesn't beat 2.7/2.9, it stays disabled by default and that's documented.
+  - *Not done*, with 2.8 (it needs 2.8's features and precision mode). The VK end-task accuracy test is not built
+    either, so 3.7 cannot reuse it and builds its own.
+- [x] 2.10 C5: query cooperative-matrix shapes and add the implicit-GEMM conv (FP16 in, FP32 accumulate), selected only when supported. Verify: it passes on rocky with the FP16 tolerance and the 2.9 accuracy bound. Timing is on the Samsung only if 2.2 shows it supports cooperative matrix; if no phone does, C5 is not built (it could not be measured) and that is recorded. If it doesn't beat 2.7/2.9, it stays disabled by default and that's documented.
+  - *Not built, as this task directs when no phone supports cooperative matrix:* 2.2 queried the shapes;
+    `VK_KHR_cooperative_matrix` is absent on the Pixel 7a's Mali-G710 and on the Samsung's Xclipse 940, and only the
+    780M (rocky-ryzen, where nothing is timed) lists 16x16x16 FP16 x FP16 + FP32. It also depends on 2.9, not done.
 - 2.11-2.12 (C6, Mali variant): removed 2026-10-18; owned and shipped by `mali-conv-kernels` (archived 2026-10-17).
 - [ ] 2.13 Run the group gate at the final commit (local, rocky, phones), in default FP32 and in each opt-in mode on supporting devices. Add a dated perf-results note with before/after tables and per-device variant choices. Verify: all green; the note is linked from the perf-results README.
 
