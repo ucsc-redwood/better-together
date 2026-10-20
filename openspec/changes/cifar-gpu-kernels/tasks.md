@@ -392,7 +392,58 @@ no-regression check. FC changes run on both phones.
 
 ## 2. Dense conv optimization (gpu-kernels/cifar-dense-conv; design C1–C5)
 
-- [ ] 2.1 Record the pre-change cifar-dense per-stage GPU times on the Pixel 7a and the Samsung, with an identical-binary A/B to give the noise. Verify: an 11-stage table per phone with spreads.
+- [x] 2.1 Record the pre-change cifar-dense per-stage GPU times on the Pixel 7a and the Samsung, with an identical-binary A/B to give the noise. Verify: an 11-stage table per phone with spreads.
+  - *Method* (used for every timing of this group): the 1.1 method with cifar-dense. `bm-prof-cifar-dense-vk` built
+    with the `android` preset (NDK r30) at d563dc5, pushed twice (arms A and B, the same binary) to
+    `/data/local/tmp/bt-dense/{base,base2}` on each phone, real weights (`BT_WEIGHTS_DIR`, `saved_params/export`'s
+    `dense/` and test batch pushed beside them), `BT_PROF_SCENARIO=isolated BT_PROF_BUDGET_S=1.0
+    BT_PROF_ABANDON_S=5 BT_PROF_MAX_CELL_S=3 --benchmark_filter='vulkan/'`. Arms alternate, 3 rounds, 20 s idle
+    before every run, and each run first checks that no other `bm-`/`test-` process is on the phone; both phones ran
+    at once (2026-10-20 05:14-05:19 UTC). Per stage: the median of the 3 runs' p50 (GPU timestamps), with the min-max
+    of the three p50s, `n = runs x samples`. The last row is the spec's measure: each run's conv2-conv5 sum (stages
+    3, 5, 6, 7), median and min-max over the 3 runs. All 12 runs exit 0 with 11 records.
+  - *Noise, Samsung:* every conv of the two identical arms is within 2.7 % and the spreads overlap; the conv2-conv5
+    sum is 11.408 (11.124-12.216) vs 11.439 (11.408-11.459) ms, +0.3 %. Single runs jump between two levels, as in
+    the mali-conv-kernels baseline: conv2 (stage 3) 3.09 or 3.40 ms, conv5 (stage 7) 2.16 or 2.92 ms.
+  - *Noise, Pixel 7a* (Mali path): conv1, conv4 and conv5 are within 0.4 %, but conv3 (stage 5) reads 16.451
+    (16.436-16.506) vs 15.212 (15.144-15.721) ms between identical arms, -7.5 % with spreads that do not overlap, and
+    conv2 (stage 3) spans 9.98-14.54 ms within one binary. A Pixel conv that moves by less than this between arms is
+    noise.
+  - Pixel 7a (Mali path), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 1 | 2.568 (2.558-2.572, n=3x391-392) | 2.568 (2.566-2.572, n=3x392-488) | -0.0 % |
+    | 2 | 0.491 (0.491-0.491, n=3x2000) | 0.494 (0.493-0.495, n=3x2000) | +0.5 % |
+    | 3 | 12.359 (9.980-13.405, n=3x74-100) | 12.361 (12.342-14.541, n=3x68-100) | +0.0 % |
+    | 4 | 0.383 (0.382-0.383, n=3x2000) | 0.384 (0.382-0.384, n=3x2000) | +0.2 % |
+    | 5 | 16.451 (16.436-16.506, n=3x49-60) | 15.212 (15.144-15.721, n=3x48-73) | -7.5 % |
+    | 6 | 20.352 (20.322-20.355, n=3x49) | 20.312 (20.298-20.340, n=3x49) | -0.2 % |
+    | 7 | 14.571 (14.533-15.792, n=3x68-76) | 14.512 (14.506-14.561, n=3x68-69) | -0.4 % |
+    | 8 | 0.175 (0.175-0.175, n=3x2000) | 0.175 (0.175-0.176, n=3x2000) | +0.4 % |
+    | 9 | 6.201 (4.895-6.702, n=3x136-179) | 6.204 (5.435-6.837, n=3x131-220) | +0.0 % |
+    | 10 | 6.672 (5.087-6.783, n=3x133-158) | 6.720 (6.693-6.910, n=3x138-189) | +0.7 % |
+    | 11 | 0.980 (0.872-0.985, n=3x1360-1498) | 0.984 (0.979-0.984, n=3x1335-1365) | +0.3 % |
+    | sum | 81.203 | 79.925 | -1.6 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 64.764 (61.286-65.012, 3 runs) | 62.413 (62.352-65.087, 3 runs) | -3.6 % |
+
+  - Samsung (subgroup-64 path), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 1 | 0.913 (0.912-0.917, n=3x1060-1122) | 0.914 (0.908-0.915, n=3x1084-1129) | +0.1 % |
+    | 2 | 1.300 (1.297-1.301, n=3x884-1733) | 1.309 (1.308-1.310, n=3x977-2000) | +0.7 % |
+    | 3 | 3.397 (3.090-3.406, n=3x514-609) | 3.404 (3.400-3.405, n=3x472-566) | +0.2 % |
+    | 4 | 0.975 (0.973-0.977, n=3x1235-1268) | 0.976 (0.965-0.976, n=3x1212-1241) | +0.1 % |
+    | 5 | 2.452 (2.443-2.508, n=3x408-457) | 2.453 (2.445-2.507, n=3x410-455) | +0.0 % |
+    | 6 | 3.393 (3.375-3.396, n=3x326-328) | 3.396 (3.370-3.397, n=3x325-330) | +0.1 % |
+    | 7 | 2.216 (2.157-2.915, n=3x360-507) | 2.156 (2.154-2.219, n=3x503-517) | -2.7 % |
+    | 8 | 0.324 (0.323-0.327, n=3x2000) | 0.326 (0.323-0.332, n=3x2000) | +0.6 % |
+    | 9 | 3.014 (2.127-3.075, n=3x334-521) | 3.025 (2.166-3.069, n=3x450-512) | +0.4 % |
+    | 10 | 2.770 (2.015-2.831, n=3x355-536) | 2.717 (1.977-2.828, n=3x365-544) | -1.9 % |
+    | 11 | 0.645 (0.632-0.651, n=3x1393-2000) | 0.649 (0.622-0.650, n=3x1413-2000) | +0.6 % |
+    | sum | 21.398 | 21.322 | -0.4 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 11.408 (11.124-12.216, 3 runs) | 11.439 (11.408-11.459, 3 runs) | +0.3 % |
 - [ ] 2.2 Probe each device's optional capabilities with a debug-logged query added to `test-kiss-vk`: `shaderFloat16`, `storageBuffer16BitAccess`, `cooperativeMatrix` and its shapes, CLUSTERED subgroup support, `maxComputeSharedMemorySize`. Verify: the logged values for all three devices replace the "to verify" marks in design.md Context (this also serves groups 1 and 3).
 - [ ] 2.3 Dump the current kernel's ACO disassembly on rocky (`--gtest_filter='*Stage5*'`). Verify: the evidence note records whether the weight loads are vector or scalar.
 - [ ] 2.4 C1: move `oct` to `gl_WorkGroupID.y`, grid `(ceil(N·H·W/256), K/OC_TILE, 1)`. Verify: the rocky gate passes; ACO shows scalar weight loads (quoted); timing on both phones is recorded against 2.1 with no regression beyond noise.
