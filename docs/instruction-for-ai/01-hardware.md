@@ -74,7 +74,7 @@ found", which is why the build box's RTX 4070 Ti never runs Vulkan.
 **Subgroup size comes from the device, at runtime** (since 2026-10, Phase B of the
 `vulkan-engine-campaign` change). The engine queries `VkPhysicalDeviceSubgroupProperties`
 and the 1.3 subgroup-size-control properties, specializes subgroup-dependent shaders
-(the radix sort's `multi_radixsort_scan.comp` and the cifar 3x3 convs) with the device's default size, and pins it with
+(the radix sort's `multi_radixsort_scan.comp` and cifar-dense's 3x3 conv) with the device's default size, and pins it with
 `requiredSubgroupSize` where the device allows. Neither `--device` nor `devices/*.json`
 selects a shader variant any more: `gpu.subgroup_size` there is an informational
 cross-check, and a disagreement logs a warning. `SPDLOG_LEVEL=debug ./test-kiss-vk` prints

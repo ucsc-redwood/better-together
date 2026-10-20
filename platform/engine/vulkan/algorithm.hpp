@@ -7,6 +7,8 @@
 #include <optional>
 #include <set>
 #include <span>
+#include <utility>
+#include <vector>
 
 #include "base_engine.hpp"
 #include "vk.hpp"
@@ -91,6 +93,10 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   // The shader depends on the subgroup size (spec constant kSubgroupSizeSpecId): it is
   // specialized with the device's size, pinned when the device supports that (design D5).
   [[nodiscard]] std::shared_ptr<Algorithm> subgroup_size_dependent();
+  // Specialize the shader's `constant_id = id` (a 32-bit int, uint or bool) with `value`; build()
+  // throws if the shader declares no such constant. Not for the subgroup size or the workgroup
+  // size.
+  [[nodiscard]] std::shared_ptr<Algorithm> spec_constant(uint32_t id, uint32_t value);
   [[nodiscard]] std::shared_ptr<Algorithm> num_buffers(size_t n);
   [[nodiscard]] std::shared_ptr<Algorithm> push_constant_size(size_t size_in_bytes);
   template <typename T>
@@ -161,6 +167,7 @@ class Algorithm final : public std::enable_shared_from_this<Algorithm> {
   ComputeLimits limits_;
   SpirvReflection reflection_;
   bool subgroup_size_dependent_ = false;
+  std::vector<std::pair<uint32_t, uint32_t>> spec_constants_;  // (constant_id, value)
 
   struct {
     std::vector<uint32_t> spirv_binary;

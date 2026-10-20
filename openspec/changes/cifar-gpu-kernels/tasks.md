@@ -25,18 +25,370 @@ no-regression check. FC changes run on both phones.
 
 ## 1. Sparse conv rewrite (gpu-kernels/cifar-sparse-conv; design S1–S4)
 
-- [ ] 1.1 Record the pre-change cifar-sparse per-stage GPU times on the Pixel 7a and the Samsung, with an identical-binary A/B to give the noise. Verify: an 11-stage table per phone with spreads in the evidence note.
-- [ ] 1.2 Dump the current kernel's ACO disassembly on rocky (`RADV_DEBUG=shaders ./test-cifar-sparse-vk --device minipc --gtest_filter='*Stage6*'`). Verify: the evidence note quotes the CSR `buffer_load`/`s_load` lines, confirming or refuting S1's premise.
-- [ ] 1.3 Add the VK-only packed `(offset, tap)` array (S2), filled per CSR matrix after `build_from_dense()` and `load_real_weights()` with that layer's H and W. Verify: a `test-cifar-sparse-vk` unit test decodes every entry back to its `col_idx` for all five layers, on synthetic and real weights, and prints each layer's maximum offset within the reserved bit width.
-- [ ] 1.4 Write the uniform-channel kernel (S1): `out_c = gl_WorkGroupID.y`, grid `(ceil(N·P·Q/256), K, 1)`, a per-invocation 9-bit tap-valid mask; old kernel kept behind a dispatcher flag. Verify: the rocky gate passes with the new kernel and with the old one.
-- [ ] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
-- [ ] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.
-- [ ] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
-- [ ] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
-- [ ] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
-- [ ] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.
-- [ ] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
-- [ ] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
+- [x] 1.1 Record the pre-change cifar-sparse per-stage GPU times on the Pixel 7a and the Samsung, with an identical-binary A/B to give the noise. Verify: an 11-stage table per phone with spreads in the evidence note.
+  - *Method* (used for every timing of this group): `bm-prof-cifar-sparse-vk` built with the `android` preset (NDK
+    r30) at ee4c68d, pushed twice (arms A and B, the same binary) to `/data/local/tmp/bt-sparse/{base,base2}` on each
+    phone, real weights (`BT_WEIGHTS_DIR`, `saved_params/export` pushed beside them), `BT_PROF_SCENARIO=isolated
+    BT_PROF_BUDGET_S=1.0 BT_PROF_ABANDON_S=5 BT_PROF_MAX_CELL_S=3 --benchmark_filter='vulkan/'` (the knobs of the
+    mali-conv-kernels A/B). Arms alternate, 3 rounds, 20 s idle before every run, and each run first checks that no
+    other `bm-`/`test-` process is on the phone; both phones ran at once (2026-10-19 23:07-23:13 UTC). Per stage:
+    the median of the 3 runs' p50 (GPU timestamps), with the min-max of the three p50s, `n = runs x samples`. All 12
+    runs exit 0 with 11 records.
+  - *Noise:* every conv stage (1, 3, 5, 6, 7) of the two identical arms is within 0.3 % on the Pixel 7a and within
+    0.1 % on the Samsung, and the spreads overlap. This is quieter than the Samsung of 2026-10-16 (medians 22 %
+    apart then); the stage sum is 232.3 ms here vs 293.8-307.5 ms then. Non-conv stages move by up to 7 % (Pixel
+    stage 11).
+  - Pixel 7a (Mali path), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 1 | 17.050 (17.037-17.413, n=3x58-68) | 17.007 (17.003-17.008, n=3x64-68) | -0.3 % |
+    | 2 | 4.461 (4.460-4.467, n=3x336-338) | 4.461 (4.458-4.463, n=3x224-338) | +0.0 % |
+    | 3 | 80.287 (80.271-80.300, n=3x12) | 80.290 (80.255-80.405, n=3x12) | +0.0 % |
+    | 4 | 3.364 (3.358-3.365, n=3x642-698) | 3.363 (3.363-3.364, n=3x642-696) | -0.0 % |
+    | 5 | 128.526 (128.484-128.915, n=3x7) | 128.700 (128.695-128.786, n=3x7) | +0.1 % |
+    | 6 | 182.517 (181.577-183.294, n=3x5) | 183.086 (182.553-183.303, n=3x5) | +0.3 % |
+    | 7 | 110.689 (109.953-110.874, n=3x9) | 110.621 (110.581-110.642, n=3x9) | -0.1 % |
+    | 8 | 1.177 (1.172-1.179, n=3x1936-2000) | 1.181 (1.179-1.183, n=3x1900-1993) | +0.4 % |
+    | 9 | 26.906 (26.864-26.922, n=3x34-36) | 26.897 (26.890-26.907, n=3x35-37) | -0.0 % |
+    | 10 | 27.165 (27.119-27.170, n=3x36) | 27.183 (27.128-27.194, n=3x36) | +0.1 % |
+    | 11 | 1.262 (1.236-1.383, n=3x1404-1531) | 1.174 (1.162-1.244, n=3x1378-1458) | -7.0 % |
+    | sum | 583.406 | 583.963 | +0.1 % |
+
+  - Samsung (subgroup-64 path), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 1 | 4.102 (4.102-4.102, n=3x222-243) | 4.102 (4.102-4.102, n=3x189-243) | +0.0 % |
+    | 2 | 2.424 (2.422-2.447, n=3x702-718) | 2.434 (2.417-2.458, n=3x668-712) | +0.4 % |
+    | 3 | 34.028 (34.025-34.028, n=3x29) | 34.026 (34.026-34.027, n=3x29) | -0.0 % |
+    | 4 | 1.848 (1.839-1.851, n=3x1326-1338) | 1.847 (1.831-1.848, n=3x1294-1321) | -0.0 % |
+    | 5 | 51.650 (51.645-51.654, n=3x19) | 51.643 (51.641-51.646, n=3x19) | -0.0 % |
+    | 6 | 68.572 (68.538-68.600, n=3x14) | 68.560 (68.526-68.596, n=3x14) | -0.0 % |
+    | 7 | 45.764 (45.764-45.767, n=3x21) | 45.765 (45.758-45.773, n=3x21) | +0.0 % |
+    | 8 | 2.696 (2.684-2.700, n=3x1184-1246) | 2.682 (2.681-2.688, n=3x1216-1242) | -0.5 % |
+    | 9 | 10.058 (10.046-10.066, n=3x99) | 10.057 (10.054-10.063, n=3x99) | -0.0 % |
+    | 10 | 10.052 (10.040-10.058, n=3x99) | 10.039 (10.032-10.041, n=3x98-99) | -0.1 % |
+    | 11 | 1.155 (1.151-1.176, n=3x2000) | 1.178 (1.153-1.178, n=3x2000) | +2.0 % |
+    | sum | 232.347 | 232.332 | -0.0 % |
+- [x] 1.2 Dump the current kernel's ACO disassembly on rocky (`RADV_DEBUG=shaders ./test-cifar-sparse-vk --device minipc --gtest_filter='*Stage6*'`). Verify: the evidence note quotes the CSR `buffer_load`/`s_load` lines, confirming or refuting S1's premise.
+  - rocky-ryzen (Radeon 780M, Mesa 25.2.7), ee4c68d, `BT_VK_PIPELINE_CACHE_DIR=<empty dir>
+    MESA_SHADER_CACHE_DISABLE=true RADV_DEBUG=shaders ./test-cifar-sparse-vk --device minipc
+    --gtest_filter='*Stage6*'` (1 test passed). The k3s1p1 shader is the second of the five compute shaders in the
+    dump (it has the `v_readfirstlane_b32` of `subgroupBroadcastFirst` and the `0x38e38e39` divide-by-9). The
+    descriptor of binding k is at `s[0:1] + 16·k`: input 0x0 (`null`), `weight_vals` 0x20, `weight_row_ptr` 0x30,
+    `weight_col_idx` 0x40.
+  - *S1's premise is refuted for the model's shapes.* They all take the fast path (a 32², 16² or 8² map is a
+    multiple of the subgroup), and there the CSR metadata is already scalar. Per nonzero, `col_idx` and the weight
+    are `s_buffer_load_b32` and only the input is a vector load:
+
+        s_load_b128 s[12:15], s[0:1], 0x40          ; col_idx descriptor
+        s_buffer_load_b32 s17, s[12:15], s16        ; col_idx[nz], scalar
+        s_mul_hi_i32 s18, s17, 0x38e38e39           ; the /9, /3 decode runs on the SALU (15 ops)
+        ...
+        s_and_saveexec_b64 s[18:19], vcc            ; tap in the padded border: branch
+        s_cbranch_execz BB10
+        s_load_b128 s[24:27], s[0:1], 0x20          ; weight_vals descriptor
+        buffer_load_b32 v5, v5, s[20:23], 0 offen   ; input, the one vector load
+        s_buffer_load_b32 s16, s[24:27], s16        ; weight_vals[nz], scalar
+        s_waitcnt vmcnt(0) lgkmcnt(0)
+        v_mul_f32_e32 v5, s16, v5
+
+    The row bounds are one vector load per invocation, made uniform after it: `buffer_load_b64 v[0:1], v0,
+    s[12:15], 0 offen` (row_ptr, 0x30), `v_readfirstlane_b32 s3, v0`, `v_readfirstlane_b32 s4, v1`. Only the
+    fallback path (a subgroup spanning two channels, never taken by the model) loads the CSR per lane:
+    `buffer_load_b32 v5, v4, s[16:19], 0 offen` (col_idx, 0x40) and `buffer_load_b32 v6, v4, s[24:27], 0 offen`
+    (weight_vals, 0x20).
+  - *What the dump shows instead:* the `ok ? v * weight_vals[nz] : 0.0` of every tap compiles to an exec-mask
+    branch with `s_waitcnt vmcnt(0) lgkmcnt(0)` before the multiply, so each of the four unrolled taps waits for
+    its own input load: one input load in flight per wave. S1 and S2 still remove the decode and the
+    `subgroupAllEqual` test, and the new kernel must load unconditionally (clamped address, weight selected to 0)
+    so that loads overlap.
+- [x] 1.3 Add the VK-only packed `(offset, tap)` array (S2), filled per CSR matrix after `build_from_dense()` and `load_real_weights()` with that layer's H and W. Verify: a `test-cifar-sparse-vk` unit test decodes every entry back to its `col_idx` for all five layers, on synthetic and real weights, and prints each layer's maximum offset within the reserved bit width.
+  - `cifar_sparse::pack_k3s1p1_taps` stores `offset·2^4 + tap` with `offset = in_c·H·W + (ky−1)·W + (kx−1)` (signed;
+    decode `tap = v & 15`, `offset = v >> 4`); `kTapOffsetBits = 27` is the reserved width (|offset| < 2^27).
+    `AppData::conv{1..5}_taps` (placed as weights of stages 1, 3, 5, 6, 7) are filled by `pack_conv_taps()` after
+    `build_from_dense()` and after `load_real_weights()`, with maps 32, 16, 8, 8, 8. Where they live and what they
+    cost: design.md S2, "As built". `InputPurityOmp` lists them as regions, and
+    `Placement.DeclaredStagesMatchBindings` now requires a Vulkan conv to bind exactly one of its `col_idx` and taps
+    (the old kernel binds `col_idx`).
+  - *Test:* `SparseConvTaps.DecodeToColIdx` (`test-cifar-sparse-vk`, host only) decodes every tap of the five convs
+    back to `in_c·9 + tap == col_idx` and prints the largest |offset|. Build box, `build/vulkan`: passes without
+    `BT_WEIGHTS_DIR` (synthetic) and with `BT_WEIGHTS_DIR=saved_params/export` (real), with the same output for
+    both (each layer is pruned to exactly 25 %, and both have a nonzero at tap 8 of the last input channel):
+
+        conv1: nnz 432, max |offset| 2081 < 2^27
+        conv2: nnz 27648, max |offset| 16145 < 2^27
+        conv3: nnz 165888, max |offset| 12233 < 2^27
+        conv4: nnz 221184, max |offset| 24521 < 2^27
+        conv5: nnz 147456, max |offset| 16329 < 2^27
+
+    The real export's rows differ from the synthetic pattern (conv1 row 0 is `[3]` vs `[0, 4, …, 24]`; its rows 4-6
+    are empty). Same build: `Placement.DeclaredStagesMatchBindings` passes; local gate `ctest --test-dir build/pc -L
+    omp` 11/11 passed.
+- [x] 1.4 Write the uniform-channel kernel (S1): `out_c = gl_WorkGroupID.y`, grid `(ceil(N·P·Q/256), K, 1)`, a per-invocation 9-bit tap-valid mask; old kernel kept behind a dispatcher flag. Verify: the rocky gate passes with the new kernel and with the old one.
+  - *Kernel:* `new_cifar_sparse_conv2d_k3s1p1_oc.comp`. One invocation per output pixel of channel
+    `gl_WorkGroupID.y`; it builds its 9-bit tap-valid mask once, then walks the row 8 nonzeros per iteration (8
+    accumulators). A nonzero is a tap load, a weight load, a mask test and an input load from `pixel + offset`, or
+    from the pixel itself when the tap is in the border, with the weight selected to 0: no division and no branch.
+    Binding 4 is the layer's taps instead of `col_idx`.
+  - *Dispatcher:* the five conv stages now share `record_conv` (the five copies differed only in their buffers). It
+    takes the new kernel, grid `(ceil(N·H·W/256), K, 1)`, when the subgroup is 32 or more, and the previous
+    `new_cifar_sparse_conv2d_k3s1p1` otherwise (so the Pixel's Mali path is selected exactly as before) or with
+    `BT_VK_SPARSE_CONV=flat` (the old-kernel flag, read once per dispatcher).
+  - *rocky gate*, the tree at c4a8032 plus this change, synced to `~/bt-sparse-gate`: `cmake --preset vulkan`
+    (glslc of NDK r29), build exit 0, `ctest -L vulkan` 7/7 passed and `./test-cifar-sparse-vk --device minipc` 18
+    passed, both with the new kernel and with `BT_VK_SPARSE_CONV=flat`. `just check-shaders`: OK.
+  - *The flag routes:* with the new kernel's output scaled by 0.5 (a local mutation, reverted),
+    `test-cifar-sparse-vk --gtest_filter='*Stage6*:*Stage1_*'` fails both stages, and passes both with
+    `BT_VK_SPARSE_CONV=flat` (build box RADV iGPU).
+  - *Exploratory, not a gate* (Samsung, 1 round, base vs this binary, otherwise the 1.1 method; its
+    `test-cifar-sparse-vk` passes 18/18): conv1 4.102 → 3.079 ms (-24.9 %), conv2 34.023 → 19.065 (-44.0 %), conv3
+    51.653 → 36.715 (-28.9 %), conv4 68.541 → 48.666 (-29.0 %), conv5 45.762 → 30.386 (-33.6 %).
+- [x] 1.5 Add a test with an empty CSR row and a row whose nonzeros only hit the padded border. Verify: it passes against the OMP oracle on rocky (spec "Empty and border-only rows").
+  - `SparseConvPerChannel.EmptyAndBorderRows{8x8,OddWidth,TwoWorkgroups}` (`test-cifar-sparse-vk`): the new kernel on
+    N 3, C 4, K 9 with 8x8, 7x5 and 13x11 maps (13x11 needs two workgroups per channel, the last ragged) against
+    `cifar_sparse::omp::conv2d_omp_batched` on the same CSR, rtol 1e-3 / atol 1e-4. Row 4 is empty, row 6 keeps only
+    the kernel's right column (all its taps read the border at the right edge) and row 7 only its top row (the top
+    edge); there the output must equal `max(bias, 0)` exactly.
+  - rocky gate at 6453f58 plus this test: build exit 0, `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk
+    --device minipc` 21 passed, the three new tests among them.
+  - *It can fail:* with the right-edge bit of the tap mask forced on (a local mutation of the shader, reverted), all
+    three fail on the build box's RADV iGPU.
+- [x] 1.6 Re-dump ACO for the new kernel. Verify: the CSR metadata loads are scalar, quoted; or the note explains why not and what changed.
+  - rocky-ryzen (780M, Mesa 25.2.7), d3022eb's tree, the 1.2 command. `new_cifar_sparse_conv2d_k3s1p1_oc` is the
+    third of the six compute shaders in the dump (descriptors: input 0x0, weights 0x20, row_ptr 0x30, taps 0x40).
+    All CSR metadata is scalar. The row bounds are one `s_buffer_load_b64` (no vector load and no
+    `v_readfirstlane` any more), and the unrolled loop loads 8 taps and 8 weights with one scalar load each:
+
+        s_load_b128 s[16:19], s[2:3], 0x30
+        s_buffer_load_b64 s[16:17], s[16:19], s15           ; row_ptr[out_c], row_ptr[out_c+1]
+        ...
+        s_buffer_load_b256 s[32:39], s[20:23], s16          ; weight_taps[nz .. nz+7]
+        buffer_load_b32 v10, v10, s[24:27], 0 offen         ; input, tap 0
+        s_clause 0x6
+        buffer_load_b32 v12, v12, s[24:27], 0 offen         ; input, taps 1-7 back to back
+        ...
+        buffer_load_b32 v26, v26, s[24:27], 0 offen
+        s_load_b128 s[24:27], s[2:3], 0x20
+        s_buffer_load_b256 s[32:39], s[24:27], s16          ; weight_vals[nz .. nz+7]
+        s_waitcnt vmcnt(7) lgkmcnt(0)                       ; first wait: all 8 input loads in flight
+
+    The remainder loop (row length mod 8) loads one tap and one weight per nonzero with `s_buffer_load_b32`. There
+    is no exec-mask branch in either loop (the 1.2 kernel had one per tap).
+- [x] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
+  - `constant_id = 1` `STAGE_ROW` (bool, default off) in `new_cifar_sparse_conv2d_k3s1p1_oc.comp`: the workgroup
+    copies the row's taps and weights into shared memory 1024 nonzeros (8 KB) at a time, with a barrier before and
+    after each copy, and walks the chunk from there. With it, an invocation past the last pixel stays for the
+    barriers and stores nothing. The engine had no way to set a spec constant other than the subgroup and workgroup
+    sizes, so `kiss_vk::Algorithm::spec_constant(id, value)` is new (`build()` throws if the shader declares no
+    such id). The dispatcher sets it from `BT_VK_SPARSE_STAGE_ROW=1` (task 1.8 picks the default).
+  - `SparseConvPerChannel.*` now run every map with `STAGE_ROW` off and on, with C 128 and a row that keeps every
+    tap (1152 nonzeros, two chunks; the synthetic model rows have 864, one chunk). With the chunk loop cut after the
+    first chunk (a local mutation, reverted) they fail only with `STAGE_ROW` on, at that row.
+  - rocky gate (b2a8b0b plus this change): build exit 0, `ctest -L vulkan` 7/7 passed and `./test-cifar-sparse-vk
+    --device minipc` 21 passed, with `BT_VK_SPARSE_STAGE_ROW=0` and with `=1`. `just check-shaders`: OK.
+- [x] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
+  - The 1.1 method with three arms: `base` (ee4c68d), and the a324f38 binary with `BT_VK_SPARSE_STAGE_ROW=0` (`off`)
+    and `=1` (`on`), alternating, 3 rounds, both phones at once (2026-10-20 00:15-00:25 UTC). All 18 runs exit 0
+    with 11 records.
+  - *Samsung:* `on` has the lower median on conv1-conv3 (3.397 / 17.456 / 32.535 vs 3.689 / 18.362 / 34.370 ms) but
+    every spread overlaps `off`'s, and it is slower beyond noise on conv4 (47.060, 46.960-47.224, vs 45.216,
+    44.412-45.823) and conv5 (34.958, 34.757-35.178, vs 33.970, 32.314-34.638). The stage sums are equal (163.6 vs
+    163.8 ms). Both are far below `base` on every conv.
+  - *Pixel 7a:* its convs run the Mali path, which neither arm changes; all three arms agree within 0.7 % on every
+    conv, with overlapping spreads.
+  - *Noise of the new kernel on the Samsung:* larger than `base`'s. Conv1 follows the GPU clock the profiler records
+    (`base` 900 MHz in every run; the new kernel 600-800 MHz, 2.74-3.75 ms). Conv2-conv5 ran at 1095 MHz in every
+    run and still differ by up to 6 % between runs (e.g. conv3 `off` 31.646 / 34.370 / 35.769 ms).
+  - *Default:* `STAGE_ROW` off on every device: on the Samsung, the only phone that runs this kernel, it is never
+    slower beyond noise than `on`, and `on` loses on conv4 and conv5. rocky-ryzen (the other subgroup-64 GPU) is not
+    timed, so it gets the same default. No code change: the spec constant already defaults to off, and
+    `BT_VK_SPARSE_STAGE_ROW=1` still turns it on.
+  - Pixel 7a, ms:
+
+    | stage | base median (min-max) ms | off median (min-max) ms | on median (min-max) ms | off vs base | on vs base |
+    |---|---|---|---|---|---|
+    | 1 | 17.037 (17.031-17.075, n=3x59-68) | 17.004 (16.974-17.055, n=3x59-68) | 17.032 (17.013-17.056, n=3x58-59) | -0.2 % | -0.0 % |
+    | 2 | 4.464 (4.463-4.465, n=3x225-338) | 4.464 (4.460-4.469, n=3x225-337) | 4.463 (4.462-4.467, n=3x226-337) | +0.0 % | -0.0 % |
+    | 3 | 80.344 (80.296-80.431, n=3x12) | 80.304 (80.191-80.356, n=3x12) | 80.466 (80.391-80.474, n=3x12) | -0.0 % | +0.2 % |
+    | 4 | 3.366 (3.365-3.366, n=3x638-645) | 3.364 (3.364-3.365, n=3x643-696) | 3.366 (3.366-3.368, n=3x641-696) | -0.1 % | +0.0 % |
+    | 5 | 128.336 (126.585-128.830, n=3x7) | 128.655 (128.539-128.667, n=3x7) | 128.491 (128.334-128.828, n=3x7) | +0.2 % | +0.1 % |
+    | 6 | 182.617 (182.280-183.577, n=3x5) | 183.599 (181.345-183.729, n=3x5) | 181.319 (180.882-182.927, n=3x5) | +0.5 % | -0.7 % |
+    | 7 | 110.528 (110.505-110.697, n=3x9) | 110.585 (110.528-110.629, n=3x9) | 110.482 (110.425-110.633, n=3x9) | +0.1 % | -0.0 % |
+    | 8 | 1.182 (1.178-1.184, n=3x2000) | 1.181 (1.179-1.185, n=3x1985-1999) | 1.180 (1.177-1.181, n=3x1912-2000) | -0.1 % | -0.2 % |
+    | 9 | 26.875 (26.873-26.877, n=3x36-37) | 26.951 (26.925-27.067, n=3x36-37) | 26.951 (26.942-26.967, n=3x36-37) | +0.3 % | +0.3 % |
+    | 10 | 27.170 (27.168-27.182, n=3x36) | 27.193 (27.171-27.228, n=3x36) | 27.160 (27.113-27.162, n=3x36) | +0.1 % | -0.0 % |
+    | 11 | 1.369 (1.146-1.372, n=3x1068-1522) | 1.178 (1.178-1.388, n=3x1451-1595) | 1.386 (1.247-1.388, n=3x1379-1493) | -14.0 % | +1.2 % |
+    | sum | 583.288 | 584.479 | 582.296 | +0.2 % | -0.2 % |
+
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | off median (min-max) ms | on median (min-max) ms | off vs base | on vs base |
+    |---|---|---|---|---|---|
+    | 1 | 4.102 (4.102-4.103, n=3x175-216) | 3.689 (2.741-3.746, n=3x276-319) | 3.397 (3.025-3.929, n=3x246-285) | -10.1 % | -17.2 % |
+    | 2 | 2.436 (2.427-2.438, n=3x697-708) | 2.447 (2.426-2.458, n=3x705-907) | 2.447 (2.411-2.469, n=3x694-706) | +0.5 % | +0.4 % |
+    | 3 | 34.027 (34.023-34.029, n=3x29) | 18.362 (17.081-19.162, n=3x53-55) | 17.456 (16.978-17.951, n=3x56-64) | -46.0 % | -48.7 % |
+    | 4 | 1.838 (1.837-1.841, n=3x1296-1302) | 1.842 (1.821-1.866, n=3x1268-1333) | 1.836 (1.812-1.839, n=3x1295-1328) | +0.2 % | -0.1 % |
+    | 5 | 51.654 (51.653-51.660, n=3x19) | 34.370 (31.646-35.769, n=3x31-32) | 32.535 (31.405-34.392, n=3x34-36) | -33.5 % | -37.0 % |
+    | 6 | 68.553 (68.540-68.602, n=3x14) | 45.216 (44.412-45.823, n=3x23) | 47.060 (46.960-47.224, n=3x21-23) | -34.0 % | -31.4 % |
+    | 7 | 45.770 (45.767-45.772, n=3x21) | 33.970 (32.314-34.638, n=3x29-33) | 34.958 (34.757-35.178, n=3x29) | -25.8 % | -23.6 % |
+    | 8 | 2.688 (2.687-2.697, n=3x1204-1242) | 2.672 (2.654-2.711, n=3x1189-1241) | 2.689 (2.672-2.705, n=3x1214-1229) | -0.6 % | +0.0 % |
+    | 9 | 10.055 (10.035-10.074, n=3x99-100) | 10.062 (10.031-10.069, n=3x99-100) | 10.057 (10.050-10.066, n=3x90-99) | +0.1 % | +0.0 % |
+    | 10 | 10.058 (10.035-10.058, n=3x99) | 10.040 (10.037-10.062, n=3x99) | 10.053 (10.035-10.058, n=3x91-100) | -0.2 % | -0.1 % |
+    | 11 | 1.174 (1.157-1.178, n=3x2000) | 1.155 (1.154-1.177, n=3x2000) | 1.158 (1.154-1.179, n=3x2000) | -1.6 % | -1.4 % |
+    | sum | 232.356 | 163.825 | 163.646 | -29.5 % | -29.6 % |
+- [x] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
+  - The 1.1 method: `base` (ee4c68d) against `new`, the a324f38 binary (the code of 902c24b) with no knob set
+    (`STAGE_ROW` off), 3 rounds alternating, both phones at once (2026-10-20 00:27-00:33 UTC); then the Pixel alone
+    again (00:34-00:40). All runs exit 0 with 11 records.
+  - *Samsung, conv2-conv5 faster beyond noise: met.* Stage 3 18.169 (17.378-18.448) vs 34.024 (34.023-34.029) ms,
+    -46.6 %; stage 5 33.697 (31.676-33.862) vs 51.652 (51.651-51.660), -34.8 %; stage 6 45.300 (44.487-45.551) vs
+    68.531 (68.519-68.556), -33.9 %; stage 7 35.168 (35.144-36.060) vs 45.760 (45.759-45.775), -23.1 %. No spread
+    overlaps. Conv1 is faster too (3.200 vs 4.102 ms, -22.0 %).
+  - *No conv slower beyond noise: met on the Samsung; on the Pixel 7a, met after a repeat.* The Pixel runs the
+    unchanged Mali shader with the same bindings and grid. In the first session its stage 6 (conv4) read 183.575
+    (183.451-183.981) vs 182.349 (181.609-183.060) ms, +0.7 % with spreads that do not overlap. The repeat gave
+    183.486 (182.150-183.543) vs 183.377 (183.269-183.567), +0.1 %, overlapping. Over all sessions the two
+    interleave: the ee4c68d binary's stage-6 medians are 182.517 / 183.086 (1.1, two arms), 182.617 (1.8), 182.349
+    (1.9) and 183.377 (repeat); the a324f38 binary's are 183.599 / 181.319 (1.8, its `off` and `on` arms, the same
+    Mali path), 183.575 (1.9) and 183.486 (repeat). So the first session's +0.7 % is session-to-session noise, not
+    this change. Every other Pixel conv is within 0.3 % with overlapping spreads in both sessions.
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | new median (min-max) ms | new vs base |
+    |---|---|---|---|
+    | 1 | 4.102 (3.696-4.102, n=3x243-270) | 3.200 (2.813-3.693, n=3x264-300) | -22.0 % |
+    | 2 | 2.398 (2.388-2.431, n=3x694-706) | 2.418 (2.402-2.447, n=3x697-718) | +0.8 % |
+    | 3 | 34.024 (34.023-34.029, n=3x29) | 18.169 (17.378-18.448, n=3x57-60) | -46.6 % |
+    | 4 | 1.827 (1.826-1.843, n=3x1293-1303) | 1.821 (1.815-1.832, n=3x1300-1317) | -0.4 % |
+    | 5 | 51.652 (51.651-51.660, n=3x19) | 33.697 (31.676-33.862, n=3x33-36) | -34.8 % |
+    | 6 | 68.531 (68.519-68.556, n=3x14) | 45.300 (44.487-45.551, n=3x22-24) | -33.9 % |
+    | 7 | 45.760 (45.759-45.775, n=3x21) | 35.168 (35.144-36.060, n=3x29) | -23.1 % |
+    | 8 | 2.693 (2.687-2.701, n=3x1223-1231) | 2.685 (2.672-2.687, n=3x1195-1210) | -0.3 % |
+    | 9 | 10.049 (10.038-10.090, n=3x98-100) | 10.043 (10.041-10.063, n=3x99-100) | -0.1 % |
+    | 10 | 10.040 (10.038-10.047, n=3x99) | 10.049 (10.036-10.050, n=3x97-99) | +0.1 % |
+    | 11 | 1.176 (1.174-1.178, n=3x2000) | 1.158 (1.156-1.178, n=3x2000) | -1.6 % |
+    | sum | 232.253 | 163.707 | -29.5 % |
+
+  - Pixel 7a, first session, ms:
+
+    | stage | base median (min-max) ms | new median (min-max) ms | new vs base |
+    |---|---|---|---|
+    | 1 | 17.040 (16.980-17.123, n=3x59-68) | 17.012 (16.998-17.047, n=3x59-68) | -0.2 % |
+    | 2 | 4.467 (4.465-4.469, n=3x225-226) | 4.464 (4.463-4.469, n=3x226-447) | -0.1 % |
+    | 3 | 80.337 (80.330-80.382, n=3x12) | 80.287 (80.279-80.394, n=3x12) | -0.1 % |
+    | 4 | 3.366 (3.365-3.370, n=3x643-698) | 3.365 (3.365-3.366, n=3x644-698) | -0.0 % |
+    | 5 | 128.636 (126.923-128.678, n=3x7) | 128.712 (128.657-128.805, n=3x7) | +0.1 % |
+    | 6 | 182.349 (181.609-183.060, n=3x5) | 183.575 (183.451-183.981, n=3x5) | +0.7 % |
+    | 7 | 110.475 (110.308-110.478, n=3x9) | 110.139 (108.606-110.471, n=3x9) | -0.3 % |
+    | 8 | 1.180 (1.179-1.183, n=3x1969-2000) | 1.180 (1.179-1.183, n=3x1927-1993) | +0.1 % |
+    | 9 | 26.887 (26.877-26.900, n=3x32-34) | 26.939 (26.909-26.981, n=3x36-37) | +0.2 % |
+    | 10 | 27.177 (27.163-27.182, n=3x36) | 27.153 (27.134-27.156, n=3x36) | -0.1 % |
+    | 11 | 1.378 (1.156-1.383, n=3x1449-1604) | 1.378 (1.179-1.386, n=3x1400-1588) | -0.0 % |
+    | sum | 583.292 | 584.204 | +0.2 % |
+
+  - Pixel 7a, repeat, ms:
+
+    | stage | base median (min-max) ms | new median (min-max) ms | new vs base |
+    |---|---|---|---|
+    | 1 | 17.057 (16.987-17.297, n=3x58-68) | 17.013 (16.898-17.031, n=3x59-68) | -0.3 % |
+    | 2 | 4.465 (4.463-4.469, n=3x226-338) | 4.466 (4.437-4.466, n=3x225-334) | +0.0 % |
+    | 3 | 80.296 (80.266-80.386, n=3x12) | 80.244 (80.006-80.297, n=3x12) | -0.1 % |
+    | 4 | 3.368 (3.364-3.369, n=3x643-700) | 3.365 (3.339-3.366, n=3x586-699) | -0.1 % |
+    | 5 | 128.545 (128.503-128.582, n=3x7) | 128.618 (126.641-128.709, n=3x7) | +0.1 % |
+    | 6 | 183.377 (183.269-183.567, n=3x5) | 183.486 (182.150-183.543, n=3x5) | +0.1 % |
+    | 7 | 110.541 (108.598-110.723, n=3x9) | 110.218 (108.633-110.866, n=3x9) | -0.3 % |
+    | 8 | 1.179 (1.174-1.183, n=3x1854-2000) | 1.182 (1.157-1.185, n=3x1988-2000) | +0.2 % |
+    | 9 | 26.891 (26.856-26.907, n=3x34-35) | 26.970 (26.957-27.089, n=3x35-37) | +0.3 % |
+    | 10 | 27.223 (27.190-27.320, n=3x36) | 27.188 (27.175-27.342, n=3x36) | -0.1 % |
+    | 11 | 1.166 (1.165-1.375, n=3x1492-1680) | 1.381 (0.980-1.387, n=3x1348-1553) | +18.5 % |
+    | sum | 584.106 | 584.131 | +0.0 % |
+- [x] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.
+  - `test-cifar-sparse-vk` (Vulkan tolerance rtol 1e-3 / atol 1e-4 per stage), real weights from
+    `saved_params/export` (`sparse/`, `test_batch.npy`) copied next to the binary:
+    - rocky-ryzen, 902c24b's tree built in `~/bt-sparse-gate`, `BT_WEIGHTS_DIR=~/bt-sparse-gate/weights
+      ./test-cifar-sparse-vk --device minipc`: 21 passed (`SparseConvTaps` printed "taps of the real weights"); also
+      21 passed with `BT_VK_SPARSE_STAGE_ROW=1`.
+    - Samsung and Pixel 7a, the a324f38 binary (same code), `BT_WEIGHTS_DIR=/data/local/tmp/bt-sparse/weights`: 21
+      passed on each. On the Pixel the convs take the Mali path; the per-channel kernel still runs there in
+      `SparseConvPerChannel.*`.
+  - The real export reaches cases the synthetic weights do not: rows of up to 1926 nonzeros (conv4, two
+    `STAGE_ROW` chunks) and empty rows (27 in conv1, 1 in conv2, 13 in conv5); per layer the row lengths are conv1
+    0-25, conv2 0-277, conv3 23-791, conv4 20-1926, conv5 0-854.
+- [x] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
+  - The new kernel wins on the Samsung (1.9) and passes on rocky and both phones (1.4, 1.10), so
+    `BT_VK_SPARSE_CONV=flat` is gone: cifar-sparse runs `new_cifar_sparse_conv2d_k3s1p1_oc` whenever the subgroup is
+    32 or more. That left the subgroup >= 32 code of `new_cifar_sparse_conv2d_k3s1p1.comp` (`row_sum`, `tap_fast`,
+    `tap_generic`) unreachable, so the shader is now the Mali path alone: `main_mali` became `main`, and the
+    `SUBGROUP_SIZE` spec constant and the subgroup extensions went with the dead code. The dispatcher picks the shader
+    by `engine.subgroup_size()` and no longer builds it `subgroup_size_dependent()`; the contract's
+    `sparse_conv_k3s1p1_invocations(…, subgroup_size)` became `sparse_conv_k3s1p1_mali_invocations(n, k, h, w)`.
+    `SparseConvK3S1P1.{FallbackWhenSubgroupSpansChannels,FastPathWhenMapIsSubgroupMultiple}` tested the removed path
+    by name; as `Map6x6` / `Map8x8` (with `RaggedOddWidthMap`) they now test the Mali shader on every GPU. Docs:
+    `03-unit-testing.md` (conv paths, contract, the `BT_VK_SPARSE_STAGE_ROW` knob), `01-hardware.md` (which shaders
+    are subgroup-specialized).
+  - *The Mali path is unchanged:* the old shader specialized at subgroup 16 (`spirv-opt
+    --set-spec-const-default-value 0:16 --freeze-spec-const --fold-spec-const-op-composite -O --strip-debug`) and
+    the new Mali-only shader (`-O --strip-debug`) are instruction-identical once ids and declaration order are
+    canonicalized (267 lines each; a scratch script names every global by its definition and decorations, bindings
+    included, and every local id by first use; with `PX = 2` it reports 314 differing lines). The dispatcher gives
+    it the same buffers and the same `grid.x` as before at subgroup 16; the only difference is that the pipeline
+    no longer requests `requiredSubgroupSize` 16 on a GPU whose only subgroup size is 16.
+  - *Clean builds* on the build box: `cmake --build --preset vulkan --clean-first` and `cmake --build --preset
+    android --clean-first` exit 0; their only warnings are 4 pre-existing ones in `apps/tree/omp/func_sort.hpp`.
+    `just check-shaders`: OK. `grep` finds no `BT_VK_SPARSE_CONV`, `conv_per_channel` or
+    `sparse_conv_k3s1p1_invocations` left in the code, and no `main_mali` in the sparse shader (cifar-dense's shader
+    keeps its own).
+  - rocky gate (4fab24d plus this change): build exit 0, `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk
+    --device minipc` 21 passed.
+- [x] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
+  - Gate at a986a39, the last code commit (the commit after it adds this note and changes only docs):
+    - *local:* `cmake --build --preset pc && ctest --test-dir build/pc -L omp`: 11/11 passed.
+    - *rocky:* the tree synced to `~/bt-sparse-gate`, `cmake --preset vulkan` (glslc of NDK r29), build exit 0,
+      `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk --device minipc` 21 passed.
+    - *phones:* `cmake --build --preset android --target test-cifar-sparse-vk`, then
+      `BT_ANDROID_DEST=/data/local/tmp/bt-sparse/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk`:
+      21 passed and exit 0 on 3A021JEHN02756 and on R5CY21Y3VEV. The same binary with `BT_WEIGHTS_DIR` (real
+      weights): 21 passed on each phone.
+  - *Final A/B* (the 1.1 method, ee4c68d vs a986a39, both phones at once, 2026-10-20 01:00-01:06 UTC, all 12 runs
+    exit 0 with 11 records): Samsung conv2-conv5 -47.6 / -34.7 / -36.9 / -22.7 %, conv1 -20.6 %, no spread
+    overlapping, stage sum 232.3 → 161.7 ms; Pixel 7a every conv within 0.9 % with overlapping spreads.
+  - *Note:* `docs/reports-for-human/perf-results/2026-10-20-cifar-sparse-conv.md` (before/after tables, ACO
+    findings, the S3 result, the S4 decision: unstructured CSR stays), linked from the perf-results README.
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | final median (min-max) ms | final vs base |
+    |---|---|---|---|
+    | 1 | 4.102 (4.102-4.103, n=3x238-243) | 3.259 (2.824-3.651, n=3x269-284) | -20.6 % |
+    | 2 | 2.419 (2.400-2.427, n=3x661-703) | 2.416 (2.376-2.419, n=3x689-725) | -0.1 % |
+    | 3 | 34.025 (34.023-34.027, n=3x29) | 17.818 (17.581-18.248, n=3x53-59) | -47.6 % |
+    | 4 | 1.808 (1.807-1.812, n=3x1296-1335) | 1.808 (1.806-1.810, n=3x1309-1331) | +0.0 % |
+    | 5 | 51.655 (51.645-51.660, n=3x19) | 33.752 (32.851-36.277, n=3x30-37) | -34.7 % |
+    | 6 | 68.537 (68.536-68.578, n=3x14) | 43.219 (41.998-50.626, n=3x23-25) | -36.9 % |
+    | 7 | 45.767 (45.764-45.769, n=3x21) | 35.399 (32.729-35.878, n=3x28-31) | -22.7 % |
+    | 8 | 2.702 (2.701-2.706, n=3x1194-1243) | 2.697 (2.675-2.703, n=3x1192-1226) | -0.2 % |
+    | 9 | 10.036 (10.035-10.074, n=3x99-100) | 10.048 (10.047-10.051, n=3x99-100) | +0.1 % |
+    | 10 | 10.043 (10.039-10.058, n=3x99) | 10.059 (10.055-10.059, n=3x99) | +0.2 % |
+    | 11 | 1.173 (1.159-1.180, n=3x2000) | 1.175 (1.173-1.175, n=3x2000) | +0.2 % |
+    | sum | 232.267 | 161.650 | -30.4 % |
+
+  - Pixel 7a, ms:
+
+    | stage | base median (min-max) ms | final median (min-max) ms | final vs base |
+    |---|---|---|---|
+    | 1 | 17.007 (17.005-17.037, n=3x68) | 17.028 (17.006-17.120, n=3x59-68) | +0.1 % |
+    | 2 | 4.465 (4.463-4.465, n=3x226-339) | 4.468 (4.463-4.472, n=3x226-338) | +0.1 % |
+    | 3 | 80.362 (80.266-80.427, n=3x12) | 80.447 (80.385-80.507, n=3x12) | +0.1 % |
+    | 4 | 3.366 (3.366-3.369, n=3x643-698) | 3.366 (3.361-3.372, n=3x640-698) | +0.0 % |
+    | 5 | 128.466 (128.367-128.631, n=3x7) | 128.621 (128.589-128.778, n=3x7) | +0.1 % |
+    | 6 | 183.461 (182.153-183.513, n=3x5) | 181.864 (181.710-182.862, n=3x5) | -0.9 % |
+    | 7 | 110.658 (110.455-110.697, n=3x9) | 110.553 (108.485-110.784, n=3x8-9) | -0.1 % |
+    | 8 | 1.179 (1.178-1.182, n=3x1944-2000) | 1.181 (1.179-1.181, n=3x1917-2000) | +0.1 % |
+    | 9 | 26.891 (26.877-26.901, n=3x30-37) | 26.955 (26.945-27.009, n=3x36-37) | +0.2 % |
+    | 10 | 27.252 (27.190-27.282, n=3x36) | 27.144 (27.133-27.225, n=3x36) | -0.4 % |
+    | 11 | 1.377 (1.375-1.380, n=3x1502-1568) | 1.381 (1.376-1.385, n=3x1441-1534) | +0.3 % |
+    | sum | 584.487 | 583.010 | -0.3 % |
 
 ## 2. Dense conv optimization (gpu-kernels/cifar-dense-conv; design C1–C5)
 

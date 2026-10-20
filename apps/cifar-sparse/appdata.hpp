@@ -85,6 +85,24 @@ struct CSRMatrix {
   [[nodiscard]] const std::pmr::vector<int>& col_idx_pmr_vec() const { return col_idx; }
 };
 
+// Vulkan conv taps (cifar-gpu-kernels S2), read only by the Vulkan 3x3/s1/p1 kernel: per nonzero
+// of a conv CSR, its input offset relative to the output pixel, in_c*H*W + (ky-1)*W + (kx-1),
+// times 2^kTapBits, plus the tap id ky*3+kx. The kernel tests the tap against its pixel's
+// border mask and adds the offset to its pixel's index, so no nonzero is divided by 9 or 3.
+// |offset| must stay below 2^kTapOffsetBits, so offset and tap fit a signed 32-bit int.
+constexpr int kTapBits = 4;
+constexpr int kTapOffsetBits = 27;
+
+inline void pack_k3s1p1_taps(
+    const int* col_idx, const int nnz, const int h, const int w, int* out) {
+  for (int i = 0; i < nnz; ++i) {
+    const int in_c = col_idx[i] / 9;
+    const int tap = col_idx[i] % 9;
+    const int offset = in_c * h * w + (tap / 3 - 1) * w + (tap % 3 - 1);
+    out[i] = offset * (1 << kTapBits) + tap;
+  }
+}
+
 struct AppData final : public BaseAppData {
   // static constexpr size_t BATCH_SIZE = 512;  // sized for the old SmallAlexNet
   static constexpr size_t BATCH_SIZE = 128;
@@ -133,12 +151,19 @@ struct AppData final : public BaseAppData {
         conv2_sparse(192, 576, place(bt::BufferKind::kWeights, {3})),
         conv3_sparse(384, 1728, place(bt::BufferKind::kWeights, {5})),
         conv4_sparse(256, 3456, place(bt::BufferKind::kWeights, {6})),
-        conv5_sparse(256, 2304, place(bt::BufferKind::kWeights, {7})) {
+        conv5_sparse(256, 2304, place(bt::BufferKind::kWeights, {7})),
+        // Sized like each CSR's col_idx (rows*cols), so they are placed before nnz is known.
+        conv1_taps(64 * 27, 0, place(bt::BufferKind::kWeights, {1})),
+        conv2_taps(192 * 576, 0, place(bt::BufferKind::kWeights, {3})),
+        conv3_taps(384 * 1728, 0, place(bt::BufferKind::kWeights, {5})),
+        conv4_taps(256 * 3456, 0, place(bt::BufferKind::kWeights, {6})),
+        conv5_taps(256 * 2304, 0, place(bt::BufferKind::kWeights, {7})) {
     // BT_WEIGHTS_DIR set -> the real magnitude-pruned CSR export + real test
     // batch, fail-loud on any problem. Unset -> the synthetic seeded init
     // below, byte-identical to the hermetic-test behavior.
     if (const char* dir = std::getenv("BT_WEIGHTS_DIR")) {
       load_real_weights(dir);
+      pack_conv_taps();
       return;
     }
 
@@ -169,6 +194,7 @@ struct AppData final : public BaseAppData {
     conv3_sparse.build_from_dense();
     conv4_sparse.build_from_dense();
     conv5_sparse.build_from_dense();
+    pack_conv_taps();
 
     std::ranges::fill(u_conv1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_conv2_b.pmr_vec(), 0.0f);
@@ -232,6 +258,18 @@ struct AppData final : public BaseAppData {
     bt::npy::load(dir + "/test_batch.npy", "<f4", {BATCH_SIZE, 3, 32, 32}, u_input.data());
   }
 
+  // Each conv's taps from its CSR and its input map size (32, 16, 8, 8, 8).
+  void pack_conv_taps() {
+    const auto pack = [](const CSRMatrix& m, const int hw, std::pmr::vector<int>& taps) {
+      pack_k3s1p1_taps(m.col_idx.data(), m.nnz, hw, hw, taps.data());
+    };
+    pack(conv1_sparse, 32, conv1_taps);
+    pack(conv2_sparse, 16, conv2_taps);
+    pack(conv3_sparse, 8, conv3_taps);
+    pack(conv4_sparse, 8, conv4_taps);
+    pack(conv5_sparse, 8, conv5_taps);
+  }
+
   // Input and intermediate outputs
   Ndarray4D u_input;      // (128, 3, 32, 32)
   Ndarray4D u_conv1_out;  // (128, 64, 32, 32)
@@ -267,6 +305,13 @@ struct AppData final : public BaseAppData {
   CSRMatrix conv3_sparse;  // (384, 1728)
   CSRMatrix conv4_sparse;  // (256, 3456)
   CSRMatrix conv5_sparse;  // (256, 2304)
+
+  // Vulkan conv taps (pack_k3s1p1_taps), [0, nnz) of each conv's CSR.
+  std::pmr::vector<int> conv1_taps;
+  std::pmr::vector<int> conv2_taps;
+  std::pmr::vector<int> conv3_taps;
+  std::pmr::vector<int> conv4_taps;
+  std::pmr::vector<int> conv5_taps;
 };
 
 }  // namespace cifar_sparse

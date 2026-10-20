@@ -100,6 +100,14 @@ class VulkanDispatcher final {
   void record_stage_10(AppData& appdata, kiss_vk::Sequence& seq);
   void record_stage_11(AppData& appdata, kiss_vk::Sequence& seq);
 
+  // Stages 1, 3, 5, 6, 7: the 3x3 CSR conv of `in` into `out`.
+  void record_conv(kiss_vk::Sequence& seq,
+                   Ndarray4D& in,
+                   Ndarray4D& out,
+                   CSRMatrix& csr,
+                   std::pmr::vector<int>& taps,
+                   Ndarray1D& bias);
+
   using RecordFn = void (VulkanDispatcher::*)(AppData&, kiss_vk::Sequence&);
 
   static constexpr std::array<RecordFn, 11> record_functions = {

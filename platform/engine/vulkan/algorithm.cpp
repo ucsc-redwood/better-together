@@ -161,6 +161,11 @@ std::shared_ptr<Algorithm> Algorithm::subgroup_size_dependent() {
   return shared_from_this();
 }
 
+std::shared_ptr<Algorithm> Algorithm::spec_constant(const uint32_t id, const uint32_t value) {
+  spec_constants_.emplace_back(id, value);
+  return shared_from_this();
+}
+
 std::shared_ptr<Algorithm> Algorithm::num_buffers(const size_t n) {
   internal_.num_buffers = n;
   create_descriptor_set_layout();
@@ -402,6 +407,14 @@ void Algorithm::create_pipeline() {
           limits_.subgroup_size,
           limits_.max_compute_workgroup_subgroups));
     }
+  }
+
+  for (const auto& [id, value] : spec_constants_) {
+    if (!reflection_.spec_ids.contains(id)) {
+      throw std::runtime_error(
+          fmt::format("Pipeline [{}]: the shader declares no constant_id = {}", shader_name_, id));
+    }
+    specialize(id, value);
   }
 
   const vk::SpecializationInfo spec_info{

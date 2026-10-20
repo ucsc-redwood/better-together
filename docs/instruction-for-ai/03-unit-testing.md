@@ -155,21 +155,30 @@ the device cannot pin that size, e.g. 32 on the Pixel):
 BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned at 32
 ```
 
-**Mali conv paths and the conv grid contract (mali-conv-kernels).**
-- Both cifar 3x3 conv shaders (`new_cifar_{dense,sparse}_conv2d_k3s1p1.comp`) are subgroup-size dependent.
-  Below 32 they run a Mali path: 4 adjacent output pixels per invocation, 4 channels each for the dense one. At 32
-  and above they run the path the 780M and the Xclipse were tuned on. The Pixel 7a is the only fleet GPU that
-  takes the Mali path, so a change to it is only tested by the phone gate; rocky-ryzen, the build box and the
-  Samsung cover the other path.
-- `platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp` gives each shader's invocation count for a subgroup
-  size (`kDenseConvMaliPixels` / `kSparseConvMaliPixels` must equal `PX` in the shader). Both apps' dispatchers and
-  `DenseConvK3S1P1` / `SparseConvK3S1P1` size `grid.x` from it with `engine.subgroup_size()`. A contract that counts
-  more outputs per invocation than the shader computes leaves outputs at the tests' `-1` fill, so the tests fail;
-  this was checked by mutation on the build box and on the Pixel. That only works while each test shape needs more
-  than one 256-wide workgroup on both paths, because the grid rounds up to whole workgroups and a shortfall inside
-  the last one goes unseen. Keep the tests' batch and channel counts large enough for that.
+**Mali conv paths and the conv grid contract (mali-conv-kernels, cifar-gpu-kernels).**
+- Below subgroup 32 both cifar 3x3 convs run a Mali path: 4 adjacent output pixels per invocation, 4 channels each
+  for the dense one. cifar-dense's shader (`new_cifar_dense_conv2d_k3s1p1.comp`) is subgroup-size dependent and at
+  32 and above runs the path the 780M and the Xclipse were tuned on. cifar-sparse has two shaders and its dispatcher
+  picks by `engine.subgroup_size()`: `new_cifar_sparse_conv2d_k3s1p1.comp` is the Mali path only, and at 32 and above
+  it runs `new_cifar_sparse_conv2d_k3s1p1_oc.comp` (one output channel per workgroup row on the packed CSR taps,
+  `AppData::conv{1..5}_taps`). The Pixel 7a is the only fleet GPU that takes the Mali paths, so a change to the
+  dispatch on it is only tested by the phone gate; rocky-ryzen, the build box and the Samsung cover the other paths.
+- `platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp` gives the invocation counts (`kDenseConvMaliPixels` /
+  `kSparseConvMaliPixels` must equal `PX` in the shader): the dense shader's for a subgroup size, the sparse Mali
+  shader's (`sparse_conv_k3s1p1_mali_invocations`). Both apps' dispatchers and `DenseConvK3S1P1` / `SparseConvK3S1P1`
+  size `grid.x` from it. A contract that counts more outputs per invocation than the shader computes leaves outputs
+  at the tests' `-1` fill, so the tests fail; this was checked by mutation on the build box and on the Pixel. That
+  only works while each test shape needs more than one 256-wide workgroup on both paths, because the grid rounds up
+  to whole workgroups and a shortfall inside the last one goes unseen. Keep the tests' batch and channel counts large
+  enough for that. The sparse Mali shader does not depend on the subgroup size, so `SparseConvK3S1P1` tests it on
+  every GPU.
 - Those tests use 6x6, 8x8 and 7x5 maps (7x5 for an odd width, not a multiple of 4), and the sparse CSR has an empty
-  row and a row whose taps all read the padded border at the right edge.
+  row and a row whose taps all read the padded border at the right edge. `SparseConvPerChannel` checks the `_oc`
+  shader the same way against the OMP kernel (plus a top-edge-only row and a row longer than one `STAGE_ROW` chunk),
+  and `SparseConvTaps.DecodeToColIdx` checks the packed taps of the five model convs.
+- `BT_VK_SPARSE_STAGE_ROW=1` makes the `_oc` shader stage each CSR row in shared memory, 1024 nonzeros at a time
+  (its `STAGE_ROW` spec constant). [Unset: off; on the Samsung it was not faster and was slower on conv4 and conv5,
+  cifar-gpu-kernels task 1.8.]
 - Static Mali analysis: `malioc -c Mali-G710 --vulkan -S 0=16 <shader>.spv` on the glslc output (Arm Performance
   Studio's Mali Offline Compiler; on the build box under `~/tools/arm-performance-studio/`). Measurements and the
   rejected variants: [`../reports-for-human/2026-10-16-mali-conv-kernels.md`](../reports-for-human/2026-10-16-mali-conv-kernels.md).
