@@ -798,7 +798,60 @@ no-regression check. FC changes run on both phones.
 
 ## 3. FC weight bandwidth (gpu-kernels/fully-connected; design F1–F4)
 
-- [ ] 3.1 Record the pre-change fc1/fc2/fc3 GPU times for both apps on the Pixel 7a and the Samsung. Verify: per-phone tables with spreads (2.1 and 1.1 may be reused).
+- [x] 3.1 Record the pre-change fc1/fc2/fc3 GPU times for both apps on the Pixel 7a and the Samsung. Verify: per-phone tables with spreads (2.1 and 1.1 may be reused).
+  - *Method* (used for every timing of this group): the 1.1 method. `bm-prof-cifar-{sparse,dense}-vk` built with the
+    `android` preset (NDK r30) at 5454f67, pushed to `/data/local/tmp/bt-fc/base` on each phone, real weights
+    (`saved_params/export` pushed to `/data/local/tmp/bt-fc/weights`), `BT_PROF_SCENARIO=isolated
+    BT_PROF_BUDGET_S=1.0 BT_PROF_ABANDON_S=5 BT_PROF_MAX_CELL_S=3 --benchmark_filter='vulkan/'`. Arms alternate,
+    3 rounds, 20 s idle before every run, and each run first checks that no other `bm-`/`test-` process is on the
+    phone; both phones ran at once. Here arms A and B are the same binary, for the noise (2026-10-20 09:24-09:36
+    UTC; all 24 runs exit 0 with 11 records). Per stage: the median of the 3 runs' p50 (GPU timestamps), with the
+    min-max of the three p50s, `n = runs x samples`; the last row is each run's fc1+fc2 sum, median and min-max.
+  - *Noise:* cifar-sparse fc1 and fc2 are within 0.1 % between the identical arms on both phones, with overlapping
+    spreads under 0.6 %; every run held the GPU at its top clock (`gpu_clock_mhz` 848 on the Pixel, 1095 on the
+    Samsung). cifar-dense fc1 and fc2 follow the governor instead: the Samsung ran them at 800 MHz in 2.0-2.2 ms or
+    at 500-650 MHz in 2.8-3.1 ms, the Pixel at 471 MHz in 6.7-6.9 ms or at 510-633 MHz in 5.0-6.2 ms, so single
+    dense runs differ by up to 40 % (the Samsung's fc2 medians) in one binary. fc3 moves by up to 15 % (Pixel
+    sparse, 1.16 or 1.38 ms).
+  - *Ratio* sparse fc1 (N=128) / dense fc1 (N=16), arm A medians: Pixel 7a 26.936 / 6.839 = 3.9; Samsung
+    10.051 / 3.066 = 3.3 (4.7 against a dense run at 800 MHz).
+  - Pixel 7a, cifar-sparse (N=128), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 26.936 (26.934-26.968, n=3x35-37) | 26.942 (26.934-27.073, n=3x32-37) | +0.0 % |
+    | 10 (fc2) | 27.173 (27.169-27.182, n=3x36) | 27.174 (27.139-27.201, n=3x36-37) | +0.0 % |
+    | 11 (fc3) | 1.373 (1.163-1.386, n=3x1431-1547) | 1.173 (1.172-1.383, n=3x1435-1452) | -14.6 % |
+    | fc1+fc2, per-run sum | 54.115 (54.105-54.140, 3 runs) | 54.108 (54.081-54.274, 3 runs) | -0.0 % |
+
+  - Samsung, cifar-sparse (N=128), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 10.051 (10.050-10.106, n=3x99-100) | 10.042 (10.030-10.049, n=3x99-100) | -0.1 % |
+    | 10 (fc2) | 10.047 (10.045-10.049, n=3x99) | 10.041 (10.036-10.052, n=3x99) | -0.1 % |
+    | 11 (fc3) | 1.172 (1.158-1.177, n=3x2000) | 1.155 (1.153-1.159, n=3x2000) | -1.4 % |
+    | fc1+fc2, per-run sum | 20.098 (20.094-20.155, 3 runs) | 20.090 (20.066-20.094, 3 runs) | -0.0 % |
+
+  - Pixel 7a, cifar-dense (N=16), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 6.839 (6.190-6.849, n=3x97-120) | 6.777 (6.208-6.865, n=3x72-158) | -0.9 % |
+    | 10 (fc2) | 6.681 (4.976-6.700, n=3x145-160) | 6.686 (6.675-6.689, n=3x138-159) | +0.1 % |
+    | 11 (fc3) | 0.984 (0.982-0.986, n=3x1337-1670) | 0.983 (0.982-0.986, n=3x1330-1353) | -0.1 % |
+    | fc1+fc2, per-run sum | 12.870 (11.814-13.549, 3 runs) | 13.463 (12.897-13.540, 3 runs) | +4.6 % |
+
+  - Samsung, cifar-dense (N=16), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 3.066 (2.161-3.115, n=3x330-476) | 2.151 (2.092-3.030, n=3x446-527) | -29.8 % |
+    | 10 (fc2) | 2.013 (2.013-2.042, n=3x492-537) | 2.828 (2.045-3.012, n=3x342-488) | +40.5 % |
+    | 11 (fc3) | 0.634 (0.630-0.643, n=3x2000) | 0.638 (0.636-0.664, n=3x1386-2000) | +0.5 % |
+    | fc1+fc2, per-run sum | 5.079 (4.204-5.128, 3 runs) | 4.920 (4.197-6.043, 3 runs) | -3.1 % |
+
+    The other stages of these runs agree with 1.1 and 2.1 (Pixel sparse sum 584.1 ms, dense 84.1 ms).
 - [ ] 3.2 F3: replace the `sh_red` and lane-0 serial reduction with `subgroupClusteredAdd(…, 16)`, keeping the shared-memory reduction behind a spec constant for devices without CLUSTERED support (per 2.2). Verify: both apps' `test-*-vk` pass on rocky and both phones; timing on both phones is recorded.
 - [ ] 3.3 F1: prototype layouts (a) K-outer/tiles-inner and (b) batch-split so weights stream once per batch. Verify: both pass `test-cifar-sparse-vk` and `test-cifar-dense-vk` on rocky; sparse fc1/fc2 timings on both phones for each layout are in the evidence note.
 - [ ] 3.4 F1: pick the layout by timing on both phones and remove the other. Verify: fc1 and fc2 are faster than 3.1 beyond noise on both phones, and each phone's sparse-fc1 / dense-fc1 ratio is recorded (spec "Weights are streamed once per batch"); the fleet gate is green for both apps.
