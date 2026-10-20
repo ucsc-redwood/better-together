@@ -798,13 +798,351 @@ no-regression check. FC changes run on both phones.
 
 ## 3. FC weight bandwidth (gpu-kernels/fully-connected; design F1–F4)
 
-- [ ] 3.1 Record the pre-change fc1/fc2/fc3 GPU times for both apps on the Pixel 7a and the Samsung. Verify: per-phone tables with spreads (2.1 and 1.1 may be reused).
-- [ ] 3.2 F3: replace the `sh_red` and lane-0 serial reduction with `subgroupClusteredAdd(…, 16)`, keeping the shared-memory reduction behind a spec constant for devices without CLUSTERED support (per 2.2). Verify: both apps' `test-*-vk` pass on rocky and both phones; timing on both phones is recorded.
-- [ ] 3.3 F1: prototype layouts (a) K-outer/tiles-inner and (b) batch-split so weights stream once per batch. Verify: both pass `test-cifar-sparse-vk` and `test-cifar-dense-vk` on rocky; sparse fc1/fc2 timings on both phones for each layout are in the evidence note.
-- [ ] 3.4 F1: pick the layout by timing on both phones and remove the other. Verify: fc1 and fc2 are faster than 3.1 beyond noise on both phones, and each phone's sparse-fc1 / dense-fc1 ratio is recorded (spec "Weights are streamed once per batch"); the fleet gate is green for both apps.
-- [ ] 3.5 F2: host-side weight quantization at load time (FP16; INT8 with per-row scales) and the precision mode `BT_VK_FC_WEIGHTS=fp16|int8` with FP32 fallback and a warning on unsupported devices. Verify: a unit test round-trips quantize→dequantize within the stated per-element error; default runs are unchanged.
-- [ ] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.
-- [ ] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.
-- [ ] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").
+- [x] 3.1 Record the pre-change fc1/fc2/fc3 GPU times for both apps on the Pixel 7a and the Samsung. Verify: per-phone tables with spreads (2.1 and 1.1 may be reused).
+  - *Method* (used for every timing of this group): the 1.1 method. `bm-prof-cifar-{sparse,dense}-vk` built with the
+    `android` preset (NDK r30) at 5454f67, pushed to `/data/local/tmp/bt-fc/base` on each phone, real weights
+    (`saved_params/export` pushed to `/data/local/tmp/bt-fc/weights`), `BT_PROF_SCENARIO=isolated
+    BT_PROF_BUDGET_S=1.0 BT_PROF_ABANDON_S=5 BT_PROF_MAX_CELL_S=3 --benchmark_filter='vulkan/'`. Arms alternate,
+    3 rounds, 20 s idle before every run, and each run first checks that no other `bm-`/`test-` process is on the
+    phone; both phones ran at once. Here arms A and B are the same binary, for the noise (2026-10-20 09:24-09:36
+    UTC; all 24 runs exit 0 with 11 records). Per stage: the median of the 3 runs' p50 (GPU timestamps), with the
+    min-max of the three p50s, `n = runs x samples`; the last row is each run's fc1+fc2 sum, median and min-max.
+  - *Noise:* cifar-sparse fc1 and fc2 are within 0.1 % between the identical arms on both phones, with overlapping
+    spreads under 0.6 %; every run held the GPU at its top clock (`gpu_clock_mhz` 848 on the Pixel, 1095 on the
+    Samsung). cifar-dense fc1 and fc2 follow the governor instead: the Samsung ran them at 800 MHz in 2.0-2.2 ms or
+    at 500-650 MHz in 2.8-3.1 ms, the Pixel at 471 MHz in 6.7-6.9 ms or at 510-633 MHz in 5.0-6.2 ms, so single
+    dense runs differ by up to 40 % (the Samsung's fc2 medians) in one binary. fc3 moves by up to 15 % (Pixel
+    sparse, 1.16 or 1.38 ms).
+  - *Ratio* sparse fc1 (N=128) / dense fc1 (N=16), arm A medians: Pixel 7a 26.936 / 6.839 = 3.9; Samsung
+    10.051 / 3.066 = 3.3 (4.7 against a dense run at 800 MHz).
+  - Pixel 7a, cifar-sparse (N=128), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 26.936 (26.934-26.968, n=3x35-37) | 26.942 (26.934-27.073, n=3x32-37) | +0.0 % |
+    | 10 (fc2) | 27.173 (27.169-27.182, n=3x36) | 27.174 (27.139-27.201, n=3x36-37) | +0.0 % |
+    | 11 (fc3) | 1.373 (1.163-1.386, n=3x1431-1547) | 1.173 (1.172-1.383, n=3x1435-1452) | -14.6 % |
+    | fc1+fc2, per-run sum | 54.115 (54.105-54.140, 3 runs) | 54.108 (54.081-54.274, 3 runs) | -0.0 % |
+
+  - Samsung, cifar-sparse (N=128), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 10.051 (10.050-10.106, n=3x99-100) | 10.042 (10.030-10.049, n=3x99-100) | -0.1 % |
+    | 10 (fc2) | 10.047 (10.045-10.049, n=3x99) | 10.041 (10.036-10.052, n=3x99) | -0.1 % |
+    | 11 (fc3) | 1.172 (1.158-1.177, n=3x2000) | 1.155 (1.153-1.159, n=3x2000) | -1.4 % |
+    | fc1+fc2, per-run sum | 20.098 (20.094-20.155, 3 runs) | 20.090 (20.066-20.094, 3 runs) | -0.0 % |
+
+  - Pixel 7a, cifar-dense (N=16), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 6.839 (6.190-6.849, n=3x97-120) | 6.777 (6.208-6.865, n=3x72-158) | -0.9 % |
+    | 10 (fc2) | 6.681 (4.976-6.700, n=3x145-160) | 6.686 (6.675-6.689, n=3x138-159) | +0.1 % |
+    | 11 (fc3) | 0.984 (0.982-0.986, n=3x1337-1670) | 0.983 (0.982-0.986, n=3x1330-1353) | -0.1 % |
+    | fc1+fc2, per-run sum | 12.870 (11.814-13.549, 3 runs) | 13.463 (12.897-13.540, 3 runs) | +4.6 % |
+
+  - Samsung, cifar-dense (N=16), ms:
+
+    | stage | A median (min-max) ms | B median (min-max) ms | B vs A |
+    |---|---|---|---|
+    | 9 (fc1) | 3.066 (2.161-3.115, n=3x330-476) | 2.151 (2.092-3.030, n=3x446-527) | -29.8 % |
+    | 10 (fc2) | 2.013 (2.013-2.042, n=3x492-537) | 2.828 (2.045-3.012, n=3x342-488) | +40.5 % |
+    | 11 (fc3) | 0.634 (0.630-0.643, n=3x2000) | 0.638 (0.636-0.664, n=3x1386-2000) | +0.5 % |
+    | fc1+fc2, per-run sum | 5.079 (4.204-5.128, 3 runs) | 4.920 (4.197-6.043, 3 runs) | -3.1 % |
+
+    The other stages of these runs agree with 1.1 and 2.1 (Pixel sparse sum 584.1 ms, dense 84.1 ms).
+- [x] 3.2 F3: replace the `sh_red` and lane-0 serial reduction with `subgroupClusteredAdd(…, 16)`, keeping the shared-memory reduction behind a spec constant for devices without CLUSTERED support (per 2.2). Verify: both apps' `test-*-vk` pass on rocky and both phones; timing on both phones is recorded.
+  - *Kernel:* `new_cifar_dense_linear_bt.comp` is now subgroup-size dependent (the engine pins the size, >= 16
+    on every fleet GPU, with full subgroups, so a row's 16 lanes are one aligned cluster). With `CLUSTERED`
+    (spec constant 1, set from the new `ComputeLimits::subgroup_clustered`: `VK_SUBGROUP_FEATURE_CLUSTERED_BIT`
+    for compute) and a subgroup of at least 16, each row sums its partials with `subgroupClusteredAdd(vec4, 16)`
+    (8 per row, 4 images x 1 feature each) and lane n writes image n of both features: no `sh_red`, no barrier
+    after the K loop. `CLUSTERED = 0` or a narrower subgroup keeps the old shared-memory reduction.
+    `LinearBt.RaggedFeatureBatchAndChunkEdges` (the clustered path, skipped where a device lacks it) and its new
+    `...SharedMemoryReduction` twin cover both against a double-precision reference.
+  - *Static (Mali):* `malioc -c Mali-G710 --vulkan` on the glslc output: the old reduction indexed `acc[]` with
+    the pass's loop variable, so both accumulator arrays lived on the stack (alloca 128 B, spill 80 B, LS 59.2
+    cycles total); clustered, there is no alloca (spill 20 B, LS 28.8). Both use 64 work registers (50 %
+    occupancy).
+  - *Tests:* rocky (`~/bt-fc-gate`, glslc of NDK r29): `ctest -L vulkan` 7/7 passed; `test-cifar-sparse-vk` 22 and
+    `test-cifar-dense-vk` 19 passed with synthetic and with real weights. Pixel 7a and Samsung (`android` preset,
+    `/data/local/tmp/bt-fc/f3`): the same counts, synthetic and real, exit 0 on both.
+  - *Timing* (the 3.1 method, `--benchmark_filter='vulkan/stage(9|10|11)/'`, arms base = 5454f67 and f3,
+    2026-10-20 09:50-09:56 UTC), ms:
+
+    | phone, app | stage | base median (min-max) | f3 median (min-max) | f3 vs base |
+    |---|---|---|---|---|
+    | Pixel, sparse | 9 (fc1) | 26.941 (26.929-26.943, n=3x35-37) | 21.085 (21.065-21.143, n=3x35-48) | -21.7 % |
+    | Pixel, sparse | 10 (fc2) | 27.186 (27.183-27.204, n=3x36) | 22.254 (22.189-22.491, n=3x44-45) | -18.1 % |
+    | Pixel, sparse | 11 (fc3) | 1.292 (1.255-1.384, n=3x1398-1451) | 1.097 (1.094-1.100, n=3x1614-1700) | -15.1 % |
+    | Samsung, sparse | 9 (fc1) | 10.036 (10.033-10.042, n=3x99-100) | 9.302 (9.261-9.303, n=3x107-109) | -7.3 % |
+    | Samsung, sparse | 10 (fc2) | 10.042 (10.041-10.043, n=3x99) | 9.322 (9.310-9.326, n=3x106-108) | -7.2 % |
+    | Samsung, sparse | 11 (fc3) | 1.156 (1.156-1.157, n=3x2000) | 1.131 (1.131-1.136, n=3x2000) | -2.2 % |
+    | Pixel, dense | 9 (fc1) | 6.202 (5.506-6.837, n=3x119-177) | 6.866 (6.844-7.208, n=3x78-155) | +10.7 % |
+    | Pixel, dense | 10 (fc2) | 6.666 (6.340-6.682, n=3x122-141) | 6.703 (6.683-7.221, n=3x123-177) | +0.6 % |
+    | Pixel, dense | 11 (fc3) | 0.978 (0.890-0.985, n=3x1365-1525) | 0.868 (0.865-1.017, n=3x1434-1830) | -11.3 % |
+    | Samsung, dense | 9 (fc1) | 2.899 (2.854-3.001, n=3x336-358) | 2.734 (2.704-2.736, n=3x374-507) | -5.7 % |
+    | Samsung, dense | 10 (fc2) | 1.977 (1.975-2.762, n=3x358-538) | 2.650 (1.875-2.705, n=3x371-569) | +34.0 % |
+    | Samsung, dense | 11 (fc3) | 0.644 (0.633-0.663, n=3x1413-2000) | 0.640 (0.634-0.642, n=3x1592-2000) | -0.6 % |
+
+    cifar-sparse (top clock in every run) is faster on both phones beyond noise. cifar-dense moves with the
+    governor as in 3.1: at the same clock the arms agree (Pixel fc1 at 471 MHz: 6.837 base, 6.844 f3; Samsung
+    fc2 at 800 MHz: 1.975-1.977 base, 1.875 f3), and the Pixel base runs that were faster ran fc1 at 572-633 MHz,
+    the slowest f3 run at 400 MHz.
+  - *Review fix (after the archive): the fallback was not a separate module.* `CLUSTERED = 0` chose the
+    shared-memory reduction at specialization, but the one module still declared `OpCapability
+    GroupNonUniformClustered` (`spirv-dis .../new_cifar_dense_linear_bt.spv | rg 'OpCapability|ClusteredReduce'`), and
+    both dispatchers created it on every device, so a device without clustered operations would have been handed
+    an unsupported module, in FP32 mode too. Now the kernel body is `new_cifar_dense_linear_bt.glsl`, included by
+    `new_cifar_dense_linear_bt.comp` (`LINEAR_BT_CLUSTERED 1`: the clustered reduction, subgroup-size dependent,
+    still the shared-memory sum below a 16-wide subgroup) and `new_cifar_dense_linear_bt_portable.comp`
+    (`LINEAR_BT_CLUSTERED 0`: shared-memory sum only; its SPIR-V declares only `Shader` and no subgroup-size
+    constant, so its pipeline is not subgroup-size dependent). Spec constant 1 is gone. `kiss_vk::linear_bt_shader
+    (subgroup_clustered)` picks the module before it is created, in both dispatchers and the tests;
+    `cmake/bt_shaders.cmake` rebuilds every shader when a `comp/*.glsl` body changes.
+  - *Verification:* `LinearBt.PortableModuleHasNoSubgroupCapability` (hardware-free) scans the baked SPIR-V: the
+    portable module's capabilities are exactly {Shader}, it has no `OpGroupNonUniform*` instruction and no
+    `SpecId 0`, while the clustered one declares `GroupNonUniformClustered` (checked by mutation: built with the
+    clustered body the test fails). `LinearBt.RaggedFeatureBatchAndChunkEdgesPortableModule`,
+    `Int8WeightsPortableModule` and `Int8WeightsFourFeaturesPerRowPortableModule` run the portable module's FP32 and
+    INT8 reductions (FPR 2 and 4) against the reference; it uses no subgroup operation, so this runs on every GPU
+    (they replace the `...SharedMemoryReduction` tests, which only set `CLUSTERED = 0` in the clustered module). No
+    fleet GPU lacks clustered operations, so no device creates the portable module in the app suites. malioc
+    (Mali-G710): the clustered module compiles exactly as before (64 registers, spill 20 B, LS 28.20 FP32 / 30.50
+    INT8); the portable one spills (120 / 144 B, LS 142 / 150), which only a device without clustered operations
+    would pay.
+  - *Gate at the fix:* local `ctest -L omp` 11/11; `just check-shaders` OK; build box iGPU, rocky and both phones:
+    `test-cifar-sparse-vk` 27 / 28 and `test-cifar-dense-vk` 19 / 20 (synthetic / real) passed, default and
+    `BT_VK_FC_WEIGHTS=int8` (rocky and phone details in the 3.10 addendum).
+- [x] 3.3 F1: prototype layouts (a) K-outer/tiles-inner and (b) batch-split so weights stream once per batch. Verify: both pass `test-cifar-sparse-vk` and `test-cifar-dense-vk` on rocky; sparse fc1/fc2 timings on both phones for each layout are in the evidence note.
+  - *Prototypes* (`BT_VK_FC_LAYOUT=ko|bs|tk` in both dispatchers; one workgroup per 32 output features covers
+    the whole batch, N <= 128, grid `(ceil(out/32), 1, 1)`, so each weight element is loaded by one workgroup):
+    - (a) `new_cifar_dense_linear_bt_ko.comp`, K outer, tiles inner: per 32-vec4 chunk each lane loads its 2 x 2
+      weight vec4s once, then for each 16-image tile stages the tile's inputs (8 KB), sums each image's 16 lane
+      partials with `subgroupClusteredAdd` and adds them to its running outputs in shared memory (16 KB, one
+      `vec2` per tile and invocation). Registers for those outputs went to the stack on Mali (malioc: alloca
+      64 B), hence shared memory.
+    - (b) `new_cifar_dense_linear_bt_bs.comp`, batch split: lane l owns images l, l+16, ... (8 at N=128) and
+      both features of its row, with whole dot products (no reduction); per 16-vec4 chunk the workgroup's 32
+      weight rows are staged in shared memory (8 KB) and broadcast, inputs come from global memory.
+    - (c), added because (a) and (b) lost by 2-4x: `new_cifar_dense_linear_bt_tk.comp`, the 16 lanes of a row
+      split 8 tiles x 2 K halves, so each lane does linear_bt's per-k work (2 features x 16 images, inputs from
+      shared memory staged tile-innermost so a row reads 16 consecutive vec4s, 16 KB) and the halves are summed
+      with `subgroupClusteredAdd(…, 2)`.
+    - Experiment `nr` (`new_cifar_dense_linear_bt_nr.comp`): linear_bt without its launch-order remap, so tile y
+      starts only after every row-group of tile y-1 and the 64 MB matrix is streamed once per tile.
+  - *Tests:* rocky (`~/bt-fc-gate`), `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic
+    and real weights for each of ko, bs and tk; the same on the Pixel 7a and the Samsung (and on the build box's
+    RADV iGPU, and `nr` for sparse there).
+  - *Timing* (the 3.1 method, FC stages only, all runs exit 0 with 3 records; (a)/(b) 2026-10-20 10:04-10:17 UTC
+    against base = 5454f67 and f3 = the 3.2 kernel; (c)/nr 10:19-10:29), ms:
+
+    | phone | stage | base (3.1 kernel) | f3 (3.2) | (a) ko | (b) bs | (c) tk | nr |
+    |---|---|---|---|---|---|---|---|
+    | Pixel | 9 (fc1) | 26.950 (26.936-26.973) | 21.056 (21.020-21.148) | 49.879 (48.296-50.936) | 117.776 (117.655-117.907) | 34.316 (34.315-35.370) | 22.017 (21.962-22.112) |
+    | Pixel | 10 (fc2) | 27.182 (27.150-27.201) | 22.394 (22.339-22.394) | 50.263 (48.369-51.467) | 116.547 (116.394-116.677) | 34.314 (34.312-34.321) | 22.166 (22.144-22.216) |
+    | Pixel | 11 (fc3) | 1.220 (1.171-1.380) | 1.098 (0.989-1.103) | 5.482 (5.462-6.779) | 8.178 (7.348-9.077) | 4.504 (4.474-4.526) | 1.121 (1.120-1.127) |
+    | Samsung | 9 (fc1) | 10.044 (10.030-10.048) | 9.258 (9.244-9.286) | 16.203 (16.124-16.239) | 26.077 (24.238-26.080) | 12.135 (12.122-12.138) | 11.975 (11.863-12.003) |
+    | Samsung | 10 (fc2) | 10.045 (10.044-10.048) | 9.316 (9.267-9.349) | 16.031 (15.936-16.104) | 26.071 (24.677-26.124) | 12.129 (12.128-12.130) | 12.023 (12.002-12.036) |
+    | Samsung | 11 (fc3) | 1.157 (1.155-1.157) | 1.132 (1.125-1.133) | 2.691 (2.550-2.697) | 3.652 (3.366-3.655) | 3.953 (2.515-3.988) | 1.127 (1.125-1.128) |
+
+    Medians of the 3 runs' p50 (min-max), 3 runs per arm; the (c)/nr session's base and f3 agree with these
+    within 0.6 %. Against base, fc1/fc2: (a) +82 % / +85 % on the Pixel and +61 % / +60 % on the Samsung, (b)
+    +337 % / +329 % and +160 % / +160 %, (c) +27 % / +26 % and +21 % / +21 %; f3 -22 % / -18 % and -8 % / -7 %.
+    fc3 (10 features) is one workgroup in every once-per-batch layout, 2-7x slower.
+  - *What it shows:* every layout that loads each weight once per workgroup does more work per FMA than
+    linear_bt: (a) a 16-lane reduction per tile and chunk and 2 barriers per tile, (b) uncoalesced per-lane input
+    reads with 1.6 dots per load, (c) staging loads that hit 8 images per instruction, and all three 8x fewer
+    workgroups. Meanwhile linear_bt's remap already makes the 8 tile workgroups of a row-group read their
+    weight slice together: without it (nr) the Samsung's fc1/fc2 take +29 % (11.975 vs 9.258 ms), while the
+    Pixel, whose sparse FC is compute-bound (malioc: load/store-bound, 64 registers), barely moves (+5 % / -1 %).
+    As 512 MB per layer at 9.3 ms would need 55 GB/s, the Samsung cannot be re-streaming the weights per tile.
+- [x] 3.4 F1: pick the layout by timing on both phones and remove the other. Verify: fc1 and fc2 are faster than 3.1 beyond noise on both phones, and each phone's sparse-fc1 / dense-fc1 ratio is recorded (spec "Weights are streamed once per batch"); the fleet gate is green for both apps.
+  - *Pick:* linear_bt as of 3.2 (16-image tiles, the tile workgroups of a row-group adjacent in launch order,
+    so they share each weight slice through L2), the fastest on both phones in 3.3; (a), (b), (c), the `nr`
+    experiment and `BT_VK_FC_LAYOUT` are removed. design.md F1 records the outcome; the shader comment says why
+    the remap matters.
+  - *Spec "Weights are streamed once per batch":* cifar-sparse (N=128) fc1 and fc2 against the 3.1 kernel, same
+    session, 3 rounds: Pixel 7a 26.941 (26.929-26.943) -> 21.085 (21.065-21.143) ms and 27.186 (27.183-27.204) ->
+    22.254 (22.189-22.491) ms; Samsung 10.036 (10.033-10.042) -> 9.302 (9.261-9.303) ms and 10.042
+    (10.041-10.043) -> 9.322 (9.310-9.326) ms (3.2), confirmed in both 3.3 sessions (-22 % / -18 % Pixel, -7 % /
+    -7 % Samsung). Lower medians with spreads that do not overlap on both phones.
+  - *Ratio* sparse fc1 (N=128) / dense fc1 (N=16), both with this kernel (3.2 session): Pixel 7a 21.085 / 6.866 =
+    3.1 (dense at 400-633 MHz), Samsung 9.302 / 2.734 = 3.4 (dense at 545-600 MHz; 4.4 against its 800 MHz
+    level of 2.1 ms). Before the change: 3.9 and 3.3 (3.1).
+  - *Fleet gate* (the code of this commit; 3.2's plus a comment): local `ctest -L omp` 11/11 passed; rocky
+    `ctest -L vulkan` 7/7 passed, `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic
+    and real weights; `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial>
+    test-cifar-sparse-vk test-cifar-dense-vk`: 22 and 19 passed, exit 0, on 3A021JEHN02756 and R5CY21Y3VEV, and the
+    same with real weights.
+- [x] 3.5 F2: host-side weight quantization at load time (FP16; INT8 with per-row scales) and the precision mode `BT_VK_FC_WEIGHTS=fp16|int8` with FP32 fallback and a warning on unsupported devices. Verify: a unit test round-trips quantize→dequantize within the stated per-element error; default runs are unchanged.
+  - *Host side:* `platform/util/fc_weights.hpp`: `bt::fc_weights_from_env()` reads `BT_VK_FC_WEIGHTS` (fp32, empty
+    or unset: FP32; fp16; int8; anything else throws); `bt::FcWeightCopy` holds one matrix as the 32-bit words the
+    kernel will read (FP16: IEEE binary16, round to nearest even, two per word; INT8: symmetric per output row,
+    `scale = max|w| / 127`, `q = round(w / scale)`, four per word, then the row scales) and `dequantized(r, j)`.
+    Stated per-element error: FP16 `|w - w16| <= 2^-11 |w|` (normal range) or `2^-25` (subnormals); INT8
+    `|w - scale q| <= scale / 2`. Both AppData read the mode at construction and quantize `u_fc1_w` / `u_fc2_w`
+    into `u_fc1_wq` / `u_fc2_wq` right after loading the synthetic or the real weights (placed as stage 9 / 10
+    weights); in FP32 mode the copies are empty and allocate nothing. fc3 stays FP32 (design: non-goal).
+  - *Fallback:* neither mode needs a device feature (design.md F2, "As built": the words are read as 32-bit
+    values), so there is no device to fall back on, and no warning to give; an unknown mode throws.
+  - *Unit test* `FcWeights.QuantizeRoundTripWithinBound` (`test-cifar-dense-omp`, in `ctest -L omp`): every element
+    of a 5 x 1000 matrix spanning 2^-30..2^15 (with a zero row, a subnormal row, an outlier row and 65504) and of
+    the app's fc1/fc2 decodes within its bound; it prints the largest error / bound (fp16 0.999-1.000, int8
+    1.000 for both the synthetic and the real weights, the bound being tight); it checks that the default AppData
+    makes no copy and that an `int8` AppData's copy equals quantizing its own loaded weights. Passed on the build
+    box (synthetic and real), the Pixel 7a and the Samsung (real).
+  - *Default unchanged:* the dispatchers do not change in this step and the default AppData holds no copy;
+    `Placement.DeclaredStagesMatchBindings` now accepts a stage that binds either the FP32 weights or the copy
+    (exactly one), and the OMP input-purity regions list the copies. Local `ctest -L omp` 11/11 passed;
+    `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic and real weights on the build
+    box's iGPU, on rocky (`ctest -L vulkan` 7/7; run before an empty `BT_VK_FC_WEIGHTS` was taken as FP32) and
+    on both phones.
+- [x] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.
+  - *Kernel:* `new_cifar_dense_linear_bt.comp` gains spec constant 2, `WEIGHTS` (0 FP32, 1 FP16, 2 INT8), and reads
+    binding 1 through three aliased read-only declarations (`vec4`, `uvec2`, `uint`; Vulkan lets same-type
+    descriptors alias): FP16 converts with `unpackHalf2x16`, INT8 sign-extends each byte with `bitfieldExtract`
+    and multiplies the row's reduced sum by its scale (stored after the rows) before the bias. The SPIR-V still
+    declares only Shader, GroupNonUniform and GroupNonUniformClustered. malioc (Mali-G710, CLUSTERED): FP32 is
+    unchanged from 3.2 (64 registers, spill 20 B, LS 28.80); FP16 LS 29.00, INT8 30.50.
+  - *Dispatch:* both dispatchers build one pipeline per precision (`linear_bt`, `linear_bt/fp16`,
+    `linear_bt/int8`); fc1 and fc2 take the AppData's mode and bind its copy instead of the FP32 weights; fc3 and
+    the generic fallback stay FP32.
+  - *Documented tolerances* (VulkanRunner, through a new optional `StageTolerance(s)` / `E2eTolerance()` hook in
+    `platform/util/testing/oracle.hpp` that both diff oracles use): FP16 keeps the FP32 bounds (rtol 1e-3, atol
+    1e-4; end to end 5e-3 / 5e-3); INT8 fc1/fc2 rtol 2e-2, atol 1.5e-2, end to end 2e-2 / 2e-2. Measured on the
+    build box with real weights: INT8 fc1 max |diff| 0.0057 (cifar-dense) / 0.0059 (cifar-sparse), fc2 0.0066 /
+    0.0100, logits 0.0073; FP16 passes the FP32 bounds everywhere. 03-unit-testing.md documents the knob and the
+    tolerances.
+  - *Kernel tests:* `LinearBt.Fp16Weights`, `LinearBt.Int8Weights` and `LinearBt.Int8WeightsSharedMemoryReduction`
+    run the ragged 21 x 100 -> 37 shape against a double-precision reference on the weights as the kernel decodes
+    them (`FcWeightCopy::dequantized`), at the FP32 bound. Mutation check on the build box: with the INT8 row scale
+    dropped both INT8 tests fail.
+  - *Results* (`test-cifar-sparse-vk` now 25 tests, `test-cifar-dense-vk` 19; synthetic and real weights each):
+    build box RADV iGPU: default, fp16 and int8 all passed. rocky (`~/bt-fc-gate`): default with `ctest -L vulkan`
+    7/7 passed; `BT_VK_FC_WEIGHTS=fp16` and `=int8` all passed (the int8 run synced the next step's accuracy test
+    too, 26 / 20 with real weights, all passed). Pixel 7a and Samsung (`/data/local/tmp/bt-fc/s36`), fp32, fp16
+    and int8: 25 and 19 passed, exit 0, every combination. Local `ctest -L omp` 11/11 passed. Every fleet device
+    supports both variants.
+- [x] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.
+  - *Harness* (2.9 built none, so this is new): `CifarDenseVk.RealWeights_EndTaskAccuracy` and
+    `CifarSparseVk.RealWeights_EndTaskAccuracy` (`test-cifar-{dense,sparse}-vk`, skip without `BT_WEIGHTS_DIR`) run
+    the whole Vulkan pipeline on the real weights over all 128 images of the exported test batch (cifar-dense: 8
+    batches of 16 copied into the AppData's input; cifar-sparse: its one batch of 128), once per precision
+    (`BT_VK_FC_WEIGHTS` set per AppData, restored after), print the three accuracies and expect each reduced one
+    within 0.5 points of FP32 on the same images (and FP32 >= 0.75 / 0.85, the OMP tests' floors). The export
+    holds only 128 images, so one image is 0.78 points and the bound asks for the same count as FP32; the 90.48 % /
+    90.58 % in the spec are the full 10,000-image test set, which is not exported.
+  - *Results*, identical on all four devices (build box RADV iGPU, rocky in `~/bt-fc-gate`, Pixel 7a, Samsung):
+
+        cifar-sparse Vulkan real-weight accuracy over 128 images: fp32 0.9375, fp16 0.9375 (+0.00 points), int8 0.9375 (+0.00 points)
+        cifar-dense Vulkan real-weight accuracy over 128 images: fp32 0.9219, fp16 0.9219 (+0.00 points), int8 0.9219 (+0.00 points)
+
+    FP16 and INT8 are both within the bound (0.00 points) for both apps, so both ship. The dense FP32 figure
+    agrees with the ~92 % the OMP test's comment gives for the PyTorch model on the same 128 images.
+- [x] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").
+  - *Outcome: INT8 ships, FP16 is removed.* INT8 is faster than FP32 beyond noise on both phones; FP16 is on the
+    Pixel but not on the Samsung, so per the binding phone gate it was reverted (its numbers below). Both
+    support both (no optional feature is needed). The code of this commit: `BT_VK_FC_WEIGHTS` takes fp32 or int8
+    (fp16 now throws like any unknown value), linear_bt's `WEIGHTS` is 0 FP32 / 1 INT8, and a new spec constant
+    `FPR` (output features per row) is 4 for INT8 on subgroups of 32 and more (2 on Mali, which spills with 4, and
+    2 for FP32 everywhere, so the default is unchanged); `LinearBt.Int8WeightsFourFeaturesPerRow` covers FPR 4 on
+    every GPU. Method: the 3.1 method, `bm-prof-cifar-dense-vk`, arms alternating in one binary with
+    `BT_VK_FC_WEIGHTS`.
+  - *Final (this commit's code, 2026-10-20 12:39-12:53 UTC, all 11 stages, arms base = 5454f67, fp32, int8), ms:*
+
+    | phone | stage | FP32 median (min-max) | INT8 median (min-max) | INT8 / FP32 |
+    |---|---|---|---|---|
+    | Pixel 7a | 9 (fc1) | 6.664 (6.648-8.056, n=3x65-162) | 4.377 (4.203-5.055, n=3x174-215) | 0.66 |
+    | Pixel 7a | 10 (fc2) | 6.630 (6.609-6.884, n=3x175-241) | 3.008 (3.004-4.428, n=3x225-359) | 0.45 |
+    | Samsung | 9 (fc1) | 2.877 (1.971-2.915, n=3x350-545) | 1.723 (1.722-1.727, n=3x598-703) | 0.60 |
+    | Samsung | 10 (fc2) | 2.857 (2.016-2.888, n=3x354-551) | 1.725 (1.723-1.727, n=3x588-758) | 0.60 |
+
+    Spreads do not overlap anywhere; INT8 beats even the Samsung's 800 MHz FP32 runs (1.97-2.02 ms) while the
+    governor runs INT8 at 400-450 MHz. fc3 stays FP32 (0.775 / 0.628 ms in both arms).
+  - *FP16 (FPR 2, the 3.6 code, 11:30-11:43 UTC), ms:* Pixel fc1 FP32 7.016 (6.935-8.329) -> FP16 4.837
+    (4.755-5.599), ratio 0.69; fc2 6.909 (6.758-8.278) -> 4.769 (3.795-4.900), 0.69 (INT8 4.689 / 4.619 there).
+    Samsung fc1 2.619 (2.599-2.643) -> 2.942 (2.603-2.965), 1.12; fc2 2.805 (2.686-2.812) -> 2.600 (2.597-2.604),
+    0.93; INT8 at FPR 2 likewise (2.583 / 2.862): the Samsung ran both at 450-500 MHz against FP32's 545-650.
+  - *Samsung, FPR* (an experiment knob, gone): GPU cycles showed FP16 / INT8 at FPR 2 bound by linear_bt's
+    shared-memory input reads, not bytes. Sessions 11:43-11:55, 12:01-12:08, 12:13-12:21 UTC, dense fc1 / fc2 ms:
+
+    | arm | session 1 | session 2 | session 3 |
+    |---|---|---|---|
+    | FP32, FPR 2 | 2.943 (2.026-2.974) / 2.884 (2.064-2.938) | 2.057 (2.035-2.600) / 2.059 (2.036-2.060) | 2.844 (2.632-2.890) / 2.064 (2.028-2.907) |
+    | FP32, FPR 4 | 3.062 (2.208-3.145) / 3.087 (2.209-3.139) | | |
+    | FP16, FPR 4 | 2.284 (2.252-2.321) / 2.309 (2.264-2.333) | 2.334 (2.334-2.347) / 2.335 (2.306-2.348) | 2.277 (2.273-2.283) / 2.270 (2.246-2.283) |
+    | FP16, FPR 8 | | 11.718 / 11.699 (spills) | |
+    | FP16, FPR 4, 64-vec4 chunks | | | 2.332 / 2.322 |
+    | INT8, FPR 4 | 1.720 (1.716-1.729) / 1.731 (1.723-1.732) | 1.732 (1.729-1.736) / 1.732 (1.728-1.737) | 1.757 (1.751-1.761) / 1.763 (1.754-1.764) (64-vec4 chunks) |
+
+    FP16 always ran at 450 MHz: 1.03 Mcycles against FP32's 1.6-1.8, but FP32 alternates between 2.0 ms (800
+    MHz) and 2.9 ms (500-650), so FP16 is faster than some FP32 runs and slower than others (session 2: +13 %).
+    That is not "faster beyond noise", so FP16 is removed. INT8 at FPR 4 is below every FP32 run in all four
+    sessions. FPR 4 does not help FP32 (dense +4 % / +7 %, inside its bimodal noise) and slows fc3 (one workgroup,
+    +31 %), so only INT8 fc1/fc2 use it. cifar-sparse at FPR 4 FP32 was -3 % / -5 % on the Samsung (not adopted:
+    FP32 stays as measured in 3.1-3.4).
+  - *Tests at this commit:* local `ctest -L omp` 11/11; build box, rocky (`ctest -L vulkan` 7/7) and both phones:
+    `test-cifar-sparse-vk` 25 / 26 and `test-cifar-dense-vk` 19 / 20 (synthetic / real) passed with
+    `BT_VK_FC_WEIGHTS` unset and `=int8`, the accuracy test printing fp32 0.9375 / int8 0.9375 (sparse) and 0.9219 /
+    0.9219 (dense) on each; `FcWeights.QuantizeRoundTripWithinBound` passed on both phones.
 - [ ] 3.9 F4 (optional): if `new_cifar_{dense,sparse}_linear.comp` are removed, first add a test forcing `in_features % 4 != 0` to prove the remaining path covers it. Verify: that test passes, then clean builds. If they're kept, record why.
-- [ ] 3.10 Run the group gate at the final commit (local, rocky, phones) for both apps, default and opt-in modes. Add a dated perf-results note with before/after tables. Verify: all green; the note is linked from the perf-results README.
+  - *Not done* (optional): both generic shaders are kept, as design F4 decided for this change. They are not dead
+    in cifar-dense only for `in_features % 4 != 0`: its dispatcher also takes `new_cifar_dense_linear.comp` for a
+    batch above one linear_bt tile (`batch_size > kLinearBtBatchTile`, 16), which cifar-sparse instead tiles over
+    `grid.y`. Removing them means re-routing that case and adding the forcing test, a cleanup this group's
+    measurements do not depend on.
+- [x] 3.10 Run the group gate at the final commit (local, rocky, phones) for both apps, default and opt-in modes. Add a dated perf-results note with before/after tables. Verify: all green; the note is linked from the perf-results README.
+  - Gate on this commit's tree (its code is 258b3c5's; this commit adds only the note and these lines), default
+    (FP32) and `BT_VK_FC_WEIGHTS=int8`, the only opt-in mode:
+    - *local:* `cmake --build --preset pc && ctest --test-dir build/pc -L omp`: 11/11 passed.
+    - *rocky:* the tree synced to `~/bt-fc-gate`, `cmake --preset vulkan` (glslc of NDK r29), build exit 0,
+      `ctest -L vulkan` 7/7 passed; `./test-cifar-sparse-vk --device minipc` 25 passed (synthetic) and 26 (real),
+      `./test-cifar-dense-vk` 19 and 20, in both modes, the accuracy test printing fp32 0.9375 / int8 0.9375 and
+      fp32 0.9219 / int8 0.9219. `just check-shaders`: OK.
+    - *phones:* `cmake --build --preset android --target test-cifar-sparse-vk test-cifar-dense-vk`, then
+      `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk
+      test-cifar-dense-vk`: 25 and 19 passed, exit 0, on 3A021JEHN02756 and R5CY21Y3VEV; the same binaries with
+      real weights (26 / 20) and with `BT_VK_FC_WEIGHTS=int8` (synthetic 25 / 19, real 26 / 20): all passed, exit 0,
+      the same accuracies on both phones.
+  - *Note:* `docs/reports-for-human/perf-results/2026-10-20-cifar-fc.md` (before/after tables for both apps on both
+    phones in FP32 and INT8, the layout prototypes, FP16, the variant per device, and the Pixel cifar-dense FP32
+    finding), linked from the perf-results README.
+  - *Addendum, gate rerun after the portable-module fix (see 3.2), 2026-10-20 13:1x-13:48 UTC*, default and
+    `BT_VK_FC_WEIGHTS=int8`:
+    - *local:* `ctest -L omp` 11/11; `just check-shaders`: OK (both FC modules checked; rocky has no glslc on PATH,
+      so the check runs here, as in CI); build box iGPU: `test-cifar-sparse-vk` 27 / 28 and `test-cifar-dense-vk`
+      19 / 20 (synthetic / real) passed in both modes.
+    - *rocky* (`~/bt-fc-gate`, recreated): build exit 0, `ctest -L vulkan` 7/7, `test-cifar-sparse-vk` 27 / 28 and
+      `test-cifar-dense-vk` 19 / 20 in both modes, accuracy fp32 0.9375 / int8 0.9375 and 0.9219 / 0.9219,
+      including `LinearBt.PortableModuleHasNoSubgroupCapability`, which checks the baked SPIR-V of both modules
+      (the evidence for the portable module's capabilities). A `spirv-dis` of rocky's portable `.spv` was also
+      attempted and failed (`spirv-dis: command not found`), so it verified nothing; the local disassembly of the
+      same source declares only `OpCapability Shader`.
+    - *phones:* `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk
+      test-cifar-dense-vk` (weights deployed there, so real weights): 28 and 20 passed, exit 0, on 3A021JEHN02756
+      and R5CY21Y3VEV; the same binaries synthetic (27 / 19) and with `BT_VK_FC_WEIGHTS=int8` (27 / 19, 28 / 20):
+      all passed, exit 0. The Pixel (subgroup 16) runs the portable-module tests too.
+    - *Timing check* (FC stages, 3.1 method, 13:35-13:48 UTC, arms 258b3c5 vs the fix, FP32 and INT8, 3 runs
+      each), cifar-sparse fc1 / fc2, median (min-max of the run p50s) ms:
+
+      | phone | precision | stage | 258b3c5 | fix | fix vs 258b3c5 | spreads |
+      |---|---|---|---|---|---|---|
+      | Pixel | FP32 | fc1 | 18.596 (18.595-18.642) | 18.603 (18.566-18.617) | +0.0 % | overlap |
+      | Pixel | FP32 | fc2 | 18.754 (18.687-18.760) | 18.720 (18.712-18.727) | -0.2 % | overlap |
+      | Pixel | INT8 | fc1 | 17.883 (17.747-17.964) | 17.768 (17.680-17.794) | -0.6 % | overlap |
+      | Pixel | INT8 | fc2 | 18.330 (18.171-18.861) | 18.574 (18.451-18.771) | +1.3 % | overlap |
+      | Samsung | FP32 | fc1 | 9.329 (9.297-9.341) | 9.278 (9.225-9.281) | -0.5 % | do not overlap (fix lower) |
+      | Samsung | FP32 | fc2 | 9.319 (9.308-9.369) | 9.345 (9.337-9.381) | +0.3 % | overlap |
+      | Samsung | INT8 | fc1 | 5.704 (5.262-6.413) | 5.279 (5.269-6.421) | -7.5 % | overlap |
+      | Samsung | INT8 | fc2 | 5.702 (5.212-6.407) | 5.245 (5.234-5.687) | -8.0 % | overlap |
+
+      The medians are not equal everywhere: they agree within 0.6 % in FP32 on both phones and in INT8 on the Pixel
+      (+1.3 % for Pixel INT8 fc2), and differ by 7.5-8.0 % for Samsung INT8. Every spread overlaps but Samsung FP32
+      fc1's, where the fix is 0.5 % lower. The Samsung INT8 runs of both arms sit at three GPU clock levels (1095,
+      1000 and 900 MHz: about 5.25, 5.7 and 6.4 ms), with two of the fix's three runs at 1095 MHz for each stage
+      against one of 258b3c5's; that, not the kernel, is the median gap. cifar-dense follows the governor as before
+      (Samsung INT8 fc1 / fc2 1.726 / 1.734 vs 1.730 / 1.731 ms; FP32 per-run fc1+fc2 sums +0.9 % Samsung, +4.8 %
+      Pixel, spreads overlapping). The clustered module compiles to the same Mali code (malioc), so the note's
+      tables stand.

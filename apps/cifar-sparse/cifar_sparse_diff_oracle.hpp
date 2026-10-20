@@ -195,7 +195,8 @@ inline void RunAndCheckStage(int s) {
   Runner runner;
   AppData a(runner.Mr());  // ctor builds a real CSR (CSRMatrix::build_from_dense)
   for (int i = 1; i <= s; ++i) runner.RunStage(a, i);
-  CheckStage(a, s, Runner::kRtol, Runner::kAtol);
+  const auto [rtol, atol] = bt::testing::StageTolerance<Runner>(s);
+  CheckStage(a, s, rtol, atol);
 }
 
 // L2a end-to-end: run all 11 stages on the backend, compare FINAL logits against a
@@ -351,7 +352,8 @@ inline void RunFullAndCheckFinal() {
   Runner runner;
   AppData a(runner.Mr());  // ctor builds a real CSR (CSRMatrix::build_from_dense)
   for (int i = 1; i <= 11; ++i) runner.RunStage(a, i);
-  CheckFinalPipeline(a, Runner::kE2eRtol, Runner::kE2eAtol);
+  const auto [rtol, atol] = bt::testing::E2eTolerance<Runner>();
+  CheckFinalPipeline(a, rtol, atol);
 }
 
 }  // namespace cifar_sparse::testing

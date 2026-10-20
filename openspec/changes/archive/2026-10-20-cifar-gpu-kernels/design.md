@@ -231,6 +231,15 @@ selection and outputs unchanged.
   (128×4096×4 B = 2 MB per layer) should come from L2 (to verify against the 780M's L2 size with a
   counter or timing).
 - **Spec bound:** sparse fc1 ≤ 2× dense fc1.
+- **Outcome (tasks 3.3-3.4):** neither layout ships. (a), (b) and a third, (c) lanes split tiles × K halves,
+  were 21-337 % slower than linear_bt on both phones for cifar-sparse fc1/fc2: each pays per FMA for loading
+  every weight in one workgroup (a reduction per tile in (a), uncoalesced inputs in (b), scattered staging in
+  (c)) and has 8× fewer workgroups. linear_bt's launch-order remap already makes the 8 tile workgroups of a
+  row-group read their weight slice together, so the batch streams it from DRAM once through L2: removing the
+  remap costs the Samsung +29 %, and 8 streams of 64 MB in its 9.3 ms would need 55 GB/s. The Pixel's sparse
+  FC is compute-bound (Mali load/store), and F3 is what made both phones faster than before (-22 % / -8 % fc1).
+  The 2× bound is not met (sparse / dense fc1: 3.1 on the Pixel, 3.4 on the Samsung, 4.4 against a dense run at
+  800 MHz); the spec only records the ratio.
 
 #### F2. Weight-only quantization, opt-in
 - **FP16:** weights stored as `float16_t`/`f16vec4` (16-bit storage), converted to FP32 in
@@ -242,6 +251,18 @@ selection and outputs unchanged.
   devices fall back to FP32 with a warning.
 - **Alternative:** INT8 activations with `VK_KHR_shader_integer_dot_product`. Rejected for now: it
   needs per-batch activation quantization and gains compute that isn't the bottleneck.
+- **As built (tasks 3.5-3.8):** INT8 ships, FP16 does not. The copy is 32-bit words (`bt::FcWeightCopy`):
+  INT8 quads read as `uint` and sign-extended with `bitfieldExtract`, the row scales after the rows and applied
+  to each row's sum; linear_bt reads binding 1 through two aliased declarations selected by a `WEIGHTS` spec
+  constant, so the FP32 path is the same code and INT8 needs no optional feature (no device lacks it, so the
+  "unsupported device" fallback has nothing to fall back from). Only fc1 and fc2 have copies (fc3 is a
+  non-goal); the AppData makes them when `BT_VK_FC_WEIGHTS=int8` is set at its construction, and they stay
+  empty (unallocated) by default. On the Samsung INT8 at 2 features per row was bound by linear_bt's shared-memory
+  input reads, so INT8 rows own 4 features on subgroups of 32 and more (a `FPR` spec constant; Mali keeps 2, it
+  spills with 4). FP16 (pairs read as `uvec2`, `unpackHalf2x16`) was built, passed every test and kept FP32
+  accuracy, and was 31 % faster on the Pixel, but on the Samsung the governor ran it at 450 MHz in 2.3 ms while
+  FP32 alternated between 2.0 ms (800 MHz) and 2.9 ms: 36 % fewer GPU cycles, not faster beyond noise. The phone
+  gate is binding, so it was removed (task 3.8).
 
 #### F3. Clustered subgroup reduction
 - **Change:** replace the `sh_red` and lane-0 serial sum with `subgroupClusteredAdd(acc, 16)` per
@@ -250,6 +271,12 @@ selection and outputs unchanged.
 - **Effect:** removes 4 KB of shared memory and 8 barriers per workgroup.
 - **Fallback:** keep the shared-memory reduction behind a spec constant for a device that lacks
   CLUSTERED support (none in the fleet: both phones and the 780M have it, task 2.2).
+  As built (review fix after the archive): a spec constant cannot be the fallback, because the module
+  still declares `GroupNonUniformClustered` and specialization comes after module creation. The body is
+  `new_cifar_dense_linear_bt.glsl`, included by two modules: `new_cifar_dense_linear_bt.comp` (clustered)
+  and `new_cifar_dense_linear_bt_portable.comp` (shared-memory reduction only, no capability but Shader, no
+  subgroup-size constant), and the dispatchers create the portable one where the device lacks clustered
+  operations (`kiss_vk::linear_bt_shader`).
 
 #### F4. Generic linear fallbacks
 `new_cifar_dense_linear.comp` and `new_cifar_sparse_linear.comp` are dead for every current shape.

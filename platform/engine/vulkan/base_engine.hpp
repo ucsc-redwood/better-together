@@ -34,6 +34,8 @@ struct ComputeLimits {
   // (design A5). Either way their X workgroup size must be a multiple of subgroup_size.
   bool full_subgroups = false;
   uint32_t max_compute_workgroup_subgroups = 0;  // 0 unless pinned
+  // Compute shaders may use clustered subgroup operations (VK_SUBGROUP_FEATURE_CLUSTERED_BIT).
+  bool subgroup_clustered = false;
   std::array<uint32_t, 3> max_work_group_size{};
   uint32_t max_work_group_invocations = 0;
 };

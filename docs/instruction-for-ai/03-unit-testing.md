@@ -189,6 +189,22 @@ BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned 
 - `BT_VK_SPARSE_STAGE_ROW=1` makes the `_oc` shader stage each CSR row in shared memory, 1024 nonzeros at a time
   (its `STAGE_ROW` spec constant). [Unset: off; on the Samsung it was not faster and was slower on conv4 and conv5,
   cifar-gpu-kernels task 1.8.]
+- cifar's FC kernel (`new_cifar_dense_linear_bt.glsl`) is built as two modules: `new_cifar_dense_linear_bt.comp`
+  (rows reduced with `subgroupClusteredAdd`) and `new_cifar_dense_linear_bt_portable.comp` (shared-memory reduction,
+  no subgroup capability), which the dispatchers create where the device has no clustered subgroup operations
+  (`kiss_vk::linear_bt_shader`). Every fleet GPU has them, so only `LinearBt.*PortableModule` runs the portable one
+  (it runs anywhere); `LinearBt.PortableModuleHasNoSubgroupCapability` checks its SPIR-V. A `.comp` may include a
+  `comp/*.glsl` body; editing one rebuilds the shaders.
+- `BT_VK_FC_WEIGHTS=int8` gives cifar's fc1 and fc2 INT8 weights on Vulkan (cifar-gpu-kernels F2): the AppData
+  quantizes its loaded FP32 weights once, at construction (`platform/util/fc_weights.hpp`, symmetric per output row,
+  `scale = max|w| / 127`), and `new_cifar_dense_linear_bt.comp` (spec constant `WEIGHTS`) dequantizes them to FP32 in
+  registers, with 4 output features per row on subgroups of 32 and more (`FPR`, 2 on Mali). fc3, the other stages
+  and the other backends stay FP32. The copy is read as 32-bit words, so no device feature beyond the required ones
+  is needed. Tolerances against the FP32 oracle: fc1/fc2 rtol 2e-2, atol 1.5e-2, end to end 2e-2 / 2e-2 (the
+  runner's `StageTolerance` / `E2eTolerance`); `LinearBt.Int8Weights*` check the kernel against the weights it
+  decodes at the FP32 bound, and `RealWeights_EndTaskAccuracy` (both `test-*-vk`, with `BT_WEIGHTS_DIR`) compares
+  INT8 with FP32 accuracy on the 128 exported images. [Unset, empty or fp32: FP32 weights and no copies; any other
+  value throws. FP16 weights were built and dropped: not faster than FP32 on the Samsung, task 3.8.]
 - Static Mali analysis: `malioc -c Mali-G710 --vulkan -S 0=16 <shader>.spv` on the glslc output (Arm Performance
   Studio's Mali Offline Compiler; on the build box under `~/tools/arm-performance-studio/`). Measurements and the
   rejected variants: [`../reports-for-human/2026-10-16-mali-conv-kernels.md`](../reports-for-human/2026-10-16-mali-conv-kernels.md).

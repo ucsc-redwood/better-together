@@ -10,6 +10,7 @@
 
 #include "platform/util/base_appdata.hpp"
 #include "platform/util/buffer_placement.hpp"
+#include "platform/util/fc_weights.hpp"
 #include "platform/util/ndarray.hpp"
 #include "platform/util/npy_loader.hpp"
 
@@ -157,13 +158,17 @@ struct AppData final : public BaseAppData {
         conv2_taps(192 * 576, 0, place(bt::BufferKind::kWeights, {3})),
         conv3_taps(384 * 1728, 0, place(bt::BufferKind::kWeights, {5})),
         conv4_taps(256 * 3456, 0, place(bt::BufferKind::kWeights, {6})),
-        conv5_taps(256 * 2304, 0, place(bt::BufferKind::kWeights, {7})) {
+        conv5_taps(256 * 2304, 0, place(bt::BufferKind::kWeights, {7})),
+        fc_weights(bt::fc_weights_from_env()),
+        u_fc1_wq(fc_weights, 4096, 4096, place(bt::BufferKind::kWeights, {9})),
+        u_fc2_wq(fc_weights, 4096, 4096, place(bt::BufferKind::kWeights, {10})) {
     // BT_WEIGHTS_DIR set -> the real magnitude-pruned CSR export + real test
     // batch, fail-loud on any problem. Unset -> the synthetic seeded init
     // below, byte-identical to the hermetic-test behavior.
     if (const char* dir = std::getenv("BT_WEIGHTS_DIR")) {
       load_real_weights(dir);
       pack_conv_taps();
+      quantize_fc_weights();
       return;
     }
 
@@ -204,6 +209,7 @@ struct AppData final : public BaseAppData {
     std::ranges::fill(u_fc1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc2_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc3_b.pmr_vec(), 0.0f);
+    quantize_fc_weights();
   }
 
   // Load the real pruned weights ($BT_WEIGHTS_DIR/sparse/): per-conv CSR over
@@ -256,6 +262,13 @@ struct AppData final : public BaseAppData {
     // u_input is (BATCH_SIZE, 3, 32, 32) -> the shape check rejects a
     // test_batch.npy whose batch dimension differs from BATCH_SIZE.
     bt::npy::load(dir + "/test_batch.npy", "<f4", {BATCH_SIZE, 3, 32, 32}, u_input.data());
+  }
+
+  // The reduced-precision fc1/fc2 weights of BT_VK_FC_WEIGHTS, from the loaded FP32 ones (no-op in
+  // the default FP32 mode).
+  void quantize_fc_weights() {
+    u_fc1_wq.quantize(u_fc1_w.data());
+    u_fc2_wq.quantize(u_fc2_w.data());
   }
 
   // Each conv's taps from its CSR and its input map size (32, 16, 8, 8, 8).
@@ -312,6 +325,12 @@ struct AppData final : public BaseAppData {
   std::pmr::vector<int> conv3_taps;
   std::pmr::vector<int> conv4_taps;
   std::pmr::vector<int> conv5_taps;
+
+  // cifar-gpu-kernels F2: fc1 and fc2 weights in the precision BT_VK_FC_WEIGHTS asks for, read only
+  // by the Vulkan FC kernel; empty in the default FP32 mode. fc3 always runs in FP32.
+  bt::FcWeights fc_weights;
+  bt::FcWeightCopy u_fc1_wq;
+  bt::FcWeightCopy u_fc2_wq;
 };
 
 }  // namespace cifar_sparse

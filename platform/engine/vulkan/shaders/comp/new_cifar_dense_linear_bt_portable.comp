@@ -1,0 +1,7 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+// The batch-tiled FC kernel without subgroup operations (shared-memory row reduction), for a
+// device without clustered subgroup operations. See new_cifar_dense_linear_bt.glsl.
+#define LINEAR_BT_CLUSTERED 0
+#include "new_cifar_dense_linear_bt.glsl"

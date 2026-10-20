@@ -8,6 +8,7 @@
 
 #include "platform/util/base_appdata.hpp"
 #include "platform/util/buffer_placement.hpp"
+#include "platform/util/fc_weights.hpp"
 #include "platform/util/ndarray.hpp"
 #include "platform/util/npy_loader.hpp"
 
@@ -76,12 +77,16 @@ struct AppData final : public BaseAppData {
         u_fc2_w(4096, 4096, place(bt::BufferKind::kWeights, {10})),
         u_fc2_b(4096, place(bt::BufferKind::kWeights, {10})),
         u_fc3_w(10, 4096, place(bt::BufferKind::kWeights, {11})),
-        u_fc3_b(10, place(bt::BufferKind::kWeights, {11})) {
+        u_fc3_b(10, place(bt::BufferKind::kWeights, {11})),
+        fc_weights(bt::fc_weights_from_env()),
+        u_fc1_wq(fc_weights, 4096, 4096, place(bt::BufferKind::kWeights, {9})),
+        u_fc2_wq(fc_weights, 4096, 4096, place(bt::BufferKind::kWeights, {10})) {
     // BT_WEIGHTS_DIR set -> the real trained AlexNetCIFAR export + real test
     // batch, fail-loud on any problem. Unset -> the synthetic seeded init
     // below, byte-identical to the hermetic-test behavior.
     if (const char* dir = std::getenv("BT_WEIGHTS_DIR")) {
       load_real_weights(dir);
+      quantize_fc_weights();
       return;
     }
 
@@ -112,6 +117,14 @@ struct AppData final : public BaseAppData {
     std::ranges::fill(u_fc1_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc2_b.pmr_vec(), 0.0f);
     std::ranges::fill(u_fc3_b.pmr_vec(), 0.0f);
+    quantize_fc_weights();
+  }
+
+  // The reduced-precision fc1/fc2 weights of BT_VK_FC_WEIGHTS, from the loaded FP32 ones (no-op in
+  // the default FP32 mode).
+  void quantize_fc_weights() {
+    u_fc1_wq.quantize(u_fc1_w.data());
+    u_fc2_wq.quantize(u_fc2_w.data());
   }
 
   // Load the real BN-folded weights ($BT_WEIGHTS_DIR/dense/, PyTorch OIHW /
@@ -192,6 +205,12 @@ struct AppData final : public BaseAppData {
   Ndarray1D u_fc2_b;    // (4096)
   Ndarray2D u_fc3_w;    // (10, 4096)
   Ndarray1D u_fc3_b;    // (10)
+
+  // cifar-gpu-kernels F2: fc1 and fc2 weights in the precision BT_VK_FC_WEIGHTS asks for, read only
+  // by the Vulkan FC kernel; empty in the default FP32 mode. fc3 always runs in FP32.
+  bt::FcWeights fc_weights;
+  bt::FcWeightCopy u_fc1_wq;
+  bt::FcWeightCopy u_fc2_wq;
 };
 
 }  // namespace cifar_dense

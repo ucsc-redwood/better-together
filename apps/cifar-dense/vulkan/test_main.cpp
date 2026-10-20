@@ -3,15 +3,24 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <map>
 #include <memory_resource>
 #include <random>
 #include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/fc_weights.hpp"
+#include "platform/util/npy_loader.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -28,6 +37,22 @@ struct VulkanRunner {
   static constexpr float kAtol = 1e-4f;
   static constexpr float kE2eRtol = 5e-3f;
   static constexpr float kE2eAtol = 5e-3f;
+  // Against the FP32 oracle with INT8 fc1/fc2 weights (cifar-gpu-kernels F2,
+  // BT_VK_FC_WEIGHTS=int8), which are off by up to half their row's scale (max |w| / 254):
+  // looser bounds for fc1, fc2 and the end-to-end logits.
+  static constexpr float kInt8Rtol = 2e-2f;
+  static constexpr float kInt8Atol = 1.5e-2f;
+  static constexpr float kInt8E2eRtol = 2e-2f;
+  static constexpr float kInt8E2eAtol = 2e-2f;
+  static bool Int8() { return bt::fc_weights_from_env() == bt::FcWeights::kInt8; }
+  static std::pair<float, float> StageTolerance(const int s) {
+    if ((s == 9 || s == 10) && Int8()) return {kInt8Rtol, kInt8Atol};
+    return {kRtol, kAtol};
+  }
+  static std::pair<float, float> E2eTolerance() {
+    if (Int8()) return {kInt8E2eRtol, kInt8E2eAtol};
+    return {kE2eRtol, kE2eAtol};
+  }
   cifar_dense::vulkan::VulkanDispatcher disp;
   static bool Available() { return kiss_vk::has_integrated_gpu(); }  // skip if no iGPU
   std::pmr::memory_resource* Mr() { return disp.get_mr(); }
@@ -45,6 +70,9 @@ TEST(Placement, DeclaredStagesMatchBindings) {
   auto* vk_mr = static_cast<kiss_vk::VulkanMemoryResource*>(disp.get_mr());
   bt_placement_test::RecordingDispatcher rec(vk_mr);
   cifar_dense::AppData app(rec.placement(all_stages(11)));
+  const std::map<int, std::pair<const void*, const void*>> fc_weights = {
+      {9, {app.u_fc1_w.data(), app.u_fc1_wq.words.data()}},
+      {10, {app.u_fc2_w.data(), app.u_fc2_wq.words.data()}}};
 
   for (int s = 1; s <= 11; ++s) {
     disp.dispatch_stage(app, s);
@@ -55,6 +83,15 @@ TEST(Placement, DeclaredStagesMatchBindings) {
       if (std::ranges::find(alloc.stages, s) != alloc.stages.end()) {
         declared.insert(vk_mr->find_buffer(ptr));
       }
+    }
+    // fc1 and fc2 declare their FP32 weights and the reduced-precision copy (empty, so never
+    // allocated, in the default FP32 mode); a Vulkan stage binds exactly one of the two.
+    if (const auto it = fc_weights.find(s);
+        it != fc_weights.end() && it->second.second != nullptr) {
+      VkBuffer fp32 = vk_mr->find_buffer(it->second.first);
+      VkBuffer reduced = vk_mr->find_buffer(it->second.second);
+      EXPECT_NE(bound.contains(fp32), bound.contains(reduced)) << "stage " << s;
+      declared.erase(bound.contains(fp32) ? reduced : fp32);
     }
     EXPECT_EQ(bound, declared) << "stage " << s;
   }
@@ -202,6 +239,70 @@ TEST(DenseConvTiled, Map8x8) {
 TEST(DenseConvTiled, RaggedOddWidthMap) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectDenseConvTilesMatchReference(7, 5);
+}
+
+// cifar-gpu-kernels F2, spec "Reduced-precision weights are bounded and opt-in": end-task accuracy
+// of the Vulkan pipeline on the real weights (BT_WEIGHTS_DIR) over every exported test image,
+// with FP32 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). INT8 must stay
+// within 0.5 points of FP32 on the same images. The export has 128 images,
+// so one image is 0.78 points and the bound asks for the same count as FP32. Skips without
+// BT_WEIGHTS_DIR.
+namespace {
+// Fraction of the exported test images the Vulkan pipeline classifies correctly, fc weights in
+// `mode`; the AppData's batch (16) walks the 128 images.
+double DenseVkAccuracy(cifar_dense::vulkan::VulkanDispatcher& disp,
+                       const char* mode,
+                       const std::vector<float>& images,
+                       const std::vector<int32_t>& labels) {
+  setenv("BT_VK_FC_WEIGHTS", mode, 1);
+  cifar_dense::AppData app(disp.get_mr());
+  const size_t per_image = app.u_input.pmr_vec().size() / cifar_dense::AppData::BATCH_SIZE;
+  const int n = static_cast<int>(labels.size());
+  int correct = 0;
+  for (int b = 0; b < n; b += static_cast<int>(cifar_dense::AppData::BATCH_SIZE)) {
+    std::copy_n(images.begin() + static_cast<std::ptrdiff_t>(b * per_image),
+                app.u_input.pmr_vec().size(),
+                app.u_input.pmr_vec().begin());
+    disp.dispatch_multi_stage(app, 1, 11);
+    const int k = app.u_fc3_out.d1();
+    for (int i = 0; i < app.u_fc3_out.d0(); ++i) {
+      const float* row = app.u_fc3_out.data() + static_cast<size_t>(i) * k;
+      if (std::max_element(row, row + k) - row == labels[b + i]) ++correct;
+    }
+  }
+  return static_cast<double>(correct) / n;
+}
+}  // namespace
+
+TEST(CifarDenseVk, RealWeights_EndTaskAccuracy) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const char* dir = std::getenv("BT_WEIGHTS_DIR");
+  if (dir == nullptr) GTEST_SKIP() << "BT_WEIGHTS_DIR not set";
+  constexpr size_t kImages = 128;  // the exported test batch
+  std::vector<float> images(kImages * 3 * 32 * 32);
+  std::vector<int32_t> labels(kImages);
+  bt::npy::load(std::string(dir) + "/test_batch.npy", "<f4", {kImages, 3, 32, 32}, images.data());
+  bt::npy::load_prefix(std::string(dir) + "/test_labels.npy", "<i4", {kImages}, labels.data());
+
+  const char* saved = std::getenv("BT_VK_FC_WEIGHTS");
+  const std::string restore = saved != nullptr ? saved : "";
+  cifar_dense::vulkan::VulkanDispatcher disp;
+  const double fp32 = DenseVkAccuracy(disp, "fp32", images, labels);
+  const double int8 = DenseVkAccuracy(disp, "int8", images, labels);
+  if (saved != nullptr) {
+    setenv("BT_VK_FC_WEIGHTS", restore.c_str(), 1);
+  } else {
+    unsetenv("BT_VK_FC_WEIGHTS");
+  }
+  std::printf(
+      "cifar-dense Vulkan real-weight accuracy over %zu images: fp32 %.4f, int8 %.4f (%+.2f "
+      "points)\n",
+      kImages,
+      fp32,
+      int8,
+      100 * (int8 - fp32));
+  EXPECT_GE(fp32, 0.75);
+  EXPECT_LE(std::abs(int8 - fp32), 0.005) << "int8 fc weights";
 }
 
 int main(int argc, char** argv) {

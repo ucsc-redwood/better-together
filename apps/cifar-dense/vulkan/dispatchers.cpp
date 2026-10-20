@@ -59,6 +59,11 @@ struct LinearPushConstants_v2 {
   int32_t apply_relu;    // 1 to apply ReLU, 0 otherwise
 };
 
+// The linear_bt pipeline for a weight precision.
+static std::string linear_bt_name(const bt::FcWeights w) {
+  return w == bt::FcWeights::kFp32 ? "linear_bt" : std::string("linear_bt/") + bt::to_string(w);
+}
+
 // ----------------------------------------------------------------------------
 // Constructor (v2)
 // ----------------------------------------------------------------------------
@@ -202,13 +207,26 @@ VulkanDispatcher::VulkanDispatcher()
   // streamed ONCE -- the generic thread-per-(n,of) shader re-streams the whole weight
   // matrix once per image and each lane scans a different 16 KB row (uncoalesced).
   // Selected per stage when N <= 16 and in_features % 4 == 0.
-  auto linear_bt_algo = engine.make_algo("new_cifar_dense_linear_bt")
-                            ->work_group_size(256, 1, 1)
-                            ->num_buffers(4)  // Input, Weight, Bias, Output
-                            ->push_constant<LinearPushConstants_v2>()
-                            ->build();
-
-  cached_algorithms.try_emplace("linear_bt", std::move(linear_bt_algo));
+  // Rows reduce with subgroupClusteredAdd where the device has it (cifar-gpu-kernels F3).
+  // One pipeline per weight precision (cifar-gpu-kernels F2): an AppData built with
+  // BT_VK_FC_WEIGHTS=int8 carries the fc1/fc2 copies its stages bind instead. INT8 rows own 4
+  // features on subgroups of 32 and more (2 otherwise, as FP32): faster on the Samsung, where 2
+  // left INT8 bound by the shared-memory reads; Mali spills with 4 (task 3.8).
+  fc_int8_fpr = engine.subgroup_size() >= 32 ? 4 : 2;
+  // Without clustered subgroup operations the portable module (shared-memory reduction, no
+  // subgroup capability) is the one created (cifar-gpu-kernels F3).
+  const bool clustered = engine.compute_limits().subgroup_clustered;
+  for (const auto w : {bt::FcWeights::kFp32, bt::FcWeights::kInt8}) {
+    auto algo = engine.make_algo(kiss_vk::linear_bt_shader(clustered))->work_group_size(256, 1, 1);
+    if (clustered) algo = algo->subgroup_size_dependent();
+    cached_algorithms.try_emplace(
+        linear_bt_name(w),
+        algo->spec_constant(2, static_cast<uint32_t>(w))
+            ->spec_constant(3, static_cast<uint32_t>(fc_features_per_row(w)))
+            ->num_buffers(4)  // Input, Weight, Bias, Output
+            ->push_constant<LinearPushConstants_v2>()
+            ->build());
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -500,11 +518,15 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, kiss_vk::Sequence& seq) 
 
   // Batch-tiled shader when the batch fits its accumulator file; generic fallback.
   const bool bt = batch_size <= kiss_vk::kLinearBtBatchTile && input_features % 4 == 0;
-  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
+  // fc1/fc2 read the AppData's reduced-precision copy in its BT_VK_FC_WEIGHTS mode.
+  const bool reduced = bt && appdata.fc_weights != bt::FcWeights::kFp32;
+  const bt::FcWeights weights = reduced ? appdata.fc_weights : bt::FcWeights::kFp32;
+  auto algo = cached_algorithms.at(bt ? linear_bt_name(weights) : "linear").get();
 
-  // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup.
-  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtFeaturesPerGroup)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256);
+  // bt: a 16-lane row owns FPR output features, 16 rows per workgroup.
+  const size_t num_groups =
+      bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtRows * fc_features_per_row(weights))
+         : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
@@ -516,7 +538,8 @@ void VulkanDispatcher::record_stage_9(AppData& appdata, kiss_vk::Sequence& seq) 
   algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                        engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
+                        reduced ? engine.get_buffer_info(appdata.u_fc1_wq.words)
+                                : engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
                     });
@@ -539,11 +562,15 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, kiss_vk::Sequence& seq)
 
   // Batch-tiled shader when the batch fits its accumulator file; generic fallback.
   const bool bt = batch_size <= kiss_vk::kLinearBtBatchTile && input_features % 4 == 0;
-  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
+  // fc1/fc2 read the AppData's reduced-precision copy in its BT_VK_FC_WEIGHTS mode.
+  const bool reduced = bt && appdata.fc_weights != bt::FcWeights::kFp32;
+  const bt::FcWeights weights = reduced ? appdata.fc_weights : bt::FcWeights::kFp32;
+  auto algo = cached_algorithms.at(bt ? linear_bt_name(weights) : "linear").get();
 
-  // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup.
-  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtFeaturesPerGroup)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256);
+  // bt: a 16-lane row owns FPR output features, 16 rows per workgroup.
+  const size_t num_groups =
+      bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtRows * fc_features_per_row(weights))
+         : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,
@@ -555,7 +582,8 @@ void VulkanDispatcher::record_stage_10(AppData& appdata, kiss_vk::Sequence& seq)
   algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                        engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
+                        reduced ? engine.get_buffer_info(appdata.u_fc2_wq.words)
+                                : engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
                     });
@@ -580,9 +608,11 @@ void VulkanDispatcher::record_stage_11(AppData& appdata, kiss_vk::Sequence& seq)
   const bool bt = batch_size <= kiss_vk::kLinearBtBatchTile && input_features % 4 == 0;
   auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
 
-  // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup.
-  const size_t num_groups = bt ? kiss_vk::div_ceil(out_features, kiss_vk::kLinearBtFeaturesPerGroup)
-                               : kiss_vk::div_ceil(batch_size * out_features, 256);
+  // bt: a 16-lane row owns FPR output features, 16 rows per workgroup.
+  const size_t num_groups =
+      bt ? kiss_vk::div_ceil(out_features,
+                             kiss_vk::kLinearBtRows * fc_features_per_row(bt::FcWeights::kFp32))
+         : kiss_vk::div_ceil(batch_size * out_features, 256);
 
   const auto algo_pc = LinearPushConstants_v2{
       .N = batch_size,

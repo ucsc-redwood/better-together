@@ -133,6 +133,11 @@ class VulkanDispatcher final {
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
+  // Output features per linear_bt row (its spec constant FPR) for a weight precision.
+  [[nodiscard]] int fc_features_per_row(const bt::FcWeights w) const {
+    return w == bt::FcWeights::kInt8 ? fc_int8_fpr : 2;
+  }
+  int fc_int8_fpr = 2;
   // Each conv's tile of the _oc kernel on subgroups of 32 and more, conv1..conv5; nullopt keeps the
   // previous kernel (BT_VK_DENSE_CONV_TILE, read once, here), and its pipeline.
   std::array<std::optional<kiss_vk::DenseConvTile>, 5> conv_tiles;
