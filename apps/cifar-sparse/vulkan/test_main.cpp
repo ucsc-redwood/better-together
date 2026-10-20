@@ -84,14 +84,12 @@ TEST(Placement, DeclaredStagesMatchBindings) {
   }
 }
 
-// new_cifar_sparse_conv2d_k3s1p1 has a fast path (every lane of a subgroup shares one
-// output channel; row bounds are subgroup-uniform) and a fallback for a subgroup that
-// spans channels. The model's maps (32, 16, 8) are all subgroup multiples, so the
-// differential suite only reaches the fast path; 6x6 maps (36 outputs per channel, which
-// no subgroup size divides) force the fallback, and 7x5 maps (odd width) a ragged row as well.
-// A hand-made CSR with an empty row and a row whose nonzeros all sit in the kernel's right
-// column (at the right edge every tap reads the padded border), checked against a
-// double-precision reference.
+// new_cifar_sparse_conv2d_k3s1p1 is the Mali path (PX adjacent pixels of a row per invocation),
+// which cifar-sparse runs below subgroup 32. It does not depend on the subgroup size, so every GPU
+// runs these tests, not just the Pixel. 6x6 and 8x8 maps, and 7x5 for an odd width that is not a
+// multiple of PX (a masked tail). A hand-made CSR with an empty row and a row whose nonzeros all
+// sit in the kernel's right column (at the right edge every tap reads the padded border), checked
+// against a double-precision reference.
 namespace {
 struct ConvPc {  // same layout as Conv2dPushConstants in dispatchers.cpp
   int32_t batch_size, in_channels, in_height, in_width, out_channels, out_height, out_width,
@@ -125,7 +123,6 @@ void ExpectSparseConvMatchesReference(const int h, const int w) {
 
   auto algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1")
                   ->work_group_size(256, 1, 1)
-                  ->subgroup_size_dependent()
                   ->num_buffers(6)
                   ->push_constant<ConvPc>()
                   ->build();
@@ -140,8 +137,7 @@ void ExpectSparseConvMatchesReference(const int h, const int w) {
                      engine.get_buffer_info(col_idx),
                      engine.get_buffer_info(bias)});
   algo->record_push_constants(*seq, pc);
-  const size_t invocations =
-      kiss_vk::sparse_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
+  const size_t invocations = kiss_vk::sparse_conv_k3s1p1_mali_invocations(kN, kK, h, w);
   algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
   seq->cmd_end();
   seq->wait(seq->submit());
@@ -173,12 +169,12 @@ void ExpectSparseConvMatchesReference(const int h, const int w) {
 }
 }  // namespace
 
-TEST(SparseConvK3S1P1, FallbackWhenSubgroupSpansChannels) {
+TEST(SparseConvK3S1P1, Map6x6) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectSparseConvMatchesReference(6, 6);
 }
 
-TEST(SparseConvK3S1P1, FastPathWhenMapIsSubgroupMultiple) {
+TEST(SparseConvK3S1P1, Map8x8) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectSparseConvMatchesReference(8, 8);
 }

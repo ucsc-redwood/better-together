@@ -126,8 +126,6 @@ class VulkanDispatcher final {
 
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
-  // False with BT_VK_SPARSE_CONV=flat: the convs keep new_cifar_sparse_conv2d_k3s1p1 on every GPU.
-  const bool conv_per_channel;
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
 };
 

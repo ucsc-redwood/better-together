@@ -316,7 +316,31 @@ no-regression check. FC changes run on both phones.
   - The real export reaches cases the synthetic weights do not: rows of up to 1926 nonzeros (conv4, two
     `STAGE_ROW` chunks) and empty rows (27 in conv1, 1 in conv2, 13 in conv5); per layer the row lengths are conv1
     0-25, conv2 0-277, conv3 23-791, conv4 20-1926, conv5 0-854.
-- [ ] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
+- [x] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
+  - The new kernel wins on the Samsung (1.9) and passes on rocky and both phones (1.4, 1.10), so
+    `BT_VK_SPARSE_CONV=flat` is gone: cifar-sparse runs `new_cifar_sparse_conv2d_k3s1p1_oc` whenever the subgroup is
+    32 or more. That left the subgroup >= 32 code of `new_cifar_sparse_conv2d_k3s1p1.comp` (`row_sum`, `tap_fast`,
+    `tap_generic`) unreachable, so the shader is now the Mali path alone: `main_mali` became `main`, and the
+    `SUBGROUP_SIZE` spec constant and the subgroup extensions went with the dead code. The dispatcher picks the shader
+    by `engine.subgroup_size()` and no longer builds it `subgroup_size_dependent()`; the contract's
+    `sparse_conv_k3s1p1_invocations(…, subgroup_size)` became `sparse_conv_k3s1p1_mali_invocations(n, k, h, w)`.
+    `SparseConvK3S1P1.{FallbackWhenSubgroupSpansChannels,FastPathWhenMapIsSubgroupMultiple}` tested the removed path
+    by name; as `Map6x6` / `Map8x8` (with `RaggedOddWidthMap`) they now test the Mali shader on every GPU. Docs:
+    `03-unit-testing.md` (conv paths, contract, the `BT_VK_SPARSE_STAGE_ROW` knob), `01-hardware.md` (which shaders
+    are subgroup-specialized).
+  - *The Mali path is unchanged:* the old shader specialized at subgroup 16 (`spirv-opt
+    --set-spec-const-default-value 0:16 --freeze-spec-const --fold-spec-const-op-composite -O --strip-debug`) and
+    the new Mali-only shader (`-O --strip-debug`) are instruction-identical once ids and declaration order are
+    canonicalized (267 lines each; a scratch script names every global by its definition and decorations, bindings
+    included, and every local id by first use; with `PX = 2` it reports 314 differing lines). The dispatcher gives
+    it the same buffers and the same `grid.x` as before at subgroup 16; the only difference is that the pipeline
+    no longer requests `requiredSubgroupSize` 16 on a GPU whose only subgroup size is 16.
+  - *Clean builds* on the build box: `cmake --build --preset vulkan --clean-first` and `cmake --build --preset
+    android --clean-first` exit 0; their only warnings are 4 pre-existing ones in `apps/tree/omp/func_sort.hpp`.
+    `just check-shaders`: OK. `grep` finds no `BT_VK_SPARSE_CONV`, `conv_per_channel`, `main_mali` or
+    `sparse_conv_k3s1p1_invocations` left in the code.
+  - rocky gate (4fab24d plus this change): build exit 0, `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk
+    --device minipc` 21 passed.
 - [ ] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
 
 ## 2. Dense conv optimization (gpu-kernels/cifar-dense-conv; design C1–C5)
