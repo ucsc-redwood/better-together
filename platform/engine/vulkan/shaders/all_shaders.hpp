@@ -46,11 +46,7 @@ namespace shaders {
 #include "h/new_cifar_dense_conv2d_k3s1p1_oc_spv.h"
 #include "h/new_cifar_dense_conv2d_k3s1p1_spv.h"
 #include "h/new_cifar_dense_conv2d_spv.h"
-#include "h/new_cifar_dense_linear_bt_bs_spv.h"
-#include "h/new_cifar_dense_linear_bt_ko_spv.h"
-#include "h/new_cifar_dense_linear_bt_nr_spv.h"
 #include "h/new_cifar_dense_linear_bt_spv.h"
-#include "h/new_cifar_dense_linear_bt_tk_spv.h"
 #include "h/new_cifar_dense_linear_spv.h"
 #include "h/new_cifar_dense_maxpool_spv.h"
 #include "h/new_cifar_sparse_conv2d_k3s1p1_oc_spv.h"
@@ -121,10 +117,6 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         SHADER_ENTRY(new_cifar_dense_maxpool),
         SHADER_ENTRY(new_cifar_dense_linear),
         SHADER_ENTRY(new_cifar_dense_linear_bt),
-        SHADER_ENTRY(new_cifar_dense_linear_bt_ko),
-        SHADER_ENTRY(new_cifar_dense_linear_bt_bs),
-        SHADER_ENTRY(new_cifar_dense_linear_bt_tk),
-        SHADER_ENTRY(new_cifar_dense_linear_bt_nr),
         SHADER_ENTRY(new_cifar_sparse_conv2d),
         SHADER_ENTRY(new_cifar_sparse_conv2d_k3s1p1),
         SHADER_ENTRY(new_cifar_sparse_conv2d_k3s1p1_oc),

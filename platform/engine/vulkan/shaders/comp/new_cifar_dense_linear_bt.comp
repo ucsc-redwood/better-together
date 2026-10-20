@@ -20,7 +20,10 @@ precision highp int;
 //    once and feeds two weight rows (the shared-memory reads, not DRAM, were the limit).
 //  * the (x, y) workgroup grid is remapped so the batch tiles that share a weight
 //    row-group are adjacent in launch order and fetch that weight slice from L2 once.
-//    A bijection on workgroup ids; no kernel logic depends on launch order.
+//    A bijection on workgroup ids; no kernel logic depends on launch order. This is how a
+//    batch streams the weights once (cifar-gpu-kernels F1): without it the Samsung's
+//    cifar-sparse fc1/fc2 take 29 % longer, and three layouts that load each weight in a
+//    single workgroup were 21-337 % slower on both phones (tasks 3.3-3.4).
 //
 // Dispatcher contract (falls back to the generic shader otherwise):
 //   in_features % 4 == 0.

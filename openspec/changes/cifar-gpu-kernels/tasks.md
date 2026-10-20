@@ -933,7 +933,24 @@ no-regression check. FC changes run on both phones.
     weight slice together: without it (nr) the Samsung's fc1/fc2 take +29 % (11.975 vs 9.258 ms), while the
     Pixel, whose sparse FC is compute-bound (malioc: load/store-bound, 64 registers), barely moves (+5 % / -1 %).
     As 512 MB per layer at 9.3 ms would need 55 GB/s, the Samsung cannot be re-streaming the weights per tile.
-- [ ] 3.4 F1: pick the layout by timing on both phones and remove the other. Verify: fc1 and fc2 are faster than 3.1 beyond noise on both phones, and each phone's sparse-fc1 / dense-fc1 ratio is recorded (spec "Weights are streamed once per batch"); the fleet gate is green for both apps.
+- [x] 3.4 F1: pick the layout by timing on both phones and remove the other. Verify: fc1 and fc2 are faster than 3.1 beyond noise on both phones, and each phone's sparse-fc1 / dense-fc1 ratio is recorded (spec "Weights are streamed once per batch"); the fleet gate is green for both apps.
+  - *Pick:* linear_bt as of 3.2 (16-image tiles, the tile workgroups of a row-group adjacent in launch order,
+    so they share each weight slice through L2), the fastest on both phones in 3.3; (a), (b), (c), the `nr`
+    experiment and `BT_VK_FC_LAYOUT` are removed. design.md F1 records the outcome; the shader comment says why
+    the remap matters.
+  - *Spec "Weights are streamed once per batch":* cifar-sparse (N=128) fc1 and fc2 against the 3.1 kernel, same
+    session, 3 rounds: Pixel 7a 26.941 (26.929-26.943) -> 21.085 (21.065-21.143) ms and 27.186 (27.183-27.204) ->
+    22.254 (22.189-22.491) ms; Samsung 10.036 (10.033-10.042) -> 9.302 (9.261-9.303) ms and 10.042
+    (10.041-10.043) -> 9.322 (9.310-9.326) ms (3.2), confirmed in both 3.3 sessions (-22 % / -18 % Pixel, -7 % /
+    -7 % Samsung). Lower medians with spreads that do not overlap on both phones.
+  - *Ratio* sparse fc1 (N=128) / dense fc1 (N=16), both with this kernel (3.2 session): Pixel 7a 21.085 / 6.866 =
+    3.1 (dense at 400-633 MHz), Samsung 9.302 / 2.734 = 3.4 (dense at 545-600 MHz; 4.4 against its 800 MHz
+    level of 2.1 ms). Before the change: 3.9 and 3.3 (3.1).
+  - *Fleet gate* (the code of this commit; 3.2's plus a comment): local `ctest -L omp` 11/11 passed; rocky
+    `ctest -L vulkan` 7/7 passed, `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic
+    and real weights; `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial>
+    test-cifar-sparse-vk test-cifar-dense-vk`: 22 and 19 passed, exit 0, on 3A021JEHN02756 and R5CY21Y3VEV, and the
+    same with real weights.
 - [ ] 3.5 F2: host-side weight quantization at load time (FP16; INT8 with per-row scales) and the precision mode `BT_VK_FC_WEIGHTS=fp16|int8` with FP32 fallback and a warning on unsupported devices. Verify: a unit test round-trips quantize→dequantize within the stated per-element error; default runs are unchanged.
 - [ ] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.
 - [ ] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.

@@ -231,6 +231,15 @@ selection and outputs unchanged.
   (128×4096×4 B = 2 MB per layer) should come from L2 (to verify against the 780M's L2 size with a
   counter or timing).
 - **Spec bound:** sparse fc1 ≤ 2× dense fc1.
+- **Outcome (tasks 3.3-3.4):** neither layout ships. (a), (b) and a third, (c) lanes split tiles × K halves,
+  were 21-337 % slower than linear_bt on both phones for cifar-sparse fc1/fc2: each pays per FMA for loading
+  every weight in one workgroup (a reduction per tile in (a), uncoalesced inputs in (b), scattered staging in
+  (c)) and has 8× fewer workgroups. linear_bt's launch-order remap already makes the 8 tile workgroups of a
+  row-group read their weight slice together, so the batch streams it from DRAM once through L2: removing the
+  remap costs the Samsung +29 %, and 8 streams of 64 MB in its 9.3 ms would need 55 GB/s. The Pixel's sparse
+  FC is compute-bound (Mali load/store), and F3 is what made both phones faster than before (-22 % / -8 % fc1).
+  The 2× bound is not met (sparse / dense fc1: 3.1 on the Pixel, 3.4 on the Samsung, 4.4 against a dense run at
+  800 MHz); the spec only records the ratio.
 
 #### F2. Weight-only quantization, opt-in
 - **FP16:** weights stored as `float16_t`/`f16vec4` (16-bit storage), converted to FP32 in

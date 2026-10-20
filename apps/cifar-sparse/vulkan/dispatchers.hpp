@@ -127,7 +127,6 @@ class VulkanDispatcher final {
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
-  std::string fc_layout = "bt";  // F1 prototype: bt (linear_bt), ko or bs (BT_VK_FC_LAYOUT)
 };
 
 }  // namespace cifar_sparse::vulkan
