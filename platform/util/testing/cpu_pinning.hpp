@@ -23,7 +23,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstring>
 #include <set>
 #include <sstream>
 #include <string>
@@ -111,9 +110,8 @@ void ExpectChunkPinned(App& app, Unpinned unpinned, Pinned pinned, Regions regio
     EXPECT_EQ(outside, 0u) << tids.size() << " threads ran stage work:" << report.str();
     EXPECT_LE(tids.size(), r.cores.size()) << "more threads ran stage work than the thread count";
     for (std::size_t i = 0; const Region& reg : regions(app)) {
-      EXPECT_TRUE(r.regions[i].size() == want[i].size() &&
-                  std::memcmp(r.regions[i].data(), want[i].data(), want[i].size()) == 0)
-          << reg.name << " differs from the unpinned run";
+      // == on the byte vectors, not memcmp: an empty region has a null data() (UBSan).
+      EXPECT_TRUE(r.regions[i] == want[i]) << reg.name << " differs from the unpinned run";
       ++i;
     }
   }
