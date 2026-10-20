@@ -152,8 +152,9 @@ VulkanDispatcher::VulkanDispatcher()
   const uint32_t max_shared =
       engine.get_physical_device().getProperties().limits.maxComputeSharedMemorySize;
   for (size_t i = 0; i < conv_tiles.size(); ++i) {
-    if (!conv_tiles[i]) continue;
-    const auto& tile = *conv_tiles[i];
+    const auto& slot = conv_tiles[i];
+    if (!slot.has_value()) continue;
+    const auto& tile = *slot;
     const std::string name = "conv2d_k3s1p1_oc/" + tile_name(tile);
     if (!cached_algorithms.contains(name)) {
       const int lds_floats =
