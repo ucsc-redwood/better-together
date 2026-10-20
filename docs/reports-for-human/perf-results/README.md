@@ -10,3 +10,4 @@ results, findings, insights, and suggestions.
 | Doc | Target | Tool | What it found |
 |---|---|---|---|
 | [`radeon-780m-rga-static.md`](radeon-780m-rga-static.md) | Radeon 780M (gfx1103, RADV) | RGA 2.14 static | No kernel spills or is register/LDS-bound → bottleneck is runtime overhead, not shader codegen |
+| [`2026-10-20-cifar-sparse-conv.md`](2026-10-20-cifar-sparse-conv.md) | Samsung Xclipse 940, Pixel 7a (Mali-G710) | `bm-prof-cifar-sparse-vk` A/B, ACO (780M) | One output channel per workgroup row: Samsung conv2-conv5 23-48 % faster (stage sum -30 %), Pixel unchanged; the CSR loads were already scalar, the gain is 8 input loads in flight |

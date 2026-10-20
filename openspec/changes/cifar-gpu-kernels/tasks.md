@@ -337,11 +337,58 @@ no-regression check. FC changes run on both phones.
     no longer requests `requiredSubgroupSize` 16 on a GPU whose only subgroup size is 16.
   - *Clean builds* on the build box: `cmake --build --preset vulkan --clean-first` and `cmake --build --preset
     android --clean-first` exit 0; their only warnings are 4 pre-existing ones in `apps/tree/omp/func_sort.hpp`.
-    `just check-shaders`: OK. `grep` finds no `BT_VK_SPARSE_CONV`, `conv_per_channel`, `main_mali` or
-    `sparse_conv_k3s1p1_invocations` left in the code.
+    `just check-shaders`: OK. `grep` finds no `BT_VK_SPARSE_CONV`, `conv_per_channel` or
+    `sparse_conv_k3s1p1_invocations` left in the code, and no `main_mali` in the sparse shader (cifar-dense's shader
+    keeps its own).
   - rocky gate (4fab24d plus this change): build exit 0, `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk
     --device minipc` 21 passed.
-- [ ] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
+- [x] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
+  - Gate at a986a39, the last code commit (the commit after it adds this note and changes only docs):
+    - *local:* `cmake --build --preset pc && ctest --test-dir build/pc -L omp`: 11/11 passed.
+    - *rocky:* the tree synced to `~/bt-sparse-gate`, `cmake --preset vulkan` (glslc of NDK r29), build exit 0,
+      `ctest -L vulkan` 7/7 passed, `./test-cifar-sparse-vk --device minipc` 21 passed.
+    - *phones:* `cmake --build --preset android --target test-cifar-sparse-vk`, then
+      `BT_ANDROID_DEST=/data/local/tmp/bt-sparse/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk`:
+      21 passed and exit 0 on 3A021JEHN02756 and on R5CY21Y3VEV. The same binary with `BT_WEIGHTS_DIR` (real
+      weights): 21 passed on each phone.
+  - *Final A/B* (the 1.1 method, ee4c68d vs a986a39, both phones at once, 2026-10-20 01:00-01:06 UTC, all 12 runs
+    exit 0 with 11 records): Samsung conv2-conv5 -47.6 / -34.7 / -36.9 / -22.7 %, conv1 -20.6 %, no spread
+    overlapping, stage sum 232.3 → 161.7 ms; Pixel 7a every conv within 0.9 % with overlapping spreads.
+  - *Note:* `docs/reports-for-human/perf-results/2026-10-20-cifar-sparse-conv.md` (before/after tables, ACO
+    findings, the S3 result, the S4 decision: unstructured CSR stays), linked from the perf-results README.
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | final median (min-max) ms | final vs base |
+    |---|---|---|---|
+    | 1 | 4.102 (4.102-4.103, n=3x238-243) | 3.259 (2.824-3.651, n=3x269-284) | -20.6 % |
+    | 2 | 2.419 (2.400-2.427, n=3x661-703) | 2.416 (2.376-2.419, n=3x689-725) | -0.1 % |
+    | 3 | 34.025 (34.023-34.027, n=3x29) | 17.818 (17.581-18.248, n=3x53-59) | -47.6 % |
+    | 4 | 1.808 (1.807-1.812, n=3x1296-1335) | 1.808 (1.806-1.810, n=3x1309-1331) | +0.0 % |
+    | 5 | 51.655 (51.645-51.660, n=3x19) | 33.752 (32.851-36.277, n=3x30-37) | -34.7 % |
+    | 6 | 68.537 (68.536-68.578, n=3x14) | 43.219 (41.998-50.626, n=3x23-25) | -36.9 % |
+    | 7 | 45.767 (45.764-45.769, n=3x21) | 35.399 (32.729-35.878, n=3x28-31) | -22.7 % |
+    | 8 | 2.702 (2.701-2.706, n=3x1194-1243) | 2.697 (2.675-2.703, n=3x1192-1226) | -0.2 % |
+    | 9 | 10.036 (10.035-10.074, n=3x99-100) | 10.048 (10.047-10.051, n=3x99-100) | +0.1 % |
+    | 10 | 10.043 (10.039-10.058, n=3x99) | 10.059 (10.055-10.059, n=3x99) | +0.2 % |
+    | 11 | 1.173 (1.159-1.180, n=3x2000) | 1.175 (1.173-1.175, n=3x2000) | +0.2 % |
+    | sum | 232.267 | 161.650 | -30.4 % |
+
+  - Pixel 7a, ms:
+
+    | stage | base median (min-max) ms | final median (min-max) ms | final vs base |
+    |---|---|---|---|
+    | 1 | 17.007 (17.005-17.037, n=3x68) | 17.028 (17.006-17.120, n=3x59-68) | +0.1 % |
+    | 2 | 4.465 (4.463-4.465, n=3x226-339) | 4.468 (4.463-4.472, n=3x226-338) | +0.1 % |
+    | 3 | 80.362 (80.266-80.427, n=3x12) | 80.447 (80.385-80.507, n=3x12) | +0.1 % |
+    | 4 | 3.366 (3.366-3.369, n=3x643-698) | 3.366 (3.361-3.372, n=3x640-698) | +0.0 % |
+    | 5 | 128.466 (128.367-128.631, n=3x7) | 128.621 (128.589-128.778, n=3x7) | +0.1 % |
+    | 6 | 183.461 (182.153-183.513, n=3x5) | 181.864 (181.710-182.862, n=3x5) | -0.9 % |
+    | 7 | 110.658 (110.455-110.697, n=3x9) | 110.553 (108.485-110.784, n=3x8-9) | -0.1 % |
+    | 8 | 1.179 (1.178-1.182, n=3x1944-2000) | 1.181 (1.179-1.181, n=3x1917-2000) | +0.1 % |
+    | 9 | 26.891 (26.877-26.901, n=3x30-37) | 26.955 (26.945-27.009, n=3x36-37) | +0.2 % |
+    | 10 | 27.252 (27.190-27.282, n=3x36) | 27.144 (27.133-27.225, n=3x36) | -0.4 % |
+    | 11 | 1.377 (1.375-1.380, n=3x1502-1568) | 1.381 (1.376-1.385, n=3x1441-1534) | +0.3 % |
+    | sum | 584.487 | 583.010 | -0.3 % |
 
 ## 2. Dense conv optimization (gpu-kernels/cifar-dense-conv; design C1–C5)
 
