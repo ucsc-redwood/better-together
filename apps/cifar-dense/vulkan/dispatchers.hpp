@@ -1,7 +1,11 @@
 #pragma once
 
+#include <array>
+#include <optional>
+
 #include "apps/cifar-dense/appdata.hpp"
 #include "platform/engine/vulkan/engine.hpp"
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 
 namespace cifar_dense::vulkan {
 
@@ -101,6 +105,14 @@ class VulkanDispatcher final {
   void record_stage_9(AppData& appdata, kiss_vk::Sequence& seq);
   void record_stage_10(AppData& appdata, kiss_vk::Sequence& seq);
   void record_stage_11(AppData& appdata, kiss_vk::Sequence& seq);
+  // Conv stages 1, 3, 5, 6, 7 (conv 1..5): the 3x3/s1/p1 shader for this subgroup size, or the
+  // generic one.
+  void record_conv(kiss_vk::Sequence& seq,
+                   Ndarray4D& in,
+                   Ndarray4D& weight,
+                   Ndarray1D& bias,
+                   Ndarray4D& out,
+                   int conv);
 
   using RecordFn = void (VulkanDispatcher::*)(AppData&, kiss_vk::Sequence&);
 
@@ -121,6 +133,10 @@ class VulkanDispatcher final {
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
+  // Each conv's tile of the _oc kernel on subgroups of 32 and more, conv1..conv5; nullopt keeps the
+  // previous kernel (BT_VK_DENSE_CONV_TILE, read once, here), and its pipeline.
+  std::array<std::optional<kiss_vk::DenseConvTile>, 5> conv_tiles;
+  std::array<kiss_vk::Algorithm*, 5> conv_oc_algos{};
 };
 
 }  // namespace cifar_dense::vulkan

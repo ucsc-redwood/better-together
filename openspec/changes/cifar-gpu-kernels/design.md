@@ -35,12 +35,17 @@ topic letter. Motivation and measurements are in proposal.md (Why).
     `new_cifar_dense_conv2d.comp` is the fallback.
 - **Shapes (N=16):** conv1 3→64 at 32², conv2 64→192 at 16², conv3 192→384 at 8², conv4 384→256 at
   8², conv5 256→256 at 8². Weights are `[K, C, 3, 3]` FP32.
-- **Device support:**
-  - The 780M (RADV 25.2.7, from rocky's vulkaninfo profile) reports `shaderFloat16`,
-    `storageBuffer16BitAccess`, `VK_KHR_cooperative_matrix` (`cooperativeMatrix: true`),
-    `VK_KHR_shader_integer_dot_product`, and subgroup ops including CLUSTERED.
-  - Pixel 7a (Mali-G710) and Samsung (Xclipse 940): to verify on device (`cmd gpu vkjson` or a
-    small probe in `test-kiss-vk`).
+- **Device support** (task 2.2: `SPDLOG_LEVEL=debug ./test-kiss-vk
+  --gtest_filter='*OptionalCapabilities*'`, which logs what the device reports, 2026-10-20):
+
+  | | `shaderFloat16` | `storageBuffer16BitAccess` | `VK_KHR_cooperative_matrix` | CLUSTERED | `maxComputeSharedMemorySize` |
+  |---|---|---|---|---|---|
+  | 780M (rocky, RADV 25.2.7) | yes | yes | yes: 16×16×16, subgroup scope; FP16 A/B with FP16 or FP32 C, 8-bit integer A/B with 32-bit C | yes | 64 KB |
+  | Pixel 7a (Mali-G710) | yes | yes | no | yes | 32 KB |
+  | Samsung (Xclipse 940) | yes | yes | no | yes | 32 KB |
+
+  The 780M also reports `VK_KHR_shader_integer_dot_product` (rocky's vulkaninfo profile). No phone has
+  cooperative matrix, so C5 could only run on rocky, where nothing is timed.
 - **Engine:** the required-feature table enables only required features (Vulkan campaign Phase A).
   Optional features follow the push-descriptor pattern: enabled if present, never required.
 ### FC
@@ -59,8 +64,8 @@ topic letter. Motivation and measurements are in proposal.md (Why).
 - **Weights:** `[out, in]` FP32. fc1 and fc2 are 4096×4096 (64 MB each); fc3 is 10×4096. The
   `RealWeights_EndTaskAccuracy` OMP tests assert ≥ 0.75 (dense) and ≥ 0.85 (sparse). FP32 accuracy
   is 90.48% / 90.58%.
-- **780M support:** 16-bit storage, 8-bit storage (already a required engine feature) and CLUSTERED
-  subgroup ops (from rocky's vulkaninfo profile). Phones: to verify.
+- **Support:** 16-bit storage and CLUSTERED subgroup ops on the 780M and both phones (the table in
+  "Dense conv"); 8-bit storage is already a required engine feature.
 
 ## Goals / Non-Goals
 
@@ -158,6 +163,11 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
   pipe. To verify with `RADV_DEBUG=shaders` before and after.
 - **Caveat:** at 8×8 maps, `N·H·W = 1024`, so 4 workgroups per channel tile. That's still
   `K/OC_TILE × 4 ≥ 256` workgroups at conv3–conv5.
+- **As built (task 2.4):** the channel block is `gl_WorkGroupID.x` and the pixel block `.y`, grid
+  `(K / OC_TILE, ceil(N·H·W / 256), 1)`. Workgroups are launched x first, so with the block on `.y`
+  consecutive workgroups took the same channels of different images: on the Samsung conv2 was 21 %
+  and conv1 9 % slower than before. On `.x` they read the same input pixels and no conv is slower.
+  Conv1 (C = 3) stays on the previous kernel, which was still 1 % faster on it (non-goal below).
 
 #### C2. LDS halo tiling
 - **How:** each workgroup stages an input tile with a 1-pixel halo, for a block of `C_TILE` input
@@ -167,11 +177,19 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
   a larger tile where the device reports more.
 - **Alternative:** rely on L1 for the 9× tap reuse. That's today's behavior, and the measurements
   say it isn't enough.
+- **As built (tasks 2.5, 2.6):** `C_TILE` input channels per pass, rows plus halo, sized for maps up
+  to 32 wide. On the Samsung every staged tile took 2–3.5× the GPU cycles of the previous kernel, so
+  no conv stages by default (`C_TILE` 0, the 9 taps from global memory).
 
 #### C3. Register tile 8 oc × 2–4 px
 - **Why:** each thread accumulates 8 output channels for 2–4 adjacent pixels, which raises FMA per
   load from 4:1 toward 16–32:1.
 - **Shape:** via spec constants (`OC_TILE`, `PX_TILE`), so per-device tuning doesn't fork the source.
+- **As built (tasks 2.5, 2.6):** one tile per conv (`BT_VK_DENSE_CONV_TILE`), one pipeline per
+  distinct tile. The Samsung's GPU clock follows the load and settles lower for tiles that save more
+  cycles (8×4: −43 % cycles on conv2–conv5, about equal wall time), so the defaults are the fastest
+  per conv in wall time: conv2 8 oc × 4 px, conv3 and conv4 16 × 4, conv5 8 × 1, and conv1 on the
+  previous kernel (no tile was faster on it).
 
 #### C4. FP16 packed math, opt-in
 - **How:** FP16 storage and arithmetic (`f16vec2`), giving RDNA3 `v_pk_fma_f16`/`v_dot2` and the
@@ -180,13 +198,18 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
 - **Selection:** an engine-level precision mode (e.g. `BT_VK_PRECISION=fp16`), FP32 by default.
 - **Spec:** separate tolerance plus end-task accuracy within 0.5 points on the real weights (dense
   test accuracy is 90.48% in FP32).
+- **As built:** not built (optional tasks 2.8, 2.9). The FP32 tiles met the requirement, and on the
+  Samsung cycles saved mostly lower the GPU clock rather than the wall time (C3, "As built").
 
 #### C5. Cooperative-matrix implicit GEMM (RDNA3), optional
 - **How:** the conv is an implicit GEMM `[K] × [C·9] · [C·9] × [N·P·Q]`, using
   `VK_KHR_cooperative_matrix` with FP16 inputs and FP32 accumulate in the 16×16×16 shapes RADV
-  reports (to verify via `vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR`).
+  reports (`vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR` lists FP16 × FP16 + FP32 at subgroup
+  scope, task 2.2).
 - **When:** only when the device lists a usable shape. Otherwise C1–C4.
 - **Alternative:** hand-written WMMA via vendor intrinsics. Rejected: not portable Vulkan.
+- **As built:** not built (task 2.10). Neither phone has `VK_KHR_cooperative_matrix`, so it could
+  only run on rocky, where nothing is timed.
 
 #### C6. Mali variant (removed 2026-10-18)
 Owned by `mali-conv-kernels`, which shipped a Mali conv path selected by `SUBGROUP_SIZE` < 32 (main spec
@@ -226,7 +249,7 @@ selection and outputs unchanged.
   every fleet GPU since the Vulkan campaign's Phase B.
 - **Effect:** removes 4 KB of shared memory and 8 barriers per workgroup.
 - **Fallback:** keep the shared-memory reduction behind a spec constant for a device that lacks
-  CLUSTERED support (phones: to verify).
+  CLUSTERED support (none in the fleet: both phones and the 780M have it, task 2.2).
 
 #### F4. Generic linear fallbacks
 `new_cifar_dense_linear.comp` and `new_cifar_sparse_linear.comp` are dead for every current shape.

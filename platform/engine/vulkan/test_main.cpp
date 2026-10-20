@@ -77,6 +77,71 @@ TEST(VulkanDeviceFeatures, MissingShaderInt8IsReported) {
             std::vector<std::string>{"synchronization2"});
 }
 
+// The optional capabilities the cifar kernels could use (cifar-gpu-kernels task 2.2): what the
+// device reports, enabled or not. Logged at debug level: SPDLOG_LEVEL=debug ./test-kiss-vk
+// --gtest_filter='*OptionalCapabilities*'.
+TEST(VulkanDeviceFeatures, OptionalCapabilitiesAreLogged) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  kiss_vk::Engine engine;
+  auto& pd = engine.get_physical_device();
+
+  vk::PhysicalDeviceVulkan12Features f12{};
+  vk::PhysicalDeviceVulkan11Features f11{.pNext = &f12};
+  vk::PhysicalDeviceFeatures2 features2{.pNext = &f11};
+  pd.getFeatures2(&features2);
+
+  vk::PhysicalDeviceSubgroupProperties subgroup{};
+  vk::PhysicalDeviceProperties2 props2{.pNext = &subgroup};
+  pd.getProperties2(&props2);
+
+  bool has_coop_ext = false;
+  for (const auto& ext : pd.enumerateDeviceExtensionProperties()) {
+    if (std::string_view(ext.extensionName.data()) == VK_KHR_COOPERATIVE_MATRIX_EXTENSION_NAME) {
+      has_coop_ext = true;
+    }
+  }
+  bool coop_feature = false;
+  std::string coop_shapes;
+  if (has_coop_ext) {
+    vk::PhysicalDeviceCooperativeMatrixFeaturesKHR coop{};
+    vk::PhysicalDeviceFeatures2 coop_features{.pNext = &coop};
+    pd.getFeatures2(&coop_features);
+    coop_feature = coop.cooperativeMatrix == VK_TRUE;
+    if (VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCooperativeMatrixPropertiesKHR !=
+        nullptr) {
+      for (const auto& p : pd.getCooperativeMatrixPropertiesKHR()) {
+        coop_shapes += fmt::format("{}M{}N{}K{} A {} B {} C {} R {} {}",
+                                   coop_shapes.empty() ? "" : "; ",
+                                   p.MSize,
+                                   p.NSize,
+                                   p.KSize,
+                                   vk::to_string(p.AType),
+                                   vk::to_string(p.BType),
+                                   vk::to_string(p.CType),
+                                   vk::to_string(p.ResultType),
+                                   vk::to_string(p.scope));
+      }
+    }
+  }
+
+  const bool clustered =
+      static_cast<bool>(subgroup.supportedOperations & vk::SubgroupFeatureFlagBits::eClustered);
+  spdlog::debug(
+      "Optional capabilities of {}: shaderFloat16 {}, storageBuffer16BitAccess {}, "
+      "VK_KHR_cooperative_matrix {} (cooperativeMatrix {}; shapes: {}), subgroup CLUSTERED {}, "
+      "maxComputeSharedMemorySize {}",
+      props2.properties.deviceName.data(),
+      f12.shaderFloat16 == VK_TRUE,
+      f11.storageBuffer16BitAccess == VK_TRUE,
+      has_coop_ext,
+      coop_feature,
+      coop_shapes.empty() ? "none" : coop_shapes,
+      clustered,
+      props2.properties.limits.maxComputeSharedMemorySize);
+  // The Vulkan minimum every shared-memory tile of these kernels stays within.
+  EXPECT_GE(props2.properties.limits.maxComputeSharedMemorySize, 16384u);
+}
+
 // Pipeline-config (design D5): the SPIR-V scan reads spec ids and workgroup size from
 // the compiled shaders. Hardware-free.
 TEST(SpirvReflection, CommittedShaders) {
