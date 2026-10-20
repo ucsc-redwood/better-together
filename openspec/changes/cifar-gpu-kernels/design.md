@@ -177,11 +177,19 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
   a larger tile where the device reports more.
 - **Alternative:** rely on L1 for the 9× tap reuse. That's today's behavior, and the measurements
   say it isn't enough.
+- **As built (tasks 2.5, 2.6):** `C_TILE` input channels per pass, rows plus halo, sized for maps up
+  to 32 wide. On the Samsung every staged tile took 2–3.5× the GPU cycles of the previous kernel, so
+  no conv stages by default (`C_TILE` 0, the 9 taps from global memory).
 
 #### C3. Register tile 8 oc × 2–4 px
 - **Why:** each thread accumulates 8 output channels for 2–4 adjacent pixels, which raises FMA per
   load from 4:1 toward 16–32:1.
 - **Shape:** via spec constants (`OC_TILE`, `PX_TILE`), so per-device tuning doesn't fork the source.
+- **As built (tasks 2.5, 2.6):** one tile per conv (`BT_VK_DENSE_CONV_TILE`), one pipeline per
+  distinct tile. The Samsung's GPU clock follows the load and settles lower for tiles that save more
+  cycles (8×4: −43 % cycles on conv2–conv5, about equal wall time), so the defaults are the fastest
+  per conv in wall time: conv2 8 oc × 4 px, conv3 and conv4 16 × 4, conv5 8 × 1, and conv1 on the
+  previous kernel (no tile was faster on it).
 
 #### C4. FP16 packed math, opt-in
 - **How:** FP16 storage and arithmetic (`f16vec2`), giving RDNA3 `v_pk_fma_f16`/`v_dot2` and the

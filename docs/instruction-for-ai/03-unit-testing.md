@@ -158,15 +158,18 @@ BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned 
 **Mali conv paths and the conv grid contract (mali-conv-kernels, cifar-gpu-kernels).**
 - Below subgroup 32 both cifar 3x3 convs run a Mali path: 4 adjacent output pixels per invocation, 4 channels each
   for the dense one. cifar-dense's shader (`new_cifar_dense_conv2d_k3s1p1.comp`) is subgroup-size dependent and at
-  32 and above runs the path the 780M and the Xclipse were tuned on. cifar-sparse has two shaders and its dispatcher
+  32 and above runs the path the 780M and the Xclipse were tuned on; there cifar-dense now runs conv2-conv5 on
+  `new_cifar_dense_conv2d_k3s1p1_oc.comp` instead (one block of output channels per workgroup, a register tile of
+  channels x pixels per invocation, `BT_VK_DENSE_CONV_TILE` below) and keeps conv1 on the old one. cifar-sparse has two shaders and its dispatcher
   picks by `engine.subgroup_size()`: `new_cifar_sparse_conv2d_k3s1p1.comp` is the Mali path only, and at 32 and above
   it runs `new_cifar_sparse_conv2d_k3s1p1_oc.comp` (one output channel per workgroup row on the packed CSR taps,
   `AppData::conv{1..5}_taps`). The Pixel 7a is the only fleet GPU that takes the Mali paths, so a change to the
   dispatch on it is only tested by the phone gate; rocky-ryzen, the build box and the Samsung cover the other paths.
 - `platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp` gives the invocation counts (`kDenseConvMaliPixels` /
   `kSparseConvMaliPixels` must equal `PX` in the shader): the dense shader's for a subgroup size, the sparse Mali
-  shader's (`sparse_conv_k3s1p1_mali_invocations`). Both apps' dispatchers and `DenseConvK3S1P1` / `SparseConvK3S1P1`
-  size `grid.x` from it. A contract that counts more outputs per invocation than the shader computes leaves outputs
+  shader's (`sparse_conv_k3s1p1_mali_invocations`), and the dense `_oc` shader's grid for a tile
+  (`dense_conv_k3s1p1_oc_grid`). Both apps' dispatchers and `DenseConvK3S1P1` / `DenseConvTiled` / `SparseConvK3S1P1`
+  size their grids from it. A contract that counts more outputs per invocation than the shader computes leaves outputs
   at the tests' `-1` fill, so the tests fail; this was checked by mutation on the build box and on the Pixel. That
   only works while each test shape needs more than one 256-wide workgroup on both paths, because the grid rounds up
   to whole workgroups and a shortfall inside the last one goes unseen. Keep the tests' batch and channel counts large
@@ -175,7 +178,14 @@ BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned 
 - Those tests use 6x6, 8x8 and 7x5 maps (7x5 for an odd width, not a multiple of 4), and the sparse CSR has an empty
   row and a row whose taps all read the padded border at the right edge. `SparseConvPerChannel` checks the `_oc`
   shader the same way against the OMP kernel (plus a top-edge-only row and a row longer than one `STAGE_ROW` chunk),
-  and `SparseConvTaps.DecodeToColIdx` checks the packed taps of the five model convs.
+  and `SparseConvTaps.DecodeToColIdx` checks the packed taps of the five model convs. `DenseConvTiled` checks the
+  dense `_oc` shader for seven tiles on every GPU (it does not depend on the subgroup size), including staged ones.
+- `BT_VK_DENSE_CONV_TILE=<t>` or `<t1>,<t2>,<t3>,<t4>,<t5>` sets the `_oc` shader's tile for every conv or for
+  conv1..conv5: `<oc>x<px>x<c>` (output channels and adjacent pixels per invocation, input channels staged in shared
+  memory per pass, 0 for none) or `flat` (the old shader's path). A malformed value, or staging that exceeds the
+  device's shared memory, throws. [Unset: `flat,8x4x0,16x4x0,16x4x0,8x1x0`, picked on the Samsung, where staging was
+  2-3.5x slower and no tile helped conv1; cifar-gpu-kernels task 2.6. The Samsung's GPU clock follows the load, so
+  compare tiles in wall time and in GPU cycles (the profiler's `gpu_clock_mhz`).]
 - `BT_VK_SPARSE_STAGE_ROW=1` makes the `_oc` shader stage each CSR row in shared memory, 1024 nonzeros at a time
   (its `STAGE_ROW` spec constant). [Unset: off; on the Samsung it was not faster and was slower on conv4 and conv5,
   cifar-gpu-kernels task 1.8.]

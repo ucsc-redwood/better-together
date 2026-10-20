@@ -618,7 +618,94 @@ no-regression check. FC changes run on both phones.
     `./test-cifar-dense-vk --device minipc` 19 passed with `BT_VK_DENSE_CONV_TILE` unset, `4x1x0`, `8x2x0`,
     `8x4x0`, `8x2x2`, `8x4x2` and `16x2x4`, each with synthetic and with real weights (`BT_WEIGHTS_DIR`).
     `just check-shaders`: OK.
-- [ ] 2.6 Pick the tile defaults by timing on the Samsung. Verify: the per-device sweep and chosen defaults are in the evidence note.
+- [x] 2.6 Pick the tile defaults by timing on the Samsung. Verify: the per-device sweep and chosen defaults are in the evidence note.
+  - *Method:* the 2.1 method on the Samsung, `base` (d563dc5) against the 2.5 binary with
+    `BT_VK_DENSE_CONV_TILE` set per arm, arms alternating, 3 rounds, 20 s apart. 72 runs exit 0 with 11 records;
+    6 more, the mixed arms of sweep 2, exit 127 with none (the run script split their value at the commas): they
+    are not counted, and sweep 3 reran those arms. The tables give per conv the median p50, the GPU clock of each
+    run's cell (`gpu_clock_mhz`) and the median of p50 x clock (millions of GPU cycles), then each run's conv2-conv5
+    sum in ms and in cycles. The Pixel 7a runs the Mali path, which no tile changes; rocky-ryzen is not timed and
+    gets the Samsung's defaults (same subgroup size).
+  - *The Samsung's GPU clock follows the load.* Within a run each conv cell settles at one clock between 252 and
+    1095 MHz, and the tiles that save the most cycles settle lowest: 8x4x0 needs 4.24 Mcycles for conv2-conv5
+    against `base`'s 7.46 (-43 %) but runs conv3 at 252-315 and conv5 at 350 MHz instead of 600-800, so its
+    wall-time sum is 12.02 vs 12.20 ms. Cycles per conv are stable between runs (`base` 7.45-7.63 Mcycles while its
+    wall time spans 11.71-12.94 ms over the sessions below), wall time is not. The spec measures wall time, so the
+    defaults minimize it per conv; cycles are reported to explain them.
+  - *Sweep 1* (2026-10-20 06:27-07:03 UTC): every register tile saves cycles, the most at 4 or 8 channels x 4
+    pixels; staging (`c` > 0) costs 2-3.5x the cycles of `base` (the staging index math, the barriers; the GPU then
+    runs at 800-1095 MHz). No tile spills (ACO on rocky: 32 VGPRs at 4x1x0 up to 96 at 16x4x0, 8.7-16.9 KB of
+    shared memory for the staged ones).
+
+    | arm | stage 1: ms / MHz / Mcyc | stage 3: ms / MHz / Mcyc | stage 5: ms / MHz / Mcyc | stage 6: ms / MHz / Mcyc | stage 7: ms / MHz / Mcyc | conv2-5 ms | conv2-5 Mcyc |
+    |---|---|---|---|---|---|---|---|
+    | base | 0.913 / 252/252/252 / 0.23 | 3.404 / 315/315/315 / 1.07 | 3.286 / 600/600/800 / 1.97 | 3.371 / 800/800/800 / 2.70 | 2.143 / 800/800/650 / 1.71 | 12.201 (12.138-12.209) | 7.46 (7.45-7.63) |
+    | t410 | 0.914 / 252/252/252 / 0.23 | 3.358 / 315/315/350 / 1.06 | 2.955 / 800/600/600 / 1.77 | 3.180 / 800/800/800 / 2.54 | 2.549 / 650/650/800 / 1.66 | 11.288 (11.200-12.074) | 7.02 (7.00-7.06) |
+    | t420 | 0.913 / 252/252/252 / 0.23 | 2.487 / 252/252/252 / 0.63 | 3.654 / 315/315/315 / 1.15 | 2.633 / 545/500/600 / 1.43 | 4.001 / 350/350/350 / 1.40 | 12.695 (12.657-12.967) | 4.59 (4.58-4.68) |
+    | t440 | 0.910 / 252/252/252 / 0.23 | 2.619 / 252/252/252 / 0.66 | 2.952 / 252/315/252 / 0.80 | 2.599 / 545/545/500 / 1.41 | 3.342 / 315/315/315 / 1.05 | 11.517 (11.499-11.525) | 3.87 (3.81-4.06) |
+    | t810 | 0.911 / 252/252/252 / 0.23 | 3.290 / 315/315/315 / 1.04 | 2.226 / 800/800/545 / 1.78 | 3.181 / 800/800/800 / 2.55 | 2.113 / 800/800/650 / 1.69 | 10.819 (10.789-12.356) | 7.06 (7.04-7.07) |
+    | t820 | 0.913 / 252/252/252 / 0.23 | 2.746 / 252/252/252 / 0.69 | 3.899 / 350/350/350 / 1.36 | 1.976 / 600/800/650 / 1.57 | 3.634 / 350/350/350 / 1.27 | 12.281 (12.234-12.872) | 4.89 (4.62-4.89) |
+    | t840 | 0.906 / 252/252/252 / 0.23 | 2.497 / 252/252/252 / 0.63 | 3.119 / 252/315/315 / 0.97 | 2.532 / 500/450/500 / 1.27 | 3.854 / 350/350/350 / 1.35 | 12.024 (12.004-12.351) | 4.24 (4.03-4.26) |
+    | t1620 | 0.915 / 252/252/252 / 0.23 | 3.470 / 252/252/252 / 0.87 | 3.775 / 350/350/400 / 1.43 | 2.508 / 650/800/700 / 1.81 | 2.821 / 450/450/500 / 1.27 | 12.643 (12.211-12.908) | 5.37 (5.32-5.39) |
+    | t1640 | 0.915 / 252/252/252 / 0.23 | 3.135 / 315/252/315 / 0.97 | 2.474 / 450/450/400 / 1.10 | 2.503 / 800/800/800 / 2.00 | 2.570 / 500/500/545 / 1.29 | 10.635 (10.607-10.990) | 5.34 (5.27-5.37) |
+    | t414 | 0.913 / 252/252/252 / 0.23 | 4.590 / 900/900/900 / 4.13 | 6.062 / 1095/1095/1095 / 6.64 | 8.369 / 1095/1095/1095 / 9.16 | 5.570 / 1095/1095/1095 / 6.10 | 24.570 (24.547-24.603) | 26.01 (25.99-26.05) |
+    | t822 | 0.912 / 252/252/252 / 0.23 | 3.131 / 600/650/800 / 2.00 | 4.338 / 800/900/800 / 3.48 | 5.186 / 900/1000/1000 / 5.19 | 3.989 / 800/800/900 / 3.26 | 16.336 (15.898-17.481) | 14.04 (13.91-14.14) |
+    | t842 | 0.908 / 252/252/252 / 0.23 | 2.720 / 800/800/800 / 2.18 | 4.434 / 900/900/900 / 3.99 | 6.232 / 1095/1095/1095 / 6.82 | 5.033 / 900/900/900 / 4.53 | 18.407 (18.402-18.544) | 17.51 (17.50-17.63) |
+    | t824 | 0.916 / 252/252/252 / 0.23 | 4.156 / 800/800/900 / 3.36 | 5.840 / 1095/1095/1095 / 6.39 | 7.810 / 1095/1095/1095 / 8.55 | 5.142 / 1095/1095/1095 / 5.63 | 22.982 (22.639-22.993) | 23.95 (23.93-24.04) |
+
+  - *Conv1* (sweep 2, 07:07-07:20 UTC, the knob applied to all five convs; its mixed arms are the broken try):
+    conv1 runs at 252 MHz in every run, so cycles saved would show, but no tile is faster on it: 8x1x0 0.930,
+    8x4x0 0.916, 16x4x0 1.207 vs 0.912 ms. Conv1 stays `flat`.
+
+    | arm | stage 1: ms / MHz / Mcyc | stage 3: ms / MHz / Mcyc | stage 5: ms / MHz / Mcyc | stage 6: ms / MHz / Mcyc | stage 7: ms / MHz / Mcyc | conv2-5 ms | conv2-5 Mcyc |
+    |---|---|---|---|---|---|---|---|
+    | base | 0.912 / 252/252/252 / 0.23 | 3.400 / 315/315/315 / 1.07 | 2.719 / 800/700/700 / 1.93 | 3.375 / 800/800/800 / 2.70 | 2.418 / 650/800/650 / 1.77 | 11.764 (11.708-12.236) | 7.46 (7.35-7.49) |
+    | a810 | 0.930 / 252/252/252 / 0.23 | 3.289 / 315/315/315 / 1.04 | 2.818 / 650/650/800 / 1.83 | 3.178 / 800/800/800 / 2.54 | 2.104 / 800/800/800 / 1.68 | 11.389 (10.792-11.432) | 7.09 (7.04-7.12) |
+    | a840 | 0.916 / 252/252/252 / 0.23 | 2.486 / 252/252/252 / 0.63 | 3.097 / 315/315/252 / 0.97 | 2.538 / 500/500/450 / 1.27 | 3.875 / 350/350/350 / 1.36 | 11.994 (11.963-12.438) | 4.21 (4.09-4.23) |
+    | a1640 | 1.207 / 252/252/252 / 0.30 | 3.400 / 252/252/315 / 0.86 | 2.477 / 450/450/450 / 1.11 | 3.261 / 600/800/650 / 2.11 | 2.579 / 500/450/545 / 1.33 | 11.353 (11.351-12.000) | 5.38 (5.31-5.58) |
+
+  - *Per-conv tiles* (sweep 3, 07:20-07:34 UTC): `mixA` = `flat,8x4x0,8x1x0,16x4x0,8x1x0` and `mixB` the same with
+    8x4x0 on conv1. Per conv, over all three sweeps, the fastest tiles in wall time are 8x4x0 on conv2 (2.48-2.50 ms
+    at 252 MHz in every run, vs 3.40), 16x4x0 on conv3 (2.44-2.48, at 450 MHz; 8x1x0 reads 2.23 at 800 but 2.8-3.0
+    at 600-650), 16x4x0 on conv4 (2.49-2.52 in four of five arms, vs 3.37-3.39) and 8x1x0 on conv5 (2.10-2.11 at
+    800 MHz in all three sweeps, vs 2.14-2.89).
+
+    | arm | stage 1: ms / MHz / Mcyc | stage 3: ms / MHz / Mcyc | stage 5: ms / MHz / Mcyc | stage 6: ms / MHz / Mcyc | stage 7: ms / MHz / Mcyc | conv2-5 ms | conv2-5 Mcyc |
+    |---|---|---|---|---|---|---|---|
+    | base | 0.912 / 252/252/252 / 0.23 | 3.403 / 315/315/315 / 1.07 | 2.448 / 800/800/650 / 1.96 | 3.375 / 800/800/800 / 2.70 | 2.893 / 545/600/650 / 1.74 | 12.286 (12.115-12.665) | 7.46 (7.40-7.60) |
+    | a810 | 0.931 / 252/252/252 / 0.23 | 3.296 / 315/315/315 / 1.04 | 2.994 / 800/600/600 / 1.80 | 3.187 / 800/800/800 / 2.55 | 2.107 / 800/800/800 / 1.69 | 11.571 (10.818-11.589) | 7.07 (7.06-7.07) |
+    | a1640 | 1.211 / 252/252/252 / 0.31 | 3.154 / 315/252/252 / 0.87 | 2.443 / 450/450/450 / 1.10 | 2.518 / 800/800/800 / 2.01 | 2.537 / 545/545/545 / 1.38 | 10.669 (10.552-10.937) | 5.36 (5.30-5.46) |
+    | mixA | 0.910 / 252/252/252 / 0.23 | 2.500 / 252/252/252 / 0.63 | 2.999 / 600/600/800 / 1.80 | 2.494 / 700/800/800 / 1.99 | 2.105 / 545/800/800 / 1.68 | 10.098 (9.322-11.430) | 6.10 (6.09-6.11) |
+    | mixB | 0.920 / 252/252/252 / 0.23 | 2.484 / 252/252/252 / 0.63 | 2.994 / 545/600/800 / 1.78 | 2.509 / 800/800/800 / 2.01 | 3.055 / 500/545/600 / 1.66 | 11.044 (10.066-11.490) | 6.09 (6.03-6.12) |
+
+  - *Chosen defaults:* `flat,8x4x0,16x4x0,16x4x0,8x1x0` (conv1..conv5) on every subgroup >= 32 GPU, in
+    `kDefaultConvTiles`. To allow a tile per conv, `BT_VK_DENSE_CONV_TILE` takes one tile or five, and `flat` (the
+    old kernel) replaces 2.4's `BT_VK_DENSE_CONV=flat`; the dispatcher builds one pipeline per distinct tile.
+    Documented in `03-unit-testing.md` (conv paths). A last check of the chosen tiles (07:35-07:40 UTC, `base` vs
+    `chosen`): conv2-conv5 sum 9.573 (8.597-9.897) vs 12.271 (11.710-12.941) ms, -22.0 %; conv2/conv3/conv4
+    -27.1 / -26.2 / -25.7 %, conv5 -1.8 % with overlapping spreads, conv1 -0.2 %. Task 2.7 repeats this on both
+    phones.
+
+    | arm | stage 1: ms / MHz / Mcyc | stage 3: ms / MHz / Mcyc | stage 5: ms / MHz / Mcyc | stage 6: ms / MHz / Mcyc | stage 7: ms / MHz / Mcyc | conv2-5 ms | conv2-5 Mcyc |
+    |---|---|---|---|---|---|---|---|
+    | base | 0.912 / 252/252/252 / 0.23 | 3.404 / 315/315/315 / 1.07 | 3.321 / 600/700/600 / 1.99 | 3.390 / 800/800/800 / 2.71 | 2.154 / 650/800/800 / 1.72 | 12.271 (11.710-12.941) | 7.50 (7.44-7.61) |
+    | chosen | 0.911 / 252/252/252 / 0.23 | 2.481 / 252/252/252 / 0.63 | 2.451 / 450/450/600 / 1.10 | 2.518 / 700/800/800 / 2.00 | 2.115 / 800/800/650 / 1.69 | 9.573 (8.597-9.897) | 5.41 (5.03-5.44) |
+
+    | stage | base median (min-max) ms | chosen median (min-max) ms | chosen vs base |
+    |---|---|---|---|
+    | 1 | 0.912 (0.909-0.918, n=3x1088-1673) | 0.911 (0.908-0.913, n=3x1116-1141) | -0.2 % |
+    | 2 | 1.309 (1.288-1.312, n=3x792-1379) | 1.300 (1.245-1.306, n=3x968-1668) | -0.7 % |
+    | 3 | 3.404 (3.400-3.404, n=3x473-566) | 2.481 (2.170-2.489, n=3x469-965) | -27.1 % |
+    | 4 | 0.973 (0.968-0.975, n=3x1146-1250) | 0.977 (0.225-0.977, n=3x1070-2000) | +0.4 % |
+    | 5 | 3.321 (2.768-3.381, n=3x300-375) | 2.451 (1.303-2.451, n=3x534-858) | -26.2 % |
+    | 6 | 3.390 (3.389-3.391, n=3x326-328) | 2.518 (2.459-2.860, n=3x316-447) | -25.7 % |
+    | 7 | 2.154 (2.153-2.767, n=3x419-517) | 2.115 (2.106-2.665, n=3x375-531) | -1.8 % |
+    | 8 | 0.328 (0.326-0.329, n=3x2000) | 0.325 (0.324-0.328, n=3x2000) | -1.0 % |
+    | 9 | 2.961 (2.050-2.987, n=3x454-532) | 2.932 (2.100-3.031, n=3x331-524) | -1.0 % |
+    | 10 | 2.759 (2.009-2.825, n=3x406-541) | 1.978 (1.976-2.008, n=3x537-542) | -28.3 % |
+    | 11 | 0.647 (0.624-0.663, n=3x1414-2000) | 0.626 (0.625-0.660, n=3x2000) | -3.2 % |
+    | sum | 22.158 | 18.613 | -16.0 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 12.271 (11.710-12.941, 3 runs) | 9.573 (8.597-9.897, 3 runs) | -22.0 % |
 - [ ] 2.7 Check the FP32 performance requirement. Verify: on the Samsung the conv2–conv5 sum is faster than 2.1 beyond noise, no phone conv stage is slower; the fleet gate is green. If it isn't met, record the gap; the optional tasks 2.8–2.12 don't count toward it.
 - [ ] 2.8 C4: optional-feature enablement for `shaderFloat16` and `storageBuffer16BitAccess` (enabled if supported, never required) plus a precision mode (`BT_VK_PRECISION=fp16`). Verify: `test-kiss-vk` logs the enabled features on all devices, and default runs are unchanged.
 - [ ] 2.9 C4: the FP16 conv variant (FP32 accumulate), with a per-stage tolerance, and a new VK end-task accuracy test on the real weights mirroring the OMP `CifarDenseAppData.RealWeights_EndTaskAccuracy`. Verify: `test-cifar-dense-vk` with `BT_VK_PRECISION=fp16` passes on supporting devices; FP16 accuracy is within 0.5 points of FP32 (printed); timing is recorded.

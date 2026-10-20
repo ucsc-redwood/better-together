@@ -1,9 +1,12 @@
 #include "dispatchers.hpp"
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
+#include <optional>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "platform/engine/vulkan/env.hpp"
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
@@ -62,29 +65,62 @@ struct LinearPushConstants_v2 {
 
 namespace {
 
-// BT_VK_DENSE_CONV_TILE=<oc>x<px>x<c>: the tile of new_cifar_dense_conv2d_k3s1p1_oc (output
-// channels and pixels per invocation, input channels staged per pass, 0: none). Unset: the default.
-kiss_vk::DenseConvTile dense_conv_tile_from_env() {
+using ConvTiles = std::array<std::optional<kiss_vk::DenseConvTile>, 5>;
+
+// The tile of new_cifar_dense_conv2d_k3s1p1_oc per conv, conv1..conv5; nullopt keeps the previous
+// kernel. Picked by timing on the Samsung's Xclipse 940 (cifar-gpu-kernels 2.6): no tile was
+// faster on conv1, staging was 2-3.5x slower, and the governor clocks the most efficient tiles
+// down, so each conv has the tile that was fastest in wall time.
+constexpr ConvTiles kDefaultConvTiles = {std::nullopt,
+                                         kiss_vk::DenseConvTile{8, 4, 0},
+                                         kiss_vk::DenseConvTile{16, 4, 0},
+                                         kiss_vk::DenseConvTile{16, 4, 0},
+                                         kiss_vk::DenseConvTile{8, 1, 0}};
+
+std::string tile_name(const kiss_vk::DenseConvTile& t) {
+  return std::to_string(t.oc) + "x" + std::to_string(t.px) + "x" + std::to_string(t.c);
+}
+
+// BT_VK_DENSE_CONV_TILE=<t> or <t1>,<t2>,<t3>,<t4>,<t5> (one tile for every conv, or one each for
+// conv1..conv5), where a tile is <oc>x<px>x<c> (output channels and pixels per invocation, input
+// channels staged per pass, 0: none) or flat (the previous kernel). Unset: kDefaultConvTiles.
+ConvTiles dense_conv_tiles_from_env() {
   const auto v = kiss_vk::env::get("BT_VK_DENSE_CONV_TILE");
-  if (!v) return {};
-  const std::string s(*v);
-  kiss_vk::DenseConvTile tile;
-  int end = 0;
-  if (std::sscanf(s.c_str(), "%dx%dx%d%n", &tile.oc, &tile.px, &tile.c, &end) != 3 ||
-      end != static_cast<int>(s.size()) || tile.oc < 1 || tile.px < 1 || tile.c < 0) {
-    throw std::runtime_error("BT_VK_DENSE_CONV_TILE=" + s +
-                             ": expected <oc>x<px>x<c>, oc and px >= 1, c >= 0");
+  if (!v) return kDefaultConvTiles;
+  const std::string value(*v);
+  const auto fail = [&value]() {
+    return std::runtime_error("BT_VK_DENSE_CONV_TILE=" + value +
+                              ": expected one or five comma-separated tiles, each "
+                              "<oc>x<px>x<c> (oc and px >= 1, c >= 0) or flat");
+  };
+  std::vector<std::optional<kiss_vk::DenseConvTile>> tiles;
+  size_t pos = 0;
+  while (true) {
+    const size_t comma = value.find(',', pos);
+    const std::string s = value.substr(pos, comma == std::string::npos ? comma : comma - pos);
+    if (s == "flat") {
+      tiles.emplace_back(std::nullopt);
+    } else {
+      kiss_vk::DenseConvTile t;
+      int end = 0;
+      if (std::sscanf(s.c_str(), "%dx%dx%d%n", &t.oc, &t.px, &t.c, &end) != 3 ||
+          end != static_cast<int>(s.size()) || t.oc < 1 || t.px < 1 || t.c < 0) {
+        throw fail();
+      }
+      tiles.emplace_back(t);
+    }
+    if (comma == std::string::npos) break;
+    pos = comma + 1;
   }
-  return tile;
+  if (tiles.size() == 1) return {tiles[0], tiles[0], tiles[0], tiles[0], tiles[0]};
+  if (tiles.size() != 5) throw fail();
+  return {tiles[0], tiles[1], tiles[2], tiles[3], tiles[4]};
 }
 
 }  // namespace
 
 VulkanDispatcher::VulkanDispatcher()
-    : engine(),
-      default_seq(engine.make_seq()),
-      conv_per_block(kiss_vk::env::get("BT_VK_DENSE_CONV") != "flat"),
-      conv_tile(dense_conv_tile_from_env()) {
+    : engine(), default_seq(engine.make_seq()), conv_tiles(dense_conv_tiles_from_env()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
   // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8; record_bind
@@ -112,29 +148,35 @@ VulkanDispatcher::VulkanDispatcher()
   cached_algorithms.try_emplace("conv2d_k3s1p1", std::move(conv2d_k3s1p1_algo));
 
   // The same conv on subgroups of 32 and more, one block of output channels per workgroup
-  // (cifar-gpu-kernels C1), tiled by conv_tile (C2/C3).
-  const int lds_floats =
-      conv_tile.c > 0 ? conv_tile.c * kiss_vk::dense_conv_staged_floats_per_channel(conv_tile.px)
-                      : 1;
+  // (cifar-gpu-kernels C1), one pipeline per tile the convs use (C2/C3).
   const uint32_t max_shared =
       engine.get_physical_device().getProperties().limits.maxComputeSharedMemorySize;
-  if (static_cast<uint32_t>(lds_floats) * sizeof(float) > max_shared) {
-    throw std::runtime_error("BT_VK_DENSE_CONV_TILE: staging " + std::to_string(conv_tile.c) +
-                             " channels needs " + std::to_string(lds_floats * sizeof(float)) +
-                             " bytes of shared memory, the device has " +
-                             std::to_string(max_shared));
+  for (size_t i = 0; i < conv_tiles.size(); ++i) {
+    if (!conv_tiles[i]) continue;
+    const auto& tile = *conv_tiles[i];
+    const std::string name = "conv2d_k3s1p1_oc/" + tile_name(tile);
+    if (!cached_algorithms.contains(name)) {
+      const int lds_floats =
+          tile.c > 0 ? tile.c * kiss_vk::dense_conv_staged_floats_per_channel(tile.px) : 1;
+      if (static_cast<uint32_t>(lds_floats) * sizeof(float) > max_shared) {
+        throw std::runtime_error("BT_VK_DENSE_CONV_TILE: " + tile_name(tile) + " needs " +
+                                 std::to_string(lds_floats * sizeof(float)) +
+                                 " bytes of shared memory, the device has " +
+                                 std::to_string(max_shared));
+      }
+      cached_algorithms.try_emplace(name,
+                                    engine.make_algo("new_cifar_dense_conv2d_k3s1p1_oc")
+                                        ->work_group_size(256, 1, 1)
+                                        ->spec_constant(1, tile.oc)
+                                        ->spec_constant(2, tile.px)
+                                        ->spec_constant(3, tile.c)
+                                        ->spec_constant(4, lds_floats)
+                                        ->num_buffers(4)  // Input, Weight, Bias, Output
+                                        ->push_constant<Conv2dPushConstants_v2>()
+                                        ->build());
+    }
+    conv_oc_algos[i] = cached_algorithms.at(name).get();
   }
-  auto conv2d_k3s1p1_oc_algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1_oc")
-                                   ->work_group_size(256, 1, 1)
-                                   ->spec_constant(1, conv_tile.oc)
-                                   ->spec_constant(2, conv_tile.px)
-                                   ->spec_constant(3, conv_tile.c)
-                                   ->spec_constant(4, lds_floats)
-                                   ->num_buffers(4)  // Input, Weight, Bias, Output
-                                   ->push_constant<Conv2dPushConstants_v2>()
-                                   ->build();
-
-  cached_algorithms.try_emplace("conv2d_k3s1p1_oc", std::move(conv2d_k3s1p1_oc_algo));
 
   // Create algorithm for maxpool
   auto maxpool_algo = engine.make_algo("new_cifar_dense_maxpool")
@@ -193,7 +235,7 @@ void VulkanDispatcher::record_conv(kiss_vk::Sequence& seq,
                                    Ndarray4D& weight,
                                    Ndarray1D& bias,
                                    Ndarray4D& out,
-                                   const bool per_block_ok) {
+                                   const int conv) {
   const int batch_size = in.d0();
   const int in_channels = in.d1();
   const int in_height = in.d2();
@@ -204,18 +246,16 @@ void VulkanDispatcher::record_conv(kiss_vk::Sequence& seq,
   const int out_width = (in_width + 2 * kPadding - kKernelSize) / kStride + 1;
 
   // 3x3/s1/p1 register-blocked specialization when shapes allow; generic fallback. With a
-  // subgroup of 32 or more it runs one block of output channels per workgroup
-  // (cifar-gpu-kernels C1) unless BT_VK_DENSE_CONV=flat; below 32, the Mali path.
+  // subgroup of 32 or more it runs one block of output channels per workgroup, tiled
+  // (cifar-gpu-kernels C1-C3), unless the conv's tile is flat; below 32, the Mali path.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 &&
                     out_channels % kiss_vk::kDenseConvChannelsPerInvocation == 0;
-  const bool per_block = spec && per_block_ok && conv_per_block && engine.subgroup_size() >= 32 &&
-                         out_channels % conv_tile.oc == 0 &&
-                         (conv_tile.c == 0 || out_width <= kiss_vk::kDenseConvStagedMaxWidth);
-  auto algo =
-      cached_algorithms.at(per_block ? "conv2d_k3s1p1_oc"
-                           : spec    ? "conv2d_k3s1p1"
-                                     : "conv2d")
-          .get();
+  const auto& tile = conv_tiles[conv - 1];
+  const bool per_block = spec && tile && engine.subgroup_size() >= 32 &&
+                         out_channels % tile->oc == 0 &&
+                         (tile->c == 0 || out_width <= kiss_vk::kDenseConvStagedMaxWidth);
+  auto* algo = per_block ? conv_oc_algos[conv - 1]
+                         : cached_algorithms.at(spec ? "conv2d_k3s1p1" : "conv2d").get();
 
   const auto algo_pc = Conv2dPushConstants_v2{
       .N = batch_size,
@@ -240,8 +280,8 @@ void VulkanDispatcher::record_conv(kiss_vk::Sequence& seq,
   algo->record_push_constants(seq, algo_pc);
 
   if (per_block) {
-    const auto grid = kiss_vk::dense_conv_k3s1p1_oc_grid(
-        batch_size, out_channels, out_height, out_width, conv_tile);
+    const auto grid =
+        kiss_vk::dense_conv_k3s1p1_oc_grid(batch_size, out_channels, out_height, out_width, *tile);
     algo->record_dispatch(seq, {grid.x, grid.y, 1});
     return;
   }
@@ -259,14 +299,12 @@ void VulkanDispatcher::record_conv(kiss_vk::Sequence& seq,
 
 void VulkanDispatcher::record_stage_1(AppData& appdata, kiss_vk::Sequence& seq) {
   LOG_KERNEL(LogKernelType::kVK, 1, &appdata);
-  // conv1 (C = 3) stays on the previous kernel: the C1 kernel was 1 % slower on it on the Xclipse
-  // 940 (cifar-gpu-kernels 2.4), and the design leaves conv1 alone unless a step helps it.
   record_conv(seq,
               appdata.u_input,
               appdata.u_conv1_w,
               appdata.u_conv1_b,
               appdata.u_conv1_out,
-              /*per_block_ok=*/false);
+              /*conv=*/1);
 }
 
 // ----------------------------------------------------------------------------
@@ -319,7 +357,7 @@ void VulkanDispatcher::record_stage_3(AppData& appdata, kiss_vk::Sequence& seq) 
               appdata.u_conv2_w,
               appdata.u_conv2_b,
               appdata.u_conv2_out,
-              /*per_block_ok=*/true);
+              /*conv=*/2);
 }
 
 // ----------------------------------------------------------------------------
@@ -372,7 +410,7 @@ void VulkanDispatcher::record_stage_5(AppData& appdata, kiss_vk::Sequence& seq) 
               appdata.u_conv3_w,
               appdata.u_conv3_b,
               appdata.u_conv3_out,
-              /*per_block_ok=*/true);
+              /*conv=*/3);
 }
 
 // ----------------------------------------------------------------------------
@@ -386,7 +424,7 @@ void VulkanDispatcher::record_stage_6(AppData& appdata, kiss_vk::Sequence& seq) 
               appdata.u_conv4_w,
               appdata.u_conv4_b,
               appdata.u_conv4_out,
-              /*per_block_ok=*/true);
+              /*conv=*/4);
 }
 
 // ----------------------------------------------------------------------------
@@ -400,7 +438,7 @@ void VulkanDispatcher::record_stage_7(AppData& appdata, kiss_vk::Sequence& seq) 
               appdata.u_conv5_w,
               appdata.u_conv5_b,
               appdata.u_conv5_out,
-              /*per_block_ok=*/true);
+              /*conv=*/5);
 }
 
 // ----------------------------------------------------------------------------
