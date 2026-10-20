@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <string_view>
 
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
@@ -94,6 +95,11 @@ struct LinearPushConstants {
   int32_t apply_relu;    // 1 to apply ReLU, 0 otherwise
 };
 
+// The linear_bt pipeline for a weight precision.
+static std::string linear_bt_name(const bt::FcWeights w) {
+  return w == bt::FcWeights::kFp32 ? "linear_bt" : std::string("linear_bt/") + bt::to_string(w);
+}
+
 // ----------------------------------------------------------------------------
 // Constructor (v2)
 // ----------------------------------------------------------------------------
@@ -160,15 +166,20 @@ VulkanDispatcher::VulkanDispatcher() : engine(), default_seq(engine.make_seq()) 
   // grid.y tiles sparse's N=128 batch in groups of 16 (weights read 8x, not 128x).
   // Selected per stage when in_features % 4 == 0.
   // Rows reduce with subgroupClusteredAdd where the device has it (cifar-gpu-kernels F3).
-  auto linear_bt_algo = engine.make_algo("new_cifar_dense_linear_bt")
-                            ->work_group_size(256, 1, 1)
-                            ->subgroup_size_dependent()
-                            ->spec_constant(1, engine.compute_limits().subgroup_clustered ? 1 : 0)
-                            ->num_buffers(4)  // Input, Weight, Bias, Output
-                            ->push_constant<LinearPushConstants>()
-                            ->build();
-
-  cached_algorithms.try_emplace("linear_bt", std::move(linear_bt_algo));
+  // One pipeline per weight precision (cifar-gpu-kernels F2): an AppData built with
+  // BT_VK_FC_WEIGHTS=fp16|int8 carries the fc1/fc2 copies its stages bind instead.
+  for (const auto w : {bt::FcWeights::kFp32, bt::FcWeights::kFp16, bt::FcWeights::kInt8}) {
+    cached_algorithms.try_emplace(
+        linear_bt_name(w),
+        engine.make_algo("new_cifar_dense_linear_bt")
+            ->work_group_size(256, 1, 1)
+            ->subgroup_size_dependent()
+            ->spec_constant(1, engine.compute_limits().subgroup_clustered ? 1 : 0)
+            ->spec_constant(2, static_cast<uint32_t>(w))
+            ->num_buffers(4)  // Input, Weight, Bias, Output
+            ->push_constant<LinearPushConstants>()
+            ->build());
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -490,7 +501,12 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, kiss_vk::S
 
   // Batch-tiled shader (vec4 weight loads); generic fallback.
   const bool bt = input_features % 4 == 0;
-  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
+  // fc1/fc2 read the AppData's reduced-precision copy in its BT_VK_FC_WEIGHTS mode.
+  const bool reduced = bt && appdata.fc_weights != bt::FcWeights::kFp32;
+  auto algo =
+      cached_algorithms
+          .at(bt ? linear_bt_name(reduced ? appdata.fc_weights : bt::FcWeights::kFp32) : "linear")
+          .get();
 
   // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup; grid.y walks
   // the batch in 16-image tiles.
@@ -510,7 +526,8 @@ void VulkanDispatcher::record_stage_9(cifar_sparse::AppData& appdata, kiss_vk::S
   algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_pool3_out.pmr_vec()),
-                        engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
+                        reduced ? engine.get_buffer_info(appdata.u_fc1_wq.words)
+                                : engine.get_buffer_info(appdata.u_fc1_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
                     });
@@ -533,7 +550,12 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, kiss_vk::
 
   // Batch-tiled shader (vec4 weight loads); generic fallback.
   const bool bt = input_features % 4 == 0;
-  auto algo = cached_algorithms.at(bt ? "linear_bt" : "linear").get();
+  // fc1/fc2 read the AppData's reduced-precision copy in its BT_VK_FC_WEIGHTS mode.
+  const bool reduced = bt && appdata.fc_weights != bt::FcWeights::kFp32;
+  auto algo =
+      cached_algorithms
+          .at(bt ? linear_bt_name(reduced ? appdata.fc_weights : bt::FcWeights::kFp32) : "linear")
+          .get();
 
   // bt: a 16-lane row owns two output features, 16 rows (32 features) per workgroup; grid.y walks
   // the batch in 16-image tiles.
@@ -553,7 +575,8 @@ void VulkanDispatcher::record_stage_10(cifar_sparse::AppData& appdata, kiss_vk::
   algo->record_bind(seq,
                     {
                         engine.get_buffer_info(appdata.u_fc1_out.pmr_vec()),
-                        engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
+                        reduced ? engine.get_buffer_info(appdata.u_fc2_wq.words)
+                                : engine.get_buffer_info(appdata.u_fc2_w.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_b.pmr_vec()),
                         engine.get_buffer_info(appdata.u_fc2_out.pmr_vec()),
                     });

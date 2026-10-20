@@ -27,6 +27,7 @@
 #include <span>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 namespace bt::testing {
 
@@ -126,6 +127,27 @@ template <std::ranges::contiguous_range R1, std::ranges::contiguous_range R2>
                    atol,
                    label,
                    count);
+}
+
+// The (rtol, atol) a differential suite checks stage s with: the Runner's
+// StageTolerance(s) if it has one (e.g. a stage it runs in reduced precision), else its
+// kRtol / kAtol. E2eTolerance likewise for the end-to-end check (kE2eRtol / kE2eAtol).
+template <class Runner>
+std::pair<float, float> StageTolerance(const int s) {
+  if constexpr (requires { Runner::StageTolerance(s); }) {
+    return Runner::StageTolerance(s);
+  } else {
+    return {Runner::kRtol, Runner::kAtol};
+  }
+}
+
+template <class Runner>
+std::pair<float, float> E2eTolerance() {
+  if constexpr (requires { Runner::E2eTolerance(); }) {
+    return Runner::E2eTolerance();
+  } else {
+    return {Runner::kE2eRtol, Runner::kE2eAtol};
+  }
 }
 
 }  // namespace bt::testing

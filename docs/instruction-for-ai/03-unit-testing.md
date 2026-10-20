@@ -189,6 +189,15 @@ BT_VK_SUBGROUP_SIZE=32 ./test-tree-vk --device minipc     # rocky-ryzen, pinned 
 - `BT_VK_SPARSE_STAGE_ROW=1` makes the `_oc` shader stage each CSR row in shared memory, 1024 nonzeros at a time
   (its `STAGE_ROW` spec constant). [Unset: off; on the Samsung it was not faster and was slower on conv4 and conv5,
   cifar-gpu-kernels task 1.8.]
+- `BT_VK_FC_WEIGHTS=fp16|int8` gives cifar's fc1 and fc2 reduced-precision weights on Vulkan (cifar-gpu-kernels F2):
+  the AppData quantizes its loaded FP32 weights once, at construction (`platform/util/fc_weights.hpp`: IEEE
+  binary16, or INT8 with a per-output-row scale `max|w| / 127`), and `new_cifar_dense_linear_bt.comp` (spec constant
+  `WEIGHTS`) dequantizes them to FP32 in registers. fc3, the other stages and the other backends stay FP32. The
+  copies are read as 32-bit words, so no device feature beyond the required ones is needed and no device falls
+  back. Tolerances against the FP32 oracle: fp16 the FP32 ones; int8 fc1/fc2 rtol 2e-2, atol 1.5e-2, end to end
+  2e-2 / 2e-2 (the runner's `StageTolerance` / `E2eTolerance`). `LinearBt.Fp16Weights` / `Int8Weights` check the
+  kernel against the weights it decodes at the FP32 bound. [Unset, empty or fp32: FP32 weights and no copies; any
+  other value throws.]
 - Static Mali analysis: `malioc -c Mali-G710 --vulkan -S 0=16 <shader>.spv` on the glslc output (Arm Performance
   Studio's Mali Offline Compiler; on the build box under `~/tools/arm-performance-studio/`). Measurements and the
   rejected variants: [`../reports-for-human/2026-10-16-mali-conv-kernels.md`](../reports-for-human/2026-10-16-mali-conv-kernels.md).

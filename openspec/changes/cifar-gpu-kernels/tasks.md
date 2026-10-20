@@ -974,7 +974,32 @@ no-regression check. FC changes run on both phones.
     `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic and real weights on the build
     box's iGPU, on rocky (`ctest -L vulkan` 7/7; run before an empty `BT_VK_FC_WEIGHTS` was taken as FP32) and
     on both phones.
-- [ ] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.
+- [x] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.
+  - *Kernel:* `new_cifar_dense_linear_bt.comp` gains spec constant 2, `WEIGHTS` (0 FP32, 1 FP16, 2 INT8), and reads
+    binding 1 through three aliased read-only declarations (`vec4`, `uvec2`, `uint`; Vulkan lets same-type
+    descriptors alias): FP16 converts with `unpackHalf2x16`, INT8 sign-extends each byte with `bitfieldExtract`
+    and multiplies the row's reduced sum by its scale (stored after the rows) before the bias. The SPIR-V still
+    declares only Shader, GroupNonUniform and GroupNonUniformClustered. malioc (Mali-G710, CLUSTERED): FP32 is
+    unchanged from 3.2 (64 registers, spill 20 B, LS 28.80); FP16 LS 29.00, INT8 30.50.
+  - *Dispatch:* both dispatchers build one pipeline per precision (`linear_bt`, `linear_bt/fp16`,
+    `linear_bt/int8`); fc1 and fc2 take the AppData's mode and bind its copy instead of the FP32 weights; fc3 and
+    the generic fallback stay FP32.
+  - *Documented tolerances* (VulkanRunner, through a new optional `StageTolerance(s)` / `E2eTolerance()` hook in
+    `platform/util/testing/oracle.hpp` that both diff oracles use): FP16 keeps the FP32 bounds (rtol 1e-3, atol
+    1e-4; end to end 5e-3 / 5e-3); INT8 fc1/fc2 rtol 2e-2, atol 1.5e-2, end to end 2e-2 / 2e-2. Measured on the
+    build box with real weights: INT8 fc1 max |diff| 0.0057 (cifar-dense) / 0.0059 (cifar-sparse), fc2 0.0066 /
+    0.0100, logits 0.0073; FP16 passes the FP32 bounds everywhere. 03-unit-testing.md documents the knob and the
+    tolerances.
+  - *Kernel tests:* `LinearBt.Fp16Weights`, `LinearBt.Int8Weights` and `LinearBt.Int8WeightsSharedMemoryReduction`
+    run the ragged 21 x 100 -> 37 shape against a double-precision reference on the weights as the kernel decodes
+    them (`FcWeightCopy::dequantized`), at the FP32 bound. Mutation check on the build box: with the INT8 row scale
+    dropped both INT8 tests fail.
+  - *Results* (`test-cifar-sparse-vk` now 25 tests, `test-cifar-dense-vk` 19; synthetic and real weights each):
+    build box RADV iGPU: default, fp16 and int8 all passed. rocky (`~/bt-fc-gate`): default with `ctest -L vulkan`
+    7/7 passed; `BT_VK_FC_WEIGHTS=fp16` and `=int8` all passed (the int8 run synced the next step's accuracy test
+    too, 26 / 20 with real weights, all passed). Pixel 7a and Samsung (`/data/local/tmp/bt-fc/s36`), fp32, fp16
+    and int8: 25 and 19 passed, exit 0, every combination. Local `ctest -L omp` 11/11 passed. Every fleet device
+    supports both variants.
 - [ ] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.
 - [ ] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").
 - [ ] 3.9 F4 (optional): if `new_cifar_{dense,sparse}_linear.comp` are removed, first add a test forcing `in_features % 4 != 0` to prove the remaining path covers it. Verify: that test passes, then clean builds. If they're kept, record why.

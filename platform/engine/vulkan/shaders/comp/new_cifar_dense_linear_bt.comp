@@ -39,6 +39,12 @@ precision highp int;
 // without clustered subgroup operations, or a subgroup narrower than a row) keeps the shared-memory
 // reduction. 8 KB shared with CLUSTERED, 12 KB without (<= the 16 KB Vulkan minimum); fixed
 // local_size 256.
+//
+// WEIGHTS selects the weight precision (cifar-gpu-kernels F2, BT_VK_FC_WEIGHTS): FP32, FP16 or INT8
+// with a per-output-row scale, the copies bt::FcWeightCopy makes on the host. Binding 1 is read
+// through one of three aliased declarations, all as 32-bit words or vectors of them, and dequantized
+// to FP32 in registers (unpackHalf2x16; sign-extended bytes, the scale applied to the row's sum), so
+// the reduced modes need no device feature beyond the engine's required ones.
 
 #extension GL_KHR_shader_subgroup_clustered : require
 
@@ -47,13 +53,22 @@ layout(local_size_x = 256) in;
 layout(constant_id = 0) const int SUBGROUP_SIZE = 16;  // the device's, set by the engine
 layout(constant_id = 1) const int CLUSTERED = 1;      // 1 or 0, set by the dispatcher
 const bool CLUSTER_ROWS = CLUSTERED != 0 && SUBGROUP_SIZE >= 16;  // ROW_W
+layout(constant_id = 2) const int WEIGHTS = 0;  // 0: FP32, 1: FP16, 2: INT8, set by the dispatcher
 
 layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
   vec4 input_data4[];  // [N, in_features/4]
 };
 
 layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
-  vec4 weight_data4[];  // [out_features, in_features/4]
+  vec4 weight_data4[];  // FP32: [out_features, in_features/4]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBufferF16 {
+  uvec2 weight_f16x4[];  // FP16: [out_features, in_features/4], 4 halves each
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBufferI8 {
+  uint weight_i8x4[];  // INT8: [out_features, in_features/4], 4 bytes each; then [out_features] scales
 };
 
 layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
@@ -80,6 +95,27 @@ const int MAX_N = 16;    // accumulator registers per lane; loops over it unroll
 
 shared vec4 sh_in[MAX_N * CHUNK4];  // staged input columns, 8 KB
 shared vec4 sh_red[CLUSTER_ROWS ? 1 : 256];  // cross-lane reduction scratch, 4 KB without CLUSTERED
+
+// Weight vec4 i (in units of 4 weights) in FP32, the INT8 row scale left out.
+vec4 weight4(const int i) {
+  if (WEIGHTS == 1) {
+    const uvec2 h = weight_f16x4[i];
+    return vec4(unpackHalf2x16(h.x), unpackHalf2x16(h.y));
+  }
+  if (WEIGHTS == 2) {
+    const int q = int(weight_i8x4[i]);
+    return vec4(bitfieldExtract(q, 0, 8), bitfieldExtract(q, 8, 8), bitfieldExtract(q, 16, 8),
+                bitfieldExtract(q, 24, 8));
+  }
+  return weight_data4[i];
+}
+
+// What a row's sum is multiplied by: the INT8 scale of output feature of, else 1.
+float row_scale(const int of) {
+  return WEIGHTS == 2
+             ? uintBitsToFloat(weight_i8x4[params.out_features * (params.in_features / 4) + of])
+             : 1.0;
+}
 
 void main() {
   const int tid = int(gl_LocalInvocationID.x);
@@ -124,8 +160,8 @@ void main() {
     if (live) {
       for (int k = lane; k < CHUNK4; k += ROW_W) {
         if (c4 + k < in_f4) {
-          const vec4 w = weight_data4[w_base0 + c4 + k];
-          const vec4 w1 = weight_data4[w_base1 + c4 + k];
+          const vec4 w = weight4(w_base0 + c4 + k);
+          const vec4 w1 = weight4(w_base1 + c4 + k);
           for (int n = 0; n < MAX_N; ++n) {
             const vec4 x = sh_in[n * CHUNK4 + k];
             acc[n] += dot(w, x);
@@ -157,7 +193,7 @@ void main() {
       for (int f = 0; f < FPR; ++f) {
         const int of = of0 + f;
         if (of < params.out_features) {
-          float v = (f == 0 ? out0 : out1) + bias_data[of];
+          float v = (f == 0 ? out0 : out1) * row_scale(of) + bias_data[of];
           if (params.apply_relu != 0 && v < 0.0) v = 0.0;
           output_data[n * params.out_features + of] = v;
         }
@@ -178,6 +214,7 @@ void main() {
         vec4 s = sh_red[row * ROW_W];
         for (int i = 1; i < ROW_W; ++i) s += sh_red[row * ROW_W + i];
         const float b = bias_data[of];
+        s *= row_scale(of);
         for (int m = 0; m < 4; ++m) {
           if (nb + n0 + m < params.N) {
             float v = s[m] + b;

@@ -14,6 +14,7 @@
 #include "dispatchers.hpp"
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/fc_weights.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -30,6 +31,22 @@ struct VulkanRunner {
   static constexpr float kAtol = 1e-4f;
   static constexpr float kE2eRtol = 5e-3f;
   static constexpr float kE2eAtol = 5e-3f;
+  // Against the FP32 oracle with reduced-precision fc1/fc2 weights (cifar-gpu-kernels F2,
+  // BT_VK_FC_WEIGHTS): fp16 keeps the bounds above; int8, whose weights are off by up to half
+  // their row's scale (max |w| / 254), loosens fc1, fc2 and the end-to-end logits.
+  static constexpr float kInt8Rtol = 2e-2f;
+  static constexpr float kInt8Atol = 1.5e-2f;
+  static constexpr float kInt8E2eRtol = 2e-2f;
+  static constexpr float kInt8E2eAtol = 2e-2f;
+  static bool Int8() { return bt::fc_weights_from_env() == bt::FcWeights::kInt8; }
+  static std::pair<float, float> StageTolerance(const int s) {
+    if ((s == 9 || s == 10) && Int8()) return {kInt8Rtol, kInt8Atol};
+    return {kRtol, kAtol};
+  }
+  static std::pair<float, float> E2eTolerance() {
+    if (Int8()) return {kInt8E2eRtol, kInt8E2eAtol};
+    return {kE2eRtol, kE2eAtol};
+  }
   cifar_dense::vulkan::VulkanDispatcher disp;
   static bool Available() { return kiss_vk::has_integrated_gpu(); }  // skip if no iGPU
   std::pmr::memory_resource* Mr() { return disp.get_mr(); }

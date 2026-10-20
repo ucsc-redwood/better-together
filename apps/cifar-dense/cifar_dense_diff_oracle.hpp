@@ -154,7 +154,8 @@ inline void RunAndCheckStage(int s) {
   Runner runner;
   AppData a(runner.Mr());
   for (int i = 1; i <= s; ++i) runner.RunStage(a, i);
-  CheckStage(a, s, Runner::kRtol, Runner::kAtol);
+  const auto [rtol, atol] = bt::testing::StageTolerance<Runner>(s);
+  CheckStage(a, s, rtol, atol);
 }
 
 // ----------------------------------------------------------------------------
@@ -314,7 +315,8 @@ inline void RunFullAndCheckFinal() {
   Runner runner;
   AppData a(runner.Mr());
   for (int i = 1; i <= 11; ++i) runner.RunStage(a, i);
-  CheckFinalPipeline(a, Runner::kE2eRtol, Runner::kE2eAtol);
+  const auto [rtol, atol] = bt::testing::E2eTolerance<Runner>();
+  CheckFinalPipeline(a, rtol, atol);
 }
 
 }  // namespace cifar_dense::testing

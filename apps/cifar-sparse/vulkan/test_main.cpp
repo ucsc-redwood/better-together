@@ -19,6 +19,7 @@
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/fc_weights.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -36,6 +37,22 @@ struct VulkanRunner {
   static constexpr float kAtol = 1e-4f;
   static constexpr float kE2eRtol = 5e-3f;
   static constexpr float kE2eAtol = 5e-3f;
+  // Against the FP32 oracle with reduced-precision fc1/fc2 weights (cifar-gpu-kernels F2,
+  // BT_VK_FC_WEIGHTS): fp16 keeps the bounds above; int8, whose weights are off by up to half
+  // their row's scale (max |w| / 254), loosens fc1, fc2 and the end-to-end logits.
+  static constexpr float kInt8Rtol = 2e-2f;
+  static constexpr float kInt8Atol = 1.5e-2f;
+  static constexpr float kInt8E2eRtol = 2e-2f;
+  static constexpr float kInt8E2eAtol = 2e-2f;
+  static bool Int8() { return bt::fc_weights_from_env() == bt::FcWeights::kInt8; }
+  static std::pair<float, float> StageTolerance(const int s) {
+    if ((s == 9 || s == 10) && Int8()) return {kInt8Rtol, kInt8Atol};
+    return {kRtol, kAtol};
+  }
+  static std::pair<float, float> E2eTolerance() {
+    if (Int8()) return {kInt8E2eRtol, kInt8E2eAtol};
+    return {kE2eRtol, kE2eAtol};
+  }
   cifar_sparse::vulkan::VulkanDispatcher disp;
   static bool Available() { return kiss_vk::has_integrated_gpu(); }  // skip if no iGPU
   std::pmr::memory_resource* Mr() { return disp.get_mr(); }
@@ -352,9 +369,12 @@ TEST(SparseConvTaps, DecodeToColIdx) {
 // output features and kLinearBtBatchTile images per workgroup. The model's layers are
 // multiples of both (4096 and 10 features at N = 16 or 128); this shape is not: an odd
 // output-feature count, a ragged last batch tile and a ragged last input chunk. Both row
-// reductions: subgroupClusteredAdd (what every fleet GPU runs) and the shared-memory fallback.
+// reductions: subgroupClusteredAdd (what every fleet GPU runs) and the shared-memory fallback,
+// and each weight precision (cifar-gpu-kernels F2), against a reference that uses the weights as
+// the kernel decodes them (bt::FcWeightCopy::dequantized), so the FP32 bound holds for all three.
 namespace {
-void ExpectLinearBtMatchesReference(const bool clustered) {
+void ExpectLinearBtMatchesReference(const bool clustered,
+                                    const bt::FcWeights weights = bt::FcWeights::kFp32) {
   constexpr int kN = 21, kIn = 100, kOut = 37;  // 25 input vec4s: less than one 32-vec4 chunk
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
@@ -371,6 +391,12 @@ void ExpectLinearBtMatchesReference(const bool clustered) {
   for (auto& x : in) x = val(rng);
   for (auto& x : weight) x = val(rng);
   for (auto& x : bias) x = val(rng);
+  bt::FcWeightCopy copy(weights, kOut, kIn, mr);
+  copy.quantize(weight.data());
+  const auto w = [&](const int o, const int i) {
+    return weights == bt::FcWeights::kFp32 ? weight[static_cast<size_t>(o) * kIn + i]
+                                           : copy.dequantized(o, i);
+  };
 
   struct Pc {  // layout of the shader's push constants
     int32_t N, in_features, out_features, apply_relu;
@@ -379,6 +405,7 @@ void ExpectLinearBtMatchesReference(const bool clustered) {
                   ->work_group_size(256, 1, 1)
                   ->subgroup_size_dependent()
                   ->spec_constant(1, clustered ? 1 : 0)
+                  ->spec_constant(2, static_cast<uint32_t>(weights))
                   ->num_buffers(4)
                   ->push_constant<Pc>()
                   ->build();
@@ -386,7 +413,8 @@ void ExpectLinearBtMatchesReference(const bool clustered) {
   seq->cmd_begin();
   algo->record_bind(*seq,
                     {engine.get_buffer_info(in),
-                     engine.get_buffer_info(weight),
+                     weights == bt::FcWeights::kFp32 ? engine.get_buffer_info(weight)
+                                                     : engine.get_buffer_info(copy.words),
                      engine.get_buffer_info(bias),
                      engine.get_buffer_info(out)});
   algo->record_push_constants(*seq, Pc{kN, kIn, kOut, /*apply_relu=*/1});
@@ -402,12 +430,11 @@ void ExpectLinearBtMatchesReference(const bool clustered) {
     for (int o = 0; o < kOut; ++o) {
       double acc = bias[o];
       for (int i = 0; i < kIn; ++i) {
-        acc += static_cast<double>(weight[static_cast<size_t>(o) * kIn + i]) *
-               in[static_cast<size_t>(n) * kIn + i];
+        acc += static_cast<double>(w(o, i)) * in[static_cast<size_t>(n) * kIn + i];
       }
       const double want = std::max(acc, 0.0);
       ASSERT_NEAR(out[static_cast<size_t>(n) * kOut + o], want, 1e-4 + 1e-3 * std::abs(want))
-          << "n " << n << " o " << o;
+          << bt::to_string(weights) << " n " << n << " o " << o;
     }
   }
 }
@@ -421,6 +448,21 @@ TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
 TEST(LinearBt, RaggedFeatureBatchAndChunkEdgesSharedMemoryReduction) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectLinearBtMatchesReference(/*clustered=*/false);
+}
+
+TEST(LinearBt, Fp16Weights) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/true, bt::FcWeights::kFp16);
+}
+
+TEST(LinearBt, Int8Weights) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/true, bt::FcWeights::kInt8);
+}
+
+TEST(LinearBt, Int8WeightsSharedMemoryReduction) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/false, bt::FcWeights::kInt8);
 }
 
 int main(int argc, char** argv) {
