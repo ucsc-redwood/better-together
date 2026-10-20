@@ -72,11 +72,15 @@ struct DenseConvPc {  // layout of the shader's push constants
   int32_t N, C, H, W, K, R, S, stride, padding, apply_relu;
 };
 
-void ExpectDenseConvMatchesReference(const int h, const int w) {
+// per_block: new_cifar_dense_conv2d_k3s1p1_oc (cifar-gpu-kernels C1, what cifar-dense runs on
+// subgroups of 32 and more) instead of new_cifar_dense_conv2d_k3s1p1.
+void ExpectDenseConvMatchesReference(const int h, const int w, const bool per_block = false) {
   // K % OC_TILE(4) == 0: four blocks. N = 6 so every shape needs more than one 256-wide workgroup
   // on the Mali path too (4 pixels per invocation): a contract that over-counts outputs per
   // invocation then launches too few workgroups, and the missing outputs keep their -1 fill.
-  constexpr int kN = 6, kC = 5, kK = 16;
+  // per_block: N = 8, so that N*H*W, one workgroup row, also spans more than one workgroup.
+  constexpr int kC = 5, kK = 16;
+  const int kN = per_block ? 8 : 6;
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 
@@ -90,12 +94,12 @@ void ExpectDenseConvMatchesReference(const int h, const int w) {
   for (auto& x : weight) x = val(rng);
   for (auto& x : bias) x = val(rng);
 
-  auto algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1")
-                  ->work_group_size(256, 1, 1)
-                  ->subgroup_size_dependent()
-                  ->num_buffers(4)
-                  ->push_constant<DenseConvPc>()
-                  ->build();
+  auto algo = engine
+                  .make_algo(per_block ? "new_cifar_dense_conv2d_k3s1p1_oc"
+                                       : "new_cifar_dense_conv2d_k3s1p1")
+                  ->work_group_size(256, 1, 1);
+  if (!per_block) algo = algo->subgroup_size_dependent();
+  algo = algo->num_buffers(4)->push_constant<DenseConvPc>()->build();
   const DenseConvPc pc{kN, kC, h, w, kK, 3, 3, 1, 1, /*apply_relu=*/1};
   auto seq = engine.make_seq();
   seq->cmd_begin();
@@ -105,9 +109,14 @@ void ExpectDenseConvMatchesReference(const int h, const int w) {
                      engine.get_buffer_info(bias),
                      engine.get_buffer_info(out)});
   algo->record_push_constants(*seq, pc);
-  const size_t invocations =
-      kiss_vk::dense_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
-  algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
+  if (per_block) {
+    const auto grid = kiss_vk::dense_conv_k3s1p1_oc_grid(kN, kK, h, w);
+    algo->record_dispatch(*seq, {grid.x, grid.y, 1});
+  } else {
+    const size_t invocations =
+        kiss_vk::dense_conv_k3s1p1_invocations(kN, kK, h, w, engine.subgroup_size());
+    algo->record_dispatch(*seq, {static_cast<uint32_t>(kiss_vk::div_ceil(invocations, 256)), 1, 1});
+  }
   seq->cmd_end();
   seq->wait(seq->submit());
 
@@ -150,6 +159,22 @@ TEST(DenseConvK3S1P1, UniformWeightsWhenMapIsSubgroupMultiple) {
 TEST(DenseConvK3S1P1, RaggedOddWidthMap) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectDenseConvMatchesReference(7, 5);
+}
+
+// The C1 kernel does not depend on the subgroup size, so these run on every GPU.
+TEST(DenseConvPerBlock, Map6x6) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectDenseConvMatchesReference(6, 6, /*per_block=*/true);
+}
+
+TEST(DenseConvPerBlock, Map8x8) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectDenseConvMatchesReference(8, 8, /*per_block=*/true);
+}
+
+TEST(DenseConvPerBlock, RaggedOddWidthMap) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectDenseConvMatchesReference(7, 5, /*per_block=*/true);
 }
 
 int main(int argc, char** argv) {

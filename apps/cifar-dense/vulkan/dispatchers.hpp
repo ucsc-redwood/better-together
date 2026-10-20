@@ -101,6 +101,14 @@ class VulkanDispatcher final {
   void record_stage_9(AppData& appdata, kiss_vk::Sequence& seq);
   void record_stage_10(AppData& appdata, kiss_vk::Sequence& seq);
   void record_stage_11(AppData& appdata, kiss_vk::Sequence& seq);
+  // Conv stages 1, 3, 5, 6, 7: the 3x3/s1/p1 shader for this subgroup size, or the generic one.
+  // per_block_ok: false keeps the conv off the C1 kernel (conv1, design C non-goal).
+  void record_conv(kiss_vk::Sequence& seq,
+                   Ndarray4D& in,
+                   Ndarray4D& weight,
+                   Ndarray1D& bias,
+                   Ndarray4D& out,
+                   bool per_block_ok);
 
   using RecordFn = void (VulkanDispatcher::*)(AppData&, kiss_vk::Sequence&);
 
@@ -121,6 +129,9 @@ class VulkanDispatcher final {
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
+  // The C1 kernel on subgroups of 32 and more; BT_VK_DENSE_CONV=flat keeps the previous one
+  // (read once, here).
+  bool conv_per_block;
 };
 
 }  // namespace cifar_dense::vulkan

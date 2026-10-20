@@ -3,9 +3,9 @@
 #include <cstddef>
 #include <cstdint>
 
-// Launch geometry of the 3x3/stride-1/pad-1 conv shaders new_cifar_dense_conv2d_k3s1p1.comp and
-// new_cifar_sparse_conv2d_k3s1p1.comp, shared by the cifar-dense and cifar-sparse dispatchers and
-// the conv tests. The dense shader picks its path from the subgroup size it is specialized with
+// Launch geometry of the 3x3/stride-1/pad-1 conv shaders new_cifar_dense_conv2d_k3s1p1{,_oc}.comp
+// and new_cifar_sparse_conv2d_k3s1p1.comp, shared by the cifar-dense and cifar-sparse dispatchers
+// and the conv tests. The dense shader picks its path from the subgroup size it is specialized with
 // (spec constant 0, the engine's subgroup_size()); cifar-sparse picks one of two shaders by it. The
 // path below 32 (Mali) may compute several adjacent output pixels of a row per invocation. Keep in
 // step with OC_TILE and PX in the shaders: a grid that counts more outputs per invocation than the
@@ -23,6 +23,19 @@ constexpr size_t dense_conv_k3s1p1_invocations(
     const int n, const int k, const int h, const int w, const uint32_t subgroup_size) {
   const int px = subgroup_size < 32 ? kDenseConvMaliPixels : 1;
   return static_cast<size_t>(n) * (k / kDenseConvChannelsPerInvocation) * h * ((w + px - 1) / px);
+}
+
+// new_cifar_dense_conv2d_k3s1p1_oc.comp, which cifar-dense runs on subgroups of 32 and above:
+// x = the K / OC_TILE blocks of output channels, y = the blocks of 256 output pixels.
+struct DenseConvOcGrid {
+  uint32_t x, y;
+};
+constexpr DenseConvOcGrid dense_conv_k3s1p1_oc_grid(const int n,
+                                                    const int k,
+                                                    const int h,
+                                                    const int w) {
+  return {static_cast<uint32_t>(k / kDenseConvChannelsPerInvocation),
+          static_cast<uint32_t>((static_cast<size_t>(n) * h * w + 255) / 256)};
 }
 
 // new_cifar_sparse_conv2d_k3s1p1.comp is the Mali path only: cifar-sparse runs it below subgroup

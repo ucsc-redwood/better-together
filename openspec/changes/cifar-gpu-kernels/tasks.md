@@ -494,7 +494,105 @@ no-regression check. FC changes run on both phones.
     (`s_waitcnt vmcnt(8)` .. `vmcnt(0)`) and weight loads (`lgkmcnt(0)`) before its 36 FMAs; nothing of the next
     channel is in flight. 9 vector loads feed 36 FMAs (4 FMAs per load). C2/C3 address this: fewer loads per FMA
     (register tile) and inputs from shared memory.
-- [ ] 2.4 C1: move `oct` to `gl_WorkGroupID.y`, grid `(ceil(N·H·W/256), K/OC_TILE, 1)`. Verify: the rocky gate passes; ACO shows scalar weight loads (quoted); timing on both phones is recorded against 2.1 with no regression beyond noise.
+- [x] 2.4 C1: move `oct` to `gl_WorkGroupID.y`, grid `(ceil(N·H·W/256), K/OC_TILE, 1)`. Verify: the rocky gate passes; ACO shows scalar weight loads (quoted); timing on both phones is recorded against 2.1 with no regression beyond noise.
+  - *Kernel:* `new_cifar_dense_conv2d_k3s1p1_oc.comp`, the subgroup >= 32 loop of `new_cifar_dense_conv2d_k3s1p1`
+    with the channel block taken from the workgroup id: one invocation per output pixel, 4 channels, the 9 taps
+    loaded unconditionally on clamped indices; no `subgroupAllEqual` test and no per-lane loop. Its own file, so
+    the Mali shader and its selection do not change. The dispatcher's five conv recorders became one
+    `record_conv` (they differed only in their buffers); it takes the new kernel when the subgroup is 32 or more,
+    except for conv1, and the previous shader otherwise or with `BT_VK_DENSE_CONV=flat` (the old-kernel flag,
+    read once per dispatcher). Grid from `kiss_vk::dense_conv_k3s1p1_oc_grid`. `DenseConvPerBlock.{Map6x6,
+    Map8x8,RaggedOddWidthMap}` check it against the double-precision reference (N 8, so the pixels span two
+    workgroups).
+  - *As built, the channel block is `gl_WorkGroupID.x`, not `.y`* (grid `(K/4, ceil(N·H·W/256), 1)`). As written
+    (`.y`), consecutive workgroups take the same channel block of different images, and the Samsung slowed down
+    beyond noise on conv1 and conv2: the first A/B (`base` d563dc5 vs the `.y` kernel, both phones, 2026-10-20
+    05:47-05:52 UTC) read conv1 0.996 (0.976-0.999) vs 0.913 (0.907-0.917) ms, +9.1 %, conv2 4.121
+    (4.031-4.165) vs 3.406 (3.397-3.406), +21.0 %, while conv4 (-16.4 %) and conv5 (-10.6 %) gained. A three-arm
+    run on the Samsung (05:54-06:02 UTC, `base`, `.y`, `.x`, same method) confirmed it: with `.x` consecutive
+    workgroups share the input pixels and conv2 is -3.0 %. Conv1 was still +1.0 % with `.x` (0.921 vs 0.912 ms,
+    spreads apart), so conv1 keeps the previous kernel, as design C's non-goals allow. design.md C1, "As built".
+    The `.y` kernel was never committed. Samsung, ms:
+
+    | stage | base median (min-max) ms | y median (min-max) ms | x median (min-max) ms | y vs base | x vs base |
+    |---|---|---|---|---|---|
+    | 1 | 0.912 (0.911-0.914, n=3x1075-1120) | 0.969 (0.968-0.998, n=3x1016-1071) | 0.921 (0.921-0.923, n=3x1091-1120) | +6.2 % | +1.0 % |
+    | 2 | 1.302 (1.299-1.309, n=3x1262-1911) | 1.287 (1.281-1.289, n=3x904-1767) | 1.301 (1.289-1.303, n=3x875-1658) | -1.2 % | -0.0 % |
+    | 3 | 3.405 (3.405-3.407, n=3x514-661) | 4.066 (3.950-4.118, n=3x449-542) | 3.303 (3.301-3.304, n=3x527-678) | +19.4 % | -3.0 % |
+    | 4 | 0.971 (0.962-0.978, n=3x1155-1252) | 0.976 (0.972-0.977, n=3x1234-1285) | 0.974 (0.969-0.976, n=3x1066-1272) | +0.5 % | +0.3 % |
+    | 5 | 2.453 (2.451-2.725, n=3x369-452) | 2.906 (1.979-2.915, n=3x344-569) | 2.197 (2.195-2.765, n=3x361-508) | +18.5 % | -10.4 % |
+    | 6 | 3.395 (3.393-3.396, n=3x328-335) | 2.840 (2.835-2.846, n=3x397-400) | 3.223 (3.223-3.227, n=3x344-348) | -16.3 % | -5.1 % |
+    | 7 | 2.217 (2.216-2.881, n=3x391-505) | 2.701 (1.867-2.704, n=3x436-608) | 2.012 (2.010-2.021, n=3x551-556) | +21.8 % | -9.2 % |
+    | 8 | 0.327 (0.326-0.330, n=3x2000) | 0.331 (0.327-0.332, n=3x2000) | 0.330 (0.325-0.330, n=3x2000) | +1.0 % | +0.7 % |
+    | 9 | 2.908 (2.891-3.003, n=3x344-347) | 2.903 (2.048-2.906, n=3x458-530) | 2.083 (2.048-2.849, n=3x483-528) | -0.2 % | -28.4 % |
+    | 10 | 1.977 (1.976-2.712, n=3x368-538) | 1.975 (1.975-2.809, n=3x480-536) | 2.717 (1.978-2.762, n=3x476-555) | -0.1 % | +37.4 % |
+    | 11 | 0.638 (0.624-0.640, n=3x1443-2000) | 0.652 (0.637-0.659, n=3x1391-2000) | 0.640 (0.633-0.649, n=3x1422-2000) | +2.2 % | +0.4 % |
+    | sum | 20.504 | 21.605 | 19.701 | +5.4 % | -3.9 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 11.470 (11.467-12.408, 3 runs) | 12.519 (10.630-12.578, 3 runs) | 10.742 (10.735-11.303, 3 runs) | +9.1 % | -6.3 % |
+
+  - *rocky gate* (the tree of this commit in `~/bt-dense-gate`, glslc of NDK r29): build exit 0, `ctest -L vulkan`
+    7/7 passed, `./test-cifar-dense-vk --device minipc` 19 passed with the new kernel and with
+    `BT_VK_DENSE_CONV=flat`. `just check-shaders`: OK. On the build box's RADV iGPU, with the new kernel's output
+    halved (a local mutation, reverted), `*Stage5*:*Stage1_*` fail stage 5 only by default (conv1 is not on it)
+    and pass with `BT_VK_DENSE_CONV=flat`. Both phones: `test-cifar-dense-vk` 19 passed, with synthetic and with
+    real weights.
+  - *ACO* (the 2.3 command on this tree; the new kernel is the third of six compute shaders): the weights are
+    scalar, 8 scalar loads per channel as before, now without a subgroup test or a second loop:
+
+        s_clause 0x8
+        buffer_load_b32 v7, v7, s[24:27], 0 offen              ; input, 9 taps
+        ...
+        s_clause 0x7
+        s_buffer_load_b256 s[40:47], s[28:31], s24             ; weights (binding 1, s[28:31])
+        s_buffer_load_b32 s25, s[28:31], s25
+        ...
+        s_buffer_load_b256 s[64:71], s[28:31], s39
+        s_buffer_load_b32 s15, s[28:31], s15
+        s_waitcnt vmcnt(8)
+        ...
+        v_fmac_f32_e32 v16, s40, v7
+
+  - *Phone gate* (the 2.1 method, `base` d563dc5 vs this commit's binary, both phones at once, 2026-10-20
+    06:05-06:11 UTC; all 12 runs exit 0 with 11 records): met. Samsung: no conv slower; conv2 -2.9 % with spreads
+    apart, conv3/conv4/conv5 -6.0 / -5.1 / -9.2 % with overlapping spreads, the conv2-conv5 sum 11.490
+    (10.728-12.378) vs 11.815 (11.454-12.988) ms. Pixel 7a (the Mali path, the same shader and grid): every conv
+    within its 2.1 noise; stage 3 and 7 move by -7.9 / -6.5 % between their two levels (9.98-15.76 and
+    14.53-15.83 ms in 2.1).
+  - Pixel 7a, ms:
+
+    | stage | base median (min-max) ms | C1 median (min-max) ms | C1 vs base |
+    |---|---|---|---|
+    | 1 | 2.570 (2.552-2.571, n=3x391-586) | 2.571 (2.569-2.572, n=3x391-393) | +0.0 % |
+    | 2 | 0.496 (0.492-0.496, n=3x2000) | 0.491 (0.491-0.495, n=3x2000) | -1.0 % |
+    | 3 | 14.551 (13.403-15.761, n=3x55-63) | 13.395 (12.355-15.763, n=3x63-90) | -7.9 % |
+    | 4 | 0.382 (0.381-0.383, n=3x2000) | 0.383 (0.379-0.383, n=3x2000) | +0.2 % |
+    | 5 | 16.421 (15.171-16.478, n=3x63-73) | 16.446 (15.189-16.468, n=3x51-73) | +0.1 % |
+    | 6 | 20.308 (20.289-20.348, n=3x49) | 20.300 (20.277-20.351, n=3x49) | -0.0 % |
+    | 7 | 15.757 (15.746-15.770, n=3x68-69) | 14.733 (14.573-15.831, n=3x68) | -6.5 % |
+    | 8 | 0.173 (0.172-0.174, n=3x2000) | 0.174 (0.172-0.175, n=3x2000) | +0.1 % |
+    | 9 | 6.790 (6.324-7.869, n=3x127-128) | 6.796 (6.754-6.798, n=3x111-121) | +0.1 % |
+    | 10 | 6.766 (6.678-7.844, n=3x118-156) | 6.654 (5.567-6.682, n=3x127-194) | -1.7 % |
+    | 11 | 0.983 (0.882-0.988, n=3x1275-1350) | 0.980 (0.978-1.162, n=3x1260-1360) | -0.3 % |
+    | sum | 85.197 | 82.922 | -2.7 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 67.094 (64.668-68.242, 3 runs) | 64.691 (63.908-67.083, 3 runs) | -3.6 % |
+
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | C1 median (min-max) ms | C1 vs base |
+    |---|---|---|---|
+    | 1 | 0.913 (0.909-0.914, n=3x1033-1095) | 0.908 (0.905-0.909, n=3x1081-1132) | -0.6 % |
+    | 2 | 1.292 (1.290-1.300, n=3x950-1083) | 1.304 (1.301-1.309, n=3x859-1430) | +0.9 % |
+    | 3 | 3.401 (3.399-3.403, n=3x472-565) | 3.302 (3.300-3.304, n=3x525-677) | -2.9 % |
+    | 4 | 0.978 (0.977-0.981, n=3x1244-1281) | 0.980 (0.973-0.981, n=3x1204-2000) | +0.1 % |
+    | 5 | 3.137 (2.507-3.387, n=3x320-397) | 2.950 (2.195-2.952, n=3x339-511) | -6.0 % |
+    | 6 | 3.393 (3.059-3.394, n=3x326-330) | 3.220 (3.192-3.226, n=3x344-352) | -5.1 % |
+    | 7 | 2.216 (2.153-2.807, n=3x359-518) | 2.012 (2.011-2.933, n=3x393-554) | -9.2 % |
+    | 8 | 0.327 (0.325-0.330, n=3x2000) | 0.326 (0.324-0.326, n=3x2000) | -0.4 % |
+    | 9 | 2.988 (2.957-3.033, n=3x332-465) | 3.017 (2.086-3.022, n=3x456-525) | +1.0 % |
+    | 10 | 2.757 (2.011-2.869, n=3x358-531) | 1.977 (1.974-2.780, n=3x361-543) | -28.3 % |
+    | 11 | 0.629 (0.619-0.644, n=3x1409-2000) | 0.643 (0.631-0.644, n=3x1406-2000) | +2.3 % |
+    | sum | 22.032 | 20.637 | -6.3 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 11.815 (11.454-12.988, 3 runs) | 11.490 (10.728-12.378, 3 runs) | -2.8 % |
 - [ ] 2.5 C2/C3: input halo tiling in shared memory (≤ 16 KB default) with `C_TILE`, `OC_TILE` and `PX_TILE` spec constants. Verify: `test-cifar-dense-vk` passes on rocky for at least three tile configurations, including 8 oc × 2 px and 8 oc × 4 px.
 - [ ] 2.6 Pick the tile defaults by timing on the Samsung. Verify: the per-device sweep and chosen defaults are in the evidence note.
 - [ ] 2.7 Check the FP32 performance requirement. Verify: on the Samsung the conv2–conv5 sum is faster than 2.1 beyond noise, no phone conv stage is slower; the fleet gate is green. If it isn't met, record the gap; the optional tasks 2.8–2.12 don't count toward it.

@@ -163,6 +163,11 @@ claim. Revisit with the paper authors if S1–S3 don't reach the spec's 2× boun
   pipe. To verify with `RADV_DEBUG=shaders` before and after.
 - **Caveat:** at 8×8 maps, `N·H·W = 1024`, so 4 workgroups per channel tile. That's still
   `K/OC_TILE × 4 ≥ 256` workgroups at conv3–conv5.
+- **As built (task 2.4):** the channel block is `gl_WorkGroupID.x` and the pixel block `.y`, grid
+  `(K / OC_TILE, ceil(N·H·W / 256), 1)`. Workgroups are launched x first, so with the block on `.y`
+  consecutive workgroups took the same channels of different images: on the Samsung conv2 was 21 %
+  and conv1 9 % slower than before. On `.x` they read the same input pixels and no conv is slower.
+  Conv1 (C = 3) stays on the previous kernel, which was still 1 % faster on it (non-goal below).
 
 #### C2. LDS halo tiling
 - **How:** each workgroup stages an input tile with a 1-pixel halo, for a block of `C_TILE` input

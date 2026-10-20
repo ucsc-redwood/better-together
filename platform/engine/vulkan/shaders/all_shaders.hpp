@@ -43,6 +43,7 @@ namespace shaders {
 #include "h/tree_unique_local_spv.h"
 #include "h/tree_unique_scatter_spv.h"
 // new shaders
+#include "h/new_cifar_dense_conv2d_k3s1p1_oc_spv.h"
 #include "h/new_cifar_dense_conv2d_k3s1p1_spv.h"
 #include "h/new_cifar_dense_conv2d_spv.h"
 #include "h/new_cifar_dense_linear_bt_spv.h"
@@ -112,6 +113,7 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         // new shaders
         SHADER_ENTRY(new_cifar_dense_conv2d),
         SHADER_ENTRY(new_cifar_dense_conv2d_k3s1p1),
+        SHADER_ENTRY(new_cifar_dense_conv2d_k3s1p1_oc),
         SHADER_ENTRY(new_cifar_dense_maxpool),
         SHADER_ENTRY(new_cifar_dense_linear),
         SHADER_ENTRY(new_cifar_dense_linear_bt),

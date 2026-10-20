@@ -1,0 +1,120 @@
+#version 460
+#extension GL_EXT_control_flow_attributes : require
+
+precision highp float;
+precision highp int;
+
+// 3x3 / stride-1 / pad-1 conv2d for GPUs with a subgroup of 32 or more (Radeon 780M, Xclipse; they
+// have a scalar unit). cifar-dense runs it there instead of the >= 32 path of
+// new_cifar_dense_conv2d_k3s1p1.comp, whose Mali path (below 32) it does not replace.
+//
+// One block of OC_TILE output channels per workgroup (cifar-gpu-kernels C1):
+// oc = gl_WorkGroupID.x * OC_TILE, and each invocation computes one output pixel (n, oh, ow) of
+// those channels; gl_WorkGroupID.y picks the block of 256 pixels, flat over (n, oh, ow). Every
+// weight address then depends only on the workgroup id and the loop counter, so the weights load
+// as scalar work without a subgroup test. The channel block is the x axis so that consecutive
+// workgroups read the same input pixels (with it on y, conv2 measured +19 % on the Xclipse 940).
+// Each tap is loaded unconditionally on a clamped index (no divergent branch, no wait between
+// taps) and zeroed when it lies in the padding.
+//
+// Dispatcher contract (falls back to another shader otherwise):
+//   R == S == 3, stride == 1, padding == 1, K % OC_TILE == 0.
+//   grid = (K / OC_TILE, ceil(N*H*W / 256), 1); conv_k3s1p1_contract.hpp computes it.
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [N, C, H, W]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float weight_data[];  // [K, C, 3, 3]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [K]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, K, H, W]  (P == H, Q == W for 3x3/s1/p1)
+};
+
+// Same layout as the generic conv2d shader; R/S/stride/padding are implied 3/3/1/1.
+layout(push_constant) uniform Params {
+  int N;           // Batch size
+  int C;           // Number of input channels
+  int H;           // Input height
+  int W;           // Input width
+  int K;           // Number of output channels (% OC_TILE == 0)
+  int R;           // Kernel height (== 3)
+  int S;           // Kernel width  (== 3)
+  int stride;      // Convolution stride (== 1)
+  int padding;     // Convolution padding (== 1)
+  int apply_relu;  // 1 to apply ReLU, 0 otherwise
+}
+params;
+
+const int OC_TILE = 4;
+
+// Load at an already-clamped (always valid) index; zero when the tap is out of range.
+float tap(const int clamped_index, const bool in_range) {
+  const float v = input_data[clamped_index];
+  return in_range ? v : 0.0;
+}
+
+void main() {
+  const int H = params.H;
+  const int W = params.W;
+  const int C = params.C;
+  const int hw = H * W;
+
+  int idx = int(gl_WorkGroupID.y) * 256 + int(gl_LocalInvocationIndex);  // flat pixel index
+  if (idx >= params.N * hw) return;
+  const int ow = idx % W;
+  idx /= W;
+  const int oh = idx % H;
+  const int n = idx / H;
+  const int oc = int(gl_WorkGroupID.x) * OC_TILE;
+
+  // Edge masks (outH==H, outW==W for s1p1).
+  const bool t = oh > 0, b = oh < H - 1, l = ow > 0, r = ow < W - 1;
+
+  const int wrow = C * 9;  // one weight row = [C, 3, 3]
+  // Top-left tap of the 3x3 window in channel 0 of image n.
+  const int p_base = n * C * hw + (oh - 1) * W + (ow - 1);
+
+  float acc[OC_TILE];
+  [[unroll]] for (int i = 0; i < OC_TILE; ++i) acc[i] = 0.0;
+
+  for (int ic = 0; ic < C; ++ic) {
+    const int p0 = p_base + ic * hw;  // row oh-1, col ow-1
+    const int p1 = p0 + W;            // row oh
+    const int p2 = p1 + W;            // row oh+1
+    const int c1 = p1 + 1;            // centre tap: always in range
+
+    const float x0 = tap((t && l) ? p0 : c1, t && l);
+    const float x1 = tap(t ? p0 + 1 : c1, t);
+    const float x2 = tap((t && r) ? p0 + 2 : c1, t && r);
+    const float x3 = tap(l ? p1 : c1, l);
+    const float x4 = input_data[c1];
+    const float x5 = tap(r ? p1 + 2 : c1, r);
+    const float x6 = tap((b && l) ? p2 : c1, b && l);
+    const float x7 = tap(b ? p2 + 1 : c1, b);
+    const float x8 = tap((b && r) ? p2 + 2 : c1, b && r);
+
+    const int wa = oc * wrow + ic * 9;  // workgroup-uniform
+    [[unroll]] for (int i = 0; i < OC_TILE; ++i) {
+      const int w = wa + i * wrow;
+      acc[i] += x0 * weight_data[w] + x1 * weight_data[w + 1] + x2 * weight_data[w + 2] +
+                x3 * weight_data[w + 3] + x4 * weight_data[w + 4] + x5 * weight_data[w + 5] +
+                x6 * weight_data[w + 6] + x7 * weight_data[w + 7] + x8 * weight_data[w + 8];
+    }
+  }
+
+  const int out_base = ((n * params.K + oc) * H + oh) * W + ow;
+  [[unroll]] for (int i = 0; i < OC_TILE; ++i) {
+    float v = bias_data[oc + i] + acc[i];
+    if (params.apply_relu != 0) v = max(v, 0.0);
+    output_data[out_base + i * hw] = v;
+  }
+}
