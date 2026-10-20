@@ -16,10 +16,16 @@ precision highp int;
 // from a clamped index, with no division and no branch, so the input loads of an unrolled group
 // are all in flight together.
 //
+// STAGE_ROW (S3): the workgroup first copies the row's weights and taps into shared memory, CHUNK
+// nonzeros at a time (8 KB), and walks them from there.
+//
 // Dispatcher contract: grid (ceil(N*H*W / 256), K, 1), one invocation per output pixel.
 // Same push constants as new_cifar_sparse_conv2d; binding 4 holds the taps instead of col_idx.
 
-const int UNROLL = 8;  // nonzeros per loop iteration, each with its own accumulator
+layout(constant_id = 1) const bool STAGE_ROW = false;
+
+const int UNROLL = 8;    // nonzeros per loop iteration, each with its own accumulator
+const int CHUNK = 1024;  // STAGE_ROW: nonzeros staged at a time
 
 layout(local_size_x = 256) in;
 
@@ -62,13 +68,14 @@ layout(push_constant) uniform Params {
 }
 params;
 
-// One nonzero's contribution at the pixel whose channel-0 input index is `base`; 0.0 for a tap in
-// the padded border, which loads `base` instead.
-float tap(const int nz, const int base, const uint valid) {
-  const int t = weight_taps[nz];
+shared int sh_taps[CHUNK];
+shared float sh_vals[CHUNK];
+
+// One nonzero's contribution (tap t, weight w) at the pixel whose channel-0 input index is `base`;
+// 0.0 for a tap in the padded border, which loads `base` instead.
+float tap(const int t, const float w, const int base, const uint valid) {
   const bool ok = ((valid >> (t & 15)) & 1u) != 0u;
   const float x = input_data[ok ? base + (t >> 4) : base];
-  const float w = weight_vals[nz];
   return ok ? x * w : 0.0;
 }
 
@@ -76,8 +83,11 @@ void main() {
   const int H = params.out_height;
   const int W = params.out_width;
   const int HW = H * W;
-  const int p = int(gl_GlobalInvocationID.x);
-  if (p >= params.batch_size * HW) return;
+  // Without STAGE_ROW an invocation past the last pixel leaves at once; with it, it still helps
+  // stage and meets the barriers, computing pixel 0 and storing nothing.
+  const bool in_range = int(gl_GlobalInvocationID.x) < params.batch_size * HW;
+  if (!STAGE_ROW && !in_range) return;
+  const int p = in_range ? int(gl_GlobalInvocationID.x) : 0;
   const int out_c = int(gl_WorkGroupID.y);
 
   const int b = p / HW;
@@ -95,11 +105,33 @@ void main() {
 
   float acc[UNROLL];
   [[unroll]] for (int j = 0; j < UNROLL; ++j) acc[j] = 0.0;
-  int nz = row_start;
-  for (; nz + UNROLL <= row_end; nz += UNROLL) {
-    [[unroll]] for (int j = 0; j < UNROLL; ++j) acc[j] += tap(nz + j, base, valid);
+  if (STAGE_ROW) {
+    for (int c0 = row_start; c0 < row_end; c0 += CHUNK) {
+      const int n = min(CHUNK, row_end - c0);
+      barrier();  // the previous chunk is consumed
+      for (int i = int(gl_LocalInvocationIndex); i < n; i += int(gl_WorkGroupSize.x)) {
+        sh_taps[i] = weight_taps[c0 + i];
+        sh_vals[i] = weight_vals[c0 + i];
+      }
+      barrier();
+      int i = 0;
+      for (; i + UNROLL <= n; i += UNROLL) {
+        [[unroll]] for (int j = 0; j < UNROLL; ++j) {
+          acc[j] += tap(sh_taps[i + j], sh_vals[i + j], base, valid);
+        }
+      }
+      for (; i < n; ++i) acc[0] += tap(sh_taps[i], sh_vals[i], base, valid);
+    }
+    if (!in_range) return;
+  } else {
+    int nz = row_start;
+    for (; nz + UNROLL <= row_end; nz += UNROLL) {
+      [[unroll]] for (int j = 0; j < UNROLL; ++j) {
+        acc[j] += tap(weight_taps[nz + j], weight_vals[nz + j], base, valid);
+      }
+    }
+    for (; nz < row_end; ++nz) acc[0] += tap(weight_taps[nz], weight_vals[nz], base, valid);
   }
-  for (; nz < row_end; ++nz) acc[0] += tap(nz, base, valid);
 
   float sum = 0.0;
   [[unroll]] for (int j = 0; j < UNROLL; ++j) sum += acc[j];

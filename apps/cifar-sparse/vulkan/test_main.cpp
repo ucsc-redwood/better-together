@@ -193,10 +193,11 @@ TEST(SparseConvK3S1P1, RaggedOddWidthMap) {
 // with an empty row, a row whose taps all sit in the kernel's right column and one whose taps all
 // sit in its top row: at the right edge, resp. the top edge, every tap of those rows reads the
 // padded border, so the output there is bias plus ReLU only. 13x11 maps need two workgroups per
-// channel, the last one ragged.
+// channel, the last one ragged. Row 8 keeps every tap (1152 nonzeros), more than one STAGE_ROW
+// chunk; each map runs with STAGE_ROW off and on.
 namespace {
-void ExpectPerChannelConvMatchesOmp(const int h, const int w) {
-  constexpr int kN = 3, kC = 4, kK = 9, kEmptyRow = 4, kRightRow = 6, kTopRow = 7;
+void ExpectPerChannelConvMatchesOmp(const int h, const int w, const bool stage_row) {
+  constexpr int kN = 3, kC = 128, kK = 9, kEmptyRow = 4, kRightRow = 6, kTopRow = 7, kFullRow = 8;
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 
@@ -213,9 +214,10 @@ void ExpectPerChannelConvMatchesOmp(const int h, const int w) {
   for (int k = 0; k < kK; ++k) {
     for (int flat = 0; flat < kC * 9 && k != kEmptyRow; ++flat) {
       const int tap = flat % 9;
-      const bool keep = k == kRightRow ? tap % 3 == 2
-                        : k == kTopRow ? tap / 3 == 0
-                                       : val(rng) > 0.2f;
+      const bool keep = k == kRightRow  ? tap % 3 == 2
+                        : k == kTopRow  ? tap / 3 == 0
+                        : k == kFullRow ? true
+                                        : val(rng) > 0.2f;
       if (!keep) continue;
       values.push_back(val(rng));
       col_idx.push_back(flat);
@@ -228,6 +230,7 @@ void ExpectPerChannelConvMatchesOmp(const int h, const int w) {
 
   auto algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1_oc")
                   ->work_group_size(256, 1, 1)
+                  ->spec_constant(1, stage_row)
                   ->num_buffers(6)
                   ->push_constant<ConvPc>()
                   ->build();
@@ -272,10 +275,12 @@ void ExpectPerChannelConvMatchesOmp(const int h, const int w) {
           const size_t i = ((static_cast<size_t>(n) * kK + k) * h + y) * w + x;
           if (k == kEmptyRow || (k == kRightRow && x == w - 1) || (k == kTopRow && y == 0)) {
             ASSERT_EQ(out[i], std::max(bias[k], 0.0f))
-                << h << "x" << w << " n " << n << " k " << k << " y " << y << " x " << x;
+                << h << "x" << w << " stage_row " << stage_row << " n " << n << " k " << k << " y "
+                << y << " x " << x;
           }
           ASSERT_NEAR(out[i], ref[i], 1e-4 + 1e-3 * std::abs(ref[i]))
-              << h << "x" << w << " n " << n << " k " << k << " y " << y << " x " << x;
+              << h << "x" << w << " stage_row " << stage_row << " n " << n << " k " << k << " y "
+              << y << " x " << x;
         }
       }
     }
@@ -285,17 +290,17 @@ void ExpectPerChannelConvMatchesOmp(const int h, const int w) {
 
 TEST(SparseConvPerChannel, EmptyAndBorderRows8x8) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectPerChannelConvMatchesOmp(8, 8);
+  for (const bool stage_row : {false, true}) ExpectPerChannelConvMatchesOmp(8, 8, stage_row);
 }
 
 TEST(SparseConvPerChannel, EmptyAndBorderRowsOddWidth) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectPerChannelConvMatchesOmp(7, 5);
+  for (const bool stage_row : {false, true}) ExpectPerChannelConvMatchesOmp(7, 5, stage_row);
 }
 
 TEST(SparseConvPerChannel, EmptyAndBorderRowsTwoWorkgroups) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectPerChannelConvMatchesOmp(13, 11);
+  for (const bool stage_row : {false, true}) ExpectPerChannelConvMatchesOmp(13, 11, stage_row);
 }
 
 // The Vulkan conv taps (cifar-gpu-kernels S2) decode back to their CSR's col_idx for every

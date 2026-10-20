@@ -176,7 +176,18 @@ no-regression check. FC changes run on both phones.
 
     The remainder loop (row length mod 8) loads one tap and one weight per nonzero with `s_buffer_load_b32`. There
     is no exec-mask branch in either loop (the 1.2 kernel had one per tap).
-- [ ] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
+- [x] 1.7 Stage the CSR row in shared memory in ≤ 1024-nonzero chunks behind a `STAGE_ROW` spec constant (S3). Verify: the rocky gate passes with `STAGE_ROW` on and off.
+  - `constant_id = 1` `STAGE_ROW` (bool, default off) in `new_cifar_sparse_conv2d_k3s1p1_oc.comp`: the workgroup
+    copies the row's taps and weights into shared memory 1024 nonzeros (8 KB) at a time, with a barrier before and
+    after each copy, and walks the chunk from there. With it, an invocation past the last pixel stays for the
+    barriers and stores nothing. The engine had no way to set a spec constant other than the subgroup and workgroup
+    sizes, so `kiss_vk::Algorithm::spec_constant(id, value)` is new (`build()` throws if the shader declares no
+    such id). The dispatcher sets it from `BT_VK_SPARSE_STAGE_ROW=1` (task 1.8 picks the default).
+  - `SparseConvPerChannel.*` now run every map with `STAGE_ROW` off and on, with C 128 and a row that keeps every
+    tap (1152 nonzeros, two chunks; the synthetic model rows have 864, one chunk). With the chunk loop cut after the
+    first chunk (a local mutation, reverted) they fail only with `STAGE_ROW` on, at that row.
+  - rocky gate (b2a8b0b plus this change): build exit 0, `ctest -L vulkan` 7/7 passed and `./test-cifar-sparse-vk
+    --device minipc` 21 passed, with `BT_VK_SPARSE_STAGE_ROW=0` and with `=1`. `just check-shaders`: OK.
 - [ ] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
 - [ ] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
 - [ ] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.

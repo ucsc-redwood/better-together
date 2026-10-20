@@ -131,11 +131,15 @@ VulkanDispatcher::VulkanDispatcher()
 
   // The same convs with one output channel per workgroup row on the packed taps (cifar-gpu-kernels
   // S1, S2), taken on subgroups of 32 or more unless BT_VK_SPARSE_CONV=flat.
-  auto conv2d_k3s1p1_oc_algo = engine.make_algo("new_cifar_sparse_conv2d_k3s1p1_oc")
-                                   ->work_group_size(256, 1, 1)
-                                   ->num_buffers(6)
-                                   ->push_constant<Conv2dPushConstants>()
-                                   ->build();
+  // BT_VK_SPARSE_STAGE_ROW=1 stages each CSR row in shared memory (S3).
+  const char* stage_row = std::getenv("BT_VK_SPARSE_STAGE_ROW");
+  auto conv2d_k3s1p1_oc_algo =
+      engine.make_algo("new_cifar_sparse_conv2d_k3s1p1_oc")
+          ->work_group_size(256, 1, 1)
+          ->spec_constant(1, stage_row && std::string_view(stage_row) == "1")
+          ->num_buffers(6)
+          ->push_constant<Conv2dPushConstants>()
+          ->build();
 
   cached_algorithms.try_emplace("conv2d_k3s1p1_oc", std::move(conv2d_k3s1p1_oc_algo));
 
