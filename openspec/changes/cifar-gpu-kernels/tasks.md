@@ -462,7 +462,38 @@ no-regression check. FC changes run on both phones.
     the same as the 780M without cooperative matrix.) design.md Context now has the table instead of the "to
     verify" marks, as do the C5 shapes and the F3 fallback. No phone has cooperative matrix, so per 2.10 C5 can
     only be built for rocky, where nothing is timed.
-- [ ] 2.3 Dump the current kernel's ACO disassembly on rocky (`--gtest_filter='*Stage5*'`). Verify: the evidence note records whether the weight loads are vector or scalar.
+- [x] 2.3 Dump the current kernel's ACO disassembly on rocky (`--gtest_filter='*Stage5*'`). Verify: the evidence note records whether the weight loads are vector or scalar.
+  - rocky-ryzen (780M, Mesa 25.2.7), the code of 7bcecab (the shader is d563dc5's) built in
+    `~/bt-dense-gate`, `BT_VK_PIPELINE_CACHE_DIR=<empty dir> MESA_SHADER_CACHE_DISABLE=true RADV_DEBUG=shaders
+    ./test-cifar-dense-vk --device minipc --gtest_filter='*Stage5*'` (1 test passed). `new_cifar_dense_conv2d_k3s1p1`
+    at subgroup 64 is the second of the five compute shaders in the dump (`uses_wide_subgroup_intrinsics`, the
+    `v_readfirstlane_b32` of `subgroupBroadcastFirst`). One `s_load_b256` reads the input (binding 0, `s[24:27]`) and
+    weight (binding 1, `s[28:31]`) descriptors.
+  - *The weight loads are scalar on the path the model takes.* Its maps (32², 16², 8²) are subgroup multiples, so
+    `subgroupAllEqual(oc)` holds and the weight base is `subgroupBroadcastFirst(oc)`. Per input channel the loop
+    loads the 9 taps as vector loads and the 36 weights (4 channels x 9) as 8 scalar loads:
+
+        s_clause 0x8
+        buffer_load_b32 v7, v7, s[24:27], 0 offen              ; input, 9 taps
+        ...
+        buffer_load_b32 v6, v6, s[24:27], 0 offen
+        s_clause 0x7
+        s_buffer_load_b256 s[40:47], s[28:31], s24             ; weights, row oc, taps 0-7
+        s_buffer_load_b32 s25, s[28:31], s25                   ; row oc, tap 8
+        s_buffer_load_b256 s[48:55], s[28:31], s27             ; rows oc+1 .. oc+3 likewise
+        ...
+        s_waitcnt vmcnt(8)
+        ...
+        v_fmac_f32_e32 v16, s48, v7                            ; 36 FMAs with a scalar weight operand
+
+    Only the other branch (a subgroup spanning two channel blocks, which the model's shapes never take) loads the
+    weights per lane: `buffer_load_b128 v[20:23], v17, s[28:31], 0 offen` (and two more per weight row). So C1's
+    premise (vector weight loads) is refuted for the model, as S1's was in 1.2; C1 still makes the uniformity
+    structural (no `subgroupAllEqual` test, no second loop) and changes which invocations share a workgroup.
+  - *What limits it instead:* each loop iteration is one input channel, and it waits for its own 9 input loads
+    (`s_waitcnt vmcnt(8)` .. `vmcnt(0)`) and weight loads (`lgkmcnt(0)`) before its 36 FMAs; nothing of the next
+    channel is in flight. 9 vector loads feed 36 FMAs (4 FMAs per load). C2/C3 address this: fewer loads per FMA
+    (register tile) and inputs from shared memory.
 - [ ] 2.4 C1: move `oct` to `gl_WorkGroupID.y`, grid `(ceil(N·H·W/256), K/OC_TILE, 1)`. Verify: the rocky gate passes; ACO shows scalar weight loads (quoted); timing on both phones is recorded against 2.1 with no regression beyond noise.
 - [ ] 2.5 C2/C3: input halo tiling in shared memory (≤ 16 KB default) with `C_TILE`, `OC_TILE` and `PX_TILE` spec constants. Verify: `test-cifar-dense-vk` passes on rocky for at least three tile configurations, including 8 oc × 2 px and 8 oc × 4 px.
 - [ ] 2.6 Pick the tile defaults by timing on the Samsung. Verify: the per-device sweep and chosen defaults are in the evidence note.
