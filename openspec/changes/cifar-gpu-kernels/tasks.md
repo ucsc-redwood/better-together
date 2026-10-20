@@ -782,7 +782,19 @@ no-regression check. FC changes run on both phones.
     `VK_KHR_cooperative_matrix` is absent on the Pixel 7a's Mali-G710 and on the Samsung's Xclipse 940, and only the
     780M (rocky-ryzen, where nothing is timed) lists 16x16x16 FP16 x FP16 + FP32. It also depends on 2.9, not done.
 - 2.11-2.12 (C6, Mali variant): removed 2026-10-18; owned and shipped by `mali-conv-kernels` (archived 2026-10-17).
-- [ ] 2.13 Run the group gate at the final commit (local, rocky, phones), in default FP32 and in each opt-in mode on supporting devices. Add a dated perf-results note with before/after tables and per-device variant choices. Verify: all green; the note is linked from the perf-results README.
+- [x] 2.13 Run the group gate at the final commit (local, rocky, phones), in default FP32 and in each opt-in mode on supporting devices. Add a dated perf-results note with before/after tables and per-device variant choices. Verify: all green; the note is linked from the perf-results README.
+  - Gate at 334f576 (its code is e34ca8d's; this commit adds only the note and these lines). Default FP32 only:
+    no opt-in precision mode exists (2.8-2.10).
+    - *local:* `cmake --build --preset pc && ctest --test-dir build/pc -L omp`: 11/11 passed.
+    - *rocky:* the tree synced to `~/bt-dense-gate`, `cmake --preset vulkan` (glslc of NDK r29), build exit 0,
+      `ctest -L vulkan` 7/7 passed, `./test-cifar-dense-vk --device minipc` 19 passed with synthetic and with real
+      weights. `just check-shaders`: OK.
+    - *phones:* `cmake --build --preset android --target test-cifar-dense-vk`, then
+      `BT_ANDROID_DEST=/data/local/tmp/bt-dense/gate scripts/run-on-android.sh <serial> test-cifar-dense-vk`: 19
+      passed and exit 0 on 3A021JEHN02756 and on R5CY21Y3VEV; the same binary with real weights: 19 passed on each.
+  - *Note:* `docs/reports-for-human/perf-results/2026-10-20-cifar-dense-conv.md` (the 2.7 before/after tables per
+    phone, the GPU cycles, the tile sweep, the variant per device, ACO findings), linked from the perf-results
+    README.
 
 ## 3. FC weight bandwidth (gpu-kernels/fully-connected; design F1–F4)
 
