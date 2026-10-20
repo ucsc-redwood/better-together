@@ -3,18 +3,24 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <memory_resource>
 #include <random>
 #include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/fc_weights.hpp"
+#include "platform/util/npy_loader.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -233,6 +239,75 @@ TEST(DenseConvTiled, Map8x8) {
 TEST(DenseConvTiled, RaggedOddWidthMap) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectDenseConvTilesMatchReference(7, 5);
+}
+
+// cifar-gpu-kernels F2, spec "Reduced-precision weights are bounded and opt-in": end-task accuracy
+// of the Vulkan pipeline on the real weights (BT_WEIGHTS_DIR) over every exported test image,
+// with FP32, FP16 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). Each reduced
+// precision must stay within 0.5 points of FP32 on the same images. The export has 128 images,
+// so one image is 0.78 points and the bound asks for the same count as FP32. Skips without
+// BT_WEIGHTS_DIR.
+namespace {
+// Fraction of the exported test images the Vulkan pipeline classifies correctly, fc weights in
+// `mode`; the AppData's batch (16) walks the 128 images.
+double DenseVkAccuracy(cifar_dense::vulkan::VulkanDispatcher& disp,
+                       const char* mode,
+                       const std::vector<float>& images,
+                       const std::vector<int32_t>& labels) {
+  setenv("BT_VK_FC_WEIGHTS", mode, 1);
+  cifar_dense::AppData app(disp.get_mr());
+  const size_t per_image = app.u_input.pmr_vec().size() / cifar_dense::AppData::BATCH_SIZE;
+  const int n = static_cast<int>(labels.size());
+  int correct = 0;
+  for (int b = 0; b < n; b += static_cast<int>(cifar_dense::AppData::BATCH_SIZE)) {
+    std::copy_n(images.begin() + static_cast<std::ptrdiff_t>(b * per_image),
+                app.u_input.pmr_vec().size(),
+                app.u_input.pmr_vec().begin());
+    disp.dispatch_multi_stage(app, 1, 11);
+    const int k = app.u_fc3_out.d1();
+    for (int i = 0; i < app.u_fc3_out.d0(); ++i) {
+      const float* row = app.u_fc3_out.data() + static_cast<size_t>(i) * k;
+      if (std::max_element(row, row + k) - row == labels[b + i]) ++correct;
+    }
+  }
+  return static_cast<double>(correct) / n;
+}
+}  // namespace
+
+TEST(CifarDenseVk, RealWeights_EndTaskAccuracy) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const char* dir = std::getenv("BT_WEIGHTS_DIR");
+  if (dir == nullptr) GTEST_SKIP() << "BT_WEIGHTS_DIR not set";
+  constexpr size_t kImages = 128;  // the exported test batch
+  std::vector<float> images(kImages * 3 * 32 * 32);
+  std::vector<int32_t> labels(kImages);
+  bt::npy::load(std::string(dir) + "/test_batch.npy", "<f4", {kImages, 3, 32, 32}, images.data());
+  bt::npy::load_prefix(std::string(dir) + "/test_labels.npy", "<i4", {kImages}, labels.data());
+
+  const char* saved = std::getenv("BT_VK_FC_WEIGHTS");
+  const std::string restore = saved != nullptr ? saved : "";
+  cifar_dense::vulkan::VulkanDispatcher disp;
+  const double fp32 = DenseVkAccuracy(disp, "fp32", images, labels);
+  const double fp16 = DenseVkAccuracy(disp, "fp16", images, labels);
+  const double int8 = DenseVkAccuracy(disp, "int8", images, labels);
+  if (saved != nullptr) {
+    setenv("BT_VK_FC_WEIGHTS", restore.c_str(), 1);
+  } else {
+    unsetenv("BT_VK_FC_WEIGHTS");
+  }
+  std::printf(
+      "cifar-dense Vulkan real-weight accuracy over %zu images: fp32 %.4f, fp16 %.4f (%+.2f "
+      "points), "
+      "int8 %.4f (%+.2f points)\n",
+      kImages,
+      fp32,
+      fp16,
+      100 * (fp16 - fp32),
+      int8,
+      100 * (int8 - fp32));
+  EXPECT_GE(fp32, 0.75);
+  EXPECT_LE(std::abs(fp16 - fp32), 0.005) << "fp16 fc weights";
+  EXPECT_LE(std::abs(int8 - fp32), 0.005) << "int8 fc weights";
 }
 
 int main(int argc, char** argv) {

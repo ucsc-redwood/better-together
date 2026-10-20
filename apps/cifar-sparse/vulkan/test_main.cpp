@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -10,6 +11,7 @@
 #include <memory_resource>
 #include <random>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -20,6 +22,7 @@
 #include "platform/engine/vulkan/shaders/linear_bt_contract.hpp"
 #include "platform/registry/device_registry.hpp"
 #include "platform/util/fc_weights.hpp"
+#include "platform/util/npy_loader.hpp"
 #include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
@@ -463,6 +466,65 @@ TEST(LinearBt, Int8Weights) {
 TEST(LinearBt, Int8WeightsSharedMemoryReduction) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectLinearBtMatchesReference(/*clustered=*/false, bt::FcWeights::kInt8);
+}
+
+// cifar-gpu-kernels F2, spec "Reduced-precision weights are bounded and opt-in": end-task accuracy
+// of the Vulkan pipeline on the real weights (BT_WEIGHTS_DIR) over every exported test image,
+// with FP32, FP16 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). Each reduced
+// precision must stay within 0.5 points of FP32 on the same images. The export has 128 images,
+// so one image is 0.78 points and the bound asks for the same count as FP32. Skips without
+// BT_WEIGHTS_DIR.
+namespace {
+// Fraction of the exported test images (one batch of 128) the Vulkan pipeline classifies
+// correctly, fc weights in `mode`.
+double SparseVkAccuracy(cifar_sparse::vulkan::VulkanDispatcher& disp,
+                        const char* mode,
+                        const std::vector<int32_t>& labels) {
+  setenv("BT_VK_FC_WEIGHTS", mode, 1);
+  cifar_sparse::AppData app(disp.get_mr());  // loads the real weights and the 128 images
+  disp.dispatch_multi_stage(app, 1, 11);
+  const int k = app.u_fc3_out.d1();
+  int correct = 0;
+  for (int i = 0; i < app.u_fc3_out.d0(); ++i) {
+    const float* row = app.u_fc3_out.data() + static_cast<size_t>(i) * k;
+    if (std::max_element(row, row + k) - row == labels[i]) ++correct;
+  }
+  return static_cast<double>(correct) / app.u_fc3_out.d0();
+}
+}  // namespace
+
+TEST(CifarSparseVk, RealWeights_EndTaskAccuracy) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  const char* dir = std::getenv("BT_WEIGHTS_DIR");
+  if (dir == nullptr) GTEST_SKIP() << "BT_WEIGHTS_DIR not set";
+  constexpr size_t kImages = cifar_sparse::AppData::BATCH_SIZE;  // the whole exported test batch
+  std::vector<int32_t> labels(kImages);
+  bt::npy::load_prefix(std::string(dir) + "/test_labels.npy", "<i4", {kImages}, labels.data());
+
+  const char* saved = std::getenv("BT_VK_FC_WEIGHTS");
+  const std::string restore = saved != nullptr ? saved : "";
+  cifar_sparse::vulkan::VulkanDispatcher disp;
+  const double fp32 = SparseVkAccuracy(disp, "fp32", labels);
+  const double fp16 = SparseVkAccuracy(disp, "fp16", labels);
+  const double int8 = SparseVkAccuracy(disp, "int8", labels);
+  if (saved != nullptr) {
+    setenv("BT_VK_FC_WEIGHTS", restore.c_str(), 1);
+  } else {
+    unsetenv("BT_VK_FC_WEIGHTS");
+  }
+  std::printf(
+      "cifar-sparse Vulkan real-weight accuracy over %zu images: fp32 %.4f, fp16 %.4f (%+.2f "
+      "points), "
+      "int8 %.4f (%+.2f points)\n",
+      kImages,
+      fp32,
+      fp16,
+      100 * (fp16 - fp32),
+      int8,
+      100 * (int8 - fp32));
+  EXPECT_GE(fp32, 0.85);
+  EXPECT_LE(std::abs(fp16 - fp32), 0.005) << "fp16 fc weights";
+  EXPECT_LE(std::abs(int8 - fp32), 0.005) << "int8 fc weights";
 }
 
 int main(int argc, char** argv) {

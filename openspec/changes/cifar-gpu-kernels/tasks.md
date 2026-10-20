@@ -1000,7 +1000,22 @@ no-regression check. FC changes run on both phones.
     too, 26 / 20 with real weights, all passed). Pixel 7a and Samsung (`/data/local/tmp/bt-fc/s36`), fp32, fp16
     and int8: 25 and 19 passed, exit 0, every combination. Local `ctest -L omp` 11/11 passed. Every fleet device
     supports both variants.
-- [ ] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.
+- [x] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.
+  - *Harness* (2.9 built none, so this is new): `CifarDenseVk.RealWeights_EndTaskAccuracy` and
+    `CifarSparseVk.RealWeights_EndTaskAccuracy` (`test-cifar-{dense,sparse}-vk`, skip without `BT_WEIGHTS_DIR`) run
+    the whole Vulkan pipeline on the real weights over all 128 images of the exported test batch (cifar-dense: 8
+    batches of 16 copied into the AppData's input; cifar-sparse: its one batch of 128), once per precision
+    (`BT_VK_FC_WEIGHTS` set per AppData, restored after), print the three accuracies and expect each reduced one
+    within 0.5 points of FP32 on the same images (and FP32 >= 0.75 / 0.85, the OMP tests' floors). The export
+    holds only 128 images, so one image is 0.78 points and the bound asks for the same count as FP32; the 90.48 % /
+    90.58 % in the spec are the full 10,000-image test set, which is not exported.
+  - *Results*, identical on all four devices (build box RADV iGPU, rocky in `~/bt-fc-gate`, Pixel 7a, Samsung):
+
+        cifar-sparse Vulkan real-weight accuracy over 128 images: fp32 0.9375, fp16 0.9375 (+0.00 points), int8 0.9375 (+0.00 points)
+        cifar-dense Vulkan real-weight accuracy over 128 images: fp32 0.9219, fp16 0.9219 (+0.00 points), int8 0.9219 (+0.00 points)
+
+    FP16 and INT8 are both within the bound (0.00 points) for both apps, so both ship. The dense FP32 figure
+    agrees with the ~92 % the OMP test's comment gives for the PyTorch model on the same 128 images.
 - [ ] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").
 - [ ] 3.9 F4 (optional): if `new_cifar_{dense,sparse}_linear.comp` are removed, first add a test forcing `in_features % 4 != 0` to prove the remaining path covers it. Verify: that test passes, then clean builds. If they're kept, record why.
 - [ ] 3.10 Run the group gate at the final commit (local, rocky, phones) for both apps, default and opt-in modes. Add a dated perf-results note with before/after tables. Verify: all green; the note is linked from the perf-results README.
