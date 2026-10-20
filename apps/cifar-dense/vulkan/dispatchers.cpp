@@ -213,14 +213,15 @@ VulkanDispatcher::VulkanDispatcher()
   // features on subgroups of 32 and more (2 otherwise, as FP32): faster on the Samsung, where 2
   // left INT8 bound by the shared-memory reads; Mali spills with 4 (task 3.8).
   fc_int8_fpr = engine.subgroup_size() >= 32 ? 4 : 2;
+  // Without clustered subgroup operations the portable module (shared-memory reduction, no
+  // subgroup capability) is the one created (cifar-gpu-kernels F3).
+  const bool clustered = engine.compute_limits().subgroup_clustered;
   for (const auto w : {bt::FcWeights::kFp32, bt::FcWeights::kInt8}) {
+    auto algo = engine.make_algo(kiss_vk::linear_bt_shader(clustered))->work_group_size(256, 1, 1);
+    if (clustered) algo = algo->subgroup_size_dependent();
     cached_algorithms.try_emplace(
         linear_bt_name(w),
-        engine.make_algo("new_cifar_dense_linear_bt")
-            ->work_group_size(256, 1, 1)
-            ->subgroup_size_dependent()
-            ->spec_constant(1, engine.compute_limits().subgroup_clustered ? 1 : 0)
-            ->spec_constant(2, static_cast<uint32_t>(w))
+        algo->spec_constant(2, static_cast<uint32_t>(w))
             ->spec_constant(3, static_cast<uint32_t>(fc_features_per_row(w)))
             ->num_buffers(4)  // Input, Weight, Bias, Output
             ->push_constant<LinearPushConstants_v2>()

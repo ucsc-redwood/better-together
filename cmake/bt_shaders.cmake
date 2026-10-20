@@ -38,6 +38,8 @@ function(bt_build_shaders)
     endif()
 
     file(GLOB comps CONFIGURE_DEPENDS ${sdir}/comp/*.comp)
+    # Shared bodies a .comp #includes (GL_GOOGLE_include_directive); never compiled alone.
+    file(GLOB includes CONFIGURE_DEPENDS ${sdir}/comp/*.glsl)
     set(headers)
     foreach(comp ${comps})
         get_filename_component(name ${comp} NAME_WE)
@@ -52,7 +54,10 @@ function(bt_build_shaders)
             COMMAND
                 ${CMAKE_COMMAND} -DIN=${spv} -DOUT=${hdr} -DNAME=${name} -P
                 ${CMAKE_SOURCE_DIR}/cmake/bt_embed_spv.cmake
-            DEPENDS ${comp} ${CMAKE_SOURCE_DIR}/cmake/bt_embed_spv.cmake
+            DEPENDS
+                ${comp}
+                ${includes}
+                ${CMAKE_SOURCE_DIR}/cmake/bt_embed_spv.cmake
             COMMENT "Compiling shader ${name}.comp"
             VERBATIM
         )

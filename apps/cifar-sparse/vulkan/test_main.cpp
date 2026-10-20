@@ -368,13 +368,15 @@ TEST(SparseConvTaps, DecodeToColIdx) {
   }
 }
 
-// new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtRows x FPR
+// new_cifar_dense_linear_bt{,_portable}.comp (shared with cifar-dense) compute kLinearBtRows x FPR
 // output features and kLinearBtBatchTile images per workgroup. The model's layers are
 // multiples of both (4096 and 10 features at N = 16 or 128); this shape is not: an odd
-// output-feature count, a ragged last batch tile and a ragged last input chunk. Both row
-// reductions: subgroupClusteredAdd (what every fleet GPU runs) and the shared-memory fallback,
-// and both weight precisions (cifar-gpu-kernels F2), against a reference that uses the weights as
-// the kernel decodes them (bt::FcWeightCopy::dequantized), so the FP32 bound holds for both.
+// output-feature count, a ragged last batch tile and a ragged last input chunk. Both modules:
+// the clustered reduction (what every fleet GPU runs) and the portable one (shared-memory
+// reduction, what a device without clustered subgroup operations gets; it runs anywhere, so every
+// GPU tests it), and both weight precisions (cifar-gpu-kernels F2), against a reference that uses
+// the weights as the kernel decodes them (bt::FcWeightCopy::dequantized), so the FP32 bound holds
+// for both.
 namespace {
 void ExpectLinearBtMatchesReference(const bool clustered,
                                     const bt::FcWeights weights = bt::FcWeights::kFp32,
@@ -385,7 +387,7 @@ void ExpectLinearBtMatchesReference(const bool clustered,
 
   kiss_vk::Engine engine;
   if (clustered && !engine.compute_limits().subgroup_clustered) {
-    GTEST_SKIP() << "no clustered subgroup operations";
+    GTEST_SKIP() << "no clustered subgroup operations (the dispatchers use the portable module)";
   }
   auto* mr = engine.get_mr();
   std::pmr::vector<float> in(static_cast<size_t>(kN) * kIn, 0.0f, mr);
@@ -405,15 +407,13 @@ void ExpectLinearBtMatchesReference(const bool clustered,
   struct Pc {  // layout of the shader's push constants
     int32_t N, in_features, out_features, apply_relu;
   };
-  auto algo = engine.make_algo("new_cifar_dense_linear_bt")
-                  ->work_group_size(256, 1, 1)
-                  ->subgroup_size_dependent()
-                  ->spec_constant(1, clustered ? 1 : 0)
-                  ->spec_constant(2, static_cast<uint32_t>(weights))
-                  ->spec_constant(3, static_cast<uint32_t>(fpr))
-                  ->num_buffers(4)
-                  ->push_constant<Pc>()
-                  ->build();
+  auto algo = engine.make_algo(kiss_vk::linear_bt_shader(clustered))->work_group_size(256, 1, 1);
+  if (clustered) algo = algo->subgroup_size_dependent();
+  algo = algo->spec_constant(2, static_cast<uint32_t>(weights))
+             ->spec_constant(3, static_cast<uint32_t>(fpr))
+             ->num_buffers(4)
+             ->push_constant<Pc>()
+             ->build();
   auto seq = engine.make_seq();
   seq->cmd_begin();
   algo->record_bind(*seq,
@@ -450,7 +450,7 @@ TEST(LinearBt, RaggedFeatureBatchAndChunkEdges) {
   ExpectLinearBtMatchesReference(/*clustered=*/true);
 }
 
-TEST(LinearBt, RaggedFeatureBatchAndChunkEdgesSharedMemoryReduction) {
+TEST(LinearBt, RaggedFeatureBatchAndChunkEdgesPortableModule) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectLinearBtMatchesReference(/*clustered=*/false);
 }
@@ -466,9 +466,49 @@ TEST(LinearBt, Int8WeightsFourFeaturesPerRow) {
   ExpectLinearBtMatchesReference(/*clustered=*/true, bt::FcWeights::kInt8, /*fpr=*/4);
 }
 
-TEST(LinearBt, Int8WeightsSharedMemoryReduction) {
+TEST(LinearBt, Int8WeightsPortableModule) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectLinearBtMatchesReference(/*clustered=*/false, bt::FcWeights::kInt8);
+}
+
+TEST(LinearBt, Int8WeightsFourFeaturesPerRowPortableModule) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/false, bt::FcWeights::kInt8, /*fpr=*/4);
+}
+
+// The module a device without clustered subgroup operations gets must be valid there: its
+// SPIR-V declares no capability but Shader and has no subgroup instruction (and no subgroup-size
+// constant, so its pipeline is not subgroup-size dependent). The clustered module does declare
+// GroupNonUniformClustered, which is why the dispatchers choose before creating a module.
+// Hardware-free: reads the baked SPIR-V.
+TEST(LinearBt, PortableModuleHasNoSubgroupCapability) {
+  struct Spirv {
+    std::set<uint32_t> capabilities;
+    bool group_ops = false;  // any OpGroupNonUniform* instruction
+  };
+  const auto scan = [](const char* name) {
+    const auto words = kiss_vk::load_shader_spirv(name);
+    Spirv r;
+    for (size_t i = 5; i < words.size();) {  // after the 5-word header
+      const uint32_t count = words[i] >> 16, opcode = words[i] & 0xffffu;
+      if (opcode == 17) r.capabilities.insert(words[i + 1]);   // OpCapability
+      if (opcode >= 333 && opcode <= 366) r.group_ops = true;  // OpGroupNonUniformElect..
+      i += count > 0 ? count : 1;
+    }
+    return r;
+  };
+  constexpr uint32_t kShader = 1, kGroupNonUniformClustered = 67;
+  const Spirv portable = scan(kiss_vk::linear_bt_shader(false));
+  EXPECT_EQ(portable.capabilities, std::set<uint32_t>{kShader});
+  EXPECT_FALSE(portable.group_ops);
+  const auto portable_spec_ids =
+      kiss_vk::reflect_spirv(kiss_vk::load_shader_spirv(kiss_vk::linear_bt_shader(false))).spec_ids;
+  EXPECT_FALSE(portable_spec_ids.contains(kiss_vk::kSubgroupSizeSpecId));
+  EXPECT_TRUE(portable_spec_ids.contains(2) && portable_spec_ids.contains(3));  // WEIGHTS, FPR
+
+  const Spirv clustered = scan(kiss_vk::linear_bt_shader(true));
+  EXPECT_TRUE(clustered.capabilities.contains(kGroupNonUniformClustered));
+  EXPECT_TRUE(clustered.group_ops);
 }
 
 // cifar-gpu-kernels F2, spec "Reduced-precision weights are bounded and opt-in": end-task accuracy

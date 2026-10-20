@@ -271,6 +271,12 @@ selection and outputs unchanged.
 - **Effect:** removes 4 KB of shared memory and 8 barriers per workgroup.
 - **Fallback:** keep the shared-memory reduction behind a spec constant for a device that lacks
   CLUSTERED support (none in the fleet: both phones and the 780M have it, task 2.2).
+  As built (review fix after the archive): a spec constant cannot be the fallback, because the module
+  still declares `GroupNonUniformClustered` and specialization comes after module creation. The body is
+  `new_cifar_dense_linear_bt.glsl`, included by two modules: `new_cifar_dense_linear_bt.comp` (clustered)
+  and `new_cifar_dense_linear_bt_portable.comp` (shared-memory reduction only, no capability but Shader, no
+  subgroup-size constant), and the dispatchers create the portable one where the device lacks clustered
+  operations (`kiss_vk::linear_bt_shader`).
 
 #### F4. Generic linear fallbacks
 `new_cifar_dense_linear.comp` and `new_cifar_sparse_linear.comp` are dead for every current shape.

@@ -890,6 +890,31 @@ no-regression check. FC changes run on both phones.
     governor as in 3.1: at the same clock the arms agree (Pixel fc1 at 471 MHz: 6.837 base, 6.844 f3; Samsung
     fc2 at 800 MHz: 1.975-1.977 base, 1.875 f3), and the Pixel base runs that were faster ran fc1 at 572-633 MHz,
     the slowest f3 run at 400 MHz.
+  - *Review fix (after the archive): the fallback was not a separate module.* `CLUSTERED = 0` chose the
+    shared-memory reduction at specialization, but the one module still declared `OpCapability
+    GroupNonUniformClustered` (`spirv-dis .../new_cifar_dense_linear_bt.spv | rg 'OpCapability|ClusteredReduce'`), and
+    both dispatchers created it on every device, so a device without clustered operations would have been handed
+    an unsupported module, in FP32 mode too. Now the kernel body is `new_cifar_dense_linear_bt.glsl`, included by
+    `new_cifar_dense_linear_bt.comp` (`LINEAR_BT_CLUSTERED 1`: the clustered reduction, subgroup-size dependent,
+    still the shared-memory sum below a 16-wide subgroup) and `new_cifar_dense_linear_bt_portable.comp`
+    (`LINEAR_BT_CLUSTERED 0`: shared-memory sum only; its SPIR-V declares only `Shader` and no subgroup-size
+    constant, so its pipeline is not subgroup-size dependent). Spec constant 1 is gone. `kiss_vk::linear_bt_shader
+    (subgroup_clustered)` picks the module before it is created, in both dispatchers and the tests;
+    `cmake/bt_shaders.cmake` rebuilds every shader when a `comp/*.glsl` body changes.
+  - *Verification:* `LinearBt.PortableModuleHasNoSubgroupCapability` (hardware-free) scans the baked SPIR-V: the
+    portable module's capabilities are exactly {Shader}, it has no `OpGroupNonUniform*` instruction and no
+    `SpecId 0`, while the clustered one declares `GroupNonUniformClustered` (checked by mutation: built with the
+    clustered body the test fails). `LinearBt.RaggedFeatureBatchAndChunkEdgesPortableModule`,
+    `Int8WeightsPortableModule` and `Int8WeightsFourFeaturesPerRowPortableModule` run the portable module's FP32 and
+    INT8 reductions (FPR 2 and 4) against the reference; it uses no subgroup operation, so this runs on every GPU
+    (they replace the `...SharedMemoryReduction` tests, which only set `CLUSTERED = 0` in the clustered module). No
+    fleet GPU lacks clustered operations, so no device creates the portable module in the app suites. malioc
+    (Mali-G710): the clustered module compiles exactly as before (64 registers, spill 20 B, LS 28.20 FP32 / 30.50
+    INT8); the portable one spills (120 / 144 B, LS 142 / 150), which only a device without clustered operations
+    would pay.
+  - *Gate at the fix:* local `ctest -L omp` 11/11; `just check-shaders` OK; build box iGPU, rocky and both phones:
+    `test-cifar-sparse-vk` 27 / 28 and `test-cifar-dense-vk` 19 / 20 (synthetic / real) passed, default and
+    `BT_VK_FC_WEIGHTS=int8` (rocky and phone details in the 3.10 addendum).
 - [x] 3.3 F1: prototype layouts (a) K-outer/tiles-inner and (b) batch-split so weights stream once per batch. Verify: both pass `test-cifar-sparse-vk` and `test-cifar-dense-vk` on rocky; sparse fc1/fc2 timings on both phones for each layout are in the evidence note.
   - *Prototypes* (`BT_VK_FC_LAYOUT=ko|bs|tk` in both dispatchers; one workgroup per 32 output features covers
     the whole batch, N <= 128, grid `(ceil(out/32), 1, 1)`, so each weight element is loaded by one workgroup):
@@ -1084,3 +1109,21 @@ no-regression check. FC changes run on both phones.
   - *Note:* `docs/reports-for-human/perf-results/2026-10-20-cifar-fc.md` (before/after tables for both apps on both
     phones in FP32 and INT8, the layout prototypes, FP16, the variant per device, and the Pixel cifar-dense FP32
     finding), linked from the perf-results README.
+  - *Addendum, gate rerun after the portable-module fix (see 3.2), 2026-10-20 13:1x-13:48 UTC*, default and
+    `BT_VK_FC_WEIGHTS=int8`:
+    - *local:* `ctest -L omp` 11/11; `just check-shaders`: OK (both FC modules checked; rocky has no glslc on PATH,
+      so the check runs here, as in CI); build box iGPU: `test-cifar-sparse-vk` 27 / 28 and `test-cifar-dense-vk`
+      19 / 20 (synthetic / real) passed in both modes.
+    - *rocky* (`~/bt-fc-gate`, recreated): build exit 0, `ctest -L vulkan` 7/7, `test-cifar-sparse-vk` 27 / 28 and
+      `test-cifar-dense-vk` 19 / 20 in both modes, accuracy fp32 0.9375 / int8 0.9375 and 0.9219 / 0.9219; the
+      portable `.spv` there has no `GroupNonUniform` or `ClusteredReduce` line.
+    - *phones:* `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk
+      test-cifar-dense-vk` (weights deployed there, so real weights): 28 and 20 passed, exit 0, on 3A021JEHN02756
+      and R5CY21Y3VEV; the same binaries synthetic (27 / 19) and with `BT_VK_FC_WEIGHTS=int8` (27 / 19, 28 / 20):
+      all passed, exit 0. The Pixel (subgroup 16) runs the portable-module tests too.
+    - *Timing check* (FC stages, 3.1 method, 13:35-13:48 UTC, arms 258b3c5 vs the fix, FP32 and INT8): cifar-sparse
+      fc1 / fc2 within 0.5 % in both precisions on both phones (Samsung FP32 9.329 / 9.319 vs 9.278 / 9.345 ms,
+      INT8 5.704 / 5.702 vs 5.279 / 5.245; Pixel FP32 18.596 / 18.754 vs 18.603 / 18.720); cifar-dense follows the
+      governor as before (Samsung INT8 1.726 / 1.734 vs 1.730 / 1.731 ms; FP32 per-run fc1+fc2 sums +0.9 %
+      Samsung, +4.8 % Pixel, spreads overlapping). The clustered module's code is unchanged (malioc), so the
+      note's tables stand.
