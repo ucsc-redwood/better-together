@@ -75,8 +75,8 @@ TEST(Placement, DeclaredStagesMatchBindings) {
       }
     }
     if (const auto it = csr_index.find(s); it != csr_index.end()) {
-      const VkBuffer col_idx = vk_mr->find_buffer(it->second.first);
-      const VkBuffer taps = vk_mr->find_buffer(it->second.second);
+      VkBuffer col_idx = vk_mr->find_buffer(it->second.first);
+      VkBuffer taps = vk_mr->find_buffer(it->second.second);
       EXPECT_NE(bound.contains(col_idx), bound.contains(taps)) << "stage " << s;
       declared.erase(bound.contains(col_idx) ? taps : col_idx);
     }
