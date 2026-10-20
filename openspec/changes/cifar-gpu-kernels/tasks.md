@@ -444,7 +444,24 @@ no-regression check. FC changes run on both phones.
     | 11 | 0.645 (0.632-0.651, n=3x1393-2000) | 0.649 (0.622-0.650, n=3x1413-2000) | +0.6 % |
     | sum | 21.398 | 21.322 | -0.4 % |
     | conv2-conv5 (3+5+6+7), per-run sum | 11.408 (11.124-12.216, 3 runs) | 11.439 (11.408-11.459, 3 runs) | +0.3 % |
-- [ ] 2.2 Probe each device's optional capabilities with a debug-logged query added to `test-kiss-vk`: `shaderFloat16`, `storageBuffer16BitAccess`, `cooperativeMatrix` and its shapes, CLUSTERED subgroup support, `maxComputeSharedMemorySize`. Verify: the logged values for all three devices replace the "to verify" marks in design.md Context (this also serves groups 1 and 3).
+- [x] 2.2 Probe each device's optional capabilities with a debug-logged query added to `test-kiss-vk`: `shaderFloat16`, `storageBuffer16BitAccess`, `cooperativeMatrix` and its shapes, CLUSTERED subgroup support, `maxComputeSharedMemorySize`. Verify: the logged values for all three devices replace the "to verify" marks in design.md Context (this also serves groups 1 and 3).
+  - `VulkanDeviceFeatures.OptionalCapabilitiesAreLogged` (`test-kiss-vk`) queries the five and logs them at debug
+    level (it fails only if `maxComputeSharedMemorySize` is below the Vulkan minimum of 16 KB). `SPDLOG_LEVEL=debug
+    ./test-kiss-vk --gtest_filter='*OptionalCapabilities*'`, 1 test passed on each:
+
+        AMD Radeon 780M Graphics (RADV PHOENIX): shaderFloat16 true, storageBuffer16BitAccess true,
+          VK_KHR_cooperative_matrix true (cooperativeMatrix true; shapes: M16N16K16 A Float16 B Float16 C Float16
+          R Float16 Subgroup; M16N16K16 A Float16 B Float16 C Float32 R Float32 Subgroup; 12 M16N16K16 shapes
+          with 8-bit integer A/B and 32-bit integer C), subgroup CLUSTERED true, maxComputeSharedMemorySize 65536
+        Mali-G710: shaderFloat16 true, storageBuffer16BitAccess true, VK_KHR_cooperative_matrix false
+          (cooperativeMatrix false; shapes: none), subgroup CLUSTERED true, maxComputeSharedMemorySize 32768
+        Samsung Xclipse 940: shaderFloat16 true, storageBuffer16BitAccess true, VK_KHR_cooperative_matrix false
+          (cooperativeMatrix false; shapes: none), subgroup CLUSTERED true, maxComputeSharedMemorySize 32768
+
+    (rocky-ryzen in `~/bt-dense-gate`; the phones from `build/android`. The build box's RADV iGPU, RDNA2, reports
+    the same as the 780M without cooperative matrix.) design.md Context now has the table instead of the "to
+    verify" marks, as do the C5 shapes and the F3 fallback. No phone has cooperative matrix, so per 2.10 C5 can
+    only be built for rocky, where nothing is timed.
 - [ ] 2.3 Dump the current kernel's ACO disassembly on rocky (`--gtest_filter='*Stage5*'`). Verify: the evidence note records whether the weight loads are vector or scalar.
 - [ ] 2.4 C1: move `oct` to `gl_WorkGroupID.y`, grid `(ceil(N·H·W/256), K/OC_TILE, 1)`. Verify: the rocky gate passes; ACO shows scalar weight loads (quoted); timing on both phones is recorded against 2.1 with no regression beyond noise.
 - [ ] 2.5 C2/C3: input halo tiling in shared memory (≤ 16 KB default) with `C_TILE`, `OC_TILE` and `PX_TILE` spec constants. Verify: `test-cifar-dense-vk` passes on rocky for at least three tile configurations, including 8 oc × 2 px and 8 oc × 4 px.
