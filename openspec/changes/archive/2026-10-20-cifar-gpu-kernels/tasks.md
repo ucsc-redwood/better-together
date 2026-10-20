@@ -1115,15 +1115,34 @@ no-regression check. FC changes run on both phones.
       so the check runs here, as in CI); build box iGPU: `test-cifar-sparse-vk` 27 / 28 and `test-cifar-dense-vk`
       19 / 20 (synthetic / real) passed in both modes.
     - *rocky* (`~/bt-fc-gate`, recreated): build exit 0, `ctest -L vulkan` 7/7, `test-cifar-sparse-vk` 27 / 28 and
-      `test-cifar-dense-vk` 19 / 20 in both modes, accuracy fp32 0.9375 / int8 0.9375 and 0.9219 / 0.9219; the
-      portable `.spv` there has no `GroupNonUniform` or `ClusteredReduce` line.
+      `test-cifar-dense-vk` 19 / 20 in both modes, accuracy fp32 0.9375 / int8 0.9375 and 0.9219 / 0.9219,
+      including `LinearBt.PortableModuleHasNoSubgroupCapability`, which checks the baked SPIR-V of both modules
+      (the evidence for the portable module's capabilities). A `spirv-dis` of rocky's portable `.spv` was also
+      attempted and failed (`spirv-dis: command not found`), so it verified nothing; the local disassembly of the
+      same source declares only `OpCapability Shader`.
     - *phones:* `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk
       test-cifar-dense-vk` (weights deployed there, so real weights): 28 and 20 passed, exit 0, on 3A021JEHN02756
       and R5CY21Y3VEV; the same binaries synthetic (27 / 19) and with `BT_VK_FC_WEIGHTS=int8` (27 / 19, 28 / 20):
       all passed, exit 0. The Pixel (subgroup 16) runs the portable-module tests too.
-    - *Timing check* (FC stages, 3.1 method, 13:35-13:48 UTC, arms 258b3c5 vs the fix, FP32 and INT8): cifar-sparse
-      fc1 / fc2 within 0.5 % in both precisions on both phones (Samsung FP32 9.329 / 9.319 vs 9.278 / 9.345 ms,
-      INT8 5.704 / 5.702 vs 5.279 / 5.245; Pixel FP32 18.596 / 18.754 vs 18.603 / 18.720); cifar-dense follows the
-      governor as before (Samsung INT8 1.726 / 1.734 vs 1.730 / 1.731 ms; FP32 per-run fc1+fc2 sums +0.9 %
-      Samsung, +4.8 % Pixel, spreads overlapping). The clustered module's code is unchanged (malioc), so the
-      note's tables stand.
+    - *Timing check* (FC stages, 3.1 method, 13:35-13:48 UTC, arms 258b3c5 vs the fix, FP32 and INT8, 3 runs
+      each), cifar-sparse fc1 / fc2, median (min-max of the run p50s) ms:
+
+      | phone | precision | stage | 258b3c5 | fix | fix vs 258b3c5 | spreads |
+      |---|---|---|---|---|---|---|
+      | Pixel | FP32 | fc1 | 18.596 (18.595-18.642) | 18.603 (18.566-18.617) | +0.0 % | overlap |
+      | Pixel | FP32 | fc2 | 18.754 (18.687-18.760) | 18.720 (18.712-18.727) | -0.2 % | overlap |
+      | Pixel | INT8 | fc1 | 17.883 (17.747-17.964) | 17.768 (17.680-17.794) | -0.6 % | overlap |
+      | Pixel | INT8 | fc2 | 18.330 (18.171-18.861) | 18.574 (18.451-18.771) | +1.3 % | overlap |
+      | Samsung | FP32 | fc1 | 9.329 (9.297-9.341) | 9.278 (9.225-9.281) | -0.5 % | do not overlap (fix lower) |
+      | Samsung | FP32 | fc2 | 9.319 (9.308-9.369) | 9.345 (9.337-9.381) | +0.3 % | overlap |
+      | Samsung | INT8 | fc1 | 5.704 (5.262-6.413) | 5.279 (5.269-6.421) | -7.5 % | overlap |
+      | Samsung | INT8 | fc2 | 5.702 (5.212-6.407) | 5.245 (5.234-5.687) | -8.0 % | overlap |
+
+      The medians are not equal everywhere: they agree within 0.6 % in FP32 on both phones and in INT8 on the Pixel
+      (+1.3 % for Pixel INT8 fc2), and differ by 7.5-8.0 % for Samsung INT8. Every spread overlaps but Samsung FP32
+      fc1's, where the fix is 0.5 % lower. The Samsung INT8 runs of both arms sit at three GPU clock levels (1095,
+      1000 and 900 MHz: about 5.25, 5.7 and 6.4 ms), with two of the fix's three runs at 1095 MHz for each stage
+      against one of 258b3c5's; that, not the kernel, is the median gap. cifar-dense follows the governor as before
+      (Samsung INT8 fc1 / fc2 1.726 / 1.734 vs 1.730 / 1.731 ms; FP32 per-run fc1+fc2 sums +0.9 % Samsung, +4.8 %
+      Pixel, spreads overlapping). The clustered module compiles to the same Mali code (malioc), so the note's
+      tables stand.
