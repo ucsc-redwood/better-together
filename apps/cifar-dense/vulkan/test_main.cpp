@@ -4,9 +4,11 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <memory_resource>
 #include <random>
 #include <set>
+#include <utility>
 
 #include "apps/cifar-dense/cifar_dense_diff_oracle.hpp"
 #include "dispatchers.hpp"
@@ -45,6 +47,9 @@ TEST(Placement, DeclaredStagesMatchBindings) {
   auto* vk_mr = static_cast<kiss_vk::VulkanMemoryResource*>(disp.get_mr());
   bt_placement_test::RecordingDispatcher rec(vk_mr);
   cifar_dense::AppData app(rec.placement(all_stages(11)));
+  const std::map<int, std::pair<const void*, const void*>> fc_weights = {
+      {9, {app.u_fc1_w.data(), app.u_fc1_wq.words.data()}},
+      {10, {app.u_fc2_w.data(), app.u_fc2_wq.words.data()}}};
 
   for (int s = 1; s <= 11; ++s) {
     disp.dispatch_stage(app, s);
@@ -55,6 +60,15 @@ TEST(Placement, DeclaredStagesMatchBindings) {
       if (std::ranges::find(alloc.stages, s) != alloc.stages.end()) {
         declared.insert(vk_mr->find_buffer(ptr));
       }
+    }
+    // fc1 and fc2 declare their FP32 weights and the reduced-precision copy (empty, so never
+    // allocated, in the default FP32 mode); a Vulkan stage binds exactly one of the two.
+    if (const auto it = fc_weights.find(s);
+        it != fc_weights.end() && it->second.second != nullptr) {
+      VkBuffer fp32 = vk_mr->find_buffer(it->second.first);
+      VkBuffer reduced = vk_mr->find_buffer(it->second.second);
+      EXPECT_NE(bound.contains(fp32), bound.contains(reduced)) << "stage " << s;
+      declared.erase(bound.contains(fp32) ? reduced : fp32);
     }
     EXPECT_EQ(bound, declared) << "stage " << s;
   }

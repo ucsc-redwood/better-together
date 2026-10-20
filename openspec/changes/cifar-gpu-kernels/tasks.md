@@ -951,7 +951,29 @@ no-regression check. FC changes run on both phones.
     and real weights; `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial>
     test-cifar-sparse-vk test-cifar-dense-vk`: 22 and 19 passed, exit 0, on 3A021JEHN02756 and R5CY21Y3VEV, and the
     same with real weights.
-- [ ] 3.5 F2: host-side weight quantization at load time (FP16; INT8 with per-row scales) and the precision mode `BT_VK_FC_WEIGHTS=fp16|int8` with FP32 fallback and a warning on unsupported devices. Verify: a unit test round-trips quantize→dequantize within the stated per-element error; default runs are unchanged.
+- [x] 3.5 F2: host-side weight quantization at load time (FP16; INT8 with per-row scales) and the precision mode `BT_VK_FC_WEIGHTS=fp16|int8` with FP32 fallback and a warning on unsupported devices. Verify: a unit test round-trips quantize→dequantize within the stated per-element error; default runs are unchanged.
+  - *Host side:* `platform/util/fc_weights.hpp`: `bt::fc_weights_from_env()` reads `BT_VK_FC_WEIGHTS` (fp32, empty
+    or unset: FP32; fp16; int8; anything else throws); `bt::FcWeightCopy` holds one matrix as the 32-bit words the
+    kernel will read (FP16: IEEE binary16, round to nearest even, two per word; INT8: symmetric per output row,
+    `scale = max|w| / 127`, `q = round(w / scale)`, four per word, then the row scales) and `dequantized(r, j)`.
+    Stated per-element error: FP16 `|w - w16| <= 2^-11 |w|` (normal range) or `2^-25` (subnormals); INT8
+    `|w - scale q| <= scale / 2`. Both AppData read the mode at construction and quantize `u_fc1_w` / `u_fc2_w`
+    into `u_fc1_wq` / `u_fc2_wq` right after loading the synthetic or the real weights (placed as stage 9 / 10
+    weights); in FP32 mode the copies are empty and allocate nothing. fc3 stays FP32 (design: non-goal).
+  - *Fallback:* neither mode needs a device feature (design.md F2, "As built": the words are read as 32-bit
+    values), so there is no device to fall back on, and no warning to give; an unknown mode throws.
+  - *Unit test* `FcWeights.QuantizeRoundTripWithinBound` (`test-cifar-dense-omp`, in `ctest -L omp`): every element
+    of a 5 x 1000 matrix spanning 2^-30..2^15 (with a zero row, a subnormal row, an outlier row and 65504) and of
+    the app's fc1/fc2 decodes within its bound; it prints the largest error / bound (fp16 0.999-1.000, int8
+    1.000 for both the synthetic and the real weights, the bound being tight); it checks that the default AppData
+    makes no copy and that an `int8` AppData's copy equals quantizing its own loaded weights. Passed on the build
+    box (synthetic and real), the Pixel 7a and the Samsung (real).
+  - *Default unchanged:* the dispatchers do not change in this step and the default AppData holds no copy;
+    `Placement.DeclaredStagesMatchBindings` now accepts a stage that binds either the FP32 weights or the copy
+    (exactly one), and the OMP input-purity regions list the copies. Local `ctest -L omp` 11/11 passed;
+    `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic and real weights on the build
+    box's iGPU, on rocky (`ctest -L vulkan` 7/7; run before an empty `BT_VK_FC_WEIGHTS` was taken as FP32) and
+    on both phones.
 - [ ] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.
 - [ ] 3.7 F2: VK end-task accuracy on the real weights for both apps in FP16 and INT8 (reusing the 2.9 test harness for cifar-dense, plus a sparse twin). Verify: each is within 0.5 points of FP32 (dense 90.48%, sparse 90.58%), printed. If INT8 fails, record it and ship FP16 only.
 - [ ] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").

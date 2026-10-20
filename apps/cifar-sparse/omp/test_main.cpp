@@ -110,19 +110,31 @@ TEST(CifarSparseAppData, RealWeights_EndTaskAccuracy) {
 namespace {
 std::vector<bt::testing::Region> Regions(const cifar_sparse::AppData& a) {
   using bt::testing::Buf;
-  std::vector<bt::testing::Region> r = {
-      Buf("u_input", a.u_input.pmr_vec()),         Buf("u_conv1_out", a.u_conv1_out.pmr_vec()),
-      Buf("u_pool1_out", a.u_pool1_out.pmr_vec()), Buf("u_conv2_out", a.u_conv2_out.pmr_vec()),
-      Buf("u_pool2_out", a.u_pool2_out.pmr_vec()), Buf("u_conv3_out", a.u_conv3_out.pmr_vec()),
-      Buf("u_conv4_out", a.u_conv4_out.pmr_vec()), Buf("u_conv5_out", a.u_conv5_out.pmr_vec()),
-      Buf("u_pool3_out", a.u_pool3_out.pmr_vec()), Buf("u_fc1_out", a.u_fc1_out.pmr_vec()),
-      Buf("u_fc2_out", a.u_fc2_out.pmr_vec()),     Buf("u_fc3_out", a.u_fc3_out.pmr_vec()),
-      Buf("u_conv1_b", a.u_conv1_b.pmr_vec()),     Buf("u_conv2_b", a.u_conv2_b.pmr_vec()),
-      Buf("u_conv3_b", a.u_conv3_b.pmr_vec()),     Buf("u_conv4_b", a.u_conv4_b.pmr_vec()),
-      Buf("u_conv5_b", a.u_conv5_b.pmr_vec()),     Buf("u_fc1_w", a.u_fc1_w.pmr_vec()),
-      Buf("u_fc1_b", a.u_fc1_b.pmr_vec()),         Buf("u_fc2_w", a.u_fc2_w.pmr_vec()),
-      Buf("u_fc2_b", a.u_fc2_b.pmr_vec()),         Buf("u_fc3_w", a.u_fc3_w.pmr_vec()),
-      Buf("u_fc3_b", a.u_fc3_b.pmr_vec())};
+  std::vector<bt::testing::Region> r = {Buf("u_input", a.u_input.pmr_vec()),
+                                        Buf("u_conv1_out", a.u_conv1_out.pmr_vec()),
+                                        Buf("u_pool1_out", a.u_pool1_out.pmr_vec()),
+                                        Buf("u_conv2_out", a.u_conv2_out.pmr_vec()),
+                                        Buf("u_pool2_out", a.u_pool2_out.pmr_vec()),
+                                        Buf("u_conv3_out", a.u_conv3_out.pmr_vec()),
+                                        Buf("u_conv4_out", a.u_conv4_out.pmr_vec()),
+                                        Buf("u_conv5_out", a.u_conv5_out.pmr_vec()),
+                                        Buf("u_pool3_out", a.u_pool3_out.pmr_vec()),
+                                        Buf("u_fc1_out", a.u_fc1_out.pmr_vec()),
+                                        Buf("u_fc2_out", a.u_fc2_out.pmr_vec()),
+                                        Buf("u_fc3_out", a.u_fc3_out.pmr_vec()),
+                                        Buf("u_conv1_b", a.u_conv1_b.pmr_vec()),
+                                        Buf("u_conv2_b", a.u_conv2_b.pmr_vec()),
+                                        Buf("u_conv3_b", a.u_conv3_b.pmr_vec()),
+                                        Buf("u_conv4_b", a.u_conv4_b.pmr_vec()),
+                                        Buf("u_conv5_b", a.u_conv5_b.pmr_vec()),
+                                        Buf("u_fc1_w", a.u_fc1_w.pmr_vec()),
+                                        Buf("u_fc1_b", a.u_fc1_b.pmr_vec()),
+                                        Buf("u_fc2_w", a.u_fc2_w.pmr_vec()),
+                                        Buf("u_fc2_b", a.u_fc2_b.pmr_vec()),
+                                        Buf("u_fc3_w", a.u_fc3_w.pmr_vec()),
+                                        Buf("u_fc3_b", a.u_fc3_b.pmr_vec()),
+                                        Buf("u_fc1_wq", a.u_fc1_wq.words),
+                                        Buf("u_fc2_wq", a.u_fc2_wq.words)};
   const auto csr = [&r](const std::string& name, const cifar_sparse::CSRMatrix& m) {
     r.push_back(bt::testing::Scalar(name + ".nnz", m.nnz));
     r.push_back(Buf(name + ".values", m.values));

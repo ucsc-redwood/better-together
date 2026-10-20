@@ -251,6 +251,14 @@ selection and outputs unchanged.
   devices fall back to FP32 with a warning.
 - **Alternative:** INT8 activations with `VK_KHR_shader_integer_dot_product`. Rejected for now: it
   needs per-batch activation quantization and gains compute that isn't the bottleneck.
+- **As built (tasks 3.5-3.6):** the copies are 32-bit words (`bt::FcWeightCopy`): FP16 pairs read as `uvec2`
+  and converted with `unpackHalf2x16`, INT8 quads read as `uint` and sign-extended with `bitfieldExtract`, the
+  row scales after the INT8 rows and applied to each row's sum. linear_bt reads binding 1 through three aliased
+  declarations selected by a `WEIGHTS` spec constant, so the FP32 path is the same code and neither reduced mode
+  needs `storageBuffer16BitAccess`, `shaderFloat16` or 8-bit storage: no Vulkan device lacks what they need,
+  and the "unsupported device" fallback has nothing to fall back from. Only fc1 and fc2 have copies (fc3 is a
+  non-goal); the AppData makes them when `BT_VK_FC_WEIGHTS` is set at its construction, and they stay empty
+  (unallocated) by default.
 
 #### F3. Clustered subgroup reduction
 - **Change:** replace the `sh_red` and lane-0 serial sum with `subgroupClusteredAdd(acc, 16)` per

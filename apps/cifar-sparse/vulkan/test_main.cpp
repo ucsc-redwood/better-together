@@ -63,6 +63,9 @@ TEST(Placement, DeclaredStagesMatchBindings) {
       {5, {app.conv3_sparse.col_idx.data(), app.conv3_taps.data()}},
       {6, {app.conv4_sparse.col_idx.data(), app.conv4_taps.data()}},
       {7, {app.conv5_sparse.col_idx.data(), app.conv5_taps.data()}}};
+  const std::map<int, std::pair<const void*, const void*>> fc_weights = {
+      {9, {app.u_fc1_w.data(), app.u_fc1_wq.words.data()}},
+      {10, {app.u_fc2_w.data(), app.u_fc2_wq.words.data()}}};
 
   for (int s = 1; s <= 11; ++s) {
     disp.dispatch_multi_stage(app, s, s);
@@ -79,6 +82,15 @@ TEST(Placement, DeclaredStagesMatchBindings) {
       VkBuffer taps = vk_mr->find_buffer(it->second.second);
       EXPECT_NE(bound.contains(col_idx), bound.contains(taps)) << "stage " << s;
       declared.erase(bound.contains(col_idx) ? taps : col_idx);
+    }
+    // fc1 and fc2 declare their FP32 weights and the reduced-precision copy (empty, so never
+    // allocated, in the default FP32 mode); a Vulkan stage binds exactly one of the two.
+    if (const auto it = fc_weights.find(s);
+        it != fc_weights.end() && it->second.second != nullptr) {
+      VkBuffer fp32 = vk_mr->find_buffer(it->second.first);
+      VkBuffer reduced = vk_mr->find_buffer(it->second.second);
+      EXPECT_NE(bound.contains(fp32), bound.contains(reduced)) << "stage " << s;
+      declared.erase(bound.contains(fp32) ? reduced : fp32);
     }
     EXPECT_EQ(bound, declared) << "stage " << s;
   }
