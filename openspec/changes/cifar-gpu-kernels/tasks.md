@@ -706,7 +706,68 @@ no-regression check. FC changes run on both phones.
     | 11 | 0.647 (0.624-0.663, n=3x1414-2000) | 0.626 (0.625-0.660, n=3x2000) | -3.2 % |
     | sum | 22.158 | 18.613 | -16.0 % |
     | conv2-conv5 (3+5+6+7), per-run sum | 12.271 (11.710-12.941, 3 runs) | 9.573 (8.597-9.897, 3 runs) | -22.0 % |
-- [ ] 2.7 Check the FP32 performance requirement. Verify: on the Samsung the conv2–conv5 sum is faster than 2.1 beyond noise, no phone conv stage is slower; the fleet gate is green. If it isn't met, record the gap; the optional tasks 2.8–2.12 don't count toward it.
+- [x] 2.7 Check the FP32 performance requirement. Verify: on the Samsung the conv2–conv5 sum is faster than 2.1 beyond noise, no phone conv stage is slower; the fleet gate is green. If it isn't met, record the gap; the optional tasks 2.8–2.12 don't count toward it.
+  - *A/B* (the 2.1 method, `base` d563dc5 vs `final`, the e34ca8d binary with no knob set, both phones at once,
+    2026-10-20 07:43-07:48 UTC; all 12 runs exit 0 with 11 records).
+  - *Samsung, conv2-conv5 faster beyond noise: met.* Per-run sums 9.560 (9.550-10.696) vs 11.403 (11.059-12.676)
+    ms, -16.2 %, spreads apart; also below both 2.1 arms (11.124-12.216 and 11.408-11.459). Conv2 -26.9 % and
+    conv4 -25.5 % with spreads apart; conv3 -0.1 % and conv5 -2.4 % with overlapping spreads. In GPU cycles the four
+    convs take 5.42 vs 7.47 million (-27 %); conv3 runs at 450 MHz instead of 650-800, which is why its time does
+    not move (2.6).
+  - *No conv slower beyond noise: met.* Samsung: conv1 (the same kernel) +0.4 %, overlapping. Pixel 7a (the Mali
+    path, the same shader and grid as `base`): stage 3 reads 14.545 (13.416-14.546) vs 12.357 (12.357-14.540) and
+    stage 7 15.728 (14.686-15.771) vs 14.547 (14.546-15.767), the two levels each of them showed within one binary
+    in 2.1 (9.98-14.54 and 14.53-15.79 ms); spreads overlap. Every other Pixel conv is within 0.3 % or faster.
+  - *Fleet gate, green* (the code of e34ca8d; this commit adds only notes):
+    - *local:* `cmake --build --preset pc && ctest --test-dir build/pc -L omp`: 11/11 passed.
+    - *rocky:* `~/bt-dense-gate`, `cmake --preset vulkan` (glslc of NDK r29), build exit 0, `ctest -L vulkan` 7/7
+      passed, `./test-cifar-dense-vk --device minipc` 19 passed with the default tiles and with
+      `BT_VK_DENSE_CONV_TILE=flat`, each with synthetic and with real weights. (A first real-weight run failed 13
+      tests with "cannot open file": the tree sync had deleted the weights copied into the synced directory; they
+      now live beside it.)
+    - *phones:* `BT_ANDROID_DEST=/data/local/tmp/bt-dense/gate scripts/run-on-android.sh <serial>
+      test-cifar-dense-vk`: 19 passed, exit 0, on 3A021JEHN02756 and on R5CY21Y3VEV; the same binary with real
+      weights: 19 passed on each.
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | final median (min-max) ms | final vs base |
+    |---|---|---|---|
+    | 1 | 0.911 (0.908-0.916, n=3x1074-1124) | 0.915 (0.907-0.916, n=3x1066-1108) | +0.4 % |
+    | 2 | 1.306 (1.257-1.308, n=3x807-1934) | 1.293 (1.266-1.301, n=3x876-1141) | -1.0 % |
+    | 3 | 3.402 (3.097-3.405, n=3x472-475) | 2.487 (2.486-2.490, n=3x959-966) | -26.9 % |
+    | 4 | 0.974 (0.971-0.977, n=3x1189-1325) | 0.973 (0.967-0.976, n=3x1139-1293) | -0.1 % |
+    | 5 | 2.453 (2.444-3.144, n=3x370-448) | 2.451 (2.447-2.463, n=3x473-606) | -0.1 % |
+    | 6 | 3.376 (3.371-3.390, n=3x326-328) | 2.514 (2.507-2.908, n=3x352-448) | -25.5 % |
+    | 7 | 2.155 (2.142-2.758, n=3x360-525) | 2.104 (2.103-2.847, n=3x349-528) | -2.4 % |
+    | 8 | 0.328 (0.326-0.328, n=3x2000) | 0.324 (0.324-0.329, n=3x2000) | -1.0 % |
+    | 9 | 2.123 (2.094-2.867, n=3x344-552) | 2.957 (2.091-2.978, n=3x338-522) | +39.3 % |
+    | 10 | 2.822 (1.976-2.837, n=3x362-543) | 1.974 (1.973-2.726, n=3x370-540) | -30.1 % |
+    | 11 | 0.635 (0.626-0.641, n=3x1463-2000) | 0.652 (0.639-0.661, n=3x1369-2000) | +2.7 % |
+    | sum | 20.486 | 18.644 | -9.0 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 11.403 (11.059-12.676, 3 runs) | 9.560 (9.550-10.696, 3 runs) | -16.2 % |
+
+    | arm | stage 1: ms / MHz / Mcyc | stage 3: ms / MHz / Mcyc | stage 5: ms / MHz / Mcyc | stage 6: ms / MHz / Mcyc | stage 7: ms / MHz / Mcyc | conv2-5 ms | conv2-5 Mcyc |
+    |---|---|---|---|---|---|---|---|
+    | base | 0.911 / 252/252/252 / 0.23 | 3.402 / 315/315/315 / 1.07 | 2.453 / 800/800/650 / 1.96 | 3.376 / 800/800/800 / 2.70 | 2.155 / 800/800/650 / 1.72 | 11.403 (11.059-12.676) | 7.47 (7.35-7.61) |
+    | final | 0.915 / 252/252/252 / 0.23 | 2.487 / 252/252/252 / 0.63 | 2.451 / 450/450/450 / 1.10 | 2.514 / 800/700/800 / 2.01 | 2.104 / 800/600/800 / 1.68 | 9.560 (9.550-10.696) | 5.42 (5.42-5.47) |
+
+  - Pixel 7a, ms:
+
+    | stage | base median (min-max) ms | final median (min-max) ms | final vs base |
+    |---|---|---|---|
+    | 1 | 2.569 (2.567-2.571, n=3x392-393) | 2.560 (2.557-2.571, n=3x391-487) | -0.3 % |
+    | 2 | 0.495 (0.495-0.497, n=3x2000) | 0.494 (0.493-0.495, n=3x2000) | -0.0 % |
+    | 3 | 12.357 (12.357-14.540, n=3x63-80) | 14.545 (13.416-14.546, n=3x55-68) | +17.7 % |
+    | 4 | 0.383 (0.382-0.385, n=3x2000) | 0.384 (0.383-0.384, n=3x2000) | +0.2 % |
+    | 5 | 16.378 (15.308-16.425, n=3x54-63) | 15.205 (15.180-16.519, n=3x49-63) | -7.2 % |
+    | 6 | 20.330 (20.318-20.340, n=3x48-49) | 20.289 (20.273-20.308, n=3x49) | -0.2 % |
+    | 7 | 14.547 (14.546-15.767, n=3x68) | 15.728 (14.686-15.771, n=3x68-76) | +8.1 % |
+    | 8 | 0.176 (0.174-0.177, n=3x2000) | 0.176 (0.176-0.177, n=3x2000) | +0.2 % |
+    | 9 | 6.766 (6.181-7.316, n=3x124-161) | 5.452 (4.870-7.274, n=3x85-205) | -19.4 % |
+    | 10 | 6.697 (6.623-6.710, n=3x116-149) | 5.601 (4.573-6.700, n=3x129-195) | -16.4 % |
+    | 11 | 0.986 (0.870-0.989, n=3x1333-1541) | 0.877 (0.865-0.984, n=3x1345-2000) | -11.1 % |
+    | sum | 81.683 | 81.311 | -0.5 % |
+    | conv2-conv5 (3+5+6+7), per-run sum | 63.668 (63.599-65.945, 3 runs) | 65.805 (64.724-65.936, 3 runs) | +3.4 % |
 - [ ] 2.8 C4: optional-feature enablement for `shaderFloat16` and `storageBuffer16BitAccess` (enabled if supported, never required) plus a precision mode (`BT_VK_PRECISION=fp16`). Verify: `test-kiss-vk` logs the enabled features on all devices, and default runs are unchanged.
 - [ ] 2.9 C4: the FP16 conv variant (FP32 accumulate), with a per-stage tolerance, and a new VK end-task accuracy test on the real weights mirroring the OMP `CifarDenseAppData.RealWeights_EndTaskAccuracy`. Verify: `test-cifar-dense-vk` with `BT_VK_PRECISION=fp16` passes on supporting devices; FP16 accuracy is within 0.5 points of FP32 (printed); timing is recorded.
 - [ ] 2.10 C5: query cooperative-matrix shapes and add the implicit-GEMM conv (FP16 in, FP32 accumulate), selected only when supported. Verify: it passes on rocky with the FP16 tolerance and the 2.9 accuracy bound. Timing is on the Samsung only if 2.2 shows it supports cooperative matrix; if no phone does, C5 is not built (it could not be measured) and that is recorded. If it doesn't beat 2.7/2.9, it stays disabled by default and that's documented.
