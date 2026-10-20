@@ -238,7 +238,72 @@ no-regression check. FC changes run on both phones.
     | 10 | 10.058 (10.035-10.058, n=3x99) | 10.040 (10.037-10.062, n=3x99) | 10.053 (10.035-10.058, n=3x91-100) | -0.2 % | -0.1 % |
     | 11 | 1.174 (1.157-1.178, n=3x2000) | 1.155 (1.154-1.177, n=3x2000) | 1.158 (1.154-1.179, n=3x2000) | -1.6 % | -1.4 % |
     | sum | 232.356 | 163.825 | 163.646 | -29.5 % | -29.6 % |
-- [ ] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
+- [x] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
+  - The 1.1 method: `base` (ee4c68d) against `new`, the a324f38 binary (the code of 902c24b) with no knob set
+    (`STAGE_ROW` off), 3 rounds alternating, both phones at once (2026-10-20 00:27-00:33 UTC); then the Pixel alone
+    again (00:34-00:40). All runs exit 0 with 11 records.
+  - *Samsung, conv2-conv5 faster beyond noise: met.* Stage 3 18.169 (17.378-18.448) vs 34.024 (34.023-34.029) ms,
+    -46.6 %; stage 5 33.697 (31.676-33.862) vs 51.652 (51.651-51.660), -34.8 %; stage 6 45.300 (44.487-45.551) vs
+    68.531 (68.519-68.556), -33.9 %; stage 7 35.168 (35.144-36.060) vs 45.760 (45.759-45.775), -23.1 %. No spread
+    overlaps. Conv1 is faster too (3.200 vs 4.102 ms, -22.0 %).
+  - *No conv slower beyond noise: met on the Samsung; on the Pixel 7a, met after a repeat.* The Pixel runs the
+    unchanged Mali shader with the same bindings and grid. In the first session its stage 6 (conv4) read 183.575
+    (183.451-183.981) vs 182.349 (181.609-183.060) ms, +0.7 % with spreads that do not overlap. The repeat gave
+    183.486 (182.150-183.543) vs 183.377 (183.269-183.567), +0.1 %, overlapping. Over all sessions the two
+    interleave: the ee4c68d binary's stage-6 medians are 182.517 / 183.086 (1.1, two arms), 182.617 (1.8), 182.349
+    (1.9) and 183.377 (repeat); the a324f38 binary's are 183.599 / 181.319 (1.8, its `off` and `on` arms, the same
+    Mali path), 183.575 (1.9) and 183.486 (repeat). So the first session's +0.7 % is session-to-session noise, not
+    this change. Every other Pixel conv is within 0.3 % with overlapping spreads in both sessions.
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | new median (min-max) ms | new vs base |
+    |---|---|---|---|
+    | 1 | 4.102 (3.696-4.102, n=3x243-270) | 3.200 (2.813-3.693, n=3x264-300) | -22.0 % |
+    | 2 | 2.398 (2.388-2.431, n=3x694-706) | 2.418 (2.402-2.447, n=3x697-718) | +0.8 % |
+    | 3 | 34.024 (34.023-34.029, n=3x29) | 18.169 (17.378-18.448, n=3x57-60) | -46.6 % |
+    | 4 | 1.827 (1.826-1.843, n=3x1293-1303) | 1.821 (1.815-1.832, n=3x1300-1317) | -0.4 % |
+    | 5 | 51.652 (51.651-51.660, n=3x19) | 33.697 (31.676-33.862, n=3x33-36) | -34.8 % |
+    | 6 | 68.531 (68.519-68.556, n=3x14) | 45.300 (44.487-45.551, n=3x22-24) | -33.9 % |
+    | 7 | 45.760 (45.759-45.775, n=3x21) | 35.168 (35.144-36.060, n=3x29) | -23.1 % |
+    | 8 | 2.693 (2.687-2.701, n=3x1223-1231) | 2.685 (2.672-2.687, n=3x1195-1210) | -0.3 % |
+    | 9 | 10.049 (10.038-10.090, n=3x98-100) | 10.043 (10.041-10.063, n=3x99-100) | -0.1 % |
+    | 10 | 10.040 (10.038-10.047, n=3x99) | 10.049 (10.036-10.050, n=3x97-99) | +0.1 % |
+    | 11 | 1.176 (1.174-1.178, n=3x2000) | 1.158 (1.156-1.178, n=3x2000) | -1.6 % |
+    | sum | 232.253 | 163.707 | -29.5 % |
+
+  - Pixel 7a, first session, ms:
+
+    | stage | base median (min-max) ms | new median (min-max) ms | new vs base |
+    |---|---|---|---|
+    | 1 | 17.040 (16.980-17.123, n=3x59-68) | 17.012 (16.998-17.047, n=3x59-68) | -0.2 % |
+    | 2 | 4.467 (4.465-4.469, n=3x225-226) | 4.464 (4.463-4.469, n=3x226-447) | -0.1 % |
+    | 3 | 80.337 (80.330-80.382, n=3x12) | 80.287 (80.279-80.394, n=3x12) | -0.1 % |
+    | 4 | 3.366 (3.365-3.370, n=3x643-698) | 3.365 (3.365-3.366, n=3x644-698) | -0.0 % |
+    | 5 | 128.636 (126.923-128.678, n=3x7) | 128.712 (128.657-128.805, n=3x7) | +0.1 % |
+    | 6 | 182.349 (181.609-183.060, n=3x5) | 183.575 (183.451-183.981, n=3x5) | +0.7 % |
+    | 7 | 110.475 (110.308-110.478, n=3x9) | 110.139 (108.606-110.471, n=3x9) | -0.3 % |
+    | 8 | 1.180 (1.179-1.183, n=3x1969-2000) | 1.180 (1.179-1.183, n=3x1927-1993) | +0.1 % |
+    | 9 | 26.887 (26.877-26.900, n=3x32-34) | 26.939 (26.909-26.981, n=3x36-37) | +0.2 % |
+    | 10 | 27.177 (27.163-27.182, n=3x36) | 27.153 (27.134-27.156, n=3x36) | -0.1 % |
+    | 11 | 1.378 (1.156-1.383, n=3x1449-1604) | 1.378 (1.179-1.386, n=3x1400-1588) | -0.0 % |
+    | sum | 583.292 | 584.204 | +0.2 % |
+
+  - Pixel 7a, repeat, ms:
+
+    | stage | base median (min-max) ms | new median (min-max) ms | new vs base |
+    |---|---|---|---|
+    | 1 | 17.057 (16.987-17.297, n=3x58-68) | 17.013 (16.898-17.031, n=3x59-68) | -0.3 % |
+    | 2 | 4.465 (4.463-4.469, n=3x226-338) | 4.466 (4.437-4.466, n=3x225-334) | +0.0 % |
+    | 3 | 80.296 (80.266-80.386, n=3x12) | 80.244 (80.006-80.297, n=3x12) | -0.1 % |
+    | 4 | 3.368 (3.364-3.369, n=3x643-700) | 3.365 (3.339-3.366, n=3x586-699) | -0.1 % |
+    | 5 | 128.545 (128.503-128.582, n=3x7) | 128.618 (126.641-128.709, n=3x7) | +0.1 % |
+    | 6 | 183.377 (183.269-183.567, n=3x5) | 183.486 (182.150-183.543, n=3x5) | +0.1 % |
+    | 7 | 110.541 (108.598-110.723, n=3x9) | 110.218 (108.633-110.866, n=3x9) | -0.3 % |
+    | 8 | 1.179 (1.174-1.183, n=3x1854-2000) | 1.182 (1.157-1.185, n=3x1988-2000) | +0.2 % |
+    | 9 | 26.891 (26.856-26.907, n=3x34-35) | 26.970 (26.957-27.089, n=3x35-37) | +0.3 % |
+    | 10 | 27.223 (27.190-27.320, n=3x36) | 27.188 (27.175-27.342, n=3x36) | -0.1 % |
+    | 11 | 1.166 (1.165-1.375, n=3x1492-1680) | 1.381 (0.980-1.387, n=3x1348-1553) | +18.5 % |
+    | sum | 584.106 | 584.131 | +0.0 % |
 - [ ] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.
 - [ ] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
 - [ ] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
