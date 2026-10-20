@@ -40,9 +40,9 @@ struct VulkanRunner {
   static constexpr float kAtol = 1e-4f;
   static constexpr float kE2eRtol = 5e-3f;
   static constexpr float kE2eAtol = 5e-3f;
-  // Against the FP32 oracle with reduced-precision fc1/fc2 weights (cifar-gpu-kernels F2,
-  // BT_VK_FC_WEIGHTS): fp16 keeps the bounds above; int8, whose weights are off by up to half
-  // their row's scale (max |w| / 254), loosens fc1, fc2 and the end-to-end logits.
+  // Against the FP32 oracle with INT8 fc1/fc2 weights (cifar-gpu-kernels F2,
+  // BT_VK_FC_WEIGHTS=int8), which are off by up to half their row's scale (max |w| / 254):
+  // looser bounds for fc1, fc2 and the end-to-end logits.
   static constexpr float kInt8Rtol = 2e-2f;
   static constexpr float kInt8Atol = 1.5e-2f;
   static constexpr float kInt8E2eRtol = 2e-2f;
@@ -368,16 +368,17 @@ TEST(SparseConvTaps, DecodeToColIdx) {
   }
 }
 
-// new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtFeaturesPerGroup
+// new_cifar_dense_linear_bt.comp (shared with cifar-dense) computes kLinearBtRows x FPR
 // output features and kLinearBtBatchTile images per workgroup. The model's layers are
 // multiples of both (4096 and 10 features at N = 16 or 128); this shape is not: an odd
 // output-feature count, a ragged last batch tile and a ragged last input chunk. Both row
 // reductions: subgroupClusteredAdd (what every fleet GPU runs) and the shared-memory fallback,
-// and each weight precision (cifar-gpu-kernels F2), against a reference that uses the weights as
-// the kernel decodes them (bt::FcWeightCopy::dequantized), so the FP32 bound holds for all three.
+// and both weight precisions (cifar-gpu-kernels F2), against a reference that uses the weights as
+// the kernel decodes them (bt::FcWeightCopy::dequantized), so the FP32 bound holds for both.
 namespace {
 void ExpectLinearBtMatchesReference(const bool clustered,
-                                    const bt::FcWeights weights = bt::FcWeights::kFp32) {
+                                    const bt::FcWeights weights = bt::FcWeights::kFp32,
+                                    const int fpr = 2) {
   constexpr int kN = 21, kIn = 100, kOut = 37;  // 25 input vec4s: less than one 32-vec4 chunk
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
@@ -409,6 +410,7 @@ void ExpectLinearBtMatchesReference(const bool clustered,
                   ->subgroup_size_dependent()
                   ->spec_constant(1, clustered ? 1 : 0)
                   ->spec_constant(2, static_cast<uint32_t>(weights))
+                  ->spec_constant(3, static_cast<uint32_t>(fpr))
                   ->num_buffers(4)
                   ->push_constant<Pc>()
                   ->build();
@@ -423,7 +425,7 @@ void ExpectLinearBtMatchesReference(const bool clustered,
   algo->record_push_constants(*seq, Pc{kN, kIn, kOut, /*apply_relu=*/1});
   algo->record_dispatch(
       *seq,
-      {static_cast<uint32_t>(kiss_vk::div_ceil(kOut, kiss_vk::kLinearBtFeaturesPerGroup)),
+      {static_cast<uint32_t>(kiss_vk::div_ceil(kOut, kiss_vk::kLinearBtRows * fpr)),
        static_cast<uint32_t>(kiss_vk::div_ceil(kN, kiss_vk::kLinearBtBatchTile)),
        1});
   seq->cmd_end();
@@ -437,7 +439,7 @@ void ExpectLinearBtMatchesReference(const bool clustered,
       }
       const double want = std::max(acc, 0.0);
       ASSERT_NEAR(out[static_cast<size_t>(n) * kOut + o], want, 1e-4 + 1e-3 * std::abs(want))
-          << bt::to_string(weights) << " n " << n << " o " << o;
+          << bt::to_string(weights) << " fpr " << fpr << " n " << n << " o " << o;
     }
   }
 }
@@ -453,14 +455,15 @@ TEST(LinearBt, RaggedFeatureBatchAndChunkEdgesSharedMemoryReduction) {
   ExpectLinearBtMatchesReference(/*clustered=*/false);
 }
 
-TEST(LinearBt, Fp16Weights) {
-  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectLinearBtMatchesReference(/*clustered=*/true, bt::FcWeights::kFp16);
-}
-
 TEST(LinearBt, Int8Weights) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
   ExpectLinearBtMatchesReference(/*clustered=*/true, bt::FcWeights::kInt8);
+}
+
+// What INT8 runs on subgroups of 32 and more: 4 features per row (it runs on every GPU here).
+TEST(LinearBt, Int8WeightsFourFeaturesPerRow) {
+  if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
+  ExpectLinearBtMatchesReference(/*clustered=*/true, bt::FcWeights::kInt8, /*fpr=*/4);
 }
 
 TEST(LinearBt, Int8WeightsSharedMemoryReduction) {
@@ -470,8 +473,8 @@ TEST(LinearBt, Int8WeightsSharedMemoryReduction) {
 
 // cifar-gpu-kernels F2, spec "Reduced-precision weights are bounded and opt-in": end-task accuracy
 // of the Vulkan pipeline on the real weights (BT_WEIGHTS_DIR) over every exported test image,
-// with FP32, FP16 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). Each reduced
-// precision must stay within 0.5 points of FP32 on the same images. The export has 128 images,
+// with FP32 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). INT8 must stay
+// within 0.5 points of FP32 on the same images. The export has 128 images,
 // so one image is 0.78 points and the bound asks for the same count as FP32. Skips without
 // BT_WEIGHTS_DIR.
 namespace {
@@ -505,7 +508,6 @@ TEST(CifarSparseVk, RealWeights_EndTaskAccuracy) {
   const std::string restore = saved != nullptr ? saved : "";
   cifar_sparse::vulkan::VulkanDispatcher disp;
   const double fp32 = SparseVkAccuracy(disp, "fp32", labels);
-  const double fp16 = SparseVkAccuracy(disp, "fp16", labels);
   const double int8 = SparseVkAccuracy(disp, "int8", labels);
   if (saved != nullptr) {
     setenv("BT_VK_FC_WEIGHTS", restore.c_str(), 1);
@@ -513,17 +515,13 @@ TEST(CifarSparseVk, RealWeights_EndTaskAccuracy) {
     unsetenv("BT_VK_FC_WEIGHTS");
   }
   std::printf(
-      "cifar-sparse Vulkan real-weight accuracy over %zu images: fp32 %.4f, fp16 %.4f (%+.2f "
-      "points), "
-      "int8 %.4f (%+.2f points)\n",
+      "cifar-sparse Vulkan real-weight accuracy over %zu images: fp32 %.4f, int8 %.4f (%+.2f "
+      "points)\n",
       kImages,
       fp32,
-      fp16,
-      100 * (fp16 - fp32),
       int8,
       100 * (int8 - fp32));
   EXPECT_GE(fp32, 0.85);
-  EXPECT_LE(std::abs(fp16 - fp32), 0.005) << "fp16 fc weights";
   EXPECT_LE(std::abs(int8 - fp32), 0.005) << "int8 fc weights";
 }
 

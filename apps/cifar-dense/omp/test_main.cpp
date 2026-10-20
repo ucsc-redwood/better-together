@@ -59,32 +59,26 @@ TEST(Placement, UndeclaredHostAccessKeepsPlacement) {
   bt_placement_test::ExpectPlacementUnchanged<cifar_dense::AppData>(11);
 }
 
-// cifar-gpu-kernels F2: the FP16 and INT8 copies of FC weights decode back within the
-// per-element bounds of platform/util/fc_weights.hpp: on a matrix that spans FP16's normal,
-// subnormal and top range and has a zero row and an outlier row, and on the app's fc1/fc2 (the
-// synthetic weights, or the real export with BT_WEIGHTS_DIR). By default no copy is made.
+// cifar-gpu-kernels F2: the INT8 copy of FC weights decodes back within the per-element bound
+// of platform/util/fc_weights.hpp: on a matrix spanning 2^-30..2^15 with a zero row and an
+// outlier row, and on the app's fc1/fc2 (the synthetic weights, or the real export with
+// BT_WEIGHTS_DIR). By default no copy is made.
 namespace {
 void ExpectFcWeightRoundTrip(const float* w, const int rows, const int cols, const char* name) {
-  bt::FcWeightCopy h(bt::FcWeights::kFp16, rows, cols, std::pmr::new_delete_resource());
   bt::FcWeightCopy q(bt::FcWeights::kInt8, rows, cols, std::pmr::new_delete_resource());
-  h.quantize(w);
   q.quantize(w);
-  double max_fp16 = 0.0, max_int8 = 0.0;  // largest error relative to its bound
+  double max_ratio = 0.0;  // largest error relative to its bound
   for (int r = 0; r < rows; ++r) {
     for (int j = 0; j < cols; ++j) {
       const float x = w[static_cast<size_t>(r) * cols + j];
-      const double bound16 = std::max(std::ldexp(double{std::abs(x)}, -11), std::ldexp(1.0, -25));
-      const double err16 = std::abs(x - h.dequantized(r, j));
-      ASSERT_LE(err16, bound16) << name << " fp16 [" << r << ", " << j << "] = " << x;
       // scale / 2, plus the float rounding of scale * q (<= 127 scale 2^-24).
-      const double bound8 = q.scale(r) * (0.5 + 1e-5);
-      const double err8 = std::abs(x - q.dequantized(r, j));
-      ASSERT_LE(err8, bound8) << name << " int8 [" << r << ", " << j << "] = " << x;
-      max_fp16 = std::max(max_fp16, err16 / bound16);
-      if (bound8 > 0.0) max_int8 = std::max(max_int8, err8 / bound8);
+      const double bound = q.scale(r) * (0.5 + 1e-5);
+      const double err = std::abs(x - q.dequantized(r, j));
+      ASSERT_LE(err, bound) << name << " [" << r << ", " << j << "] = " << x;
+      if (bound > 0.0) max_ratio = std::max(max_ratio, err / bound);
     }
   }
-  std::printf("%s: max error / bound: fp16 %.3f, int8 %.3f\n", name, max_fp16, max_int8);
+  std::printf("%s: int8 max error / bound %.3f\n", name, max_ratio);
 }
 }  // namespace
 
@@ -97,10 +91,9 @@ TEST(FcWeights, QuantizeRoundTripWithinBound) {
   for (int j = 0; j < kCols; ++j) {
     w[1 * kCols + j] = 0.02f * u(rng);                                  // synthetic FC
     w[2 * kCols + j] = std::copysign(std::exp2(log_mag(rng)), u(rng));  // every range
-    w[3 * kCols + j] = std::ldexp(u(rng), -16);                         // subnormal
+    w[3 * kCols + j] = std::ldexp(u(rng), -16);                         // tiny
     w[4 * kCols + j] = j == 7 ? 3.0f : 0.01f * u(rng);                  // one outlier
   }
-  w[2 * kCols] = 65504.0f;  // the largest half
   ExpectFcWeightRoundTrip(w.data(), kRows, kCols, "mixed");
 
   const cifar_dense::AppData app(std::pmr::new_delete_resource());
@@ -110,7 +103,7 @@ TEST(FcWeights, QuantizeRoundTripWithinBound) {
     EXPECT_EQ(app.fc_weights, bt::FcWeights::kFp32);
     EXPECT_TRUE(app.u_fc1_wq.words.empty());
     EXPECT_TRUE(app.u_fc2_wq.words.empty());
-    // In a reduced mode the AppData quantizes its own loaded weights.
+    // In INT8 mode the AppData quantizes its own loaded weights.
     setenv("BT_VK_FC_WEIGHTS", "int8", 1);
     const cifar_dense::AppData q(std::pmr::new_delete_resource());
     unsetenv("BT_VK_FC_WEIGHTS");

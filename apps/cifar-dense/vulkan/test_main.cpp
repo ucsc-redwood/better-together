@@ -37,9 +37,9 @@ struct VulkanRunner {
   static constexpr float kAtol = 1e-4f;
   static constexpr float kE2eRtol = 5e-3f;
   static constexpr float kE2eAtol = 5e-3f;
-  // Against the FP32 oracle with reduced-precision fc1/fc2 weights (cifar-gpu-kernels F2,
-  // BT_VK_FC_WEIGHTS): fp16 keeps the bounds above; int8, whose weights are off by up to half
-  // their row's scale (max |w| / 254), loosens fc1, fc2 and the end-to-end logits.
+  // Against the FP32 oracle with INT8 fc1/fc2 weights (cifar-gpu-kernels F2,
+  // BT_VK_FC_WEIGHTS=int8), which are off by up to half their row's scale (max |w| / 254):
+  // looser bounds for fc1, fc2 and the end-to-end logits.
   static constexpr float kInt8Rtol = 2e-2f;
   static constexpr float kInt8Atol = 1.5e-2f;
   static constexpr float kInt8E2eRtol = 2e-2f;
@@ -243,8 +243,8 @@ TEST(DenseConvTiled, RaggedOddWidthMap) {
 
 // cifar-gpu-kernels F2, spec "Reduced-precision weights are bounded and opt-in": end-task accuracy
 // of the Vulkan pipeline on the real weights (BT_WEIGHTS_DIR) over every exported test image,
-// with FP32, FP16 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). Each reduced
-// precision must stay within 0.5 points of FP32 on the same images. The export has 128 images,
+// with FP32 and INT8 fc1/fc2 weights (BT_VK_FC_WEIGHTS, set here per AppData). INT8 must stay
+// within 0.5 points of FP32 on the same images. The export has 128 images,
 // so one image is 0.78 points and the bound asks for the same count as FP32. Skips without
 // BT_WEIGHTS_DIR.
 namespace {
@@ -288,7 +288,6 @@ TEST(CifarDenseVk, RealWeights_EndTaskAccuracy) {
   const std::string restore = saved != nullptr ? saved : "";
   cifar_dense::vulkan::VulkanDispatcher disp;
   const double fp32 = DenseVkAccuracy(disp, "fp32", images, labels);
-  const double fp16 = DenseVkAccuracy(disp, "fp16", images, labels);
   const double int8 = DenseVkAccuracy(disp, "int8", images, labels);
   if (saved != nullptr) {
     setenv("BT_VK_FC_WEIGHTS", restore.c_str(), 1);
@@ -296,17 +295,13 @@ TEST(CifarDenseVk, RealWeights_EndTaskAccuracy) {
     unsetenv("BT_VK_FC_WEIGHTS");
   }
   std::printf(
-      "cifar-dense Vulkan real-weight accuracy over %zu images: fp32 %.4f, fp16 %.4f (%+.2f "
-      "points), "
-      "int8 %.4f (%+.2f points)\n",
+      "cifar-dense Vulkan real-weight accuracy over %zu images: fp32 %.4f, int8 %.4f (%+.2f "
+      "points)\n",
       kImages,
       fp32,
-      fp16,
-      100 * (fp16 - fp32),
       int8,
       100 * (int8 - fp32));
   EXPECT_GE(fp32, 0.75);
-  EXPECT_LE(std::abs(fp16 - fp32), 0.005) << "fp16 fc weights";
   EXPECT_LE(std::abs(int8 - fp32), 0.005) << "int8 fc weights";
 }
 

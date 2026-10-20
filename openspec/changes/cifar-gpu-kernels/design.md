@@ -251,14 +251,18 @@ selection and outputs unchanged.
   devices fall back to FP32 with a warning.
 - **Alternative:** INT8 activations with `VK_KHR_shader_integer_dot_product`. Rejected for now: it
   needs per-batch activation quantization and gains compute that isn't the bottleneck.
-- **As built (tasks 3.5-3.6):** the copies are 32-bit words (`bt::FcWeightCopy`): FP16 pairs read as `uvec2`
-  and converted with `unpackHalf2x16`, INT8 quads read as `uint` and sign-extended with `bitfieldExtract`, the
-  row scales after the INT8 rows and applied to each row's sum. linear_bt reads binding 1 through three aliased
-  declarations selected by a `WEIGHTS` spec constant, so the FP32 path is the same code and neither reduced mode
-  needs `storageBuffer16BitAccess`, `shaderFloat16` or 8-bit storage: no Vulkan device lacks what they need,
-  and the "unsupported device" fallback has nothing to fall back from. Only fc1 and fc2 have copies (fc3 is a
-  non-goal); the AppData makes them when `BT_VK_FC_WEIGHTS` is set at its construction, and they stay empty
-  (unallocated) by default.
+- **As built (tasks 3.5-3.8):** INT8 ships, FP16 does not. The copy is 32-bit words (`bt::FcWeightCopy`):
+  INT8 quads read as `uint` and sign-extended with `bitfieldExtract`, the row scales after the rows and applied
+  to each row's sum; linear_bt reads binding 1 through two aliased declarations selected by a `WEIGHTS` spec
+  constant, so the FP32 path is the same code and INT8 needs no optional feature (no device lacks it, so the
+  "unsupported device" fallback has nothing to fall back from). Only fc1 and fc2 have copies (fc3 is a
+  non-goal); the AppData makes them when `BT_VK_FC_WEIGHTS=int8` is set at its construction, and they stay
+  empty (unallocated) by default. On the Samsung INT8 at 2 features per row was bound by linear_bt's shared-memory
+  input reads, so INT8 rows own 4 features on subgroups of 32 and more (a `FPR` spec constant; Mali keeps 2, it
+  spills with 4). FP16 (pairs read as `uvec2`, `unpackHalf2x16`) was built, passed every test and kept FP32
+  accuracy, and was 31 % faster on the Pixel, but on the Samsung the governor ran it at 450 MHz in 2.3 ms while
+  FP32 alternated between 2.0 ms (800 MHz) and 2.9 ms: 36 % fewer GPU cycles, not faster beyond noise. The phone
+  gate is binding, so it was removed (task 3.8).
 
 #### F3. Clustered subgroup reduction
 - **Change:** replace the `sh_red` and lane-0 serial sum with `subgroupClusteredAdd(acc, 16)` per

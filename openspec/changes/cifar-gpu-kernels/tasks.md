@@ -1016,6 +1016,51 @@ no-regression check. FC changes run on both phones.
 
     FP16 and INT8 are both within the bound (0.00 points) for both apps, so both ship. The dense FP32 figure
     agrees with the ~92 % the OMP test's comment gives for the PyTorch model on the same 128 images.
-- [ ] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").
+- [x] 3.8 Check the reduced-precision requirement on the phones. Verify: on each phone that supports it, fc1/fc2 with FP16 and with INT8 weights are faster than FP32 beyond noise, with the ratios recorded (spec "Reduced-precision weights cut weight time").
+  - *Outcome: INT8 ships, FP16 is removed.* INT8 is faster than FP32 beyond noise on both phones; FP16 is on the
+    Pixel but not on the Samsung, so per the binding phone gate it was reverted (its numbers below). Both
+    support both (no optional feature is needed). The code of this commit: `BT_VK_FC_WEIGHTS` takes fp32 or int8
+    (fp16 now throws like any unknown value), linear_bt's `WEIGHTS` is 0 FP32 / 1 INT8, and a new spec constant
+    `FPR` (output features per row) is 4 for INT8 on subgroups of 32 and more (2 on Mali, which spills with 4, and
+    2 for FP32 everywhere, so the default is unchanged); `LinearBt.Int8WeightsFourFeaturesPerRow` covers FPR 4 on
+    every GPU. Method: the 3.1 method, `bm-prof-cifar-dense-vk`, arms alternating in one binary with
+    `BT_VK_FC_WEIGHTS`.
+  - *Final (this commit's code, 2026-10-20 12:39-12:53 UTC, all 11 stages, arms base = 5454f67, fp32, int8), ms:*
+
+    | phone | stage | FP32 median (min-max) | INT8 median (min-max) | INT8 / FP32 |
+    |---|---|---|---|---|
+    | Pixel 7a | 9 (fc1) | 6.664 (6.648-8.056, n=3x65-162) | 4.377 (4.203-5.055, n=3x174-215) | 0.66 |
+    | Pixel 7a | 10 (fc2) | 6.630 (6.609-6.884, n=3x175-241) | 3.008 (3.004-4.428, n=3x225-359) | 0.45 |
+    | Samsung | 9 (fc1) | 2.877 (1.971-2.915, n=3x350-545) | 1.723 (1.722-1.727, n=3x598-703) | 0.60 |
+    | Samsung | 10 (fc2) | 2.857 (2.016-2.888, n=3x354-551) | 1.725 (1.723-1.727, n=3x588-758) | 0.60 |
+
+    Spreads do not overlap anywhere; INT8 beats even the Samsung's 800 MHz FP32 runs (1.97-2.02 ms) while the
+    governor runs INT8 at 400-450 MHz. fc3 stays FP32 (0.775 / 0.628 ms in both arms).
+  - *FP16 (FPR 2, the 3.6 code, 11:30-11:43 UTC), ms:* Pixel fc1 FP32 7.016 (6.935-8.329) -> FP16 4.837
+    (4.755-5.599), ratio 0.69; fc2 6.909 (6.758-8.278) -> 4.769 (3.795-4.900), 0.69 (INT8 4.689 / 4.619 there).
+    Samsung fc1 2.619 (2.599-2.643) -> 2.942 (2.603-2.965), 1.12; fc2 2.805 (2.686-2.812) -> 2.600 (2.597-2.604),
+    0.93; INT8 at FPR 2 likewise (2.583 / 2.862): the Samsung ran both at 450-500 MHz against FP32's 545-650.
+  - *Samsung, FPR* (an experiment knob, gone): GPU cycles showed FP16 / INT8 at FPR 2 bound by linear_bt's
+    shared-memory input reads, not bytes. Sessions 11:43-11:55, 12:01-12:08, 12:13-12:21 UTC, dense fc1 / fc2 ms:
+
+    | arm | session 1 | session 2 | session 3 |
+    |---|---|---|---|
+    | FP32, FPR 2 | 2.943 (2.026-2.974) / 2.884 (2.064-2.938) | 2.057 (2.035-2.600) / 2.059 (2.036-2.060) | 2.844 (2.632-2.890) / 2.064 (2.028-2.907) |
+    | FP32, FPR 4 | 3.062 (2.208-3.145) / 3.087 (2.209-3.139) | | |
+    | FP16, FPR 4 | 2.284 (2.252-2.321) / 2.309 (2.264-2.333) | 2.334 (2.334-2.347) / 2.335 (2.306-2.348) | 2.277 (2.273-2.283) / 2.270 (2.246-2.283) |
+    | FP16, FPR 8 | | 11.718 / 11.699 (spills) | |
+    | FP16, FPR 4, 64-vec4 chunks | | | 2.332 / 2.322 |
+    | INT8, FPR 4 | 1.720 (1.716-1.729) / 1.731 (1.723-1.732) | 1.732 (1.729-1.736) / 1.732 (1.728-1.737) | 1.757 (1.751-1.761) / 1.763 (1.754-1.764) (64-vec4 chunks) |
+
+    FP16 always ran at 450 MHz: 1.03 Mcycles against FP32's 1.6-1.8, but FP32 alternates between 2.0 ms (800
+    MHz) and 2.9 ms (500-650), so FP16 is faster than some FP32 runs and slower than others (session 2: +13 %).
+    That is not "faster beyond noise", so FP16 is removed. INT8 at FPR 4 is below every FP32 run in all four
+    sessions. FPR 4 does not help FP32 (dense +4 % / +7 %, inside its bimodal noise) and slows fc3 (one workgroup,
+    +31 %), so only INT8 fc1/fc2 use it. cifar-sparse at FPR 4 FP32 was -3 % / -5 % on the Samsung (not adopted:
+    FP32 stays as measured in 3.1-3.4).
+  - *Tests at this commit:* local `ctest -L omp` 11/11; build box, rocky (`ctest -L vulkan` 7/7) and both phones:
+    `test-cifar-sparse-vk` 25 / 26 and `test-cifar-dense-vk` 19 / 20 (synthetic / real) passed with
+    `BT_VK_FC_WEIGHTS` unset and `=int8`, the accuracy test printing fp32 0.9375 / int8 0.9375 (sparse) and 0.9219 /
+    0.9219 (dense) on each; `FcWeights.QuantizeRoundTripWithinBound` passed on both phones.
 - [ ] 3.9 F4 (optional): if `new_cifar_{dense,sparse}_linear.comp` are removed, first add a test forcing `in_features % 4 != 0` to prove the remaining path covers it. Verify: that test passes, then clean builds. If they're kept, record why.
 - [ ] 3.10 Run the group gate at the final commit (local, rocky, phones) for both apps, default and opt-in modes. Add a dated perf-results note with before/after tables. Verify: all green; the note is linked from the perf-results README.
