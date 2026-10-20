@@ -179,7 +179,7 @@ Merged between the before code (965e294) and now. The ones that change what runs
 |---|---|---|
 | cpu-chunk-costs (#34) | Tree's OMP stage 2 sorts a copy, so it is profiled on fresh input. The Pixel big tier's stage 2 went from 0.48 to 6.76 ms, the Samsung's from 1.19 to 7.09. | tree isolated on both phones. The 2026-10-17 schedules held the sort in CPU chunks priced 0.3-1.2 ms that ran 14-27 ms (the 28.12 and 22.30 ms periods). Now the solver keeps it on the GPU or the big tier. |
 | tree-cpu-pinning (#40) | Tree's CPU chunks run on their tier. | tree, both phones: the bimodal runs are gone (Pixel btpm spread 10.39-23.37 to 8.15-9.64). Together with #34, tree's CPU error (btpm / isolated) falls from 0.37 / 0.38 to 0.20 / 0.07 on the Pixel and from 1.53 / 3.03 to 0.27 / 0.13 on the Samsung. |
-| tree-app-improvements (#33) | Radix-sort and compaction kernels, Morton clamp, atomic leaf clear. Vulkan stage 7 now links leaves, which costs time: +133 % on the Pixel in that change's A/B. | tree GPU column: Pixel 11.48 to 12.52 ms, Samsung 12.29 to 10.09. |
+| tree-app-improvements (#33) | Stage-3 compaction in 2 dispatches instead of 5 (`tree_unique_local` / `tree_unique_scatter`), plus correctness fixes: Morton clamp, atomic leaf clear, and Vulkan stage 7 now links leaves, which costs time (+133 % on the Pixel in that change's A/B). The radix-sort experiments were reverted by the owner's 2026-10-17 decision (its tasks.md 6.3, design.md "Follow-ups"), so the stage-2 sort code is unchanged (no `*radixsort*` shader diff between 965e294 and 3324b53). | tree GPU column: Pixel 11.48 to 12.52 ms, Samsung 12.29 to 10.09. |
 | occasional-host-reads (#37) | Tree's final octree and count buffers leave the host-cached boundary class. | Pixel tree GPU chunk: the whole chunk took 29.54 to 17.79 ms in that change's gate. |
 | cifar-sparse-conv (#41, cifar-gpu-kernels group 1) | One output channel per workgroup row (subgroup >= 32 path). | Samsung cifar-sparse: GPU sum 284.62 to 118.79 ms, best -35 % (btpm) and -20 % (isolated). The Pixel runs the unchanged Mali path. |
 | cifar-dense-conv (#44, group 2) | Channel blocks and per-conv register tiles (subgroup >= 32 path). | Samsung cifar-dense: GPU sum 20.39 to 16.96 ms (together with #45), btpm best -15 %. |
@@ -197,7 +197,7 @@ locked. It shows in the Pixel's cifar-dense CPU chunks, which run below their bt
 ## 5. What got worse
 
 - **Pixel tree isolated vs the 2026-10-19 gate: 6.87 to 8.92 ms (beyond noise; vs 2026-10-17 it is still -68 %).**
-  - The new isolated store prices GPU stage 2 (the radix sort) at 4.73 ms. On 2026-10-19 it was 7.05.
+  - The new isolated store prices GPU stage 2 (the radix sort) at 4.73 ms. On 2026-10-19 it was 7.05, with the same sort code.
   - The two runs measured 6.24 ms at a 434 MHz Mali clock (41 samples) and 4.03 ms at 701 MHz (88 samples). The loader
     weights by sample count, so the faster run dominates.
   - So the solver now puts stage 2 on the GPU (`G[1,2]` priced 5.46, or `G[2,2]` 4.73) instead of on the big tier.
