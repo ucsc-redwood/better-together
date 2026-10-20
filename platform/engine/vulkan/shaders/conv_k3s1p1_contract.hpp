@@ -25,17 +25,37 @@ constexpr size_t dense_conv_k3s1p1_invocations(
   return static_cast<size_t>(n) * (k / kDenseConvChannelsPerInvocation) * h * ((w + px - 1) / px);
 }
 
-// new_cifar_dense_conv2d_k3s1p1_oc.comp, which cifar-dense runs on subgroups of 32 and above:
-// x = the K / OC_TILE blocks of output channels, y = the blocks of 256 output pixels.
+// new_cifar_dense_conv2d_k3s1p1_oc.comp, which cifar-dense runs on subgroups of 32 and above. Its
+// tile is spec constants 1-3 (cifar-gpu-kernels C2/C3): output channels and adjacent output pixels
+// of a row per invocation, and input channels staged in shared memory per pass (0: none).
+struct DenseConvTile {
+  int oc = 4, px = 1, c = 0;
+};
+// Widest map the staging (c > 0) is sized for; the dispatcher does not stage wider ones.
+inline constexpr int kDenseConvStagedMaxWidth = 32;
+
+// Shared-memory floats one staged input channel takes: a workgroup's 256 invocations span at most
+// 255 / w_tiles + 2 output rows, staged with a halo row above and below, w_tiles * px + 2 floats
+// wide (w_tiles = ceil(W / px)); the most over every width up to kDenseConvStagedMaxWidth. The
+// shader's LDS_FLOATS (spec constant 4) is c times this.
+constexpr int dense_conv_staged_floats_per_channel(const int px) {
+  int most = 0;
+  for (int w = 1; w <= kDenseConvStagedMaxWidth; ++w) {
+    const int w_tiles = (w + px - 1) / px;
+    const int floats = (255 / w_tiles + 4) * (w_tiles * px + 2);
+    most = floats > most ? floats : most;
+  }
+  return most;
+}
+
+// x = the K / tile.oc blocks of output channels, y = the blocks of 256 invocations.
 struct DenseConvOcGrid {
   uint32_t x, y;
 };
-constexpr DenseConvOcGrid dense_conv_k3s1p1_oc_grid(const int n,
-                                                    const int k,
-                                                    const int h,
-                                                    const int w) {
-  return {static_cast<uint32_t>(k / kDenseConvChannelsPerInvocation),
-          static_cast<uint32_t>((static_cast<size_t>(n) * h * w + 255) / 256)};
+constexpr DenseConvOcGrid dense_conv_k3s1p1_oc_grid(
+    const int n, const int k, const int h, const int w, const DenseConvTile& tile) {
+  const size_t invocations = static_cast<size_t>(n) * h * ((w + tile.px - 1) / tile.px);
+  return {static_cast<uint32_t>(k / tile.oc), static_cast<uint32_t>((invocations + 255) / 256)};
 }
 
 // new_cifar_sparse_conv2d_k3s1p1.comp is the Mali path only: cifar-sparse runs it below subgroup

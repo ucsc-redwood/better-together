@@ -1,6 +1,9 @@
 #include "dispatchers.hpp"
 
 #include <cstdint>
+#include <cstdio>
+#include <stdexcept>
+#include <string>
 
 #include "platform/engine/vulkan/env.hpp"
 #include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
@@ -57,10 +60,31 @@ struct LinearPushConstants_v2 {
 // Constructor (v2)
 // ----------------------------------------------------------------------------
 
+namespace {
+
+// BT_VK_DENSE_CONV_TILE=<oc>x<px>x<c>: the tile of new_cifar_dense_conv2d_k3s1p1_oc (output
+// channels and pixels per invocation, input channels staged per pass, 0: none). Unset: the default.
+kiss_vk::DenseConvTile dense_conv_tile_from_env() {
+  const auto v = kiss_vk::env::get("BT_VK_DENSE_CONV_TILE");
+  if (!v) return {};
+  const std::string s(*v);
+  kiss_vk::DenseConvTile tile;
+  int end = 0;
+  if (std::sscanf(s.c_str(), "%dx%dx%d%n", &tile.oc, &tile.px, &tile.c, &end) != 3 ||
+      end != static_cast<int>(s.size()) || tile.oc < 1 || tile.px < 1 || tile.c < 0) {
+    throw std::runtime_error("BT_VK_DENSE_CONV_TILE=" + s +
+                             ": expected <oc>x<px>x<c>, oc and px >= 1, c >= 0");
+  }
+  return tile;
+}
+
+}  // namespace
+
 VulkanDispatcher::VulkanDispatcher()
     : engine(),
       default_seq(engine.make_seq()),
-      conv_per_block(kiss_vk::env::get("BT_VK_DENSE_CONV") != "flat") {
+      conv_per_block(kiss_vk::env::get("BT_VK_DENSE_CONV") != "flat"),
+      conv_tile(dense_conv_tile_from_env()) {
   spdlog::debug("VulkanDispatcher::VulkanDispatcher(), Initializing VulkanDispatcher");
 
   // conv2d is reused by stages 1,3,5,6,7 and maxpool by stages 2,4,8; record_bind
@@ -87,10 +111,25 @@ VulkanDispatcher::VulkanDispatcher()
 
   cached_algorithms.try_emplace("conv2d_k3s1p1", std::move(conv2d_k3s1p1_algo));
 
-  // The same conv on subgroups of 32 and more, one block of output channels per workgroup row
-  // (cifar-gpu-kernels C1).
+  // The same conv on subgroups of 32 and more, one block of output channels per workgroup
+  // (cifar-gpu-kernels C1), tiled by conv_tile (C2/C3).
+  const int lds_floats =
+      conv_tile.c > 0 ? conv_tile.c * kiss_vk::dense_conv_staged_floats_per_channel(conv_tile.px)
+                      : 1;
+  const uint32_t max_shared =
+      engine.get_physical_device().getProperties().limits.maxComputeSharedMemorySize;
+  if (static_cast<uint32_t>(lds_floats) * sizeof(float) > max_shared) {
+    throw std::runtime_error("BT_VK_DENSE_CONV_TILE: staging " + std::to_string(conv_tile.c) +
+                             " channels needs " + std::to_string(lds_floats * sizeof(float)) +
+                             " bytes of shared memory, the device has " +
+                             std::to_string(max_shared));
+  }
   auto conv2d_k3s1p1_oc_algo = engine.make_algo("new_cifar_dense_conv2d_k3s1p1_oc")
                                    ->work_group_size(256, 1, 1)
+                                   ->spec_constant(1, conv_tile.oc)
+                                   ->spec_constant(2, conv_tile.px)
+                                   ->spec_constant(3, conv_tile.c)
+                                   ->spec_constant(4, lds_floats)
                                    ->num_buffers(4)  // Input, Weight, Bias, Output
                                    ->push_constant<Conv2dPushConstants_v2>()
                                    ->build();
@@ -169,7 +208,9 @@ void VulkanDispatcher::record_conv(kiss_vk::Sequence& seq,
   // (cifar-gpu-kernels C1) unless BT_VK_DENSE_CONV=flat; below 32, the Mali path.
   const bool spec = kKernelSize == 3 && kStride == 1 && kPadding == 1 &&
                     out_channels % kiss_vk::kDenseConvChannelsPerInvocation == 0;
-  const bool per_block = spec && per_block_ok && conv_per_block && engine.subgroup_size() >= 32;
+  const bool per_block = spec && per_block_ok && conv_per_block && engine.subgroup_size() >= 32 &&
+                         out_channels % conv_tile.oc == 0 &&
+                         (conv_tile.c == 0 || out_width <= kiss_vk::kDenseConvStagedMaxWidth);
   auto algo =
       cached_algorithms.at(per_block ? "conv2d_k3s1p1_oc"
                            : spec    ? "conv2d_k3s1p1"
@@ -199,8 +240,8 @@ void VulkanDispatcher::record_conv(kiss_vk::Sequence& seq,
   algo->record_push_constants(seq, algo_pc);
 
   if (per_block) {
-    const auto grid =
-        kiss_vk::dense_conv_k3s1p1_oc_grid(batch_size, out_channels, out_height, out_width);
+    const auto grid = kiss_vk::dense_conv_k3s1p1_oc_grid(
+        batch_size, out_channels, out_height, out_width, conv_tile);
     algo->record_dispatch(seq, {grid.x, grid.y, 1});
     return;
   }

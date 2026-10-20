@@ -593,7 +593,31 @@ no-regression check. FC changes run on both phones.
     | 11 | 0.629 (0.619-0.644, n=3x1409-2000) | 0.643 (0.631-0.644, n=3x1406-2000) | +2.3 % |
     | sum | 22.032 | 20.637 | -6.3 % |
     | conv2-conv5 (3+5+6+7), per-run sum | 11.815 (11.454-12.988, 3 runs) | 11.490 (10.728-12.378, 3 runs) | -2.8 % |
-- [ ] 2.5 C2/C3: input halo tiling in shared memory (≤ 16 KB default) with `C_TILE`, `OC_TILE` and `PX_TILE` spec constants. Verify: `test-cifar-dense-vk` passes on rocky for at least three tile configurations, including 8 oc × 2 px and 8 oc × 4 px.
+- [x] 2.5 C2/C3: input halo tiling in shared memory (≤ 16 KB default) with `C_TILE`, `OC_TILE` and `PX_TILE` spec constants. Verify: `test-cifar-dense-vk` passes on rocky for at least three tile configurations, including 8 oc × 2 px and 8 oc × 4 px.
+  - *Kernel:* `new_cifar_dense_conv2d_k3s1p1_oc.comp` now has `OC_TILE` (spec constant 1), `PX_TILE` (2) and
+    `C_TILE` (3). An invocation computes `PX_TILE` adjacent pixels of a row for `OC_TILE` channels (the 3 x
+    `PX_TILE`+2 window loaded once per input channel, each weight used `PX_TILE` times; a row whose width is not a
+    multiple of `PX_TILE` ends in a masked tail), and the workgroup is still one channel block (x) by 256
+    invocations (y). `C_TILE` 0 loads the window from global memory on clamped indices; `C_TILE` > 0 stages
+    `C_TILE` input channels per pass in shared memory: the workgroup's output rows of the flattened N x H plus a
+    halo row above and below, each with a zero column on the left and zeros to `ceil(W/PX_TILE)·PX_TILE + 2`
+    (a halo row from the neighbouring image is staged but masked). `LDS_FLOATS` (4) is `C_TILE` times
+    `kiss_vk::dense_conv_staged_floats_per_channel(PX_TILE)`, the most one channel needs at any width up to 32
+    (777 / 1036 / 1554 floats at 1 / 2 / 4 pixels). The dispatcher reads the tile once from
+    `BT_VK_DENSE_CONV_TILE=<oc>x<px>x<c>` (default `4x1x0`, the 2.4 kernel, until 2.6), throws on a malformed
+    value or one whose staging exceeds the device's `maxComputeSharedMemorySize` (`8x8x8`: "needs 82880 bytes of
+    shared memory, the device has 65536"), and stages only maps up to 32 wide. Grid
+    `kiss_vk::dense_conv_k3s1p1_oc_grid(n, k, h, w, tile)`: `(K/OC_TILE, ceil(N·H·ceil(W/PX_TILE)/256), 1)`.
+  - *Tests:* `DenseConvTiled.{Map6x6,Map8x8,RaggedOddWidthMap}` run the kernel for seven tiles (`4x1x0`, `8x2x0`,
+    `8x4x0`, `4x1x3`, `8x2x2`, `8x4x2`, `16x2x4`) against the double-precision reference, N 24 (every channel
+    block spans more than one workgroup), C 5 (a short last pass at 2, 3 and 4 staged channels). They replace
+    `DenseConvPerBlock.*` (the `4x1x0` tile). With the top staged row of every workgroup read from one row lower
+    (a local mutation, reverted) the four staged tiles fail on 6x6 and 7x5 and the three unstaged ones pass (8x8
+    workgroups start at an image, where that row is always masked).
+  - *rocky gate* (this commit's tree in `~/bt-dense-gate`): build exit 0, `ctest -L vulkan` 7/7 passed; then
+    `./test-cifar-dense-vk --device minipc` 19 passed with `BT_VK_DENSE_CONV_TILE` unset, `4x1x0`, `8x2x0`,
+    `8x4x0`, `8x2x2`, `8x4x2` and `16x2x4`, each with synthetic and with real weights (`BT_WEIGHTS_DIR`).
+    `just check-shaders`: OK.
 - [ ] 2.6 Pick the tile defaults by timing on the Samsung. Verify: the per-device sweep and chosen defaults are in the evidence note.
 - [ ] 2.7 Check the FP32 performance requirement. Verify: on the Samsung the conv2–conv5 sum is faster than 2.1 beyond noise, no phone conv stage is slower; the fleet gate is green. If it isn't met, record the gap; the optional tasks 2.8–2.12 don't count toward it.
 - [ ] 2.8 C4: optional-feature enablement for `shaderFloat16` and `storageBuffer16BitAccess` (enabled if supported, never required) plus a precision mode (`BT_VK_PRECISION=fp16`). Verify: `test-kiss-vk` logs the enabled features on all devices, and default runs are unchanged.

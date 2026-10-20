@@ -72,15 +72,18 @@ struct DenseConvPc {  // layout of the shader's push constants
   int32_t N, C, H, W, K, R, S, stride, padding, apply_relu;
 };
 
-// per_block: new_cifar_dense_conv2d_k3s1p1_oc (cifar-gpu-kernels C1, what cifar-dense runs on
-// subgroups of 32 and more) instead of new_cifar_dense_conv2d_k3s1p1.
-void ExpectDenseConvMatchesReference(const int h, const int w, const bool per_block = false) {
+// tile: new_cifar_dense_conv2d_k3s1p1_oc with that tile (cifar-gpu-kernels C1-C3, what cifar-dense
+// runs on subgroups of 32 and more) instead of new_cifar_dense_conv2d_k3s1p1.
+void ExpectDenseConvMatchesReference(const int h,
+                                     const int w,
+                                     const kiss_vk::DenseConvTile* tile = nullptr) {
   // K % OC_TILE(4) == 0: four blocks. N = 6 so every shape needs more than one 256-wide workgroup
   // on the Mali path too (4 pixels per invocation): a contract that over-counts outputs per
   // invocation then launches too few workgroups, and the missing outputs keep their -1 fill.
-  // per_block: N = 8, so that N*H*W, one workgroup row, also spans more than one workgroup.
+  // tile: N = 24, so that a channel block's invocations span more than one workgroup at up to 4
+  // pixels each, and C = 5 leaves a short last pass for every staged channel count but 1 and 5.
   constexpr int kC = 5, kK = 16;
-  const int kN = per_block ? 8 : 6;
+  const int kN = tile != nullptr ? 24 : 6;
   std::mt19937 rng(114514);
   std::uniform_real_distribution<float> val(-1.0f, 1.0f);
 
@@ -95,10 +98,19 @@ void ExpectDenseConvMatchesReference(const int h, const int w, const bool per_bl
   for (auto& x : bias) x = val(rng);
 
   auto algo = engine
-                  .make_algo(per_block ? "new_cifar_dense_conv2d_k3s1p1_oc"
-                                       : "new_cifar_dense_conv2d_k3s1p1")
+                  .make_algo(tile != nullptr ? "new_cifar_dense_conv2d_k3s1p1_oc"
+                                             : "new_cifar_dense_conv2d_k3s1p1")
                   ->work_group_size(256, 1, 1);
-  if (!per_block) algo = algo->subgroup_size_dependent();
+  if (tile != nullptr) {
+    const int lds_floats =
+        tile->c > 0 ? tile->c * kiss_vk::dense_conv_staged_floats_per_channel(tile->px) : 1;
+    algo = algo->spec_constant(1, tile->oc)
+               ->spec_constant(2, tile->px)
+               ->spec_constant(3, tile->c)
+               ->spec_constant(4, lds_floats);
+  } else {
+    algo = algo->subgroup_size_dependent();
+  }
   algo = algo->num_buffers(4)->push_constant<DenseConvPc>()->build();
   const DenseConvPc pc{kN, kC, h, w, kK, 3, 3, 1, 1, /*apply_relu=*/1};
   auto seq = engine.make_seq();
@@ -109,8 +121,8 @@ void ExpectDenseConvMatchesReference(const int h, const int w, const bool per_bl
                      engine.get_buffer_info(bias),
                      engine.get_buffer_info(out)});
   algo->record_push_constants(*seq, pc);
-  if (per_block) {
-    const auto grid = kiss_vk::dense_conv_k3s1p1_oc_grid(kN, kK, h, w);
+  if (tile != nullptr) {
+    const auto grid = kiss_vk::dense_conv_k3s1p1_oc_grid(kN, kK, h, w, *tile);
     algo->record_dispatch(*seq, {grid.x, grid.y, 1});
   } else {
     const size_t invocations =
@@ -161,20 +173,35 @@ TEST(DenseConvK3S1P1, RaggedOddWidthMap) {
   ExpectDenseConvMatchesReference(7, 5);
 }
 
-// The C1 kernel does not depend on the subgroup size, so these run on every GPU.
-TEST(DenseConvPerBlock, Map6x6) {
+// The _oc kernel does not depend on the subgroup size, so these run on every GPU, for tiles of
+// 4, 8 and 16 channels, 1, 2 and 4 pixels, and 0 (no staging), 2, 3 and 4 staged channels. The 7x5
+// map ends every row in a masked tail at 2 and 4 pixels; at 1 and 2 pixels (5 and 3 invocations
+// per row) workgroups also start mid-row, so a staged workgroup's first and last rows are partial.
+namespace {
+constexpr kiss_vk::DenseConvTile kDenseConvTiles[] = {
+    {4, 1, 0}, {8, 2, 0}, {8, 4, 0}, {4, 1, 3}, {8, 2, 2}, {8, 4, 2}, {16, 2, 4}};
+
+void ExpectDenseConvTilesMatchReference(const int h, const int w) {
+  for (const auto& tile : kDenseConvTiles) {
+    SCOPED_TRACE(::testing::Message() << "tile " << tile.oc << "x" << tile.px << "x" << tile.c);
+    ExpectDenseConvMatchesReference(h, w, &tile);
+  }
+}
+}  // namespace
+
+TEST(DenseConvTiled, Map6x6) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectDenseConvMatchesReference(6, 6, /*per_block=*/true);
+  ExpectDenseConvTilesMatchReference(6, 6);
 }
 
-TEST(DenseConvPerBlock, Map8x8) {
+TEST(DenseConvTiled, Map8x8) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectDenseConvMatchesReference(8, 8, /*per_block=*/true);
+  ExpectDenseConvTilesMatchReference(8, 8);
 }
 
-TEST(DenseConvPerBlock, RaggedOddWidthMap) {
+TEST(DenseConvTiled, RaggedOddWidthMap) {
   if (!kiss_vk::has_integrated_gpu()) GTEST_SKIP() << "no integrated GPU";
-  ExpectDenseConvMatchesReference(7, 5, /*per_block=*/true);
+  ExpectDenseConvTilesMatchReference(7, 5);
 }
 
 int main(int argc, char** argv) {

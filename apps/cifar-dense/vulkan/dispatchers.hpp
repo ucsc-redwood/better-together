@@ -2,6 +2,7 @@
 
 #include "apps/cifar-dense/appdata.hpp"
 #include "platform/engine/vulkan/engine.hpp"
+#include "platform/engine/vulkan/shaders/conv_k3s1p1_contract.hpp"
 
 namespace cifar_dense::vulkan {
 
@@ -132,6 +133,8 @@ class VulkanDispatcher final {
   // The C1 kernel on subgroups of 32 and more; BT_VK_DENSE_CONV=flat keeps the previous one
   // (read once, here).
   bool conv_per_block;
+  // Its tile (BT_VK_DENSE_CONV_TILE, read once, here).
+  kiss_vk::DenseConvTile conv_tile;
 };
 
 }  // namespace cifar_dense::vulkan
