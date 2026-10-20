@@ -27,10 +27,7 @@ range, so 32 is reached only by pinning, through the test hook below.)
 ### Requirement: Subgroup size is pinned where the device allows it
 When the device supports subgroup size control for compute, the engine SHALL require the chosen
 subgroup size on each subgroup-dependent pipeline, so the size cannot vary per dispatch. Otherwise
-it SHALL use the device's reported default subgroup size. When the device supports
-`computeFullSubgroups`, subgroup-dependent pipelines SHALL also require full subgroups. When it
-doesn't, the engine SHALL require that the workgroup's X size be a multiple of the subgroup size in
-use, and fail pipeline creation otherwise.
+it SHALL use the device's reported default subgroup size.
 
 #### Scenario: Device with subgroup size control
 - **WHEN** the selected GPU supports subgroup size control for the compute stage
@@ -45,6 +42,11 @@ use, and fail pipeline creation otherwise.
   two within its `minSubgroupSize`..`maxSubgroupSize`)
 - **THEN** subgroup-dependent pipelines are specialized with, and pinned to, `n`
 - **AND** if the GPU cannot pin to `n`, engine creation fails with an error naming `n` and the supported range
+
+### Requirement: Subgroup-dependent pipelines run full subgroups
+When the device supports `computeFullSubgroups`, subgroup-dependent pipelines SHALL require full
+subgroups. When it doesn't, the engine SHALL require that the workgroup's X size be a multiple of the
+subgroup size in use, and fail pipeline creation otherwise.
 
 #### Scenario: Full subgroups available
 - **WHEN** the selected GPU supports `computeFullSubgroups`
