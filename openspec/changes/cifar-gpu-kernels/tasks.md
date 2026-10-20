@@ -304,7 +304,18 @@ no-regression check. FC changes run on both phones.
     | 10 | 27.223 (27.190-27.320, n=3x36) | 27.188 (27.175-27.342, n=3x36) | -0.1 % |
     | 11 | 1.166 (1.165-1.375, n=3x1492-1680) | 1.381 (0.980-1.387, n=3x1348-1553) | +18.5 % |
     | sum | 584.106 | 584.131 | +0.0 % |
-- [ ] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.
+- [x] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.
+  - `test-cifar-sparse-vk` (Vulkan tolerance rtol 1e-3 / atol 1e-4 per stage), real weights from
+    `saved_params/export` (`sparse/`, `test_batch.npy`) copied next to the binary:
+    - rocky-ryzen, 902c24b's tree built in `~/bt-sparse-gate`, `BT_WEIGHTS_DIR=~/bt-sparse-gate/weights
+      ./test-cifar-sparse-vk --device minipc`: 21 passed (`SparseConvTaps` printed "taps of the real weights"); also
+      21 passed with `BT_VK_SPARSE_STAGE_ROW=1`.
+    - Samsung and Pixel 7a, the a324f38 binary (same code), `BT_WEIGHTS_DIR=/data/local/tmp/bt-sparse/weights`: 21
+      passed on each. On the Pixel the convs take the Mali path; the per-channel kernel still runs there in
+      `SparseConvPerChannel.*`.
+  - The real export reaches cases the synthetic weights do not: rows of up to 1926 nonzeros (conv4, two
+    `STAGE_ROW` chunks) and empty rows (27 in conv1, 1 in conv2, 13 in conv5); per layer the row lengths are conv1
+    0-25, conv2 0-277, conv3 23-791, conv4 20-1926, conv5 0-854.
 - [ ] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
 - [ ] 1.12 Run the group gate at the final commit (local, rocky, phones) and add a dated perf-results note with the before/after table and the S4 decision. Verify: all green; the note is linked from `docs/reports-for-human/perf-results/README.md`.
 
