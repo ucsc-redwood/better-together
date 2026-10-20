@@ -1063,4 +1063,24 @@ no-regression check. FC changes run on both phones.
     `BT_VK_FC_WEIGHTS` unset and `=int8`, the accuracy test printing fp32 0.9375 / int8 0.9375 (sparse) and 0.9219 /
     0.9219 (dense) on each; `FcWeights.QuantizeRoundTripWithinBound` passed on both phones.
 - [ ] 3.9 F4 (optional): if `new_cifar_{dense,sparse}_linear.comp` are removed, first add a test forcing `in_features % 4 != 0` to prove the remaining path covers it. Verify: that test passes, then clean builds. If they're kept, record why.
-- [ ] 3.10 Run the group gate at the final commit (local, rocky, phones) for both apps, default and opt-in modes. Add a dated perf-results note with before/after tables. Verify: all green; the note is linked from the perf-results README.
+  - *Not done* (optional): both generic shaders are kept, as design F4 decided for this change. They are not dead
+    in cifar-dense only for `in_features % 4 != 0`: its dispatcher also takes `new_cifar_dense_linear.comp` for a
+    batch above one linear_bt tile (`batch_size > kLinearBtBatchTile`, 16), which cifar-sparse instead tiles over
+    `grid.y`. Removing them means re-routing that case and adding the forcing test, a cleanup this group's
+    measurements do not depend on.
+- [x] 3.10 Run the group gate at the final commit (local, rocky, phones) for both apps, default and opt-in modes. Add a dated perf-results note with before/after tables. Verify: all green; the note is linked from the perf-results README.
+  - Gate on this commit's tree (its code is 258b3c5's; this commit adds only the note and these lines), default
+    (FP32) and `BT_VK_FC_WEIGHTS=int8`, the only opt-in mode:
+    - *local:* `cmake --build --preset pc && ctest --test-dir build/pc -L omp`: 11/11 passed.
+    - *rocky:* the tree synced to `~/bt-fc-gate`, `cmake --preset vulkan` (glslc of NDK r29), build exit 0,
+      `ctest -L vulkan` 7/7 passed; `./test-cifar-sparse-vk --device minipc` 25 passed (synthetic) and 26 (real),
+      `./test-cifar-dense-vk` 19 and 20, in both modes, the accuracy test printing fp32 0.9375 / int8 0.9375 and
+      fp32 0.9219 / int8 0.9219. `just check-shaders`: OK.
+    - *phones:* `cmake --build --preset android --target test-cifar-sparse-vk test-cifar-dense-vk`, then
+      `BT_ANDROID_DEST=/data/local/tmp/bt-fc/gate scripts/run-on-android.sh <serial> test-cifar-sparse-vk
+      test-cifar-dense-vk`: 25 and 19 passed, exit 0, on 3A021JEHN02756 and R5CY21Y3VEV; the same binaries with
+      real weights (26 / 20) and with `BT_VK_FC_WEIGHTS=int8` (synthetic 25 / 19, real 26 / 20): all passed, exit 0,
+      the same accuracies on both phones.
+  - *Note:* `docs/reports-for-human/perf-results/2026-10-20-cifar-fc.md` (before/after tables for both apps on both
+    phones in FP32 and INT8, the layout prototypes, FP16, the variant per device, and the Pixel cifar-dense FP32
+    finding), linked from the perf-results README.
