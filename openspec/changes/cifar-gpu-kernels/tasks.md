@@ -890,7 +890,49 @@ no-regression check. FC changes run on both phones.
     governor as in 3.1: at the same clock the arms agree (Pixel fc1 at 471 MHz: 6.837 base, 6.844 f3; Samsung
     fc2 at 800 MHz: 1.975-1.977 base, 1.875 f3), and the Pixel base runs that were faster ran fc1 at 572-633 MHz,
     the slowest f3 run at 400 MHz.
-- [ ] 3.3 F1: prototype layouts (a) K-outer/tiles-inner and (b) batch-split so weights stream once per batch. Verify: both pass `test-cifar-sparse-vk` and `test-cifar-dense-vk` on rocky; sparse fc1/fc2 timings on both phones for each layout are in the evidence note.
+- [x] 3.3 F1: prototype layouts (a) K-outer/tiles-inner and (b) batch-split so weights stream once per batch. Verify: both pass `test-cifar-sparse-vk` and `test-cifar-dense-vk` on rocky; sparse fc1/fc2 timings on both phones for each layout are in the evidence note.
+  - *Prototypes* (`BT_VK_FC_LAYOUT=ko|bs|tk` in both dispatchers; one workgroup per 32 output features covers
+    the whole batch, N <= 128, grid `(ceil(out/32), 1, 1)`, so each weight element is loaded by one workgroup):
+    - (a) `new_cifar_dense_linear_bt_ko.comp`, K outer, tiles inner: per 32-vec4 chunk each lane loads its 2 x 2
+      weight vec4s once, then for each 16-image tile stages the tile's inputs (8 KB), sums each image's 16 lane
+      partials with `subgroupClusteredAdd` and adds them to its running outputs in shared memory (16 KB, one
+      `vec2` per tile and invocation). Registers for those outputs went to the stack on Mali (malioc: alloca
+      64 B), hence shared memory.
+    - (b) `new_cifar_dense_linear_bt_bs.comp`, batch split: lane l owns images l, l+16, ... (8 at N=128) and
+      both features of its row, with whole dot products (no reduction); per 16-vec4 chunk the workgroup's 32
+      weight rows are staged in shared memory (8 KB) and broadcast, inputs come from global memory.
+    - (c), added because (a) and (b) lost by 2-4x: `new_cifar_dense_linear_bt_tk.comp`, the 16 lanes of a row
+      split 8 tiles x 2 K halves, so each lane does linear_bt's per-k work (2 features x 16 images, inputs from
+      shared memory staged tile-innermost so a row reads 16 consecutive vec4s, 16 KB) and the halves are summed
+      with `subgroupClusteredAdd(…, 2)`.
+    - Experiment `nr` (`new_cifar_dense_linear_bt_nr.comp`): linear_bt without its launch-order remap, so tile y
+      starts only after every row-group of tile y-1 and the 64 MB matrix is streamed once per tile.
+  - *Tests:* rocky (`~/bt-fc-gate`), `test-cifar-sparse-vk` 22 and `test-cifar-dense-vk` 19 passed with synthetic
+    and real weights for each of ko, bs and tk; the same on the Pixel 7a and the Samsung (and on the build box's
+    RADV iGPU, and `nr` for sparse there).
+  - *Timing* (the 3.1 method, FC stages only, all runs exit 0 with 3 records; (a)/(b) 2026-10-20 10:04-10:17 UTC
+    against base = 5454f67 and f3 = the 3.2 kernel; (c)/nr 10:19-10:29), ms:
+
+    | phone | stage | base (3.1 kernel) | f3 (3.2) | (a) ko | (b) bs | (c) tk | nr |
+    |---|---|---|---|---|---|---|---|
+    | Pixel | 9 (fc1) | 26.950 (26.936-26.973) | 21.056 (21.020-21.148) | 49.879 (48.296-50.936) | 117.776 (117.655-117.907) | 34.316 (34.315-35.370) | 22.017 (21.962-22.112) |
+    | Pixel | 10 (fc2) | 27.182 (27.150-27.201) | 22.394 (22.339-22.394) | 50.263 (48.369-51.467) | 116.547 (116.394-116.677) | 34.314 (34.312-34.321) | 22.166 (22.144-22.216) |
+    | Pixel | 11 (fc3) | 1.220 (1.171-1.380) | 1.098 (0.989-1.103) | 5.482 (5.462-6.779) | 8.178 (7.348-9.077) | 4.504 (4.474-4.526) | 1.121 (1.120-1.127) |
+    | Samsung | 9 (fc1) | 10.044 (10.030-10.048) | 9.258 (9.244-9.286) | 16.203 (16.124-16.239) | 26.077 (24.238-26.080) | 12.135 (12.122-12.138) | 11.975 (11.863-12.003) |
+    | Samsung | 10 (fc2) | 10.045 (10.044-10.048) | 9.316 (9.267-9.349) | 16.031 (15.936-16.104) | 26.071 (24.677-26.124) | 12.129 (12.128-12.130) | 12.023 (12.002-12.036) |
+    | Samsung | 11 (fc3) | 1.157 (1.155-1.157) | 1.132 (1.125-1.133) | 2.691 (2.550-2.697) | 3.652 (3.366-3.655) | 3.953 (2.515-3.988) | 1.127 (1.125-1.128) |
+
+    Medians of the 3 runs' p50 (min-max), 3 runs per arm; the (c)/nr session's base and f3 agree with these
+    within 0.6 %. Against base, fc1/fc2: (a) +82 % / +85 % on the Pixel and +61 % / +60 % on the Samsung, (b)
+    +337 % / +329 % and +160 % / +160 %, (c) +27 % / +26 % and +21 % / +21 %; f3 -22 % / -18 % and -8 % / -7 %.
+    fc3 (10 features) is one workgroup in every once-per-batch layout, 2-7x slower.
+  - *What it shows:* every layout that loads each weight once per workgroup does more work per FMA than
+    linear_bt: (a) a 16-lane reduction per tile and chunk and 2 barriers per tile, (b) uncoalesced per-lane input
+    reads with 1.6 dots per load, (c) staging loads that hit 8 images per instruction, and all three 8x fewer
+    workgroups. Meanwhile linear_bt's remap already makes the 8 tile workgroups of a row-group read their
+    weight slice together: without it (nr) the Samsung's fc1/fc2 take +29 % (11.975 vs 9.258 ms), while the
+    Pixel, whose sparse FC is compute-bound (malioc: load/store-bound, 64 registers), barely moves (+5 % / -1 %).
+    As 512 MB per layer at 9.3 ms would need 55 GB/s, the Samsung cannot be re-streaming the weights per tile.
 - [ ] 3.4 F1: pick the layout by timing on both phones and remove the other. Verify: fc1 and fc2 are faster than 3.1 beyond noise on both phones, and each phone's sparse-fc1 / dense-fc1 ratio is recorded (spec "Weights are streamed once per batch"); the fleet gate is green for both apps.
 - [ ] 3.5 F2: host-side weight quantization at load time (FP16; INT8 with per-row scales) and the precision mode `BT_VK_FC_WEIGHTS=fp16|int8` with FP32 fallback and a warning on unsupported devices. Verify: a unit test round-trips quantize→dequantize within the stated per-element error; default runs are unchanged.
 - [ ] 3.6 F2: FP16-weight and INT8-weight `linear_bt` variants, dequantizing to FP32 in registers. Verify: both apps' `test-*-vk` pass their documented FP16/INT8 tolerances on supporting devices.

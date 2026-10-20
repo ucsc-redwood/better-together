@@ -133,6 +133,7 @@ class VulkanDispatcher final {
   kiss_vk::Engine engine;
   std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
+  std::string fc_layout = "bt";  // F1 prototype: bt (linear_bt), ko or bs (BT_VK_FC_LAYOUT)
   // Each conv's tile of the _oc kernel on subgroups of 32 and more, conv1..conv5; nullopt keeps the
   // previous kernel (BT_VK_DENSE_CONV_TILE, read once, here), and its pipeline.
   std::array<std::optional<kiss_vk::DenseConvTile>, 5> conv_tiles;

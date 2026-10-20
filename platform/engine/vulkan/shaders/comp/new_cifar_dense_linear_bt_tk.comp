@@ -1,0 +1,118 @@
+#version 460
+
+precision highp float;
+precision highp int;
+
+// Fully-connected layer, layout F1(c) of cifar-gpu-kernels: the lanes of a row split the batch
+// tiles and K. A workgroup computes 32 output features for the whole batch (up to TILES tiles
+// of TILE images), so it reads its weight rows once per batch. A 16-lane row owns FPR features;
+// lane (t, h) of the row accumulates images t*TILE .. t*TILE + TILE-1 over the input vec4s
+// k = 2m + h of each chunk, so every lane does the same work per k as linear_bt (FPR features x
+// TILE images, inputs from shared memory, weights from global memory, the TILES lanes of a tile
+// group reading the same weight vec4). Inputs are staged tile-innermost, so a row's 16 lanes read
+// 16 consecutive vec4s. The two K halves are summed with subgroupClusteredAdd(…, 2).
+//
+// Dispatcher contract: in_features % 4 == 0, N <= TILE * TILES, a subgroup-size-dependent
+// pipeline (size pinned, >= 16, full subgroups) on a device with clustered subgroup operations,
+// grid (ceil(out_features / 32), 1, 1).
+
+#extension GL_KHR_shader_subgroup_clustered : require
+
+layout(local_size_x = 256) in;
+
+layout(constant_id = 0) const int SUBGROUP_SIZE = 16;  // the device's, set by the engine
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  vec4 input_data4[];  // [N, in_features/4]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  vec4 weight_data4[];  // [out_features, in_features/4]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [out_features]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, out_features]
+};
+
+layout(push_constant) uniform Params {
+  int N;
+  int in_features;
+  int out_features;
+  int apply_relu;
+}
+params;
+
+const int ROW_W = 16;   // lanes per row: TILES x 2 K halves
+const int ROWS = 16;    // rows per workgroup
+const int FPR = 2;      // output features per row
+const int TILE = 16;    // images per tile (accumulators per lane and feature)
+const int TILES = 8;    // N <= 128
+const int CHUNK4 = 8;   // input vec4s per chunk: 4 per K half
+
+shared vec4 sh_in[TILE * CHUNK4 * TILES];  // [image in tile][k][tile], 16 KB
+
+void main() {
+  const int tid = int(gl_LocalInvocationID.x);
+  const int lane = tid % ROW_W;
+  const int row = tid / ROW_W;
+  const int t = lane >> 1;  // this lane's tile
+  const int h = lane & 1;   // and K half
+  const int of0 = (int(gl_WorkGroupID.x) * ROWS + row) * FPR;
+  const int in_f4 = params.in_features / 4;
+  const int w_base0 = (of0 < params.out_features ? of0 : 0) * in_f4;
+  const int w_base1 = (of0 + 1 < params.out_features ? of0 + 1 : 0) * in_f4;
+
+  float acc[TILE];
+  float accb[TILE];
+  for (int n = 0; n < TILE; ++n) {
+    acc[n] = 0.0;
+    accb[n] = 0.0;
+  }
+
+  for (int c4 = 0; c4 < in_f4; c4 += CHUNK4) {
+    // Staging: consecutive invocations take consecutive tiles, then k, then the image.
+    for (int i = tid; i < TILE * CHUNK4 * TILES; i += 256) {
+      const int st = i % TILES;
+      const int k = (i / TILES) % CHUNK4;
+      const int n = st * TILE + i / (TILES * CHUNK4);
+      sh_in[i] = (n < params.N && c4 + k < in_f4) ? input_data4[n * in_f4 + c4 + k] : vec4(0.0);
+    }
+    barrier();
+    for (int m = 0; m < CHUNK4 / 2; ++m) {
+      const int k = 2 * m + h;
+      if (c4 + k < in_f4) {
+        const vec4 w = weight_data4[w_base0 + c4 + k];
+        const vec4 w1 = weight_data4[w_base1 + c4 + k];
+        for (int n = 0; n < TILE; ++n) {
+          const vec4 x = sh_in[(n * CHUNK4 + k) * TILES + t];
+          acc[n] += dot(w, x);
+          accb[n] += dot(w1, x);
+        }
+      }
+    }
+    barrier();
+  }
+
+  // Sum the two K halves; lane h of the pair writes images n with n % 2 == h of its tile.
+  for (int n = 0; n < TILE; ++n) {
+    const float s0 = subgroupClusteredAdd(acc[n], 2);
+    const float s1 = subgroupClusteredAdd(accb[n], 2);
+    const int img = t * TILE + n;
+    if ((n & 1) == h && img < params.N && SUBGROUP_SIZE >= ROW_W) {
+      if (of0 < params.out_features) {
+        float v = s0 + bias_data[of0];
+        if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+        output_data[img * params.out_features + of0] = v;
+      }
+      if (of0 + 1 < params.out_features) {
+        float v = s1 + bias_data[of0 + 1];
+        if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+        output_data[img * params.out_features + of0 + 1] = v;
+      }
+    }
+  }
+}
