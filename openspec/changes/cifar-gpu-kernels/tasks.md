@@ -188,7 +188,56 @@ no-regression check. FC changes run on both phones.
     first chunk (a local mutation, reverted) they fail only with `STAGE_ROW` on, at that row.
   - rocky gate (b2a8b0b plus this change): build exit 0, `ctest -L vulkan` 7/7 passed and `./test-cifar-sparse-vk
     --device minipc` 21 passed, with `BT_VK_SPARSE_STAGE_ROW=0` and with `=1`. `just check-shaders`: OK.
-- [ ] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
+- [x] 1.8 Time `STAGE_ROW` on/off on the Samsung (and check the Pixel is unchanged), and pick the default. Verify: per-device numbers and the chosen defaults are in the evidence note.
+  - The 1.1 method with three arms: `base` (ee4c68d), and the a324f38 binary with `BT_VK_SPARSE_STAGE_ROW=0` (`off`)
+    and `=1` (`on`), alternating, 3 rounds, both phones at once (2026-10-20 00:15-00:25 UTC). All 18 runs exit 0
+    with 11 records.
+  - *Samsung:* `on` has the lower median on conv1-conv3 (3.397 / 17.456 / 32.535 vs 3.689 / 18.362 / 34.370 ms) but
+    every spread overlaps `off`'s, and it is slower beyond noise on conv4 (47.060, 46.960-47.224, vs 45.216,
+    44.412-45.823) and conv5 (34.958, 34.757-35.178, vs 33.970, 32.314-34.638). The stage sums are equal (163.6 vs
+    163.8 ms). Both are far below `base` on every conv.
+  - *Pixel 7a:* its convs run the Mali path, which neither arm changes; all three arms agree within 0.7 % on every
+    conv, with overlapping spreads.
+  - *Noise of the new kernel on the Samsung:* larger than `base`'s. Conv1 follows the GPU clock the profiler records
+    (`base` 900 MHz in every run; the new kernel 600-800 MHz, 2.74-3.75 ms). Conv2-conv5 ran at 1095 MHz in every
+    run and still differ by up to 6 % between runs (e.g. conv3 `off` 31.646 / 34.370 / 35.769 ms).
+  - *Default:* `STAGE_ROW` off on every device: on the Samsung, the only phone that runs this kernel, it is never
+    slower beyond noise than `on`, and `on` loses on conv4 and conv5. rocky-ryzen (the other subgroup-64 GPU) is not
+    timed, so it gets the same default. No code change: the spec constant already defaults to off, and
+    `BT_VK_SPARSE_STAGE_ROW=1` still turns it on.
+  - Pixel 7a, ms:
+
+    | stage | base median (min-max) ms | off median (min-max) ms | on median (min-max) ms | off vs base | on vs base |
+    |---|---|---|---|---|---|
+    | 1 | 17.037 (17.031-17.075, n=3x59-68) | 17.004 (16.974-17.055, n=3x59-68) | 17.032 (17.013-17.056, n=3x58-59) | -0.2 % | -0.0 % |
+    | 2 | 4.464 (4.463-4.465, n=3x225-338) | 4.464 (4.460-4.469, n=3x225-337) | 4.463 (4.462-4.467, n=3x226-337) | +0.0 % | -0.0 % |
+    | 3 | 80.344 (80.296-80.431, n=3x12) | 80.304 (80.191-80.356, n=3x12) | 80.466 (80.391-80.474, n=3x12) | -0.0 % | +0.2 % |
+    | 4 | 3.366 (3.365-3.366, n=3x638-645) | 3.364 (3.364-3.365, n=3x643-696) | 3.366 (3.366-3.368, n=3x641-696) | -0.1 % | +0.0 % |
+    | 5 | 128.336 (126.585-128.830, n=3x7) | 128.655 (128.539-128.667, n=3x7) | 128.491 (128.334-128.828, n=3x7) | +0.2 % | +0.1 % |
+    | 6 | 182.617 (182.280-183.577, n=3x5) | 183.599 (181.345-183.729, n=3x5) | 181.319 (180.882-182.927, n=3x5) | +0.5 % | -0.7 % |
+    | 7 | 110.528 (110.505-110.697, n=3x9) | 110.585 (110.528-110.629, n=3x9) | 110.482 (110.425-110.633, n=3x9) | +0.1 % | -0.0 % |
+    | 8 | 1.182 (1.178-1.184, n=3x2000) | 1.181 (1.179-1.185, n=3x1985-1999) | 1.180 (1.177-1.181, n=3x1912-2000) | -0.1 % | -0.2 % |
+    | 9 | 26.875 (26.873-26.877, n=3x36-37) | 26.951 (26.925-27.067, n=3x36-37) | 26.951 (26.942-26.967, n=3x36-37) | +0.3 % | +0.3 % |
+    | 10 | 27.170 (27.168-27.182, n=3x36) | 27.193 (27.171-27.228, n=3x36) | 27.160 (27.113-27.162, n=3x36) | +0.1 % | -0.0 % |
+    | 11 | 1.369 (1.146-1.372, n=3x1068-1522) | 1.178 (1.178-1.388, n=3x1451-1595) | 1.386 (1.247-1.388, n=3x1379-1493) | -14.0 % | +1.2 % |
+    | sum | 583.288 | 584.479 | 582.296 | +0.2 % | -0.2 % |
+
+  - Samsung, ms:
+
+    | stage | base median (min-max) ms | off median (min-max) ms | on median (min-max) ms | off vs base | on vs base |
+    |---|---|---|---|---|---|
+    | 1 | 4.102 (4.102-4.103, n=3x175-216) | 3.689 (2.741-3.746, n=3x276-319) | 3.397 (3.025-3.929, n=3x246-285) | -10.1 % | -17.2 % |
+    | 2 | 2.436 (2.427-2.438, n=3x697-708) | 2.447 (2.426-2.458, n=3x705-907) | 2.447 (2.411-2.469, n=3x694-706) | +0.5 % | +0.4 % |
+    | 3 | 34.027 (34.023-34.029, n=3x29) | 18.362 (17.081-19.162, n=3x53-55) | 17.456 (16.978-17.951, n=3x56-64) | -46.0 % | -48.7 % |
+    | 4 | 1.838 (1.837-1.841, n=3x1296-1302) | 1.842 (1.821-1.866, n=3x1268-1333) | 1.836 (1.812-1.839, n=3x1295-1328) | +0.2 % | -0.1 % |
+    | 5 | 51.654 (51.653-51.660, n=3x19) | 34.370 (31.646-35.769, n=3x31-32) | 32.535 (31.405-34.392, n=3x34-36) | -33.5 % | -37.0 % |
+    | 6 | 68.553 (68.540-68.602, n=3x14) | 45.216 (44.412-45.823, n=3x23) | 47.060 (46.960-47.224, n=3x21-23) | -34.0 % | -31.4 % |
+    | 7 | 45.770 (45.767-45.772, n=3x21) | 33.970 (32.314-34.638, n=3x29-33) | 34.958 (34.757-35.178, n=3x29) | -25.8 % | -23.6 % |
+    | 8 | 2.688 (2.687-2.697, n=3x1204-1242) | 2.672 (2.654-2.711, n=3x1189-1241) | 2.689 (2.672-2.705, n=3x1214-1229) | -0.6 % | +0.0 % |
+    | 9 | 10.055 (10.035-10.074, n=3x99-100) | 10.062 (10.031-10.069, n=3x99-100) | 10.057 (10.050-10.066, n=3x90-99) | +0.1 % | +0.0 % |
+    | 10 | 10.058 (10.035-10.058, n=3x99) | 10.040 (10.037-10.062, n=3x99) | 10.053 (10.035-10.058, n=3x91-100) | -0.2 % | -0.1 % |
+    | 11 | 1.174 (1.157-1.178, n=3x2000) | 1.155 (1.154-1.177, n=3x2000) | 1.158 (1.154-1.179, n=3x2000) | -1.6 % | -1.4 % |
+    | sum | 232.356 | 163.825 | 163.646 | -29.5 % | -29.6 % |
 - [ ] 1.9 Check the performance requirement. Verify: on the Samsung each of conv2–conv5 is faster than 1.1 beyond noise; on both phones no conv stage is slower than 1.1 beyond noise. If it isn't met, stop and report rather than loosening the spec.
 - [ ] 1.10 Run the real-weight differential with `BT_WEIGHTS_DIR` on rocky and both phones. Verify: all stages pass rtol 1e-3 / atol 1e-4.
 - [ ] 1.11 Remove the old-kernel flag if the new kernel wins on the Samsung and passes everywhere; otherwise document why it stays. Verify: clean `vulkan` and `android` preset builds, with no dead code.
