@@ -19,6 +19,36 @@ Sources outside the phones: `~/llamacpp-compare/llama.cpp` (llama.cpp source); `
 checkout at `e229c58784` on branch `hmz/shader-speedup-test` with uncommitted Vulkan shader edits, so it must not be
 touched); `examples/models/llama/config/llama_q8da4w.yaml` there is the XNNPACK 8da4w export recipe.
 
+**Inventory taken 2026-10-20 (task 1.1; raw listings in `data/llm-phase-affinity/<serial>/inventory.txt`):**
+- Samsung (One UI build `S926BXXSHDZI1`, Android 16):
+  - `lcpp/llama-bench` (40.5 MB): no `--version` flag; its `-o jsonl` records give `build_commit` **c745be2**. Its
+    disassembly has `sdot` (dotprod) but no `smmla` (i8mm), no KleidiAI and no OpenMP. Models
+    `llama3_2_1b_q4_0.gguf` (703 MB), `llama3_2_3b_q4_0.gguf` (1.82 GB), `llama3_1_8b_q4_0.gguf` (4.53 GB).
+  - `llama/`: `llama3_2-{1b,3b}_vulkan_{4w,8da4w}.pte`, `llama3_1-8b_vulkan_{4w,8da4w}.pte`, `tokenizer.model`,
+    `prompt_2048.txt`, runners `llama_main` and `llama_main_qshaders`. These `.pte` files are byte-identical in size to
+    `/mnt/linux-share/models/<model>/exported/*.pte` (ctx 2560).
+  - `llama_dev/` (ctx 3072, `buffer`/`texture`/`embq` variants), `llama_bench/` and `llama_vk/` (8B 4w/8da4w baseline
+    and coopmat), `llama_r15/` (1B 4w/8da4w, `llama_main_base`, `llama_main_vanilla`), `et_mv2/` (`executor_runner`
+    and MobileNet `.pte`s).
+  - **No `llama_main` runner on the phone includes XNNPACK:** none of the 12 contains an `xnn_` symbol string (each has
+    a single `XnnpackBackend` type-name string). Only `et_mv2/executor_runner` (not an LLM runner) has XNNPACK. The
+    `--help` of `llama_dev/llama_main` lists `--cpu_threads`, `--ignore_eos`, `--warmup`, `--prompt_file`.
+- Pixel (Android 16): `llama/` holds `llama3_2-1b_vulkan_{4w,8da4w}.pte` (same sizes as the Samsung's), `tokenizer.model`
+  and `prompt_2048.txt` (byte-identical to `" the"` x 2048); `gpu-lab/` and `minibench/` hold tooling only. No llama.cpp
+  build and no runner. The phone is rooted; clocks were left to the driver (no `sysfs`/`thermal`/`bcl` lock in
+  `clock_info` at the start).
+- Both phones also hold `igpu-roofline/` (the owner's Vulkan roofline runner and SPIR-V; used for D4, copied, not run in
+  place).
+
+**Checkpoints and export flags (task 1.2):** `/mnt/linux-share/models/llama-3.2-{1b,3b}/original/`
+(`consolidated.00.pth`, `params.json`, `tokenizer.model`; found through `~/Desktop/sarc-acl/CLAUDE.md` "Models"). That
+file records the export of the `exported/` Vulkan `.pte`s as reconstructed from their metadata (the original command
+was not recorded): `-d fp32 --vulkan --vulkan-force-fp16 -qmode <8da4w|4w> -G 128 -E 4,32 --max_seq_length 2560
+--max_context_length 2560 -kv --use_sdpa_with_kv_cache --metadata '{"get_bos_id":128000, "get_eos_ids":[128009]}'
+--model llama3_2`. The `llama_dev` files (ctx 3072, `embq`) come from a different export, so the study uses the ctx-2560
+files in `/data/local/tmp/llama` on both phones. No checkpoint is under `~/.cache/huggingface` or `~/.llama`; the shell
+histories hold no export command.
+
 ## Goals / Non-Goals
 
 **Goals:**
@@ -86,12 +116,77 @@ the prompt-heavy corner; it is called out separately.
 - **Two processes are not one pipeline** → co-run rates approximate the specialized pipeline but miss the hand-off
   synchronization; D5's hand-off term bounds it from above.
 
+## Deviations and choices made while running the study
+
+Nobody was available to answer questions during the run; where the plan left a choice open, the conservative option
+was taken, meaning the one that makes the data-parallel baseline stronger or the specialized pipeline weaker. Raw
+evidence for each item is under `data/llm-phase-affinity/`.
+
+- **Build directories.** This session could write only to the repository and `/tmp`, not to `~`, so the independent
+  ExecuTorch clone is `build/lpa/etc/executorch` (gitignored; cloned from `~/Desktop/executorch`, checked out at
+  `e229c58784`, submodules from upstream). ExecuTorch requires the clone directory to be named `executorch`. llama.cpp
+  was built out of tree in `build/lpa/llamacpp-android{,-s24}` from `~/llamacpp-compare/llama.cpp` at `8345f33`
+  (unmodified). Its Vulkan build needs `vulkan.hpp` and `spirv.hpp`, which the NDK lacks. They came from the clone's
+  `Vulkan-Headers` submodule and `~/llamacpp-compare/deps/prefix` (SPIRV-Headers), both read only.
+- **One llama.cpp version on both phones, built per ISA, instead of the Samsung's existing build.** The owner's Samsung
+  `llama-bench` (c745be2) lacks i8mm. On mask 180 it reached 112.7 tok/s pp512 against 144.8 for 8345f33 built with
+  `GGML_CPU_ARM_ARCH=armv8.6-a+dotprod+i8mm+fp16` (`R5CY21Y3VEV/diag-build-comparison.txt`). A weaker CPU build lowers
+  the data-parallel bound and so biases the gate toward "go". Both phones therefore run 8345f33: the Samsung with that
+  flag set, the Pixel with `armv8.2-a+dotprod+fp16` (Tensor G2 has no i8mm). Without an arch flag
+  (`GGML_NATIVE=OFF` alone) the Pixel's CPU prefill was 5x slower (`3A021JEHN02756/diag-thread-placement.txt`). KleidiAI
+  and OpenMP are off on both, as in the owner's build. The GGUFs are the owner's (sha256 `4f69b261fd1da7c5…` for 1B,
+  the same file on both phones), read in place on the Samsung and pushed to `/data/local/tmp/lpa/models` on the Pixel.
+  The 6 runs already taken with c745be2 are kept in `R5CY21Y3VEV/abandoned-c745be2-partial/` and are not used.
+- **CPU configurations use `-dev none`.** With the Vulkan device visible, `-ngl 0` leaves the weights in a Vulkan host
+  buffer and lets llama.cpp offload large prefill matmuls to the GPU. CPU decode then fell to 0.16-0.24 tok/s on both
+  phones. Hiding the device makes the CPU configuration CPU-only.
+- **Samsung one-tier mask is `180` (cores 7-8, big, 2 threads), not `380`.** Under a plain `taskset 380`, the Exynos
+  scheduler kept all three compute threads on core 9 for the whole run, with cores 7-8 idle at 672 MHz
+  (`R5CY21Y3VEV/diag-ems-thread-placement.txt`: pp512 36.6 tok/s on 380 vs 112.7 on 180). ggml's own per-thread
+  affinity (`-C`/`--cpu-strict`) does nothing on Android, and the runners may not be modified. Masks `180`, `3f0`, `c0`
+  and `f0` all spread one thread per core.
+- **Partial offload** (`-ngl 8` for 1B, `-ngl 14` for 3B) runs its CPU part on the wider mask (`3f0` / `f0`).
+- **Decode rate at prompt length P** is llama-bench `tg128` at KV depth P (`-p 0 -n 128 -d 0,128,512,2048`); depth 0
+  is kept for the co-run ratios (D3's decode-only loop is `-p 0 -n D` at depth 0). For D = 512 the depth-P rate is
+  slightly optimistic for every PU alike.
+- **Thermal check.** Before every run the driver waits for `dumpsys thermalservice` "Thermal Status: 0". A run that
+  ends with status >= 1 is repeated once after a 120 s cooldown as `<name>_rK_retry`, and the retry replaces it.
+  Clocks were not pinned on either phone. The GPU clock (and every CPU policy frequency) is sampled every 0.5 s during
+  each run (`*.clk`). Long CPU runs reach status 1 ("light") by themselves, and nearly every retry ends at 1 again.
+  The rule was kept because it matters on the Pixel CPU: across the 118 original/retry rate pairs of the two
+  llama.cpp sweeps, Pixel CPU retries ran 2-22% faster, GPU retries within ±4%. A retry that ends at status 1 again
+  is kept and counted as the run.
+- **llama.cpp GPU: flash attention.** The sweep ran the default `-fa auto`. Single-run checks
+  (`<serial>/diag-gpu-flags/`) found that auto picks flash attention on and that it collapses prefill at 2048 on the
+  Xclipse: 1B pp2048 99 tok/s on, 443 off. The Mali is 71 on vs 87 off; at 512, on is 5-10% faster on both. `gpufa0`
+  (`-fa 0`) was therefore added as a 3-round configuration (`alone-llamacpp-extra/`). The llama.cpp GPU unit takes,
+  at each prompt length and depth, the faster of `gpu` (auto) and `gpufa0`, the way D2 takes the faster of the two
+  ExecuTorch Vulkan files. Co-runs use auto at P=512 and `-fa 0` at P=2048.
+- **Partial offload with `--no-host 1`.** On the Pixel, `-ngl 8` decoded at 1.7-2.9 tok/s, the same Vulkan host-buffer
+  effect as above. `--no-host 1` gives 11 tok/s, and on the Samsung 51 vs 28 tok/s at depth 0 (but slower pp512).
+  `partialnh` was added as a 3-round configuration, and the partial baseline takes the faster of the two per point.
+  Partial offload is a reference only; it does not enter the gate.
+- **ExecuTorch runner and export (task 1.4).** `llama_main` was built from the clone with the Android preset
+  (XNNPACK, weight cache, shared workspace) plus `EXECUTORCH_BUILD_VULKAN=ON`. It is 17.5 MB, statically linked
+  against libc++, and has both backends. The XNNPACK `.pte` files came from the legacy CLI
+  `python -m examples.models.llama.export_llama` with the flags of task 1.2, `--vulkan --vulkan-force-fp16` replaced
+  by `-X --xnnpack-extended-ops`: `-d fp32 -qmode 8da4w -G 128 -E 4,32 --max_seq_length 2560
+  --max_context_length 2560 -kv --use_sdpa_with_kv_cache --metadata '{"get_bos_id":128000, "get_eos_ids":[128009]}'
+  --model llama3_2`. The result is 803 MB for 1B and 1.91 GB for 3B. The Hydra `export_llm` entry point fails on
+  Python 3.14 (argparse "badly formed help string"). `lm_eval` and `torchtune`'s dependencies were skipped because
+  `pyarrow` does not build on 3.14; `torchtune` is installed with `--no-deps`. Text check on the Samsung (greedy, 32
+  tokens, "The capital of France is"): the XNNPACK 1B file, both Vulkan files on this runner, and both Vulkan files
+  on the owner's `llama/llama_main` produce identical text (`R5CY21Y3VEV/smoke-et/text-check.txt`). This runner is
+  used for every ExecuTorch run, Vulkan included. It decodes 20-25% faster than the owner's runner, which logs at
+  Info level during generation.
+
 ## Migration Plan
 
 None: a study. Results are additive under `data/llm-phase-affinity/` and `docs/reports-for-human/`.
 
 ## Open Questions
 
-- Where the Llama 3.2 1B/3B checkpoints and the export flags of the existing Vulkan `.pte` files are (needed for
-  matching XNNPACK exports).
-- Whether `llama_main` on the Samsung includes the XNNPACK backend (if not, a runner with both is built).
+- ~~Where the Llama 3.2 1B/3B checkpoints and the export flags of the existing Vulkan `.pte` files are~~: resolved,
+  see Context (task 1.2).
+- ~~Whether `llama_main` on the Samsung includes the XNNPACK backend~~: none does. A runner with both backends was
+  built from the independent clone (task 1.4).

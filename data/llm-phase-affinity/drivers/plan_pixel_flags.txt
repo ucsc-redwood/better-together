@@ -1,0 +1,9 @@
+# Single-run diagnostics (not medians): llama.cpp GPU with flash attention forced off/on (the sweep uses auto),
+# and partial offload with --no-host 1 (CPU layers out of the Vulkan host buffer). A flag that wins is added as a
+# 3-round configuration.
+1b_gpufa0_pp|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+1b_gpufa1_pp|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 512,2048 -n 0 -ngl 99 -t 1 -fa 1 -r 1 -o jsonl
+1b_gpufa0_tg|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+1b_gpufa1_tg|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,2048 -ngl 99 -t 1 -fa 1 -r 1 -o jsonl
+1b_partialnohost_pp|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+1b_partialnohost_tg|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl

@@ -10,10 +10,10 @@ Rules for every task:
 
 ## 1. Setup
 
-- [ ] 1.1 Inventory the owner's assets on both phones (files, sizes, `llama-bench --version`, `llama_main --help`) and record them in design.md "Context". Verify: the list matches the phones and names which runners include XNNPACK.
-- [ ] 1.2 Find the Llama 3.2 1B/3B checkpoints and tokenizer on the build box and the export flags of the existing Vulkan `.pte` files (shell history, export logs, `llama_dev` file names: ctx 3072, `embq`). Verify: the paths and flags are recorded in design.md, or the absence is recorded and ExecuTorch CPU numbers are dropped (design Risks).
-- [ ] 1.3 Build llama.cpp for Android arm64 with Vulkan from `~/llamacpp-compare/llama.cpp` (NDK) and push `llama-bench` plus the 1B Q4_0 GGUF to the Pixel's `/data/local/tmp/lpa`. Verify: `llama-bench -m ... -p 32 -n 8` runs on the Pixel with `-ngl 0` and with `-ngl 99`.
-- [ ] 1.4 In a separate ExecuTorch worktree at the owner's commit `e229c58784` (never in `~/Desktop/executorch`), export XNNPACK 8da4w `.pte` for 1B and 3B with the flags of 1.2, and build an Android `llama_main` with XNNPACK and Vulkan. Verify: on the Samsung, the XNNPACK 1B `.pte` generates text and its output for a fixed prompt matches the Vulkan `.pte` within the tokens the owner's runs show (or any difference is recorded).
+- [x] 1.1 Inventory the owner's assets on both phones (files, sizes, `llama-bench --version`, `llama_main --help`) and record them in design.md "Context". Verify: the list matches the phones and names which runners include XNNPACK.
+- [x] 1.2 Find the Llama 3.2 1B/3B checkpoints and tokenizer on the build box and the export flags of the existing Vulkan `.pte` files (shell history, export logs, `llama_dev` file names: ctx 3072, `embq`). Verify: the paths and flags are recorded in design.md, or the absence is recorded and ExecuTorch CPU numbers are dropped (design Risks).
+- [x] 1.3 Build llama.cpp for Android arm64 with Vulkan from `~/llamacpp-compare/llama.cpp` (NDK) and push `llama-bench` plus the 1B Q4_0 GGUF to the Pixel's `/data/local/tmp/lpa`. Verify: `llama-bench -m ... -p 32 -n 8` runs on the Pixel with `-ngl 0` and with `-ngl 99`.
+- [x] 1.4 In a separate ExecuTorch worktree at the owner's commit `e229c58784` (never in `~/Desktop/executorch`), export XNNPACK 8da4w `.pte` for 1B and 3B with the flags of 1.2, and build an Android `llama_main` with XNNPACK and Vulkan. Verify: on the Samsung, the XNNPACK 1B `.pte` generates text and its output for a fixed prompt matches the Vulkan `.pte` within the tokens the owner's runs show (or any difference is recorded).
 
 ## 2. Per-PU rates (alone)
 

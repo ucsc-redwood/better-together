@@ -1,0 +1,10 @@
+rc=0
+rc=0
+out/smoke_ngl0.out
+commit=8345f33 gpu=Mali-G710 backends=Vulkan ngl=0 p=32 n=0 ts=17.711201
+commit=8345f33 gpu=Mali-G710 backends=Vulkan ngl=0 p=0 n=8 ts=0.241124
+out/smoke_ngl99.out
+commit=8345f33 gpu=Mali-G710 backends=Vulkan ngl=99 p=32 n=0 ts=40.580373
+commit=8345f33 gpu=Mali-G710 backends=Vulkan ngl=99 p=0 n=8 ts=17.979919
+ggml_vulkan: Found 1 Vulkan devices:
+ggml_vulkan: 0 = Mali-G710 (Mali-G710) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 16 | shared memory: 32768 | int dot: 1 | matrix cores: none

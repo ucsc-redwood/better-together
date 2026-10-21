@@ -1,0 +1,10 @@
+# Task 2.1 additions after diag-gpu-flags: GPU with flash attention off (-fa 0: pp2048 443 vs 99 tok/s with auto on
+# the Xclipse) and partial offload with --no-host 1 (decode 51 vs 28 tok/s). Same binary and GGUFs.
+1b_gpufa0_pp|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+1b_gpufa0_tg|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+3b_gpufa0_pp|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+3b_gpufa0_tg|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+1b_partialnh_pp|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 6 --no-host 1 -r 1 -o jsonl
+1b_partialnh_tg|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 --no-host 1 -r 1 -o jsonl
+3b_partialnh_pp|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 --no-host 1 -r 1 -o jsonl
+3b_partialnh_tg|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 --no-host 1 -r 1 -o jsonl

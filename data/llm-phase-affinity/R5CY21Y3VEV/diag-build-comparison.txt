@@ -1,0 +1,7 @@
+# build comparison on mask 180 (2 threads), 2026-10-20T22:27:17Z, single runs (not a measurement)
+/data/local/tmp/lcpp/llama-bench
+  commit=c745be2 p=512 n=0 ts=112.708063
+  commit=c745be2 p=0 n=32 ts=48.895424
+./llama-bench
+  commit=8345f33 p=512 n=0 ts=144.809738
+  commit=8345f33 p=0 n=32 ts=46.879997

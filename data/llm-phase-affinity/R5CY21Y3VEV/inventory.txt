@@ -1,0 +1,159 @@
+# Samsung S24+ R5CY21Y3VEV inventory, 2026-10-20T22:40:10Z
+SM-S926B
+samsung/e2sxxx/e2s:16/BP4A.251205.006/S926BXXSHDZI1:user/release-keys
+MemTotal:       11472024 kB
+--- lcpp
+drwxrwxrwx  3 shell shell     3452 2026-08-03 15:15 .
+drwxrwx--x 18 shell shell  2084864 2026-10-20 14:55 ..
+-rwxr-xr-x  1 shell shell 40545000 2026-08-02 09:07 llama-bench
+-rwxr-xr-x  1 shell shell 42599904 2026-08-03 15:15 llama-completion
+-rwxr-xr-x  1 shell shell 42327912 2026-08-02 09:07 llama-tokenize
+drwxrwxrwx  2 shell shell     3452 2026-08-02 09:22 models
+-rw-rw-rw-  1 shell shell    12390 2026-07-23 12:51 p2048_exact.txt
+-rw-rw-rw-  1 shell shell     1500 2026-08-02 10:43 p_short.txt
+--- lcpp/models
+drwxrwxrwx 2 shell shell       3452 2026-08-02 09:22 .
+drwxrwxrwx 3 shell shell       3452 2026-08-03 15:15 ..
+-rw-rw-rw- 1 shell shell 4525773568 2026-08-02 08:52 llama3_1_8b_q4_0.gguf
+-rw-rw-rw- 1 shell shell  703205536 2026-08-02 08:52 llama3_2_1b_q4_0.gguf
+-rw-rw-rw- 1 shell shell 1815607904 2026-08-02 08:52 llama3_2_3b_q4_0.gguf
+--- llama
+drwxrwxrwx  2 shell shell       3452 2026-09-01 21:49 .
+drwxrwx--x 18 shell shell    2084864 2026-10-20 14:55 ..
+-rw-rw-rw-  1 shell shell   10592712 2026-09-01 15:52 etdump.etdp
+-rw-rw-rw-  1 shell shell 4172459904 2026-09-01 18:01 llama3_1-8b_vulkan_4w.pte
+-rw-rw-rw-  1 shell shell 4407123968 2026-09-01 17:54 llama3_1-8b_vulkan_8da4w.pte
+-rw-rw-rw-  1 shell shell  788490112 2026-09-01 17:39 llama3_2-1b_vulkan_4w.pte
+-rw-rw-rw-  1 shell shell  827179392 2026-09-01 17:37 llama3_2-1b_vulkan_8da4w.pte
+-rw-rw-rw-  1 shell shell 1885262208 2026-09-01 17:46 llama3_2-3b_vulkan_4w.pte
+-rw-rw-rw-  1 shell shell 1985780864 2026-09-01 17:43 llama3_2-3b_vulkan_8da4w.pte
+-rwxrwxrwx  1 shell shell   15818224 2026-09-01 15:53 llama_main
+-rwxrwxrwx  1 shell shell   23724832 2026-09-01 21:42 llama_main_qshaders
+-rw-rw-rw-  1 shell shell       7720 2026-09-01 17:27 prompt_2048.txt
+-rw-rw-rw-  1 shell shell    2183982 2026-09-01 11:12 tokenizer.model
+--- llama_bench
+drwxrwxrwx  2 shell shell       3452 2026-05-29 16:04 .
+drwxrwx--x 18 shell shell    2084864 2026-10-20 14:55 ..
+-rw-rw-rw-  1 shell shell 5976956672 2026-05-13 21:26 llama3_1_8b_4w_baseline.pte
+-rw-rw-rw-  1 shell shell 5977002496 2026-05-26 15:11 llama3_1_8b_4w_coopmat.pte
+-rw-rw-rw-  1 shell shell 6211635456 2026-05-13 22:02 llama3_1_8b_8da4w_baseline.pte
+-rw-rw-rw-  1 shell shell 6211635456 2026-05-29 10:22 llama3_1_8b_8da4w_coopmat.pte
+-rwxr-xr-x  1 shell shell   15247984 2026-05-29 09:20 llama_main_baseline
+-rwxr-xr-x  1 shell shell   15287248 2026-05-29 09:22 llama_main_coopmat
+-rw-rw-rw-  1 shell shell      11956 2026-05-29 09:20 prompt_2k.txt
+-rw-rw-rw-  1 shell shell    2183982 2026-05-29 09:20 tokenizer.model
+--- llama_dev
+drwxrwxrwx  2 shell shell       3452 2026-07-27 23:43 .
+drwxrwx--x 18 shell shell    2084864 2026-10-20 14:55 ..
+-rw-rw-rw-  1 shell shell     525712 2026-07-24 20:40 et_8da4w_buffer.etdp
+-rw-rw-rw-  1 shell shell     563160 2026-07-24 20:40 et_8da4w_texture.etdp
+-rw-rw-rw-  1 shell shell 4173751424 2026-07-27 13:14 llama3_1_8b_4w_embq_ctx3072.pte
+-rw-rw-rw-  1 shell shell 4408429824 2026-07-27 13:24 llama3_1_8b_8da4w_embq_ctx3072.pte
+-rw-rw-rw-  1 shell shell 1692049024 2026-07-23 12:43 llama3_2_1b_4w_buffer_ctx3072.pte
+-rw-rw-rw-  1 shell shell  789135872 2026-07-27 12:51 llama3_2_1b_4w_embq_ctx3072.pte
+-rw-rw-rw-  1 shell shell 1692057856 2026-07-23 12:37 llama3_2_1b_4w_texture_ctx3072.pte
+-rw-rw-rw-  1 shell shell 1730745344 2026-07-23 12:45 llama3_2_1b_8da4w_buffer_ctx3072.pte
+-rw-rw-rw-  1 shell shell  827832192 2026-07-27 12:54 llama3_2_1b_8da4w_embq_ctx3072.pte
+-rw-rw-rw-  1 shell shell 1730754176 2026-07-23 12:37 llama3_2_1b_8da4w_texture_ctx3072.pte
+-rw-rw-rw-  1 shell shell 1886556160 2026-07-27 12:59 llama3_2_3b_4w_embq_ctx3072.pte
+-rw-rw-rw-  1 shell shell 1987087360 2026-07-27 13:05 llama3_2_3b_8da4w_embq_ctx3072.pte
+-rwxr-xr-x  1 shell shell   17325424 2026-07-24 11:19 llama_main
+-rwxr-xr-x  1 shell shell   17353488 2026-07-24 20:39 llama_main_etdump
+-rwxr-xr-x  1 shell shell   15364176 2026-07-27 16:36 llama_main_rel
+-rwxr-xr-x  1 shell shell   15256528 2026-07-27 16:52 llama_main_rel_nt
+-rw-rw-rw-  1 shell shell      12390 2026-07-23 12:51 p2048_exact.txt
+-rw-rw-rw-  1 shell shell       6189 2026-07-27 16:14 p_frac2.txt
+-rw-rw-rw-  1 shell shell       3082 2026-07-27 16:14 p_frac4.txt
+-rwxr-xr-x  1 shell shell   55991704 2026-07-24 12:06 test_llama_microbench
+-rwxr-xr-x  1 shell shell   54858312 2026-07-27 23:42 test_q4gsw_linear
+-rw-rw-rw-  1 shell shell    2183982 2026-07-04 00:36 tokenizer.model
+--- llama_r15
+drwxrwxrwx  2 shell shell      3452 2026-09-21 17:45 .
+drwxrwx--x 18 shell shell   2084864 2026-10-20 14:55 ..
+-rw-rw-rw-  1 shell shell 788490112 2026-09-01 17:39 llama3_2-1b_vulkan_4w.pte
+-rw-rw-rw-  1 shell shell 827179392 2026-09-01 17:37 llama3_2-1b_vulkan_8da4w.pte
+-rwxr-xr-x  1 shell shell  17049496 2026-09-21 17:42 llama_main_base
+-rwxr-xr-x  1 shell shell  16887032 2026-09-21 17:44 llama_main_vanilla
+-rw-rw-rw-  1 shell shell     12390 2026-07-23 12:51 p2048_exact.txt
+-rw-rw-rw-  1 shell shell   2183982 2026-07-04 00:36 tokenizer.model
+--- llama_vk
+drwxrwxrwx  2 shell shell       3452 2026-05-29 10:24 .
+drwxrwx--x 18 shell shell    2084864 2026-10-20 14:55 ..
+-rw-rw-rw-  1 shell shell 5976956672 2026-05-13 21:26 llama_4w.pte
+-rw-rw-rw-  1 shell shell 5977002496 2026-05-26 15:11 llama_4w_coopmat.pte
+-rw-rw-rw-  1 shell shell 6211635456 2026-05-13 22:02 llama_8da4w.pte
+-rw-rw-rw-  1 shell shell 6211635456 2026-05-29 10:22 llama_8da4w_coopmat.pte
+-rwxr-xr-x  1 shell shell   15247984 2026-05-28 21:25 llama_main
+-rwxr-xr-x  1 shell shell   15287248 2026-05-29 09:22 llama_main_coopmat
+-rw-rw-rw-  1 shell shell        384 2026-05-28 22:25 prompt.txt
+-rw-rw-rw-  1 shell shell      11956 2026-05-29 09:20 prompt_2k.txt
+-rw-rw-rw-  1 shell shell    2183982 2026-04-26 17:36 tokenizer.model
+--- et_mv2
+drwxrwxrwx  2 shell shell      3452 2026-09-22 14:38 .
+drwxrwx--x 18 shell shell   2084864 2026-10-20 14:55 ..
+-rwxr-xr-x  1 shell shell 194479744 2026-07-24 11:18 executor_runner
+-rw-rw-rw-  1 shell shell  24876848 2026-09-22 14:12 model.etdump
+-rw-rw-rw-  1 shell shell  14000928 2026-09-22 14:00 mv2_vulkan.pte
+-rw-rw-rw-  1 shell shell  21964548 2026-09-22 14:10 mv3_large_vulkan.pte
+-rw-rw-rw-  1 shell shell  10220804 2026-09-22 14:06 mv3_vulkan.pte
+-rw-rw-rw-  1 shell shell   1237920 2026-09-22 14:38 mv3l.etdump
+-rw-rw-rw-  1 shell shell      4000 2026-09-22 14:10 mv3lout-0.bin
+-rw-rw-rw-  1 shell shell      4000 2026-09-22 14:06 mv3out-0.bin
+-rw-rw-rw-  1 shell shell      4000 2026-09-22 14:00 out-0.bin
+--- XNNPACK in runners (count of xnn_ symbol strings; 0 = no XNNPACK backend)
+llama/llama_main xnn_=0 VulkanBackend=4
+llama/llama_main_qshaders xnn_=0 VulkanBackend=4
+llama_dev/llama_main xnn_=0 VulkanBackend=3
+llama_dev/llama_main_etdump xnn_=0 VulkanBackend=3
+llama_dev/llama_main_rel xnn_=0 VulkanBackend=3
+llama_dev/llama_main_rel_nt xnn_=0 VulkanBackend=3
+llama_r15/llama_main_base xnn_=0 VulkanBackend=3
+llama_r15/llama_main_vanilla xnn_=0 VulkanBackend=3
+llama_bench/llama_main_baseline xnn_=0 VulkanBackend=3
+llama_bench/llama_main_coopmat xnn_=0 VulkanBackend=3
+llama_vk/llama_main xnn_=0 VulkanBackend=3
+llama_vk/llama_main_coopmat xnn_=0 VulkanBackend=3
+et_mv2/executor_runner xnn_=28 VulkanBackend=6
+--- lcpp/llama-bench: --version unsupported; build_commit from -o jsonl = c745be2; no i8mm (no smmla in disassembly), has dotprod (sdot)
+ggml_vulkan: 0 = Samsung Xclipse 940 (Samsung Proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 64 | shared memory: 32768 | int dot: 0 | matrix cores: none
+Available devices:
+  Vulkan0: Samsung Xclipse 940 (8256 MiB, 7843 MiB free)
+--- llama_dev/llama_main --help (head)
+
+  Flags from /home/doremy/sarc-acl/dev/executorch/examples/models/llama/main.cpp:
+    -cpu_threads (Number of CPU threads for inference. Defaults to -1, which
+      implies we'll use a heuristic to derive the # of performant cores for a
+      specific device.) type: int32 default: -1
+    -data_paths (Data files for the model. If multiple files are provided, they
+      should be comma separated.) type: string default: ""
+    -etdump_path (If an etdump path is provided, generate an ETDump file at the
+      specified path for profiling purposes.) type: string default: "etdump.in"
+    -ignore_eos (Whether to ignore EOS token and continue generating until
+      max_new_tokens is reached.) type: bool default: false
+    -max_new_tokens (Total number of tokens to generate, excluding the prompt,
+      will be capped by max_seq_len - # prompt tokens.) type: int32 default: -1
+    -method_name (Method name to execute in the model (e.g., 'forward',
+      'lora_forward').) type: string default: "forward"
+    -model_path (Model serialized in flatbuffer format.) type: string
+      default: "llama2.pte"
+    -num_bos (Number of BOS tokens to prepend to the prompt. Defaults to 0. If
+      > 0, the prompt will be prepended with BOS tokens. This is useful for
+      models that expect one or more BOS token at the start.) type: int32
+      default: 0
+    -num_eos (Number of EOS tokens to append to the prompt. Defaults to 0. If >
+      0, the prompt will be appended with EOS tokens. This is useful for models
+      that expect one or more EOS token at the end.) type: int32 default: 0
+    -prompt (Prompt.) type: string
+      default: "The answer to the ultimate question is"
+    -prompt_file (Optional path to a file containing the prompt. If set, this
+      overrides --prompt.) type: string default: ""
+    -seq_len (DEPRECATED: Please use max_seq_len instead. Total number of
+      tokens to generate (prompt + output). Defaults to max_seq_len. If the
+      number of input tokens + seq_len > max_seq_len, the output will be
+      truncated to max_seq_len tokens.) type: int32 default: 128
+    -temperature (Temperature; Default is 0.8f. 0 = greedy argmax sampling
+      (deterministic). Lower temperature = more deterministic) type: double
+      default: 0.80000001192092896
+    -tokenizer_path (Tokenizer stuff.) type: string default: "tokenizer.bin"
+    -warmup (Whether to run a warmup run.) type: bool default: false
+

@@ -1,0 +1,7 @@
+# Task 2.4: Llama 3.1 8B on the Samsung, single backend per runtime (reference only, not in the gate): the GPU, since
+# the ExecuTorch side has Vulkan .pte files only. llama.cpp 8345f33 Vulkan -ngl 99 (flash attention auto and off),
+# owner's Q4_0 GGUF read in place; ExecuTorch llama_main e229c58784 with the owner's 8B Vulkan .pte (ctx 2560).
+8b_gpu_pp|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+8b_gpu_tg|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+8b_gpufa0_pp|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+8b_gpufa0_tg|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl

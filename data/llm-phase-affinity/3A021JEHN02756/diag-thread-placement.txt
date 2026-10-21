@@ -1,0 +1,20 @@
+# Pixel thread-placement + -dev none check, 2026-10-20T22:13:45Z, llama-bench 8345f33, 1B Q4_0 (not a measurement)
+mask=c0 threads=2: tid state last_cpu utime allowed
+  29519 R 6 488 6-7
+  29522 R 7 454 6-7
+  p=512 n=0 ts=24.283073
+  p=0 n=32 ts=16.319995
+mask=f0 threads=4: tid state last_cpu utime allowed
+  29532 R 7 487 4-7
+  29535 R 5 442 4-7
+  29536 R 6 463 4-7
+  29537 R 4 452 4-7
+  p=512 n=0 ts=36.102367
+  p=0 n=32 ts=23.770882
+# rebuilt with GGML_CPU_ARM_ARCH=armv8.2-a+dotprod+fp16, 2026-10-20T22:16:22Z (not a measurement)
+mask=c0 threads=2
+  p=512 n=0 ts=126.501009
+  p=0 n=32 ts=34.701207
+mask=f0 threads=4
+  p=512 n=0 ts=189.304203
+  p=0 n=32 ts=34.882073
