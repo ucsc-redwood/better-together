@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LLM phase-affinity study: tables, co-run ratios and the prediction grid (design D5) from the
 raw phone outputs under data/llm-phase-affinity/<serial>/
-(openspec/changes/llm-phase-affinity, decision record docs/reports-for-human/2026-10-20-llm-phase-affinity.md).
+(openspec/changes/llm-phase-affinity, decision record docs/reports-for-human/2026-10-21-llm-phase-affinity.md).
 
 Raw layout (written by data/llm-phase-affinity/drivers/):
   alone-llamacpp/<model>_<cfg>_{pp,tg}_r<k>[_retry].{out,err,clk,meta}   llama-bench -o jsonl
@@ -584,6 +584,14 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
             # at its alone rates, and if the KV hand-off were free.
             r["gain_no_interference"] = predict_mix(prompt, gen, al, bd, free, h)["gain"]
             r["gain_no_handoff"] = predict_mix(prompt, gen, al, bd, spec, 0.0)["gain"]
+            # The decode co-run ratio the best pair would need for the gate, everything else as is
+            # (None: its prefill alone already exceeds the period the gate allows).
+            a, b = r["best_pair"]
+            budget = 1 / (GATE * r["dp_corun"]) - h
+            r["decode_ratio"] = rt["spec"][(a, b)][1]
+            r["decode_ratio_needed"] = (
+                gen / (al[b][1] * budget) if budget >= prompt / spec[(a, b)][0] else None
+            )
             r.update(
                 prompt=prompt,
                 gen=gen,
@@ -680,8 +688,8 @@ def grid_table(rows):
     lines = [
         "| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run "
         "| GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference "
-        "| gain, no hand-off |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "| gain, no hand-off | best pair: decode ratio used / needed for the gate |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         sp = r["specialized"]
@@ -689,7 +697,10 @@ def grid_table(rows):
         lines.append(
             f"| {r['prompt']} | {r['gen']} | {r['single']:.4f} ({r['single_pu'].upper()}) | {split} | "
             f"{r['dp_alone']:.4f} | {r['dp_corun']:.4f} | {sp[('gpu', 'cpu')]:.4f} | {sp[('cpu', 'gpu')]:.4f} | "
-            f"**{r['gain']:.2f}** | {r['gain_no_interference']:.2f} | {r['gain_no_handoff']:.2f} |"
+            f"**{r['gain']:.2f}** | {r['gain_no_interference']:.2f} | {r['gain_no_handoff']:.2f} | "
+            f"{r['decode_ratio']:.2f} / "
+            + (f"{r['decode_ratio_needed']:.2f}" if r["decode_ratio_needed"] else "unreachable")
+            + " |"
         )
     return "\n".join(lines)
 
