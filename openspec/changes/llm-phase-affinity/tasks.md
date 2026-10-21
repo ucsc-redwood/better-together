@@ -26,7 +26,7 @@ Rules for every task:
 
 - [x] 3.1 Measure CPU and GPU read bandwidth on each phone, alone and together (design D4). Verify: GB/s per case, and each PU's decode rate (from 2.x) as a fraction of its bandwidth bound.
 - [x] 3.2 Co-run pairs with llama.cpp (design D3) on both phones, 1B, prompt 512 and 2048: GPU-prefill + CPU-decode, CPU-prefill + GPU-decode, CPU-decode + GPU-decode. Verify: each rate co-running and its ratio to alone, for each pair.
-- [ ] 3.3 The same pairs with ExecuTorch on the Samsung (1B), if 1.4 succeeded. Verify: same table, or the skip recorded.
+- [x] 3.3 The same pairs with ExecuTorch on the Samsung (1B), if 1.4 succeeded. Verify: same table, or the skip recorded.
 
 ## 4. Prediction and decision
 

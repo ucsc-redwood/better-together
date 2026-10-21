@@ -586,6 +586,13 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
             r["gain_no_handoff"] = predict_mix(prompt, gen, al, bd, spec, 0.0)["gain"]
             # The decode co-run ratio the best pair would need for the gate, everything else as is
             # (None: its prefill alone already exceeds the period the gate allows).
+            # Also not the gate: the data-parallel bound with each PU's prefill at its co-run rate next
+            # to the other's decode as well (design D5 keeps prefill at its alone rate, conservatively).
+            dp_full = sum(
+                1 / (prompt / spec[(pu, other)][0] + gen / bd[pu])
+                for pu, other in (("gpu", "cpu"), ("cpu", "gpu"))
+            )
+            r["gain_vs_dp_prefill_corun"] = max(r["specialized"].values()) / dp_full
             a, b = r["best_pair"]
             budget = 1 / (GATE * r["dp_corun"]) - h
             r["decode_ratio"] = rt["spec"][(a, b)][1]
@@ -688,8 +695,9 @@ def grid_table(rows):
     lines = [
         "| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run "
         "| GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference "
-        "| gain, no hand-off | best pair: decode ratio used / needed for the gate |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| gain, no hand-off | gain vs data-parallel with co-run prefill "
+        "| best pair: decode ratio used / needed for the gate |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         sp = r["specialized"]
@@ -698,10 +706,54 @@ def grid_table(rows):
             f"| {r['prompt']} | {r['gen']} | {r['single']:.4f} ({r['single_pu'].upper()}) | {split} | "
             f"{r['dp_alone']:.4f} | {r['dp_corun']:.4f} | {sp[('gpu', 'cpu')]:.4f} | {sp[('cpu', 'gpu')]:.4f} | "
             f"**{r['gain']:.2f}** | {r['gain_no_interference']:.2f} | {r['gain_no_handoff']:.2f} | "
+            f"{r['gain_vs_dp_prefill_corun']:.2f} | "
             f"{r['decode_ratio']:.2f} / "
             + (f"{r['decode_ratio_needed']:.2f}" if r["decode_ratio_needed"] else "unreachable")
             + " |"
         )
+    return "\n".join(lines)
+
+
+def affinity_table(serial, runtime, alone):
+    """Per model and prompt length, each phase on the CPU and GPU units (decode at KV depth P) and
+    the GPU / CPU ratio: the phase affinity the pipeline would exploit."""
+    lines = [
+        "| model | P | prefill CPU | prefill GPU | GPU / CPU | decode CPU | decode GPU | GPU / CPU |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for model in sorted({m for m, _ in alone} - REFERENCE_ONLY):
+        pus = {pu: pu_rates(alone, model, cfgs) for pu, cfgs in PU[(serial, runtime)].items()}
+        for prompt in PROMPTS:
+            cells = []
+            for kind in ("pp", "tg"):
+                c, g = pus["cpu"][kind].get(prompt), pus["gpu"][kind].get(prompt)
+                cells += [fmt_stat(c), fmt_stat(g), f"{ratio(g, c):.2f}" if c and g else "—"]
+            lines.append(f"| {model} | {prompt} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
+def et_ratio_table(corun):
+    """ExecuTorch co-run ratios against the solo loops: as measured, the partner's duty over the
+    decode windows, and the decode ratio extrapolated to full overlap (what the grid uses)."""
+    lines = [
+        "| pair | P | prefill ratio | decode ratio, measured | decode duty | decode ratio, full overlap |",
+        "|---|---|---|---|---|---|",
+    ]
+    for near in (512, 2048):
+        rt = ratios_et(corun, near)
+        for (a, b), key in PAIRS.items():
+            k = f"{key}_p{near}"
+            rd = ratio(corun[k]["B"]["rate"], corun[f"solo_{b}D"]["A"]["rate"])
+            lines.append(
+                f"| {a.upper()} prefill → {b.upper()} decode | {near} | {rt['spec'][(a, b)][0]:.2f} | "
+                f"{rd:.2f} | {corun[k]['B']['duty']['median']:.2f} | {rt['spec'][(a, b)][1]:.2f} |"
+            )
+    rt = ratios_et(corun, 512)
+    lines.append(
+        f"| both decoding (CPU, GPU) | — | — | {rt['both']['cpu']:.2f}, {rt['both']['gpu']:.2f} | "
+        f"{corun[BOTH_DECODE]['A']['duty']['median']:.2f}, {corun[BOTH_DECODE]['B']['duty']['median']:.2f} "
+        "| as measured |"
+    )
     return "\n".join(lines)
 
 
@@ -806,6 +858,10 @@ def main():
             print(
                 f"### {runtime}: alone rates (tok/s, median [min-max] of 3 runs)\n\n{alone_table(alone)}\n"
             )
+            print(
+                f"### {runtime}: phase affinity (tok/s; CPU = wider set)\n\n"
+                f"{affinity_table(serial, runtime, alone)}\n"
+            )
             coruns = load_coruns(serial, runtime)
             for model, corun in coruns.items():
                 if runtime == "llamacpp":
@@ -814,6 +870,8 @@ def main():
                 else:
                     print(f"### {runtime} {model}: co-run (tok/s; ratio = co-run / solo loop)\n")
                     print(et_corun_table(corun) + "\n")
+                    if model == CORUN_MODEL:
+                        print(f"### {runtime} {model}: co-run ratios\n\n{et_ratio_table(corun)}\n")
             if runtime == "llamacpp" and handoff_bw:
                 print(
                     f"### Decode against the bandwidth bound\n\n{bandwidth_table(serial, alone, bw, coruns.get(CORUN_MODEL, {}))}\n"
