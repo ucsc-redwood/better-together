@@ -183,9 +183,10 @@ evidence for each item is under `data/llm-phase-affinity/`.
   of it took the GPU unit's alone prefill at P=2048 from `gpu` (flash attention auto, 98 tok/s) only, not the
   faster `gpufa0` (444 tok/s) as decided above. The 2048 co-runs use `-fa 0`, so the GPU prefill co-run ratio came
   out as 2.58 and the transferred 3B grid reached 1.29 at P=2048, D=32. With the GPU unit fixed, the 3B transferred
-  grid peaks at 0.72. The 3B co-runs (`plan_corun_samsung_llamacpp_3b.txt`, `R5CY21Y3VEV/corun-llamacpp-3b/`) are
-  still measured, last in the Samsung queue, because the spec asks for every model's prediction from co-run rates.
-  A grid built on transferred ratios is labelled as such and does not count for the gate.
+  grid peaks at 0.72. The 3B co-runs (`plan_corun_samsung_llamacpp_3b.txt`, `R5CY21Y3VEV/corun-llamacpp-3b/`) were
+  still measured, after the ExecuTorch co-runs, because the spec asks for every model's prediction from co-run rates.
+  A grid built on transferred ratios is labelled as such and does not count for the gate. Measured, the 3B co-runs
+  put its best gain at 0.73.
 - **ExecuTorch co-runs: loops of whole processes, and on both phones.** `llama_main` cannot repeat a phase inside
   one process, and the runner is not modified, so each side of an ExecuTorch co-run is `lpa_loop.sh` running
   `llama_main` again and again (prefill loops 90 s, decode loops 120 s). A prefill loop uses prompt P, `--warmup`
