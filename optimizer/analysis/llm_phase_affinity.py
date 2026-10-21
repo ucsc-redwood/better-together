@@ -173,6 +173,8 @@ def et_observer(path):
             r["generated_tokens"] / dec_s if dec_s > 0 and r["generated_tokens"] else None
         )
         r["prefill_interval"] = (r["inference_start_ms"] / 1000, r["prompt_eval_end_ms"] / 1000)
+        # With --warmup the warm-up generate() runs between load and inference_start (empty otherwise).
+        r["warmup_interval"] = (r["model_load_end_ms"] / 1000, r["inference_start_ms"] / 1000)
         r["decode_interval"] = (r["prompt_eval_end_ms"] / 1000, r["inference_end_ms"] / 1000)
         recs.append(r)
     return recs
@@ -308,15 +310,19 @@ def load_llamacpp_corun(directory):
     return out
 
 
-def et_phase_intervals(path, phase):
+def et_phase_intervals(path, phase, busy=False):
     """[(start, end, tokens)] of one phase ("prefill" or "decode") over every llama_main run in a
-    co-run log."""
+    co-run log. busy=True adds each run's warm-up generate() (tokens 0): the process was computing then,
+    which matters when it is the partner whose activity a decode window's duty counts."""
     out = []
     for r in et_observer(path) if os.path.exists(path) else []:
         s, e = r[f"{phase}_interval"]
         tokens = r["prompt_tokens"] if phase == "prefill" else r["generated_tokens"]
         if e > s and tokens:
             out.append((s, e, tokens))
+        ws, we = r["warmup_interval"]
+        if busy and we > ws:
+            out.append((ws, we, 0))
     return out
 
 
@@ -332,7 +338,8 @@ def load_et_corun(directory):
     <A-tag>_<B-tag>[_p<P>] with tags gpuP/cpuP (prefill loop) and cpuD/gpuD (1024-token decode loop),
     or solo_<tag>[_p<P>] for the same loop alone. A prefill counts only when one partner decode
     window covers it wholly. A decode window always counts, with the duty (fraction of the window
-    the partner spent in a recorded prefill or decode); {"rate", "duty"} stats per side."""
+    the partner spent in a recorded prefill or decode, its warm-up generate() included);
+    {"rate", "duty"} stats per side."""
     out = {}
     for key, dirs in trial_dirs(directory).items():
         solo = key.startswith("solo_")
@@ -349,13 +356,15 @@ def load_et_corun(directory):
             for x, tag in sides.items():
                 mine = iv[x]
                 if not solo:
-                    other = iv["B" if x == "A" else "A"]
+                    o = "B" if x == "A" else "A"
                     if tag[3] == "P":
-                        cover = merge([(s, e) for s, e, _ in other])
+                        cover = merge([(s, e) for s, e, _ in iv[o]])
                         mine = [m for m in mine if covered(m[:2], cover)]
                         dt = [1.0] * len(mine)
                     else:
-                        dt = [duty(m[:2], [(s, e) for s, e, _ in other]) for m in mine]
+                        phase = "prefill" if sides[o][3] == "P" else "decode"
+                        busy = et_phase_intervals(os.path.join(d, f"{o}.out"), phase, busy=True)
+                        dt = [duty(m[:2], [(s, e) for s, e, _ in busy]) for m in mine]
                 else:
                     dt = [0.0] * len(mine)
                 if mine:
@@ -462,6 +471,8 @@ PU = {
 PAIRS = {("gpu", "cpu"): "gpuP_cpuD", ("cpu", "gpu"): "cpuP_gpuD"}
 BOTH_DECODE = "cpuD_gpuD"
 CORUN_MODEL = "1b"
+# Measured single-backend as a reference only (design Non-Goals): no grid, not in the gate.
+REFERENCE_ONLY = {"8b"}
 
 
 def pu_rates(alone, model, cfgs):
@@ -484,6 +495,11 @@ def ratio(corun, alone):
     return corun["median"] / alone["median"] if corun and alone else None
 
 
+def files_of(*stats):
+    """Raw files behind some stats (for tracing a prediction to its inputs)."""
+    return sorted({f for s in stats if s for f in s["files"]})
+
+
 def ratios_llamacpp(corun, pus, near):
     """Co-run / alone ratios from llama-bench co-runs: prefill against the alone pp at the co-run's
     prompt, decode (depth 0 loops) against the alone tg at depth 0."""
@@ -495,9 +511,12 @@ def ratios_llamacpp(corun, pus, near):
         },
         "spec": {},
     }
+    used = [both["A"], both["B"], pus["cpu"]["tg"][0], pus["gpu"]["tg"][0]]
     for (a, b), key in PAIRS.items():
         c = corun[f"{key}_p{near}"]
         out["spec"][(a, b)] = (ratio(c["A"], pus[a]["pp"][near]), ratio(c["B"], pus[b]["tg"][0]))
+        used += [c["A"], c["B"], pus[a]["pp"][near]]
+    out["files"] = files_of(*used)
     return out
 
 
@@ -513,13 +532,16 @@ def ratios_et(corun, near):
 
     both = {"cpu": r(BOTH_DECODE, "A", "solo_cpuD"), "gpu": r(BOTH_DECODE, "B", "solo_gpuD")}
     spec = {}
+    keys = [BOTH_DECODE, "solo_cpuD", "solo_gpuD"]
     for (a, b), key in PAIRS.items():
         k = f"{key}_p{near}"
         rp = r(k, "A", f"solo_{a}P_p{near}")
         rd = r(k, "B", f"solo_{b}D")
         u = corun[k]["B"]["duty"]["median"]
         spec[(a, b)] = (rp, max(0.05, 1 - (1 - rd) / u) if u > 0 else None)
-    return {"both": both, "spec": spec}
+        keys += [k, f"solo_{a}P_p{near}"]
+    files = files_of(*(side["rate"] for k in keys for side in corun[k].values()))
+    return {"both": both, "spec": spec, "files": files}
 
 
 def grid(serial, runtime, model, alone, corun_by_model, bw):
@@ -565,6 +587,11 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
                 both_decode=bd,
                 spec_rates=spec,
                 ratios=rt,
+                sources=files_of(
+                    *(pus[pu][kind][prompt] for pu in pus for kind in ("pp", "tg")),
+                    *(bw or {}).values(),
+                )
+                + rt["files"],
             )
             r["ratios_from"] = corun_model
             r["gate_eligible"] = corun_model == model
@@ -577,14 +604,15 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
 
 
 def load_alone(serial, runtime):
-    """Alone runs of a phone and runtime, the 3-round additions (alone-*-extra) merged in."""
+    """Alone runs of a phone and runtime, the 3-round additions (alone-*-extra) and the 8B reference
+    runs (alone-*-8b) merged in."""
     sub, loader = (
         ("alone-llamacpp", load_llamacpp_alone)
         if runtime == "llamacpp"
         else ("alone-et", load_et_alone)
     )
     out = {}
-    for d in (sub, sub + "-extra"):
+    for d in (sub, sub + "-extra", sub + "-8b"):
         path = os.path.join(DATA, serial, d)
         if os.path.isdir(path):
             out.update(loader(path))
@@ -773,7 +801,7 @@ def main():
                 print(
                     f"### Decode against the bandwidth bound\n\n{bandwidth_table(serial, alone, bw, coruns.get(CORUN_MODEL, {}))}\n"
                 )
-            for model in sorted({m for m, _ in alone}):
+            for model in sorted({m for m, _ in alone} - REFERENCE_ONLY):
                 rows, why = grid(serial, runtime, model, alone, coruns, handoff_bw)
                 if rows is None:
                     print(f"### {runtime} {model}: no prediction grid ({why})\n")

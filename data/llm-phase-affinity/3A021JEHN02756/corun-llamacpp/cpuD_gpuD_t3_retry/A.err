@@ -1,0 +1,20 @@
+1792559048.183350802 ggml_vulkan: Found 1 Vulkan devices:
+1792559048.204479871 ggml_vulkan: 0 = Mali-G710 (Mali-G710) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 16 | shared memory: 32768 | int dot: 1 | matrix cores: none
+1792559048.226427828 llama-bench: benchmark 1/1: starting
+1792559049.069773613 llama-bench: benchmark 1/1: warmup generation run
+1792559049.105900444 llama-bench: benchmark 1/1: generation run 1/16
+1792559053.440156428 llama-bench: benchmark 1/1: generation run 2/16
+1792559057.686521705 llama-bench: benchmark 1/1: generation run 3/16
+1792559062.204551085 llama-bench: benchmark 1/1: generation run 4/16
+1792559067.937145001 llama-bench: benchmark 1/1: generation run 5/16
+1792559076.105410793 llama-bench: benchmark 1/1: generation run 6/16
+1792559083.968312082 llama-bench: benchmark 1/1: generation run 7/16
+1792559091.611404412 llama-bench: benchmark 1/1: generation run 8/16
+1792559098.725311276 llama-bench: benchmark 1/1: generation run 9/16
+1792559105.485651082 llama-bench: benchmark 1/1: generation run 10/16
+1792559112.000695397 llama-bench: benchmark 1/1: generation run 11/16
+1792559118.528463222 llama-bench: benchmark 1/1: generation run 12/16
+1792559125.045493336 llama-bench: benchmark 1/1: generation run 13/16
+1792559131.459270235 llama-bench: benchmark 1/1: generation run 14/16
+1792559138.093666682 llama-bench: benchmark 1/1: generation run 15/16
+1792559144.514454771 llama-bench: benchmark 1/1: generation run 16/16
