@@ -335,7 +335,7 @@ def duty(interval, partner):
 
 def load_et_corun(directory):
     """ExecuTorch co-runs (stock llama_main in loops, no per-token timing). A key is
-    <A-tag>_<B-tag>[_p<P>] with tags gpuP/cpuP (prefill loop) and cpuD/gpuD (1024-token decode loop),
+    <A-tag>_<B-tag>[_p<P>] with tags gpuP/cpuP (prefill loop) and cpuD/gpuD (512-token decode loop),
     or solo_<tag>[_p<P>] for the same loop alone. A prefill counts only when one partner decode
     window covers it wholly. A decode window always counts, with the duty (fraction of the window
     the partner spent in a recorded prefill or decode, its warm-up generate() included);

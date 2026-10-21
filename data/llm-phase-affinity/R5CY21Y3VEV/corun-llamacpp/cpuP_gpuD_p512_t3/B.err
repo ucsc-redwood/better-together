@@ -1,0 +1,31 @@
+1792559483.814892460 ggml_vulkan: Found 1 Vulkan devices:
+1792559483.835143867 ggml_vulkan: 0 = Samsung Xclipse 940 (Samsung Proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 64 | shared memory: 32768 | int dot: 0 | matrix cores: none
+1792559483.850396757 llama-bench: benchmark 1/1: starting
+1792559485.436266445 llama-bench: benchmark 1/1: warmup generation run
+1792559488.661156757 llama-bench: benchmark 1/1: generation run 1/27
+1792559491.089913164 llama-bench: benchmark 1/1: generation run 2/27
+1792559493.789774648 llama-bench: benchmark 1/1: generation run 3/27
+1792559496.604417929 llama-bench: benchmark 1/1: generation run 4/27
+1792559499.443381015 llama-bench: benchmark 1/1: generation run 5/27
+1792559502.444696757 llama-bench: benchmark 1/1: generation run 6/27
+1792559506.291980820 llama-bench: benchmark 1/1: generation run 7/27
+1792559510.127828281 llama-bench: benchmark 1/1: generation run 8/27
+1792559516.508246132 llama-bench: benchmark 1/1: generation run 9/27
+1792559526.407844101 llama-bench: benchmark 1/1: generation run 10/27
+1792559536.400562734 llama-bench: benchmark 1/1: generation run 11/27
+1792559546.642945039 llama-bench: benchmark 1/1: generation run 12/27
+1792559557.096676132 llama-bench: benchmark 1/1: generation run 13/27
+1792559567.672444296 llama-bench: benchmark 1/1: generation run 14/27
+1792559578.233893242 llama-bench: benchmark 1/1: generation run 15/27
+1792559587.911527656 llama-bench: benchmark 1/1: generation run 16/27
+1792559597.450413007 llama-bench: benchmark 1/1: generation run 17/27
+1792559604.935328281 llama-bench: benchmark 1/1: generation run 18/27
+1792559610.675256640 llama-bench: benchmark 1/1: generation run 19/27
+1792559615.703774257 llama-bench: benchmark 1/1: generation run 20/27
+1792559620.512828671 llama-bench: benchmark 1/1: generation run 21/27
+1792559625.106325781 llama-bench: benchmark 1/1: generation run 22/27
+1792559629.605078437 llama-bench: benchmark 1/1: generation run 23/27
+1792559634.092155351 llama-bench: benchmark 1/1: generation run 24/27
+1792559638.614436796 llama-bench: benchmark 1/1: generation run 25/27
+1792559643.124124570 llama-bench: benchmark 1/1: generation run 26/27
+1792559647.626843984 llama-bench: benchmark 1/1: generation run 27/27

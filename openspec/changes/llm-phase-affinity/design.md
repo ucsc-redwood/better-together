@@ -186,6 +186,25 @@ evidence for each item is under `data/llm-phase-affinity/`.
   grid peaks at 0.72. The 3B co-runs (`plan_corun_samsung_llamacpp_3b.txt`, `R5CY21Y3VEV/corun-llamacpp-3b/`) are
   still measured, last in the Samsung queue, because the spec asks for every model's prediction from co-run rates.
   A grid built on transferred ratios is labelled as such and does not count for the gate.
+- **ExecuTorch co-runs: loops of whole processes, and on both phones.** `llama_main` cannot repeat a phase inside
+  one process, and the runner is not modified, so each side of an ExecuTorch co-run is `lpa_loop.sh` running
+  `llama_main` again and again (prefill loops 90 s, decode loops 120 s). A prefill loop uses prompt P, `--warmup`
+  and 1 new token: two prefills per process, the second (warm, like the alone runs) recorded. A decode loop uses a
+  16-token prompt and 512 new tokens, without warmup. Each side's reference is the same loop run alone
+  (`solo_<tag>`), not the alone sweep, so model load and a cold first run cancel in the ratio. Model load (3.4 s
+  for a 1B Vulkan file) leaves gaps in which the partner runs alone. So a prefill counts only when a partner decode
+  window covers it wholly. A decode window counts with its duty, the fraction of it during which the partner
+  computed (warm-up included). For the specialized pairs the decode ratio r at duty u is extrapolated to a fully
+  overlapped window, 1 - (1 - r)/u. That assumes all interference falls in the partner's compute phases. Model
+  load also streams memory, so the extrapolation overstates interference, which is conservative for the
+  specialized pipeline. The both-decoding ratio is used as measured: its duty is near 1, and any gap makes the
+  data-parallel bound larger. The tasks put ExecuTorch co-runs on the Samsung only. They were added on the Pixel
+  because its ExecuTorch alone rates show the strongest phase split of the study: Vulkan 8da4w prefill 284-440
+  tok/s against 65-163 for XNNPACK, but XNNPACK decode about twice Vulkan's at short context. Without them the
+  Pixel ExecuTorch grid could not be computed. Plans: `plan_corun_{pixel,samsung}_et.txt`. Each GPU side uses the
+  faster Vulkan file for its phase.
+- **Queue order on the Samsung after the 1B llama.cpp co-runs:** ExecuTorch alone, ExecuTorch co-runs, 3B llama.cpp
+  co-runs, then the 8B reference runs (task 2.4), which do not enter the gate.
 - **Read bandwidth is the median over 40 s, a sustained figure.** The Samsung CPU read starts at 43 GB/s and
   settles to 34-36 GB/s within the 40 s (`R5CY21Y3VEV/bandwidth/cpu_t*/cpu.out`), while a `tg128` run lasts 2-5 s. So
   llama.cpp CPU decode reaches 1.06x the bytes-per-token bound of the sustained figure (0.89x of the first-second

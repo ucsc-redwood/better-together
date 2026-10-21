@@ -1,0 +1,11 @@
+1792553544.200365898 ggml_vulkan: Found 1 Vulkan devices:
+1792553544.222146953 ggml_vulkan: 0 = Samsung Xclipse 940 (Samsung Proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 64 | shared memory: 32768 | int dot: 0 | matrix cores: none
+1792553544.235778125 llama-bench: benchmark 1/1: starting
+1792553544.645493476 llama-bench: benchmark 1/1: warmup prompt run
+1792553553.457753242 llama-bench: benchmark 1/1: prompt run 1/7
+1792553563.742928203 llama-bench: benchmark 1/1: prompt run 2/7
+1792553575.402167304 llama-bench: benchmark 1/1: prompt run 3/7
+1792553590.542059218 llama-bench: benchmark 1/1: prompt run 4/7
+1792553605.424994921 llama-bench: benchmark 1/1: prompt run 5/7
+1792553620.559614960 llama-bench: benchmark 1/1: prompt run 6/7
+1792553635.941585429 llama-bench: benchmark 1/1: prompt run 7/7
