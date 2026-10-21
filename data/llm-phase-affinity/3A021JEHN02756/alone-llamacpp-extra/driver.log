@@ -1,0 +1,48 @@
+2026-10-20T17:53:43-07:00 start 1b_gpufa0_pp_r1 mask=8 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-20T17:54:57-07:00 end 1b_gpufa0_pp_r1 rc=0
+2026-10-20T17:55:17-07:00 start 1b_gpufa0_tg_r1 mask=8 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-20T17:56:51-07:00 end 1b_gpufa0_tg_r1 rc=0
+2026-10-20T17:57:12-07:00 start 1b_partialnh_pp_r1 mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T17:58:18-07:00 end 1b_partialnh_pp_r1 rc=0
+2026-10-20T17:58:38-07:00 THROTTLED 1b_partialnh_pp_r1, cooling down and repeating once
+2026-10-20T18:00:38-07:00 start 1b_partialnh_pp_r1_retry mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:01:43-07:00 end 1b_partialnh_pp_r1_retry rc=0
+2026-10-20T18:02:03-07:00 cooling: thermal status 1
+2026-10-20T18:02:33-07:00 start 1b_partialnh_tg_r1 mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:04:02-07:00 end 1b_partialnh_tg_r1 rc=0
+2026-10-20T18:04:22-07:00 THROTTLED 1b_partialnh_tg_r1, cooling down and repeating once
+2026-10-20T18:06:22-07:00 start 1b_partialnh_tg_r1_retry mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:07:51-07:00 end 1b_partialnh_tg_r1_retry rc=0
+2026-10-20T18:08:11-07:00 cooling: thermal status 1
+2026-10-20T18:08:41-07:00 start 1b_gpufa0_pp_r2 mask=8 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-20T18:09:55-07:00 end 1b_gpufa0_pp_r2 rc=0
+2026-10-20T18:10:15-07:00 start 1b_gpufa0_tg_r2 mask=8 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-20T18:11:49-07:00 end 1b_gpufa0_tg_r2 rc=0
+2026-10-20T18:12:09-07:00 start 1b_partialnh_pp_r2 mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:13:14-07:00 end 1b_partialnh_pp_r2 rc=0
+2026-10-20T18:13:34-07:00 THROTTLED 1b_partialnh_pp_r2, cooling down and repeating once
+2026-10-20T18:15:34-07:00 start 1b_partialnh_pp_r2_retry mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:16:38-07:00 end 1b_partialnh_pp_r2_retry rc=0
+2026-10-20T18:16:59-07:00 cooling: thermal status 1
+2026-10-20T18:17:29-07:00 start 1b_partialnh_tg_r2 mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:18:53-07:00 end 1b_partialnh_tg_r2 rc=0
+2026-10-20T18:19:13-07:00 THROTTLED 1b_partialnh_tg_r2, cooling down and repeating once
+2026-10-20T18:21:14-07:00 start 1b_partialnh_tg_r2_retry mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:22:41-07:00 end 1b_partialnh_tg_r2_retry rc=0
+2026-10-20T18:23:01-07:00 cooling: thermal status 1
+2026-10-20T18:23:31-07:00 start 1b_gpufa0_pp_r3 mask=8 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-20T18:24:45-07:00 end 1b_gpufa0_pp_r3 rc=0
+2026-10-20T18:25:05-07:00 start 1b_gpufa0_tg_r3 mask=8 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-20T18:26:40-07:00 end 1b_gpufa0_tg_r3 rc=0
+2026-10-20T18:27:00-07:00 start 1b_partialnh_pp_r3 mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:28:06-07:00 end 1b_partialnh_pp_r3 rc=0
+2026-10-20T18:28:26-07:00 THROTTLED 1b_partialnh_pp_r3, cooling down and repeating once
+2026-10-20T18:30:26-07:00 start 1b_partialnh_pp_r3_retry mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:31:30-07:00 end 1b_partialnh_pp_r3_retry rc=0
+2026-10-20T18:31:51-07:00 cooling: thermal status 1
+2026-10-20T18:32:21-07:00 start 1b_partialnh_tg_r3 mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:33:49-07:00 end 1b_partialnh_tg_r3 rc=0
+2026-10-20T18:34:09-07:00 THROTTLED 1b_partialnh_tg_r3, cooling down and repeating once
+2026-10-20T18:36:09-07:00 start 1b_partialnh_tg_r3_retry mask=f0 cmd=./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+2026-10-20T18:37:38-07:00 end 1b_partialnh_tg_r3_retry rc=0
+2026-10-20T18:37:58-07:00 plan done

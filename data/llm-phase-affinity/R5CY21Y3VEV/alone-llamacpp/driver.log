@@ -1,0 +1,169 @@
+2026-10-20T15:28:28-07:00 start 1b_cpu180_pp_r1 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T15:29:18-07:00 end 1b_cpu180_pp_r1 rc=0
+2026-10-20T15:29:38-07:00 start 1b_cpu180_tg_r1 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T15:30:22-07:00 end 1b_cpu180_tg_r1 rc=0
+2026-10-20T15:30:42-07:00 start 1b_cpu3f0_pp_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:31:06-07:00 end 1b_cpu3f0_pp_r1 rc=0
+2026-10-20T15:31:26-07:00 start 1b_cpu3f0_tg_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:31:51-07:00 end 1b_cpu3f0_tg_r1 rc=0
+2026-10-20T15:32:11-07:00 cooling: thermal status 1
+2026-10-20T15:32:41-07:00 start 1b_gpu_pp_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T15:33:43-07:00 end 1b_gpu_pp_r1 rc=0
+2026-10-20T15:34:03-07:00 start 1b_gpu_tg_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T15:34:56-07:00 end 1b_gpu_tg_r1 rc=0
+2026-10-20T15:35:16-07:00 start 1b_partial_pp_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T15:36:04-07:00 end 1b_partial_pp_r1 rc=0
+2026-10-20T15:36:24-07:00 start 1b_partial_tg_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T15:37:05-07:00 end 1b_partial_tg_r1 rc=0
+2026-10-20T15:37:25-07:00 start 3b_cpu180_pp_r1 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T15:40:28-07:00 end 3b_cpu180_pp_r1 rc=0
+2026-10-20T15:40:48-07:00 start 3b_cpu180_tg_r1 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T15:43:05-07:00 end 3b_cpu180_tg_r1 rc=0
+2026-10-20T15:43:25-07:00 start 3b_cpu3f0_pp_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:44:33-07:00 end 3b_cpu3f0_pp_r1 rc=0
+2026-10-20T15:44:53-07:00 THROTTLED 3b_cpu3f0_pp_r1, cooling down and repeating once
+2026-10-20T15:46:53-07:00 start 3b_cpu3f0_pp_r1_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:47:58-07:00 end 3b_cpu3f0_pp_r1_retry rc=0
+2026-10-20T15:48:18-07:00 cooling: thermal status 1
+2026-10-20T15:48:48-07:00 start 3b_cpu3f0_tg_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:50:02-07:00 end 3b_cpu3f0_tg_r1 rc=0
+2026-10-20T15:50:22-07:00 THROTTLED 3b_cpu3f0_tg_r1, cooling down and repeating once
+2026-10-20T15:52:22-07:00 start 3b_cpu3f0_tg_r1_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:53:32-07:00 end 3b_cpu3f0_tg_r1_retry rc=0
+2026-10-20T15:53:52-07:00 cooling: thermal status 1
+2026-10-20T15:54:22-07:00 cooling: thermal status 1
+2026-10-20T15:54:52-07:00 start 3b_gpu_pp_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T15:55:43-07:00 end 3b_gpu_pp_r1 rc=0
+2026-10-20T15:56:03-07:00 start 3b_gpu_tg_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T15:57:20-07:00 end 3b_gpu_tg_r1 rc=0
+2026-10-20T15:57:40-07:00 THROTTLED 3b_gpu_tg_r1, cooling down and repeating once
+2026-10-20T15:59:40-07:00 start 3b_gpu_tg_r1_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T16:00:56-07:00 end 3b_gpu_tg_r1_retry rc=0
+2026-10-20T16:01:16-07:00 start 3b_partial_pp_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:01:57-07:00 end 3b_partial_pp_r1 rc=0
+2026-10-20T16:02:17-07:00 THROTTLED 3b_partial_pp_r1, cooling down and repeating once
+2026-10-20T16:04:17-07:00 start 3b_partial_pp_r1_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:04:58-07:00 end 3b_partial_pp_r1_retry rc=0
+2026-10-20T16:05:18-07:00 start 3b_partial_tg_r1 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:07:18-07:00 end 3b_partial_tg_r1 rc=0
+2026-10-20T16:07:38-07:00 THROTTLED 3b_partial_tg_r1, cooling down and repeating once
+2026-10-20T16:09:38-07:00 start 3b_partial_tg_r1_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:11:30-07:00 end 3b_partial_tg_r1_retry rc=0
+2026-10-20T16:11:50-07:00 cooling: thermal status 1
+2026-10-20T16:12:21-07:00 cooling: thermal status 1
+2026-10-20T16:12:51-07:00 start 1b_cpu180_pp_r2 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T16:13:48-07:00 end 1b_cpu180_pp_r2 rc=0
+2026-10-20T16:14:08-07:00 start 1b_cpu180_tg_r2 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T16:14:59-07:00 end 1b_cpu180_tg_r2 rc=0
+2026-10-20T16:15:19-07:00 start 1b_cpu3f0_pp_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:15:42-07:00 end 1b_cpu3f0_pp_r2 rc=0
+2026-10-20T16:16:02-07:00 start 1b_cpu3f0_tg_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:16:27-07:00 end 1b_cpu3f0_tg_r2 rc=0
+2026-10-20T16:16:47-07:00 THROTTLED 1b_cpu3f0_tg_r2, cooling down and repeating once
+2026-10-20T16:18:47-07:00 start 1b_cpu3f0_tg_r2_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:19:10-07:00 end 1b_cpu3f0_tg_r2_retry rc=0
+2026-10-20T16:19:30-07:00 start 1b_gpu_pp_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T16:20:29-07:00 end 1b_gpu_pp_r2 rc=0
+2026-10-20T16:20:49-07:00 start 1b_gpu_tg_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T16:21:41-07:00 end 1b_gpu_tg_r2 rc=0
+2026-10-20T16:22:01-07:00 start 1b_partial_pp_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T16:22:46-07:00 end 1b_partial_pp_r2 rc=0
+2026-10-20T16:23:06-07:00 start 1b_partial_tg_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T16:23:46-07:00 end 1b_partial_tg_r2 rc=0
+2026-10-20T16:24:06-07:00 THROTTLED 1b_partial_tg_r2, cooling down and repeating once
+2026-10-20T16:26:06-07:00 start 1b_partial_tg_r2_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T16:26:52-07:00 end 1b_partial_tg_r2_retry rc=0
+2026-10-20T16:27:12-07:00 start 3b_cpu180_pp_r2 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T16:30:10-07:00 end 3b_cpu180_pp_r2 rc=0
+2026-10-20T16:30:31-07:00 start 3b_cpu180_tg_r2 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T16:32:47-07:00 end 3b_cpu180_tg_r2 rc=0
+2026-10-20T16:33:07-07:00 start 3b_cpu3f0_pp_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:34:17-07:00 end 3b_cpu3f0_pp_r2 rc=0
+2026-10-20T16:34:37-07:00 THROTTLED 3b_cpu3f0_pp_r2, cooling down and repeating once
+2026-10-20T16:36:37-07:00 start 3b_cpu3f0_pp_r2_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:37:42-07:00 end 3b_cpu3f0_pp_r2_retry rc=0
+2026-10-20T16:38:02-07:00 cooling: thermal status 1
+2026-10-20T16:38:32-07:00 start 3b_cpu3f0_tg_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:39:46-07:00 end 3b_cpu3f0_tg_r2 rc=0
+2026-10-20T16:40:06-07:00 THROTTLED 3b_cpu3f0_tg_r2, cooling down and repeating once
+2026-10-20T16:42:06-07:00 start 3b_cpu3f0_tg_r2_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T16:43:17-07:00 end 3b_cpu3f0_tg_r2_retry rc=0
+2026-10-20T16:43:37-07:00 cooling: thermal status 1
+2026-10-20T16:44:07-07:00 cooling: thermal status 1
+2026-10-20T16:44:37-07:00 start 3b_gpu_pp_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T16:45:25-07:00 end 3b_gpu_pp_r2 rc=0
+2026-10-20T16:45:45-07:00 start 3b_gpu_tg_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T16:47:02-07:00 end 3b_gpu_tg_r2 rc=0
+2026-10-20T16:47:22-07:00 THROTTLED 3b_gpu_tg_r2, cooling down and repeating once
+2026-10-20T16:49:22-07:00 start 3b_gpu_tg_r2_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T16:50:36-07:00 end 3b_gpu_tg_r2_retry rc=0
+2026-10-20T16:50:56-07:00 start 3b_partial_pp_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:51:39-07:00 end 3b_partial_pp_r2 rc=0
+2026-10-20T16:51:59-07:00 THROTTLED 3b_partial_pp_r2, cooling down and repeating once
+2026-10-20T16:53:59-07:00 start 3b_partial_pp_r2_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:55:47-07:00 end 3b_partial_pp_r2_retry rc=0
+2026-10-20T16:56:07-07:00 start 3b_partial_tg_r2 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T16:57:59-07:00 end 3b_partial_tg_r2 rc=0
+2026-10-20T16:58:19-07:00 THROTTLED 3b_partial_tg_r2, cooling down and repeating once
+2026-10-20T17:00:19-07:00 start 3b_partial_tg_r2_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T17:02:13-07:00 end 3b_partial_tg_r2_retry rc=0
+2026-10-20T17:02:33-07:00 cooling: thermal status 1
+2026-10-20T17:03:03-07:00 cooling: thermal status 1
+2026-10-20T17:03:33-07:00 start 1b_cpu180_pp_r3 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T17:04:29-07:00 end 1b_cpu180_pp_r3 rc=0
+2026-10-20T17:04:49-07:00 start 1b_cpu180_tg_r3 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T17:05:41-07:00 end 1b_cpu180_tg_r3 rc=0
+2026-10-20T17:06:01-07:00 start 1b_cpu3f0_pp_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:06:25-07:00 end 1b_cpu3f0_pp_r3 rc=0
+2026-10-20T17:06:45-07:00 start 1b_cpu3f0_tg_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:07:11-07:00 end 1b_cpu3f0_tg_r3 rc=0
+2026-10-20T17:07:31-07:00 THROTTLED 1b_cpu3f0_tg_r3, cooling down and repeating once
+2026-10-20T17:09:31-07:00 start 1b_cpu3f0_tg_r3_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:09:55-07:00 end 1b_cpu3f0_tg_r3_retry rc=0
+2026-10-20T17:10:15-07:00 start 1b_gpu_pp_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T17:11:13-07:00 end 1b_gpu_pp_r3 rc=0
+2026-10-20T17:11:33-07:00 start 1b_gpu_tg_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T17:12:25-07:00 end 1b_gpu_tg_r3 rc=0
+2026-10-20T17:12:45-07:00 start 1b_partial_pp_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T17:13:30-07:00 end 1b_partial_pp_r3 rc=0
+2026-10-20T17:13:50-07:00 start 1b_partial_tg_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T17:14:30-07:00 end 1b_partial_tg_r3 rc=0
+2026-10-20T17:14:50-07:00 THROTTLED 1b_partial_tg_r3, cooling down and repeating once
+2026-10-20T17:16:50-07:00 start 1b_partial_tg_r3_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 -r 1 -o jsonl
+2026-10-20T17:17:37-07:00 end 1b_partial_tg_r3_retry rc=0
+2026-10-20T17:17:57-07:00 start 3b_cpu180_pp_r3 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T17:20:57-07:00 end 3b_cpu180_pp_r3 rc=0
+2026-10-20T17:21:17-07:00 start 3b_cpu180_tg_r3 mask=180 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T17:23:34-07:00 end 3b_cpu180_tg_r3 rc=0
+2026-10-20T17:23:54-07:00 start 3b_cpu3f0_pp_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:25:04-07:00 end 3b_cpu3f0_pp_r3 rc=0
+2026-10-20T17:25:24-07:00 THROTTLED 3b_cpu3f0_pp_r3, cooling down and repeating once
+2026-10-20T17:27:24-07:00 start 3b_cpu3f0_pp_r3_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:28:29-07:00 end 3b_cpu3f0_pp_r3_retry rc=0
+2026-10-20T17:28:49-07:00 cooling: thermal status 1
+2026-10-20T17:29:19-07:00 cooling: thermal status 1
+2026-10-20T17:29:49-07:00 start 3b_cpu3f0_tg_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:31:02-07:00 end 3b_cpu3f0_tg_r3 rc=0
+2026-10-20T17:31:22-07:00 THROTTLED 3b_cpu3f0_tg_r3, cooling down and repeating once
+2026-10-20T17:33:22-07:00 start 3b_cpu3f0_tg_r3_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T17:34:31-07:00 end 3b_cpu3f0_tg_r3_retry rc=0
+2026-10-20T17:34:51-07:00 cooling: thermal status 1
+2026-10-20T17:35:21-07:00 cooling: thermal status 1
+2026-10-20T17:35:51-07:00 start 3b_gpu_pp_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T17:36:40-07:00 end 3b_gpu_pp_r3 rc=0
+2026-10-20T17:37:00-07:00 start 3b_gpu_tg_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T17:38:16-07:00 end 3b_gpu_tg_r3 rc=0
+2026-10-20T17:38:36-07:00 THROTTLED 3b_gpu_tg_r3, cooling down and repeating once
+2026-10-20T17:40:36-07:00 start 3b_gpu_tg_r3_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T17:41:51-07:00 end 3b_gpu_tg_r3_retry rc=0
+2026-10-20T17:42:11-07:00 start 3b_partial_pp_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T17:42:53-07:00 end 3b_partial_pp_r3 rc=0
+2026-10-20T17:43:13-07:00 THROTTLED 3b_partial_pp_r3, cooling down and repeating once
+2026-10-20T17:45:14-07:00 start 3b_partial_pp_r3_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T17:45:55-07:00 end 3b_partial_pp_r3_retry rc=0
+2026-10-20T17:46:15-07:00 start 3b_partial_tg_r3 mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T17:48:19-07:00 end 3b_partial_tg_r3 rc=0
+2026-10-20T17:48:39-07:00 THROTTLED 3b_partial_tg_r3, cooling down and repeating once
+2026-10-20T17:50:39-07:00 start 3b_partial_tg_r3_retry mask=3f0 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl
+2026-10-20T17:52:47-07:00 end 3b_partial_tg_r3_retry rc=0
+2026-10-20T17:53:07-07:00 plan done

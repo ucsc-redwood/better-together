@@ -17,14 +17,14 @@ Rules for every task:
 
 ## 2. Per-PU rates (alone)
 
-- [ ] 2.1 llama.cpp on the Samsung, 1B and 3B: CPU on mask `380` and `3f0`, Vulkan `-ngl 99` (host on mask `8`), partial `-ngl` at half the layers; `-p 128,512,2048 -n 128`. Verify: a table of pp/tg tokens/s per configuration, with spreads and clocks.
-- [ ] 2.2 llama.cpp on the Pixel, 1B: CPU on `c0` and `f0`, Vulkan `-ngl 99`, partial `-ngl`. Verify: same table.
+- [x] 2.1 llama.cpp on the Samsung, 1B and 3B: CPU on mask `380` and `3f0`, Vulkan `-ngl 99` (host on mask `8`), partial `-ngl` at half the layers; `-p 128,512,2048 -n 128`. Verify: a table of pp/tg tokens/s per configuration, with spreads and clocks.
+- [x] 2.2 llama.cpp on the Pixel, 1B: CPU on `c0` and `f0`, Vulkan `-ngl 99`, partial `-ngl`. Verify: same table.
 - [ ] 2.3 ExecuTorch on the Samsung (1B, 3B) and the Pixel (1B): Vulkan 4w and 8da4w, XNNPACK 8da4w on the same masks; prefill and decode rates from the runner at prompt 128/512/2048. Verify: same table; failures recorded with the error.
 - [ ] 2.4 llama.cpp and ExecuTorch, Llama 3.1 8B on the Samsung, single backend each (reference only). Verify: rates or the recorded failure.
 
 ## 3. Co-run interference and bandwidth
 
-- [ ] 3.1 Measure CPU and GPU read bandwidth on each phone, alone and together (design D4). Verify: GB/s per case, and each PU's decode rate (from 2.x) as a fraction of its bandwidth bound.
+- [x] 3.1 Measure CPU and GPU read bandwidth on each phone, alone and together (design D4). Verify: GB/s per case, and each PU's decode rate (from 2.x) as a fraction of its bandwidth bound.
 - [ ] 3.2 Co-run pairs with llama.cpp (design D3) on both phones, 1B, prompt 512 and 2048: GPU-prefill + CPU-decode, CPU-prefill + GPU-decode, CPU-decode + GPU-decode. Verify: each rate co-running and its ratio to alone, for each pair.
 - [ ] 3.3 The same pairs with ExecuTorch on the Samsung (1B), if 1.4 succeeded. Verify: same table, or the skip recorded.
 

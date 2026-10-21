@@ -179,6 +179,24 @@ evidence for each item is under `data/llm-phase-affinity/`.
   on the owner's `llama/llama_main` produce identical text (`R5CY21Y3VEV/smoke-et/text-check.txt`). This runner is
   used for every ExecuTorch run, Vulkan included. It decodes 20-25% faster than the owner's runner, which logs at
   Info level during generation.
+- **3B co-runs on the Samsung (added to task 3.2).** The analysis first borrowed 1B co-run ratios for 3B. A draft
+  of it took the GPU unit's alone prefill at P=2048 from `gpu` (flash attention auto, 98 tok/s) only, not the
+  faster `gpufa0` (444 tok/s) as decided above. The 2048 co-runs use `-fa 0`, so the GPU prefill co-run ratio came
+  out as 2.58 and the transferred 3B grid reached 1.29 at P=2048, D=32. With the GPU unit fixed, the 3B transferred
+  grid peaks at 0.72. The 3B co-runs (`plan_corun_samsung_llamacpp_3b.txt`, `R5CY21Y3VEV/corun-llamacpp-3b/`) are
+  still measured, last in the Samsung queue, because the spec asks for every model's prediction from co-run rates.
+  A grid built on transferred ratios is labelled as such and does not count for the gate.
+- **Read bandwidth is the median over 40 s, a sustained figure.** The Samsung CPU read starts at 43 GB/s and
+  settles to 34-36 GB/s within the 40 s (`R5CY21Y3VEV/bandwidth/cpu_t*/cpu.out`), while a `tg128` run lasts 2-5 s. So
+  llama.cpp CPU decode reaches 1.06x the bytes-per-token bound of the sustained figure (0.89x of the first-second
+  43 GB/s). The fractions are reported against the sustained median as measured; a fraction above 1 means the decode
+  ran on burst bandwidth, not that it beat the memory system.
+- **Interruption and resume.** A host reboot (~20:57) killed the drivers during task 3.2. The phones kept running
+  and nothing on them was lost. Each phone had one trial in flight (Samsung `gpuP_cpuD_p512_t2_retry`, Pixel
+  `cpuD_gpuD_t2`), killed by PID. Those partial trials were not pulled and were redone. `run_plan.sh` and
+  `run_corun.sh` were made resumable (a run with a complete `.meta`/`corun.meta` on the host is skipped), and
+  `run_plan.sh` now also repeats once a run that exits non-zero, as a `_retry`. If the retry fails too, the
+  configuration is recorded as failed.
 
 ## Migration Plan
 

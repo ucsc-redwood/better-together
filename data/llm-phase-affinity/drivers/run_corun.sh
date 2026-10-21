@@ -5,6 +5,7 @@
 # Trial k launches A first when k is odd and B first when k is even (both orders), 20 s between
 # trials, thermal status 0 required before each. A trial that ends with thermal status >= 1 is
 # repeated once after a 120 s cooldown as <name>_t<k>_retry. Raw files: <out-dir>/<name>_t<k>/.
+# Resumable: a trial whose corun.meta in <out-dir> is complete (has thermal_after) is not run again.
 set -u
 serial=$1 plan=$2 trials=$3 outdir=$4
 dev=/data/local/tmp/lpa
@@ -28,6 +29,8 @@ wait_cool() {
   done
 }
 
+complete() { grep -q '^thermal_after:' "$outdir/$1/corun.meta" 2>/dev/null; }
+
 trial() { # <tag> <first> <maskA> <cmdA> <maskB> <cmdB>
   local tag=$1
   wait_cool
@@ -43,7 +46,8 @@ for k in $(seq 1 "$trials"); do
   [ $((k % 2)) -eq 0 ] && first=B
   while IFS='|' read -r name mA cA mB cB; do
     case "$name" in '' | \#*) continue ;; esac
-    trial "${name}_t$k" "$first" "$mA" "$cA" "$mB" "$cB"
+    complete "${name}_t$k" || trial "${name}_t$k" "$first" "$mA" "$cA" "$mB" "$cB"
+    complete "${name}_t${k}_retry" && continue
     if sed -n '/^thermal_after:/,$p' "$outdir/${name}_t$k/corun.meta" | grep -q 'Thermal Status: [1-9]'; then
       echo "$(date -Is) THROTTLED ${name}_t$k, cooling down and repeating once" >>"$log"
       sleep 120

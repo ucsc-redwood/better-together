@@ -1,0 +1,9 @@
+# Co-runs on the Samsung (R5CY21Y3VEV) with Llama 3.2 3B, added to task 3.2 so that the 3B prediction uses 3B co-run
+# rates instead of ratios transferred from 1B (see design.md). Same method as plan_corun_samsung_llamacpp.txt: A = prefill process,
+# B = decode process (both-decoding: A = CPU, B = GPU); CPU mask 3f0, 6 threads, -dev none; GPU mask 8, -ngl 99, -t 1,
+# flash attention auto at P=512 and off at P=2048; decode loops -p 0 -n 128; A >= 60 s of reps, B outlasts A.
+gpuP_cpuD_p512|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 512 -n 0 -ngl 99 -t 1 -r 21 --progress -o jsonl|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 17 --progress -o jsonl
+cpuP_gpuD_p512|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 512 -n 0 -ngl 0 -dev none -t 6 -r 14 --progress -o jsonl|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 11 --progress -o jsonl
+gpuP_cpuD_p2048|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 2048 -n 0 -ngl 99 -t 1 -fa 0 -r 5 --progress -o jsonl|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 20 --progress -o jsonl
+cpuP_gpuD_p2048|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 2048 -n 0 -ngl 0 -dev none -t 6 -r 3 --progress -o jsonl|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 16 --progress -o jsonl
+cpuD_gpuD|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 10 --progress -o jsonl|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 10 --progress -o jsonl
