@@ -1,0 +1,28 @@
+maskA=3f0
+cmdA=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 10 --progress -o jsonl
+maskB=8
+cmdB=./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 10 --progress -o jsonl
+first=B
+gpu_clock_path=/sys/kernel/gpu/gpu_clock
+thermal_before:
+Thermal Status: 0
+Temperature{mValue=39.6, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=38.8, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=39.7, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=39.7, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=37.8, mType=3, mName=SKIN, mStatus=0}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=35.7, mType=4, mName=USB, mStatus=0}
+launch_B_epoch=1792588609.494625156
+launch_A_epoch=1792588609.510463085
+end_A_epoch=1792588788.787732578
+end_B_epoch=1792588788.819835781
+thermal_after:
+Thermal Status: 2
+Temperature{mValue=58.4, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=44.3, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=51.4, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=50.9, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=43.9, mType=3, mName=SKIN, mStatus=2}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=35.8, mType=4, mName=USB, mStatus=0}
