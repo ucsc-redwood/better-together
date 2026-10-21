@@ -214,7 +214,11 @@ evidence for each item is under `data/llm-phase-affinity/`.
   - the measured side is a decode loop with short windows (8 new tokens);
   - only windows that lie wholly inside a partner compute interval count: a prefill, or a 512-token decode
     window for both decoding;
-  - the reference is the same short loop alone (`solo_cpuDs`, `solo_gpuDs`).
+  - the reference is the same short loop alone (`solo_cpuDs`, `solo_gpuDs`);
+  - the short loops run with `--warmup`, so the measured window is warm. A first run without it was stopped and
+    set aside (`<serial>/abandoned-et-cold-short/`): a fresh process's first decode steps dominated the 8-token
+    window, and Vulkan 1B decoded at 4.85 tok/s on the Pixel (8.77 on the Samsung) against 14.4 (37) in a 512-token
+    window. With `--warmup` the solo short loop decodes at 14.5 (35.8) (`<serial>/check-warm-short/`).
   The prefill side already met the requirement, since a prefill counts only wholly inside a partner decode
   window. A partner's warm-up `generate()` (prompt P, 1 token) counts as compute. It is the same prefill as the
   measured one, and it lasts within 8% of it at the same P on both phones. Every co-run rate in the gate comes
