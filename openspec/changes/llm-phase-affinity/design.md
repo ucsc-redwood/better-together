@@ -203,6 +203,22 @@ evidence for each item is under `data/llm-phase-affinity/`.
   tok/s against 65-163 for XNNPACK, but XNNPACK decode about twice Vulkan's at short context. Without them the
   Pixel ExecuTorch grid could not be computed. Plans: `plan_corun_{pixel,samsung}_et.txt`. Each GPU side uses the
   faster Vulkan file for its phase.
+- **No ExecuTorch 3B co-runs.** The Samsung's ExecuTorch 3B grid uses the 1B co-run ratios, a transfer that is
+  labelled and does not count for the gate. Its own co-runs (about 3 h) were not measured because they could not
+  change the decision. Each 3B mix would need a decode co-run ratio of at least 0.93 to reach 1.2, or cannot reach
+  it at the measured prefill ratio. No co-run in the study comes close: the highest measured decode ratio is 0.92,
+  at 20% duty, and the highest at full overlap is 0.73. Even with no interference, 3B ExecuTorch tops out at 1.29.
+- **Analysis after an independent review.** A read-only review of the analysis script found no defect that
+  changes the verdict. It led to four changes:
+  - the duty of a decode window is now weighted by window length, as its rate is. The extrapolation is then
+    exact, and the best cell moves from 1.10 to 1.08;
+  - an ExecuTorch hand-off writes fp32, since the XNNPACK export is `-d fp32`;
+  - the per-trial spread of the best cell's decode ratio is reported in the decision record;
+  - the grid gains a diagnostic, outside the gate, pricing a pipeline whose phases slow each other only while
+    both run. D5 assumes they always do. The diagnostic is set against the better of data-parallel and the best
+    single PU, because on the Samsung the co-run data-parallel bound falls below one PU alone in several cells.
+  On the Pixel the ExecuTorch co-runs decode with the 8da4w file. The alone maximum the ratios are applied to
+  is 4w at every depth, faster by under 0.5%.
 - **Queue order on the Samsung after the 1B llama.cpp co-runs:** ExecuTorch alone, ExecuTorch co-runs, 3B llama.cpp
   co-runs, then the 8B reference runs (task 2.4), which do not enter the gate.
 - **Read bandwidth is the median over 40 s, a sustained figure.** The Samsung CPU read starts at 43 GB/s and

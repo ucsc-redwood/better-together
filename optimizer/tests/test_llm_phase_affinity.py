@@ -7,7 +7,12 @@ KV hand-off size, and the co-run overlap filter.
 
 import math
 
-from analysis.llm_phase_affinity import handoff_seconds, overlapped_rate, predict_mix
+from analysis.llm_phase_affinity import (
+    handoff_seconds,
+    overlapped_rate,
+    partial_overlap_period,
+    predict_mix,
+)
 
 
 def test_predict_mix_hand_computed():
@@ -43,6 +48,16 @@ def test_handoff_seconds():
     nbytes = 2 * 16 * 8 * 64 * 2048 * 2
     assert nbytes == 64 * 2**20
     assert math.isclose(handoff_seconds("1b", 2048, 10.0), 2 * nbytes / 10e9)
+
+
+def test_partial_overlap_period():
+    # P = 100, D = 10; alone: prefill 100, decode 10 tok/s.
+    # Co-run prefill 100 (1 s), decode 5 (2 s): the prefill is shorter, so the decode runs 1 s at 5 and
+    # the remaining 5 tokens alone at 10: 1 + 0.5 = 1.5 s.
+    assert math.isclose(partial_overlap_period(100, 10, (100, 10), (100, 5)), 1.5)
+    # Co-run prefill 25 (4 s), decode 5 (2 s): the decode is shorter, so the prefill runs 2 s at 25 and
+    # the remaining 50 tokens alone at 100: 2 + 0.5 = 2.5 s.
+    assert math.isclose(partial_overlap_period(100, 10, (100, 10), (25, 5)), 2.5)
 
 
 def test_overlapped_rate_keeps_only_covered_reps():

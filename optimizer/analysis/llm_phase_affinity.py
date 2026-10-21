@@ -31,12 +31,14 @@ PHONES = {"R5CY21Y3VEV": "Samsung S24+", "3A021JEHN02756": "Pixel 7a"}
 PROMPTS = (128, 512, 2048)
 OUTPUTS = (32, 128, 512)
 GATE = 1.2
-# KV cache shape per model (Llama 3.2 1B/3B params.json); llama.cpp and ExecuTorch keep it in fp16.
+# KV cache shape per model (Llama 3.2 1B/3B params.json).
 KV = {
     "1b": {"layers": 16, "kv_heads": 8, "head_dim": 64},
     "3b": {"layers": 28, "kv_heads": 8, "head_dim": 128},
 }
-KV_BYTES = 2
+# Bytes read + written per KV element in a hand-off: llama.cpp keeps fp16 on both PUs; ExecuTorch's
+# Vulkan export keeps fp16 (--vulkan-force-fp16) and its XNNPACK export fp32 (-d fp32).
+KV_RW_BYTES = {"llamacpp": 2 + 2, "et": 2 + 4}
 
 
 def stat(values, files=()):
@@ -372,7 +374,11 @@ def load_et_corun(directory):
                         sum(t for _, _, t in mine) / sum(e - s for s, e, _ in mine)
                     )
                     acc[x]["rate"][1].append(os.path.relpath(d, ROOT))
-                    acc[x]["duty"][0].append(statistics.mean(dt))
+                    # Weighted by window length, as the rate is: 1 - (1 - r)/u is then exact.
+                    acc[x]["duty"][0].append(
+                        sum(u * (e - s) for u, (s, e, _) in zip(dt, mine))
+                        / sum(e - s for s, e, _ in mine)
+                    )
                     acc[x]["duty"][1].append(os.path.relpath(d, ROOT))
         out[key] = {x: {k: stat(*v) for k, v in a.items()} for x, a in acc.items()}
     return out
@@ -418,12 +424,23 @@ def load_bandwidth(directory):
     return out
 
 
-def handoff_seconds(model, prompt, gbps):
-    """KV-cache hand-off upper bound: every K and V byte of the prompt read once and written once
+def handoff_seconds(model, prompt, gbps, rw_bytes=KV_RW_BYTES["llamacpp"]):
+    """KV-cache hand-off upper bound: every K and V element of the prompt read once and written once
     at the given bandwidth (design D5; on unified memory it may be a layout change or nothing)."""
     kv = KV[model]
-    nbytes = 2 * kv["layers"] * kv["kv_heads"] * kv["head_dim"] * prompt * KV_BYTES
-    return 2 * nbytes / (gbps * 1e9)
+    elements = 2 * kv["layers"] * kv["kv_heads"] * kv["head_dim"] * prompt
+    return elements * rw_bytes / (gbps * 1e9)
+
+
+def partial_overlap_period(prompt, gen, alone_rates, corun_rates):
+    """Specialized period if the two phases slow each other only while both run (design D5 assumes
+    they always do): the shorter phase runs wholly at its co-run rate, the longer one at its co-run
+    rate for that long and at its alone rate for the rest. Rates are (prefill on A, decode on B)."""
+    (p, d), (pc, dc) = alone_rates, corun_rates
+    tp, td = prompt / pc, gen / dc
+    if tp <= td:
+        return tp + (gen - dc * tp) / d
+    return td + (prompt - pc * td) / p
 
 
 def predict_mix(prompt, gen, alone, both_decode, specialized, handoff_s):
@@ -575,7 +592,7 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
             }
         except (KeyError, TypeError) as e:
             return None, f"missing input {e}"
-        h = handoff_seconds(model, prompt, gbps) if gbps else 0.0
+        h = handoff_seconds(model, prompt, gbps, KV_RW_BYTES[runtime]) if gbps else 0.0
         part = pu_rates(alone, model, ["partial", "partialnh"])
         free = {(a, b): (al[a][0], al[b][1]) for a, b in spec}
         for gen in OUTPUTS:
@@ -584,6 +601,12 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
             # at its alone rates, and if the KV hand-off were free.
             r["gain_no_interference"] = predict_mix(prompt, gen, al, bd, free, h)["gain"]
             r["gain_no_handoff"] = predict_mix(prompt, gen, al, bd, spec, 0.0)["gain"]
+            # Against the better of data-parallel and the best single PU: on the Samsung the co-run
+            # data-parallel bound can fall below one PU alone (a GPU decode starves the CPU decode).
+            r["gain_partial_overlap"] = max(
+                1 / (partial_overlap_period(prompt, gen, free[pair], spec[pair]) + h)
+                for pair in spec
+            ) / max(r["single"], r["dp_corun"])
             # The decode co-run ratio the best pair would need for the gate, everything else as is
             # (None: its prefill alone already exceeds the period the gate allows).
             # Also not the gate: the data-parallel bound with each PU's prefill at its co-run rate next
@@ -695,9 +718,10 @@ def grid_table(rows):
     lines = [
         "| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run "
         "| GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference "
-        "| gain, no hand-off | gain vs data-parallel with co-run prefill "
+        "| gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) "
+        "| gain vs data-parallel with co-run prefill "
         "| best pair: decode ratio used / needed for the gate |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         sp = r["specialized"]
@@ -706,6 +730,7 @@ def grid_table(rows):
             f"| {r['prompt']} | {r['gen']} | {r['single']:.4f} ({r['single_pu'].upper()}) | {split} | "
             f"{r['dp_alone']:.4f} | {r['dp_corun']:.4f} | {sp[('gpu', 'cpu')]:.4f} | {sp[('cpu', 'gpu')]:.4f} | "
             f"**{r['gain']:.2f}** | {r['gain_no_interference']:.2f} | {r['gain_no_handoff']:.2f} | "
+            f"{r['gain_partial_overlap']:.2f} | "
             f"{r['gain_vs_dp_prefill_corun']:.2f} | "
             f"{r['decode_ratio']:.2f} / "
             + (f"{r['decode_ratio_needed']:.2f}" if r["decode_ratio_needed"] else "unreachable")
