@@ -19,7 +19,7 @@ Rules for every task:
 
 - [x] 2.1 llama.cpp on the Samsung, 1B and 3B: CPU on mask `380` and `3f0`, Vulkan `-ngl 99` (host on mask `8`), partial `-ngl` at half the layers; `-p 128,512,2048 -n 128`. Verify: a table of pp/tg tokens/s per configuration, with spreads and clocks.
 - [x] 2.2 llama.cpp on the Pixel, 1B: CPU on `c0` and `f0`, Vulkan `-ngl 99`, partial `-ngl`. Verify: same table.
-- [ ] 2.3 ExecuTorch on the Samsung (1B, 3B) and the Pixel (1B): Vulkan 4w and 8da4w, XNNPACK 8da4w on the same masks; prefill and decode rates from the runner at prompt 128/512/2048. Verify: same table; failures recorded with the error.
+- [x] 2.3 ExecuTorch on the Samsung (1B, 3B) and the Pixel (1B): Vulkan 4w and 8da4w, XNNPACK 8da4w on the same masks; prefill and decode rates from the runner at prompt 128/512/2048. Verify: same table; failures recorded with the error.
 - [ ] 2.4 llama.cpp and ExecuTorch, Llama 3.1 8B on the Samsung, single backend each (reference only). Verify: rates or the recorded failure.
 
 ## 3. Co-run interference and bandwidth

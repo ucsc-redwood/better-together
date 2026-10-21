@@ -577,8 +577,13 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
             return None, f"missing input {e}"
         h = handoff_seconds(model, prompt, gbps) if gbps else 0.0
         part = pu_rates(alone, model, ["partial", "partialnh"])
+        free = {(a, b): (al[a][0], al[b][1]) for a, b in spec}
         for gen in OUTPUTS:
             r = predict_mix(prompt, gen, al, bd, spec, h)
+            # Diagnostics for the limiting effect, not the gate: the gain if the specialized pair ran
+            # at its alone rates, and if the KV hand-off were free.
+            r["gain_no_interference"] = predict_mix(prompt, gen, al, bd, free, h)["gain"]
+            r["gain_no_handoff"] = predict_mix(prompt, gen, al, bd, spec, 0.0)["gain"]
             r.update(
                 prompt=prompt,
                 gen=gen,
@@ -674,8 +679,9 @@ def corun_table(serial, alone, corun, model="1b", runtime="llamacpp"):
 def grid_table(rows):
     lines = [
         "| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run "
-        "| GPU prefill → CPU decode | CPU prefill → GPU decode | gain |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference "
+        "| gain, no hand-off |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         sp = r["specialized"]
@@ -683,7 +689,7 @@ def grid_table(rows):
         lines.append(
             f"| {r['prompt']} | {r['gen']} | {r['single']:.4f} ({r['single_pu'].upper()}) | {split} | "
             f"{r['dp_alone']:.4f} | {r['dp_corun']:.4f} | {sp[('gpu', 'cpu')]:.4f} | {sp[('cpu', 'gpu')]:.4f} | "
-            f"**{r['gain']:.2f}** |"
+            f"**{r['gain']:.2f}** | {r['gain_no_interference']:.2f} | {r['gain_no_handoff']:.2f} |"
         )
     return "\n".join(lines)
 
