@@ -5,10 +5,14 @@ KV hand-off size, and the co-run overlap filter.
     uv run pytest -q optimizer/tests/test_llm_phase_affinity.py
 """
 
+import json
 import math
 
+import pytest
 from analysis.llm_phase_affinity import (
+    et_rate,
     handoff_seconds,
+    load_et_corun,
     overlapped_rate,
     partial_overlap_period,
     predict_mix,
@@ -68,3 +72,53 @@ def test_overlapped_rate_keeps_only_covered_reps():
     rate, kept, total = overlapped_rate(mine, partner)
     assert (kept, total) == (2, 4)
     assert math.isclose(rate, (100 + 60) / (10 + 12))
+
+
+def _observer(load_end, start, prompt_end, end, prompt_tokens, generated):
+    """One llama_main PyTorchObserver line (epoch seconds in, milliseconds out)."""
+    r = {
+        "prompt_tokens": prompt_tokens,
+        "generated_tokens": generated,
+        "model_load_start_ms": int((load_end - 1) * 1000),
+        "model_load_end_ms": int(load_end * 1000),
+        "inference_start_ms": int(start * 1000),
+        "prompt_eval_end_ms": int(prompt_end * 1000),
+        "inference_end_ms": int(end * 1000),
+    }
+    return "PyTorchObserver " + json.dumps(r) + "\n"
+
+
+def test_et_corun_counts_only_fully_overlapped_windows(tmp_path):
+    # Prefill process A: warm-up prefill [10, 11], measured prefill [11, 12], then it ends.
+    # Decode process B (8-token loop): one window inside A's warm-up, one straddling the end of A's
+    # compute, one after A finished.
+    trial = tmp_path / "gpuP_cpuDs_p512_t1"
+    trial.mkdir()
+    (trial / "A.out").write_text(_observer(10.0, 11.0, 12.0, 12.0, 512, 0))
+    (trial / "B.out").write_text(
+        _observer(10.1, 10.1, 10.2, 10.6, 16, 8)
+        + _observer(11.4, 11.4, 11.5, 12.5, 16, 8)
+        + _observer(12.9, 12.9, 13.0, 13.4, 16, 8)
+    )
+    solo = tmp_path / "solo_cpuDs_t1"
+    solo.mkdir()
+    (solo / "A.out").write_text(
+        _observer(0.9, 0.9, 1.0, 1.4, 16, 8) + _observer(1.9, 1.9, 2.0, 3.0, 16, 8)
+    )
+    (solo / "B.out").write_text("")
+
+    c = load_et_corun(str(tmp_path))
+    b = c["gpuP_cpuDs_p512"]["B"]
+    assert b["kept"] == [(1, 3)]
+    assert math.isclose(b["rate"]["median"], 8 / 0.4)
+    # The previous estimate still sees every window: 24 tokens over 1.8 s.
+    assert math.isclose(b["rate_all"]["median"], 24 / 1.8)
+    # A's prefill [11, 12] lies inside no decode window of B: nothing counts.
+    assert c["gpuP_cpuDs_p512"]["A"]["kept"] == [(0, 1)]
+    assert c["gpuP_cpuDs_p512"]["A"]["rate"] is None
+    # A solo loop counts every window.
+    assert c["solo_cpuDs"]["A"]["kept"] == [(2, 2)]
+    assert math.isclose(c["solo_cpuDs"]["A"]["rate"]["median"], 16 / 1.4)
+    # One trial is not enough for the gate.
+    with pytest.raises(KeyError):
+        et_rate(c, "gpuP_cpuDs_p512", "B")

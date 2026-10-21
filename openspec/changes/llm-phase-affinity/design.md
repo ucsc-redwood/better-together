@@ -203,12 +203,28 @@ evidence for each item is under `data/llm-phase-affinity/`.
   because its ExecuTorch alone rates show the strongest phase split of the study: Vulkan 8da4w prefill 284-440
   tok/s against 65-163 for XNNPACK, but XNNPACK decode about twice Vulkan's at short context. Without them the
   Pixel ExecuTorch grid could not be computed. Plans: `plan_corun_{pixel,samsung}_et.txt`. Each GPU side uses the
-  faster Vulkan file for its phase.
-- **No ExecuTorch 3B co-runs.** The Samsung's ExecuTorch 3B grid uses the 1B co-run ratios, a transfer that is
-  labelled and does not count for the gate. Its own co-runs (about 3 h) were not measured because they could not
-  change the decision. Each 3B mix would need a decode co-run ratio of at least 0.93 to reach 1.2, or cannot reach
-  it at the measured prefill ratio. No co-run in the study comes close: the highest measured decode ratio is 0.92,
-  at 20% duty, and the highest at full overlap is 0.73. Even with no interference, 3B ExecuTorch tops out at 1.29.
+  faster Vulkan file for its phase. The decode-side extrapolation was replaced by a full-overlap measurement after
+  the acceptance review (below).
+- **ExecuTorch decode measured at full overlap (after acceptance review).** The method above does not meet the
+  spec's requirement that the concurrent runs overlap for the whole measured interval. A 512-token decode window
+  next to a prefill loop overlaps the partner's prefills only part of the time, and some windows not at all.
+  Extrapolating to full overlap, 1 - (1 - r)/u, is a model, not a measured co-run rate, and it decided the
+  closest cell. Each decode-side pairing was therefore measured again with the same binary and files
+  (`plan_corun_{pixel,samsung}_et_overlap.txt`):
+  - the measured side is a decode loop with short windows (8 new tokens);
+  - only windows that lie wholly inside a partner compute interval count: a prefill, or a 512-token decode
+    window for both decoding;
+  - the reference is the same short loop alone (`solo_cpuDs`, `solo_gpuDs`).
+  The prefill side already met the requirement, since a prefill counts only wholly inside a partner decode
+  window. A partner's warm-up `generate()` (prompt P, 1 token) counts as compute. It is the same prefill as the
+  measured one, and it lasts within 8% of it at the same P on both phones. Every co-run rate in the gate comes
+  from 3 trials, each with at least one counted interval, and the counted / total intervals per trial are
+  reported. The extrapolated estimate is kept as a labelled diagnostic column.
+- **ExecuTorch 3B co-runs (after acceptance review).** An earlier note skipped them, arguing they could not change
+  the decision. That argument rested on transferred 1B ratios, including the both-decoding ratios in the
+  data-parallel denominator, so it does not bound the 3B result. They were measured
+  (`plan_corun_samsung_et_3b.txt`, `R5CY21Y3VEV/corun-et-3b/`). The prefill side is as in the 1B plan and the
+  decode side as in the overlap plan, with longer loops for the slower model.
 - **Analysis after an independent review.** A read-only review of the analysis script found no defect that
   changes the verdict. It led to four changes:
   - the duty of a decode window is now weighted by window length, as its rate is. The extrapolation is then
@@ -221,7 +237,9 @@ evidence for each item is under `data/llm-phase-affinity/`.
   On the Pixel the ExecuTorch co-runs decode with the 8da4w file. The alone maximum the ratios are applied to
   is 4w at every depth, faster by under 0.5%.
 - **Queue order on the Samsung after the 1B llama.cpp co-runs:** ExecuTorch alone, ExecuTorch co-runs, 3B llama.cpp
-  co-runs, then the 8B reference runs (task 2.4), which do not enter the gate.
+  co-runs, then the 8B reference runs (task 2.4), which do not enter the gate. After the acceptance review, the
+  full-overlap ExecuTorch decode trials ran on both phones (the study directory was pushed again), then the
+  ExecuTorch 3B co-runs on the Samsung.
 - **Read bandwidth is the median over 40 s, a sustained figure.** The Samsung CPU read starts at 43 GB/s and
   settles to 34-36 GB/s within the 40 s (`R5CY21Y3VEV/bandwidth/cpu_t*/cpu.out`), while a `tg128` run lasts 2-5 s. So
   llama.cpp CPU decode reaches 1.06x the bytes-per-token bound of the sustained figure (0.89x of the first-second

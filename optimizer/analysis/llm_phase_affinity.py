@@ -337,50 +337,50 @@ def duty(interval, partner):
 
 def load_et_corun(directory):
     """ExecuTorch co-runs (stock llama_main in loops, no per-token timing). A key is
-    <A-tag>_<B-tag>[_p<P>] with tags gpuP/cpuP (prefill loop) and cpuD/gpuD (512-token decode loop),
-    or solo_<tag>[_p<P>] for the same loop alone. A prefill counts only when one partner decode
-    window covers it wholly. A decode window always counts, with the duty (fraction of the window
-    the partner spent in a recorded prefill or decode, its warm-up generate() included);
-    {"rate", "duty"} stats per side."""
+    <A-tag>_<B-tag>[_p<P>] with tags gpuP/cpuP (prefill loop), cpuD/gpuD (512-token decode loop) and
+    cpuDs/gpuDs (8-token decode loop), or solo_<tag>[_p<P>] for the same loop alone.
+
+    Full overlap (spec "Co-run interference is measured"): in a co-run a prefill or a decode window
+    counts only if it lies wholly inside the partner's compute, its prefills (warm-up generate()
+    included) or its decode windows; model loads are never compute. Per side: "rate" over the counted
+    intervals (all of them in a solo loop) with "kept" = (counted, total) per trial. For the previous
+    estimate, kept as a diagnostic: "rate_all" over every interval and "duty", the length-weighted
+    fraction of each interval during which the partner computed."""
     out = {}
     for key, dirs in trial_dirs(directory).items():
         solo = key.startswith("solo_")
         tags = key.split("_")
         sides = {"A": tags[1]} if solo else {"A": tags[0], "B": tags[1]}
-        acc = {x: {"rate": ([], []), "duty": ([], [])} for x in sides}
+        acc = {x: {"rate": ([], []), "rate_all": ([], []), "duty": ([], [])} for x in sides}
+        kept = {x: [] for x in sides}
         for d in dirs:
-            iv = {
-                x: et_phase_intervals(
-                    os.path.join(d, f"{x}.out"), "prefill" if t[3] == "P" else "decode"
-                )
-                for x, t in sides.items()
-            }
+            rel = os.path.relpath(d, ROOT)
             for x, tag in sides.items():
-                mine = iv[x]
-                if not solo:
-                    o = "B" if x == "A" else "A"
-                    if tag[3] == "P":
-                        cover = merge([(s, e) for s, e, _ in iv[o]])
-                        mine = [m for m in mine if covered(m[:2], cover)]
-                        dt = [1.0] * len(mine)
-                    else:
-                        phase = "prefill" if sides[o][3] == "P" else "decode"
-                        busy = et_phase_intervals(os.path.join(d, f"{o}.out"), phase, busy=True)
-                        dt = [duty(m[:2], [(s, e) for s, e, _ in busy]) for m in mine]
-                else:
+                phase = "prefill" if tag[3] == "P" else "decode"
+                mine = et_phase_intervals(os.path.join(d, f"{x}.out"), phase)
+                if not mine:
+                    continue
+                span = sum(e - s for s, e, _ in mine)
+                if solo:
+                    rate, n, total = sum(t for _, _, t in mine) / span, len(mine), len(mine)
                     dt = [0.0] * len(mine)
-                if mine:
-                    acc[x]["rate"][0].append(
-                        sum(t for _, _, t in mine) / sum(e - s for s, e, _ in mine)
-                    )
-                    acc[x]["rate"][1].append(os.path.relpath(d, ROOT))
-                    # Weighted by window length, as the rate is: 1 - (1 - r)/u is then exact.
-                    acc[x]["duty"][0].append(
-                        sum(u * (e - s) for u, (s, e, _) in zip(dt, mine))
-                        / sum(e - s for s, e, _ in mine)
-                    )
-                    acc[x]["duty"][1].append(os.path.relpath(d, ROOT))
-        out[key] = {x: {k: stat(*v) for k, v in a.items()} for x, a in acc.items()}
+                else:
+                    o = "B" if x == "A" else "A"
+                    o_phase = "prefill" if sides[o][3] == "P" else "decode"
+                    busy = et_phase_intervals(os.path.join(d, f"{o}.out"), o_phase, busy=True)
+                    rate, n, total = overlapped_rate(mine, busy)
+                    dt = [duty(m[:2], [(s, e) for s, e, _ in busy]) for m in mine]
+                kept[x].append((n, total))
+                if rate is not None:
+                    acc[x]["rate"][0].append(rate)
+                    acc[x]["rate"][1].append(rel)
+                acc[x]["rate_all"][0].append(sum(t for _, _, t in mine) / span)
+                acc[x]["rate_all"][1].append(rel)
+                acc[x]["duty"][0].append(sum(u * (e - s) for u, (s, e, _) in zip(dt, mine)) / span)
+                acc[x]["duty"][1].append(rel)
+        out[key] = {
+            x: {**{k: stat(*v) for k, v in a.items()}, "kept": kept[x]} for x, a in acc.items()
+        }
     return out
 
 
@@ -537,28 +537,60 @@ def ratios_llamacpp(corun, pus, near):
     return out
 
 
+def et_rate(corun, key, side="A"):
+    """A co-run (or solo) rate that counts for the gate: 3 trials, each with counted intervals."""
+    st = corun[key][side]["rate"]
+    if st is None or st["n"] < 3:
+        raise KeyError(f"{key} {side}: fewer than 3 trials with fully overlapped intervals")
+    return st
+
+
 def ratios_et(corun, near):
-    """Co-run / solo ratios from ExecuTorch loops (the same command alone). A decode window is only
-    partly overlapped by the partner's prefills; for the specialized pairs the decode ratio r at duty u
-    is extrapolated to a fully overlapped window, 1 - (1 - r) / u (more interference: conservative for
-    the specialized pipeline). The both-decoding ratio is used as measured (conservative for the
-    data-parallel bound)."""
+    """Co-run / solo ratios from ExecuTorch loops, every co-run interval fully overlapped by the
+    partner's compute. Prefill: the prefills of <a>P_<b>D_p<P> inside a partner decode window, against
+    solo_<a>P_p<P>. Decode: the 8-token windows of <a>P_<b>Ds_p<P> inside a partner prefill, against
+    solo_<b>Ds. Both decoding: the 8-token windows of cpuDs_gpuD / gpuDs_cpuD inside the other PU's
+    decode windows, against solo_cpuDs / solo_gpuDs."""
+    used = []
 
     def r(key, side, solo):
-        return ratio(corun[key][side]["rate"], corun[solo]["A"]["rate"])
+        a, b = et_rate(corun, key, side), et_rate(corun, solo)
+        used.extend((a, b))
+        return ratio(a, b)
 
-    both = {"cpu": r(BOTH_DECODE, "A", "solo_cpuD"), "gpu": r(BOTH_DECODE, "B", "solo_gpuD")}
+    both = {"cpu": r("cpuDs_gpuD", "A", "solo_cpuDs"), "gpu": r("gpuDs_cpuD", "A", "solo_gpuDs")}
     spec = {}
-    keys = [BOTH_DECODE, "solo_cpuD", "solo_gpuD"]
+    for (a, b), key in PAIRS.items():
+        spec[(a, b)] = (
+            r(f"{key}_p{near}", "A", f"solo_{a}P_p{near}"),
+            r(f"{a}P_{b}Ds_p{near}", "B", f"solo_{b}Ds"),
+        )
+    return {"both": both, "spec": spec, "files": files_of(*used)}
+
+
+def ratios_et_extrapolated(corun, near):
+    """The previous estimate, a diagnostic only (it does not meet the spec's full overlap): the decode
+    side of <a>P_<b>D_p<P> over all its 512-token windows, whose partner computed only a fraction u of
+    the time, extrapolated as 1 - (1 - r) / u; both decoding over all windows of cpuD_gpuD, as
+    measured. The prefill ratio is the full-overlap one."""
+
+    def r(key, side, solo, field):
+        return ratio(corun[key][side][field], corun[solo]["A"][field])
+
+    both = {
+        "cpu": r(BOTH_DECODE, "A", "solo_cpuD", "rate_all"),
+        "gpu": r(BOTH_DECODE, "B", "solo_gpuD", "rate_all"),
+    }
+    spec = {}
     for (a, b), key in PAIRS.items():
         k = f"{key}_p{near}"
-        rp = r(k, "A", f"solo_{a}P_p{near}")
-        rd = r(k, "B", f"solo_{b}D")
+        rd = r(k, "B", f"solo_{b}D", "rate_all")
         u = corun[k]["B"]["duty"]["median"]
-        spec[(a, b)] = (rp, max(0.05, 1 - (1 - rd) / u) if u > 0 else None)
-        keys += [k, f"solo_{a}P_p{near}"]
-    files = files_of(*(side["rate"] for k in keys for side in corun[k].values()))
-    return {"both": both, "spec": spec, "files": files}
+        spec[(a, b)] = (
+            r(k, "A", f"solo_{a}P_p{near}", "rate"),
+            max(0.05, 1 - (1 - rd) / u) if u > 0 else None,
+        )
+    return {"both": both, "spec": spec}
 
 
 def grid(serial, runtime, model, alone, corun_by_model, bw):
@@ -593,6 +625,19 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
         except (KeyError, TypeError) as e:
             return None, f"missing input {e}"
         h = handoff_seconds(model, prompt, gbps, KV_RW_BYTES[runtime]) if gbps else 0.0
+        prev = None
+        if runtime == "et":
+            try:
+                old = ratios_et_extrapolated(corun, near)
+                prev = (
+                    {pu: al[pu][1] * old["both"][pu] for pu in al},
+                    {
+                        (a, b): (al[a][0] * rp, al[b][1] * rd)
+                        for (a, b), (rp, rd) in old["spec"].items()
+                    },
+                )
+            except (KeyError, TypeError):
+                prev = None
         part = pu_rates(alone, model, ["partial", "partialnh"])
         free = {(a, b): (al[a][0], al[b][1]) for a, b in spec}
         for gen in OUTPUTS:
@@ -601,6 +646,10 @@ def grid(serial, runtime, model, alone, corun_by_model, bw):
             # at its alone rates, and if the KV hand-off were free.
             r["gain_no_interference"] = predict_mix(prompt, gen, al, bd, free, h)["gain"]
             r["gain_no_handoff"] = predict_mix(prompt, gen, al, bd, spec, 0.0)["gain"]
+            # ExecuTorch only: the gain with the previous, duty-extrapolated co-run estimate.
+            r["gain_extrapolated"] = (
+                predict_mix(prompt, gen, al, *prev, h)["gain"] if prev else None
+            )
             # Against the better of data-parallel and the best single PU: on the Samsung the co-run
             # data-parallel bound can fall below one PU alone (a GPU decode starves the CPU decode).
             r["gain_partial_overlap"] = max(
@@ -719,9 +768,9 @@ def grid_table(rows):
         "| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run "
         "| GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference "
         "| gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) "
-        "| gain vs data-parallel with co-run prefill "
+        "| gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate "
         "| best pair: decode ratio used / needed for the gate |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         sp = r["specialized"]
@@ -732,6 +781,8 @@ def grid_table(rows):
             f"**{r['gain']:.2f}** | {r['gain_no_interference']:.2f} | {r['gain_no_handoff']:.2f} | "
             f"{r['gain_partial_overlap']:.2f} | "
             f"{r['gain_vs_dp_prefill_corun']:.2f} | "
+            + (f"{r['gain_extrapolated']:.2f}" if r["gain_extrapolated"] else "—")
+            + " | "
             f"{r['decode_ratio']:.2f} / "
             + (f"{r['decode_ratio_needed']:.2f}" if r["decode_ratio_needed"] else "unreachable")
             + " |"
@@ -757,45 +808,63 @@ def affinity_table(serial, runtime, alone):
     return "\n".join(lines)
 
 
+def kept_str(side):
+    return ", ".join(f"{n}/{t}" for n, t in side["kept"])
+
+
 def et_ratio_table(corun):
-    """ExecuTorch co-run ratios against the solo loops: as measured, the partner's duty over the
-    decode windows, and the decode ratio extrapolated to full overlap (what the grid uses)."""
+    """ExecuTorch co-run ratios against the solo loops, every interval fully overlapped (what the grid
+    uses), with the counted / total intervals per trial; and the previous estimate (diagnostic)."""
     lines = [
-        "| pair | P | prefill ratio | decode ratio, measured | decode duty | decode ratio, full overlap |",
-        "|---|---|---|---|---|---|",
+        "| pair | P | prefill ratio | prefills counted per trial | decode ratio | decode windows counted per trial "
+        "| previous estimate: decode ratio (duty) |",
+        "|---|---|---|---|---|---|---|",
     ]
+
+    def prev(near):
+        try:
+            return ratios_et_extrapolated(corun, near)
+        except (KeyError, TypeError):
+            return None
+
     for near in (512, 2048):
-        rt = ratios_et(corun, near)
+        rt, old = ratios_et(corun, near), prev(near)
         for (a, b), key in PAIRS.items():
-            k = f"{key}_p{near}"
-            rd = ratio(corun[k]["B"]["rate"], corun[f"solo_{b}D"]["A"]["rate"])
+            k, kd = f"{key}_p{near}", f"{a}P_{b}Ds_p{near}"
+            o = (
+                f"{old['spec'][(a, b)][1]:.2f} ({corun[k]['B']['duty']['median']:.2f})"
+                if old
+                else "—"
+            )
             lines.append(
                 f"| {a.upper()} prefill → {b.upper()} decode | {near} | {rt['spec'][(a, b)][0]:.2f} | "
-                f"{rd:.2f} | {corun[k]['B']['duty']['median']:.2f} | {rt['spec'][(a, b)][1]:.2f} |"
+                f"{kept_str(corun[k]['A'])} | {rt['spec'][(a, b)][1]:.2f} | {kept_str(corun[kd]['B'])} | {o} |"
             )
-    rt = ratios_et(corun, 512)
+    rt, old = ratios_et(corun, 512), prev(512)
+    o = f"{old['both']['cpu']:.2f}, {old['both']['gpu']:.2f} (as measured)" if old else "—"
     lines.append(
-        f"| both decoding (CPU, GPU) | — | — | {rt['both']['cpu']:.2f}, {rt['both']['gpu']:.2f} | "
-        f"{corun[BOTH_DECODE]['A']['duty']['median']:.2f}, {corun[BOTH_DECODE]['B']['duty']['median']:.2f} "
-        "| as measured |"
+        f"| both decoding (CPU, GPU) | — | — | — | {rt['both']['cpu']:.2f}, {rt['both']['gpu']:.2f} | "
+        f"{kept_str(corun['cpuDs_gpuD']['A'])}; {kept_str(corun['gpuDs_cpuD']['A'])} | {o} |"
     )
     return "\n".join(lines)
 
 
 def et_corun_table(corun):
     lines = [
-        "| loop | A rate | A duty | B rate | B duty |",
-        "|---|---|---|---|---|",
+        "| loop | A rate, counted | A counted / total per trial | B rate, counted | B counted / total per trial "
+        "| A, B rate over all intervals (duty) |",
+        "|---|---|---|---|---|---|",
     ]
     for key in sorted(corun):
         c = corun[key]
-        cells = []
+        cells, prev = [], []
         for x in ("A", "B"):
             if x in c:
-                cells += [fmt_stat(c[x]["rate"]), fmt_stat(c[x]["duty"], 2)]
+                cells += [fmt_stat(c[x]["rate"]), kept_str(c[x])]
+                prev.append(f"{fmt_stat(c[x]['rate_all'])} ({fmt_stat(c[x]['duty'], 2)})")
             else:
                 cells += ["—", "—"]
-        lines.append(f"| {key} | " + " | ".join(cells) + " |")
+        lines.append(f"| {key} | " + " | ".join(cells) + " | " + "; ".join(prev) + " |")
     return "\n".join(lines)
 
 
@@ -858,7 +927,7 @@ def main():
     ap.add_argument("--json", help="write every grid row here")
     args = ap.parse_args()
     DATA = args.data
-    dump, best = {}, None
+    dump, best, unassessed = {}, None, []
     for serial, phone in PHONES.items():
         bdir = os.path.join(DATA, serial, "bandwidth")
         bw = load_bandwidth(bdir) if os.path.isdir(bdir) else {}
@@ -895,8 +964,10 @@ def main():
                 else:
                     print(f"### {runtime} {model}: co-run (tok/s; ratio = co-run / solo loop)\n")
                     print(et_corun_table(corun) + "\n")
-                    if model == CORUN_MODEL:
+                    try:
                         print(f"### {runtime} {model}: co-run ratios\n\n{et_ratio_table(corun)}\n")
+                    except KeyError as e:
+                        print(f"### {runtime} {model}: no co-run ratios (missing {e})\n")
             if runtime == "llamacpp" and handoff_bw:
                 print(
                     f"### Decode against the bandwidth bound\n\n{bandwidth_table(serial, alone, bw, coruns.get(CORUN_MODEL, {}))}\n"
@@ -905,7 +976,10 @@ def main():
                 rows, why = grid(serial, runtime, model, alone, coruns, handoff_bw)
                 if rows is None:
                     print(f"### {runtime} {model}: no prediction grid ({why})\n")
+                    unassessed.append(f"{phone} {runtime} {model} (no grid: {why})")
                     continue
+                if not rows[0]["gate_eligible"]:
+                    unassessed.append(f"{phone} {runtime} {model} (co-run ratios transferred)")
                 note = (
                     ""
                     if rows[0]["gate_eligible"]
@@ -930,10 +1004,14 @@ def main():
     if best:
         gain, phone, runtime, model, prompt, gen, pair = best
         verdict = "GO" if gain >= GATE else "NO-GO"
+        if verdict == "NO-GO" and unassessed:
+            verdict = "NO-GO for the assessed grids"
         print(
             f"\n## Gate\n\n**{verdict}**: best gain {gain:.2f} (gate {GATE}) on {phone}, {runtime}, {model}, "
             f"P={prompt}, D={gen}, prefill on {pair[0].upper()} and decode on {pair[1].upper()}."
         )
+    for u in unassessed:
+        print(f"Not assessed by the gate: {u}.")
     if args.json:
         with open(args.json, "w") as f:
             json.dump(dump, f, indent=1, default=str)
