@@ -10,10 +10,10 @@ Rules for every task:
 
 ## 1. Setup
 
-- [ ] 1.1 Rebase this branch on `dev` once `llm-phase-affinity` is merged, so its drivers, data and analysis module are present. Verify: `data/llm-phase-affinity/drivers/lpa_corun.sh` and `optimizer/analysis/llm_phase_affinity.py` exist on the branch.
-- [ ] 1.2 Write `data/coordinated-corun/drivers/lpa_pace.cpp` (design D1) and build it for arm64 against llama.cpp `8345f33` with the Samsung build's flags. Verify: it runs on the Samsung in both modes and prints the per-step JSONL and the summary.
-- [ ] 1.3 Calibrate (spec "The paced harness matches the reference rates"): 1B GPU prefill P = 512 and 2048, GPU decode depth 0, CPU decode on `3f0`, all at u = 1; then GPU prefill at u = 0.5. Verify: rates within 5% of the `llm-phase-affinity` medians (or the difference recorded and the harness's alone rates adopted), and the achieved duty of the u = 0.5 run reported.
-- [ ] 1.4 Check thread placement for masks `1f0`, `1c0`, `180` with the harness's CPU decode. Verify: one thread per core for each kept mask; any packed mask dropped and recorded in design.md.
+- [x] 1.1 Rebase this branch on `dev` once `llm-phase-affinity` is merged, so its drivers, data and analysis module are present. Verify: `data/llm-phase-affinity/drivers/lpa_corun.sh` and `optimizer/analysis/llm_phase_affinity.py` exist on the branch.
+- [x] 1.2 Write `data/coordinated-corun/drivers/lpa_pace.cpp` (design D1) and build it for arm64 against llama.cpp `8345f33` with the Samsung build's flags. Verify: it runs on the Samsung in both modes and prints the per-step JSONL and the summary.
+- [x] 1.3 Calibrate (spec "The paced harness matches the reference rates"): 1B GPU prefill P = 512 and 2048, GPU decode depth 0, CPU decode on `3f0`, all at u = 1; then GPU prefill at u = 0.5. Verify: rates within 5% of the `llm-phase-affinity` medians (or the difference recorded and the harness's alone rates adopted), and the achieved duty of the u = 0.5 run reported.
+- [x] 1.4 Check thread placement for masks `1f0`, `1c0`, `180` with the harness's CPU decode. Verify: one thread per core for each kept mask; any packed mask dropped and recorded in design.md.
 
 ## 2. Sweeps (Samsung, llama.cpp)
 

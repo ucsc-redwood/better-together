@@ -4,7 +4,8 @@ prediction grid with the best coordinated settings (design D4) from the raw phon
 data/coordinated-corun/<serial>/ (openspec/changes/coordinated-corun).
 
 Raw layout (written by data/coordinated-corun/drivers/):
-  alone*/<model>_<cfg>_r<k>[_retry].{out,err,clk,meta}            lpa_pace alone, 3 rounds
+  alone*/<model>_<cfg>_r<k>[_retry].{out,err,clk,meta}            lpa_pace alone, 3 rounds, 40 s
+  calib/...                                                       the 30-s calibration runs (task 1.3)
   corun-<stage>/<model>_<A>_<B>_<params>_t<k>[_retry]/{A,B}.{out,err}, corun.{meta,clk}
 lpa_pace prints one JSONL line per step (a prefill ubatch or a decode token: epoch start, end,
 gap_end and tokens) and a summary line. Configuration names:
@@ -493,6 +494,29 @@ def alone_table(alone, lpa_alone):
     return "\n".join(lines)
 
 
+def calib_table(calib, alone, lpa_alone):
+    """Calibration (spec "The paced harness matches the reference rates"): the 30-s calibration runs
+    against the llm-phase-affinity medians (llama-bench, 2-5 s per repetition) and against the 40-s
+    alone runs that serve as the reference of every ratio."""
+    lines = [
+        "| config | target duty | calibration, 30 s (tok/s) | achieved duty | llm-phase-affinity median "
+        "| calibration / that | 40-s alone reference | calibration / that |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for key in sorted(calib):
+        e, cfg = calib[key], calib[key]["cfg"]
+        ref = lpa_reference(lpa_alone, cfg["model"], cfg)
+        ours = alone.get(key, {}).get("wall")
+        lines.append(
+            f"| {key} | {cfg['u']:.2f} | {f(e['wall'])} | {f(e['duty'], 3)} | {f(ref)} | "
+            + (f"{e['wall']['median'] / ref['median']:.3f}" if ref and e["wall"] else "—")
+            + f" | {f(ours)} | "
+            + (f"{e['wall']['median'] / ours['median']:.3f}" if ours and e["wall"] else "—")
+            + " |"
+        )
+    return "\n".join(lines)
+
+
 def corun_table(corun, alone):
     """Per co-run: both sides' wall rates, ratios to duty-1 alone and to the same pacing alone, the
     achieved duty, counted units, the GPU clock over the overlap and the thermal status after."""
@@ -590,6 +614,168 @@ def grid_table(rows):
     return "\n".join(lines)
 
 
+PIXEL = "3A021JEHN02756"
+PIXEL_MASKS = ("f0", "c0", "30")
+
+
+def pixel_ratios(corun, mask):
+    """ExecuTorch co-run ratios on one CPU decode mask (design D5), each against its solo loop: GPU
+    prefill next to a CPU decode, CPU decode next to a GPU prefill (P = 512), and both decoding."""
+    used = []
+
+    def r(key, side, solo):
+        a, b = lpa.et_rate(corun, key, side), lpa.et_rate(corun, solo)
+        used.extend((a, b))
+        return a["median"] / b["median"]
+
+    return {
+        "prefill": r(f"gpuP_cpuD_p512_m{mask}", "A", "solo_gpuP_p512"),
+        "decode": r(f"gpuP_cpuDs_p512_m{mask}", "B", f"solo_cpuDs_m{mask}"),
+        "both_cpu": r(f"cpuDs_gpuD_m{mask}", "A", f"solo_cpuDs_m{mask}"),
+        "both_gpu": r(f"gpuDs_cpuD_m{mask}", "A", "solo_gpuDs"),
+        "files": lpa.files_of(*used),
+    }
+
+
+def pixel_grid():
+    """The Pixel ExecuTorch 1B grid at P = 128 and 512 (co-runs at 512 only, design D5), or (None,
+    reason): the best GPU-prefill / CPU-decode pipeline and the best data-parallel pair over the CPU
+    decode masks, against the larger of that, llm-phase-affinity's data-parallel and the best single PU.
+    The CPU prefill of data-parallel and of the single PU runs on f0 (the fastest alone)."""
+    d = os.path.join(DATA, PIXEL)
+    if not os.path.isdir(os.path.join(d, "corun-et")):
+        return None, "no co-runs", {}
+    alone = lpa.load_et_alone(os.path.join(d, "alone-et"))
+    corun = lpa.load_et_corun(os.path.join(d, "corun-et"))
+    gpu = lpa.pu_rates(alone, "1b", ["vk4w", "vk8da4w"])
+    cpu = {m: lpa.pu_rates(alone, "1b", [f"xnn{m}"]) for m in PIXEL_MASKS}
+    try:
+        rt = {m: pixel_ratios(corun, m) for m in PIXEL_MASKS}
+    except KeyError as e:
+        return None, f"missing input {e}", {}
+    u_alone = lpa.load_alone(PIXEL, "et")
+    u_rows, _ = lpa.grid(
+        PIXEL,
+        "et",
+        "1b",
+        u_alone,
+        lpa.load_coruns(PIXEL, "et"),
+        (lambda bw: {"cpu": bw["cpu"]["cpu"], "gpu": bw["gpu"]["gpu"]})(
+            lpa.load_bandwidth(os.path.join(lpa.DATA, PIXEL, "bandwidth"))
+        ),
+    )
+    uncoord = {(r["prompt"], r["gen"]): r for r in u_rows or []}
+    rows = []
+    for prompt in (128, 512):
+        gp, gd = gpu["pp"][prompt]["median"], gpu["tg"][prompt]["median"]
+        cp = cpu["f0"]["pp"][prompt]["median"]
+        for gen in OUTPUTS:
+            unc = uncoord.get((prompt, gen))
+            h = unc["handoff_s"] if unc else 0.0
+            spec = {
+                m: spec_throughput(
+                    prompt,
+                    gen,
+                    gp * rt[m]["prefill"],
+                    cpu[m]["tg"][prompt]["median"] * rt[m]["decode"],
+                    h,
+                )
+                for m in PIXEL_MASKS
+            }
+            dp = {
+                m: dp_throughput(
+                    prompt,
+                    gen,
+                    [
+                        (gp, gd * rt[m]["both_gpu"]),
+                        (cp, cpu[m]["tg"][prompt]["median"] * rt[m]["both_cpu"]),
+                    ],
+                )
+                for m in PIXEL_MASKS
+            }
+            singles = {"GPU": dp_throughput(prompt, gen, [(gp, gd)])}
+            singles.update(
+                {
+                    f"CPU {m}": dp_throughput(prompt, gen, [(cp, cpu[m]["tg"][prompt]["median"])])
+                    for m in PIXEL_MASKS
+                }
+            )
+            sm, dm = max(spec, key=spec.get), max(dp, key=dp.get)
+            su = max(singles, key=singles.get)
+            cands = [("coordinated data-parallel", dp[dm]), (f"single PU ({su})", singles[su])]
+            if unc:
+                cands += [
+                    ("uncoordinated data-parallel (llm-phase-affinity)", unc["dp_corun"]),
+                    (f"single PU ({unc['single_pu'].upper()}, llm-phase-affinity)", unc["single"]),
+                ]
+            base = max(cands, key=lambda x: x[1])
+            rows.append(
+                {
+                    "prompt": prompt,
+                    "gen": gen,
+                    "handoff_s": h,
+                    "spec": spec[sm],
+                    "spec_setting": f"GPU prefill -> CPU decode on {sm}",
+                    "spec_by_mask": spec,
+                    "dp": dp[dm],
+                    "dp_setting": f"CPU decode on {dm}",
+                    "dp_by_mask": dp,
+                    "single": singles[su],
+                    "single_pu": su,
+                    "baseline": base[1],
+                    "baseline_from": base[0],
+                    "gain": spec[sm] / base[1],
+                    "gain_vs_coordinated_dp": spec[sm] / dp[dm],
+                    "uncoord": unc,
+                    "sources": sorted(
+                        set(
+                            lpa.files_of(
+                                gpu["pp"][prompt],
+                                gpu["tg"][prompt],
+                                cpu["f0"]["pp"][prompt],
+                                *(cpu[m]["tg"][prompt] for m in PIXEL_MASKS),
+                            )
+                            + [f for m in PIXEL_MASKS for f in rt[m]["files"]]
+                        )
+                    ),
+                }
+            )
+    return rows, None, {"ratios": rt, "alone": alone, "corun": corun}
+
+
+def pixel_tables(rows, extra):
+    rt = extra["ratios"]
+    out = [
+        "| CPU decode mask | GPU prefill next to CPU decode | CPU decode next to GPU prefill | both decoding: CPU, GPU |",
+        "|---|---|---|---|",
+    ]
+    for m in PIXEL_MASKS:
+        r = rt[m]
+        out.append(
+            f"| {m} | {r['prefill']:.3f} | {r['decode']:.3f} | {r['both_cpu']:.3f}, {r['both_gpu']:.3f} |"
+        )
+    out += [
+        "",
+        "| P | D | specialized by CPU mask (f0, c0, 30) | data-parallel by mask (f0, c0, 30) | best single PU "
+        "| uncoordinated: specialized, data-parallel, gain | baseline (from) | **gain** |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for r in rows:
+        u = r["uncoord"]
+        unc = (
+            f"{max(u['specialized'].values()):.4f}, {u['dp_corun']:.4f}, {u['gain']:.2f}"
+            if u
+            else "—"
+        )
+        sp = ", ".join(f"{r['spec_by_mask'][m]:.4f}" for m in PIXEL_MASKS)
+        dp = ", ".join(f"{r['dp_by_mask'][m]:.4f}" for m in PIXEL_MASKS)
+        out.append(
+            f"| {r['prompt']} | {r['gen']} | {sp} | {dp} | {r['single']:.4f} ({r['single_pu']}) | {unc} | "
+            f"{r['baseline']:.4f} ({r['baseline_from']}) | **{r['gain']:.2f}** |"
+        )
+    return "\n".join(out)
+
+
 def main():
     global DATA
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -600,6 +786,9 @@ def main():
     alone, corun = load()
     lpa_alone = lpa.load_alone(SERIAL, "llamacpp")
     print(f"## Samsung S24+ ({SERIAL})\n")
+    cdir = os.path.join(DATA, SERIAL, "calib")
+    if os.path.isdir(cdir):
+        print(f"### Calibration\n\n{calib_table(load_alone(cdir), alone, lpa_alone)}\n")
     print(
         f"### Alone rates, lpa_pace (median [min-max] of 3 runs)\n\n{alone_table(alone, lpa_alone)}\n"
     )
@@ -630,11 +819,24 @@ def main():
                 )
                 best = max(best, cand) if best else cand
         dump[model] = {"rows": rows, "settings": sets}
+    prows, why, extra = pixel_grid()
+    print(f"## Pixel 7a ({PIXEL}), ExecuTorch 1B, CPU decode width (design D5)\n")
+    if prows is None:
+        print(f"No grid ({why}).\n")
+    else:
+        print(f"{pixel_tables(prows, extra)}\n")
+        dump["pixel_et_1b"] = {"rows": prows, "ratios": extra["ratios"]}
     if best:
         gain, model, prompt, gen, setting, base = best
         print(
             f"\n## Gate\n\n**{'GO' if gain >= GATE else 'NO-GO'}**: best gain {gain:.2f} (gate {GATE}) with {model}, "
             f"P={prompt}, D={gen}, setting {setting}, against {base}."
+        )
+    if prows:
+        pb = max(prows, key=lambda r: r["gain"])
+        print(
+            f"Pixel ExecuTorch 1B: best gain {pb['gain']:.2f} at P={pb['prompt']}, D={pb['gen']} "
+            f"({pb['spec_setting']}), against {pb['baseline_from']}."
         )
     if args.json:
         with open(args.json, "w") as fh:

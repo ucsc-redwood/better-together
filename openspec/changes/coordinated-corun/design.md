@@ -98,6 +98,64 @@ part, if time allows; skipped otherwise, with the reason recorded.
 - **Open-loop pacing is not a scheduler** → it shows whether a trade-off exists, not the best controller; a positive
   result motivates the runtime, a negative one bounds what coordination of this kind can buy.
 
+## Deviations and choices made while running the study
+
+Nobody was available to answer questions during the run. Where the plan left a choice open, the conservative option
+was taken, meaning the one that makes the baseline stronger. Raw evidence for each item is under
+`data/coordinated-corun/`.
+
+- **Harness build (D1).** `lpa_pace.cpp` links the static libraries of `llm-phase-affinity`'s Samsung build
+  (`build/lpa/llamacpp-android-s24` of the main checkout, read only: llama.cpp `8345f33`,
+  `GGML_CPU_ARM_ARCH=armv8.6-a+dotprod+i8mm+fp16`, Vulkan on, OpenMP and KleidiAI off). It is compiled with that
+  build's flags by `drivers/build_pace.sh`. Besides `llama.h` it uses `ggml-cpu.h`, also a public header, for the
+  thread pool that llama-bench attaches (`ggml_threadpool_new`, poll 50). Without one, ggml makes a throwaway pool per
+  graph. It mirrors llama-bench's `test_prompt`/`test_gen`: unseeded `std::rand` token ids, BOS first, logits for the
+  last token of a batch, one warm-up run, and `n_ctx` = P (prefill) or P + 128 (decode). It differs in two ways. Each
+  ubatch is its own `llama_decode` call (`n_batch` = `n_ubatch` = C), followed by a `llama_synchronize`, so it can
+  pause between ubatches; llama-bench submits the whole prompt in one call (`n_batch` 2048, `n_ubatch` 512). A
+  run's wall time includes the gap after its last step, so achieved duty = compute / wall is not biased upward over
+  a few long steps. The 30-s calibration runs used a build of the source before `clang-format`; every later run uses
+  the build of the committed source. The two differ only in formatting.
+- **Flash attention.** As in `llm-phase-affinity`'s co-runs, the GPU prefill runs with `-fa auto` at P <= 512 and
+  `-fa 0` at P = 2048 (auto collapses prefill at 2048 on the Xclipse). GPU decode uses auto at every depth, which was
+  the faster configuration at every depth in `llm-phase-affinity` (1B).
+- **Thread placement (task 1.4).** Masks `3f0`, `1f0`, `1c0` and `180` all keep one compute thread per core under the
+  harness's CPU decode (`R5CY21Y3VEV/diag-thread-placement.txt`: 94-99% busy on each core of the mask, under 13% on
+  the others). No mask is dropped. On the Pixel, `f0`, `c0` and `30` do the same for `llama_main`'s XNNPACK decode
+  (`3A021JEHN02756/diag-thread-placement.txt`).
+- **Calibration and the reference rates (task 1.3).** The GPU rates match `llm-phase-affinity` within 2.5%. The CPU
+  decode on `3f0` does not: it is 12% lower over 30 s (`R5CY21Y3VEV/calib/`), because a sustained CPU decode slows as
+  its clocks fall. The per-3-s rate drops from 55.5 to 43.7 tok/s while policy 9 falls from 3.07 to 2.02 GHz and
+  policy 7 from 2.78 to 2.02 GHz, with the thermal status still 0. `llm-phase-affinity`'s alone references were
+  llama-bench repetitions of 2-5 s; its co-run loops lasted about 100 s. Its CPU decode co-run ratios therefore
+  include this sustained-load slowdown as well as interference. Following the spec, the harness's own alone rates
+  are the reference for every ratio and for the grid. Alone runs last 40 s, the length of a co-run's GPU side and
+  about the CPU side's counted span. The 30-s calibration runs stay in `calib/` and serve as calibration only.
+- **Co-run timing (D3).** `lpa_corun.sh` and the thermal policy are reused unchanged. The host drivers `run_plan.sh`
+  and `run_corun.sh` are copies of `llm-phase-affinity`'s with the phone directory changed to `/data/local/tmp/ccr`,
+  and they log the battery level. In stages A-D the GPU side (A) runs 40 s and the CPU side (B) 70 s, so B covers
+  A's last paced repetition (a 2048-token prefill at duty 0.33 takes about 14 s of wall time). In stage E the CPU
+  prefill (B) runs 40 s and the GPU decode (A) 70 s. A side counts only its units that lie wholly inside the
+  partner's measured interval (first step's start to last step's end): a whole prefill repetition (all its ubatches,
+  with the gap after each) or one decode token. Its rate is over wall time, so a paced side's rate includes the gaps.
+- **Prediction (D4).** Each co-run ratio is the co-run wall rate over the harness's duty-1 alone rate of the same
+  phase. Pacing's own cost is therefore in the ratio, and the paced-alone runs report it separately. As in D5, the
+  grid applies each ratio to the alone rate at prompt P or KV depth P, and a prompt of 128 uses the ratios measured
+  at 512. Choices that make the baseline stronger:
+  - the CPU prefill of data-parallel, of the CPU-prefill pipeline and of the single CPU always runs on `3f0`, the
+    fastest mask, whatever mask that setting decodes on;
+  - the baseline is the largest of: the best coordinated data-parallel over every measured setting; the uncoordinated
+    data-parallel bound of `llm-phase-affinity` (its grid, unchanged); and the best single PU of either study.
+  The gate is set against that baseline. The literal ratio of the spec, against the best coordinated data-parallel,
+  is reported beside it.
+- **Stage order.** Stage E needs no setting from A-D, so it runs right after D. B and C come next, once the analysis
+  of A and D has picked their settings.
+- **Pixel ExecuTorch part (D5) in parallel.** It runs on the Pixel at the same time as the Samsung sweep, not after
+  it. The two phones share only the host's adb. `llm-phase-affinity` also ran both phones at once.
+- **Commits.** This session could not write the main checkout's `.git` (index, objects and refs are outside its
+  writable area). Every commit therefore goes to a bare clone sharing the main repository's objects,
+  `build/ccr-git.git` in this worktree, on branch `openspec/coordinated-corun`. Fetch it from there.
+
 ## Migration Plan
 
 None: a study. Results are additive under `data/coordinated-corun/` and `docs/reports-for-human/`.
