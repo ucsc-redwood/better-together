@@ -1,0 +1,7 @@
+2026-10-22T07:46:46-07:00 handed over from battery_guard.sh (SIGSTOP has no effect here) to ccr_supervise.sh; old queue stopped after: 2026-10-22T07:46:38-07:00 end 1b_gpuD_cpuP_p512_u100_m3f0_t1
+2026-10-22T07:46:46-07:00 start run_queue.sh data/coordinated-corun/drivers/stages_1.txt
+2026-10-22T08:57:53-07:00 start run_queue.sh data/coordinated-corun/drivers/stages_2.txt
+2026-10-22T08:59:54-07:00 battery 15%: stopped queue 1554521, driver 1554531 (1555463 ) after: 2026-10-22T08:59:35-07:00 end 1b_gpuP_cpuD_p512_u100_m1f0_t1
+2026-10-22T11:02:00-07:00 battery 50%: resuming
+2026-10-22T11:02:00-07:00 start run_queue.sh data/coordinated-corun/drivers/stages_2.txt
+2026-10-22T15:31:31-07:00 all stage files done
