@@ -5,3 +5,8 @@
 2026-10-22T02:58:24-07:00 stage corun plan_corun_A.txt 3 corun-A
 2026-10-22T06:13:02-07:00 stage done corun-A (commit rc=0)
 2026-10-22T06:13:02-07:00 stage corun plan_corun_D.txt 3 corun-D
+2026-10-22T07:44:22-07:00 stage done corun-D (commit rc=0)
+2026-10-22T07:44:22-07:00 stage corun plan_corun_E.txt 3 corun-E
+2026-10-22T07:46:46-07:00 stage push build/ccr/lpa_pace  
+/home/doremy/Desktop/ucsc/bt-ccr/build/ccr/lpa_pace: 1 file pushed, 0 skipped. 144.1 MB/s (94116776 bytes in 0.623s)
+2026-10-22T07:46:47-07:00 stage alone plan_alone_1b.txt 3 alone
