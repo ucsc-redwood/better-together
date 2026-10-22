@@ -1,0 +1,45 @@
+# Task 2.1: paced-alone rates (GPU prefill P = 512/2048 and GPU decode at depth 0, five duties) and the
+# alone references of the grid (prefill at P = 128/512/2048, decode at KV depth 0/128/512/2048, every kept CPU mask).
+# Lines already run by plan_alone_calib.txt are skipped by run_plan.sh (same names, same output directory).
+# Plan for run_plan.sh: <name>|<hex-mask>|<command run from /data/local/tmp/ccr>. Samsung R5CY21Y3VEV, lpa_pace
+# (llama.cpp 8345f33), Llama 3.2 1B Q4_0 read in place from the owner's /data/local/tmp/lcpp/models. GPU = -ngl 99 -t 1,
+# host thread on core 3 (mask 8), flash attention auto at P <= 512 and off at P = 2048 (llm-phase-affinity's faster
+# configuration per point); CPU = -ngl 0 -dev none, one thread per core of the mask. 30 s measured after a warm-up.
+1b_gpuP_p512_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 1 -s 30 -fa auto
+1b_gpuP_p512_u80|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.8 -s 30 -fa auto
+1b_gpuP_p512_u67|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.67 -s 30 -fa auto
+1b_gpuP_p512_u50|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.5 -s 30 -fa auto
+1b_gpuP_p512_u33|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.33 -s 30 -fa auto
+1b_gpuP_p2048_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 30 -fa 0
+1b_gpuP_p2048_u80|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 0.8 -s 30 -fa 0
+1b_gpuP_p2048_u67|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 0.67 -s 30 -fa 0
+1b_gpuP_p2048_u50|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 0.5 -s 30 -fa 0
+1b_gpuP_p2048_u33|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 0.33 -s 30 -fa 0
+1b_gpuP_p128_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 128 -C 128 -u 1 -s 30 -fa auto
+1b_gpuD_d0_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 30
+1b_gpuD_d0_u80|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.8 -s 30
+1b_gpuD_d0_u67|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.67 -s 30
+1b_gpuD_d0_u50|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.5 -s 30
+1b_gpuD_d0_u33|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.33 -s 30
+1b_gpuD_d128_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 128 -u 1 -s 30
+1b_gpuD_d512_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 512 -u 1 -s 30
+1b_gpuD_d2048_u100|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 2048 -u 1 -s 30
+1b_cpuD_d0_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 30
+1b_cpuD_d128_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 128 -u 1 -s 30
+1b_cpuD_d512_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 512 -u 1 -s 30
+1b_cpuD_d2048_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 2048 -u 1 -s 30
+1b_cpuD_d0_m1f0|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 30
+1b_cpuD_d128_m1f0|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 128 -u 1 -s 30
+1b_cpuD_d512_m1f0|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 512 -u 1 -s 30
+1b_cpuD_d2048_m1f0|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 2048 -u 1 -s 30
+1b_cpuD_d0_m1c0|1c0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 3 --mode decode -P 0 -u 1 -s 30
+1b_cpuD_d128_m1c0|1c0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 3 --mode decode -P 128 -u 1 -s 30
+1b_cpuD_d512_m1c0|1c0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 3 --mode decode -P 512 -u 1 -s 30
+1b_cpuD_d2048_m1c0|1c0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 3 --mode decode -P 2048 -u 1 -s 30
+1b_cpuD_d0_m180|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 30
+1b_cpuD_d128_m180|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 128 -u 1 -s 30
+1b_cpuD_d512_m180|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 512 -u 1 -s 30
+1b_cpuD_d2048_m180|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 2048 -u 1 -s 30
+1b_cpuP_p128_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 128 -C 128 -u 1 -s 30
+1b_cpuP_p512_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 512 -C 512 -u 1 -s 30
+1b_cpuP_p2048_m3f0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 2048 -C 512 -u 1 -s 30
