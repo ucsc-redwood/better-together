@@ -161,11 +161,13 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   (`3A021JEHN02756/alone-et/`). With co-runs at P = 512 only, the Pixel grid covers P = 128 (using the 512 ratios,
   as D5 does) and 512. The Pixel was on AC power but did not charge (battery status 4, "not charging"). It ran from
   70% down to 13%, with automatic battery saver off.
-- **Battery guard.** The Samsung drains about 3%/h during co-runs even on USB power, and the sweep lasts about a day.
-  `drivers/battery_guard.sh` pauses the phone's driver (SIGSTOP to its PID) between runs once the battery falls to
-  20%, and resumes it (SIGCONT) at 50%. It reads the battery every 60 s. Pauses are logged in
-  `<serial>/battery_guard.log`. A run is never interrupted, and after a pause the thermal-status-0 wait applies as
-  usual.
+- **Battery.** The Samsung drains about 3%/h during co-runs even on USB power, and the sweep lasts about a day. A
+  first guard (`drivers/battery_guard.sh`) paused the driver with SIGSTOP. That has no effect in this session's
+  sandbox, where even a plain `sleep` keeps running, so it never held (`R5CY21Y3VEV/battery_guard.log`). From
+  stage E on, `drivers/ccr_supervise.sh` runs the stage queues. When the battery is at or below 15%, it waits until
+  the driver sleeps between runs and then terminates the queue. Once the battery is back at 50%, it starts the same
+  stage file again; the drivers skip complete runs, so the stage resumes where it stopped. A run is never cut short,
+  and the thermal-status-0 wait applies after a pause as before (`R5CY21Y3VEV/supervise.log`).
 - **Commits.** This session could not write the main checkout's `.git` (index, objects and refs are outside its
   writable area). Every commit therefore goes to a bare clone sharing the main repository's objects,
   `build/ccr-git.git` in this worktree, on branch `openspec/coordinated-corun`. Fetch it from there.

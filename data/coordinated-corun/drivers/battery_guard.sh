@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Host-side battery guard (the phones drain under co-runs even on USB power). When the battery is at or below <low>%,
-# pause the phone's running run_plan.sh / run_corun.sh (SIGSTOP to that driver's PID, a process this study started)
-# but only between runs: while its log's last line is an "end" or "THROTTLED" line, i.e. it sleeps before the next
+# pause the phone's running run_plan.sh / run_corun.sh and its parent run_queue.sh (SIGSTOP to their PIDs, processes
+# this study started; the parent first, since a non-interactive bash sends SIGCONT to a child that stops) but only
+# between runs: while its log's last line is an "end" or "THROTTLED" line, i.e. it sleeps before the next
 # run. Resume it (SIGCONT) when the battery is back at <high>%. The battery is read every 60 s (every 3 s only while
 # waiting for a pause window), to keep the guard's own load on the phone small. Actions go to battery_guard.log.
 # usage: battery_guard.sh <serial> <low> <high>
@@ -16,7 +17,7 @@ while :; do
   [ -n "${b:-}" ] && [ "$b" -le "$low" ] && [ -z "$paused" ] || b=$(level)
   if [ -n "$paused" ]; then
     if [ -n "$b" ] && [ "$b" -ge "$high" ]; then
-      kill -CONT "$paused" && echo "$(date -Is) battery $b%: resumed $paused" >>"$log"
+      kill -CONT $paused && echo "$(date -Is) battery $b%: resumed $paused" >>"$log"
       paused=""
     fi
   elif [ -n "$pid" ] && [ -n "$b" ] && [ "$b" -le "$low" ]; then
@@ -24,7 +25,9 @@ while :; do
     last=$(tail -1 "$out/driver.log" 2>/dev/null)
     case "$last" in
       *" end "* | *THROTTLED*)
-        kill -STOP "$pid" && paused=$pid && echo "$(date -Is) battery $b%: paused $pid after: $last" >>"$log"
+        parent=$(ps -o ppid= -p "$pid" | tr -d ' ')
+        kill -STOP "$parent" "$pid" && paused="$pid $parent" &&
+          echo "$(date -Is) battery $b%: paused $pid (parent $parent) after: $last" >>"$log"
         ;;
     esac
   fi
