@@ -1,0 +1,58 @@
+maskA=8
+cmdA=./lpa_loop.sh 120 ./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_16.txt --max_new_tokens 512 --temperature 0 --ignore_eos --cpu_threads 1
+maskB=8
+cmdB=true
+first=A
+gpu_clock_path=/sys/class/misc/mali0/device/cur_freq
+thermal_before:
+Thermal Status: 0
+Temperature{mValue=41.000004, mType=1, mName=G3D, mStatus=0}
+Temperature{mValue=44.000004, mType=0, mName=BIG, mStatus=0}
+Temperature{mValue=43.000004, mType=0, mName=LITTLE, mStatus=0}
+Temperature{mValue=0.0, mType=4, mName=VIRTUAL-USB-THROTTLING, mStatus=0}
+Temperature{mValue=41.000004, mType=0, mName=MID, mStatus=0}
+Temperature{mValue=38.428, mType=-1, mName=neutral_therm, mStatus=0}
+Temperature{mValue=36.37195, mType=5, mName=cellular-emergency, mStatus=0}
+Temperature{mValue=36.37195, mType=-1, mName=VIRTUAL-SKIN-CHARGE, mStatus=1}
+Temperature{mValue=38.539, mType=-1, mName=gnss_tcxo_therm, mStatus=0}
+Temperature{mValue=36.37195, mType=-1, mName=VIRTUAL-SKIN-HINT, mStatus=1}
+Temperature{mValue=36.37195, mType=3, mName=VIRTUAL-SKIN, mStatus=0}
+Temperature{mValue=41.000004, mType=9, mName=TPU, mStatus=0}
+Temperature{mValue=-4.808, mType=-1, mName=USB-MINUS-SKIN2, mStatus=0}
+Temperature{mValue=34.710003, mType=-1, mName=usb_pwr_therm2, mStatus=0}
+Temperature{mValue=0.0, mType=4, mName=VIRTUAL-USB-UI, mStatus=0}
+Temperature{mValue=35.334003, mType=-1, mName=disp_therm, mStatus=0}
+Temperature{mValue=38.027, mType=-1, mName=skin_therm1, mStatus=1}
+Temperature{mValue=34.332, mType=-1, mName=usb_pwr_therm, mStatus=0}
+Temperature{mValue=37.114002, mType=-1, mName=quiet_therm, mStatus=0}
+Temperature{mValue=36.2, mType=2, mName=battery, mStatus=0}
+Temperature{mValue=39.140003, mType=-1, mName=skin_therm2, mStatus=0}
+Temperature{mValue=37.119064, mType=-1, mName=VIRTUAL-SKIN-CHARGE-WLC, mStatus=2}
+launch_A_epoch=1792566234.217141298
+launch_B_epoch=1792566234.230407777
+end_A_epoch=1792566357.207540365
+end_B_epoch=1792566357.233556641
+thermal_after:
+Thermal Status: 1
+Temperature{mValue=55.000004, mType=1, mName=G3D, mStatus=0}
+Temperature{mValue=56.000004, mType=0, mName=BIG, mStatus=0}
+Temperature{mValue=59.000004, mType=0, mName=LITTLE, mStatus=0}
+Temperature{mValue=0.0, mType=4, mName=VIRTUAL-USB-THROTTLING, mStatus=0}
+Temperature{mValue=57.000004, mType=0, mName=MID, mStatus=0}
+Temperature{mValue=42.533, mType=-1, mName=neutral_therm, mStatus=0}
+Temperature{mValue=39.1607, mType=5, mName=cellular-emergency, mStatus=0}
+Temperature{mValue=39.1607, mType=-1, mName=VIRTUAL-SKIN-CHARGE, mStatus=2}
+Temperature{mValue=42.601, mType=-1, mName=gnss_tcxo_therm, mStatus=0}
+Temperature{mValue=39.1607, mType=-1, mName=VIRTUAL-SKIN-HINT, mStatus=1}
+Temperature{mValue=39.1607, mType=3, mName=VIRTUAL-SKIN, mStatus=1}
+Temperature{mValue=55.000004, mType=9, mName=TPU, mStatus=0}
+Temperature{mValue=-10.919001, mType=-1, mName=USB-MINUS-SKIN2, mStatus=0}
+Temperature{mValue=34.421, mType=-1, mName=usb_pwr_therm2, mStatus=0}
+Temperature{mValue=0.0, mType=4, mName=VIRTUAL-USB-UI, mStatus=0}
+Temperature{mValue=35.089, mType=-1, mName=disp_therm, mStatus=0}
+Temperature{mValue=40.7, mType=-1, mName=skin_therm1, mStatus=1}
+Temperature{mValue=34.065002, mType=-1, mName=usb_pwr_therm, mStatus=0}
+Temperature{mValue=37.382, mType=-1, mName=quiet_therm, mStatus=0}
+Temperature{mValue=36.300003, mType=2, mName=battery, mStatus=0}
+Temperature{mValue=44.984, mType=-1, mName=skin_therm2, mStatus=0}
+Temperature{mValue=39.968452, mType=-1, mName=VIRTUAL-SKIN-CHARGE-WLC, mStatus=2}

@@ -1,0 +1,161 @@
+2026-10-20T19:50:46-07:00 cooling: thermal status 1
+2026-10-20T19:51:16-07:00 start gpuP_cpuD_p512_t1 first=A
+2026-10-20T19:54:41-07:00 end gpuP_cpuD_p512_t1
+2026-10-20T19:55:01-07:00 THROTTLED gpuP_cpuD_p512_t1, cooling down and repeating once
+2026-10-20T19:57:01-07:00 cooling: thermal status 1
+2026-10-20T19:57:31-07:00 start gpuP_cpuD_p512_t1_retry first=A
+2026-10-20T20:00:52-07:00 end gpuP_cpuD_p512_t1_retry
+2026-10-20T20:01:12-07:00 cooling: thermal status 3
+2026-10-20T20:01:42-07:00 cooling: thermal status 2
+2026-10-20T20:02:12-07:00 cooling: thermal status 2
+2026-10-20T20:02:42-07:00 cooling: thermal status 1
+2026-10-20T20:03:12-07:00 cooling: thermal status 1
+2026-10-20T20:03:42-07:00 start cpuP_gpuD_p512_t1 first=A
+2026-10-20T20:06:30-07:00 end cpuP_gpuD_p512_t1
+2026-10-20T20:06:50-07:00 THROTTLED cpuP_gpuD_p512_t1, cooling down and repeating once
+2026-10-20T20:08:50-07:00 start cpuP_gpuD_p512_t1_retry first=A
+2026-10-20T20:11:32-07:00 end cpuP_gpuD_p512_t1_retry
+2026-10-20T20:11:53-07:00 cooling: thermal status 2
+2026-10-20T20:12:23-07:00 cooling: thermal status 1
+2026-10-20T20:12:53-07:00 cooling: thermal status 1
+2026-10-20T20:13:23-07:00 start gpuP_cpuD_p2048_t1 first=A
+2026-10-20T20:17:02-07:00 end gpuP_cpuD_p2048_t1
+2026-10-20T20:17:22-07:00 THROTTLED gpuP_cpuD_p2048_t1, cooling down and repeating once
+2026-10-20T20:19:22-07:00 cooling: thermal status 1
+2026-10-20T20:19:52-07:00 cooling: thermal status 1
+2026-10-20T20:20:22-07:00 start gpuP_cpuD_p2048_t1_retry first=A
+2026-10-20T20:24:01-07:00 end gpuP_cpuD_p2048_t1_retry
+2026-10-20T20:24:21-07:00 cooling: thermal status 2
+2026-10-20T20:24:51-07:00 cooling: thermal status 2
+2026-10-20T20:25:21-07:00 cooling: thermal status 2
+2026-10-20T20:25:51-07:00 cooling: thermal status 1
+2026-10-20T20:26:21-07:00 cooling: thermal status 1
+2026-10-20T20:26:52-07:00 start cpuP_gpuD_p2048_t1 first=A
+2026-10-20T20:30:03-07:00 end cpuP_gpuD_p2048_t1
+2026-10-20T20:30:23-07:00 THROTTLED cpuP_gpuD_p2048_t1, cooling down and repeating once
+2026-10-20T20:32:24-07:00 start cpuP_gpuD_p2048_t1_retry first=A
+2026-10-20T20:35:28-07:00 end cpuP_gpuD_p2048_t1_retry
+2026-10-20T20:35:48-07:00 cooling: thermal status 2
+2026-10-20T20:36:18-07:00 cooling: thermal status 1
+2026-10-20T20:36:48-07:00 cooling: thermal status 1
+2026-10-20T20:37:19-07:00 start cpuD_gpuD_t1 first=A
+2026-10-20T20:40:27-07:00 end cpuD_gpuD_t1
+2026-10-20T20:40:47-07:00 THROTTLED cpuD_gpuD_t1, cooling down and repeating once
+2026-10-20T20:42:47-07:00 cooling: thermal status 1
+2026-10-20T20:43:17-07:00 start cpuD_gpuD_t1_retry first=A
+2026-10-20T20:46:24-07:00 end cpuD_gpuD_t1_retry
+2026-10-20T20:46:44-07:00 cooling: thermal status 2
+2026-10-20T20:47:14-07:00 cooling: thermal status 2
+2026-10-20T20:47:44-07:00 cooling: thermal status 2
+2026-10-20T20:48:14-07:00 cooling: thermal status 1
+2026-10-20T20:48:44-07:00 cooling: thermal status 1
+2026-10-20T20:49:14-07:00 start gpuP_cpuD_p512_t2 first=B
+2026-10-20T20:52:36-07:00 end gpuP_cpuD_p512_t2
+2026-10-20T20:52:56-07:00 THROTTLED gpuP_cpuD_p512_t2, cooling down and repeating once
+2026-10-20T20:54:56-07:00 cooling: thermal status 1
+2026-10-20T20:55:26-07:00 cooling: thermal status 1
+2026-10-20T21:01:25-07:00 RESUMED after host reboot (~20:57); killed in-flight trial redone, completed trials skipped
+2026-10-20T21:01:25-07:00 THROTTLED gpuP_cpuD_p512_t2, cooling down and repeating once
+2026-10-20T21:03:25-07:00 start gpuP_cpuD_p512_t2_retry first=B
+2026-10-20T21:06:44-07:00 end gpuP_cpuD_p512_t2_retry
+2026-10-20T21:07:04-07:00 cooling: thermal status 3
+2026-10-20T21:07:34-07:00 cooling: thermal status 2
+2026-10-20T21:08:04-07:00 cooling: thermal status 2
+2026-10-20T21:08:34-07:00 cooling: thermal status 1
+2026-10-20T21:09:05-07:00 cooling: thermal status 1
+2026-10-20T21:09:35-07:00 cooling: thermal status 1
+2026-10-20T21:10:05-07:00 start cpuP_gpuD_p512_t2 first=B
+2026-10-20T21:12:50-07:00 end cpuP_gpuD_p512_t2
+2026-10-20T21:13:10-07:00 THROTTLED cpuP_gpuD_p512_t2, cooling down and repeating once
+2026-10-20T21:15:10-07:00 start cpuP_gpuD_p512_t2_retry first=B
+2026-10-20T21:17:59-07:00 end cpuP_gpuD_p512_t2_retry
+2026-10-20T21:18:19-07:00 cooling: thermal status 2
+2026-10-20T21:18:49-07:00 cooling: thermal status 1
+2026-10-20T21:19:19-07:00 cooling: thermal status 1
+2026-10-20T21:19:49-07:00 cooling: thermal status 1
+2026-10-20T21:20:19-07:00 start gpuP_cpuD_p2048_t2 first=B
+2026-10-20T21:23:56-07:00 end gpuP_cpuD_p2048_t2
+2026-10-20T21:24:16-07:00 THROTTLED gpuP_cpuD_p2048_t2, cooling down and repeating once
+2026-10-20T21:26:16-07:00 cooling: thermal status 1
+2026-10-20T21:26:46-07:00 cooling: thermal status 1
+2026-10-20T21:27:16-07:00 start gpuP_cpuD_p2048_t2_retry first=B
+2026-10-20T21:30:52-07:00 end gpuP_cpuD_p2048_t2_retry
+2026-10-20T21:31:12-07:00 cooling: thermal status 2
+2026-10-20T21:31:42-07:00 cooling: thermal status 2
+2026-10-20T21:32:12-07:00 cooling: thermal status 2
+2026-10-20T21:32:42-07:00 cooling: thermal status 1
+2026-10-20T21:33:12-07:00 cooling: thermal status 1
+2026-10-20T21:33:42-07:00 cooling: thermal status 1
+2026-10-20T21:34:12-07:00 start cpuP_gpuD_p2048_t2 first=B
+2026-10-20T21:37:23-07:00 end cpuP_gpuD_p2048_t2
+2026-10-20T21:37:43-07:00 THROTTLED cpuP_gpuD_p2048_t2, cooling down and repeating once
+2026-10-20T21:39:43-07:00 start cpuP_gpuD_p2048_t2_retry first=B
+2026-10-20T21:42:44-07:00 end cpuP_gpuD_p2048_t2_retry
+2026-10-20T21:43:04-07:00 cooling: thermal status 2
+2026-10-20T21:43:34-07:00 cooling: thermal status 2
+2026-10-20T21:44:04-07:00 cooling: thermal status 1
+2026-10-20T21:44:35-07:00 cooling: thermal status 1
+2026-10-20T21:45:05-07:00 start cpuD_gpuD_t2 first=B
+2026-10-20T21:48:13-07:00 end cpuD_gpuD_t2
+2026-10-20T21:48:33-07:00 THROTTLED cpuD_gpuD_t2, cooling down and repeating once
+2026-10-20T21:50:34-07:00 cooling: thermal status 1
+2026-10-20T21:51:04-07:00 cooling: thermal status 1
+2026-10-20T21:51:34-07:00 start cpuD_gpuD_t2_retry first=B
+2026-10-20T21:54:40-07:00 end cpuD_gpuD_t2_retry
+2026-10-20T21:55:00-07:00 cooling: thermal status 2
+2026-10-20T21:55:30-07:00 cooling: thermal status 2
+2026-10-20T21:56:00-07:00 cooling: thermal status 2
+2026-10-20T21:56:30-07:00 cooling: thermal status 1
+2026-10-20T21:57:00-07:00 cooling: thermal status 1
+2026-10-20T21:57:30-07:00 start gpuP_cpuD_p512_t3 first=A
+2026-10-20T22:00:51-07:00 end gpuP_cpuD_p512_t3
+2026-10-20T22:01:11-07:00 THROTTLED gpuP_cpuD_p512_t3, cooling down and repeating once
+2026-10-20T22:03:11-07:00 cooling: thermal status 1
+2026-10-20T22:03:41-07:00 cooling: thermal status 1
+2026-10-20T22:04:11-07:00 cooling: thermal status 1
+2026-10-20T22:04:42-07:00 start gpuP_cpuD_p512_t3_retry first=A
+2026-10-20T22:08:02-07:00 end gpuP_cpuD_p512_t3_retry
+2026-10-20T22:08:23-07:00 cooling: thermal status 3
+2026-10-20T22:08:53-07:00 cooling: thermal status 2
+2026-10-20T22:09:23-07:00 cooling: thermal status 2
+2026-10-20T22:09:53-07:00 cooling: thermal status 1
+2026-10-20T22:10:23-07:00 cooling: thermal status 1
+2026-10-20T22:10:53-07:00 cooling: thermal status 1
+2026-10-20T22:11:23-07:00 start cpuP_gpuD_p512_t3 first=A
+2026-10-20T22:14:12-07:00 end cpuP_gpuD_p512_t3
+2026-10-20T22:14:32-07:00 THROTTLED cpuP_gpuD_p512_t3, cooling down and repeating once
+2026-10-20T22:16:32-07:00 start cpuP_gpuD_p512_t3_retry first=A
+2026-10-20T22:19:22-07:00 end cpuP_gpuD_p512_t3_retry
+2026-10-20T22:19:42-07:00 cooling: thermal status 2
+2026-10-20T22:20:12-07:00 cooling: thermal status 1
+2026-10-20T22:20:42-07:00 cooling: thermal status 1
+2026-10-20T22:21:12-07:00 cooling: thermal status 1
+2026-10-20T22:21:42-07:00 start gpuP_cpuD_p2048_t3 first=A
+2026-10-20T22:25:19-07:00 end gpuP_cpuD_p2048_t3
+2026-10-20T22:25:39-07:00 THROTTLED gpuP_cpuD_p2048_t3, cooling down and repeating once
+2026-10-20T22:27:39-07:00 cooling: thermal status 1
+2026-10-20T22:28:09-07:00 cooling: thermal status 1
+2026-10-20T22:28:40-07:00 start gpuP_cpuD_p2048_t3_retry first=A
+2026-10-20T22:32:16-07:00 end gpuP_cpuD_p2048_t3_retry
+2026-10-20T22:32:36-07:00 cooling: thermal status 2
+2026-10-20T22:33:06-07:00 cooling: thermal status 2
+2026-10-20T22:33:36-07:00 cooling: thermal status 2
+2026-10-20T22:34:06-07:00 cooling: thermal status 1
+2026-10-20T22:34:37-07:00 cooling: thermal status 1
+2026-10-20T22:35:07-07:00 cooling: thermal status 1
+2026-10-20T22:35:37-07:00 start cpuP_gpuD_p2048_t3 first=A
+2026-10-20T22:38:46-07:00 end cpuP_gpuD_p2048_t3
+2026-10-20T22:39:06-07:00 THROTTLED cpuP_gpuD_p2048_t3, cooling down and repeating once
+2026-10-20T22:41:06-07:00 start cpuP_gpuD_p2048_t3_retry first=A
+2026-10-20T22:44:13-07:00 end cpuP_gpuD_p2048_t3_retry
+2026-10-20T22:44:33-07:00 cooling: thermal status 2
+2026-10-20T22:45:04-07:00 cooling: thermal status 2
+2026-10-20T22:45:34-07:00 cooling: thermal status 1
+2026-10-20T22:46:04-07:00 cooling: thermal status 1
+2026-10-20T22:46:34-07:00 start cpuD_gpuD_t3 first=A
+2026-10-20T22:49:41-07:00 end cpuD_gpuD_t3
+2026-10-20T22:50:01-07:00 THROTTLED cpuD_gpuD_t3, cooling down and repeating once
+2026-10-20T22:52:01-07:00 cooling: thermal status 1
+2026-10-20T22:52:31-07:00 start cpuD_gpuD_t3_retry first=A
+2026-10-20T22:55:38-07:00 end cpuD_gpuD_t3_retry
+2026-10-20T22:55:58-07:00 plan done

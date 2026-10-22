@@ -1,0 +1,9 @@
+# Task 3.2 co-runs on the samsung (R5CY21Y3VEV), llama-bench 8345f33, 1B Q4_0. A = prefill process, B = decode
+# process (both-decoding: A = CPU, B = GPU). CPU = mask 3f0, 6 threads, -dev none; GPU = mask 8, -ngl 99, -t 1,
+# flash attention auto at P=512 and off at P=2048 (the faster alone). Decode loops are -p 0 -n 128 (depth 0).
+# Reps: A gets >= 60 s of repetitions; B is sized to outlast A by 30% + 15 s, so B covers all of A.
+gpuP_cpuD_p512|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 512 -n 0 -ngl 99 -t 1 -r 65 --progress -o jsonl|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 42 --progress -o jsonl
+cpuP_gpuD_p512|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 512 -n 0 -ngl 0 -dev none -t 6 -r 39 --progress -o jsonl|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 27 --progress -o jsonl
+gpuP_cpuD_p2048|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 2048 -n 0 -ngl 99 -t 1 -fa 0 -r 13 --progress -o jsonl|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 44 --progress -o jsonl
+cpuP_gpuD_p2048|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 2048 -n 0 -ngl 0 -dev none -t 6 -r 7 --progress -o jsonl|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 31 --progress -o jsonl
+cpuD_gpuD|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 6 -r 27 --progress -o jsonl|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 27 --progress -o jsonl

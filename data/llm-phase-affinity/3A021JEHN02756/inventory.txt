@@ -1,0 +1,22 @@
+# Pixel 7a 3A021JEHN02756 inventory, 2026-10-20T22:40:15Z
+Pixel 7a
+google/lynx/lynx:17/CP3A.260905.009/16091614:user/release-keys
+MemTotal:        7645504 kB
+--- llama
+drwxrwxrwx 2 shell shell      3452 2026-09-26 19:03 .
+drwxrwx--x 9 shell shell      3452 2026-10-20 15:12 ..
+-rw-rw-rw- 1 shell shell 788490112 2026-09-01 17:39 llama3_2-1b_vulkan_4w.pte
+-rw-rw-rw- 1 shell shell 827179392 2026-09-01 17:37 llama3_2-1b_vulkan_8da4w.pte
+-rw-rw-rw- 1 shell shell      8192 2026-09-25 23:22 prompt_2048.txt
+-rw-rw-rw- 1 shell shell   2183982 2026-09-01 11:12 tokenizer.model
+--- gpu-lab
+drwxrwxrwx 2 shell shell  3452 2026-09-26 12:42 .
+drwxrwx--x 9 shell shell  3452 2026-10-20 15:12 ..
+-rwxr-xr-x 1 shell shell  7680 2026-09-26 10:49 fleet-lock-holder
+-rwxr-xr-x 1 shell shell 80024 2026-09-26 10:21 gpu-harness-73da19e72cdd
+-rw-rw-rw- 1 shell shell     6 2026-09-26 12:42 lock-000062a8-0100-0000-0000-000000000000
+--- minibench
+drwxrwxrwx 2 shell shell 3452 2026-09-26 18:53 .
+drwxrwx--x 9 shell shell 3452 2026-10-20 15:12 ..
+-rw-rw-rw- 1 shell shell 8192 2026-09-25 23:22 prompt_2048.txt
+--- no llama.cpp build and no llama_main runner on this phone

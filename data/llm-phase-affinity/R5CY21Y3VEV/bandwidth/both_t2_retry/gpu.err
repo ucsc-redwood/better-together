@@ -1,0 +1,12 @@
+Device: Samsung Xclipse 940 (Vulkan 1.3)
+Features: cooperativeMatrix=0 shaderFloat16=1 shaderInt8=1 16bitStorage=1 8bitStorage=1 vulkanMemoryModel=1 subgroupSizeControl=1
+Cooperative matrix not supported; matrix family disabled
+Subgroup size: 64 (size control: 1)
+BUFFER bytes=268435456 type=0 flags=7
+BUFFER bytes=268435456 type=0 flags=7
+BUFFER bytes=16 type=0 flags=7
+BUFFER bytes=268435456 type=0 flags=7
+DEVICE BUFFER bytes=268435456 type=1 flags=1 fallback=0
+DEVICE BUFFER bytes=268435456 type=1 flags=1 fallback=0
+DEVICE BUFFER bytes=16 type=1 flags=1 fallback=0
+DEVICE BUFFER bytes=268435456 type=1 flags=1 fallback=0

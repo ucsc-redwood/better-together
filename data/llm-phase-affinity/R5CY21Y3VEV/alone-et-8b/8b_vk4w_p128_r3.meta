@@ -1,0 +1,24 @@
+mask=8
+cmd=./llama_main --model_path /data/local/tmp/llama/llama3_1-8b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+gpu_clock_path=/sys/kernel/gpu/gpu_clock
+start_epoch=1792601731.755950351
+thermal_before:
+Thermal Status: 0
+Temperature{mValue=39.8, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=38.5, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=40.0, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=40.2, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=37.8, mType=3, mName=SKIN, mStatus=0}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=33.2, mType=4, mName=USB, mStatus=0}
+end_epoch=1792601777.605502656
+exit_code=0
+thermal_after:
+Thermal Status: 0
+Temperature{mValue=52.4, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=38.7, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=48.9, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=47.0, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=39.3, mType=3, mName=SKIN, mStatus=0}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=33.3, mType=4, mName=USB, mStatus=0}

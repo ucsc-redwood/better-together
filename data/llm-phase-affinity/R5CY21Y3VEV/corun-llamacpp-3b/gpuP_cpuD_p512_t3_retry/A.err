@@ -1,0 +1,25 @@
+1792589639.408923515 ggml_vulkan: Found 1 Vulkan devices:
+1792589639.420434023 ggml_vulkan: 0 = Samsung Xclipse 940 (Samsung Proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 64 | shared memory: 32768 | int dot: 0 | matrix cores: none
+1792589639.432821757 llama-bench: benchmark 1/1: starting
+1792589643.224952421 llama-bench: benchmark 1/1: warmup prompt run
+1792589653.706036992 llama-bench: benchmark 1/1: prompt run 1/21
+1792589656.511449882 llama-bench: benchmark 1/1: prompt run 2/21
+1792589659.497358671 llama-bench: benchmark 1/1: prompt run 3/21
+1792589662.950104414 llama-bench: benchmark 1/1: prompt run 4/21
+1792589666.411143203 llama-bench: benchmark 1/1: prompt run 5/21
+1792589670.458644960 llama-bench: benchmark 1/1: prompt run 6/21
+1792589676.168167539 llama-bench: benchmark 1/1: prompt run 7/21
+1792589681.884842148 llama-bench: benchmark 1/1: prompt run 8/21
+1792589687.594020195 llama-bench: benchmark 1/1: prompt run 9/21
+1792589693.289762187 llama-bench: benchmark 1/1: prompt run 10/21
+1792589699.007108789 llama-bench: benchmark 1/1: prompt run 11/21
+1792589704.720560664 llama-bench: benchmark 1/1: prompt run 12/21
+1792589710.428397578 llama-bench: benchmark 1/1: prompt run 13/21
+1792589716.136084101 llama-bench: benchmark 1/1: prompt run 14/21
+1792589721.843909765 llama-bench: benchmark 1/1: prompt run 15/21
+1792589727.552905156 llama-bench: benchmark 1/1: prompt run 16/21
+1792589733.259877148 llama-bench: benchmark 1/1: prompt run 17/21
+1792589739.107237929 llama-bench: benchmark 1/1: prompt run 18/21
+1792589749.342212226 llama-bench: benchmark 1/1: prompt run 19/21
+1792589759.551159414 llama-bench: benchmark 1/1: prompt run 20/21
+1792589769.860141484 llama-bench: benchmark 1/1: prompt run 21/21

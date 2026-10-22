@@ -1,0 +1,9 @@
+# Task 3.2 co-runs on the pixel (3A021JEHN02756), llama-bench 8345f33, 1B Q4_0. A = prefill process, B = decode
+# process (both-decoding: A = CPU, B = GPU). CPU = mask f0, 4 threads, -dev none; GPU = mask 8, -ngl 99, -t 1,
+# flash attention auto at P=512 and off at P=2048 (the faster alone). Decode loops are -p 0 -n 128 (depth 0).
+# Reps: A gets >= 60 s of repetitions; B is sized to outlast A by 30% + 15 s, so B covers all of A.
+gpuP_cpuD_p512|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 512 -n 0 -ngl 99 -t 1 -r 13 --progress -o jsonl|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 4 -r 26 --progress -o jsonl
+cpuP_gpuD_p512|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 512 -n 0 -ngl 0 -dev none -t 4 -r 21 --progress -o jsonl|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 14 --progress -o jsonl
+gpuP_cpuD_p2048|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 2048 -n 0 -ngl 99 -t 1 -fa 0 -r 3 --progress -o jsonl|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 4 -r 35 --progress -o jsonl
+cpuP_gpuD_p2048|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 2048 -n 0 -ngl 0 -dev none -t 4 -r 4 --progress -o jsonl|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 19 --progress -o jsonl
+cpuD_gpuD|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 0 -dev none -t 4 -r 16 --progress -o jsonl|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -ngl 99 -t 1 -r 14 --progress -o jsonl

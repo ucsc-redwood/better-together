@@ -1,0 +1,44 @@
+# EMS thread-placement diagnostic, 2026-10-20T22:04:49Z, llama-bench c745be2, 1B Q4_0, -dev none -ngl 0, pp512 (placement only, not a measurement)
+mask=380 threads=3 sample=1: tid state last_cpu utime_ticks allowed
+  4898 R 9 156 7-9
+  4902 S 8 0 7-9
+  4903 S 8 0 7-9
+  4904 R 9 119 7-9
+  4905 R 9 121 7-9
+mask=380 threads=3 sample=2: tid state last_cpu utime_ticks allowed
+  4898 R 9 196 7-9
+  4902 S 8 0 7-9
+  4903 S 8 0 7-9
+  4904 R 9 158 7-9
+  4905 R 9 160 7-9
+  result: avg_ts": 36.621124
+mask=180 threads=2 sample=1: tid state last_cpu utime_ticks allowed
+  5003 R 7 387 7-8
+  5005 S 8 0 7-8
+  5007 S 8 0 7-8
+  5008 R 8 353 7-8
+mask=180 threads=2 sample=2: tid state last_cpu utime_ticks allowed
+  5003 R 7 506 7-8
+  5005 S 8 0 7-8
+  5007 S 8 0 7-8
+  5008 R 8 470 7-8
+  result: avg_ts": 112.697254
+mask=3f0 threads=6 sample=1: tid state last_cpu utime_ticks allowed
+  5044 R 9 388 4-9
+  5046 S 4 0 4-9
+  5047 S 6 0 4-9
+  5048 R 8 362 4-9
+  5049 R 4 365 4-9
+  5050 R 7 371 4-9
+  5051 R 5 373 4-9
+  5052 R 6 378 4-9
+mask=3f0 threads=6 sample=2: tid state last_cpu utime_ticks allowed
+  5044 R 9 524 4-9
+  5046 S 4 0 4-9
+  5047 S 6 0 4-9
+  5048 R 8 498 4-9
+  5049 R 4 502 4-9
+  5050 R 7 508 4-9
+  5051 R 5 511 4-9
+  5052 R 6 515 4-9
+  result: avg_ts": 270.417326

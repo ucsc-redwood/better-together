@@ -1,0 +1,11 @@
+2026-10-20T15:08:33-07:00 start 1b_cpu180_pp_r1 mask=180 cmd=/data/local/tmp/lcpp/llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T15:09:31-07:00 end 1b_cpu180_pp_r1 rc=0
+2026-10-20T15:09:51-07:00 start 1b_cpu180_tg_r1 mask=180 cmd=/data/local/tmp/lcpp/llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+2026-10-20T15:10:34-07:00 end 1b_cpu180_tg_r1 rc=0
+2026-10-20T15:10:54-07:00 start 1b_cpu3f0_pp_r1 mask=3f0 cmd=/data/local/tmp/lcpp/llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:11:22-07:00 end 1b_cpu3f0_pp_r1 rc=0
+2026-10-20T15:11:42-07:00 start 1b_cpu3f0_tg_r1 mask=3f0 cmd=/data/local/tmp/lcpp/llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+2026-10-20T15:12:09-07:00 end 1b_cpu3f0_tg_r1 rc=0
+2026-10-20T15:12:29-07:00 start 1b_gpu_pp_r1 mask=8 cmd=/data/local/tmp/lcpp/llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-20T15:21:52-07:00 end 1b_gpu_pp_r1 rc=0
+2026-10-20T15:22:12-07:00 start 1b_gpu_tg_r1 mask=8 cmd=/data/local/tmp/lcpp/llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
