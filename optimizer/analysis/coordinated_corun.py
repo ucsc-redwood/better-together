@@ -359,6 +359,7 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
             (f"single PU ({uncoord['single_pu'].upper()}, llm-phase-affinity)", uncoord["single"]),
         ]
     base = max(cands, key=lambda x: x[1])
+    own = max(cands[:2], key=lambda x: x[1])  # this study's sustained rates only
     row = {
         "prompt": prompt,
         "gen": gen,
@@ -374,6 +375,8 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
         "baseline_from": base[0],
         "gain": best_spec[0] / base[1] if best_spec else None,
         "gain_vs_coordinated_dp": best_spec[0] / best_dp[0] if best_spec and best_dp else None,
+        "baseline_own": own[1],
+        "gain_own": best_spec[0] / own[1] if best_spec else None,
         "uncoord": uncoord,
         "sources": sorted(
             set(
@@ -419,6 +422,34 @@ def uncoordinated_grid(model):
     handoff_bw = {"cpu": bw["cpu"]["cpu"], "gpu": bw["gpu"]["gpu"]}
     rows, _ = lpa.grid(SERIAL, "llamacpp", model, alone, coruns, handoff_bw)
     return {(r["prompt"], r["gen"]): r for r in rows or []}, handoff_bw
+
+
+def rank_settings(alone, corun, model):
+    """Each specialized setting on its own: its best gain over the mixes that use its P (with every
+    measured data-parallel setting in the baseline). Used to pick the settings of stages B, C and F."""
+    refs = Refs(alone, model)
+    sets = settings(corun, refs)
+    uncoord, handoff_bw = uncoordinated_grid(model)
+    gbps = min(handoff_bw[c]["median"] for c in ("cpu", "gpu"))
+    out = []
+    for fam in ("gpu->cpu", "cpu->gpu"):
+        for s in sets[fam]:
+            only = {"gpu->cpu": [], "cpu->gpu": [], "dp": sets["dp"], fam: [s]}
+            best = None
+            for prompt in PROMPTS:
+                if near(prompt) != s["P"]:
+                    continue
+                h = lpa.handoff_seconds(model, prompt, gbps, lpa.KV_RW_BYTES["llamacpp"])
+                for gen in OUTPUTS:
+                    try:
+                        r = predict(prompt, gen, refs, only, h, uncoord.get((prompt, gen)))
+                    except (KeyError, TypeError):
+                        continue
+                    if r["gain"] and (best is None or r["gain"] > best[0]):
+                        best = (r["gain"], prompt, gen)
+            if best:
+                out.append({"key": s["key"], "family": fam, "gain": best[0], "mix": best[1:], **s})
+    return sorted(out, key=lambda x: -x["gain"])
 
 
 def grid(alone, corun, model):
@@ -590,8 +621,9 @@ def grid_table(rows):
     lines = [
         "| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU "
         "| uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel "
-        "| baseline (from) | **gain** | gain vs coordinated data-parallel | diag.: data-parallel with co-run prefill |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "| baseline (from) | **gain** | gain vs coordinated data-parallel | gain vs this study's baseline only "
+        "| diag.: data-parallel with co-run prefill |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         u = r["uncoord"]
@@ -604,12 +636,15 @@ def grid_table(rows):
         def g(x):
             return f"{x:.4f}" if x is not None else "—"
 
+        def g2(x):
+            return f"{x:.2f}" if x is not None else "—"
+
         lines.append(
             f"| {r['prompt']} | {r['gen']} | {g(r['spec'])} ({r['spec_setting']}) | {g(r['dp'])} ({r['dp_setting']}) | "
             f"{r['single']:.4f} ({r['single_pu']}) | {unc} | {g(r['spec_u1'])}, {g(r['dp_u1'])} | "
-            f"{r['baseline']:.4f} ({r['baseline_from']}) | **{r['gain']:.2f}** | "
+            f"{r['baseline']:.4f} ({r['baseline_from']}) | **{g2(r['gain'])}** | "
             + (f"{r['gain_vs_coordinated_dp']:.2f}" if r["gain_vs_coordinated_dp"] else "—")
-            + f" | {g(r.get('dp_prefill_corun'))} |"
+            + f" | {g2(r['gain_own'])} | {g(r.get('dp_prefill_corun'))} |"
         )
     return "\n".join(lines)
 
@@ -802,6 +837,15 @@ def main():
         for fam in sets:
             if sets[fam]:
                 print(f"### {model}: trade-off curve, {fam}\n\n{tradeoff_table(sets, fam)}\n")
+        ranked = rank_settings(alone, corun, model)
+        if ranked:
+            print(f"### {model}: each specialized setting alone, best gain over its mixes\n")
+            print("| setting | family | best gain | at P, D |\n|---|---|---|---|")
+            for x in ranked:
+                print(
+                    f"| {x['key']} | {x['family']} | {x['gain']:.3f} | {x['mix'][0]}, {x['mix'][1]} |"
+                )
+            print()
         rows, why = grid(alone, corun, model)
         if rows is None:
             print(f"### {model}: no prediction grid ({why})\n")

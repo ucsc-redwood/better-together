@@ -158,3 +158,5 @@ def test_predict_hand_computed():
     # A larger uncoordinated data-parallel bound becomes the baseline.
     r2 = predict(512, 128, Refs(alone, "1b"), sets, 0.1, {**unc, "dp_corun": 0.2})
     assert r2["baseline"] == 0.2 and r2["baseline_from"].startswith("uncoordinated")
+    # The diagnostic against this study's own baseline ignores llm-phase-affinity's values.
+    assert math.isclose(r2["baseline_own"], dp_y) and math.isclose(r2["gain_own"], r["gain"])
