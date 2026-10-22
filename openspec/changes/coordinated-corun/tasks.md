@@ -27,7 +27,7 @@ Rules for every task:
 
 ## 3. Optional: Pixel ExecuTorch
 
-- [ ] 3.1 Design D5 on the Pixel with the `llm-phase-affinity` ExecuTorch runner and `.pte` files (rebuilt or re-pushed into `/data/local/tmp/ccr` if the earlier study removed them). Verify: the tables, or the skip recorded with its reason.
+- [x] 3.1 Design D5 on the Pixel with the `llm-phase-affinity` ExecuTorch runner and `.pte` files (rebuilt or re-pushed into `/data/local/tmp/ccr` if the earlier study removed them). Verify: the tables, or the skip recorded with its reason.
 
 ## 4. Prediction and decision
 

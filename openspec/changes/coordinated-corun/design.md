@@ -152,6 +152,20 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   of A and D has picked their settings.
 - **Pixel ExecuTorch part (D5) in parallel.** It runs on the Pixel at the same time as the Samsung sweep, not after
   it. The two phones share only the host's adb. `llm-phase-affinity` also ran both phones at once.
+- **Pixel ExecuTorch part (D5), what was run.** `llm-phase-affinity`'s `llama_main` (`e229c58784`, XNNPACK + Vulkan)
+  and its XNNPACK 8da4w 1B `.pte` were pushed to `/data/local/tmp/ccr`. The owner's Vulkan `.pte` files were read in
+  place. The co-runs repeat that study's two plans per CPU decode mask (`f0` 4 threads, `c0` 2, `30` 2), with the GPU
+  on Vulkan 8da4w. On the prefill side, GPU prefills count inside a partner's 512-token CPU decode windows. On the
+  decode side, warm 8-token CPU windows count inside a partner prefill or a partner 512-token decode. Each side is
+  compared with the same loop run alone. Alone rates were measured again for all three masks and both Vulkan files
+  (`3A021JEHN02756/alone-et/`). With co-runs at P = 512 only, the Pixel grid covers P = 128 (using the 512 ratios,
+  as D5 does) and 512. The Pixel was on AC power but did not charge (battery status 4, "not charging"). It ran from
+  70% down to 13%, with automatic battery saver off.
+- **Battery guard.** The Samsung drains about 3%/h during co-runs even on USB power, and the sweep lasts about a day.
+  `drivers/battery_guard.sh` pauses the phone's driver (SIGSTOP to its PID) between runs once the battery falls to
+  20%, and resumes it (SIGCONT) at 50%. It reads the battery every 60 s. Pauses are logged in
+  `<serial>/battery_guard.log`. A run is never interrupted, and after a pause the thermal-status-0 wait applies as
+  usual.
 - **Commits.** This session could not write the main checkout's `.git` (index, objects and refs are outside its
   writable area). Every commit therefore goes to a bare clone sharing the main repository's objects,
   `build/ccr-git.git` in this worktree, on branch `openspec/coordinated-corun`. Fetch it from there.
