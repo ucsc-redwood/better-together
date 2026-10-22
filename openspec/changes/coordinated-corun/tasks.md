@@ -17,12 +17,12 @@ Rules for every task:
 
 ## 2. Sweeps (Samsung, llama.cpp)
 
-- [ ] 2.1 Paced-alone rates: GPU prefill (P = 512, 2048) and GPU decode at u = 1.0, 0.8, 0.67, 0.5, 0.33; CPU decode alone on each kept mask. Verify: a table of rate and achieved duty per setting, with clocks.
-- [ ] 2.2 Stage A: GPU prefill paced at the five duties next to CPU decode on `3f0`, P = 512 and 2048. Verify: both rates and ratios per duty.
-- [ ] 2.3 Stage D: GPU decode paced at the five duties next to CPU decode on `3f0`. Verify: same table for the data-parallel pair.
+- [x] 2.1 Paced-alone rates: GPU prefill (P = 512, 2048) and GPU decode at u = 1.0, 0.8, 0.67, 0.5, 0.33; CPU decode alone on each kept mask. Verify: a table of rate and achieved duty per setting, with clocks.
+- [x] 2.2 Stage A: GPU prefill paced at the five duties next to CPU decode on `3f0`, P = 512 and 2048. Verify: both rates and ratios per duty.
+- [x] 2.3 Stage D: GPU decode paced at the five duties next to CPU decode on `3f0`. Verify: same table for the data-parallel pair.
 - [ ] 2.4 Stage B: CPU decode on each kept mask next to GPU prefill at u = 1.0 and the best u of 2.2; repeat 2.3 at the best mask. Verify: same tables.
 - [ ] 2.5 Stage C: C = 128 and 256 at the best (u, mask). Verify: same table.
-- [ ] 2.6 Stage E: CPU prefill on `3f0` next to GPU decode at u = 1.0 and 0.5. Verify: same table.
+- [x] 2.6 Stage E: CPU prefill on `3f0` next to GPU decode at u = 1.0 and 0.5. Verify: same table.
 - [ ] 2.7 Stage F: 3B at the best specialized and data-parallel settings and at u = 1.0. Verify: same tables for 3B.
 
 ## 3. Optional: Pixel ExecuTorch
