@@ -26,10 +26,10 @@ Rules for every task:
 
 - [x] 3.1 Measure CPU and GPU read bandwidth on each phone, alone and together (design D4). Verify: GB/s per case, and each PU's decode rate (from 2.x) as a fraction of its bandwidth bound.
 - [x] 3.2 Co-run pairs with llama.cpp (design D3) on both phones, 1B, prompt 512 and 2048: GPU-prefill + CPU-decode, CPU-prefill + GPU-decode, CPU-decode + GPU-decode. Verify: each rate co-running and its ratio to alone, for each pair.
-- [ ] 3.3 The same pairs with ExecuTorch on the Samsung (1B), if 1.4 succeeded. Verify: same table, or the skip recorded.
+- [x] 3.3 The same pairs with ExecuTorch on the Samsung (1B), if 1.4 succeeded. Verify: same table, or the skip recorded.
 
 ## 4. Prediction and decision
 
 - [x] 4.1 Write `optimizer/analysis/llm_phase_affinity.py` implementing design D5 over the raw results, with a pytest on a hand-computed case (one mix, known rates). Verify: `uv run pytest -q optimizer` passes.
-- [ ] 4.2 Produce the grid (phone x model x runtime x mix): best single PU, ideal data-parallel (alone and co-run), every specialized pipeline, and the gain. Verify: the grid is in the decision record with every input traceable to a raw file.
-- [ ] 4.3 Write `docs/reports-for-human/<date>-llm-phase-affinity.md`: the affinity table, interference, bandwidth, prediction grid, and the go/no-go per the spec; if "go", the best (phone, model, runtime, mix, PU assignment) for the PoC; if "no-go", the best margin and the limiting effect. Verify: `openspec validate llm-phase-affinity --strict` passes, the record states the decision, and `/data/local/tmp/lpa` is removed from both phones.
+- [x] 4.2 Produce the grid (phone x model x runtime x mix): best single PU, ideal data-parallel (alone and co-run), every specialized pipeline, and the gain. Verify: the grid is in the decision record with every input traceable to a raw file.
+- [x] 4.3 Write `docs/reports-for-human/<date>-llm-phase-affinity.md`: the affinity table, interference, bandwidth, prediction grid, and the go/no-go per the spec; if "go", the best (phone, model, runtime, mix, PU assignment) for the PoC; if "no-go", the best margin and the limiting effect. Verify: `openspec validate llm-phase-affinity --strict` passes, the record states the decision, and `/data/local/tmp/lpa` is removed from both phones.

@@ -6,35 +6,43 @@ data-parallel execution of on-device LLM inference? The spec
 "go" only if some specialized pipeline is predicted to reach at least 1.2x the co-run-corrected data-parallel
 bound, on at least one phone and one request mix (prompt P = 128/512/2048 tokens, output D = 32/128/512 tokens).
 
-**Decision: no-go.** No specialized pipeline reaches 1.2x on any phone, model, runtime or mix.
+**Decision: go, by a narrow margin, in one cell.** Every grid in scope was assessed with its own co-run rates,
+measured with the two runs overlapping for the whole measured interval. One specialized pipeline passes the gate.
 
-- **Best margin: 1.08.** Pixel 7a, ExecuTorch, Llama 3.2 1B, P = 512, D = 32, prefill on the GPU (Vulkan 8da4w)
-  and decode on the CPU (XNNPACK, cores 4-7): 0.453 requests/s against a data-parallel bound of 0.419.
-  Everywhere else the gain is at most 0.97 (that phone and runtime), 0.84 (Samsung ExecuTorch), 0.79 (Pixel
-  llama.cpp), 0.74 (Samsung llama.cpp 1B) and 0.73 (3B).
-- **The limiting effect is co-run interference.** A phase keeps 0.34-0.89 of its alone rate while the other PU
-  runs the other phase, and the specialized pair pays for that on both of its sides. At the best cell, the CPU
-  decode keeps 0.59 of its rate next to a GPU prefill, where 0.66 would reach the gate, and the GPU prefill keeps
-  0.89. With every phase at its alone rate, the same mix would reach 1.83, and the Samsung's llama.cpp mixes up
-  to 1.74.
+- **The qualifying cell: 1.23.**
+  - Configuration: Samsung S24+, ExecuTorch, Llama 3.2 3B, P = 2048, D = 512. Prefill runs on the CPU (XNNPACK
+    8da4w, cores 4-9) and decode on the GPU (Vulkan 4w).
+  - It delivers 0.0241 requests/s against a co-run data-parallel bound of 0.0196.
+  - The three trials give 1.20, 1.26 and 1.24. Taking the least favourable ratio of every input across trials
+    gives 1.15.
+- **Why it passes.**
+  - In data-parallel both PUs decode, and two 3B decodes interfere heavily on this phone: the CPU decode keeps
+    0.43 of its rate and the GPU decode 0.67.
+  - In the split pipeline the GPU decode keeps 0.92 next to a CPU prefill. It sets the period (41.5 s for 512
+    tokens), with the CPU prefill (30.3 s) hidden behind it. The KV hand-off adds 19 ms.
+- **The caveat a PoC must face.** At this cell the co-run data-parallel bound is below the GPU working alone
+  (0.0205 requests/s), because running the CPU's decode alongside costs the GPU more than the CPU adds.
+  - Against the GPU alone the pipeline is 1.18x.
+  - Against the better of data-parallel and one PU, with each phase slowed only while the other runs, it is 1.20.
+  - The gate passes as the spec defines it, against the co-run data-parallel bound. Its advantage over the
+    best single PU is just under 1.2.
+- **Nowhere else is close.** The next cells are 1.03:
+  - ExecuTorch 3B at P = 512, D = 128;
+  - the Pixel's ExecuTorch 1B at P = 512, D = 32, whose CPU decode keeps 0.65 next to a GPU prefill where 0.76
+    would pass.
+  The Samsung's ExecuTorch 1B reaches 0.96 and llama.cpp at most 0.79. No other cell reaches 1.2 however its
+  measured interference is priced (sections 5-6).
 - **The phase affinity is real.** Where the GPU path is strong, the GPU prefills 1.4-2.9x faster than the CPU and,
-  at P <= 512, the CPU decodes 1.2-2x faster (except ExecuTorch 3B, where they decode alike). A pipeline that
-  exploits it beats the best single PU, by 1.54x at the best cell. Data-parallel execution uses the same two PUs,
-  though, and co-running the two phases costs about as much as co-running two decodes (section 3).
-- **The margin at the best cell is narrow and depends on how the pipeline is priced.** The KV hand-off costs milliseconds.
-  - Giving data-parallel prefill the co-run slowdown too, where design D5 keeps it at its alone rate, lifts the
-    cell to 1.17.
-  - Its three co-run trials, taken one at a time, would give 0.93-1.17.
-  - D5 charges the decode its co-run rate for the whole period, though in this pipeline the GPU prefills only
-    1.35 s of each ~1.8 s period. If the decode slowed only while the GPU prefills, the cell would reach 1.29.
-    That is the one cell, of all grids, where this changes the verdict (section 6).
-- **The prompt-heavy agent corner (P = 2048, D = 32) is the weakest**: 0.41-0.67. At P = 2048 the GPU decodes as
+  at P <= 512, the CPU decodes 1.2-2x faster (except ExecuTorch 3B, where they decode alike). Co-running costs
+  both PUs, though. A split pipeline beats data-parallel only where data-parallel suffers more, as with 3B here
+  (section 3).
+- **The prompt-heavy agent corner (P = 2048, D = 32) is the weakest**: 0.41-0.62. At P = 2048 the GPU decodes as
   fast as the CPU or faster (except on the Pixel's llama.cpp, whose GPU is slower at everything), so there is
-  no decode to hand to the CPU, and the GPU prefill keeps 0.45-0.68 of its rate next to a CPU decode.
+  no decode to hand to the CPU, and the GPU prefill keeps 0.44-0.68 of its rate next to a CPU decode.
 
 ## 1. What was run
 
-All timing ran on the two phones (2026-10-20 15:08 to 2026-10-21 10:19, PDT); nothing was timed on rocky-ryzen
+All timing ran on the two phones (2026-10-20 15:08 to 2026-10-21 21:00, PDT); nothing was timed on rocky-ryzen
 or the build box. Choices made during the run, each with its reason, are in
 `openspec/changes/llm-phase-affinity/design.md` ("Deviations and choices"). The ones that shape the numbers:
 
@@ -60,10 +68,17 @@ or the build box. Choices made during the run, each with its reason, are in
   before every run and leaves 20 s between runs. A run that ends at thermal status 1 or more is repeated once
   after a 120 s cooldown, and the repeat replaces it. The GPU clock and every CPU policy frequency are sampled
   every 0.5 s during each run (`*.clk`).
-- **Co-runs** (design D3): two pinned processes started back to back, both orders, 3 trials per pair. llama.cpp
-  loops a phase with `llama-bench -r`. A rate counts only the repetitions that the other process's repetitions
-  cover wholly. ExecuTorch loops whole `llama_main` processes. Each side is compared with the same loop run
-  alone, and decode windows carry their duty (section 3).
+- **Co-runs** (design D3): two pinned processes started back to back, both orders, 3 trials per pair. Every
+  counted interval lies wholly inside the partner's compute, so the two runs overlap for the whole measured
+  interval (spec "Co-run interference is measured").
+  - llama.cpp loops a phase with `llama-bench -r`. A repetition counts only if the other process's
+    repetitions cover it wholly.
+  - ExecuTorch's `llama_main` cannot repeat a phase, so whole processes loop, and model loads leave gaps. A
+    prefill counts only if a partner 512-token decode window covers it. Decode is measured separately, in warm
+    8-token windows that count only inside a partner prefill or decode. Each side is compared with the same
+    loop run alone, and the counted / total intervals per trial are reported.
+  - A first ExecuTorch decode estimate extrapolated partly overlapped windows to full overlap. It does not meet
+    the spec and is kept only as a labelled diagnostic (design.md).
 - **Bandwidth** (design D4): a pinned streaming read of 256 MiB (`cpu_readbw`, one thread per core of the wider
   set) and the owner's `igpu-roofline` `mem_read_v4` kernel, alone and together, 40 s per case, 3 trials.
 - **Prediction** (design D5): `optimizer/analysis/llm_phase_affinity.py`; its pytest checks a hand-computed mix.
@@ -91,14 +106,14 @@ faster: a split pipeline needs both. Decode is at KV depth P. Medians of 3 runs;
   1.30 and 2.12, Pixel ExecuTorch 0.96. From KV depth 128 to 2048 the CPU decode loses 37-65% of its rate, the GPU
   decode 8-26%.
 - **Alone, specialization would pay.** With every phase at its alone rate ("gain, no interference" in section 5),
-  a split pipeline would beat the co-run data-parallel bound by up to 1.83 (Pixel ExecuTorch 1B) and 1.74
-  (Samsung llama.cpp 3B).
+  a split pipeline would beat the co-run data-parallel bound by up to 1.74 (Samsung llama.cpp 3B) and 1.59
+  (Pixel ExecuTorch 1B).
 
 ## 3. Interference: each phase co-running
 
-Rate while the other PU runs the other phase, divided by the rate alone. llama.cpp: against the alone sweep.
-ExecuTorch: against the same loop run alone; the decode ratio is extrapolated to a fully overlapped window
-(design.md, "ExecuTorch co-runs"), and the both-decoding ratios are as measured.
+Rate while the other PU runs the other phase (or, last column, both decode), divided by the rate alone. Every
+counted interval is wholly overlapped by the partner's compute (section 1). llama.cpp: against the alone sweep.
+ExecuTorch: against the same loop run alone; counted / total intervals per trial are in the appendix.
 
 | Phone | Runtime | P | GPU prefill next to CPU decode | CPU decode next to GPU prefill | CPU prefill next to GPU decode | GPU decode next to CPU prefill | both decoding: CPU, GPU |
 |---|---|---|---|---|---|---|---|
@@ -106,27 +121,38 @@ ExecuTorch: against the same loop run alone; the decode ratio is extrapolated to
 | Samsung S24+ | llama.cpp 1B | 2048 | 0.54 | 0.34 | 0.65 | 0.52 | ″ |
 | Samsung S24+ | llama.cpp 3B | 512 | 0.48 | 0.36 | 0.60 | 0.61 | 0.20, 0.76 |
 | Samsung S24+ | llama.cpp 3B | 2048 | 0.45 | 0.34 | 0.68 | 0.38 | ″ |
-| Samsung S24+ | ExecuTorch 1B | 512 | 0.69 | 0.55 | 0.79 | 0.51 | 0.67, 0.59 |
-| Samsung S24+ | ExecuTorch 1B | 2048 | 0.54 | 0.60 | 0.85 | 0.58 | ″ |
+| Samsung S24+ | ExecuTorch 1B | 512 | 0.69 | 0.74 | 0.79 | 1.02 | 0.65, 0.95 |
+| Samsung S24+ | ExecuTorch 1B | 2048 | 0.54 | 0.63 | 0.85 | 0.96 | ″ |
+| Samsung S24+ | ExecuTorch 3B | 512 | 0.48 | 0.73 | 0.71 | 0.92 | 0.43, 0.67 |
+| Samsung S24+ | ExecuTorch 3B | 2048 | 0.44 | 0.60 | 0.75 | 0.92 | ″ |
 | Pixel 7a | llama.cpp 1B | 512 | 0.57 | 0.62 | 0.56 | 0.66 | 0.58, 0.63 |
 | Pixel 7a | llama.cpp 1B | 2048 | 0.48 | 0.59 | 0.63 | 0.61 | ″ |
-| Pixel 7a | ExecuTorch 1B | 512 | 0.89 | 0.59 | 0.84 | 0.60 | 0.82, 0.67 |
-| Pixel 7a | ExecuTorch 1B | 2048 | 0.68 | 0.73 | 0.84 | 0.61 | ″ |
+| Pixel 7a | ExecuTorch 1B | 512 | 0.89 | 0.65 | 0.84 | 1.07 | 0.74, 0.99 |
+| Pixel 7a | ExecuTorch 1B | 2048 | 0.68 | 0.66 | 0.84 | 1.06 | ″ |
 
-- **No pairing is free.** In a specialized pair each phase keeps 0.34-0.89 of its rate; two decodes keep
-  0.20-0.82. Prefill is not the quiet partner the proposal hoped for:
-  - on the Pixel, a llama.cpp decode loses as much next to a prefill as next to another decode (CPU 0.62 vs 0.58,
-    GPU 0.66 vs 0.63);
-  - on the Samsung, a GPU prefill hurts the CPU decode less than a GPU decode does (0.41 vs 0.21). But the GPU
-    decode loses more next to a CPU prefill (0.55 vs 0.74), and each prefill keeps only about half its rate
-    (GPU 0.46, CPU 0.56 at P = 512).
-- **On the Samsung the CPU loses when the GPU streams.** Next to a GPU decode the CPU's llama.cpp decode keeps 0.21
-  and the GPU 0.74. Its streaming read falls from 36 to 7.6 GB/s while the GPU's falls from 47 to 40 (section 4).
-  The Pixel splits the loss evenly (0.58, 0.63; reads 24 to 14.5 and 34 to 22.6 GB/s).
-- **On the Samsung, ExecuTorch spares the CPU more than llama.cpp does.** Its CPU decode keeps 0.55 next to a GPU
-  prefill (llama.cpp 0.41) and 0.67 next to a GPU decode (0.21); its GPU decode keeps 0.51-0.59 (llama.cpp
-  0.52-0.74). Part of the gap is method: the ExecuTorch loops leave gaps for model loads, and the both-decoding
-  ratios are as measured, at duty 0.78 and 0.88.
+- **The CPU decode always pays.** Next to a GPU prefill it keeps 0.34-0.74 of its rate, next to a GPU decode
+  0.20-0.74. Each prefill loses too: the GPU's keeps 0.44-0.89 next to a CPU decode, the CPU's 0.56-0.85 next to
+  a GPU decode.
+- **The GPU decode depends on the runtime and the partner.** ExecuTorch's Vulkan decode is barely touched by a
+  CPU prefill (0.92-1.07), or by a CPU decode with 1B (0.95-0.99). Next to a 3B CPU decode it keeps 0.67.
+  llama.cpp's GPU decode loses either way (0.38-0.76).
+- **On the Samsung a prefill partner is quieter for the CPU decode than a decode partner; on the Pixel it is
+  not.** CPU decode next to a GPU prefill vs next to a GPU decode:
+  - Samsung: llama.cpp 1B 0.41 vs 0.21, ExecuTorch 1B 0.74 vs 0.65, ExecuTorch 3B 0.60-0.73 vs 0.43;
+  - Pixel: llama.cpp 0.62 vs 0.58, ExecuTorch 0.65 vs 0.74.
+
+  For the GPU decode the picture is mixed. Next to a CPU prefill vs a CPU decode it keeps: ExecuTorch 3B 0.92 vs
+  0.67, ExecuTorch 1B 0.96-1.07 vs 0.95-0.99, llama.cpp on the Samsung 0.38-0.61 vs 0.74-0.76.
+- **Only ExecuTorch 3B on the Samsung has both conditions.** Each decode is quieter next to a prefill than next to
+  the other decode, and data-parallel pays heavily for running two decodes. That is the cell that passes.
+  - With 1B ExecuTorch, the GPU decode keeps 0.95-0.99 next to a CPU decode, so data-parallel loses little. The
+    split pipeline's critical phase pays in full: the CPU decode next to a GPU prefill (0.63-0.74), or the GPU
+    prefill next to a CPU decode (0.54-0.89).
+  - With llama.cpp on the Samsung, data-parallel pays heavily (CPU decode 0.20-0.21), but so does the split: the
+    GPU prefill keeps 0.45-0.54 next to a CPU decode, the GPU decode 0.38-0.61 next to a CPU prefill.
+- **On the Samsung, llama.cpp's CPU loses when the GPU streams.** Next to a GPU decode its CPU decode keeps 0.20-0.21
+  and the GPU 0.74-0.76. Its streaming read falls from 36 to 7.6 GB/s while the GPU's falls from 47 to 40
+  (section 4). The Pixel splits the loss evenly (0.58, 0.63; reads 24 to 14.5 and 34 to 22.6 GB/s).
 
 ## 4. Memory bandwidth
 
@@ -157,7 +183,7 @@ Q4_0 model size, since Llama 3.2 ties the output matrix to the embedding):
 
 Request throughput (requests/s) by design D5. "Data-parallel, co-run" is the gate's reference; "gain" is the
 best specialized pipeline over it. The KV hand-off is copied at the slower PU's alone read bandwidth (1B, P = 2048:
-64 MiB of fp16 K and V read and written, 4-8 ms; ExecuTorch writes it as fp32). The last five columns are
+64 MiB of fp16 K and V read and written, 4-8 ms; ExecuTorch writes it as fp32). The last six columns are
 diagnostics, not the gate:
 - the gain with the specialized pair at its alone rates;
 - the gain without the KV hand-off;
@@ -166,154 +192,154 @@ diagnostics, not the gate:
   and the best single PU;
 - the gain against a data-parallel bound whose prefill also runs at its co-run rate (design D5 keeps prefill at
   its alone rate, which favours data-parallel);
+- ExecuTorch only: the gain with the earlier, duty-extrapolated co-run estimate, which does not meet the spec's
+  overlap requirement (design.md);
 - for the best pair, the decode co-run ratio used and the one that would reach 1.2.
 
-A 3B grid built on 1B co-run ratios is a transfer and is not counted for the gate.
+Every grid uses its own model's co-run rates.
 
 ### Samsung S24+ (R5CY21Y3VEV): llamacpp 1b: predicted request throughput (requests/s)
 
-| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | best pair: decode ratio used / needed for the gate |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 1.0391 (CPU) | 0.8929 | 1.9018 | 0.9869 | 0.6795 | 0.5912 | **0.69** | 1.67 | 0.69 | 1.07 | 0.79 | 0.41 / 0.72 |
-| 128 | 128 | 0.3600 (CPU) | 0.2706 | 0.6134 | 0.2761 | 0.1699 | 0.1478 | **0.62** | 1.50 | 0.62 | 1.02 | 0.64 | 0.41 / 0.80 |
-| 128 | 512 | 0.0996 (CPU) | 0.0714 | 0.1658 | 0.0712 | 0.0425 | 0.0370 | **0.60** | 1.45 | 0.60 | 1.01 | 0.60 | 0.41 / 0.83 |
-| 512 | 32 | 0.5329 (GPU) | 0.5486 | 0.9892 | 0.6704 | 0.4990 | 0.3652 | **0.74** | 1.60 | 0.74 | 0.84 | 1.05 | 0.41 / unreachable |
-| 512 | 128 | 0.2410 (CPU) | 0.2268 | 0.4533 | 0.2384 | 0.1576 | 0.1453 | **0.66** | 1.61 | 0.66 | 1.09 | 0.76 | 0.41 / 0.75 |
-| 512 | 512 | 0.0835 (CPU) | 0.0678 | 0.1458 | 0.0667 | 0.0394 | 0.0363 | **0.59** | 1.44 | 0.59 | 1.03 | 0.62 | 0.41 / 0.84 |
-| 2048 | 32 | 0.1777 (GPU) | 0.0632 | 0.2769 | 0.2405 | 0.1172 | 0.0715 | **0.49** | 0.90 | 0.49 | 0.70 | 0.76 | 0.34 / unreachable |
-| 2048 | 128 | 0.1153 (GPU) | 0.0544 | 0.1924 | 0.1359 | 0.0892 | 0.0715 | **0.66** | 1.59 | 0.66 | 0.78 | 0.87 | 0.34 / unreachable |
-| 2048 | 512 | 0.0479 (GPU) | 0.0349 | 0.0888 | 0.0500 | 0.0223 | 0.0318 | **0.64** | 1.30 | 0.64 | 0.95 | 0.72 | 0.52 / 0.98 |
+| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate | best pair: decode ratio used / needed for the gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 32 | 1.0391 (CPU) | 0.8929 | 1.9018 | 0.9869 | 0.6795 | 0.5912 | **0.69** | 1.67 | 0.69 | 1.07 | 0.79 | — | 0.41 / 0.72 |
+| 128 | 128 | 0.3600 (CPU) | 0.2706 | 0.6134 | 0.2761 | 0.1699 | 0.1478 | **0.62** | 1.50 | 0.62 | 1.02 | 0.64 | — | 0.41 / 0.80 |
+| 128 | 512 | 0.0996 (CPU) | 0.0714 | 0.1658 | 0.0712 | 0.0425 | 0.0370 | **0.60** | 1.45 | 0.60 | 1.01 | 0.60 | — | 0.41 / 0.83 |
+| 512 | 32 | 0.5329 (GPU) | 0.5486 | 0.9892 | 0.6704 | 0.4990 | 0.3652 | **0.74** | 1.60 | 0.74 | 0.84 | 1.05 | — | 0.41 / unreachable |
+| 512 | 128 | 0.2410 (CPU) | 0.2268 | 0.4533 | 0.2384 | 0.1576 | 0.1453 | **0.66** | 1.61 | 0.66 | 1.09 | 0.76 | — | 0.41 / 0.75 |
+| 512 | 512 | 0.0835 (CPU) | 0.0678 | 0.1458 | 0.0667 | 0.0394 | 0.0363 | **0.59** | 1.44 | 0.59 | 1.03 | 0.62 | — | 0.41 / 0.84 |
+| 2048 | 32 | 0.1777 (GPU) | 0.0632 | 0.2769 | 0.2405 | 0.1172 | 0.0715 | **0.49** | 0.90 | 0.49 | 0.70 | 0.76 | — | 0.34 / unreachable |
+| 2048 | 128 | 0.1153 (GPU) | 0.0544 | 0.1924 | 0.1359 | 0.0892 | 0.0715 | **0.66** | 1.59 | 0.66 | 0.78 | 0.87 | — | 0.34 / unreachable |
+| 2048 | 512 | 0.0479 (GPU) | 0.0349 | 0.0888 | 0.0500 | 0.0223 | 0.0318 | **0.64** | 1.30 | 0.64 | 0.95 | 0.72 | — | 0.52 / 0.98 |
 
 ### Samsung S24+ (R5CY21Y3VEV): llamacpp 3b: predicted request throughput (requests/s)
 
-| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | best pair: decode ratio used / needed for the gate |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 0.3973 (CPU) | 0.1679 | 0.7161 | 0.3694 | 0.2321 | 0.2477 | **0.67** | 1.74 | 0.67 | 1.03 | 0.77 | 0.61 / 1.10 |
-| 128 | 128 | 0.1394 (CPU) | 0.0464 | 0.2342 | 0.1042 | 0.0580 | 0.0619 | **0.59** | 1.54 | 0.59 | 1.01 | 0.62 | 0.61 / 1.24 |
-| 128 | 512 | 0.0388 (CPU) | 0.0119 | 0.0636 | 0.0269 | 0.0145 | 0.0155 | **0.57** | 1.49 | 0.57 | 1.00 | 0.58 | 0.61 / 1.28 |
-| 512 | 32 | 0.1834 (GPU) | 0.1253 | 0.3339 | 0.2271 | 0.1657 | 0.1306 | **0.73** | 1.52 | 0.73 | 0.75 | 1.02 | 0.36 / unreachable |
-| 512 | 128 | 0.0784 (CPU) | 0.0426 | 0.1546 | 0.0831 | 0.0442 | 0.0598 | **0.72** | 1.48 | 0.72 | 1.00 | 0.83 | 0.61 / 1.02 |
-| 512 | 512 | 0.0269 (CPU) | 0.0117 | 0.0497 | 0.0236 | 0.0111 | 0.0150 | **0.64** | 1.30 | 0.64 | 1.02 | 0.66 | 0.61 / 1.16 |
-| 2048 | 32 | 0.0636 (GPU) | 0.0445 | 0.0965 | 0.0831 | 0.0351 | 0.0252 | **0.42** | 0.93 | 0.42 | 0.66 | 0.72 | 0.34 / unreachable |
-| 2048 | 128 | 0.0414 (GPU) | 0.0236 | 0.0663 | 0.0469 | 0.0261 | 0.0252 | **0.56** | 1.62 | 0.56 | 0.67 | 0.80 | 0.34 / unreachable |
-| 2048 | 512 | 0.0173 (GPU) | 0.0082 | 0.0298 | 0.0173 | 0.0065 | 0.0086 | **0.50** | 1.29 | 0.50 | 0.83 | 0.58 | 0.38 / 0.93 |
+| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate | best pair: decode ratio used / needed for the gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 32 | 0.3973 (CPU) | 0.1679 | 0.7161 | 0.3694 | 0.2321 | 0.2477 | **0.67** | 1.74 | 0.67 | 1.03 | 0.77 | — | 0.61 / 1.10 |
+| 128 | 128 | 0.1394 (CPU) | 0.0464 | 0.2342 | 0.1042 | 0.0580 | 0.0619 | **0.59** | 1.54 | 0.59 | 1.01 | 0.62 | — | 0.61 / 1.24 |
+| 128 | 512 | 0.0388 (CPU) | 0.0119 | 0.0636 | 0.0269 | 0.0145 | 0.0155 | **0.57** | 1.49 | 0.57 | 1.00 | 0.58 | — | 0.61 / 1.28 |
+| 512 | 32 | 0.1834 (GPU) | 0.1253 | 0.3339 | 0.2271 | 0.1657 | 0.1306 | **0.73** | 1.52 | 0.73 | 0.75 | 1.02 | — | 0.36 / unreachable |
+| 512 | 128 | 0.0784 (CPU) | 0.0426 | 0.1546 | 0.0831 | 0.0442 | 0.0598 | **0.72** | 1.48 | 0.72 | 1.00 | 0.83 | — | 0.61 / 1.02 |
+| 512 | 512 | 0.0269 (CPU) | 0.0117 | 0.0497 | 0.0236 | 0.0111 | 0.0150 | **0.64** | 1.30 | 0.64 | 1.02 | 0.66 | — | 0.61 / 1.16 |
+| 2048 | 32 | 0.0636 (GPU) | 0.0445 | 0.0965 | 0.0831 | 0.0351 | 0.0252 | **0.42** | 0.93 | 0.42 | 0.66 | 0.72 | — | 0.34 / unreachable |
+| 2048 | 128 | 0.0414 (GPU) | 0.0236 | 0.0663 | 0.0469 | 0.0261 | 0.0252 | **0.56** | 1.62 | 0.56 | 0.67 | 0.80 | — | 0.34 / unreachable |
+| 2048 | 512 | 0.0173 (GPU) | 0.0082 | 0.0298 | 0.0173 | 0.0065 | 0.0086 | **0.50** | 1.29 | 0.50 | 0.83 | 0.58 | — | 0.38 / 0.93 |
 
 ### Samsung S24+ (R5CY21Y3VEV): et 1b: predicted request throughput (requests/s)
 
-| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | best pair: decode ratio used / needed for the gate |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 1.1215 (CPU) | — | 2.1339 | 1.4814 | 0.8758 | 0.6388 | **0.59** | 1.07 | 0.59 | 0.90 | 0.62 | 0.55 / 1.12 |
-| 128 | 128 | 0.3596 (CPU) | — | 0.6557 | 0.4276 | 0.2190 | 0.1597 | **0.51** | 0.93 | 0.51 | 0.88 | 0.52 | 0.55 / 1.29 |
-| 128 | 512 | 0.0967 (CPU) | — | 0.1740 | 0.1113 | 0.0548 | 0.0399 | **0.49** | 0.89 | 0.49 | 0.88 | 0.49 | 0.55 / 1.35 |
-| 512 | 32 | 0.6562 (GPU) | — | 1.1783 | 0.9108 | 0.7671 | 0.5834 | **0.84** | 1.53 | 0.84 | 0.96 | 0.96 | 0.55 / unreachable |
-| 512 | 128 | 0.2457 (CPU) | — | 0.4873 | 0.3348 | 0.1919 | 0.1460 | **0.57** | 1.04 | 0.57 | 0.91 | 0.60 | 0.55 / 1.16 |
-| 512 | 512 | 0.0788 (CPU) | — | 0.1473 | 0.0957 | 0.0480 | 0.0365 | **0.50** | 0.91 | 0.50 | 0.88 | 0.51 | 0.55 / 1.32 |
-| 2048 | 32 | 0.2146 (GPU) | — | 0.3315 | 0.2953 | 0.1471 | 0.1166 | **0.50** | 0.93 | 0.50 | 0.73 | 0.69 | 0.60 / unreachable |
-| 2048 | 128 | 0.1302 (GPU) | — | 0.2102 | 0.1618 | 0.1147 | 0.1166 | **0.72** | 1.18 | 0.72 | 0.78 | 0.87 | 0.58 / unreachable |
-| 2048 | 512 | 0.0506 (GPU) | — | 0.0860 | 0.0583 | 0.0287 | 0.0358 | **0.61** | 1.06 | 0.61 | 0.87 | 0.66 | 0.58 / 1.13 |
+| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate | best pair: decode ratio used / needed for the gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 32 | 1.1215 (CPU) | — | 2.1339 | 1.7781 | 1.1698 | 1.2774 | **0.72** | 0.89 | 0.72 | 0.80 | 0.77 | 0.59 | 1.02 / 1.70 |
+| 128 | 128 | 0.3596 (CPU) | — | 0.6557 | 0.5218 | 0.2925 | 0.3195 | **0.61** | 0.76 | 0.61 | 0.74 | 0.62 | 0.51 | 1.02 / 2.00 |
+| 128 | 512 | 0.0967 (CPU) | — | 0.1740 | 0.1364 | 0.0731 | 0.0799 | **0.59** | 0.73 | 0.59 | 0.72 | 0.59 | 0.49 | 1.02 / 2.09 |
+| 512 | 32 | 0.6562 (GPU) | — | 1.1783 | 1.0694 | 1.0243 | 0.6600 | **0.96** | 1.30 | 0.96 | 0.97 | 1.12 | 0.84 | 0.74 / unreachable |
+| 512 | 128 | 0.2457 (CPU) | — | 0.4873 | 0.4081 | 0.2564 | 0.2919 | **0.72** | 0.85 | 0.72 | 0.78 | 0.76 | 0.57 | 1.02 / 1.71 |
+| 512 | 512 | 0.0788 (CPU) | — | 0.1473 | 0.1177 | 0.0641 | 0.0730 | **0.62** | 0.74 | 0.62 | 0.72 | 0.63 | 0.50 | 1.02 / 1.97 |
+| 2048 | 32 | 0.2146 (GPU) | — | 0.3315 | 0.3199 | 0.1471 | 0.1166 | **0.46** | 0.85 | 0.46 | 0.68 | 0.66 | 0.50 | 0.63 / unreachable |
+| 2048 | 128 | 0.1302 (GPU) | — | 0.2102 | 0.1916 | 0.1200 | 0.1166 | **0.63** | 0.99 | 0.63 | 0.67 | 0.80 | 0.72 | 0.63 / unreachable |
+| 2048 | 512 | 0.0506 (GPU) | — | 0.0860 | 0.0736 | 0.0300 | 0.0596 | **0.81** | 0.84 | 0.81 | 0.83 | 0.90 | 0.61 | 0.96 / 1.42 |
 
-### Samsung S24+ (R5CY21Y3VEV): et 3b: predicted request throughput (requests/s) — co-run ratios transferred from 1b, not gate-eligible
+### Samsung S24+ (R5CY21Y3VEV): et 3b: predicted request throughput (requests/s)
 
-| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | best pair: decode ratio used / needed for the gate |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 0.4440 (GPU) | — | 0.8317 | 0.5780 | 0.3142 | 0.2878 | **0.54** | 0.99 | 0.54 | 0.84 | 0.58 | 0.55 / 1.22 |
-| 128 | 128 | 0.1323 (GPU) | — | 0.2598 | 0.1687 | 0.0786 | 0.0720 | **0.47** | 0.84 | 0.47 | 0.81 | 0.47 | 0.55 / 1.42 |
-| 128 | 512 | 0.0347 (GPU) | — | 0.0693 | 0.0441 | 0.0196 | 0.0180 | **0.45** | 0.81 | 0.45 | 0.80 | 0.45 | 0.55 / 1.48 |
-| 512 | 32 | 0.2790 (GPU) | — | 0.4614 | 0.3584 | 0.2560 | 0.2371 | **0.71** | 1.29 | 0.72 | 0.85 | 0.82 | 0.55 / unreachable |
-| 512 | 128 | 0.1095 (GPU) | — | 0.1932 | 0.1319 | 0.0641 | 0.0688 | **0.52** | 1.02 | 0.52 | 0.80 | 0.55 | 0.51 / 1.17 |
-| 512 | 512 | 0.0319 (GPU) | — | 0.0584 | 0.0376 | 0.0160 | 0.0172 | **0.46** | 0.90 | 0.46 | 0.84 | 0.46 | 0.51 / 1.33 |
-| 2048 | 32 | 0.0766 (GPU) | — | 0.1127 | 0.1011 | 0.0503 | 0.0372 | **0.50** | 0.93 | 0.50 | 0.68 | 0.71 | 0.60 / unreachable |
-| 2048 | 128 | 0.0495 (GPU) | — | 0.0728 | 0.0562 | 0.0298 | 0.0372 | **0.66** | 0.88 | 0.66 | 0.70 | 0.82 | 0.58 / unreachable |
-| 2048 | 512 | 0.0205 (GPU) | — | 0.0301 | 0.0203 | 0.0074 | 0.0151 | **0.75** | 1.29 | 0.75 | 0.99 | 0.81 | 0.58 / 0.93 |
+| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate | best pair: decode ratio used / needed for the gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 32 | 0.4440 (GPU) | — | 0.8317 | 0.5243 | 0.4157 | 0.5226 | **1.00** | 1.09 | 1.00 | 1.03 | 1.12 | — | 0.92 / 1.11 |
+| 128 | 128 | 0.1323 (GPU) | — | 0.2598 | 0.1490 | 0.1040 | 0.1307 | **0.88** | 0.96 | 0.88 | 0.94 | 0.91 | — | 0.92 / 1.26 |
+| 128 | 512 | 0.0347 (GPU) | — | 0.0693 | 0.0386 | 0.0260 | 0.0327 | **0.85** | 0.92 | 0.85 | 0.91 | 0.86 | — | 0.92 / 1.31 |
+| 512 | 32 | 0.2790 (GPU) | — | 0.4614 | 0.3426 | 0.2768 | 0.2124 | **0.81** | 1.35 | 0.81 | 0.89 | 1.06 | — | 0.73 / unreachable |
+| 512 | 128 | 0.1095 (GPU) | — | 0.1932 | 0.1212 | 0.0848 | 0.1249 | **1.03** | 1.11 | 1.03 | 1.06 | 1.15 | — | 0.92 / 1.08 |
+| 512 | 512 | 0.0319 (GPU) | — | 0.0584 | 0.0338 | 0.0212 | 0.0312 | **0.92** | 1.00 | 0.92 | 0.99 | 0.95 | — | 0.92 / 1.20 |
+| 2048 | 32 | 0.0766 (GPU) | — | 0.1127 | 0.0994 | 0.0414 | 0.0330 | **0.42** | 0.94 | 0.42 | 0.65 | 0.69 | — | 0.60 / unreachable |
+| 2048 | 128 | 0.0495 (GPU) | — | 0.0728 | 0.0546 | 0.0297 | 0.0330 | **0.61** | 0.91 | 0.61 | 0.72 | 0.85 | — | 0.92 / unreachable |
+| 2048 | 512 | 0.0205 (GPU) | — | 0.0301 | 0.0196 | 0.0074 | 0.0241 | **1.23** | 1.34 | 1.23 | 1.20 | 1.42 | — | 0.92 / 0.90 |
 
 ### Pixel 7a (3A021JEHN02756): llamacpp 1b: predicted request throughput (requests/s)
 
-| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | best pair: decode ratio used / needed for the gate |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 0.6331 (CPU) | 0.2370 | 0.9304 | 0.6593 | 0.4019 | 0.3389 | **0.61** | 1.07 | 0.61 | 0.72 | 0.74 | 0.62 / unreachable |
-| 128 | 128 | 0.2211 (CPU) | 0.0732 | 0.3297 | 0.2086 | 0.1591 | 0.0847 | **0.76** | 1.22 | 0.76 | 0.93 | 0.81 | 0.62 / 0.98 |
-| 128 | 512 | 0.0614 (CPU) | 0.0194 | 0.0920 | 0.0559 | 0.0398 | 0.0212 | **0.71** | 1.14 | 0.71 | 0.98 | 0.72 | 0.62 / 1.05 |
-| 512 | 32 | 0.2488 (CPU) | 0.1400 | 0.3991 | 0.3358 | 0.1214 | 0.1930 | **0.57** | 1.02 | 0.57 | 0.71 | 0.84 | 0.66 / unreachable |
-| 512 | 128 | 0.1363 (CPU) | 0.0620 | 0.2159 | 0.1533 | 0.1214 | 0.0838 | **0.79** | 1.39 | 0.79 | 0.84 | 0.96 | 0.62 / unreachable |
-| 512 | 512 | 0.0485 (CPU) | 0.0192 | 0.0761 | 0.0483 | 0.0353 | 0.0210 | **0.73** | 1.17 | 0.73 | 0.99 | 0.78 | 0.62 / 1.03 |
-| 2048 | 32 | 0.0515 (CPU) | 0.0343 | 0.0905 | 0.0858 | 0.0205 | 0.0356 | **0.41** | 0.65 | 0.41 | 0.61 | 0.69 | 0.61 / unreachable |
-| 2048 | 128 | 0.0411 (CPU) | 0.0249 | 0.0724 | 0.0616 | 0.0205 | 0.0356 | **0.58** | 0.91 | 0.58 | 0.71 | 0.86 | 0.61 / unreachable |
-| 2048 | 512 | 0.0228 (CPU) | 0.0119 | 0.0402 | 0.0289 | 0.0205 | 0.0180 | **0.71** | 1.33 | 0.71 | 0.77 | 0.87 | 0.59 / unreachable |
+| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate | best pair: decode ratio used / needed for the gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 32 | 0.6331 (CPU) | 0.2370 | 0.9304 | 0.6593 | 0.4019 | 0.3389 | **0.61** | 1.07 | 0.61 | 0.72 | 0.74 | — | 0.62 / unreachable |
+| 128 | 128 | 0.2211 (CPU) | 0.0732 | 0.3297 | 0.2086 | 0.1591 | 0.0847 | **0.76** | 1.22 | 0.76 | 0.93 | 0.81 | — | 0.62 / 0.98 |
+| 128 | 512 | 0.0614 (CPU) | 0.0194 | 0.0920 | 0.0559 | 0.0398 | 0.0212 | **0.71** | 1.14 | 0.71 | 0.98 | 0.72 | — | 0.62 / 1.05 |
+| 512 | 32 | 0.2488 (CPU) | 0.1400 | 0.3991 | 0.3358 | 0.1214 | 0.1930 | **0.57** | 1.02 | 0.57 | 0.71 | 0.84 | — | 0.66 / unreachable |
+| 512 | 128 | 0.1363 (CPU) | 0.0620 | 0.2159 | 0.1533 | 0.1214 | 0.0838 | **0.79** | 1.39 | 0.79 | 0.84 | 0.96 | — | 0.62 / unreachable |
+| 512 | 512 | 0.0485 (CPU) | 0.0192 | 0.0761 | 0.0483 | 0.0353 | 0.0210 | **0.73** | 1.17 | 0.73 | 0.99 | 0.78 | — | 0.62 / 1.03 |
+| 2048 | 32 | 0.0515 (CPU) | 0.0343 | 0.0905 | 0.0858 | 0.0205 | 0.0356 | **0.41** | 0.65 | 0.41 | 0.61 | 0.69 | — | 0.61 / unreachable |
+| 2048 | 128 | 0.0411 (CPU) | 0.0249 | 0.0724 | 0.0616 | 0.0205 | 0.0356 | **0.58** | 0.91 | 0.58 | 0.71 | 0.86 | — | 0.61 / unreachable |
+| 2048 | 512 | 0.0228 (CPU) | 0.0119 | 0.0402 | 0.0289 | 0.0205 | 0.0180 | **0.71** | 1.33 | 0.71 | 0.77 | 0.87 | — | 0.59 / unreachable |
 
 ### Pixel 7a (3A021JEHN02756): et 1b: predicted request throughput (requests/s)
 
-| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | best pair: decode ratio used / needed for the gate |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 0.5348 (CPU) | — | 0.9275 | 0.7488 | 0.5450 | 0.2784 | **0.73** | 1.23 | 0.73 | 1.06 | 0.76 | 0.59 / 0.97 |
-| 128 | 128 | 0.1954 (CPU) | — | 0.3060 | 0.2390 | 0.1363 | 0.0696 | **0.57** | 0.97 | 0.57 | 0.93 | 0.58 | 0.59 / 1.24 |
-| 128 | 512 | 0.0552 (CPU) | — | 0.0838 | 0.0646 | 0.0341 | 0.0174 | **0.53** | 0.89 | 0.53 | 0.88 | 0.53 | 0.59 / 1.34 |
-| 512 | 32 | 0.2932 (GPU) | — | 0.5027 | 0.4186 | 0.4526 | 0.2415 | **1.08** | 1.83 | 1.08 | 1.29 | 1.17 | 0.59 / 0.66 |
-| 512 | 128 | 0.1152 (CPU) | — | 0.2146 | 0.1705 | 0.1132 | 0.0680 | **0.66** | 1.12 | 0.66 | 1.02 | 0.69 | 0.59 / 1.07 |
-| 512 | 512 | 0.0411 (CPU) | — | 0.0684 | 0.0529 | 0.0283 | 0.0170 | **0.54** | 0.91 | 0.54 | 0.88 | 0.54 | 0.59 / 1.32 |
-| 2048 | 32 | 0.1031 (GPU) | — | 0.1524 | 0.1394 | 0.0936 | 0.0466 | **0.67** | 0.99 | 0.67 | 0.87 | 0.85 | 0.73 / unreachable |
-| 2048 | 128 | 0.0584 (GPU) | — | 0.0948 | 0.0790 | 0.0765 | 0.0466 | **0.97** | 1.33 | 0.97 | 1.02 | 1.10 | 0.73 / unreachable |
-| 2048 | 512 | 0.0213 (GPU) | — | 0.0392 | 0.0305 | 0.0191 | 0.0153 | **0.63** | 0.86 | 0.63 | 0.80 | 0.66 | 0.73 / 1.39 |
+| P | D | best single PU | layer split | data-parallel, alone | data-parallel, co-run | GPU prefill → CPU decode | CPU prefill → GPU decode | gain | gain, no interference | gain, no hand-off | gain, overlap only while both run (vs the better of data-parallel and one PU) | gain vs data-parallel with co-run prefill | gain, previous duty-extrapolated estimate | best pair: decode ratio used / needed for the gate |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 128 | 32 | 0.5348 (CPU) | — | 0.9275 | 0.8341 | 0.5977 | 0.4963 | **0.72** | 1.11 | 0.72 | 0.97 | 0.75 | 0.73 | 0.65 / 1.08 |
+| 128 | 128 | 0.1954 (CPU) | — | 0.3060 | 0.2605 | 0.1495 | 0.1241 | **0.57** | 0.89 | 0.57 | 0.86 | 0.58 | 0.57 | 0.65 / 1.35 |
+| 128 | 512 | 0.0552 (CPU) | — | 0.0838 | 0.0697 | 0.0374 | 0.0310 | **0.54** | 0.83 | 0.54 | 0.82 | 0.54 | 0.53 | 0.65 / 1.45 |
+| 512 | 32 | 0.2932 (GPU) | — | 0.5027 | 0.4822 | 0.4964 | 0.2415 | **1.03** | 1.59 | 1.03 | 1.16 | 1.11 | 1.08 | 0.65 / 0.76 |
+| 512 | 128 | 0.1152 (CPU) | — | 0.2146 | 0.1937 | 0.1242 | 0.1212 | **0.64** | 0.99 | 0.64 | 0.91 | 0.67 | 0.66 | 0.65 / 1.21 |
+| 512 | 512 | 0.0411 (CPU) | — | 0.0684 | 0.0587 | 0.0311 | 0.0303 | **0.53** | 0.82 | 0.53 | 0.80 | 0.54 | 0.54 | 0.65 / 1.47 |
+| 2048 | 32 | 0.1031 (GPU) | — | 0.1524 | 0.1501 | 0.0936 | 0.0466 | **0.62** | 0.92 | 0.62 | 0.79 | 0.80 | 0.67 | 0.66 / unreachable |
+| 2048 | 128 | 0.0584 (GPU) | — | 0.0948 | 0.0905 | 0.0694 | 0.0466 | **0.77** | 1.16 | 0.77 | 0.84 | 0.90 | 0.97 | 0.66 / unreachable |
+| 2048 | 512 | 0.0213 (GPU) | — | 0.0392 | 0.0356 | 0.0174 | 0.0266 | **0.75** | 0.74 | 0.75 | 0.73 | 0.80 | 0.63 | 1.06 / 1.69 |
 
 ## 6. Decision
 
-The best cell of every grid. "Gate" says whether the grid uses that model's own co-run rates. The last three
-columns are the diagnostics of section 5: the best gain with no interference, the best gain against
-data-parallel with co-run prefill, and the best cell's decode ratio used / needed. The overlap diagnostic is in
+The best cell of every grid. "Gate" says whether the grid uses that model's own co-run rates (all do). The
+last three columns are the diagnostics of section 5: the best gain with no interference, the best gain against
+data-parallel with co-run prefill, and the best cell's decode ratio used / needed. The other diagnostics are in
 the grids.
 
 | Phone | Runtime | Model | Gate | Best P / D | Prefill → decode | Gain | No interference | vs DP, co-run prefill | Decode ratio used / needed |
 |---|---|---|---|---|---|---|---|---|---|
 | Samsung S24+ | llama.cpp | 1B | yes | 512 / 32 | GPU → CPU | **0.74** | 1.67 | 1.05 | 0.41 / unreachable |
 | Samsung S24+ | llama.cpp | 3B | yes | 512 / 32 | GPU → CPU | **0.73** | 1.74 | 1.02 | 0.36 / unreachable |
-| Samsung S24+ | ExecuTorch | 1B | yes | 512 / 32 | GPU → CPU | **0.84** | 1.53 | 0.96 | 0.55 / unreachable |
-| Samsung S24+ | ExecuTorch | 3B | no (1B ratios) | 2048 / 512 | CPU → GPU | **0.75** | 1.29 | 0.82 | 0.58 / 0.93 |
+| Samsung S24+ | ExecuTorch | 1B | yes | 512 / 32 | GPU → CPU | **0.96** | 1.30 | 1.12 | 0.74 / unreachable |
+| Samsung S24+ | ExecuTorch | 3B | yes | 2048 / 512 | CPU → GPU | **1.23** | 1.35 | 1.42 | 0.92 / 0.90 |
 | Pixel 7a | llama.cpp | 1B | yes | 512 / 128 | GPU → CPU | **0.79** | 1.39 | 0.96 | 0.62 / unreachable |
-| Pixel 7a | ExecuTorch | 1B | yes | 512 / 32 | GPU → CPU | **1.08** | 1.83 | 1.17 | 0.59 / 0.66 |
+| Pixel 7a | ExecuTorch | 1B | yes | 512 / 32 | GPU → CPU | **1.03** | 1.59 | 1.11 | 0.65 / 0.76 |
 
-**No-go.** The largest margin is 1.08, on the Pixel 7a with ExecuTorch, 1B, P = 512, D = 32: GPU prefill and CPU
-decode. Interference limits it:
-- The pipeline's period at that mix is the CPU decode, 32 tokens at 24.6 tok/s x 0.59 = 2.21 s, against 1.35 s
-  for the GPU prefill (428 tok/s x 0.89).
-- Data-parallel gets 0.419 requests/s from the same two PUs. The Pixel's CPU decodes at 0.82 of its rate next to
-  the GPU's decode (measured, duty 0.86), so data-parallel loses less to interference than the split pipeline.
+**Go.** One cell reaches the gate: the Samsung S24+ with ExecuTorch, Llama 3.2 3B, P = 2048, D = 512, prefill on
+the CPU and decode on the GPU, at 1.23. This is the configuration for the proof of concept:
+- **Prefill:** XNNPACK 8da4w on cores 4-9 (mask `3f0`, 6 threads), 90 tok/s alone and 0.75 of that next to a GPU
+  decode: 30.3 s per 2048-token prompt.
+- **Decode:** Vulkan 4w with the host thread on core 3, 13.4 tok/s alone at depth 2048 and 0.92 of that next to a
+  CPU prefill: 41.5 s per 512 tokens. This sets the period, 0.0241 requests/s.
+- **Data-parallel bound:** each PU serves whole requests, and both decode at once. Two 3B decodes interfere: CPU
+  0.43, GPU 0.67. The bound is 0.0196 requests/s, the GPU contributing 0.0148 and the CPU 0.0047.
 
-**How sure.** This is the only cell whose measurement uncertainty spans the gate.
-- Its CPU decode ratio (0.59) is extrapolated from decode windows that the GPU prefill loop overlapped only 19%
-  of the time, because model loads dominate the loop. The extrapolation 1 - (1 - r)/u turns r = 0.92 into 0.59
-  and magnifies noise five-fold. The three trials give 0.51, 0.55 and 0.64, gains 0.93, 1.00 and 1.17.
-- The P = 2048 co-run of the same pair overlaps 66% of the time and extrapolates to 0.73. At 0.73 this cell
-  would reach 1.34; at 0.66, 1.2.
-- The verdict rests on the estimate at the cell's own prompt length. The method was fixed before any ExecuTorch
-  co-run was taken (design.md). After review, the duty was weighted by window length, as the rate already was,
-  which lowered the cell from 1.10.
+**How sure.** Every co-run rate is measured at full overlap:
+- 10-11 of 11 GPU decode windows per trial lie inside a CPU prefill, and 10-11 of 15 CPU / 6 of 8 GPU decode
+  windows per trial inside the partner's decode.
+- Only 1-2 of 3 CPU prefills per trial lie wholly inside a GPU decode window (a 2048-token CPU prefill takes
+  about 30 s). Their ratio is consistent, 0.745-0.757. It also does not set the period unless it falls below
+  0.55.
+- Paired by trial, the gain is 1.20, 1.26 and 1.24. The least favourable ratio of every input across trials
+  gives 1.15. The margin over 1.2 is smaller than the trial-to-trial spread.
+- The alone decode rate is the one at depth 2048; the 512 tokens decoded here reach depth 2560, the model's
+  context limit, where every PU decodes a little slower (design.md, "Decode rate at prompt length P").
 
-**How conservative D5 is.** D5 prices the specialized period with co-run rates, as if both phases ran
-side by side for the whole period (spec scenario "A specialized pipeline's period").
-- At this mix the GPU prefill takes 1.35 s of a ~1.8 s period, so the CPU decode would run alone for the rest.
-- With the decode slowed only while the GPU prefills, and the GPU prefill slowed throughout, the cell would
-  reach 1.29 against the better of data-parallel and the best single PU (column "overlap only while both run").
-- Nowhere else does this exceed 1.09. The comparison uses the better of the two because the co-run
-  data-parallel bound falls below the best single PU in 12 llama.cpp cells. Nine of them are on the Samsung,
-  where a GPU decode leaves the CPU decode 0.21 of its rate. A pipeline that idles the GPU then "beats"
-  data-parallel without beating one PU. These cells have gate gains of at most 0.76, so the verdict does not
-  depend on them.
-- The gate is the spec's, and by it this cell is a no-go. Under the less conservative pricing it would be a
-  "go".
+**What the gate does not say.** At this cell the co-run data-parallel bound (0.0196) is below the GPU alone
+(0.0205). Adding the CPU's decode costs the GPU more than the CPU contributes.
+- Against the GPU alone the pipeline is 1.18x. With each phase slowed only while the other runs (column
+  "overlap only while both run", against the better of data-parallel and one PU) it is 1.20.
+- So the pipeline beats the data-parallel bound the spec defines by 1.23, and the best single PU by just under
+  1.2. The proof of concept should report both.
+- The same happens in 12 llama.cpp cells, nine on the Samsung, where a GPU decode leaves the CPU decode 0.20-0.21
+  of its rate. Their gate gains are at most 0.76.
 
-**What would settle it.** Measure the decode this pipeline would see, on the Pixel, at this one mix. Two
-processes suffice, as in this study, if `llama_main` can repeat `generate()` without reloading its model:
-- Vulkan 8da4w prefills a 512-token prompt once per pipeline period (about 1.8-2.2 s);
-- XNNPACK on cores 4-7 decodes 32-token requests back to back.
-
-That covers both doubts above, the interference at full duty and the overlap a real period has. The runner
-change is small but in ExecuTorch, outside this study. Nothing else in the study is close enough to the gate for
-a better measurement to matter.
-
-Everything else is clear of the gate:
-- every other gate-eligible cell is at most 0.97;
-- the best cell of every other gate-eligible grid cannot reach 1.2 at its measured prefill ratio, whatever its
-  decode does ("unreachable");
-- neither the data-parallel bound with co-run prefill nor the partial-overlap pricing lifts any other cell to 1.2.
+**Everything else is short of the gate.**
+- The next cells are 1.03:
+  - ExecuTorch 3B at P = 512, D = 128;
+  - the Pixel's ExecuTorch 1B at P = 512, D = 32, where the CPU decode keeps 0.65 next to a GPU prefill (trials
+    0.64-0.67, gains 1.01-1.07) and 0.76 would pass.
+- The Samsung's ExecuTorch 1B reaches 0.96; llama.cpp at most 0.79 (Pixel) and 0.74 / 0.73 (Samsung 1B / 3B).
+- Giving data-parallel prefill its co-run slowdown, or slowing each phase only while the other runs, lifts no
+  other cell to 1.2. The largest such value elsewhere is 1.16 (Pixel ExecuTorch 1B, partial overlap).
+- For the Pixel's best cell: counting a decode window only inside the partner's measured prefill, not its
+  identical warm-up prefill, gives 0.63 instead of 0.65. Every 1B decode ratio moves by at most 0.02.
+- The earlier duty-extrapolated ExecuTorch estimate, which did not meet the spec's overlap requirement, put the
+  Pixel cell at 1.08. It is kept as a diagnostic column. A first run of the 8-token loops without warm-up was
+  discarded, because cold first decode steps dominated it (design.md).
 
 ## 7. 8B reference (Samsung, single backend)
 
@@ -449,29 +475,68 @@ sections 2-4 and 6 are condensed from the grids and the appendix.
 
 #### et 1b: co-run (tok/s; ratio = co-run / solo loop)
 
-| loop | A rate | A duty | B rate | B duty |
-|---|---|---|---|---|
-| cpuD_gpuD | 22.4 [22.2-23.1] | 0.78 [0.76-0.79] | 21.0 [20.9-22.6] | 0.88 [0.74-0.89] |
-| cpuP_gpuD_p2048 | 226.6 [223.1-258.9] | 1.00 [1.00-1.00] | 24.8 [24.6-25.8] | 0.71 [0.71-0.72] |
-| cpuP_gpuD_p512 | 293.7 [293.1-294.2] | 1.00 [1.00-1.00] | 27.7 [26.2-27.8] | 0.44 [0.44-0.54] |
-| gpuP_cpuD_p2048 | 302.2 [286.3-305.6] | 1.00 [1.00-1.00] | 25.0 [24.5-25.2] | 0.63 [0.61-0.64] |
-| gpuP_cpuD_p512 | 547.3 [547.0-562.3] | 1.00 [1.00-1.00] | 30.2 [30.1-30.6] | 0.21 [0.18-0.22] |
-| solo_cpuD | 33.4 [33.3-33.6] | 0.00 [0.00-0.00] | — | — |
-| solo_cpuP_p2048 | 268.0 [267.1-268.0] | 0.00 [0.00-0.00] | — | — |
-| solo_cpuP_p512 | 371.4 [357.1-373.5] | 0.00 [0.00-0.00] | — | — |
-| solo_gpuD | 35.5 [35.4-35.5] | 0.00 [0.00-0.00] | — | — |
-| solo_gpuP_p2048 | 562.3 [561.2-565.2] | 0.00 [0.00-0.00] | — | — |
-| solo_gpuP_p512 | 792.4 [789.0-795.4] | 0.00 [0.00-0.00] | — | — |
+| loop | A rate, counted | A counted / total per trial | B rate, counted | B counted / total per trial | A, B rate over all intervals (duty) |
+|---|---|---|---|---|---|
+| cpuD_gpuD | — | 0/6, 0/5, 0/6 | — | 0/5, 0/5, 0/5 | 22.4 [22.2-23.1] (0.78 [0.76-0.79]); 21.0 [20.9-22.6] (0.88 [0.74-0.89]) |
+| cpuDs_gpuD | 30.8 [30.8-30.9] | 30/42, 30/41, 30/41 | — | 0/7, 0/7, 0/7 | 32.9 [32.1-33.2] (0.78 [0.77-0.78]); 34.8 [34.8-34.9] (0.18 [0.18-0.18]) |
+| cpuP_gpuD_p2048 | 226.6 [223.1-258.9] | 4/5, 3/5, 2/5 | — | 0/5, 0/5, 0/5 | 219.5 [218.9-224.4] (0.88 [0.88-0.89]); 24.8 [24.6-25.8] (0.71 [0.71-0.72]) |
+| cpuP_gpuD_p512 | 293.7 [293.1-294.2] | 12/19, 13/18, 13/18 | — | 0/5, 0/6, 0/6 | 303.2 [300.3-303.6] (0.75 [0.75-0.79]); 27.7 [26.2-27.8] (0.44 [0.44-0.54]) |
+| cpuP_gpuDs_p2048 | — | 0/6, 0/6, 0/6 | 32.8 [32.2-36.9] | 15/16, 15/15, 16/16 | 251.9 [250.5-254.6] (0.16 [0.16-0.16]); 33.1 [32.2-36.9] (1.00 [0.94-1.00]) |
+| cpuP_gpuDs_p512 | — | 0/22, 0/22, 0/21 | 34.8 [33.3-35.8] | 10/17, 10/17, 10/17 | 353.5 [353.2-358.2] (0.24 [0.21-0.27]); 35.2 [32.9-35.9] (0.65 [0.65-0.67]) |
+| gpuDs_cpuD | 32.4 [31.9-33.0] | 10/12, 9/12, 10/12 | — | 0/7, 0/7, 0/7 | 33.3 [33.0-33.3] (0.85 [0.76-0.87]); 32.8 [32.4-33.0] (0.17 [0.17-0.19]) |
+| gpuP_cpuD_p2048 | 302.2 [286.3-305.6] | 5/6, 4/6, 4/6 | — | 0/6, 0/6, 0/6 | 293.9 [273.5-308.3] (0.93 [0.91-0.96]); 25.0 [24.5-25.2] (0.63 [0.61-0.64]) |
+| gpuP_cpuD_p512 | 547.3 [547.0-562.3] | 13/14, 13/15, 10/15 | — | 0/7, 0/7, 0/7 | 529.5 [520.2-537.4] (0.92 [0.82-0.99]); 30.2 [30.1-30.6] (0.21 [0.18-0.22]) |
+| gpuP_cpuDs_p2048 | — | 0/9, 0/8, 0/8 | 30.0 [29.9-31.5] | 25/42, 25/40, 27/41 | 451.1 [450.0-462.6] (0.22 [0.19-0.23]); 32.3 [31.9-34.0] (0.70 [0.65-0.73]) |
+| gpuP_cpuDs_p512 | — | 0/21, 0/21, 0/21 | 35.2 [35.0-35.5] | 12/50, 11/50, 13/49 | 761.9 [759.4-768.8] (0.27 [0.23-0.32]); 41.9 [41.1-42.0] (0.33 [0.32-0.35]) |
+| solo_cpuD | 33.4 [33.3-33.6] | 8/8, 8/8, 8/8 | — | — | 33.4 [33.3-33.6] (0.00 [0.00-0.00]) |
+| solo_cpuDs | 47.7 [47.6-47.9] | 48/48, 49/49, 48/48 | — | — | 47.7 [47.6-47.9] (0.00 [0.00-0.00]) |
+| solo_cpuP_p2048 | 268.0 [267.1-268.0] | 6/6, 6/6, 6/6 | — | — | 268.0 [267.1-268.0] (0.00 [0.00-0.00]) |
+| solo_cpuP_p512 | 371.4 [357.1-373.5] | 22/22, 22/22, 21/21 | — | — | 371.4 [357.1-373.5] (0.00 [0.00-0.00]) |
+| solo_gpuD | 35.5 [35.4-35.5] | 7/7, 7/7, 7/7 | — | — | 35.5 [35.4-35.5] (0.00 [0.00-0.00]) |
+| solo_gpuDs | 34.1 [33.7-35.2] | 16/16, 16/16, 16/16 | — | — | 34.1 [33.7-35.2] (0.00 [0.00-0.00]) |
+| solo_gpuP_p2048 | 562.3 [561.2-565.2] | 9/9, 9/9, 9/9 | — | — | 562.3 [561.2-565.2] (0.00 [0.00-0.00]) |
+| solo_gpuP_p512 | 792.4 [789.0-795.4] | 19/19, 19/19, 19/19 | — | — | 792.4 [789.0-795.4] (0.00 [0.00-0.00]) |
 
 #### et 1b: co-run ratios
 
-| pair | P | prefill ratio | decode ratio, measured | decode duty | decode ratio, full overlap |
+| pair | P | prefill ratio | prefills counted per trial | decode ratio | decode windows counted per trial | previous estimate: decode ratio (duty) |
+|---|---|---|---|---|---|---|
+| GPU prefill → CPU decode | 512 | 0.69 | 13/14, 13/15, 10/15 | 0.74 | 12/50, 11/50, 13/49 | 0.55 (0.21) |
+| CPU prefill → GPU decode | 512 | 0.79 | 12/19, 13/18, 13/18 | 1.02 | 10/17, 10/17, 10/17 | 0.51 (0.44) |
+| GPU prefill → CPU decode | 2048 | 0.54 | 5/6, 4/6, 4/6 | 0.63 | 25/42, 25/40, 27/41 | 0.60 (0.63) |
+| CPU prefill → GPU decode | 2048 | 0.85 | 4/5, 3/5, 2/5 | 0.96 | 15/16, 15/15, 16/16 | 0.58 (0.71) |
+| both decoding (CPU, GPU) | — | — | — | 0.65, 0.95 | 30/42, 30/41, 30/41; 10/12, 9/12, 10/12 | 0.67, 0.59 (as measured) |
+
+#### et 3b: co-run (tok/s; ratio = co-run / solo loop)
+
+| loop | A rate, counted | A counted / total per trial | B rate, counted | B counted / total per trial | A, B rate over all intervals (duty) |
 |---|---|---|---|---|---|
-| GPU prefill → CPU decode | 512 | 0.69 | 0.90 | 0.21 | 0.55 |
-| CPU prefill → GPU decode | 512 | 0.79 | 0.78 | 0.44 | 0.51 |
-| GPU prefill → CPU decode | 2048 | 0.54 | 0.75 | 0.63 | 0.60 |
-| CPU prefill → GPU decode | 2048 | 0.85 | 0.70 | 0.71 | 0.58 |
-| both decoding (CPU, GPU) | — | — | 0.67, 0.59 | 0.78, 0.88 | as measured |
+| cpuDs_gpuD | 8.1 [7.8-8.6] | 10/15, 11/15, 11/15 | — | 0/5, 0/5, 0/5 | 9.1 [8.8-9.4] (0.82 [0.79-0.84]); 14.6 [14.4-14.7] (0.12 [0.12-0.14]) |
+| cpuP_gpuD_p2048 | 68.2 [67.7-68.8] | 2/3, 1/3, 1/3 | 14.7 [12.2-15.4] | 1/4, 1/4, 1/4 | 72.0 [69.3-72.5] (0.90 [0.90-0.95]); 10.1 [9.9-10.2] (0.75 [0.75-0.76]) |
+| cpuP_gpuD_p512 | 92.9 [91.9-95.0] | 8/10, 9/10, 8/10 | — | 0/4, 0/4, 0/4 | 95.3 [94.6-95.7] (0.90 [0.90-0.91]); 10.8 [10.7-11.0] (0.49 [0.49-0.50]) |
+| cpuP_gpuDs_p2048 | — | 0/4, 0/4, 0/4 | 16.7 [16.7-17.5] | 11/11, 10/11, 10/11 | 88.3 [86.8-89.9] (0.14 [0.13-0.15]); 16.7 [15.0-17.5] (0.93 [0.93-1.00]) |
+| cpuP_gpuDs_p512 | — | 0/12, 0/12, 0/13 | 16.8 [16.7-17.2] | 7/12, 7/11, 8/12 | 117.3 [116.8-118.4] (0.14 [0.13-0.14]); 17.2 [17.1-17.3] (0.70 [0.69-0.77]) |
+| gpuDs_cpuD | 12.2 [11.9-13.3] | 6/8, 6/8, 6/8 | — | 0/5, 0/5, 0/5 | 11.8 [11.5-13.0] (0.73 [0.72-0.73]); 11.8 [11.7-11.8] (0.08 [0.08-0.08]) |
+| gpuP_cpuD_p2048 | 84.8 [79.6-88.9] | 3/3, 3/3, 3/3 | — | 0/4, 0/4, 0/4 | 84.8 [79.6-88.9] (1.00 [1.00-1.00]); 9.6 [9.5-9.8] (0.62 [0.61-0.62]) |
+| gpuP_cpuD_p512 | 146.3 [143.6-146.7] | 9/10, 10/11, 9/11 | — | 0/4, 0/4, 0/4 | 141.3 [141.3-143.2] (0.90 [0.89-0.93]); 10.5 [10.5-10.7] (0.38 [0.34-0.38]) |
+| gpuP_cpuDs_p2048 | — | 0/5, 0/5, 0/5 | 11.3 [11.3-11.7] | 13/16, 12/16, 11/16 | 140.8 [135.3-147.4] (0.09 [0.07-0.15]); 12.0 [11.6-12.4] (0.82 [0.73-0.86]) |
+| gpuP_cpuDs_p512 | — | 0/17, 0/17, 0/17 | 13.8 [13.7-13.8] | 4/19, 5/18, 6/19 | 294.5 [294.5-294.6] (0.20 [0.19-0.21]); 14.1 [14.0-14.1] (0.33 [0.25-0.38]) |
+| solo_cpuDs | 18.9 [18.8-19.1] | 19/19, 20/20, 20/20 | — | — | 18.9 [18.8-19.1] (0.00 [0.00-0.00]) |
+| solo_cpuP_p2048 | 90.9 [90.8-91.8] | 4/4, 4/4, 4/4 | — | — | 90.9 [90.8-91.8] (0.00 [0.00-0.00]) |
+| solo_cpuP_p512 | 131.2 [130.8-133.1] | 13/13, 13/13, 13/13 | — | — | 131.2 [130.8-133.1] (0.00 [0.00-0.00]) |
+| solo_gpuDs | 18.2 [18.2-18.3] | 12/12, 12/12, 12/12 | — | — | 18.2 [18.2-18.3] (0.00 [0.00-0.00]) |
+| solo_gpuP_p2048 | 191.9 [191.2-192.8] | 6/6, 6/6, 6/6 | — | — | 191.9 [191.2-192.8] (0.00 [0.00-0.00]) |
+| solo_gpuP_p512 | 304.3 [303.8-304.5] | 18/18, 18/18, 19/19 | — | — | 304.3 [303.8-304.5] (0.00 [0.00-0.00]) |
+
+#### et 3b: co-run ratios
+
+| pair | P | prefill ratio | prefills counted per trial | decode ratio | decode windows counted per trial | previous estimate: decode ratio (duty) |
+|---|---|---|---|---|---|---|
+| GPU prefill → CPU decode | 512 | 0.48 | 9/10, 10/11, 9/11 | 0.73 | 4/19, 5/18, 6/19 | — |
+| CPU prefill → GPU decode | 512 | 0.71 | 8/10, 9/10, 8/10 | 0.92 | 7/12, 7/11, 8/12 | — |
+| GPU prefill → CPU decode | 2048 | 0.44 | 3/3, 3/3, 3/3 | 0.60 | 13/16, 12/16, 11/16 | — |
+| CPU prefill → GPU decode | 2048 | 0.75 | 2/3, 1/3, 1/3 | 0.92 | 11/11, 10/11, 10/11 | — |
+| both decoding (CPU, GPU) | — | — | — | 0.43, 0.67 | 10/15, 11/15, 11/15; 6/8, 6/8, 6/8 | — |
 
 ### Pixel 7a (3A021JEHN02756)
 
@@ -540,26 +605,34 @@ sections 2-4 and 6 are condensed from the grids and the appendix.
 
 #### et 1b: co-run (tok/s; ratio = co-run / solo loop)
 
-| loop | A rate | A duty | B rate | B duty |
-|---|---|---|---|---|
-| cpuD_gpuD | 19.1 [19.1-19.6] | 0.86 [0.86-0.87] | 9.6 [9.5-9.6] | 0.72 [0.69-0.73] |
-| cpuP_gpuD_p2048 | 84.1 [83.5-84.9] | 1.00 [1.00-1.00] | 11.2 [11.1-11.2] | 0.56 [0.56-0.57] |
-| cpuP_gpuD_p512 | 118.1 [117.7-121.5] | 1.00 [1.00-1.00] | 11.6 [11.5-11.7] | 0.49 [0.48-0.50] |
-| gpuP_cpuD_p2048 | 192.0 [187.2-201.6] | 1.00 [1.00-1.00] | 19.2 [19.1-19.3] | 0.66 [0.63-0.68] |
-| gpuP_cpuD_p512 | 388.1 [385.6-392.0] | 1.00 [1.00-1.00] | 21.6 [21.4-21.7] | 0.19 [0.16-0.20] |
-| solo_cpuD | 23.4 [23.4-23.4] | 0.00 [0.00-0.00] | — | — |
-| solo_cpuP_p2048 | 100.5 [100.1-102.1] | 0.00 [0.00-0.00] | — | — |
-| solo_cpuP_p512 | 140.8 [140.0-143.3] | 0.00 [0.00-0.00] | — | — |
-| solo_gpuD | 14.4 [14.3-14.4] | 0.00 [0.00-0.00] | — | — |
-| solo_gpuP_p2048 | 284.0 [283.0-284.6] | 0.00 [0.00-0.00] | — | — |
-| solo_gpuP_p512 | 437.6 [435.9-438.0] | 0.00 [0.00-0.00] | — | — |
+| loop | A rate, counted | A counted / total per trial | B rate, counted | B counted / total per trial | A, B rate over all intervals (duty) |
+|---|---|---|---|---|---|
+| cpuD_gpuD | — | 0/5, 0/5, 0/5 | — | 0/3, 0/3, 0/3 | 19.1 [19.1-19.6] (0.86 [0.86-0.87]); 9.6 [9.5-9.6] (0.72 [0.69-0.73]) |
+| cpuDs_gpuD | 26.3 [26.2-26.6] | 24/31, 25/31, 24/31 | — | 0/3, 0/3, 0/3 | 27.0 [26.8-27.2] (0.82 [0.79-0.83]); 13.3 [12.9-13.9] (0.16 [0.15-0.16]) |
+| cpuP_gpuD_p2048 | 84.1 [83.5-84.9] | 2/2, 2/2, 2/2 | — | 0/3, 0/3, 0/3 | 84.1 [83.5-84.9] (1.00 [1.00-1.00]); 11.2 [11.1-11.2] (0.56 [0.56-0.57]) |
+| cpuP_gpuD_p512 | 118.1 [117.7-121.5] | 6/9, 6/9, 6/9 | — | 0/3, 0/3, 0/3 | 119.5 [119.1-121.9] (0.83 [0.82-0.87]); 11.6 [11.5-11.7] (0.49 [0.48-0.50]) |
+| cpuP_gpuDs_p2048 | — | 0/3, 0/3, 0/3 | 15.3 [15.2-15.4] | 9/10, 10/10, 9/10 | 91.7 [90.8-93.2] (0.19 [0.19-0.20]); 15.2 [15.2-15.4] (0.99 [0.97-1.00]) |
+| cpuP_gpuDs_p512 | — | 0/10, 0/9, 0/10 | 15.5 [15.2-15.8] | 8/11, 9/10, 10/11 | 132.8 [130.2-133.6] (0.22 [0.22-0.34]); 15.4 [15.2-15.8] (0.90 [0.73-0.91]) |
+| gpuDs_cpuD | 14.2 [14.1-14.3] | 8/8, 8/8, 8/8 | — | 0/5, 0/5, 0/5 | 14.2 [14.1-14.3] (1.00 [1.00-1.00]); 23.2 [23.0-23.2] (0.26 [0.26-0.27]) |
+| gpuP_cpuD_p2048 | 192.0 [187.2-201.6] | 3/4, 3/4, 3/4 | — | 0/5, 0/5, 0/5 | 162.1 [159.7-181.3] (0.92 [0.92-0.98]); 19.2 [19.1-19.3] (0.66 [0.63-0.68]) |
+| gpuP_cpuD_p512 | 388.1 [385.6-392.0] | 8/9, 6/8, 8/9 | — | 0/5, 0/5, 0/5 | 385.5 [381.4-392.4] (0.89 [0.81-0.91]); 21.6 [21.4-21.7] (0.19 [0.16-0.20]) |
+| gpuP_cpuDs_p2048 | — | 0/4, 0/4, 0/4 | 23.4 [23.2-23.5] | 22/29, 23/30, 22/30 | 206.6 [194.0-217.6] (0.23 [0.23-0.27]); 24.6 [24.3-24.8] (0.82 [0.78-0.84]) |
+| gpuP_cpuDs_p512 | — | 0/11, 0/12, 0/11 | 22.9 [22.5-23.7] | 8/31, 9/31, 7/31 | 435.0 [433.7-442.1] (0.25 [0.18-0.31]); 27.4 [27.2-27.4] (0.33 [0.31-0.39]) |
+| solo_cpuD | 23.4 [23.4-23.4] | 6/6, 6/6, 6/6 | — | — | 23.4 [23.4-23.4] (0.00 [0.00-0.00]) |
+| solo_cpuDs | 35.4 [35.4-35.5] | 36/36, 36/36, 36/36 | — | — | 35.4 [35.4-35.5] (0.00 [0.00-0.00]) |
+| solo_cpuP_p2048 | 100.5 [100.1-102.1] | 3/3, 3/3, 3/3 | — | — | 100.5 [100.1-102.1] (0.00 [0.00-0.00]) |
+| solo_cpuP_p512 | 140.8 [140.0-143.3] | 10/10, 10/10, 10/10 | — | — | 140.8 [140.0-143.3] (0.00 [0.00-0.00]) |
+| solo_gpuD | 14.4 [14.3-14.4] | 3/3, 3/3, 3/3 | — | — | 14.4 [14.3-14.4] (0.00 [0.00-0.00]) |
+| solo_gpuDs | 14.4 [14.4-14.5] | 12/12, 12/12, 12/12 | — | — | 14.4 [14.4-14.5] (0.00 [0.00-0.00]) |
+| solo_gpuP_p2048 | 284.0 [283.0-284.6] | 5/5, 5/5, 5/5 | — | — | 284.0 [283.0-284.6] (0.00 [0.00-0.00]) |
+| solo_gpuP_p512 | 437.6 [435.9-438.0] | 12/12, 12/12, 12/12 | — | — | 437.6 [435.9-438.0] (0.00 [0.00-0.00]) |
 
 #### et 1b: co-run ratios
 
-| pair | P | prefill ratio | decode ratio, measured | decode duty | decode ratio, full overlap |
-|---|---|---|---|---|---|
-| GPU prefill → CPU decode | 512 | 0.89 | 0.92 | 0.19 | 0.59 |
-| CPU prefill → GPU decode | 512 | 0.84 | 0.81 | 0.49 | 0.60 |
-| GPU prefill → CPU decode | 2048 | 0.68 | 0.82 | 0.66 | 0.73 |
-| CPU prefill → GPU decode | 2048 | 0.84 | 0.78 | 0.56 | 0.61 |
-| both decoding (CPU, GPU) | — | — | 0.82, 0.67 | 0.86, 0.72 | as measured |
+| pair | P | prefill ratio | prefills counted per trial | decode ratio | decode windows counted per trial | previous estimate: decode ratio (duty) |
+|---|---|---|---|---|---|---|
+| GPU prefill → CPU decode | 512 | 0.89 | 8/9, 6/8, 8/9 | 0.65 | 8/31, 9/31, 7/31 | 0.59 (0.19) |
+| CPU prefill → GPU decode | 512 | 0.84 | 6/9, 6/9, 6/9 | 1.07 | 8/11, 9/10, 10/11 | 0.60 (0.49) |
+| GPU prefill → CPU decode | 2048 | 0.68 | 3/4, 3/4, 3/4 | 0.66 | 22/29, 23/30, 22/30 | 0.73 (0.66) |
+| CPU prefill → GPU decode | 2048 | 0.84 | 2/2, 2/2, 2/2 | 1.06 | 9/10, 10/10, 9/10 | 0.61 (0.56) |
+| both decoding (CPU, GPU) | — | — | — | 0.74, 0.99 | 24/31, 25/31, 24/31; 8/8, 8/8, 8/8 | 0.82, 0.67 (as measured) |

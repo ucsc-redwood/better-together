@@ -221,14 +221,20 @@ evidence for each item is under `data/llm-phase-affinity/`.
     window. With `--warmup` the solo short loop decodes at 14.5 (35.8) (`<serial>/check-warm-short/`).
   The prefill side already met the requirement, since a prefill counts only wholly inside a partner decode
   window. A partner's warm-up `generate()` (prompt P, 1 token) counts as compute. It is the same prefill as the
-  measured one, and it lasts within 8% of it at the same P on both phones. Every co-run rate in the gate comes
+  measured one, and it lasts within 8% of it at the same P on both phones. Counting only the measured prefills
+  moves every 1B decode ratio by at most 0.02 (Pixel P = 512: 0.63 instead of 0.65), on 2-13 windows per trial
+  instead of 7-27. Every co-run rate in the gate comes
   from 3 trials, each with at least one counted interval, and the counted / total intervals per trial are
   reported. The extrapolated estimate is kept as a labelled diagnostic column.
 - **ExecuTorch 3B co-runs (after acceptance review).** An earlier note skipped them, arguing they could not change
   the decision. That argument rested on transferred 1B ratios, including the both-decoding ratios in the
   data-parallel denominator, so it does not bound the 3B result. They were measured
   (`plan_corun_samsung_et_3b.txt`, `R5CY21Y3VEV/corun-et-3b/`). The prefill side is as in the 1B plan and the
-  decode side as in the overlap plan, with longer loops for the slower model.
+  decode side as in the overlap plan, with longer loops for the slower model. They decide the study.
+  At P = 2048, D = 512, CPU prefill with GPU decode reaches 1.23 of the co-run data-parallel bound, which passes
+  the gate. The reason: two 3B decodes interfere heavily (CPU 0.43, GPU 0.67), while the GPU decode keeps 0.92 next
+  to a CPU prefill. At that cell the data-parallel bound is below the GPU alone, and the pipeline beats the GPU
+  alone by 1.18. The decision record reports both figures.
 - **Analysis after an independent review.** A read-only review of the analysis script found no defect that
   changes the verdict. It led to four changes:
   - the duty of a decode window is now weighted by window length, as its rate is. The extrapolation is then

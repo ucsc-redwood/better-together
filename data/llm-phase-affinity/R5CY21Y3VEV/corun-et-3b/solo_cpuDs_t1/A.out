@@ -1,0 +1,133 @@
+loop_start_epoch=1792623415.021313515
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":175.824,"decode_token_per_sec":22.4359,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623415098,"model_load_end_ms":1792623417049,"inference_start_ms":1792623417548,"inference_end_ms":1792623417951,"model_execution_start_ms":1792623417907,"model_execution_end_ms":1792623417950,"prompt_eval_end_ms":1792623417639,"first_token_ms":1792623417639,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":400,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623418.022912851
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":173.913,"decode_token_per_sec":22.2222,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623418098,"model_load_end_ms":1792623420201,"inference_start_ms":1792623420690,"inference_end_ms":1792623421097,"model_execution_start_ms":1792623421052,"model_execution_end_ms":1792623421096,"prompt_eval_end_ms":1792623420782,"first_token_ms":1792623420782,"aggregate_sampling_time_ms":4,"aggregate_model_execution_time_ms":403,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623421.162933984
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":172.043,"decode_token_per_sec":22.8013,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623421242,"model_load_end_ms":1792623423385,"inference_start_ms":1792623423890,"inference_end_ms":1792623424290,"model_execution_start_ms":1792623424246,"model_execution_end_ms":1792623424289,"prompt_eval_end_ms":1792623423983,"first_token_ms":1792623423983,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":395,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623424.374888242
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":172.043,"decode_token_per_sec":22.6537,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623424452,"model_load_end_ms":1792623426620,"inference_start_ms":1792623427111,"inference_end_ms":1792623427513,"model_execution_start_ms":1792623427469,"model_execution_end_ms":1792623427513,"prompt_eval_end_ms":1792623427204,"first_token_ms":1792623427204,"aggregate_sampling_time_ms":0,"aggregate_model_execution_time_ms":402,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623427.583593710
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":161.616,"decode_token_per_sec":22.3642,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623427659,"model_load_end_ms":1792623430018,"inference_start_ms":1792623430514,"inference_end_ms":1792623430926,"model_execution_start_ms":1792623430881,"model_execution_end_ms":1792623430925,"prompt_eval_end_ms":1792623430613,"first_token_ms":1792623430613,"aggregate_sampling_time_ms":1,"aggregate_model_execution_time_ms":411,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623430.996255546
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":149.533,"decode_token_per_sec":22.1519,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623431082,"model_load_end_ms":1792623433447,"inference_start_ms":1792623433950,"inference_end_ms":1792623434373,"model_execution_start_ms":1792623434329,"model_execution_end_ms":1792623434373,"prompt_eval_end_ms":1792623434057,"first_token_ms":1792623434057,"aggregate_sampling_time_ms":2,"aggregate_model_execution_time_ms":421,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623434.445314335
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":164.948,"decode_token_per_sec":21.021,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623434531,"model_load_end_ms":1792623436898,"inference_start_ms":1792623437398,"inference_end_ms":1792623437828,"model_execution_start_ms":1792623437772,"model_execution_end_ms":1792623437828,"prompt_eval_end_ms":1792623437495,"first_token_ms":1792623437495,"aggregate_sampling_time_ms":1,"aggregate_model_execution_time_ms":429,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623437.907410390
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":107.383,"decode_token_per_sec":16.9492,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623438017,"model_load_end_ms":1792623442245,"inference_start_ms":1792623442878,"inference_end_ms":1792623443440,"model_execution_start_ms":1792623443381,"model_execution_end_ms":1792623443440,"prompt_eval_end_ms":1792623443027,"first_token_ms":1792623443027,"aggregate_sampling_time_ms":1,"aggregate_model_execution_time_ms":561,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623443.540262734
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.8117,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623443641,"model_load_end_ms":1792623447869,"inference_start_ms":1792623448499,"inference_end_ms":1792623449011,"model_execution_start_ms":1792623448954,"model_execution_end_ms":1792623449011,"prompt_eval_end_ms":1792623448618,"first_token_ms":1792623448618,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":508,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623449.090080507
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.9487,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623449189,"model_load_end_ms":1792623453449,"inference_start_ms":1792623454065,"inference_end_ms":1792623454574,"model_execution_start_ms":1792623454517,"model_execution_end_ms":1792623454573,"prompt_eval_end_ms":1792623454184,"first_token_ms":1792623454184,"aggregate_sampling_time_ms":2,"aggregate_model_execution_time_ms":507,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623454.654728359
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.9487,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623454761,"model_load_end_ms":1792623458987,"inference_start_ms":1792623459632,"inference_end_ms":1792623460141,"model_execution_start_ms":1792623460086,"model_execution_end_ms":1792623460141,"prompt_eval_end_ms":1792623459751,"first_token_ms":1792623459751,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":504,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623460.221508085
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.9487,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623460325,"model_load_end_ms":1792623464555,"inference_start_ms":1792623465178,"inference_end_ms":1792623465687,"model_execution_start_ms":1792623465631,"model_execution_end_ms":1792623465686,"prompt_eval_end_ms":1792623465297,"first_token_ms":1792623465297,"aggregate_sampling_time_ms":2,"aggregate_model_execution_time_ms":505,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623465.767669101
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.9487,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623465874,"model_load_end_ms":1792623470094,"inference_start_ms":1792623470703,"inference_end_ms":1792623471212,"model_execution_start_ms":1792623471156,"model_execution_end_ms":1792623471211,"prompt_eval_end_ms":1792623470822,"first_token_ms":1792623470822,"aggregate_sampling_time_ms":2,"aggregate_model_execution_time_ms":506,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623471.295487226
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":133.333,"decode_token_per_sec":17.9028,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623471399,"model_load_end_ms":1792623475628,"inference_start_ms":1792623476230,"inference_end_ms":1792623476741,"model_execution_start_ms":1792623476685,"model_execution_end_ms":1792623476741,"prompt_eval_end_ms":1792623476350,"first_token_ms":1792623476350,"aggregate_sampling_time_ms":0,"aggregate_model_execution_time_ms":510,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623476.827753593
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.6768,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623476928,"model_load_end_ms":1792623481145,"inference_start_ms":1792623481747,"inference_end_ms":1792623482262,"model_execution_start_ms":1792623482207,"model_execution_end_ms":1792623482262,"prompt_eval_end_ms":1792623481866,"first_token_ms":1792623481866,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":512,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623482.342508359
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":135.593,"decode_token_per_sec":17.5439,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623482444,"model_load_end_ms":1792623486671,"inference_start_ms":1792623487268,"inference_end_ms":1792623487785,"model_execution_start_ms":1792623487730,"model_execution_end_ms":1792623487785,"prompt_eval_end_ms":1792623487386,"first_token_ms":1792623487386,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":514,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623487.870692148
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":135.593,"decode_token_per_sec":17.5439,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623487978,"model_load_end_ms":1792623492197,"inference_start_ms":1792623492804,"inference_end_ms":1792623493321,"model_execution_start_ms":1792623493265,"model_execution_end_ms":1792623493320,"prompt_eval_end_ms":1792623492922,"first_token_ms":1792623492922,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":513,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623493.409150585
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":118.519,"decode_token_per_sec":17.5879,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623493510,"model_load_end_ms":1792623497738,"inference_start_ms":1792623498401,"inference_end_ms":1792623498934,"model_execution_start_ms":1792623498877,"model_execution_end_ms":1792623498934,"prompt_eval_end_ms":1792623498536,"first_token_ms":1792623498536,"aggregate_sampling_time_ms":3,"aggregate_model_execution_time_ms":530,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0
+loop_start_epoch=1792623499.012224257
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+ the the the the the the the the the the the the the the the theTags = 0.0
+   
+PyTorchObserver {"prefill_token_per_sec":134.454,"decode_token_per_sec":17.7215,"prompt_tokens":16,"generated_tokens":7,"model_load_start_ms":1792623499118,"model_load_end_ms":1792623503339,"inference_start_ms":1792623503951,"inference_end_ms":1792623504465,"model_execution_start_ms":1792623504407,"model_execution_end_ms":1792623504464,"prompt_eval_end_ms":1792623504070,"first_token_ms":1792623504070,"aggregate_sampling_time_ms":4,"aggregate_model_execution_time_ms":510,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+loop_exit=0

@@ -1,0 +1,28 @@
+maskA=3f0
+cmdA=./lpa_loop.sh 150 ./llama_main --model_path llama3_2-3b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 1 --temperature 0 --warmup --cpu_threads 6
+maskB=8
+cmdB=./lpa_loop.sh 200 ./llama_main --model_path /data/local/tmp/llama/llama3_2-3b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_16.txt --max_new_tokens 512 --temperature 0 --ignore_eos --cpu_threads 1
+first=A
+gpu_clock_path=/sys/kernel/gpu/gpu_clock
+thermal_before:
+Thermal Status: 0
+Temperature{mValue=39.5, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=38.7, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=39.5, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=39.6, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=37.6, mType=3, mName=SKIN, mStatus=0}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=36.6, mType=4, mName=USB, mStatus=0}
+launch_A_epoch=1792617051.378161757
+launch_B_epoch=1792617051.405946289
+end_A_epoch=1792617230.226575468
+end_B_epoch=1792617283.929968632
+thermal_after:
+Thermal Status: 2
+Temperature{mValue=52.3, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=43.6, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=50.3, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=49.2, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=42.8, mType=3, mName=SKIN, mStatus=2}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=36.6, mType=4, mName=USB, mStatus=0}
