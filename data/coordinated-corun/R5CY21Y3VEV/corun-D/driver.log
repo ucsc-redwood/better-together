@@ -1,0 +1,107 @@
+2026-10-22T06:13:02-07:00 cooling: thermal status 2
+2026-10-22T06:13:32-07:00 cooling: thermal status 1
+2026-10-22T06:14:03-07:00 start 1b_gpuD_cpuD_u100_m3f0_t1 first=A battery=26
+2026-10-22T06:15:14-07:00 end 1b_gpuD_cpuD_u100_m3f0_t1
+2026-10-22T06:15:34-07:00 THROTTLED 1b_gpuD_cpuD_u100_m3f0_t1, cooling down and repeating once
+2026-10-22T06:17:34-07:00 start 1b_gpuD_cpuD_u100_m3f0_t1_retry first=A battery=26
+2026-10-22T06:18:45-07:00 end 1b_gpuD_cpuD_u100_m3f0_t1_retry
+2026-10-22T06:19:05-07:00 cooling: thermal status 2
+2026-10-22T06:19:36-07:00 cooling: thermal status 1
+2026-10-22T06:20:06-07:00 cooling: thermal status 1
+2026-10-22T06:20:36-07:00 start 1b_gpuD_cpuD_u80_m3f0_t1 first=A battery=26
+2026-10-22T06:21:47-07:00 end 1b_gpuD_cpuD_u80_m3f0_t1
+2026-10-22T06:22:07-07:00 THROTTLED 1b_gpuD_cpuD_u80_m3f0_t1, cooling down and repeating once
+2026-10-22T06:24:07-07:00 start 1b_gpuD_cpuD_u80_m3f0_t1_retry first=A battery=26
+2026-10-22T06:25:19-07:00 end 1b_gpuD_cpuD_u80_m3f0_t1_retry
+2026-10-22T06:25:39-07:00 cooling: thermal status 1
+2026-10-22T06:26:09-07:00 cooling: thermal status 1
+2026-10-22T06:26:39-07:00 start 1b_gpuD_cpuD_u67_m3f0_t1 first=A battery=25
+2026-10-22T06:27:51-07:00 end 1b_gpuD_cpuD_u67_m3f0_t1
+2026-10-22T06:28:11-07:00 THROTTLED 1b_gpuD_cpuD_u67_m3f0_t1, cooling down and repeating once
+2026-10-22T06:30:11-07:00 start 1b_gpuD_cpuD_u67_m3f0_t1_retry first=A battery=25
+2026-10-22T06:31:22-07:00 end 1b_gpuD_cpuD_u67_m3f0_t1_retry
+2026-10-22T06:31:43-07:00 cooling: thermal status 2
+2026-10-22T06:32:13-07:00 cooling: thermal status 1
+2026-10-22T06:32:43-07:00 start 1b_gpuD_cpuD_u50_m3f0_t1 first=A battery=25
+2026-10-22T06:33:54-07:00 end 1b_gpuD_cpuD_u50_m3f0_t1
+2026-10-22T06:34:14-07:00 THROTTLED 1b_gpuD_cpuD_u50_m3f0_t1, cooling down and repeating once
+2026-10-22T06:36:14-07:00 start 1b_gpuD_cpuD_u50_m3f0_t1_retry first=A battery=25
+2026-10-22T06:37:26-07:00 end 1b_gpuD_cpuD_u50_m3f0_t1_retry
+2026-10-22T06:37:46-07:00 cooling: thermal status 2
+2026-10-22T06:38:16-07:00 cooling: thermal status 1
+2026-10-22T06:38:46-07:00 start 1b_gpuD_cpuD_u33_m3f0_t1 first=A battery=24
+2026-10-22T06:39:57-07:00 end 1b_gpuD_cpuD_u33_m3f0_t1
+2026-10-22T06:40:17-07:00 THROTTLED 1b_gpuD_cpuD_u33_m3f0_t1, cooling down and repeating once
+2026-10-22T06:42:17-07:00 start 1b_gpuD_cpuD_u33_m3f0_t1_retry first=A battery=24
+2026-10-22T06:43:29-07:00 end 1b_gpuD_cpuD_u33_m3f0_t1_retry
+2026-10-22T06:43:49-07:00 cooling: thermal status 1
+2026-10-22T06:44:19-07:00 cooling: thermal status 1
+2026-10-22T06:44:49-07:00 start 1b_gpuD_cpuD_u100_m3f0_t2 first=B battery=24
+2026-10-22T06:46:01-07:00 end 1b_gpuD_cpuD_u100_m3f0_t2
+2026-10-22T06:46:21-07:00 THROTTLED 1b_gpuD_cpuD_u100_m3f0_t2, cooling down and repeating once
+2026-10-22T06:48:21-07:00 start 1b_gpuD_cpuD_u100_m3f0_t2_retry first=B battery=24
+2026-10-22T06:49:32-07:00 end 1b_gpuD_cpuD_u100_m3f0_t2_retry
+2026-10-22T06:49:53-07:00 cooling: thermal status 1
+2026-10-22T06:50:23-07:00 cooling: thermal status 1
+2026-10-22T06:50:53-07:00 start 1b_gpuD_cpuD_u80_m3f0_t2 first=B battery=24
+2026-10-22T06:52:04-07:00 end 1b_gpuD_cpuD_u80_m3f0_t2
+2026-10-22T06:52:24-07:00 THROTTLED 1b_gpuD_cpuD_u80_m3f0_t2, cooling down and repeating once
+2026-10-22T06:54:24-07:00 start 1b_gpuD_cpuD_u80_m3f0_t2_retry first=B battery=24
+2026-10-22T06:55:35-07:00 end 1b_gpuD_cpuD_u80_m3f0_t2_retry
+2026-10-22T06:55:56-07:00 cooling: thermal status 2
+2026-10-22T06:56:26-07:00 cooling: thermal status 1
+2026-10-22T06:56:56-07:00 start 1b_gpuD_cpuD_u67_m3f0_t2 first=B battery=23
+2026-10-22T06:58:07-07:00 end 1b_gpuD_cpuD_u67_m3f0_t2
+2026-10-22T06:58:27-07:00 THROTTLED 1b_gpuD_cpuD_u67_m3f0_t2, cooling down and repeating once
+2026-10-22T07:00:27-07:00 start 1b_gpuD_cpuD_u67_m3f0_t2_retry first=B battery=23
+2026-10-22T07:01:39-07:00 end 1b_gpuD_cpuD_u67_m3f0_t2_retry
+2026-10-22T07:01:59-07:00 cooling: thermal status 2
+2026-10-22T07:02:29-07:00 cooling: thermal status 1
+2026-10-22T07:02:59-07:00 start 1b_gpuD_cpuD_u50_m3f0_t2 first=B battery=23
+2026-10-22T07:04:11-07:00 end 1b_gpuD_cpuD_u50_m3f0_t2
+2026-10-22T07:04:31-07:00 THROTTLED 1b_gpuD_cpuD_u50_m3f0_t2, cooling down and repeating once
+2026-10-22T07:06:31-07:00 start 1b_gpuD_cpuD_u50_m3f0_t2_retry first=B battery=23
+2026-10-22T07:07:42-07:00 end 1b_gpuD_cpuD_u50_m3f0_t2_retry
+2026-10-22T07:08:02-07:00 cooling: thermal status 2
+2026-10-22T07:08:32-07:00 cooling: thermal status 1
+2026-10-22T07:09:03-07:00 start 1b_gpuD_cpuD_u33_m3f0_t2 first=B battery=22
+2026-10-22T07:10:14-07:00 end 1b_gpuD_cpuD_u33_m3f0_t2
+2026-10-22T07:10:34-07:00 THROTTLED 1b_gpuD_cpuD_u33_m3f0_t2, cooling down and repeating once
+2026-10-22T07:12:34-07:00 start 1b_gpuD_cpuD_u33_m3f0_t2_retry first=B battery=22
+2026-10-22T07:13:45-07:00 end 1b_gpuD_cpuD_u33_m3f0_t2_retry
+2026-10-22T07:14:05-07:00 cooling: thermal status 1
+2026-10-22T07:14:36-07:00 cooling: thermal status 1
+2026-10-22T07:15:06-07:00 start 1b_gpuD_cpuD_u100_m3f0_t3 first=A battery=22
+2026-10-22T07:16:17-07:00 end 1b_gpuD_cpuD_u100_m3f0_t3
+2026-10-22T07:16:37-07:00 THROTTLED 1b_gpuD_cpuD_u100_m3f0_t3, cooling down and repeating once
+2026-10-22T07:18:37-07:00 start 1b_gpuD_cpuD_u100_m3f0_t3_retry first=A battery=22
+2026-10-22T07:19:49-07:00 end 1b_gpuD_cpuD_u100_m3f0_t3_retry
+2026-10-22T07:20:09-07:00 cooling: thermal status 2
+2026-10-22T07:20:39-07:00 cooling: thermal status 1
+2026-10-22T07:21:09-07:00 start 1b_gpuD_cpuD_u80_m3f0_t3 first=A battery=22
+2026-10-22T07:22:20-07:00 end 1b_gpuD_cpuD_u80_m3f0_t3
+2026-10-22T07:22:40-07:00 THROTTLED 1b_gpuD_cpuD_u80_m3f0_t3, cooling down and repeating once
+2026-10-22T07:24:41-07:00 start 1b_gpuD_cpuD_u80_m3f0_t3_retry first=A battery=22
+2026-10-22T07:25:52-07:00 end 1b_gpuD_cpuD_u80_m3f0_t3_retry
+2026-10-22T07:26:12-07:00 cooling: thermal status 2
+2026-10-22T07:26:42-07:00 cooling: thermal status 1
+2026-10-22T07:27:12-07:00 start 1b_gpuD_cpuD_u67_m3f0_t3 first=A battery=21
+2026-10-22T07:28:24-07:00 end 1b_gpuD_cpuD_u67_m3f0_t3
+2026-10-22T07:28:44-07:00 THROTTLED 1b_gpuD_cpuD_u67_m3f0_t3, cooling down and repeating once
+2026-10-22T07:30:44-07:00 start 1b_gpuD_cpuD_u67_m3f0_t3_retry first=A battery=21
+2026-10-22T07:31:56-07:00 end 1b_gpuD_cpuD_u67_m3f0_t3_retry
+2026-10-22T07:32:16-07:00 cooling: thermal status 1
+2026-10-22T07:32:46-07:00 cooling: thermal status 1
+2026-10-22T07:33:16-07:00 start 1b_gpuD_cpuD_u50_m3f0_t3 first=A battery=21
+2026-10-22T07:34:27-07:00 end 1b_gpuD_cpuD_u50_m3f0_t3
+2026-10-22T07:34:47-07:00 THROTTLED 1b_gpuD_cpuD_u50_m3f0_t3, cooling down and repeating once
+2026-10-22T07:36:47-07:00 start 1b_gpuD_cpuD_u50_m3f0_t3_retry first=A battery=21
+2026-10-22T07:37:59-07:00 end 1b_gpuD_cpuD_u50_m3f0_t3_retry
+2026-10-22T07:38:19-07:00 cooling: thermal status 2
+2026-10-22T07:38:49-07:00 cooling: thermal status 1
+2026-10-22T07:39:19-07:00 start 1b_gpuD_cpuD_u33_m3f0_t3 first=A battery=20
+2026-10-22T07:40:30-07:00 end 1b_gpuD_cpuD_u33_m3f0_t3
+2026-10-22T07:40:50-07:00 THROTTLED 1b_gpuD_cpuD_u33_m3f0_t3, cooling down and repeating once
+2026-10-22T07:42:51-07:00 start 1b_gpuD_cpuD_u33_m3f0_t3_retry first=A battery=20
+2026-10-22T07:44:02-07:00 end 1b_gpuD_cpuD_u33_m3f0_t3_retry
+2026-10-22T07:44:22-07:00 plan done
