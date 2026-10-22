@@ -303,6 +303,9 @@ def settings(corun, refs):
             continue
         # spec: (prefill ratio, decode ratio); dp: (GPU decode ratio, CPU decode ratio).
         s["ratios"] = (a["median"] / pref["median"], b["median"] / dref["median"])
+        # The trial spread: each co-run rate at its slowest and fastest trial.
+        s["ratios_lo"] = (a["min"] / pref["median"], b["min"] / dref["median"])
+        s["ratios_hi"] = (a["max"] / pref["median"], b["max"] / dref["median"])
         s["files"] = lpa.files_of(a, b, pref, dref)
         out[fam].append(s)
     return out
@@ -316,23 +319,28 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
         "cpu": (med(refs.cpu_prefill(prompt)), None),
     }
     m = near(prompt)
-    spec = []
-    for fam, (pa, db) in (("gpu->cpu", ("gpu", "cpu")), ("cpu->gpu", ("cpu", "gpu"))):
-        for s in sets[fam]:
-            if s["P"] != m:
-                continue
-            rp, rd = s["ratios"]
-            p = al[pa][0] * rp
-            d = med(refs.cpu_decode(prompt, s["mask"])) * rd if db == "cpu" else al["gpu"][1] * rd
-            spec.append((spec_throughput(prompt, gen, p, d, handoff_s), fam, s))
-    dp = []
-    for s in sets["dp"]:
-        rg, rc = s["ratios"]
+
+    def spec_of(fam, s, key="ratios"):
+        rp, rd = s[key]
+        p = al["gpu" if fam == "gpu->cpu" else "cpu"][0] * rp
+        d = med(refs.cpu_decode(prompt, s["mask"])) * rd if fam == "gpu->cpu" else al["gpu"][1] * rd
+        return spec_throughput(prompt, gen, p, d, handoff_s)
+
+    def dp_of(s, key="ratios"):
+        rg, rc = s[key]
         pus = [
             (al["gpu"][0], al["gpu"][1] * rg),
             (al["cpu"][0], med(refs.cpu_decode(prompt, s["mask"])) * rc),
         ]
-        dp.append((dp_throughput(prompt, gen, pus), s))
+        return dp_throughput(prompt, gen, pus)
+
+    spec = [
+        (spec_of(fam, s), fam, s)
+        for fam in ("gpu->cpu", "cpu->gpu")
+        for s in sets[fam]
+        if s["P"] == m
+    ]
+    dp = [(dp_of(s), s) for s in sets["dp"]]
     # Best single PU of this study's alone rates (GPU; CPU prefill on the widest mask, decode on any).
     masks = sorted({s["mask"] for f in sets.values() for s in f} | {CPU_PREFILL_MASK})
     singles = [("GPU", dp_throughput(prompt, gen, [al["gpu"]]))]
@@ -388,6 +396,13 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
             )
         ),
     }
+    # The trial spread of the gain: every pipeline's co-run rates at their slowest (fastest) trial
+    # against every data-parallel setting's at their fastest (slowest), the other baselines unchanged.
+    if spec:
+        rest = max(x[1] for x in cands[1:])
+        for tag, sk, dk in (("lo", "ratios_lo", "ratios_hi"), ("hi", "ratios_hi", "ratios_lo")):
+            sp = max(spec_of(f, s_, sk) for _, f, s_ in spec)
+            row[f"gain_{tag}"] = sp / max([rest] + [dp_of(s_, dk) for _, s_ in dp])
     # What coordination buys each side: the duty-1, widest-mask, ubatch-512 settings alone.
     plain = [
         x for x in spec if x[2]["u"] == 1 and x[2]["mask"] == "3f0" and x[2]["C"] == min(512, m)
@@ -621,9 +636,9 @@ def grid_table(rows):
     lines = [
         "| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU "
         "| uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel "
-        "| baseline (from) | **gain** | gain vs coordinated data-parallel | gain vs this study's baseline only "
+        "| baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only "
         "| diag.: data-parallel with co-run prefill |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         u = r["uncoord"]
@@ -643,6 +658,7 @@ def grid_table(rows):
             f"| {r['prompt']} | {r['gen']} | {g(r['spec'])} ({r['spec_setting']}) | {g(r['dp'])} ({r['dp_setting']}) | "
             f"{r['single']:.4f} ({r['single_pu']}) | {unc} | {g(r['spec_u1'])}, {g(r['dp_u1'])} | "
             f"{r['baseline']:.4f} ({r['baseline_from']}) | **{g2(r['gain'])}** | "
+            f"{g2(r.get('gain_lo'))}-{g2(r.get('gain_hi'))} | "
             + (f"{r['gain_vs_coordinated_dp']:.2f}" if r["gain_vs_coordinated_dp"] else "—")
             + f" | {g2(r['gain_own'])} | {g(r.get('dp_prefill_corun'))} |"
         )

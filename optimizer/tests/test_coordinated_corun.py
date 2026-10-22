@@ -141,6 +141,13 @@ def test_predict_hand_computed():
             },
         ],
     }
+    # Trial spread: every setting's slowest and fastest trial equal its median, except b's slowest
+    # (prefill 0.5, decode 0.8) and y's fastest (GPU 0.5, CPU 1.0).
+    for f in sets.values():
+        for x in f:
+            x["ratios_lo"] = x["ratios_hi"] = x["ratios"]
+    sets["gpu->cpu"][1]["ratios_lo"] = (0.5, 0.8)
+    sets["dp"][1]["ratios_hi"] = (0.5, 1.0)
     # Uncoordinated (llm-phase-affinity) data-parallel 0.1 and single PU 0.08: both below y.
     unc = {"dp_corun": 0.1, "single": 0.08, "single_pu": "cpu", "specialized": {}}
     r = predict(512, 128, Refs(alone, "1b"), sets, 0.1, unc)
@@ -153,6 +160,11 @@ def test_predict_hand_computed():
     assert r["baseline_from"] == "coordinated data-parallel" and math.isclose(r["baseline"], dp_y)
     assert math.isclose(r["gain"], (1 / (128 / 18 + 0.1)) / dp_y)  # 1.2126...
     assert 1.21 < r["gain"] < 1.22
+    # Least favourable: b at 1/(max(2.048, 128/16) + 0.1) = 1/8.1 against y at its fastest,
+    # 1/(1.024 + 25.6) + 1/(5.12 + 128/18) = 0.119317; most favourable: the medians (y at its slowest).
+    dp_y_hi = 1 / (1.024 + 25.6) + 1 / (5.12 + 128 / 18)
+    assert math.isclose(r["gain_lo"], (1 / 8.1) / dp_y_hi)  # 1.0347...
+    assert math.isclose(r["gain_hi"], r["gain"])
     # The duty-1 widest-mask pair alone gives a, against x.
     assert math.isclose(r["spec_u1"], 1 / 12.9) and math.isclose(r["dp_u1"], 1 / 17.024 + 1 / 21.12)
     # A larger uncoordinated data-parallel bound becomes the baseline.
