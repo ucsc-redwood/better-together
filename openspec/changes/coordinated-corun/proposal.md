@@ -2,10 +2,12 @@
 
 ## Why
 
-The `llm-phase-affinity` study ended "no-go": the best specialized pipeline (prefill on one PU, decode on the other)
-reached 1.10x the co-run-corrected data-parallel bound, against a 1.2x gate. The phase affinity is real: alone, the GPU
-prefills 1.4-2.9x faster and the CPU decodes 1.2-2x faster at short context, and with no interference the same
-pipelines would reach 1.67-1.83x. What sank it was co-run interference (each phase kept 0.34-0.89 of its alone rate).
+The `llm-phase-affinity` study passed its 1.2x gate in one cell only, narrowly: Samsung, ExecuTorch, Llama 3.2 3B,
+P = 2048, D = 512, CPU prefill and GPU decode, at 1.23x the co-run-corrected data-parallel bound, but only 1.18x the GPU
+alone (data-parallel was below the GPU alone there). Every other cell reached at most 1.03x (llama.cpp at most 0.79x).
+The phase affinity is real: alone, the GPU prefills 1.4-2.9x faster and the CPU decodes 1.2-2x faster at short
+context, and with no interference the same pipelines would reach 1.67-1.83x. What limits them is co-run interference
+(each phase kept 0.34-0.92 of its alone rate).
 
 That interference was measured **uncoordinated**: two independent pinned processes, each running flat out, with the
 memory system arbitrating. On the Samsung the arbitration is lopsided: while the GPU decodes, the CPU keeps 7.6 of its
