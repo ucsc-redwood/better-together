@@ -25,3 +25,5 @@
 2026-10-22T15:34:40-07:00 stage corun plan_corun_B2.txt 3 corun-B2
 2026-10-22T17:47:29-07:00 stage done corun-B2 (commit rc=0)
 2026-10-22T17:47:29-07:00 stage alone plan_alone_C.txt 3 alone-C
+2026-10-22T18:23:27-07:00 stage done alone-C (commit rc=0)
+2026-10-22T18:23:27-07:00 stage corun plan_corun_C.txt 3 corun-C
