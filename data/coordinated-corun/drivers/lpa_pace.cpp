@@ -227,8 +227,8 @@ int main(int argc, char** argv) {
       tokens,
       compute,
       wall,
-      tokens / compute,
-      tokens / wall,
+      static_cast<double>(tokens) / compute,
+      static_cast<double>(tokens) / wall,
       compute / wall);
   fflush(stdout);
 
