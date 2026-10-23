@@ -5,7 +5,9 @@
 # Stage line: alone|<plan>|<rounds>|<out-subdir>|<commit subject>   (run_plan.sh)
 #             corun|<plan>|<trials>|<out-subdir>|<commit subject>   (run_corun.sh)
 #             push|<file under the repo>                             (adb push to /data/local/tmp/ccr)
-# Commits go to whatever repository GIT_DIR / GIT_WORK_TREE name (see design.md).
+# Before each stage's commit the tree is formatted with `just fmt` (it honours JUST_TEMPDIR and the other
+# environment settings of design.md); if formatting fails, the queue logs it and exits non-zero without
+# committing that stage or any later one. Commits go to whatever repository GIT_DIR / GIT_WORK_TREE name.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
@@ -23,6 +25,10 @@ while IFS='|' read -r kind plan n sub subject; do
     alone) "$here/run_plan.sh" "$serial" "$here/$plan" "$n" "$root/data/coordinated-corun/$serial/$sub" ;;
     corun) "$here/run_corun.sh" "$serial" "$here/$plan" "$n" "$root/data/coordinated-corun/$serial/$sub" ;;
   esac
+  if ! (cd "$root" && just fmt) >>"$log" 2>&1; then
+    echo "$(date -Is) FAILED just fmt after $sub; not committing, queue stopped" >>"$log"
+    exit 1
+  fi
   (
     cd "$root" &&
       git add -f "data/coordinated-corun/$serial/$sub" "$log" &&
