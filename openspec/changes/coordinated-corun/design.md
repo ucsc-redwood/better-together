@@ -201,15 +201,16 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   the driver sleeps between runs and then terminates the queue. Once the battery is back at 50%, it starts the same
   stage file again; the drivers skip complete runs, so the stage resumes where it stopped. A run is never cut short,
   and the thermal-status-0 wait applies after a pause as before (`R5CY21Y3VEV/supervise.log`).
-- **Commits (not yet on the worktree's branch).** The job runner limits writes to this worktree and `/tmp`, and
-  the limit also holds with the tool sandbox off (`NoNewPrivs` plus a seccomp filter). The main checkout's `.git`,
-  which holds this worktree's index, objects and refs, cannot be written. Writing
-  `.git/worktrees/bt-ccr/FETCH_HEAD` fails with "Permission denied", in the study session and again in the review
-  follow-up. Every commit is therefore on branch `openspec/coordinated-corun` of `build/ccr-git.git`, a bare clone
-  in this worktree that shares the main repository's objects. To integrate, a session that can write `.git` runs,
-  in this worktree: `git fetch build/ccr-git.git openspec/coordinated-corun`, then
-  `git update-ref refs/heads/openspec/coordinated-corun FETCH_HEAD a0df575`, then `git reset -q`. That
-  fast-forwards the branch and syncs the index without touching the working files, which already match.
+- **Commits (not yet on the worktree's branch).** This session cannot write the main checkout's `.git`, which holds
+  this worktree's index, objects and refs. `git fetch` into it fails with
+  `cannot open '.git/worktrees/bt-ccr/FETCH_HEAD': Permission denied`, as does a plain `touch` there, with or without
+  the tool sandbox. The directory is owned by the session's user with mode 755, so ordinary file permissions do not
+  explain the denial; its cause was not established. Every commit is therefore on branch `openspec/coordinated-corun`
+  of `build/ccr-git.git`, a bare clone in this worktree that shares the main repository's objects. To integrate, a
+  session that can write `.git` runs, in this worktree: `git fetch build/ccr-git.git openspec/coordinated-corun`,
+  then checks that `FETCH_HEAD` is the recovery tip and descends from `a0df575`, then runs
+  `git update-ref refs/heads/openspec/coordinated-corun FETCH_HEAD a0df575` and `git reset --mixed HEAD`. That
+  fast-forwards the branch and syncs the index without touching the working files.
 
 ## Migration Plan
 
