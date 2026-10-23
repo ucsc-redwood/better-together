@@ -9,6 +9,7 @@ S=/home/doremy/llamacpp-compare/llama.cpp
 CXX=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang++
 SRC=/home/doremy/Desktop/ucsc/bt-ccr/data/coordinated-corun/drivers/lpa_pace.cpp
 OUT=/home/doremy/Desktop/ucsc/bt-ccr/build/ccr/lpa_pace
+mkdir -p "$(dirname "$OUT")"
 $CXX -std=c++17 -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong \
   -D_FORTIFY_SOURCE=2 -O3 -DNDEBUG -Wall -Wextra -pthread \
   -I$S/include -I$S/ggml/include \
