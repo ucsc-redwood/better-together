@@ -1,0 +1,3 @@
+# Queue for run_queue.sh, Pixel (task 3.1, design D5): ExecuTorch alone rates, then the co-runs.
+alone|plan_pixel_alone_et.txt|3|alone-et|coordinated-corun: Pixel ExecuTorch alone rates per CPU mask (task 3.1)
+corun|plan_pixel_corun_et.txt|3|corun-et|coordinated-corun: Pixel ExecuTorch co-runs per CPU mask (task 3.1)

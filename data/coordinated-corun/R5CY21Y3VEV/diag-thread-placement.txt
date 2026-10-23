@@ -1,0 +1,158 @@
+# Thread-placement check (task 1.4), 2026-10-22T04:42:04+00:00, lpa_pace (8345f33), 1B Q4_0 CPU decode -dev none -ngl 0, depth 0 (placement only, not a measurement)
+mask=3f0 threads=6 sample=1: tid state last_cpu utime_ticks
+  26832 R 6 493
+  26834 S 4 0
+  26835 S 7 0
+  26836 R 9 472
+  26837 R 7 477
+  26838 R 8 481
+  26839 R 5 483
+  26840 R 4 488
+mask=3f0 threads=6 sample=2: tid state last_cpu utime_ticks
+  26832 R 6 1028
+  26834 S 4 0
+  26835 S 7 0
+  26836 R 9 1006
+  26837 R 7 1011
+  26838 R 8 1015
+  26839 R 5 1017
+  26840 R 4 1021
+mask=3f0 threads=6 sample=3: tid state last_cpu utime_ticks
+  26832 R 6 1561
+  26834 S 4 0
+  26835 S 7 0
+  26836 R 9 1539
+  26837 R 7 1546
+  26838 R 8 1550
+  26839 R 5 1552
+  26840 R 4 1556
+mask=3f0 threads=6 sample=4: tid state last_cpu utime_ticks
+  26832 R 6 2096
+  26834 S 4 0
+  26835 S 7 0
+  26836 R 9 2073
+  26837 R 7 2080
+  26838 R 8 2084
+  26839 R 5 2086
+  26840 R 4 2091
+per-core busy fraction over the sampled 20 s:
+  cpu0 12%
+  cpu1 8%
+  cpu2 6%
+  cpu3 5%
+  cpu4 95%
+  cpu5 94%
+  cpu6 94%
+  cpu7 94%
+  cpu8 94%
+  cpu9 95%
+mask=1f0 threads=5 sample=1: tid state last_cpu utime_ticks
+  27049 R 7 493
+  27051 S 6 0
+  27052 S 4 0
+  27053 R 6 461
+  27054 R 5 465
+  27055 R 8 470
+  27056 R 4 473
+mask=1f0 threads=5 sample=2: tid state last_cpu utime_ticks
+  27049 R 7 1022
+  27051 S 6 0
+  27052 S 4 0
+  27053 R 6 989
+  27054 R 5 992
+  27055 R 8 1000
+  27056 R 4 997
+mask=1f0 threads=5 sample=3: tid state last_cpu utime_ticks
+  27049 R 7 1552
+  27051 S 6 0
+  27052 S 4 0
+  27053 R 6 1520
+  27054 R 5 1522
+  27055 R 8 1532
+  27056 R 4 1526
+mask=1f0 threads=5 sample=4: tid state last_cpu utime_ticks
+  27049 R 7 2083
+  27051 S 6 0
+  27052 S 4 0
+  27053 R 6 2050
+  27054 R 5 2053
+  27055 R 8 2062
+  27056 R 4 2056
+per-core busy fraction over the sampled 20 s:
+  cpu0 13%
+  cpu1 8%
+  cpu2 8%
+  cpu3 6%
+  cpu4 95%
+  cpu5 95%
+  cpu6 95%
+  cpu7 96%
+  cpu8 95%
+  cpu9 0%
+# (the first 1c0 / 180 pass was cut off by a host-side timeout; repeated below)
+mask=1c0 threads=3 sample=1: tid state last_cpu utime_ticks
+  27459 R 7 491
+  27461 S 6 0
+  27462 S 6 0
+  27463 R 8 455
+  27464 R 6 457
+mask=1c0 threads=3 sample=2: tid state last_cpu utime_ticks
+  27459 R 7 1012
+  27461 S 6 0
+  27462 S 6 0
+  27463 R 8 976
+  27464 R 6 978
+mask=1c0 threads=3 sample=3: tid state last_cpu utime_ticks
+  27459 R 7 1532
+  27461 S 6 0
+  27462 S 6 0
+  27463 R 8 1496
+  27464 R 6 1497
+mask=1c0 threads=3 sample=4: tid state last_cpu utime_ticks
+  27459 R 7 2052
+  27461 S 6 0
+  27462 S 6 0
+  27463 R 8 2015
+  27464 R 6 2016
+per-core busy fraction over the sampled 20 s:
+  cpu0 7%
+  cpu1 4%
+  cpu2 5%
+  cpu3 5%
+  cpu4 0%
+  cpu5 0%
+  cpu6 98%
+  cpu7 98%
+  cpu8 98%
+  cpu9 0%
+mask=180 threads=2 sample=1: tid state last_cpu utime_ticks
+  27670 R 7 489
+  27672 S 8 0
+  27673 S 8 0
+  27676 R 8 455
+mask=180 threads=2 sample=2: tid state last_cpu utime_ticks
+  27670 R 7 1000
+  27672 S 8 0
+  27673 S 8 0
+  27676 R 8 969
+mask=180 threads=2 sample=3: tid state last_cpu utime_ticks
+  27670 R 7 1515
+  27672 S 8 0
+  27673 S 8 0
+  27676 R 8 1484
+mask=180 threads=2 sample=4: tid state last_cpu utime_ticks
+  27670 R 7 2029
+  27672 S 8 0
+  27673 S 8 0
+  27676 R 8 1998
+per-core busy fraction over the sampled 20 s:
+  cpu0 5%
+  cpu1 2%
+  cpu2 2%
+  cpu3 3%
+  cpu4 0%
+  cpu5 1%
+  cpu6 0%
+  cpu7 99%
+  cpu8 98%
+  cpu9 0%

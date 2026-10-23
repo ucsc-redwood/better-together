@@ -1,0 +1,20 @@
+# Task 3.1 (design D5), Pixel 3A021JEHN02756: ExecuTorch alone rates, as llm-phase-affinity's plan_pixel_et.txt
+# with the CPU decode width as the only knob: XNNPACK 8da4w on f0 (cores 4-7, 4 threads), c0 (6-7, X1, 2 threads) and
+# 30 (4-5, A78, 2 threads). llama_main e229c58784 (XNNPACK + Vulkan) and the XNNPACK .pte from llm-phase-affinity,
+# pushed to /data/local/tmp/ccr; the owner's Vulkan .pte files (ctx 2560) read in place. Prompt " the" x P, 128 new
+# tokens, greedy, EOS ignored, --warmup (the measured run is the second). Plan for run_plan.sh.
+1b_vk4w_p128|8|./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+1b_vk8da4w_p128|8|./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+1b_xnnf0_p128|f0|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+1b_xnnc0_p128|c0|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+1b_xnn30_p128|30|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+1b_vk4w_p512|8|./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+1b_vk8da4w_p512|8|./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+1b_xnnf0_p512|f0|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+1b_xnnc0_p512|c0|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+1b_xnn30_p512|30|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+1b_vk4w_p2048|8|./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+1b_vk8da4w_p2048|8|./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+1b_xnnf0_p2048|f0|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+1b_xnnc0_p2048|c0|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+1b_xnn30_p2048|30|./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2

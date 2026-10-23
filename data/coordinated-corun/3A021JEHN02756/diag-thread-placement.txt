@@ -1,0 +1,72 @@
+# Thread-placement check (task 3.1), 2026-10-22T05:02:08+00:00, llama_main e229c58784, XNNPACK 8da4w 1B decode of 2000 tokens (placement only, not a measurement)
+mask=f0 threads=4 sample=1: tid state last_cpu utime_ticks
+  8077 R 7 761
+  8086 R 4 624
+  8087 R 4 630
+  8088 R 5 628
+mask=f0 threads=4 sample=2: tid state last_cpu utime_ticks
+  8077 R 7 1272
+  8086 R 6 1128
+  8087 R 4 1126
+  8088 R 5 1128
+mask=f0 threads=4 sample=3: tid state last_cpu utime_ticks
+  8077 R 7 1784
+  8086 R 6 1636
+  8087 R 4 1630
+  8088 R 5 1638
+mask=f0 threads=4 sample=4: tid state last_cpu utime_ticks
+  8077 R 4 2297
+  8086 R 6 2142
+  8087 R 5 2138
+  8088 R 7 2144
+per-core busy fraction over the sampled 20 s:
+  cpu0 4%
+  cpu1 2%
+  cpu2 1%
+  cpu3 2%
+  cpu4 98%
+  cpu5 98%
+  cpu6 99%
+  cpu7 99%
+mask=c0 threads=2 sample=1: tid state last_cpu utime_ticks
+  8179 R 6 761
+  8188 R 7 643
+mask=c0 threads=2 sample=2: tid state last_cpu utime_ticks
+  8179 R 6 1266
+  8188 R 7 1145
+mask=c0 threads=2 sample=3: tid state last_cpu utime_ticks
+  8179 R 6 1771
+  8188 R 7 1647
+mask=c0 threads=2 sample=4: tid state last_cpu utime_ticks
+  8179 R 6 2275
+  8188 R 7 2149
+per-core busy fraction over the sampled 20 s:
+  cpu0 2%
+  cpu1 1%
+  cpu2 0%
+  cpu3 0%
+  cpu4 0%
+  cpu5 0%
+  cpu6 100%
+  cpu7 99%
+mask=30 threads=2 sample=1: tid state last_cpu utime_ticks
+  8244 R 4 757
+  8253 R 5 604
+mask=30 threads=2 sample=2: tid state last_cpu utime_ticks
+  8244 R 4 1261
+  8253 R 5 1105
+mask=30 threads=2 sample=3: tid state last_cpu utime_ticks
+  8244 R 4 1762
+  8253 R 5 1605
+mask=30 threads=2 sample=4: tid state last_cpu utime_ticks
+  8244 R 4 2264
+  8253 R 5 2103
+per-core busy fraction over the sampled 20 s:
+  cpu0 3%
+  cpu1 1%
+  cpu2 1%
+  cpu3 0%
+  cpu4 100%
+  cpu5 99%
+  cpu6 0%
+  cpu7 0%

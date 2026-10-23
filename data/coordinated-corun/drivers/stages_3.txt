@@ -1,0 +1,4 @@
+# Queue for run_queue.sh, Samsung: the rest of stage B, then stage C.
+corun|plan_corun_B2.txt|3|corun-B2|coordinated-corun: stage B, paced data-parallel at the best masks (task 2.4)
+alone|plan_alone_C.txt|3|alone-C|coordinated-corun: stage C, paced-alone references (task 2.5)
+corun|plan_corun_C.txt|3|corun-C|coordinated-corun: stage C, ubatch size (task 2.5)

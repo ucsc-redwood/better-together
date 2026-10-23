@@ -1,0 +1,7 @@
+# Task 2.5, stage C, paced-alone references: the GPU prefill in ubatches of C = 128 and 256 at the best (duty, mask)
+# of stages A-B per prompt length (rank_settings in optimizer/analysis/coordinated_corun.py): P = 512 at duty 0.8
+# (CPU decode on 1f0), P = 2048 at duty 1.0 (CPU decode on 180). Format and method as plan_alone_1b.txt (40 s).
+1b_gpuP_p512_u80_c128|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 128 -u 0.8 -s 40 -fa auto
+1b_gpuP_p512_u80_c256|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 256 -u 0.8 -s 40 -fa auto
+1b_gpuP_p2048_u100_c128|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 128 -u 1 -s 40 -fa 0
+1b_gpuP_p2048_u100_c256|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 256 -u 1 -s 40 -fa 0
