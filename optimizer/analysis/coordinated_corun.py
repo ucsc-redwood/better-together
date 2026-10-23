@@ -45,6 +45,8 @@ PROMPTS, OUTPUTS, GATE = lpa.PROMPTS, lpa.OUTPUTS, lpa.GATE
 # The CPU prefill of every pipeline and of data-parallel runs on the widest mask (the fastest alone).
 CPU_PREFILL_MASK = "3f0"
 KEYS = {"p": "P", "d": "depth", "u": "u", "m": "mask", "c": "C"}
+# Samsung CPU frequency domains: cores 4-6 (medium), 7-8 (big), 9 (prime).
+CPU_POLICIES = ("policy4", "policy7", "policy9")
 
 
 def parse_key(key):
@@ -77,16 +79,19 @@ def pace_out(path):
     return steps, summary
 
 
-def clock_in(clk_path, lo=None, hi=None):
-    """Median GPU clock (MHz; the Samsung's sysfs reads kHz) over the samples between lo and hi."""
+def clock_in(clk_path, lo=None, hi=None, field="gpu"):
+    """Median clock (MHz; sysfs reads kHz) of a field of the .clk samples (gpu, policy4, ...) between
+    lo and hi, over the positive samples."""
     vals = []
     if os.path.exists(clk_path):
         for line in open(clk_path):
-            m = re.match(r"(\d+\.\d+) gpu=(\d+)", line)
-            if m and int(m.group(2)) > 0:
-                t = float(m.group(1))
-                if (lo is None or t >= lo) and (hi is None or t <= hi):
-                    vals.append(int(m.group(2)) / 1000)
+            t = re.match(r"(\d+\.\d+) ", line)
+            m = re.search(rf"\b{field}=(\d+)", line)
+            if t and m and int(m.group(1)) > 0:
+                if (lo is None or float(t.group(1)) >= lo) and (
+                    hi is None or float(t.group(1)) <= hi
+                ):
+                    vals.append(int(m.group(1)) / 1000)
     return statistics.median(vals) if vals else None
 
 
@@ -181,6 +186,7 @@ def load_corun(directory):
         sides = {"A": cfg["phases"][0], "B": cfg["phases"][1]}
         acc = {x: {f: ([], []) for f in ("wall", "compute", "duty", "span_s")} for x in sides}
         clocks, trials = ([], []), []
+        cpu_clocks = {pol: [] for pol in CPU_POLICIES}
         for d in dirs:
             steps = {x: pace_out(os.path.join(d, f"{x}.out"))[0] for x in sides}
             if not all(steps.values()):
@@ -204,10 +210,15 @@ def load_corun(directory):
             if clk:
                 clocks[0].append(clk)
                 clocks[1].append(rel(d))
+            for pol in CPU_POLICIES:
+                c = clock_in(os.path.join(d, "corun.clk"), lo, hi, pol)
+                if c:
+                    cpu_clocks[pol].append(c)
             trials.append(t)
         out[key] = {
             **{x: {f: lpa.stat(*v) for f, v in a.items()} for x, a in acc.items()},
             "clock_mhz": lpa.stat(*clocks),
+            "cpu_mhz": {pol: lpa.stat(v) for pol, v in cpu_clocks.items()},
             "trials": trials,
             "cfg": cfg,
         }
@@ -568,8 +579,8 @@ def corun_table(corun, alone):
     achieved duty, counted units, the GPU clock over the overlap and the thermal status after."""
     lines = [
         "| co-run | GPU side (A) rate | / alone duty 1 | / paced alone | A duty | CPU side (B) rate | / alone "
-        "| GPU MHz | counted A, B per trial | counted s A, B (median) | thermal after |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "| GPU MHz | CPU MHz, cores 4-6 / 7-8 / 9 | counted A, B per trial | counted s A, B (median) | thermal after |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for key in sorted(corun):
         c, cfg = corun[key], corun[key]["cfg"]
@@ -608,6 +619,10 @@ def corun_table(corun, alone):
             f"| {key} | {f(a)} | {r(a, alone_of(pa, False))} | {r(a, alone_of(pa, True))} | {f(c['A']['duty'], 2)} | "
             f"{f(b)} | {r(b, alone_of(pb, False))} | "
             + (f"{c['clock_mhz']['median']:.0f}" if c["clock_mhz"] else "—")
+            + " | "
+            + " / ".join(
+                f"{c['cpu_mhz'][p]['median']:.0f}" if c["cpu_mhz"][p] else "—" for p in CPU_POLICIES
+            )
             + f" | {kept} | {spans} | {','.join(str(t.get('thermal_after')) for t in c['trials'])} |"
         )
     return "\n".join(lines)
