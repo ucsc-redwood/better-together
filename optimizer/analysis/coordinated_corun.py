@@ -258,15 +258,17 @@ def med(s):
 
 
 class Refs:
-    """The harness's alone rates (duty 1) of one model: prefill at P, decode at KV depth d."""
+    """The harness's alone rates (duty 1) of one model: prefill at P, decode at KV depth d. Every
+    stat handed out is recorded in `used`, so a prediction can list the raw files it read."""
 
     def __init__(self, alone, model):
-        self.alone, self.model = alone, model
+        self.alone, self.model, self.used = alone, model, []
 
     def get(self, name):
         e = self.alone.get(f"{self.model}_{name}")
         if not e or not e["wall"]:
             raise KeyError(f"{self.model}_{name}")
+        self.used.append(e["wall"])
         return e["wall"]
 
     def gpu_prefill(self, prompt):
@@ -324,7 +326,13 @@ def settings(corun, refs):
 
 def predict(prompt, gen, refs, sets, handoff_s, uncoord):
     """One mix: the best coordinated specialized pipeline and data-parallel with their settings, the
-    baseline and the gain. uncoord: llm-phase-affinity's grid row for the mix (or None)."""
+    baseline and the gain. uncoord: llm-phase-affinity's grid row for the mix (or None).
+
+    "sources" lists every raw file the row's values depend on: the co-runs and depth-0 references of
+    every setting evaluated (the maxima and the trial spread range over all of them), every alone
+    reference read at prompt or depth P (including each CPU decode mask's), and llm-phase-affinity's
+    row sources, since its values are baseline candidates."""
+    refs.used = []
     al = {
         "gpu": (med(refs.gpu_prefill(prompt)), med(refs.gpu_decode(prompt))),
         "cpu": (med(refs.cpu_prefill(prompt)), None),
@@ -397,15 +405,6 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
         "baseline_own": own[1],
         "gain_own": best_spec[0] / own[1] if best_spec else None,
         "uncoord": uncoord,
-        "sources": sorted(
-            set(
-                lpa.files_of(
-                    refs.gpu_prefill(prompt), refs.gpu_decode(prompt), refs.cpu_prefill(prompt)
-                )
-                + (best_spec[2]["files"] if best_spec else [])
-                + (best_dp[1]["files"] if best_dp else [])
-            )
-        ),
     }
     # The trial spread of the gain: every pipeline's co-run rates at their slowest (fastest) trial
     # against every data-parallel setting's at their fastest (slowest), the other baselines unchanged.
@@ -426,21 +425,28 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
     if row["spec_u1"] and row["dp_u1"]:
         row["gain_u1"] = row["spec_u1"] / max([row["dp_u1"]] + [x[1] for x in cands[1:]])
     # Diagnostic (not the gate): data-parallel with each PU's prefill at its co-run rate next to the
-    # other's decode (the duty-1 widest-mask specialized pairs), decode as in the best coordinated setting.
+    # other's decode (the duty-1 widest-mask specialized pairs), maximized over the data-parallel
+    # settings on its own (its winner can differ from the alone-prefill one).
     pr = {f: [x[2] for x in plain if x[1] == f] for f in ("gpu->cpu", "cpu->gpu")}
-    if best_dp and pr["gpu->cpu"] and pr["cpu->gpu"]:
-        rg, rc = best_dp[1]["ratios"]
-        row["dp_prefill_corun"] = dp_throughput(
-            prompt,
-            gen,
-            [
-                (al["gpu"][0] * pr["gpu->cpu"][0]["ratios"][0], al["gpu"][1] * rg),
-                (
-                    al["cpu"][0] * pr["cpu->gpu"][0]["ratios"][0],
-                    med(refs.cpu_decode(prompt, best_dp[1]["mask"])) * rc,
-                ),
-            ],
+    if dp and pr["gpu->cpu"] and pr["cpu->gpu"]:
+        gp = al["gpu"][0] * pr["gpu->cpu"][0]["ratios"][0]
+        cp = al["cpu"][0] * pr["cpu->gpu"][0]["ratios"][0]
+
+        def dp_corun_prefill(s_):
+            rg, rc = s_["ratios"]
+            pus = [(gp, al["gpu"][1] * rg), (cp, med(refs.cpu_decode(prompt, s_["mask"])) * rc)]
+            return dp_throughput(prompt, gen, pus)
+
+        v, s_ = max(((dp_corun_prefill(s_), s_) for _, s_ in dp), key=lambda x: x[0])
+        row["dp_prefill_corun"], row["dp_prefill_corun_setting"] = v, s_["key"]
+    row["sources"] = sorted(
+        set(
+            lpa.files_of(*refs.used)
+            + [f for _, _, s_ in spec for f in s_["files"]]
+            + [f for _, s_ in dp for f in s_["files"]]
+            + list((uncoord or {}).get("sources", []))
         )
+    )
     return row
 
 
@@ -656,7 +662,7 @@ def grid_table(rows):
         "| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU "
         "| uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel, gain "
         "| baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only "
-        "| diag.: data-parallel with co-run prefill |",
+        "| diag.: data-parallel with co-run prefill (setting) |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
@@ -679,7 +685,7 @@ def grid_table(rows):
             f"{r['baseline']:.4f} ({r['baseline_from']}) | **{g2(r['gain'])}** | "
             f"{g2(r.get('gain_lo'))}-{g2(r.get('gain_hi'))} | "
             + (f"{r['gain_vs_coordinated_dp']:.2f}" if r["gain_vs_coordinated_dp"] else "—")
-            + f" | {g2(r['gain_own'])} | {g(r.get('dp_prefill_corun'))} |"
+            + f" | {g2(r['gain_own'])} | {g(r.get('dp_prefill_corun'))} ({r.get('dp_prefill_corun_setting')}) |"
         )
     return "\n".join(lines)
 
@@ -806,6 +812,7 @@ def pixel_grid():
                                 *(cpu[m]["tg"][prompt] for m in PIXEL_MASKS),
                             )
                             + [f for m in PIXEL_MASKS for f in rt[m]["files"]]
+                            + list((unc or {}).get("sources", []))
                         )
                     ),
                 }

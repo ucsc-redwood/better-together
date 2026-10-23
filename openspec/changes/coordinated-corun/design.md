@@ -174,6 +174,15 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   - the gain with only this study's duty-1, 3f0, ubatch-512 settings, the uncoordinated pair in the same regime,
     which isolates what coordination itself changes.
   The co-run table also gives the CPU cluster clocks over each overlap.
+- **Fixes after the acceptance review (none changes a gain or the decision).**
+  - A grid row's `sources` now lists every raw file its values depend on. The first version listed only the
+    common references and the winning settings' depth-0 references, and missed the CPU decode references at depth
+    P that every pipeline, data-parallel and single-CPU prediction reads (e.g. `1b_cpuD_d512_m180` behind the 1B
+    P = 512, D = 128 baseline). The list now holds every alone reference read, the co-runs of every setting
+    evaluated (the maxima and the trial spread range over them all), and `llm-phase-affinity`'s row sources.
+  - The diagnostic "data-parallel with co-run prefill" (D4) is now maximized over the data-parallel settings on its
+    own, and its setting is reported. The first version reused the alone-prefill winner. For 1B at P = 512, D = 32
+    it becomes 0.6774 at duty 0.8 on 180, where it was 0.6738 at duty 1.0 on 180.
 - **Pixel ExecuTorch part (D5) in parallel.** It runs on the Pixel at the same time as the Samsung sweep, not after
   it. The two phones share only the host's adb. `llm-phase-affinity` also ran both phones at once.
 - **Pixel ExecuTorch part (D5), what was run.** `llm-phase-affinity`'s `llama_main` (`e229c58784`, XNNPACK + Vulkan)
@@ -192,9 +201,15 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   the driver sleeps between runs and then terminates the queue. Once the battery is back at 50%, it starts the same
   stage file again; the drivers skip complete runs, so the stage resumes where it stopped. A run is never cut short,
   and the thermal-status-0 wait applies after a pause as before (`R5CY21Y3VEV/supervise.log`).
-- **Commits.** This session could not write the main checkout's `.git` (index, objects and refs are outside its
-  writable area). Every commit therefore goes to a bare clone sharing the main repository's objects,
-  `build/ccr-git.git` in this worktree, on branch `openspec/coordinated-corun`. Fetch it from there.
+- **Commits (not yet on the worktree's branch).** The job runner limits writes to this worktree and `/tmp`, and
+  the limit also holds with the tool sandbox off (`NoNewPrivs` plus a seccomp filter). The main checkout's `.git`,
+  which holds this worktree's index, objects and refs, cannot be written. Writing
+  `.git/worktrees/bt-ccr/FETCH_HEAD` fails with "Permission denied", in the study session and again in the review
+  follow-up. Every commit is therefore on branch `openspec/coordinated-corun` of `build/ccr-git.git`, a bare clone
+  in this worktree that shares the main repository's objects. To integrate, a session that can write `.git` runs,
+  in this worktree: `git fetch build/ccr-git.git openspec/coordinated-corun`, then
+  `git update-ref refs/heads/openspec/coordinated-corun FETCH_HEAD a0df575`, then `git reset -q`. That
+  fast-forwards the branch and syncs the index without touching the working files, which already match.
 
 ## Migration Plan
 

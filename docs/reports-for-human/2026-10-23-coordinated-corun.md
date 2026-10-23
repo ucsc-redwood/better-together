@@ -329,8 +329,9 @@ Raw files under `data/coordinated-corun/`:
 - `3A021JEHN02756/`: `alone-et/`, `corun-et/`, `diag-thread-placement.txt`.
 
 The drivers, plans and harness source are in `data/coordinated-corun/drivers/`; `lpa_pace` is rebuilt with
-`drivers/build_pace.sh`. Every grid row in the JSON lists the raw files behind it (`sources`). A `_retry` replaces
-the run it repeats.
+`drivers/build_pace.sh`. Every grid row in the JSON lists every raw file its values depend on (`sources`): the
+co-runs of each setting it evaluates, every alone reference it reads at prompt or depth P (each CPU decode mask's
+included), and `llm-phase-affinity`'s row sources. A `_retry` replaces the run it repeats.
 
 ## Appendix: full tables
 
@@ -581,17 +582,17 @@ thermal status after each trial.
 
 #### 1b: predicted request throughput (requests/s)
 
-| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU | uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel, gain | baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only | diag.: data-parallel with co-run prefill |
+| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU | uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel, gain | baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only | diag.: data-parallel with co-run prefill (setting) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 1.2451 (1b_gpuD_cpuP_p512_u100_m3f0) | 1.2958 (1b_gpuD_cpuD_u100_m180) | 0.9375 (CPU 3f0) | 0.6795, 0.9869, 0.69 | 1.2451, 1.1729, 1.06 | 1.2958 (coordinated data-parallel) | **0.96** | 0.88-0.99 | 0.96 | 0.96 | 1.2156 |
-| 128 | 128 | 0.3113 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.3808 (1b_gpuD_cpuD_u100_m180) | 0.3226 (CPU 3f0) | 0.1699, 0.2761, 0.62 | 0.3113, 0.3377, 0.86 | 0.3808 (coordinated data-parallel) | **0.82** | 0.75-0.85 | 0.82 | 0.82 | 0.3734 |
-| 128 | 512 | 0.0778 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.0996 (1b_gpuD_cpuD_u100_m180) | 0.0890 (CPU 3f0) | 0.0425, 0.0712, 0.60 | 0.0778, 0.0878, 0.78 | 0.0996 (coordinated data-parallel) | **0.78** | 0.72-0.80 | 0.78 | 0.78 | 0.0991 |
-| 512 | 32 | 0.6596 (1b_gpuP_cpuD_p512_u80_m1f0_c256) | 0.7807 (1b_gpuD_cpuD_u100_m180) | 0.5394 (GPU) | 0.4990, 0.6704, 0.74 | 0.5413, 0.7423, 0.73 | 0.7807 (coordinated data-parallel) | **0.84** | 0.79-1.08 | 0.84 | 0.84 | 0.6738 |
-| 512 | 128 | 0.3060 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.3085 (1b_gpuD_cpuD_u100_m180) | 0.2164 (GPU) | 0.1576, 0.2384, 0.66 | 0.3060, 0.2820, 1.09 | 0.3085 (coordinated data-parallel) | **0.99** | 0.91-1.03 | 0.99 | 0.99 | 0.2893 |
-| 512 | 512 | 0.0765 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.0907 (1b_gpuD_cpuD_u100_m180) | 0.0731 (CPU 3f0) | 0.0394, 0.0667, 0.59 | 0.0765, 0.0812, 0.92 | 0.0907 (coordinated data-parallel) | **0.84** | 0.78-0.87 | 0.84 | 0.84 | 0.0889 |
-| 2048 | 32 | 0.1909 (1b_gpuP_cpuD_p2048_u100_m180_c256) | 0.2578 (1b_gpuD_cpuD_u100_m1f0) | 0.1781 (GPU) | 0.1172, 0.2405, 0.49 | 0.1492, 0.2537, 0.59 | 0.2578 (coordinated data-parallel) | **0.74** | 0.72-0.77 | 0.74 | 0.74 | 0.1936 |
-| 2048 | 128 | 0.1065 (1b_gpuP_cpuD_p2048_u80_m1f0) | 0.1606 (1b_gpuD_cpuD_u100_m1f0) | 0.1161 (GPU) | 0.0892, 0.1359, 0.66 | 0.0873, 0.1545, 0.57 | 0.1606 (coordinated data-parallel) | **0.66** | 0.64-0.67 | 0.66 | 0.66 | 0.1324 |
-| 2048 | 512 | 0.0503 (1b_gpuD_cpuP_p2048_u100_m3f0) | 0.0659 (1b_gpuD_cpuD_u100_m180) | 0.0486 (GPU) | 0.0318, 0.0500, 0.64 | 0.0503, 0.0610, 0.83 | 0.0659 (coordinated data-parallel) | **0.76** | 0.76-0.84 | 0.76 | 0.76 | 0.0602 |
+| 128 | 32 | 1.2451 (1b_gpuD_cpuP_p512_u100_m3f0) | 1.2958 (1b_gpuD_cpuD_u100_m180) | 0.9375 (CPU 3f0) | 0.6795, 0.9869, 0.69 | 1.2451, 1.1729, 1.06 | 1.2958 (coordinated data-parallel) | **0.96** | 0.88-0.99 | 0.96 | 0.96 | 1.2156 (1b_gpuD_cpuD_u100_m180) |
+| 128 | 128 | 0.3113 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.3808 (1b_gpuD_cpuD_u100_m180) | 0.3226 (CPU 3f0) | 0.1699, 0.2761, 0.62 | 0.3113, 0.3377, 0.86 | 0.3808 (coordinated data-parallel) | **0.82** | 0.75-0.85 | 0.82 | 0.82 | 0.3734 (1b_gpuD_cpuD_u100_m180) |
+| 128 | 512 | 0.0778 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.0996 (1b_gpuD_cpuD_u100_m180) | 0.0890 (CPU 3f0) | 0.0425, 0.0712, 0.60 | 0.0778, 0.0878, 0.78 | 0.0996 (coordinated data-parallel) | **0.78** | 0.72-0.80 | 0.78 | 0.78 | 0.0991 (1b_gpuD_cpuD_u100_m180) |
+| 512 | 32 | 0.6596 (1b_gpuP_cpuD_p512_u80_m1f0_c256) | 0.7807 (1b_gpuD_cpuD_u100_m180) | 0.5394 (GPU) | 0.4990, 0.6704, 0.74 | 0.5413, 0.7423, 0.73 | 0.7807 (coordinated data-parallel) | **0.84** | 0.79-1.08 | 0.84 | 0.84 | 0.6774 (1b_gpuD_cpuD_u80_m180) |
+| 512 | 128 | 0.3060 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.3085 (1b_gpuD_cpuD_u100_m180) | 0.2164 (GPU) | 0.1576, 0.2384, 0.66 | 0.3060, 0.2820, 1.09 | 0.3085 (coordinated data-parallel) | **0.99** | 0.91-1.03 | 0.99 | 0.99 | 0.2893 (1b_gpuD_cpuD_u100_m180) |
+| 512 | 512 | 0.0765 (1b_gpuD_cpuP_p512_u100_m3f0) | 0.0907 (1b_gpuD_cpuD_u100_m180) | 0.0731 (CPU 3f0) | 0.0394, 0.0667, 0.59 | 0.0765, 0.0812, 0.92 | 0.0907 (coordinated data-parallel) | **0.84** | 0.78-0.87 | 0.84 | 0.84 | 0.0889 (1b_gpuD_cpuD_u100_m180) |
+| 2048 | 32 | 0.1909 (1b_gpuP_cpuD_p2048_u100_m180_c256) | 0.2578 (1b_gpuD_cpuD_u100_m1f0) | 0.1781 (GPU) | 0.1172, 0.2405, 0.49 | 0.1492, 0.2537, 0.59 | 0.2578 (coordinated data-parallel) | **0.74** | 0.72-0.77 | 0.74 | 0.74 | 0.1938 (1b_gpuD_cpuD_u80_m180) |
+| 2048 | 128 | 0.1065 (1b_gpuP_cpuD_p2048_u80_m1f0) | 0.1606 (1b_gpuD_cpuD_u100_m1f0) | 0.1161 (GPU) | 0.0892, 0.1359, 0.66 | 0.0873, 0.1545, 0.57 | 0.1606 (coordinated data-parallel) | **0.66** | 0.64-0.67 | 0.66 | 0.66 | 0.1324 (1b_gpuD_cpuD_u100_m1f0) |
+| 2048 | 512 | 0.0503 (1b_gpuD_cpuP_p2048_u100_m3f0) | 0.0659 (1b_gpuD_cpuD_u100_m180) | 0.0486 (GPU) | 0.0318, 0.0500, 0.64 | 0.0503, 0.0610, 0.83 | 0.0659 (coordinated data-parallel) | **0.76** | 0.76-0.84 | 0.76 | 0.76 | 0.0602 (1b_gpuD_cpuD_u100_m180) |
 
 #### 3b: trade-off curve, gpu->cpu
 
@@ -630,17 +631,17 @@ thermal status after each trial.
 
 #### 3b: predicted request throughput (requests/s)
 
-| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU | uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel, gain | baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only | diag.: data-parallel with co-run prefill |
+| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU | uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel, gain | baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only | diag.: data-parallel with co-run prefill (setting) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 128 | 32 | 0.3709 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.4447 (3b_gpuD_cpuD_u100_m180) | 0.3317 (CPU 1f0) | 0.2477, 0.3694, 0.67 | 0.3709, 0.4045, 0.92 | 0.4447 (coordinated data-parallel) | **0.83** | 0.80-0.92 | 0.83 | 0.83 | 0.3970 |
-| 128 | 128 | 0.0927 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.1308 (3b_gpuD_cpuD_u100_m180) | 0.1158 (CPU 1f0) | 0.0619, 0.1042, 0.59 | 0.0927, 0.1167, 0.67 | 0.1394 (single PU (CPU, llm-phase-affinity)) | **0.67** | 0.64-0.71 | 0.71 | 0.71 | 0.1262 |
-| 128 | 512 | 0.0232 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.0342 (3b_gpuD_cpuD_u100_m180) | 0.0321 (CPU 1f0) | 0.0155, 0.0269, 0.57 | 0.0232, 0.0304, 0.60 | 0.0388 (single PU (CPU, llm-phase-affinity)) | **0.60** | 0.58-0.64 | 0.68 | 0.68 | 0.0339 |
-| 512 | 32 | 0.1940 (3b_gpuP_cpuD_p512_u80_m1f0_c256) | 0.2662 (3b_gpuD_cpuD_u100_m180) | 0.1895 (GPU) | 0.1657, 0.2271, 0.73 | 0.1783, 0.2518, 0.71 | 0.2662 (coordinated data-parallel) | **0.73** | 0.71-0.75 | 0.73 | 0.73 | 0.2078 |
-| 512 | 128 | 0.0902 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.1059 (3b_gpuD_cpuD_u100_m180) | 0.0783 (GPU) | 0.0598, 0.0831, 0.72 | 0.0902, 0.0964, 0.94 | 0.1059 (coordinated data-parallel) | **0.85** | 0.82-0.94 | 0.85 | 0.85 | 0.0944 |
-| 512 | 512 | 0.0226 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.0312 (3b_gpuD_cpuD_u100_m180) | 0.0265 (CPU 1f0) | 0.0150, 0.0236, 0.64 | 0.0226, 0.0279, 0.81 | 0.0312 (coordinated data-parallel) | **0.72** | 0.69-0.80 | 0.72 | 0.72 | 0.0301 |
-| 2048 | 32 | 0.0487 (3b_gpuP_cpuD_p2048_u100_m180_c256) | 0.0903 (3b_gpuD_cpuD_u100_m180) | 0.0647 (GPU) | 0.0351, 0.0831, 0.42 | 0.0442, 0.0881, 0.50 | 0.0903 (coordinated data-parallel) | **0.54** | 0.53-0.55 | 0.54 | 0.54 | 0.0595 |
-| 2048 | 128 | 0.0321 (3b_gpuP_cpuD_p2048_u100_m3f0) | 0.0567 (3b_gpuD_cpuD_u100_m180) | 0.0423 (GPU) | 0.0261, 0.0469, 0.56 | 0.0321, 0.0533, 0.60 | 0.0567 (coordinated data-parallel) | **0.57** | 0.53-0.58 | 0.57 | 0.57 | 0.0422 |
-| 2048 | 512 | 0.0097 (3b_gpuD_cpuP_p2048_u100_m3f0) | 0.0231 (3b_gpuD_cpuD_u100_m180) | 0.0178 (GPU) | 0.0086, 0.0173, 0.50 | 0.0097, 0.0208, 0.46 | 0.0231 (coordinated data-parallel) | **0.42** | 0.39-0.45 | 0.42 | 0.42 | 0.0201 |
+| 128 | 32 | 0.3709 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.4447 (3b_gpuD_cpuD_u100_m180) | 0.3317 (CPU 1f0) | 0.2477, 0.3694, 0.67 | 0.3709, 0.4045, 0.92 | 0.4447 (coordinated data-parallel) | **0.83** | 0.80-0.92 | 0.83 | 0.83 | 0.3970 (3b_gpuD_cpuD_u100_m180) |
+| 128 | 128 | 0.0927 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.1308 (3b_gpuD_cpuD_u100_m180) | 0.1158 (CPU 1f0) | 0.0619, 0.1042, 0.59 | 0.0927, 0.1167, 0.67 | 0.1394 (single PU (CPU, llm-phase-affinity)) | **0.67** | 0.64-0.71 | 0.71 | 0.71 | 0.1262 (3b_gpuD_cpuD_u100_m180) |
+| 128 | 512 | 0.0232 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.0342 (3b_gpuD_cpuD_u100_m180) | 0.0321 (CPU 1f0) | 0.0155, 0.0269, 0.57 | 0.0232, 0.0304, 0.60 | 0.0388 (single PU (CPU, llm-phase-affinity)) | **0.60** | 0.58-0.64 | 0.68 | 0.68 | 0.0339 (3b_gpuD_cpuD_u100_m180) |
+| 512 | 32 | 0.1940 (3b_gpuP_cpuD_p512_u80_m1f0_c256) | 0.2662 (3b_gpuD_cpuD_u100_m180) | 0.1895 (GPU) | 0.1657, 0.2271, 0.73 | 0.1783, 0.2518, 0.71 | 0.2662 (coordinated data-parallel) | **0.73** | 0.71-0.75 | 0.73 | 0.73 | 0.2078 (3b_gpuD_cpuD_u100_m180) |
+| 512 | 128 | 0.0902 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.1059 (3b_gpuD_cpuD_u100_m180) | 0.0783 (GPU) | 0.0598, 0.0831, 0.72 | 0.0902, 0.0964, 0.94 | 0.1059 (coordinated data-parallel) | **0.85** | 0.82-0.94 | 0.85 | 0.85 | 0.0944 (3b_gpuD_cpuD_u100_m180) |
+| 512 | 512 | 0.0226 (3b_gpuD_cpuP_p512_u100_m3f0) | 0.0312 (3b_gpuD_cpuD_u100_m180) | 0.0265 (CPU 1f0) | 0.0150, 0.0236, 0.64 | 0.0226, 0.0279, 0.81 | 0.0312 (coordinated data-parallel) | **0.72** | 0.69-0.80 | 0.72 | 0.72 | 0.0301 (3b_gpuD_cpuD_u100_m180) |
+| 2048 | 32 | 0.0487 (3b_gpuP_cpuD_p2048_u100_m180_c256) | 0.0903 (3b_gpuD_cpuD_u100_m180) | 0.0647 (GPU) | 0.0351, 0.0831, 0.42 | 0.0442, 0.0881, 0.50 | 0.0903 (coordinated data-parallel) | **0.54** | 0.53-0.55 | 0.54 | 0.54 | 0.0595 (3b_gpuD_cpuD_u100_m180) |
+| 2048 | 128 | 0.0321 (3b_gpuP_cpuD_p2048_u100_m3f0) | 0.0567 (3b_gpuD_cpuD_u100_m180) | 0.0423 (GPU) | 0.0261, 0.0469, 0.56 | 0.0321, 0.0533, 0.60 | 0.0567 (coordinated data-parallel) | **0.57** | 0.53-0.58 | 0.57 | 0.57 | 0.0422 (3b_gpuD_cpuD_u100_m180) |
+| 2048 | 512 | 0.0097 (3b_gpuD_cpuP_p2048_u100_m3f0) | 0.0231 (3b_gpuD_cpuD_u100_m180) | 0.0178 (GPU) | 0.0086, 0.0173, 0.50 | 0.0097, 0.0208, 0.46 | 0.0231 (coordinated data-parallel) | **0.42** | 0.39-0.45 | 0.42 | 0.42 | 0.0201 (3b_gpuD_cpuD_u100_m180) |
 
 ### Pixel 7a (3A021JEHN02756), ExecuTorch 1B, CPU decode width (design D5)
 

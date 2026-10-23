@@ -116,7 +116,18 @@ def test_predict_hand_computed():
                 "files": [],
             },
         ],
-        "cpu->gpu": [],
+        # CPU prefill -> GPU decode, duty 1: p' = 50, d' = 5 -> period 25.6 + 0.1 s (never the best).
+        "cpu->gpu": [
+            {
+                "key": "e",
+                "u": 1.0,
+                "mask": "3f0",
+                "P": 512,
+                "C": 512,
+                "ratios": (0.5, 0.5),
+                "files": ["corun-e"],
+            },
+        ],
         # Data-parallel, (GPU decode ratio, CPU decode ratio):
         #   x, duty 1, 3f0:   1/(1.024 + 128/8) + 1/(5.12 + 128/8)    = 0.058741 + 0.047348 = 0.106089
         #   y, duty 0.5, 1c0: 1/(1.024 + 128/5) + 1/(5.12 + 128/16.2) = 0.037560 + 0.076801 = 0.114361
@@ -137,7 +148,7 @@ def test_predict_hand_computed():
                 "P": None,
                 "C": None,
                 "ratios": (0.5, 0.9),
-                "files": [],
+                "files": ["corun-y"],
             },
         ],
     }
@@ -149,7 +160,13 @@ def test_predict_hand_computed():
     sets["gpu->cpu"][1]["ratios_lo"] = (0.5, 0.8)
     sets["dp"][1]["ratios_hi"] = (0.5, 1.0)
     # Uncoordinated (llm-phase-affinity) data-parallel 0.1 and single PU 0.08: both below y.
-    unc = {"dp_corun": 0.1, "single": 0.08, "single_pu": "cpu", "specialized": {}}
+    unc = {
+        "dp_corun": 0.1,
+        "single": 0.08,
+        "single_pu": "cpu",
+        "specialized": {},
+        "sources": ["lpa-row"],
+    }
     r = predict(512, 128, Refs(alone, "1b"), sets, 0.1, unc)
     assert r["spec_setting"] == "b"
     assert math.isclose(r["spec"], 1 / (128 / 18 + 0.1))
@@ -165,6 +182,19 @@ def test_predict_hand_computed():
     dp_y_hi = 1 / (1.024 + 25.6) + 1 / (5.12 + 128 / 18)
     assert math.isclose(r["gain_lo"], (1 / 8.1) / dp_y_hi)  # 1.0347...
     assert math.isclose(r["gain_hi"], r["gain"])
+    # Provenance: the 1c0 CPU decode at depth 512 (y's data-parallel and the single CPU on 1c0) is
+    # read, so it is listed, with every evaluated setting's co-runs and llm-phase-affinity's row.
+    assert {"cpuD_d512_m1c0", "cpuD_d512_m3f0", "corun-y", "corun-e", "lpa-row"} <= set(
+        r["sources"]
+    )
+    # Data-parallel with co-run prefill, maximized on its own: GPU prefill 500 x 0.9 = 450 (a), CPU
+    # prefill 100 x 0.5 = 50 (e).
+    #   x: 1/(512/450 + 128/8) + 1/(512/50 + 128/8)     = 0.058350 + 0.038110 = 0.096460
+    #   y: 1/(512/450 + 128/5) + 1/(512/50 + 128/16.2)  = 0.037400 + 0.055123 = 0.092523
+    # so x wins here, while y wins with alone prefill.
+    dpc_x = 1 / (512 / 450 + 16) + 1 / (512 / 50 + 16)
+    assert r["dp_prefill_corun_setting"] == "x" and math.isclose(r["dp_prefill_corun"], dpc_x)
+    assert dpc_x > 1 / (512 / 450 + 25.6) + 1 / (512 / 50 + 128 / 16.2)
     # The duty-1 widest-mask pair alone gives a, against x.
     assert math.isclose(r["spec_u1"], 1 / 12.9) and math.isclose(r["dp_u1"], 1 / 17.024 + 1 / 21.12)
     # A larger uncoordinated data-parallel bound becomes the baseline.
