@@ -133,7 +133,7 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   about the CPU side's counted span. The 30-s calibration runs stay in `calib/` and serve as calibration only.
 - **Co-run timing (D3).** `lpa_corun.sh` and the thermal policy are reused unchanged. The host drivers `run_plan.sh`
   and `run_corun.sh` are copies of `llm-phase-affinity`'s with the phone directory changed to `/data/local/tmp/ccr`,
-  and they log the battery level. In stages A-D the GPU side (A) runs 40 s and the CPU side (B) 70 s, so B covers
+  and they log the battery level. In stages A-D and C the GPU side (A) runs 40 s and the CPU side (B) 70 s, so B covers
   A's last paced repetition (a 2048-token prefill at duty 0.33 takes about 14 s of wall time). In stage E the CPU
   prefill (B) runs 40 s and the GPU decode (A) 70 s. A side counts only its units that lie wholly inside the
   partner's measured interval (first step's start to last step's end): a whole prefill repetition (all its ubatches,
@@ -150,6 +150,30 @@ was taken, meaning the one that makes the baseline stronger. Raw evidence for ea
   is reported beside it.
 - **Stage order.** Stage E needs no setting from A-D, so it runs right after D. B and C come next, once the analysis
   of A and D has picked their settings.
+- **Choosing the settings of B, C and F.** `rank_settings` in the analysis scores each measured specialized setting
+  on its own: its best gain over the mixes that use its P, against every data-parallel setting measured so far. The
+  choices it led to:
+  - **Stage B:** the best duty of stage A, 0.8, at both P = 512 and 2048, with the masks at both P. Added for a
+    stronger baseline: the data-parallel pair at duty 1.0 on each narrower mask (`plan_corun_B.txt`).
+  - **"Repeat 2.3 at the best mask"** ran on two masks (`plan_corun_B2.txt`): 180, where data-parallel was best at
+    duty 1.0 (the stronger baseline), and 1f0, the mask of the best GPU-prefill pipeline at P = 512.
+  - **Stage C:** the best (duty, mask) per P, P = 512 at duty 0.8 on 1f0 and P = 2048 at duty 1.0 on 180, each with
+    paced-alone references (`plan_alone_C.txt`).
+  - **Stage F:** the 3B co-runs take the best 1B setting of each family (GPU prefill: 512 at duty 0.8 on 1f0 with
+    ubatch 256, 2048 at duty 1.0 on 180 with ubatch 256; CPU prefill at duty 1.0; data-parallel at duty 1.0 on 180
+    and on 1f0), each family also at duty 1.0 on 3f0. The 3B alone references cover the masks those settings use. A
+    3B step is longer, so the CPU side of a GPU-prefill or data-parallel pair runs 100 s. In the CPU-prefill pairs
+    the GPU decode runs 130 s and the CPU prefill 40 s; its warm-up is one whole prompt.
+- **Analysis additions.** Besides the gate's gain, the grid reports four diagnostics, none of which changes the
+  decision:
+  - the trial spread: every pipeline's co-run rates at their slowest (fastest) trial, against every data-parallel
+    setting's at their fastest (slowest);
+  - the gain against the best coordinated data-parallel alone, as the spec states it;
+  - the gain against this study's own baseline. It drops `llm-phase-affinity`'s values, which rest on burst-rate
+    references;
+  - the gain with only this study's duty-1, 3f0, ubatch-512 settings, the uncoordinated pair in the same regime,
+    which isolates what coordination itself changes.
+  The co-run table also gives the CPU cluster clocks over each overlap.
 - **Pixel ExecuTorch part (D5) in parallel.** It runs on the Pixel at the same time as the Samsung sweep, not after
   it. The two phones share only the host's adb. `llm-phase-affinity` also ran both phones at once.
 - **Pixel ExecuTorch part (D5), what was run.** `llm-phase-affinity`'s `llama_main` (`e229c58784`, XNNPACK + Vulkan)

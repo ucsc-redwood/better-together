@@ -23,7 +23,7 @@ Rules for every task:
 - [x] 2.4 Stage B: CPU decode on each kept mask next to GPU prefill at u = 1.0 and the best u of 2.2; repeat 2.3 at the best mask. Verify: same tables.
 - [x] 2.5 Stage C: C = 128 and 256 at the best (u, mask). Verify: same table.
 - [x] 2.6 Stage E: CPU prefill on `3f0` next to GPU decode at u = 1.0 and 0.5. Verify: same table.
-- [ ] 2.7 Stage F: 3B at the best specialized and data-parallel settings and at u = 1.0. Verify: same tables for 3B.
+- [x] 2.7 Stage F: 3B at the best specialized and data-parallel settings and at u = 1.0. Verify: same tables for 3B.
 
 ## 3. Optional: Pixel ExecuTorch
 
@@ -31,6 +31,6 @@ Rules for every task:
 
 ## 4. Prediction and decision
 
-- [ ] 4.1 Write `optimizer/analysis/coordinated_corun.py` (design D4) over the raw results, with a pytest on a hand-computed case. Verify: `uv run pytest -q optimizer` passes.
-- [ ] 4.2 Produce the grid per mix: best coordinated specialized (with setting), best coordinated data-parallel (with setting), the uncoordinated values from `llm-phase-affinity`, the baseline and the gain, and the trade-off curves. Verify: every input traceable to a raw file.
-- [ ] 4.3 Write `docs/reports-for-human/<date>-coordinated-corun.md` with the curves, the grid and the go/no-go per the spec; link it from `docs/reports-for-human/README.md`. Verify: `openspec validate coordinated-corun --strict` passes, the record states the decision, and `/data/local/tmp/ccr` is removed from the phones.
+- [x] 4.1 Write `optimizer/analysis/coordinated_corun.py` (design D4) over the raw results, with a pytest on a hand-computed case. Verify: `uv run pytest -q optimizer` passes.
+- [x] 4.2 Produce the grid per mix: best coordinated specialized (with setting), best coordinated data-parallel (with setting), the uncoordinated values from `llm-phase-affinity`, the baseline and the gain, and the trade-off curves. Verify: every input traceable to a raw file.
+- [x] 4.3 Write `docs/reports-for-human/<date>-coordinated-corun.md` with the curves, the grid and the go/no-go per the spec; link it from `docs/reports-for-human/README.md`. Verify: `openspec validate coordinated-corun --strict` passes, the record states the decision, and `/data/local/tmp/ccr` is removed from the phones.
