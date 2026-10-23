@@ -421,6 +421,10 @@ def predict(prompt, gen, refs, sets, handoff_s, uncoord):
     plain_dp = [x for x in dp if x[1]["u"] == 1 and x[1]["mask"] == "3f0"]
     row["spec_u1"] = max(x[0] for x in plain) if plain else None
     row["dp_u1"] = plain_dp[0][0] if plain_dp else None
+    # The same gain with only those settings (this study's uncoordinated pair, same regime), against the
+    # same baseline otherwise.
+    if row["spec_u1"] and row["dp_u1"]:
+        row["gain_u1"] = row["spec_u1"] / max([row["dp_u1"]] + [x[1] for x in cands[1:]])
     # Diagnostic (not the gate): data-parallel with each PU's prefill at its co-run rate next to the
     # other's decode (the duty-1 widest-mask specialized pairs), decode as in the best coordinated setting.
     pr = {f: [x[2] for x in plain if x[1] == f] for f in ("gpu->cpu", "cpu->gpu")}
@@ -650,7 +654,7 @@ def tradeoff_table(sets, family):
 def grid_table(rows):
     lines = [
         "| P | D | best coordinated specialized (setting) | best coordinated data-parallel (setting) | best single PU "
-        "| uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel "
+        "| uncoordinated: specialized, data-parallel, gain (llm-phase-affinity) | duty-1 3f0: specialized, data-parallel, gain "
         "| baseline (from) | **gain** | gain, trial spread | gain vs coordinated data-parallel | gain vs this study's baseline only "
         "| diag.: data-parallel with co-run prefill |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
@@ -671,7 +675,7 @@ def grid_table(rows):
 
         lines.append(
             f"| {r['prompt']} | {r['gen']} | {g(r['spec'])} ({r['spec_setting']}) | {g(r['dp'])} ({r['dp_setting']}) | "
-            f"{r['single']:.4f} ({r['single_pu']}) | {unc} | {g(r['spec_u1'])}, {g(r['dp_u1'])} | "
+            f"{r['single']:.4f} ({r['single_pu']}) | {unc} | {g(r['spec_u1'])}, {g(r['dp_u1'])}, {g2(r.get('gain_u1'))} | "
             f"{r['baseline']:.4f} ({r['baseline_from']}) | **{g2(r['gain'])}** | "
             f"{g2(r.get('gain_lo'))}-{g2(r.get('gain_hi'))} | "
             + (f"{r['gain_vs_coordinated_dp']:.2f}" if r["gain_vs_coordinated_dp"] else "—")
