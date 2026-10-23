@@ -1,0 +1,16 @@
+# Task 2.7, stage F: Llama 3.2 3B Q4_0 at the best 1B settings of stages A-E and at duty 1.0 on 3f0 (the uncoordinated
+# reference). GPU prefill -> CPU decode: P = 512 at duty 0.8, CPU decode on 1f0, ubatch 256 (the best 1B setting at
+# 512) and P = 2048 at duty 1.0 on 180, ubatch 256 (the best at 2048); CPU prefill -> GPU decode at duty 1.0 (the best
+# 1B pipeline, P = 512 and 2048); data-parallel at duty 1.0 on 180 and 1f0 (the best 1B data-parallel settings).
+# The 3B steps are longer, so the CPU side of a GPU-prefill or data-parallel pair runs 100 s (A 40 s), and in the CPU-
+# prefill pairs A (GPU decode) runs 130 s and B (CPU prefill, whose warm-up is one whole prompt) 40 s.
+# Format and method as plan_corun_A.txt.
+3b_gpuP_cpuD_p512_u80_m1f0_c256|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 256 -u 0.8 -s 40 -fa auto|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 100
+3b_gpuP_cpuD_p512_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 1 -s 40 -fa auto|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 100
+3b_gpuP_cpuD_p2048_u100_m180_c256|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 256 -u 1 -s 40 -fa 0|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 100
+3b_gpuP_cpuD_p2048_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 40 -fa 0|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 100
+3b_gpuD_cpuP_p512_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 130|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 512 -C 512 -u 1 -s 40
+3b_gpuD_cpuP_p2048_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 130|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 2048 -C 512 -u 1 -s 40
+3b_gpuD_cpuD_u100_m180|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 40|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 100
+3b_gpuD_cpuD_u100_m1f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 40|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 100
+3b_gpuD_cpuD_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 40|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 100
