@@ -1,0 +1,43 @@
+1792556110.240534882 ggml_vulkan: Found 1 Vulkan devices:
+1792556110.255119140 ggml_vulkan: 0 = Samsung Xclipse 940 (Samsung Proprietary driver) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 64 | shared memory: 32768 | int dot: 0 | matrix cores: none
+1792556110.265512382 llama-bench: benchmark 1/1: starting
+1792556110.669617539 llama-bench: benchmark 1/1: warmup prompt run
+1792556112.124691796 llama-bench: benchmark 1/1: prompt run 1/39
+1792556113.679267109 llama-bench: benchmark 1/1: prompt run 2/39
+1792556115.305479453 llama-bench: benchmark 1/1: prompt run 3/39
+1792556117.137151796 llama-bench: benchmark 1/1: prompt run 4/39
+1792556119.047008320 llama-bench: benchmark 1/1: prompt run 5/39
+1792556120.980038554 llama-bench: benchmark 1/1: prompt run 6/39
+1792556122.942150742 llama-bench: benchmark 1/1: prompt run 7/39
+1792556124.927575039 llama-bench: benchmark 1/1: prompt run 8/39
+1792556126.942519062 llama-bench: benchmark 1/1: prompt run 9/39
+1792556129.131521679 llama-bench: benchmark 1/1: prompt run 10/39
+1792556131.390292382 llama-bench: benchmark 1/1: prompt run 11/39
+1792556133.638928476 llama-bench: benchmark 1/1: prompt run 12/39
+1792556135.894285156 llama-bench: benchmark 1/1: prompt run 13/39
+1792556138.265127734 llama-bench: benchmark 1/1: prompt run 14/39
+1792556141.087631601 llama-bench: benchmark 1/1: prompt run 15/39
+1792556144.199214960 llama-bench: benchmark 1/1: prompt run 16/39
+1792556147.267563085 llama-bench: benchmark 1/1: prompt run 17/39
+1792556150.266716875 llama-bench: benchmark 1/1: prompt run 18/39
+1792556153.288169257 llama-bench: benchmark 1/1: prompt run 19/39
+1792556156.148227539 llama-bench: benchmark 1/1: prompt run 20/39
+1792556159.161652812 llama-bench: benchmark 1/1: prompt run 21/39
+1792556162.192054492 llama-bench: benchmark 1/1: prompt run 22/39
+1792556165.330233828 llama-bench: benchmark 1/1: prompt run 23/39
+1792556168.441380000 llama-bench: benchmark 1/1: prompt run 24/39
+1792556171.583035781 llama-bench: benchmark 1/1: prompt run 25/39
+1792556174.682643398 llama-bench: benchmark 1/1: prompt run 26/39
+1792556177.787171289 llama-bench: benchmark 1/1: prompt run 27/39
+1792556180.872182265 llama-bench: benchmark 1/1: prompt run 28/39
+1792556183.856271093 llama-bench: benchmark 1/1: prompt run 29/39
+1792556186.986103125 llama-bench: benchmark 1/1: prompt run 30/39
+1792556190.126617031 llama-bench: benchmark 1/1: prompt run 31/39
+1792556193.156694023 llama-bench: benchmark 1/1: prompt run 32/39
+1792556196.252569882 llama-bench: benchmark 1/1: prompt run 33/39
+1792556199.250406718 llama-bench: benchmark 1/1: prompt run 34/39
+1792556202.245388789 llama-bench: benchmark 1/1: prompt run 35/39
+1792556205.343129023 llama-bench: benchmark 1/1: prompt run 36/39
+1792556208.525350703 llama-bench: benchmark 1/1: prompt run 37/39
+1792556211.647450703 llama-bench: benchmark 1/1: prompt run 38/39
+1792556214.663981718 llama-bench: benchmark 1/1: prompt run 39/39

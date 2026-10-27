@@ -33,13 +33,16 @@
 // ----------------------------------------------------------------------------
 
 #include <gtest/gtest.h>
+#include <omp.h>
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstdint>
 #include <iterator>
 #include <span>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -133,6 +136,20 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
 // missing/spurious/misplaced leaf link, independent of last-writer-wins.
 [[nodiscard]] inline OctEdge LeafSlotKey(const OctEdge& e) {
   return OctEdge{e[0], e[1], e[2], e[3], e[4], 0, 0, 0, 0, e[9]};
+}
+
+// Names up to `max` leaf slots of `d` (a set difference of LeafSlotKeys) for a failure message.
+[[nodiscard]] inline std::string DescribeLeafSlots(const std::vector<OctEdge>& d,
+                                                   const std::size_t max = 5) {
+  std::string s;
+  for (std::size_t i = 0; i < d.size() && i < max; ++i) {
+    const auto& e = d[i];
+    s += " (node corner " + std::to_string(e[1]) + "," + std::to_string(e[2]) + "," +
+         std::to_string(e[3]) + " cell " + std::to_string(e[4]) + ", octant " +
+         std::to_string(e[9]) + ")";
+  }
+  if (d.size() > max) s += " and " + std::to_string(d.size() - max) + " more";
+  return d.empty() ? " none" : s;
 }
 
 [[nodiscard]] inline std::vector<OctEdge> OctreeEdgeSet(
@@ -241,22 +258,20 @@ using OctEdge = std::array<long, 10>;  // {kind, pcx,pcy,pcz,pcell, tcx,tcy,tcz,
     return keys;
   };
   const auto ref_keys = slot_keys(ref_leaf), out_keys = slot_keys(out_leaf);
-  std::size_t leaf_only_ref = 0, leaf_only_out = 0;
-  {
-    std::vector<OctEdge> d1, d2;
-    std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(d1));
-    std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(d2));
-    leaf_only_ref = d1.size();
-    leaf_only_out = d2.size();
-  }
-  if (leaf_only_ref != 0 || leaf_only_out != 0) {
+  std::vector<OctEdge> leaf_only_ref, leaf_only_out;
+  std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(leaf_only_ref));
+  std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(leaf_only_out));
+  if (!leaf_only_ref.empty() || !leaf_only_out.empty()) {
     return ::testing::AssertionFailure()
-           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref << " only-in-ref, "
-           << leaf_only_out << " only-in-out; ref_leaf_slots=" << ref_keys.size()
+           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref.size()
+           << " only-in-ref, " << leaf_only_out.size()
+           << " only-in-out; ref_leaf_slots=" << ref_keys.size()
            << " out_leaf_slots=" << out_keys.size()
            << ") -- a real missing/spurious/misplaced leaf link (the slot key set, parent "
               "geometry + octant, is deterministic; only the resolved point index is "
-              "last-writer-wins and is excluded)";
+              "last-writer-wins and is excluded). Missing leaf slots:"
+           << DescribeLeafSlots(leaf_only_ref)
+           << ". Spurious leaf slots:" << DescribeLeafSlots(leaf_only_out);
   }
   // Slot key sets match; the only residual difference is the resolved point index
   // of a contended (octnode, octant) slot (last-writer-wins, order-sensitive).
@@ -467,22 +482,20 @@ inline void CheckStage6(const tree::AppData& ref, const tree::AppData& out) {
     return keys;
   };
   const auto ref_keys = slot_keys(ref_leaf), out_keys = slot_keys(out_leaf);
-  std::size_t leaf_only_ref = 0, leaf_only_out = 0;
-  {
-    std::vector<OctEdge> d1, d2;
-    std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(d1));
-    std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(d2));
-    leaf_only_ref = d1.size();
-    leaf_only_out = d2.size();
-  }
-  if (leaf_only_ref != 0 || leaf_only_out != 0) {
+  std::vector<OctEdge> leaf_only_ref, leaf_only_out;
+  std::ranges::set_difference(ref_keys, out_keys, std::back_inserter(leaf_only_ref));
+  std::ranges::set_difference(out_keys, ref_keys, std::back_inserter(leaf_only_out));
+  if (!leaf_only_ref.empty() || !leaf_only_out.empty()) {
     return ::testing::AssertionFailure()
-           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref << " only-in-ref, "
-           << leaf_only_out << " only-in-out; ref_leaf_slots=" << ref_keys.size()
+           << "tree s7 topology: LEAF child slots differ (" << leaf_only_ref.size()
+           << " only-in-ref, " << leaf_only_out.size()
+           << " only-in-out; ref_leaf_slots=" << ref_keys.size()
            << " out_leaf_slots=" << out_keys.size()
            << ") -- a real missing/spurious/misplaced leaf link (the slot key set, parent "
               "geometry + octant, is deterministic; only the resolved point index is "
-              "last-writer-wins and is excluded)";
+              "last-writer-wins and is excluded). Missing leaf slots:"
+           << DescribeLeafSlots(leaf_only_ref)
+           << ". Spurious leaf slots:" << DescribeLeafSlots(leaf_only_out);
   }
   if (ref_leaf == out_leaf) return ::testing::AssertionSuccess();
   return ::testing::AssertionSuccess()
@@ -553,6 +566,109 @@ inline void RunAndCheckStageAppData(int s) {
     default:
       FAIL() << "no such tree stage: " << s;
   }
+}
+
+// ----------------------------------------------------------------------------
+// Reproducers of the tree-app-improvements change (tree-app/morton-codes and
+// tree-app/octree-build specs), for any Runner whose AppData is a tree::AppData.
+// ----------------------------------------------------------------------------
+
+// Morton-codes spec, "Boundary input on all backends": stage 1 on an input whose
+// first points sit on, just inside and just outside both range bounds. The codes
+// must equal the OMP oracle's as a multiset, and an axis at or above the top must
+// quantize to 1023 (it used to wrap to 0), one at or below the bottom to 0.
+template <class Runner>
+inline void RunAndCheckMortonBoundary() {
+  if (!Runner::Available()) {
+    GTEST_SKIP() << "backend device not available on this target";
+  }
+  constexpr float kTop = tree::kMinCoord + tree::kRange;
+  constexpr float kBottom = tree::kMinCoord;
+  constexpr float kMid = tree::kMinCoord + tree::kRange / 2;
+  const float below_top = std::nextafter(kTop, kBottom);
+  const std::array<glm::vec4, 5> boundary = {
+      glm::vec4(kTop, kTop, kTop, 1.0f),
+      glm::vec4(kBottom, kBottom, kBottom, 1.0f),
+      glm::vec4(below_top, below_top, below_top, 1.0f),
+      glm::vec4(kTop + 1.0f, kBottom - 1.0f, kMid, 1.0f),
+      glm::vec4(kMid, kTop, kBottom, 1.0f),
+  };
+  // Expected codes: 1023 on every axis is 0x3fffffff; (1023, 0, 512) and (512, 1023, 0)
+  // interleave x into bit 0, y into bit 1, z into bit 2 of each 3-bit group.
+  constexpr std::array<uint32_t, 5> kExpected = {
+      0x3fffffffu, 0x0u, 0x3fffffffu, 0x29249249u, 0x1a492492u};
+
+  Runner runner;
+  typename Runner::AppData out(runner.Mr(), 4096);
+  std::ranges::copy(boundary, out.u_input_points_s0.begin());
+  runner.RunStage(out, 1);
+
+  tree::AppData ref(std::pmr::new_delete_resource(), out.get_n_input());
+  ref.u_input_points_s0 = out.u_input_points_s0;
+  tree::omp::run_stage_1(ref);
+
+  for (std::size_t i = 0; i < boundary.size(); ++i) {
+    EXPECT_EQ(ref.u_morton_keys_s1[i], kExpected[i])
+        << "OMP code of boundary point " << i << " (" << boundary[i].x << ", " << boundary[i].y
+        << ", " << boundary[i].z << ")";
+  }
+  std::vector<uint32_t> want(ref.u_morton_keys_s1.begin(), ref.u_morton_keys_s1.end());
+  std::vector<uint32_t> got(out.u_morton_keys_s1.begin(), out.u_morton_keys_s1.end());
+  std::ranges::sort(want);
+  std::ranges::sort(got);
+  EXPECT_TRUE(bt::testing::ExactEqual(want, got, "tree s1 morton boundary (set)"));
+}
+
+// Octree-build spec, "Many leaves linked into one node concurrently". The input is
+// one point per finest-level cell of a 32^3 block: 4096 clusters of 8 points, one
+// in each octant of a 2x2x2 cell, so each cluster's octree node gets its 8 leaf
+// links from 4 BRT nodes with adjacent indices. (Packed, not spread out: spread
+// clusters make long node chains that overflow the octree buffers.) Stages 1-6 run on OMP; the
+// backend's stage 7 then runs `reps` times, each from an all-ones leaf mask, and its masks are
+// compared with one single-threaded OMP run. Returns the number of leaf bits the backend left set
+// that the serial run cleared, summed over the repetitions.
+template <class Runner>
+inline std::size_t CountLostLeafBits(Runner& runner, const int reps) {
+  constexpr int kAxisClusters = 16;
+  constexpr std::size_t kPoints = 8 * kAxisClusters * kAxisClusters * kAxisClusters;
+  typename Runner::AppData out(runner.Mr(), kPoints);
+  std::size_t p = 0;
+  for (int a = 0; a < kAxisClusters; ++a) {
+    for (int b = 0; b < kAxisClusters; ++b) {
+      for (int c = 0; c < kAxisClusters; ++c) {
+        for (int o = 0; o < 8; ++o) {
+          // Cluster base (2a, 2b, 2c), then one point per octant, centred in its cell.
+          out.u_input_points_s0[p++] = glm::vec4(
+              tree::kMinCoord + 2.0f * static_cast<float>(a) + static_cast<float>((o & 1)) + 0.5f,
+              tree::kMinCoord + 2.0f * static_cast<float>(b) + static_cast<float>((o >> 1 & 1)) +
+                  0.5f,
+              tree::kMinCoord + 2.0f * static_cast<float>(c) + static_cast<float>((o >> 2 & 1)) +
+                  0.5f,
+              1.0f);
+        }
+      }
+    }
+  }
+  tree::omp::dispatch_multi_stage(out, 1, 6);
+  const std::size_t n = out.get_n_octree_nodes();
+  auto& mask = out.u_oct_child_leaf_mask_s7;
+
+  std::ranges::fill_n(mask.begin(), static_cast<std::ptrdiff_t>(n), 0xFF);
+  const int threads = omp_get_max_threads();
+  omp_set_num_threads(1);
+  tree::omp::run_stage_7(out);
+  omp_set_num_threads(threads);
+  const std::vector<int32_t> serial(mask.begin(), mask.begin() + static_cast<std::ptrdiff_t>(n));
+
+  std::size_t lost = 0;
+  for (int r = 0; r < reps; ++r) {
+    std::ranges::fill_n(mask.begin(), static_cast<std::ptrdiff_t>(n), 0xFF);
+    runner.RunStage(out, 7);
+    for (std::size_t v = 0; v < n; ++v) {
+      lost += std::popcount(static_cast<uint32_t>(mask[v] & ~serial[v]));
+    }
+  }
+  return lost;
 }
 
 }  // namespace tree::testing

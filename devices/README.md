@@ -34,6 +34,9 @@ the hardcoded table is deleted.
 
    `type` is one of `little`, `medium`, `big`, `super`. `pinnable` marks whether
    the scheduler may pin a worker thread to that core.
+
+   Optionally add a `"gpu"` object: `backend` (`cuda` or `vulkan`, required), plus the
+   informational `name` and `subgroup_size` (see below).
 4. Add the device's golden topology to `GOLDEN` in
    [`../scripts/validate_devices.py`](../scripts/validate_devices.py) so it is
    locked against future regressions.
@@ -42,3 +45,13 @@ the hardcoded table is deleted.
    ```bash
    uv run scripts/validate_devices.py
    ```
+
+## GPU subgroup size is informational
+
+`gpu.subgroup_size` does **not** configure anything. The Vulkan engine queries the
+subgroup size of the GPU it selected at runtime (`VkPhysicalDeviceSubgroupProperties`,
+pinned with `requiredSubgroupSize` where the device supports it) and specializes the
+subgroup-dependent shaders with it. Neither `--device` nor this file selects a shader
+variant. If the field is present and differs from the size the engine uses, the engine
+logs a warning naming both values and carries on. Record the device's **default**
+`subgroupSize` here (`SPDLOG_LEVEL=debug ./test-kiss-vk` prints it), or leave it out.

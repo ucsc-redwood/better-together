@@ -5,18 +5,18 @@
 #   scripts/cross-build-jetson.sh                 # configure + build everything
 #   BT_CROSS_IMAGE=bt-cross:6.1 scripts/cross-build-jetson.sh   # legacy JetPack-6 image
 #
-# Default image is bt-cross:7.2 (CUDA 13.2, matches the JetPack 7.2 fleet). Keep
+# Default image is bt-cross:7.2-glslc (CUDA 13.2, matches the JetPack 7.2 fleet). Keep
 # bt-cross:6.1 (Dockerfile.cross) for JetPack-6-era targets.
 # Output: build/jetson/test-*-cu (aarch64). scp to a Jetson and run with
 #         --device duck-stable (or duck-naughty).
 set -euo pipefail
 
-IMAGE="${BT_CROSS_IMAGE:-bt-cross:7.2}"
+IMAGE="${BT_CROSS_IMAGE:-bt-cross:7.2-glslc}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
   dockerfile=Dockerfile.cross
-  [ "$IMAGE" = "bt-cross:7.2" ] && dockerfile=Dockerfile.cross-7.2
+  [[ "$IMAGE" == bt-cross:7.2* ]] && dockerfile=Dockerfile.cross-7.2
   echo ">> building $IMAGE from $dockerfile"
   docker build -t "$IMAGE" -f "$ROOT/$dockerfile" "$ROOT"
 fi

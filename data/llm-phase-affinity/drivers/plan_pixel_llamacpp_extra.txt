@@ -1,0 +1,6 @@
+# Task 2.2 additions after diag-gpu-flags: GPU with flash attention off (-fa 0: +20% pp2048 vs auto) and partial
+# offload with --no-host 1 (decode 11 vs 1.7 tok/s: CPU layers out of the Vulkan host buffer). Same binary and GGUF.
+1b_gpufa0_pp|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+1b_gpufa0_tg|8|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+1b_partialnh_pp|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl
+1b_partialnh_tg|f0|./llama-bench -m models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 4 --no-host 1 -r 1 -o jsonl

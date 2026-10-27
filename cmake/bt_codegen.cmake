@@ -6,7 +6,7 @@
 #   bt_codegen(TARGET bt_vocab
 #              SCRIPT  ${CMAKE_SOURCE_DIR}/scripts/embed_vocab.py
 #              DEPENDS ${CMAKE_SOURCE_DIR}/vocab.json
-#              OUTPUTS ${CMAKE_SOURCE_DIR}/builtin-apps/generated/bt_vocab.hpp ...)
+#              OUTPUTS ${CMAKE_SOURCE_DIR}/platform/vocab/generated/bt_vocab.hpp ...)
 # Adds an add_custom_target(${TARGET}) and makes bt_core depend on it.
 function(bt_codegen)
     cmake_parse_arguments(ARG "" "TARGET;SCRIPT" "DEPENDS;OUTPUTS" ${ARGN})

@@ -30,7 +30,21 @@ __device__ __forceinline__ void set_leaf(const int node_idx,
                                          const unsigned int which_child,
                                          const int leaf_idx) {
   u_children[node_idx][which_child] = leaf_idx;
-  u_child_leaf_mask[node_idx] &= ~(1 << which_child);
+  // Same race as set_child: brt nodes in one warp clear bits of the same node's mask, and a
+  // plain &= kept 2 of 8 bits per node in the leaf-race test. Matches OMP and Vulkan.
+  // The mask lives in zero-copy memory, where each atomic is expensive (one per leaf made
+  // stage 7 53 % slower on duck-stable), so the lanes of a warp that clear bits of the same
+  // node combine them and one lane issues a single atomicAnd for the group.
+  const unsigned active = __activemask();
+  const unsigned peers = __match_any_sync(active, node_idx);
+  const int bit = 1 << which_child;
+  int bits = 0;
+  for (unsigned rest = peers; rest != 0; rest &= rest - 1) {
+    bits |= __shfl_sync(peers, bit, __ffs(static_cast<int>(rest)) - 1);
+  }
+  if ((threadIdx.x & 31U) == static_cast<unsigned>(__ffs(static_cast<int>(peers)) - 1)) {
+    atomicAnd(&u_child_leaf_mask[node_idx], ~bits);
+  }
 }
 
 // processing for index 'i'

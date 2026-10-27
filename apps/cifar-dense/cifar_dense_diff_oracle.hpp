@@ -1,4 +1,6 @@
 #pragma once
+
+#include <vector>
 // ----------------------------------------------------------------------------
 // cifar-dense differential-oracle harness (backend-parametrized).
 //
@@ -152,7 +154,8 @@ inline void RunAndCheckStage(int s) {
   Runner runner;
   AppData a(runner.Mr());
   for (int i = 1; i <= s; ++i) runner.RunStage(a, i);
-  CheckStage(a, s, Runner::kRtol, Runner::kAtol);
+  const auto [rtol, atol] = bt::testing::StageTolerance<Runner>(s);
+  CheckStage(a, s, rtol, atol);
 }
 
 // ----------------------------------------------------------------------------
@@ -163,10 +166,32 @@ inline void RunAndCheckStage(int s) {
 // stages), this lets cross-stage cumulative / interface errors surface.
 // ----------------------------------------------------------------------------
 inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
+  // Under a schedule, weights only GPU stages read may sit in memory that is uncached for
+  // the CPU (memory-placement spec). The reference reads each weight many times, so it
+  // works on one host-cached copy of each instead.
+  const auto host = [](const auto& arr) {
+    return std::vector<float>(arr.pmr_vec().begin(), arr.pmr_vec().end());
+  };
+  const std::vector<float> conv1_w = host(a.u_conv1_w);
+  const std::vector<float> conv1_b = host(a.u_conv1_b);
+  const std::vector<float> conv2_w = host(a.u_conv2_w);
+  const std::vector<float> conv2_b = host(a.u_conv2_b);
+  const std::vector<float> conv3_w = host(a.u_conv3_w);
+  const std::vector<float> conv3_b = host(a.u_conv3_b);
+  const std::vector<float> conv4_w = host(a.u_conv4_w);
+  const std::vector<float> conv4_b = host(a.u_conv4_b);
+  const std::vector<float> conv5_w = host(a.u_conv5_w);
+  const std::vector<float> conv5_b = host(a.u_conv5_b);
+  const std::vector<float> fc1_w = host(a.u_fc1_w);
+  const std::vector<float> fc1_b = host(a.u_fc1_b);
+  const std::vector<float> fc2_w = host(a.u_fc2_w);
+  const std::vector<float> fc2_b = host(a.u_fc2_b);
+  const std::vector<float> fc3_w = host(a.u_fc3_w);
+  const std::vector<float> fc3_b = host(a.u_fc3_b);
   const int N = a.u_input.d0();
   auto c1 = ref::Conv2dRef(a.u_input.data(),
-                           a.u_conv1_w.data(),
-                           a.u_conv1_b.data(),
+                           conv1_w.data(),
+                           conv1_b.data(),
                            N,
                            a.u_input.d1(),
                            a.u_input.d2(),
@@ -189,8 +214,8 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                               kPoolSize,
                               kPoolStride);
   auto c2 = ref::Conv2dRef(p1.data(),
-                           a.u_conv2_w.data(),
-                           a.u_conv2_b.data(),
+                           conv2_w.data(),
+                           conv2_b.data(),
                            N,
                            a.u_pool1_out.d1(),
                            a.u_pool1_out.d2(),
@@ -213,8 +238,8 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                               kPoolSize,
                               kPoolStride);
   auto c3 = ref::Conv2dRef(p2.data(),
-                           a.u_conv3_w.data(),
-                           a.u_conv3_b.data(),
+                           conv3_w.data(),
+                           conv3_b.data(),
                            N,
                            a.u_pool2_out.d1(),
                            a.u_pool2_out.d2(),
@@ -228,8 +253,8 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                            kPadding,
                            kRelu);
   auto c4 = ref::Conv2dRef(c3.data(),
-                           a.u_conv4_w.data(),
-                           a.u_conv4_b.data(),
+                           conv4_w.data(),
+                           conv4_b.data(),
                            N,
                            a.u_conv3_out.d1(),
                            a.u_conv3_out.d2(),
@@ -243,8 +268,8 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                            kPadding,
                            kRelu);
   auto c5 = ref::Conv2dRef(c4.data(),
-                           a.u_conv5_w.data(),
-                           a.u_conv5_b.data(),
+                           conv5_w.data(),
+                           conv5_b.data(),
                            N,
                            a.u_conv4_out.d1(),
                            a.u_conv4_out.d2(),
@@ -267,13 +292,13 @@ inline void CheckFinalPipeline(const AppData& a, float rtol, float atol) {
                               kPoolSize,
                               kPoolStride);
   const int in_features = a.u_pool3_out.d1() * a.u_pool3_out.d2() * a.u_pool3_out.d3();
-  auto f1 = ref::LinearRef(
-      p3.data(), a.u_fc1_w.data(), a.u_fc1_b.data(), N, in_features, a.u_fc1_w.d0(), kRelu);
+  auto f1 =
+      ref::LinearRef(p3.data(), fc1_w.data(), fc1_b.data(), N, in_features, a.u_fc1_w.d0(), kRelu);
   auto f2 = ref::LinearRef(
-      f1.data(), a.u_fc2_w.data(), a.u_fc2_b.data(), N, a.u_fc1_w.d0(), a.u_fc2_w.d0(), kRelu);
+      f1.data(), fc2_w.data(), fc2_b.data(), N, a.u_fc1_w.d0(), a.u_fc2_w.d0(), kRelu);
   auto logits = ref::LinearRef(f2.data(),
-                               a.u_fc3_w.data(),
-                               a.u_fc3_b.data(),
+                               fc3_w.data(),
+                               fc3_b.data(),
                                N,
                                a.u_fc2_w.d0(),
                                a.u_fc3_w.d0(),
@@ -290,7 +315,8 @@ inline void RunFullAndCheckFinal() {
   Runner runner;
   AppData a(runner.Mr());
   for (int i = 1; i <= 11; ++i) runner.RunStage(a, i);
-  CheckFinalPipeline(a, Runner::kE2eRtol, Runner::kE2eAtol);
+  const auto [rtol, atol] = bt::testing::E2eTolerance<Runner>();
+  CheckFinalPipeline(a, rtol, atol);
 }
 
 }  // namespace cifar_dense::testing

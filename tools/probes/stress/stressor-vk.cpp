@@ -20,14 +20,9 @@ int main() {
 
   auto algo = engine.make_algo("stressor")
                   ->work_group_size(256, 1, 1)
-                  ->num_sets(1)
                   ->num_buffers(1)
                   ->push_constant_size(12)
                   ->build();
-
-  algo->update_push_constant(pc);
-
-  algo->update_descriptor_set(0, {engine.get_buffer_info(input)});
 
   auto seq = engine.make_seq();
 
@@ -48,18 +43,16 @@ int main() {
 
     // Update push constants with current time
     pc.start_time = static_cast<float>(elapsed);
-    algo->update_push_constant(pc);
 
     // Record and submit the kernel
     seq->cmd_begin();
-    algo->record_bind_core(seq->get_handle(), 0);
-    algo->record_bind_push(seq->get_handle());
-    algo->record_dispatch(seq->get_handle(), {kiss_vk::div_ceil(n, 256), 1, 1});
+    algo->record_bind(*seq, {engine.get_buffer_info(input)});
+    algo->record_push_constants(*seq, pc);
+    algo->record_dispatch(*seq, {kiss_vk::div_ceil(n, 256), 1, 1});
     seq->cmd_end();
 
     seq->submit();
-    seq->wait_for_fence();
-    seq->reset_fence();
+    seq->wait();
 
     iteration_count++;
 

@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -29,6 +28,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -36,6 +36,8 @@
 
 #include "platform/mem/mr_ptr.hpp"                // bt_pipe::as_mr_ptr (cu get_mr()=ref, vk=ptr)
 #include "platform/registry/device_registry.hpp"  // ProcessorType, g_device_id, has_*_cores
+#include "profiler/gpu_clock.hpp"                 // read_gpu_clock_mhz, GpuClockSampler
+#include "runtime/placement.hpp"                  // make_placed_appdata
 
 // Build-time provenance: the bt_git_sha CMake target regenerates bt_git_sha.h each
 // build and puts it on the bm-prof include path. Falls back to "unknown" when the
@@ -52,10 +54,11 @@ namespace bt_prof {
 // One (stage, pu) measurement cell; `samples_s` is filled by the gbench loop.
 struct Cell {
   int stage;
-  std::string pu;                 // "vulkan" | "cuda" | "big" | "medium" | "little"
-  ProcessorType cpu_pt;           // unused when pu is the GPU backend
-  std::vector<double> samples_s;  // raw per-iteration time, seconds
-  bool abandoned = false;         // deep-sampling cut short because the cell is slow
+  std::string pu;                  // "vulkan" | "cuda" | "big" | "medium" | "little"
+  ProcessorType cpu_pt;            // unused when pu is the GPU backend
+  std::vector<double> samples_s;   // raw per-iteration time, seconds
+  bool abandoned = false;          // deep-sampling cut short because the cell is slow
+  GpuClockSampler::Summary clock;  // GPU cells: the clock sampled during the measured loop
 };
 
 inline int env_int(const char* name, int fallback) {
@@ -125,39 +128,6 @@ inline std::string read_governor() {
   return "unknown";
 }
 
-// Best-effort CURRENT GPU clock in MHz (-1 if unknown). The interference audit found the
-// BTPM GPU column corrupted by DVFS (the GPU clocks up under the bg load while isolated
-// runs at a low clock); recording the clock in provenance lets the loader / analysis see
-// and disentangle that. AMD RADV: the active ("*") line of pp_dpm_sclk; Tegra/Mali/Adreno:
-// a devfreq/kgsl cur_freq in Hz.
-inline int read_gpu_clock_mhz() {
-  for (const char* p :
-       {"/sys/class/drm/card0/device/pp_dpm_sclk", "/sys/class/drm/card1/device/pp_dpm_sclk"}) {
-    std::ifstream f(p);
-    std::string line;
-    while (f && std::getline(f, line)) {
-      if (line.find('*') == std::string::npos) continue;  // not the active state
-      auto u = line.find("Mhz");
-      if (u == std::string::npos) u = line.find("MHz");
-      if (u == std::string::npos) continue;
-      size_t e = u;
-      while (e > 0 && !std::isdigit(static_cast<unsigned char>(line[e - 1]))) --e;
-      size_t b = e;
-      while (b > 0 && std::isdigit(static_cast<unsigned char>(line[b - 1]))) --b;
-      if (b < e) return std::atoi(line.substr(b, e - b).c_str());
-    }
-  }
-  for (const char* p : {"/sys/class/kgsl/kgsl-3d0/gpuclk",
-                        "/sys/class/kgsl/kgsl-3d0/devfreq/cur_freq",
-                        "/sys/devices/platform/gpu/devfreq/gpu/cur_freq",
-                        "/sys/class/devfreq/gpu/cur_freq"}) {
-    std::ifstream f(p);
-    long hz = 0;
-    if (f && (f >> hz) && hz > 0) return static_cast<int>(hz / 1000000);
-  }
-  return -1;
-}
-
 inline std::string iso8601_utc_now() {
   const std::time_t tt = std::time(nullptr);
   std::tm tm{};
@@ -205,6 +175,47 @@ inline std::vector<Cell> make_cells(int n_stages, const std::string& gpu_pu) {
   return cells;
 }
 
+// Provenance shared by every record of a run; `gpu_clock_mhz` is a run-level snapshot here
+// (-1 if unknown) that GPU records replace with their sampled clock.
+inline nlohmann::json base_provenance(int warmup, const char* harness) {
+  const std::string gov = read_governor();
+  return {
+      {"git_sha", BT_GIT_SHA},
+      {"ts", iso8601_utc_now()},
+      {"host", hostname()},
+      {"freq_governor", gov},
+      {"freq_locked", gov == "performance" || gov == "userspace"},
+      {"gpu_clock_mhz", read_gpu_clock_mhz()},  // DVFS state (audit): clock vs contention
+      {"warmup_iters", warmup},
+      {"harness", harness},
+  };
+}
+
+// A record's `timing` block from raw per-iteration seconds (ms; nearest-rank percentiles).
+inline nlohmann::json timing_json(const std::vector<double>& samples_s) {
+  std::vector<double> ms;
+  ms.reserve(samples_s.size());
+  for (double s : samples_s) ms.push_back(s * 1e3);
+  std::sort(ms.begin(), ms.end());
+
+  const double sum = std::accumulate(ms.begin(), ms.end(), 0.0);
+  const auto n = static_cast<double>(ms.size());
+  const double mean = sum / n;
+  double var = 0.0;
+  for (double v : ms) var += (v - mean) * (v - mean);
+  var /= n;
+  const double stddev = std::sqrt(var);
+  return {{"unit", "ms"},
+          {"count", ms.size()},
+          {"p50", percentile(ms, 0.50)},
+          {"p95", percentile(ms, 0.95)},
+          {"p99", percentile(ms, 0.99)},
+          {"mean", mean},
+          {"cv", mean > 0 ? stddev / mean : 0.0},
+          {"min", ms.front()},
+          {"max", ms.back()}};
+}
+
 // Emit one self-describing JSONL record per non-empty cell to stdout. stdout is
 // reserved for data -- callers route logs to stderr.
 inline void emit_jsonl(const std::vector<Cell>& cells,
@@ -213,35 +224,16 @@ inline void emit_jsonl(const std::vector<Cell>& cells,
                        const char* scenario,
                        int run_id,
                        int warmup) {
-  const std::string gov = read_governor();
-  const int gpu_mhz = read_gpu_clock_mhz();  // run-level snapshot; -1 if unknown
-  const nlohmann::json base_provenance = {
-      {"git_sha", BT_GIT_SHA},
-      {"ts", iso8601_utc_now()},
-      {"host", hostname()},
-      {"freq_governor", gov},
-      {"freq_locked", gov == "performance" || gov == "userspace"},
-      {"gpu_clock_mhz", gpu_mhz},  // DVFS state (audit): disentangle clock from contention
-      {"warmup_iters", warmup},
-      {"harness", "bt.prof/v0"},
-  };
+  const nlohmann::json run_provenance = base_provenance(warmup, "bt.prof/v0");
 
   for (const Cell& cell : cells) {
     if (cell.samples_s.empty()) continue;
-    nlohmann::json provenance = base_provenance;
+    nlohmann::json provenance = run_provenance;
     if (cell.abandoned) provenance["abandoned"] = true;  // deep-sampling cost-capped
-    std::vector<double> ms;
-    ms.reserve(cell.samples_s.size());
-    for (double s : cell.samples_s) ms.push_back(s * 1e3);
-    std::sort(ms.begin(), ms.end());
-
-    const double sum = std::accumulate(ms.begin(), ms.end(), 0.0);
-    const double mean = sum / ms.size();
-    double var = 0.0;
-    for (double v : ms) var += (v - mean) * (v - mean);
-    var /= ms.size();
-    const double stddev = std::sqrt(var);
-
+    if (cell.pu == "vulkan" || cell.pu == "cuda") {      // sampled while the kernel ran (D5)
+      provenance["gpu_clock_mhz"] = cell.clock.mhz;
+      provenance["gpu_clock_samples"] = cell.clock.samples;
+    }
     const nlohmann::json rec = {
         {"schema", "bt.profiling/v0"},
         {"device", g_device_id},
@@ -251,16 +243,7 @@ inline void emit_jsonl(const std::vector<Cell>& cells,
         {"run", run_id},
         {"stage", cell.stage},
         {"pu", cell.pu},
-        {"timing",
-         {{"unit", "ms"},
-          {"count", ms.size()},
-          {"p50", percentile(ms, 0.50)},
-          {"p95", percentile(ms, 0.95)},
-          {"p99", percentile(ms, 0.99)},
-          {"mean", mean},
-          {"cv", mean > 0 ? stddev / mean : 0.0},
-          {"min", ms.front()},
-          {"max", ms.back()}}},
+        {"timing", timing_json(cell.samples_s)},
         {"provenance", provenance},
     };
     std::cout << rec.dump() << "\n";
@@ -339,7 +322,11 @@ int run_bm_prof(int argc,
             omp_dispatch(cores, cores.size(), a, 1, upto);
           };
 
-          App app(bt_pipe::as_mr_ptr(disp.get_mr()));
+          // Placed as at runtime: stage s's own buffers may use the GPU's memory classes
+          // when it is the GPU cell; prep's CPU stages read only boundary buffers.
+          const auto app_ptr =
+              make_placed_appdata<App>(disp, is_gpu ? std::set<int>{s} : std::set<int>{});
+          App& app = *app_ptr;
           prep(app, s - 1);
 
           // Stateful GPU-timer policy: created ONCE here (per benchmark instance),
@@ -368,7 +355,7 @@ int run_bm_prof(int argc,
           std::vector<std::thread> bg;
           if (interfere) {
             if (!is_gpu) {  // GPU contends only when the target is a CPU tier
-              bg_apps.push_back(std::make_unique<App>(bt_pipe::as_mr_ptr(disp.get_mr())));
+              bg_apps.push_back(make_placed_appdata<App>(disp, std::set<int>{s}));
               App* a = bg_apps.back().get();
               prep(*a, s - 1);
               bg.emplace_back([&disp, a, s, &stop, &bg_ready] {
@@ -424,9 +411,13 @@ int run_bm_prof(int argc,
             while (std::chrono::steady_clock::now() < wdl) time_once();
           }
 
-          // Iterations(1): the calibrated helper owns warmup + adaptive sampling.
+          // Iterations(1): the calibrated helper owns warmup + adaptive sampling. A GPU
+          // cell samples the GPU clock meanwhile (D5; BT_PROF_CLOCK_PERIOD_MS, default 5).
           for (auto _ : state) {
+            std::optional<GpuClockSampler> clock;
+            if (is_gpu) clock.emplace(env_int("BT_PROF_CLOCK_PERIOD_MS", 5));
             c->abandoned = measure_calibrated(c->samples_s, time_once);
+            if (clock) c->clock = clock->stop();
             double total = 0.0;
             for (double t : c->samples_s) total += t;
             state.SetIterationTime(total);

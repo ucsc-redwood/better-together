@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "torch>=2.2",
+#     "torchvision>=0.17",
+#     "numpy>=1.26",
+# ]
+# ///
 """
 Train a small AlexNet‑style model on CIFAR‑10 and save parameters to .npy files.
 

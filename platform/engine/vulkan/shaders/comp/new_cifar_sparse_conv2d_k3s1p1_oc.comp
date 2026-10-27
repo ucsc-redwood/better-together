@@ -1,0 +1,141 @@
+#version 460
+#extension GL_EXT_control_flow_attributes : require
+
+precision highp float;
+precision highp int;
+
+// 3x3 / stride-1 / pad-1 CSR conv with one output channel per workgroup row (cifar-gpu-kernels
+// S1, S2), for GPUs with a subgroup of 32 or more; below 32 the dispatcher keeps the Mali path of
+// new_cifar_sparse_conv2d_k3s1p1.comp.
+//
+// out_c = gl_WorkGroupID.y, so the CSR row bounds and every (weight, tap) of the row are
+// workgroup-uniform: scalar loads, uniform loop bounds. The taps were decoded on the host
+// (cifar_sparse::pack_k3s1p1_taps): each is an input offset relative to the output pixel, times
+// 16, plus the tap id ky*3+kx. An invocation builds its 9-bit mask of the taps that read inside
+// the image once; a nonzero then costs a weight load, a tap load, a mask test and an input load
+// from a clamped index, with no division and no branch, so the input loads of an unrolled group
+// are all in flight together.
+//
+// STAGE_ROW (S3): the workgroup first copies the row's weights and taps into shared memory, CHUNK
+// nonzeros at a time (8 KB), and walks them from there.
+//
+// Dispatcher contract: grid (ceil(N*H*W / 256), K, 1), one invocation per output pixel.
+// Same push constants as new_cifar_sparse_conv2d; binding 4 holds the taps instead of col_idx.
+
+layout(constant_id = 1) const bool STAGE_ROW = false;
+
+const int UNROLL = 8;    // nonzeros per loop iteration, each with its own accumulator
+const int CHUNK = 1024;  // STAGE_ROW: nonzeros staged at a time
+
+layout(local_size_x = 256) in;
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [batch, in_channels, in_height, in_width]
+};
+
+layout(std430, set = 0, binding = 1) writeonly buffer OutputBuffer {
+  float output_data[];  // [batch, out_channels, out_height, out_width]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer WeightValsBuffer {
+  float weight_vals[];  // nonzero weight values
+};
+
+layout(std430, set = 0, binding = 3) readonly buffer WeightRowPtrBuffer {
+  int weight_row_ptr[];  // out_channels + 1 row pointers
+};
+
+layout(std430, set = 0, binding = 4) readonly buffer WeightTapsBuffer {
+  int weight_taps[];  // per nonzero: offset * 16 + tap
+};
+
+layout(std430, set = 0, binding = 5) readonly buffer BiasBuffer { float bias_data[]; };
+
+// kernel_size/stride/padding are implied 3/1/1, so out_height/out_width equal the input's.
+layout(push_constant) uniform Params {
+  int batch_size;
+  int in_channels;
+  int in_height;
+  int in_width;
+  int out_channels;
+  int out_height;
+  int out_width;
+  int kernel_size;
+  int stride;
+  int padding;
+  int relu;
+  int bias_size;
+}
+params;
+
+shared int sh_taps[CHUNK];
+shared float sh_vals[CHUNK];
+
+// One nonzero's contribution (tap t, weight w) at the pixel whose channel-0 input index is `base`;
+// 0.0 for a tap in the padded border, which loads `base` instead.
+float tap(const int t, const float w, const int base, const uint valid) {
+  const bool ok = ((valid >> (t & 15)) & 1u) != 0u;
+  const float x = input_data[ok ? base + (t >> 4) : base];
+  return ok ? x * w : 0.0;
+}
+
+void main() {
+  const int H = params.out_height;
+  const int W = params.out_width;
+  const int HW = H * W;
+  // Without STAGE_ROW an invocation past the last pixel leaves at once; with it, it still helps
+  // stage and meets the barriers, computing pixel 0 and storing nothing.
+  const bool in_range = int(gl_GlobalInvocationID.x) < params.batch_size * HW;
+  if (!STAGE_ROW && !in_range) return;
+  const int p = in_range ? int(gl_GlobalInvocationID.x) : 0;
+  const int out_c = int(gl_WorkGroupID.y);
+
+  const int b = p / HW;
+  const int pix = p - b * HW;
+  const int oh = pix / W;
+  const int ow = pix - oh * W;
+
+  // Bit ky*3+kx is set when tap (ky, kx) reads inside the image at (oh, ow).
+  const uint cols = (ow > 0 ? 1u : 0u) | 2u | (ow < W - 1 ? 4u : 0u);
+  const uint valid = (oh > 0 ? cols : 0u) | (cols << 3) | (oh < H - 1 ? cols << 6 : 0u);
+
+  const int base = b * params.in_channels * HW + pix;
+  const int row_start = weight_row_ptr[out_c];
+  const int row_end = weight_row_ptr[out_c + 1];
+
+  float acc[UNROLL];
+  [[unroll]] for (int j = 0; j < UNROLL; ++j) acc[j] = 0.0;
+  if (STAGE_ROW) {
+    for (int c0 = row_start; c0 < row_end; c0 += CHUNK) {
+      const int n = min(CHUNK, row_end - c0);
+      barrier();  // the previous chunk is consumed
+      for (int i = int(gl_LocalInvocationIndex); i < n; i += int(gl_WorkGroupSize.x)) {
+        sh_taps[i] = weight_taps[c0 + i];
+        sh_vals[i] = weight_vals[c0 + i];
+      }
+      barrier();
+      int i = 0;
+      for (; i + UNROLL <= n; i += UNROLL) {
+        [[unroll]] for (int j = 0; j < UNROLL; ++j) {
+          acc[j] += tap(sh_taps[i + j], sh_vals[i + j], base, valid);
+        }
+      }
+      for (; i < n; ++i) acc[0] += tap(sh_taps[i], sh_vals[i], base, valid);
+    }
+    if (!in_range) return;
+  } else {
+    int nz = row_start;
+    for (; nz + UNROLL <= row_end; nz += UNROLL) {
+      [[unroll]] for (int j = 0; j < UNROLL; ++j) {
+        acc[j] += tap(weight_taps[nz + j], weight_vals[nz + j], base, valid);
+      }
+    }
+    for (; nz < row_end; ++nz) acc[0] += tap(weight_taps[nz], weight_vals[nz], base, valid);
+  }
+
+  float sum = 0.0;
+  [[unroll]] for (int j = 0; j < UNROLL; ++j) sum += acc[j];
+  if (params.bias_size > 0 && out_c < params.bias_size) sum += bias_data[out_c];
+  if (params.relu != 0 && sum < 0.0) sum = 0.0;
+  output_data[(b * params.out_channels + out_c) * HW + pix] = sum;
+}

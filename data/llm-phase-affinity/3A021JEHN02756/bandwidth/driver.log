@@ -1,0 +1,50 @@
+2026-10-20T18:38:04-07:00 cooling: thermal status 1
+2026-10-20T18:38:34-07:00 start cpu_t1
+2026-10-20T18:39:15-07:00 end cpu_t1
+2026-10-20T18:39:35-07:00 THROTTLED cpu_t1, cooling down and repeating once
+2026-10-20T18:41:35-07:00 start cpu_t1_retry
+2026-10-20T18:42:17-07:00 end cpu_t1_retry
+2026-10-20T18:42:37-07:00 cooling: thermal status 1
+2026-10-20T18:43:07-07:00 start gpu_t1
+2026-10-20T18:43:51-07:00 end gpu_t1
+2026-10-20T18:44:11-07:00 THROTTLED gpu_t1, cooling down and repeating once
+2026-10-20T18:46:11-07:00 start gpu_t1_retry
+2026-10-20T18:46:55-07:00 end gpu_t1_retry
+2026-10-20T18:47:16-07:00 start both_t1
+2026-10-20T18:48:01-07:00 end both_t1
+2026-10-20T18:48:21-07:00 THROTTLED both_t1, cooling down and repeating once
+2026-10-20T18:50:21-07:00 start both_t1_retry
+2026-10-20T18:51:06-07:00 end both_t1_retry
+2026-10-20T18:51:26-07:00 cooling: thermal status 1
+2026-10-20T18:51:56-07:00 start cpu_t2
+2026-10-20T18:52:37-07:00 end cpu_t2
+2026-10-20T18:52:57-07:00 THROTTLED cpu_t2, cooling down and repeating once
+2026-10-20T18:54:58-07:00 start cpu_t2_retry
+2026-10-20T18:55:39-07:00 end cpu_t2_retry
+2026-10-20T18:55:59-07:00 cooling: thermal status 1
+2026-10-20T18:56:29-07:00 start gpu_t2
+2026-10-20T18:57:13-07:00 end gpu_t2
+2026-10-20T18:57:33-07:00 THROTTLED gpu_t2, cooling down and repeating once
+2026-10-20T18:59:33-07:00 start gpu_t2_retry
+2026-10-20T19:00:18-07:00 end gpu_t2_retry
+2026-10-20T19:00:38-07:00 start both_t2
+2026-10-20T19:01:24-07:00 end both_t2
+2026-10-20T19:01:44-07:00 THROTTLED both_t2, cooling down and repeating once
+2026-10-20T19:03:44-07:00 start both_t2_retry
+2026-10-20T19:04:29-07:00 end both_t2_retry
+2026-10-20T19:04:49-07:00 cooling: thermal status 1
+2026-10-20T19:05:19-07:00 start cpu_t3
+2026-10-20T19:06:00-07:00 end cpu_t3
+2026-10-20T19:06:20-07:00 THROTTLED cpu_t3, cooling down and repeating once
+2026-10-20T19:08:20-07:00 start cpu_t3_retry
+2026-10-20T19:09:02-07:00 end cpu_t3_retry
+2026-10-20T19:09:22-07:00 cooling: thermal status 1
+2026-10-20T19:09:52-07:00 start gpu_t3
+2026-10-20T19:10:36-07:00 end gpu_t3
+2026-10-20T19:10:56-07:00 cooling: thermal status 1
+2026-10-20T19:11:26-07:00 start both_t3
+2026-10-20T19:12:11-07:00 end both_t3
+2026-10-20T19:12:31-07:00 THROTTLED both_t3, cooling down and repeating once
+2026-10-20T19:14:32-07:00 start both_t3_retry
+2026-10-20T19:15:16-07:00 end both_t3_retry
+2026-10-20T19:15:36-07:00 plan done

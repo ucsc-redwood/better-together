@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "torchvision>=0.17",
+#     "numpy>=1.26",
+# ]
+# ///
 """
 Split CIFAR-10 train set into 10 .npy files, each containing 128 images
 in channel-first (C, H, W) format.

@@ -10,18 +10,21 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // Multi-workgroup (device-wide) radix sort scratch sizing.
   // 256 bins; a fixed number of workgroups so the per-workgroup histogram
   // buffer has a deterministic size (RADIX_SORT_BINS * kRadixNumWorkgroups).
+  // 64, not 256: every scatter workgroup re-reads the whole bins x workgroups histogram
+  // table, so the table (and that L2 traffic) grows with the workgroup count; a plateau of
+  // 32..128 sorts 307k keys ~1.9x faster than 256 on the Radeon 780M (see
+  // docs/reports-for-human/2026-10-15-vk-shader-profile.md 4.4).
   static constexpr uint32_t kRadixBins = 256;
-  static constexpr uint32_t kRadixNumWorkgroups = 256;
+  static constexpr uint32_t kRadixNumWorkgroups = 64;
 
   // Device-wide scan tile size (must match ELEMENTS_PER_WG in the
-  // tree_scan_*.comp shaders). One block per tile; the per-block totals are
+  // tree_scan_*.comp and tree_unique_*.comp shaders). One block per tile; the per-block totals are
   // scanned by a single workgroup in pass 2, so #blocks must stay <= the tile
   // size (640x480 -> 150 blocks, FHD 2M -> ~977; well within 2048).
   static constexpr uint32_t kScanElementsPerWg = 256 * 8;
 
   explicit VkAppData_Safe(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr)
       : SafeAppData(vk_mr),
-        u_contributes(n_input, vk_mr),
         u_out_idx(n_input, vk_mr),
         u_sums(n_input, vk_mr),
         u_prefix_sums(n_input, vk_mr),
@@ -37,8 +40,7 @@ struct VkAppData_Safe final : public tree::SafeAppData {
   // intergrated tmp storage
   // --------------------------------------------------------------------------
 
-  // for remove duplicates
-  std::pmr::vector<uint32_t> u_contributes;
+  // for remove duplicates: each key's inclusive count of run heads (u_out_idx[n-1] = n_unique)
   std::pmr::vector<uint32_t> u_out_idx;
 
   // for prefix sum
@@ -69,7 +71,7 @@ struct VkAppData_Safe final : public tree::SafeAppData {
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 struct VkAppData final : public tree::AppData {
   static constexpr uint32_t kRadixBins = 256;
-  static constexpr uint32_t kRadixNumWorkgroups = 256;
+  static constexpr uint32_t kRadixNumWorkgroups = 64;  // see VkAppData_Safe
   static constexpr uint32_t kScanElementsPerWg = 256 * 8;
 
   // Every pmr vector member below IS initialized, in the initializer list; clang-tidy
@@ -77,20 +79,27 @@ struct VkAppData final : public tree::AppData {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit VkAppData(kiss_vk::VulkanMemoryResource::memory_resource* vk_mr,
                      const size_t n_input = tree::kDefaultInputSize)
-      : tree::AppData(vk_mr, n_input),
-        u_contributes(n_input, vk_mr),
-        u_out_idx(n_input, vk_mr),
-        u_sums(n_input, vk_mr),
-        u_prefix_sums(n_input, vk_mr),
-        u_sort_tmp(n_input, vk_mr),
-        u_sort_histograms(kRadixBins * kRadixNumWorkgroups, vk_mr),
-        u_scan_block_sums((n_input + kScanElementsPerWg - 1) / kScanElementsPerWg + 1, vk_mr) {
+      : VkAppData(bt::place_all_in(vk_mr), n_input) {}
+
+  // The scratch buffers declare the GPU stages that bind them; u_out_idx is also read by the
+  // host, one element per item (the n_unique read-back after stage 3: bt::kHostSparse). u_sums
+  // and u_prefix_sums are not bound by any stage.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+  explicit VkAppData(const bt::PlaceBuffer& place, const size_t n_input = tree::kDefaultInputSize)
+      : tree::AppData(place, n_input),
+        u_out_idx(n_input, place(bt::BufferKind::kActivation, {bt::kHostSparse, 3})),
+        u_sums(n_input, place(bt::BufferKind::kActivation, {0})),
+        u_prefix_sums(n_input, place(bt::BufferKind::kActivation, {0})),
+        u_sort_tmp(n_input, place(bt::BufferKind::kActivation, {2})),
+        u_sort_histograms(kRadixBins * kRadixNumWorkgroups,
+                          place(bt::BufferKind::kActivation, {2})),
+        u_scan_block_sums((n_input + kScanElementsPerWg - 1) / kScanElementsPerWg + 1,
+                          place(bt::BufferKind::kActivation, {3, 6})) {
     spdlog::trace("VkAppData constructor, address: {}", (void*)this);
   }
 
   ~VkAppData() { spdlog::trace("VkAppData destructor, address: {}", (void*)this); }
 
-  std::pmr::vector<uint32_t> u_contributes;
   std::pmr::vector<uint32_t> u_out_idx;
   std::pmr::vector<uint32_t> u_sums;
   std::pmr::vector<uint32_t> u_prefix_sums;

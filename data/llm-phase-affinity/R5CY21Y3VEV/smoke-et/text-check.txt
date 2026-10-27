@@ -1,0 +1,84 @@
+grep: bad regex '^\s+-(ignore_eos|warmup|cpu_threads|num_bos)': trailing backslash (\)
+### xnnpack 8da4w (lpa llama_main, mask 3f0, 6 threads)
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+The capital of France is Paris. The capital of the United States is Washington, D.C. The capital of the United Kingdom is London. The capital of China is Beijing. The capital
+PyTorchObserver {"prefill_token_per_sec":87.7193,"decode_token_per_sec":56.1594,"prompt_tokens":5,"generated_tokens":31,"model_load_start_ms":1792544668225,"model_load_end_ms":1792544668930,"inference_start_ms":1792544668930,"inference_end_ms":1792544669539,"model_execution_start_ms":1792544669521,"model_execution_end_ms":1792544669539,"prompt_eval_end_ms":1792544668987,"first_token_ms":1792544668987,"aggregate_sampling_time_ms":5,"aggregate_model_execution_time_ms":602,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+### vulkan 8da4w (lpa llama_main, mask 8)
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+The capital of France is Paris. The capital of the United States is Washington, D.C. The capital of the United Kingdom is London. The capital of China is Beijing. The capital
+PyTorchObserver {"prefill_token_per_sec":7.0922,"decode_token_per_sec":22.6608,"prompt_tokens":5,"generated_tokens":31,"model_load_start_ms":1792544689902,"model_load_end_ms":1792544693700,"inference_start_ms":1792544693702,"inference_end_ms":1792544695775,"model_execution_start_ms":1792544695754,"model_execution_end_ms":1792544695774,"prompt_eval_end_ms":1792544694407,"first_token_ms":1792544694407,"aggregate_sampling_time_ms":25,"aggregate_model_execution_time_ms":2032,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+### vulkan 8da4w (owner llama/llama_main, mask 8)
+I tokenizers:regex.cpp:27] Registering override fallback regex
+I 00:00:00.014335 executorch:main.cpp:159] Resetting threadpool with num threads = 1
+I 00:00:00.019077 executorch:cpuinfo_utils.cpp:71] Reading file /sys/devices/soc0/image_version
+I 00:00:00.019657 executorch:cpuinfo_utils.cpp:87] Failed to open midr file /sys/devices/soc0/image_version
+I 00:00:00.019713 executorch:cpuinfo_utils.cpp:167] Number of efficient cores 4
+I 00:00:00.020536 executorch:threadpool.cpp:66] Resetting threadpool to 1 threads.
+I 00:00:00.021359 executorch:runner.cpp:69] Creating LLaMa runner: model_path=/data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte, tokenizer_path=/data/local/tmp/llama/tokenizer.model
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+I 00:00:00.337766 executorch:llm_runner_helper.cpp:72] Loaded TikToken tokenizer
+I 00:00:00.338644 executorch:llm_runner_helper.cpp:255] Reading metadata from model
+I 00:00:00.339122 executorch:llm_runner_helper.cpp:137] Metadata: use_sdpa_with_kv_cache = 1
+I 00:00:00.339183 executorch:llm_runner_helper.cpp:137] Metadata: use_kv_cache = 1
+I 00:00:00.339240 executorch:llm_runner_helper.cpp:137] Metadata: get_max_context_len = 2560
+I 00:00:00.339289 executorch:llm_runner_helper.cpp:137] Metadata: get_max_seq_len = 2560
+I 00:00:00.339341 executorch:llm_runner_helper.cpp:137] Metadata: enable_dynamic_shape = 1
+I 00:00:00.339431 executorch:llm_runner_helper.cpp:179] eos_id = 128009
+I 00:00:00.339478 executorch:llm_runner_helper.cpp:179] eos_id = 128001
+I 00:00:00.339556 executorch:llm_runner_helper.cpp:275] Using method: forward
+I 00:00:03.381778 executorch:text_llm_runner.cpp:93] RSS after loading model: 197.253906 MiB (0 if unsupported)
+The capital of France isI 00:00:04.376154 executorch:text_prefiller.cpp:122] Prefill token result numel(): 128256
+I 00:00:04.377916 executorch:text_llm_runner.cpp:207] Max new tokens resolved: 32, given pos_ 5, num_prompt_tokens 5, max_context_len 2560
+ ParisI 00:00:04.378309 executorch:text_llm_runner.cpp:230] RSS after prompt prefill: 197.253906 MiB (0 if unsupported)
+. The capital of the United States is Washington, D.C. The capital of the United Kingdom is London. The capital of China is Beijing. The capitalI 00:00:06.042817 executorch:text_llm_runner.cpp:260] RSS after finishing text generation: 197.253906 MiB (0 if unsupported)
+I 00:00:06.042981 executorch:text_llm_runner.cpp:263] Max new tokens 32 reached!
+I 00:00:06.043147 executorch:stats.h:161] 	Prompt Tokens: 5    Generated Tokens: 31
+I 00:00:06.043479 executorch:stats.h:167] 	Model Load Time:		3.042000 (seconds)
+I 00:00:06.043915 executorch:stats.h:176] 	Total inference time:		2.660000 (seconds)		 Rate: 	11.654135 (tokens/second)
+I 00:00:06.044653 executorch:stats.h:185] 		Prompt evaluation:	0.995000 (seconds)		 Rate: 	5.025126 (tokens/second)
+I 00:00:06.044915 executorch:stats.h:197] 		Generated 31 tokens:	1.665000 (seconds)		 Rate: 	18.618619 (tokens/second)
+I 00:00:06.045154 executorch:stats.h:205] 	Time to first generated token:	0.995000 (seconds)
+I 00:00:06.045361 executorch:stats.h:212] 	Sampling time over 36 tokens:	0.100000 (seconds)
+
+PyTorchObserver {"prefill_token_per_sec":5.02513,"decode_token_per_sec":18.6186,"prompt_tokens":5,"generated_tokens":31,"model_load_start_ms":1792544716273,"model_load_end_ms":1792544719315,"inference_start_ms":1792544719316,"inference_end_ms":1792544721976,"prompt_eval_end_ms":1792544720311,"first_token_ms":1792544720311,"aggregate_sampling_time_ms":100,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+### vulkan 4w (lpa llama_main, mask 8)
+I tokenizers:regex.cpp:40] Registering override fallback regex
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+The capital of France is Paris. The capital of the United States is Washington, D.C. The capital of the United Kingdom is London. The capital of China is Beijing. The capital
+PyTorchObserver {"prefill_token_per_sec":7.75194,"decode_token_per_sec":25.7475,"prompt_tokens":5,"generated_tokens":31,"model_load_start_ms":1792544742486,"model_load_end_ms":1792544747064,"inference_start_ms":1792544747064,"inference_end_ms":1792544748913,"model_execution_start_ms":1792544748893,"model_execution_end_ms":1792544748912,"prompt_eval_end_ms":1792544747709,"first_token_ms":1792544747709,"aggregate_sampling_time_ms":26,"aggregate_model_execution_time_ms":1813,"SCALING_FACTOR_UNITS_PER_SECOND":1000}
+### vulkan 4w (owner llama/llama_main, mask 8)
+I tokenizers:regex.cpp:27] Registering override fallback regex
+I 00:00:00.008203 executorch:main.cpp:159] Resetting threadpool with num threads = 1
+I 00:00:00.012297 executorch:cpuinfo_utils.cpp:71] Reading file /sys/devices/soc0/image_version
+I 00:00:00.013148 executorch:cpuinfo_utils.cpp:87] Failed to open midr file /sys/devices/soc0/image_version
+I 00:00:00.013209 executorch:cpuinfo_utils.cpp:167] Number of efficient cores 4
+I 00:00:00.014100 executorch:threadpool.cpp:66] Resetting threadpool to 1 threads.
+I 00:00:00.014931 executorch:runner.cpp:69] Creating LLaMa runner: model_path=/data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte, tokenizer_path=/data/local/tmp/llama/tokenizer.model
+E tokenizers:hf_tokenizer.cpp:167] Error parsing json file: [json.exception.parse_error.101] parse error at line 1, column 1: syntax error while parsing value - invalid literal; last read: 'I'
+I 00:00:00.328549 executorch:llm_runner_helper.cpp:72] Loaded TikToken tokenizer
+I 00:00:00.329437 executorch:llm_runner_helper.cpp:255] Reading metadata from model
+I 00:00:00.329942 executorch:llm_runner_helper.cpp:137] Metadata: use_sdpa_with_kv_cache = 1
+I 00:00:00.330010 executorch:llm_runner_helper.cpp:137] Metadata: use_kv_cache = 1
+I 00:00:00.330066 executorch:llm_runner_helper.cpp:137] Metadata: get_max_context_len = 2560
+I 00:00:00.330118 executorch:llm_runner_helper.cpp:137] Metadata: get_max_seq_len = 2560
+I 00:00:00.330172 executorch:llm_runner_helper.cpp:137] Metadata: enable_dynamic_shape = 1
+I 00:00:00.330247 executorch:llm_runner_helper.cpp:179] eos_id = 128009
+I 00:00:00.330291 executorch:llm_runner_helper.cpp:179] eos_id = 128001
+I 00:00:00.330340 executorch:llm_runner_helper.cpp:275] Using method: forward
+I 00:00:04.142049 executorch:text_llm_runner.cpp:93] RSS after loading model: 199.769531 MiB (0 if unsupported)
+The capital of France isI 00:00:05.096181 executorch:text_prefiller.cpp:122] Prefill token result numel(): 128256
+I 00:00:05.101175 executorch:text_llm_runner.cpp:207] Max new tokens resolved: 32, given pos_ 5, num_prompt_tokens 5, max_context_len 2560
+ ParisI 00:00:05.102180 executorch:text_llm_runner.cpp:230] RSS after prompt prefill: 199.769531 MiB (0 if unsupported)
+. The capital of the United States is Washington, D.C. The capital of the United Kingdom is London. The capital of China is Beijing. The capitalI 00:00:06.604992 executorch:text_llm_runner.cpp:260] RSS after finishing text generation: 199.769531 MiB (0 if unsupported)
+I 00:00:06.605302 executorch:text_llm_runner.cpp:263] Max new tokens 32 reached!
+I 00:00:06.605640 executorch:stats.h:161] 	Prompt Tokens: 5    Generated Tokens: 31
+I 00:00:06.605861 executorch:stats.h:167] 	Model Load Time:		3.811000 (seconds)
+I 00:00:06.606138 executorch:stats.h:176] 	Total inference time:		2.462000 (seconds)		 Rate: 	12.591389 (tokens/second)
+I 00:00:06.606369 executorch:stats.h:185] 		Prompt evaluation:	0.959000 (seconds)		 Rate: 	5.213764 (tokens/second)
+I 00:00:06.606601 executorch:stats.h:197] 		Generated 31 tokens:	1.503000 (seconds)		 Rate: 	20.625416 (tokens/second)
+I 00:00:06.606822 executorch:stats.h:205] 	Time to first generated token:	0.959000 (seconds)
+I 00:00:06.607042 executorch:stats.h:212] 	Sampling time over 36 tokens:	0.107000 (seconds)
+
+PyTorchObserver {"prefill_token_per_sec":5.21376,"decode_token_per_sec":20.6254,"prompt_tokens":5,"generated_tokens":31,"model_load_start_ms":1792544769423,"model_load_end_ms":1792544773234,"inference_start_ms":1792544773235,"inference_end_ms":1792544775697,"prompt_eval_end_ms":1792544774194,"first_token_ms":1792544774194,"aggregate_sampling_time_ms":107,"SCALING_FACTOR_UNITS_PER_SECOND":1000}

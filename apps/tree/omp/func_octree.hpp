@@ -32,6 +32,11 @@ inline void set_leaf(const int node_idx,
                      const unsigned int which_child,
                      const int leaf_idx) {
   u_children[node_idx][which_child] = leaf_idx;
+  // Several brt nodes link leaves into the SAME octree node (up to 8, from adjacent brt
+  // nodes), so this clear is a concurrent read-modify-write too and must be atomic, like
+  // set_child's OR. The child slot store stays plain: a contended slot's value is
+  // last-writer-wins by contract (tree-app/octree-build spec).
+#pragma omp atomic
   u_child_leaf_mask[node_idx] &= ~(1 << which_child);
 }
 

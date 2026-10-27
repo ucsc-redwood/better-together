@@ -1,0 +1,12 @@
+# Task 2.4, stage B (second part): stage D's paced data-parallel sweep repeated at the best mask: 180, the mask of the
+# best data-parallel throughput at duty 1.0 in stage B (stronger baseline), and 1f0, the mask of the best GPU-prefill
+# pipeline at P = 512. GPU decode (depth 0) paced at 0.8, 0.67, 0.5, 0.33 (duty 1.0 is in plan_corun_B.txt).
+# A = GPU (40 s), B = CPU (70 s); format and method as plan_corun_A.txt.
+1b_gpuD_cpuD_u80_m180|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.8 -s 40|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u67_m180|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.67 -s 40|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u50_m180|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.5 -s 40|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u33_m180|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.33 -s 40|180|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 2 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u80_m1f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.8 -s 40|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u67_m1f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.67 -s 40|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u50_m1f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.5 -s 40|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 70
+1b_gpuD_cpuD_u33_m1f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.33 -s 40|1f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 5 --mode decode -P 0 -u 1 -s 70

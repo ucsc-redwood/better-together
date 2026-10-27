@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <sched.h>
 #include <spdlog/spdlog.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <atomic>
@@ -238,6 +239,18 @@ TEST(PipelineE2EOmp, AffinityMaskReadback) {
       {has_big_cores(), &g_big_cores},
       {has_med_cores(), &g_med_cores},
       {has_lit_cores(), &g_lit_cores}};
+  // The kernel silently drops mask bits for CPUs the host lacks, so an exact compare
+  // is only meaningful when the --device spec actually describes this machine.
+  const long host_cpus = sysconf(_SC_NPROCESSORS_CONF);
+  for (const auto& [present, cores] : tiers) {
+    if (!present) continue;
+    for (const int c : *cores) {
+      if (c >= host_cpus) {
+        GTEST_SKIP() << "device spec lists core " << c << " but this host has only " << host_cpus
+                     << " CPUs (spec does not describe this machine)";
+      }
+    }
+  }
   for (const auto& [present, cores] : tiers) {
     if (!present) continue;
     const std::set<int> want(cores->begin(), cores->end());

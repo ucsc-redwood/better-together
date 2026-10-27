@@ -16,11 +16,19 @@ class VulkanDispatcher final {
   VulkanDispatcher& operator=(VulkanDispatcher&&) = delete;
 
   kiss_vk::VulkanMemoryResource::memory_resource* get_mr() { return engine.get_mr(); }
+  // The memory resource of a buffer class (runtime/placement.hpp, design B2).
+  kiss_vk::VulkanMemoryResource::memory_resource* get_mr(const bt::BufferClass c) {
+    return engine.get_mr(c);
+  }
 
   // Sequence handle, used by benchmarks to read device-side GPU time per stage.
-  kiss_vk::Sequence* get_seq() { return seq.get(); }
+  kiss_vk::Sequence* get_seq() { return default_seq.get(); }
 
-  // Per-stage single-submit path (cmd_begin -> record -> submit -> wait_for_fence).
+  // A Sequence of this dispatcher's engine: one per GPU chunk of a schedule, so chunks on
+  // different worker threads never share a command buffer (design C2).
+  [[nodiscard]] std::shared_ptr<kiss_vk::Sequence> make_seq() { return engine.make_seq(); }
+
+  // Per-stage single-submit path (cmd_begin -> record -> submit -> wait).
   // Kept for the per-stage device-time benchmarks: bm_main.cpp calls these directly and
   // reads get_seq()->get_last_gpu_time_ns() for that one stage. Thin wrappers around
   // dispatch_multi_stage(k, k) so the [stage, stage] path stays byte-for-byte the same.
@@ -36,43 +44,62 @@ class VulkanDispatcher final {
     dispatch_multi_stage(data, stage, stage);
   }
 
-  // Record stages [start_stage, end_stage] into ONE command buffer with a
-  // shaderWrite->shaderRead barrier between consecutive stages, then run it with ONE
-  // submit + ONE fence wait. Collapses the per-stage CPU<->GPU round-trips of a chunk;
-  // host cache flush/invalidate happen once per chunk (inside submit/wait_for_fence).
-  // Safe across tree's data-dependent stages: VkAppData_Safe's counts (n_unique,
-  // n_brt_nodes) are const, fixed at construction -- they don't need a GPU read-back
-  // between stages, so a stage can be recorded before the prior stage executes.
+  // Record stages [start_stage, end_stage] into ONE command buffer (the Sequence orders
+  // dependent dispatches, design A3), then run it with ONE submit + ONE fence wait. Collapses the
+  // per-stage CPU<->GPU round-trips of a chunk; host cache flush/invalidate happen once per chunk
+  // (inside submit/wait). Safe across tree's data-dependent stages: VkAppData_Safe's
+  // counts (n_unique, n_brt_nodes) are const, fixed at construction -- they don't need a GPU
+  // read-back between stages, so a stage can be recorded before the prior stage executes.
   void dispatch_multi_stage(VkAppData_Safe& data, const int start_stage, const int end_stage) {
+    dispatch_multi_stage(data, start_stage, end_stage, *default_seq);
+  }
+  void dispatch_multi_stage(VkAppData_Safe& data,
+                            const int start_stage,
+                            const int end_stage,
+                            kiss_vk::Sequence& seq) {
+    complete_multi_stage(
+        data, start_stage, end_stage, seq, submit_multi_stage(data, start_stage, end_stage, seq));
+  }
+
+  // The two halves of dispatch_multi_stage, so a GPU chunk can keep several items in flight
+  // (design D3): submit records (or reuses) the chunk's command buffer and submits it,
+  // returning its ticket; complete waits for that ticket and makes the results host-visible.
+  uint64_t submit_multi_stage(VkAppData_Safe& data,
+                              const int start_stage,
+                              const int end_stage,
+                              kiss_vk::Sequence& seq) {
     if (start_stage < 1 || end_stage > 7 || start_stage > end_stage)
       throw std::out_of_range("Invalid stage");
 
-    seq->cmd_begin();
+    seq.cmd_begin();
     for (int stage = start_stage; stage <= end_stage; ++stage) {
-      (this->*record_functions[stage - 1])(data, seq->get_handle());
-      if (stage != end_stage) seq->cmd_memory_barrier();
+      (this->*record_functions[stage - 1])(data, seq);
     }
-    seq->cmd_end();
-
-    seq->reset_fence();
-    seq->submit();
-    seq->wait_for_fence();
+    seq.cmd_end();
+    return seq.submit();
+  }
+  void complete_multi_stage(VkAppData_Safe& /*data*/,
+                            int /*start_stage*/,
+                            int /*end_stage*/,
+                            kiss_vk::Sequence& seq,
+                            const uint64_t ticket) {
+    seq.wait(ticket);
   }
 
  private:
-  // Record-only stage bodies: descriptor-set update(s) + bind + dispatch(es) into `cmd`
-  // (keeping each stage's own intra-stage barriers), no cmd_begin/submit/wait. The scan
-  // algos are shared by stage 3 and stage 6, so each binds a distinct scan descriptor-set
-  // index (stage 3 -> 0, stage 6 -> 1) to avoid clobbering when both are in one buffer.
-  void record_stage_1(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
-  void record_stage_2(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
-  void record_stage_3(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
-  void record_stage_4(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
-  void record_stage_5(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
-  void record_stage_6(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
-  void record_stage_7(VkAppData_Safe& appdata, vk::CommandBuffer cmd);
+  // Record-only stage bodies: bind (buffers captured per dispatch) + dispatch(es) into
+  // `cmd` (= seq's command buffer), keeping each stage's own intra-stage barriers, no
+  // cmd_begin/submit/wait. The scan algos are shared by stage 3 and stage 6, which may
+  // share one command buffer.
+  void record_stage_1(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
+  void record_stage_2(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
+  void record_stage_3(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
+  void record_stage_4(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
+  void record_stage_5(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
+  void record_stage_6(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
+  void record_stage_7(VkAppData_Safe& appdata, kiss_vk::Sequence& seq);
 
-  using RecordFn = void (VulkanDispatcher::*)(VkAppData_Safe&, vk::CommandBuffer);
+  using RecordFn = void (VulkanDispatcher::*)(VkAppData_Safe&, kiss_vk::Sequence&);
 
   static constexpr std::array<RecordFn, 7> record_functions = {
       &VulkanDispatcher::record_stage_1,
@@ -86,16 +113,24 @@ class VulkanDispatcher final {
 
   // Record a device-wide INCLUSIVE prefix scan of `src` (n uints) into `dst`,
   // using `block_sums` as scratch, into the already-open command buffer `cmd`.
-  // Shared by stage 3 (flag scan) and stage 6 (edge-count scan), and by both
-  // the VkAppData_Safe and VkAppData (chained) record bodies below -- this
-  // helper only takes buffer infos, not an AppData type, so it needs no
-  // chained-specific overload.
-  void record_device_scan(vk::CommandBuffer cmd,
+  // Used by stage 6 (edge-count scan), by both the VkAppData_Safe and VkAppData
+  // (chained) record bodies below -- this helper only takes buffer infos, not an
+  // AppData type, so it needs no chained-specific overload.
+  void record_device_scan(kiss_vk::Sequence& seq,
                           vk::DescriptorBufferInfo src,
                           vk::DescriptorBufferInfo dst,
                           vk::DescriptorBufferInfo block_sums,
-                          uint32_t n,
-                          uint32_t descriptor_set);
+                          uint32_t n);
+
+  // Record stage 3, the compaction of the n sorted keys into their unique keys, in two
+  // dispatches (tree_unique_local, tree_unique_scatter). `index` ends as each key's
+  // inclusive count of unique keys, so index[n-1] is n_unique; `block_sums` is scratch.
+  void record_unique(kiss_vk::Sequence& seq,
+                     vk::DescriptorBufferInfo sorted,
+                     vk::DescriptorBufferInfo index,
+                     vk::DescriptorBufferInfo block_sums,
+                     vk::DescriptorBufferInfo unique,
+                     uint32_t n);
 
  public:
   // --------------------------------------------------------------------------
@@ -119,18 +154,36 @@ class VulkanDispatcher final {
     dispatch_multi_stage(data, stage, stage);
   }
 
-  void dispatch_multi_stage(VkAppData& data, const int start_stage, const int end_stage);
+  void dispatch_multi_stage(VkAppData& data, const int start_stage, const int end_stage) {
+    dispatch_multi_stage(data, start_stage, end_stage, *default_seq);
+  }
+  void dispatch_multi_stage(VkAppData& data,
+                            const int start_stage,
+                            const int end_stage,
+                            kiss_vk::Sequence& seq) {
+    complete_multi_stage(
+        data, start_stage, end_stage, seq, submit_multi_stage(data, start_stage, end_stage, seq));
+  }
+  // See the VkAppData_Safe overloads. A range crossing the stage 3|4 boundary submits and
+  // waits for its stages 1-3 inside submit (stage 4's dispatch size needs n_unique), so
+  // only its second batch is in flight; complete reads back the counts the range produced.
+  uint64_t submit_multi_stage(VkAppData& data,
+                              int start_stage,
+                              int end_stage,
+                              kiss_vk::Sequence& seq);
+  void complete_multi_stage(
+      VkAppData& data, int start_stage, int end_stage, kiss_vk::Sequence& seq, uint64_t ticket);
 
  private:
-  void record_stage_1(VkAppData& appdata, vk::CommandBuffer cmd);
-  void record_stage_2(VkAppData& appdata, vk::CommandBuffer cmd);
-  void record_stage_3(VkAppData& appdata, vk::CommandBuffer cmd);
-  void record_stage_4(VkAppData& appdata, vk::CommandBuffer cmd);
-  void record_stage_5(VkAppData& appdata, vk::CommandBuffer cmd);
-  void record_stage_6(VkAppData& appdata, vk::CommandBuffer cmd);
-  void record_stage_7(VkAppData& appdata, vk::CommandBuffer cmd);
+  void record_stage_1(VkAppData& appdata, kiss_vk::Sequence& seq);
+  void record_stage_2(VkAppData& appdata, kiss_vk::Sequence& seq);
+  void record_stage_3(VkAppData& appdata, kiss_vk::Sequence& seq);
+  void record_stage_4(VkAppData& appdata, kiss_vk::Sequence& seq);
+  void record_stage_5(VkAppData& appdata, kiss_vk::Sequence& seq);
+  void record_stage_6(VkAppData& appdata, kiss_vk::Sequence& seq);
+  void record_stage_7(VkAppData& appdata, kiss_vk::Sequence& seq);
 
-  using RecordFnChained = void (VulkanDispatcher::*)(VkAppData&, vk::CommandBuffer);
+  using RecordFnChained = void (VulkanDispatcher::*)(VkAppData&, kiss_vk::Sequence&);
 
   static constexpr std::array<RecordFnChained, 7> record_functions_chained = {
       &VulkanDispatcher::record_stage_1,
@@ -143,7 +196,7 @@ class VulkanDispatcher final {
   };
 
   kiss_vk::Engine engine;
-  std::shared_ptr<kiss_vk::Sequence> seq;
+  std::shared_ptr<kiss_vk::Sequence> default_seq;  // dispatch_multi_stage without a Sequence
   std::unordered_map<std::string, std::shared_ptr<kiss_vk::Algorithm>> cached_algorithms;
 
   // --------------------------------------------------------------------------

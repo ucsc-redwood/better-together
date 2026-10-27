@@ -366,7 +366,22 @@ the data is flushed is harmless to the measurement). The underlying engine-dtor
 crash is still the real fix; until then, Jetson VK schedule/baseline runs exit
 non-zero but produce valid logs.
 
-## 10. Concurrent GPU pipeline chunks share one command buffer → device loss — **GUARDED (2026-06-17)**
+## 10. Concurrent GPU pipeline chunks share one command buffer → device loss — **GUARDED (2026-06-17); guard LIFTED for Vulkan (2026-10-15, vk-engine-runtime group 3)**
+
+**Update (2026-10-15, OpenSpec change `vk-engine-runtime`, commit 4321e25):** the guard is lifted for Vulkan, and the
+dispatcher is now concurrency-safe:
+- every Vulkan GPU chunk records into its own `Sequence` (`make_seq()` + `dispatch_multi_stage(…, Sequence&)`);
+- push constants travel with the record call instead of being stored in the shared `Algorithm`;
+- the Engine's mutex serializes `vkQueueSubmit`;
+- the touched-buffer set lives in the Sequence.
+
+`first_concurrent_gpu_chunk()` now rejects only repeated **CUDA** chunks: the CUDA dispatchers still share one
+stream and per-dispatcher state, and per-chunk CUDA streams are out of scope. The 3-Vulkan-chunk schedule below now
+**runs** as `PipelineE2EVk.ThreeVulkanChunksAlternating`, matching the oracle on rocky-ryzen, the Pixel 7a and the
+Samsung, with 0 validation errors on rocky. A two-thread, one-dispatcher test without the submit lock reproduces the
+queue race as `UNASSIGNED-Threading-MultipleThreads-Write`. The z3 solver can emit such schedules on request
+(`--allow-gpu-multi-chunk`, which prices the GPU's chunks as sharing the device). The text below is the original
+2026-06-17 analysis.
 
 **Symptom:** the `PipelineE2EVk.DISABLED_AlternatingBoundary` schedule
 `{VK 1-3, OMP 4, VK 5, OMP 6, VK 7}` reproducibly SIGSEGVs on rocky/RADV; the
@@ -405,6 +420,149 @@ Making the dispatcher concurrency-safe would only enable a capability nothing us
 needed). Diagnosis path: GPU-AV via
 `VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT` on rocky
 (validation layers installed 2026-06-17).
+
+## 11. Vulkan results read after the fence wait without a host-visibility barrier — **FIXED (commit 82b3c56)**
+
+**Found by:** spec review of `platform/engine/vulkan` (OpenSpec change
+`vulkan-engine-campaign`, Phase A, spec `vulkan-engine/execution-sync`), not by a
+failing test. It held only because the fleet drivers are lenient.
+
+**Root cause.** Every dispatcher records its stages into one `Sequence` command buffer,
+submits it, `wait_for_fence()`s, and then reads the output buffers on the host. The command
+buffer ended with no memory dependency whose destination was the host, so the
+compute-shader writes were never made **available** to the host domain. A fence only
+orders *completion*. Vulkan spec, Synchronization > Fences: "Signaling a fence and waiting
+on the host does not guarantee that the results of memory accesses will be visible to the
+host, as the access scope of a memory dependency defined by a fence only includes device
+access. A memory barrier or other memory dependency must be used to guarantee this."
+`invalidate_touched()` after the wait (the §7 cache maintenance) covers only the CPU-cache
+side on `HOST_CACHED` memory. It cannot make device writes available.
+
+**Fix (82b3c56).** `Sequence::cmd_end()` records a global
+`COMPUTE_SHADER/SHADER_WRITE → HOST/HOST_READ` memory barrier before the bottom-of-pipe
+timestamp, so every dispatcher and profiler runner gets it from one site. That is one
+barrier per chunk, not per stage, and the measured GPU time includes it.
+
+**Verification.**
+- `test-{tree,cifar-dense,cifar-sparse}-vk` stay green on rocky-ryzen (RADV) at 82b3c56.
+- They also stay green on the Pixel 7a (Mali, `HOST_CACHED` non-coherent) and the Samsung (Xclipse) at
+  the later Phase A commits, which carry the barrier.
+- Synchronization validation (`BT_VK_VALIDATION=1 VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT`,
+  layer 1.4.328.1 on rocky) reports no hazard. **Caveat:** it also reports none *without*
+  the barrier (control run at 4d8b376). The layer does not model host reads of mapped
+  memory, so this defect was invisible to every tool we have. The fix rests on the spec
+  text above.
+
+## 12. Every `Algorithm` leaked its Vulkan objects past `vkDestroyDevice` — **FIXED (commit d65faf3)** — follow-up to §9
+
+**Found by:** spec review (`vulkan-engine/object-lifetime`), then confirmed with the
+validation layer on rocky-ryzen.
+
+**Root cause.** §9 made `~BaseEngine` drain and destroy the device, and the review-#5
+fix made `~Sequence` free its pool and fence. But `Algorithm` had `~Algorithm() = default`,
+and it holds raw `vk::` handles: shader module, pipeline, pipeline cache, pipeline
+layout, descriptor-set layout and descriptor pool. Every stage kernel of every
+dispatcher therefore left six child objects alive at `vkDestroyDevice`, which violates
+`VUID-vkDestroyDevice-device-05137` ("All child objects created on device must have been
+destroyed prior to destroying device"). It was silent because the layer was installed but
+nobody grepped its stdout. The suites still passed.
+
+**Evidence (rocky-ryzen, validation layer on).** Before the fix:
+- `test-tree-vk` printed 140 `Validation Error: [ VUID-vkDestroyDevice-device-05137 ]` lines;
+- `test-cifar-dense-vk` and `test-cifar-sparse-vk` printed 120 each.
+
+After d65faf3, all three print **0** validation errors. The new
+`VulkanDispatcherLifetime.ConstructDestroyReconstruct` test (two full construct → run →
+destroy rounds in one process) reports none either.
+
+**Fix (d65faf3).** `~Algorithm()` destroys the pipeline, pipeline cache, pipeline
+layout, descriptor pool (which frees its sets), descriptor-set layout and shader module, in
+reverse creation order, each guarded on a null handle. No reordering was needed:
+dispatchers declare `engine` before `seq` and `cached_algorithms`, so algorithms are
+destroyed first.
+
+**Same class, constructor path (fixed after review of Phase A).** A constructor that throws
+never runs its destructor. `BaseEngine` creates the instance before selecting the GPU,
+creating the device and creating the allocator, so any throw after `create_instance()` leaked
+the instance, and the device too if it was already created. That covers "No integrated GPU
+found", a missing required feature, and an allocator failure. It matters because
+`has_integrated_gpu()` builds and discards a probe engine, and that throw is the expected
+path on discrete-GPU or llvmpipe-only hosts.
+
+The fix: the teardown moved into `BaseEngine::destroy() noexcept`, which the destructor and
+the constructor's `catch (...)` both call before rethrowing. Because `g_vma_allocator` is a
+process global, `destroy()` now frees it only when this engine created it
+(`owns_vma_allocator_`). Otherwise a probe that failed early could free a live engine's
+allocator.
+
+Verified: green on rocky-ryzen, Pixel 7a and Samsung. `test-kiss-vk` (which runs the probe)
+passes with `BT_VK_VALIDATION=1` on the discrete-GPU build box, where the probe throws. No
+test forces a mid-construction failure on a real device.
+
+## 13. Morton quantization wrapped the top of the range to 0 — **FIXED (commit 3d6d919)**
+
+**Found by:** review of the tree kernels (OpenSpec change `tree-app-improvements`, proposal A1).
+
+**Root cause.** All three backends quantized a coordinate with `(x - min) / range * 1024`, cast to an unsigned int,
+and masked it with `& 0x3ff` while spreading the bits. A coordinate at the top of the range gives 1024, which the mask
+turns into 0, so the point lands at the opposite edge of the domain. A coordinate below the bottom was worse: casting
+a negative float to an unsigned integer is undefined, and the backends disagreed (x86 gave 1023, aarch64 and the
+Radeon 780M 0). The default input is drawn from the half-open range, so only boundary points and float rounding hit it,
+and the oracle shared the bug.
+
+**Reproducers (commit 4619d05).** `RunAndCheckMortonBoundary` (`apps/tree/tree_diff_oracle.hpp`, run as
+`TreeDiff{Omp,Cuda,VulkanChained}.Stage1_MortonBoundary`) encodes points on, just inside and just outside both bounds;
+`TreeMortonOmp.UpperBoundQuantizesTo1023` and `TreeMortonOmp.ScaledValueRoundingTo1024QuantizesTo1023` check the OMP
+encoder, the second with a range where `511.99997f` scales to exactly 1024.0f. Before the fix the point (1024, 1024,
+1024) encoded to 0 instead of 0x3fffffff on every backend.
+
+**Fix (3d6d919).** The scaled value is clamped to [0, 1023] before the cast, identically in
+`apps/tree/omp/func_morton.hpp`, `apps/tree/cuda/func_morton.cuh`, `tree_morton.comp` and the test reference
+`MortonRef`. The default input's stage-1 output is byte-identical before and after.
+
+## 14. Octree leaf-mask clears raced, and the masks were never initialized — **FIXED (commit 5477c56)**
+
+**Found by:** review of the tree kernels (proposal A2), then the reproducers.
+
+**Root cause, two parts.**
+- `set_leaf` cleared the leaf bit with a plain `&=` inside the parallel stage-7 loops (OMP `func_octree.hpp`, CUDA
+  `07_octree.cu`), while up to 8 leaves of one octree node are linked by different BRT nodes. The neighbouring
+  `set_child` had already been made atomic for the same reason (§8).
+- No backend ever set the leaf masks to all-ones. They are value-initialized `std::pmr::vector<int32_t>`s, so they
+  started at 0 and the clear was a no-op: the golden's masks were all zeros (0 of 146,708 non-zero on the default
+  input), every free octant read as a leaf slot, and the oracle's leaf comparison could not fail (see §15).
+
+**Reproducers (commit 4619d05).** `CountLostLeafBits` (`tree_diff_oracle.hpp`) builds an input where 4 BRT nodes with
+adjacent indices link 8 leaves into each of 4096 octree nodes and counts bits a backend leaves set that a serial run
+cleared. CUDA (`TreeLeafRaceCuda.ConcurrentLeafLinksKeepEveryBit`, duck-stable) lost 2,457,600 of 3,276,800 bits per
+100 runs; OMP with interleaved iterations (`TreeLeafRaceOmp.InterleavedLeafLinksKeepEveryBit`) about 2.3 million;
+OMP's own `run_stage_7` none in 3000 runs (its static schedule only meets at range ends).
+`TreeOracleSelfTest.SpuriousLeafLinksFail` showed the check accepting an output that marks every free octant a leaf.
+
+**Fix (commit 5477c56).** `#pragma omp atomic` on OMP and `atomicAnd` on CUDA (and in the Vulkan shader); the leaf masks are
+initialized to 0xFF where they are allocated (`tree::AppData`, `SafeAppData::u_oct_child_leaf_mask_s7_out`). The
+oracle's leaf-slot failure now names the missing and spurious slots. Cost: CUDA stage 7 on duck-stable 4.43 → 6.80 ms,
+all of it the atomic on the zero-copy buffers (a non-atomic control with the same masks is 4.44 ms); OMP stage 7 on
+the Jetson's six cores +6 %, within the spread.
+
+## 15. Vulkan stage 7 never linked leaves, and its differential test still passed — **FIXED (commit 5477c56)**
+
+**Found by:** review (proposal A3); confirmed in the `vk-data-flow-fixes` profile, which saw that the engine skips
+cache maintenance for `tree_build_octree.comp`'s bindings 4 and 10-12 because the module never uses them.
+
+**Root cause.** `tree_build_octree.comp`'s `main` only called `k_MakeOctNodes`; `k_LinkLeafNodes` was dead code, so the
+Vulkan octree had no leaf children and its leaf masks kept their initial value. `TreeDiffVulkan.Stage7_Octree` passed
+because of §14: the golden's masks were all zeros too, so both sides listed every free octant as a leaf slot.
+
+**Reproducer.** With only the mask initialization of §14 applied, both `TreeDiffVulkan.Stage7_Octree` and
+`TreeDiffVulkanChained.Stage7_Octree` fail on rocky-ryzen with `LEAF child slots differ (307151 only-in-ref, 0
+only-in-out ...)` and name the missing slots (run recorded under task 3.2 of `tree-app-improvements`).
+
+**Fix (commit 5477c56).** Stage 7 is two dispatches of the same pipeline, selected by a push-constant `phase`: phase 0 makes the
+nodes, phase 1 links the leaves with an atomic `SetLeaf`. Phase 1 writes the children buffer phase 0 wrote, so the
+`Sequence` records a barrier between them. All Vulkan stage-7 tests and `TreeLeafRaceVulkan` pass on rocky-ryzen (64
+and pinned 32), the Pixel 7a and the Samsung (64 and pinned 32); sync validation reports 0 hazards. Stage 7 on the
+Pixel 7a takes 1.29 → 3.01 ms, all of it the leaf pass (without it: 1.30 ms).
 
 ## Latent issue noticed (not fixed)
 

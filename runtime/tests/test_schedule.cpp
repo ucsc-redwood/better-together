@@ -6,6 +6,7 @@
 // double-+1 scheduler bug (commit 3c6de54).
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -13,8 +14,10 @@
 #include <vector>
 
 #include "runtime/config_reader.hpp"  // readSchedulesFromJson (the schedule consumer)
+#include "runtime/pipeline.hpp"       // inflight_worker
 #include "runtime/record.hpp"
 #include "runtime/schedule.hpp"
+#include "runtime/spsc_queue.hpp"
 
 namespace {
 
@@ -132,11 +135,10 @@ TEST(SchedulePUs, GpuChunkPresenceFromPredicate) {
                   .has_value());
 }
 
-// ---- first_concurrent_gpu_chunk: a GPU backend may appear in at most one chunk ----
-// The GPU dispatcher's single command buffer/fence is shared across the per-chunk
-// worker threads, so >1 GPU chunk races it into VK_ERROR_DEVICE_LOST (diagnosed with
-// GPU-assisted validation, 2026-06-17). z3 emits one contiguous GPU chunk per PU;
-// this guard rejects any schedule that would spawn concurrent GPU dispatchers.
+// ---- first_concurrent_gpu_chunk: Vulkan may serve several chunks, CUDA only one ----
+// Each Vulkan GPU chunk records into its own Sequence and submits under the Engine's
+// submit mutex (runtime/gpu-chunks spec, design C2), so repeated Vulkan chunks are allowed.
+// The CUDA dispatcher's single stream is still shared across chunk threads -> rejected.
 
 TEST(ScheduleGpuReuse, SingleGpuChunkAllowed) {
   EXPECT_FALSE(first_concurrent_gpu_chunk(
@@ -152,21 +154,87 @@ TEST(ScheduleGpuReuse, NoGpuChunkAllowed) {
                    .has_value());
 }
 
-TEST(ScheduleGpuReuse, TwoVulkanChunksRejected) {
-  const auto reason = first_concurrent_gpu_chunk(
-      make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan},
-                        {ExecutionModel::kOMP, ProcessorType::kBigCore},
-                        {ExecutionModel::kVulkan, ProcessorType::kVulkan}}));
-  ASSERT_TRUE(reason.has_value());
-  EXPECT_NE(reason->find("chunk 2"), std::string::npos);  // the offending (second Vulkan) chunk
+TEST(ScheduleGpuReuse, TwoVulkanChunksAllowed) {
+  EXPECT_FALSE(first_concurrent_gpu_chunk(
+                   make_pu_schedule({{ExecutionModel::kVulkan, ProcessorType::kVulkan},
+                                     {ExecutionModel::kOMP, ProcessorType::kBigCore},
+                                     {ExecutionModel::kVulkan, ProcessorType::kVulkan}}))
+                   .has_value());
 }
 
 TEST(ScheduleGpuReuse, TwoCudaChunksRejected) {
-  EXPECT_TRUE(
+  const auto reason =
       first_concurrent_gpu_chunk(make_pu_schedule({{ExecutionModel::kCuda, ProcessorType::kCuda},
                                                    {ExecutionModel::kOMP, ProcessorType::kBigCore},
-                                                   {ExecutionModel::kCuda, ProcessorType::kCuda}}))
-          .has_value());
+                                                   {ExecutionModel::kCuda, ProcessorType::kCuda}}));
+  ASSERT_TRUE(reason.has_value());
+  EXPECT_NE(reason.value_or("").find("chunk 2"), std::string::npos);  // the second CUDA chunk
+}
+
+// ---- inflight_worker: up to `depth` items in flight, handed on in FIFO order ----------
+// Submission spec, "Depth 2 preserves order and results" / "Depth 1 is the old behaviour"
+// (design D3). Hardware-free: submit/complete are stand-ins that track how many items are
+// outstanding and the order completions happen in.
+struct InflightItem {
+  int id = 0;
+  void reset() {}
+};
+
+std::pair<std::vector<int>, size_t> RunInflight(const size_t depth, const int n) {
+  std::vector<InflightItem> items(n);
+  SPSCQueue<InflightItem*, 64> q_in;
+  SPSCQueue<InflightItem*, 64> q_out;
+  for (int i = 0; i < n; ++i) {
+    items[i].id = i;
+    EXPECT_TRUE(q_in.enqueue(&items[i]));
+  }
+  size_t outstanding = 0;
+  size_t max_outstanding = 0;
+  std::vector<int> completed;
+  std::vector<int> submitted;
+  inflight_worker<SPSCQueue<InflightItem*, 64>, InflightItem>(
+      q_in,
+      q_out,
+      [&](InflightItem* item) {
+        submitted.push_back(item->id);
+        max_outstanding = std::max(max_outstanding, ++outstanding);
+        return static_cast<uint64_t>(item->id) + 100;  // the ticket
+      },
+      [&](InflightItem* item, const uint64_t ticket) {
+        EXPECT_EQ(ticket, static_cast<uint64_t>(item->id) + 100);
+        --outstanding;
+        completed.push_back(item->id);
+      },
+      n,
+      /*is_last=*/false,
+      depth);
+  // Downstream sees the same order.
+  for (int i = 0; i < n; ++i) {
+    InflightItem* item = nullptr;
+    EXPECT_TRUE(q_out.dequeue(item));
+    EXPECT_EQ(item->id, completed[i]);
+  }
+  EXPECT_EQ(submitted, completed);
+  return {completed, max_outstanding};
+}
+
+TEST(InflightWorker, Depth2KeepsTwoInFlightAndPreservesOrder) {
+  const auto [order, max_outstanding] = RunInflight(2, 20);
+  std::vector<int> expected(20);
+  for (int i = 0; i < 20; ++i) expected[i] = i;
+  EXPECT_EQ(order, expected);
+  EXPECT_EQ(max_outstanding, 2u);
+}
+
+TEST(InflightWorker, Depth1IsSubmitThenWait) {
+  const auto [order, max_outstanding] = RunInflight(1, 20);
+  EXPECT_EQ(order.size(), 20u);
+  EXPECT_EQ(max_outstanding, 1u);  // each item completes before the next is submitted
+}
+
+TEST(InflightWorker, DepthKnobAndPoolSize) {
+  EXPECT_EQ(min_pool_size(/*gpu_chunks=*/2, /*cpu_chunks=*/1, /*depth=*/2), 5u);
+  EXPECT_EQ(min_pool_size(1, 0, 1), 1u);
 }
 
 // ---- Case 5.2: a >kMaxChunks schedule must throw a clean std::out_of_range from the

@@ -20,6 +20,7 @@
 
 #include "platform/mem/mr_ptr.hpp"                // bt_pipe::as_mr_ptr
 #include "platform/registry/device_registry.hpp"  // parse_args, ProcessorType, get_cores_by_type, has_*_cores
+#include "runtime/placement.hpp"                  // make_placed_appdata, all_stages
 
 namespace bt_baseline {
 
@@ -42,7 +43,10 @@ inline int run(int argc,
   benchmark::RegisterBenchmark((gpu_label + "/" + app_label + "/Baseline").c_str(),
                                [=](benchmark::State& state) {
                                  DispatcherT disp;
-                                 AppDataT app(bt_pipe::as_mr_ptr(disp.get_mr()));
+                                 // Placed as an all-GPU schedule would be at runtime.
+                                 const auto app_ptr =
+                                     make_placed_appdata<AppDataT>(disp, all_stages(n_stages));
+                                 AppDataT& app = *app_ptr;
                                  gpu(disp, app, 1, n_stages);  // warmup
                                  for (auto _ : state) gpu(disp, app, 1, n_stages);
                                })

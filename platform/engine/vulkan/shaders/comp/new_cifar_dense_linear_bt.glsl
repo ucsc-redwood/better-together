@@ -1,0 +1,226 @@
+// The body of new_cifar_dense_linear_bt.comp and new_cifar_dense_linear_bt_portable.comp, which
+// define LINEAR_BT_CLUSTERED (1 or 0) and include it. Not compiled on its own.
+
+precision highp float;
+precision highp int;
+
+// Batch-tiled fully-connected kernel (port of the CUDA linear_batch_bt win).
+//
+// The generic linear shader is thread-per-(n, of): every lane scans a DIFFERENT
+// 16 KB weight row (each cache line serves one 4-byte float) and the whole
+// weight matrix is re-streamed once PER IMAGE (67 MB x 16 = 1.07 GB at fc1) --
+// DRAM-ceiling bound. Here a 16-lane "row" of the workgroup owns ONE output
+// feature: the lanes stride that weight row together (coalesced) and each lane
+// accumulates ALL images of the batch while the row is streamed ONCE. Input
+// columns are staged chunk-by-chunk in shared memory and shared by all 16 rows
+// of the workgroup, so weight traffic drops N-fold and input traffic
+// (rows-per-workgroup)-fold.
+//
+// Two changes on top of the one-row-per-feature scheme:
+//  * FPR output features per row-group (2; 4 for INT8 on wide subgroups): each input vec4 is read from shared memory
+//    once and feeds two weight rows (the shared-memory reads, not DRAM, were the limit).
+//  * the (x, y) workgroup grid is remapped so the batch tiles that share a weight
+//    row-group are adjacent in launch order and fetch that weight slice from L2 once.
+//    A bijection on workgroup ids; no kernel logic depends on launch order. This is how a
+//    batch streams the weights once (cifar-gpu-kernels F1): without it the Samsung's
+//    cifar-sparse fc1/fc2 take 29 % longer, and three layouts that load each weight in a
+//    single workgroup were 21-337 % slower on both phones (tasks 3.3-3.4).
+//
+// Dispatcher contract (falls back to the generic shader otherwise):
+//   in_features % 4 == 0.
+//   grid.x = ceil(out_features / (kLinearBtRows * FPR))          (ROWS = 16)
+//   grid.y = ceil(N / kLinearBtBatchTile)                      (MAX_N = 16)
+//   -- the constants live in linear_bt_contract.hpp, shared by both apps' dispatchers.
+//   Each workgroup handles one batch tile of up to MAX_N images (cifar-sparse runs N=128:
+//   8 tiles; cifar-dense's N=16: 1).
+//
+// Two modules include this body (cifar-gpu-kernels F3). new_cifar_dense_linear_bt.comp
+// (LINEAR_BT_CLUSTERED 1) sums the 16 lane partials of a row with subgroupClusteredAdd (cluster 16):
+// its pipeline is subgroup-size dependent, so the size is pinned and subgroups are full, and a
+// row's 16 lanes are one aligned cluster; on a subgroup narrower than a row it falls back to the
+// shared-memory reduction. new_cifar_dense_linear_bt_portable.comp (LINEAR_BT_CLUSTERED 0) has only
+// the shared-memory reduction and no subgroup capability at all, for a device without clustered
+// subgroup operations: a module that declares GroupNonUniformClustered must not be created there,
+// and specialization comes after module creation, so the dispatchers pick the module. 8 KB
+// shared clustered, 12 KB with the shared-memory reduction (<= the 16 KB Vulkan minimum); fixed
+// local_size 256.
+//
+// WEIGHTS selects the weight precision (cifar-gpu-kernels F2, BT_VK_FC_WEIGHTS): FP32, or INT8 with
+// a per-output-row scale, the copy bt::FcWeightCopy makes on the host. Binding 1 is read through
+// one of two aliased declarations; INT8 is read as 32-bit words and dequantized to FP32 in
+// registers (sign-extended bytes, the scale applied to the row's sum), so it needs no device
+// feature beyond the engine's required ones. FPR (features per row) is 2, or 4 for INT8 on
+// subgroups of 32 and more, where it was faster on the Samsung (task 3.8).
+
+layout(local_size_x = 256) in;
+
+#if LINEAR_BT_CLUSTERED
+layout(constant_id = 0) const int SUBGROUP_SIZE = 16;  // the device's, set by the engine
+const bool CLUSTER_ROWS = SUBGROUP_SIZE >= 16;          // a row (ROW_W lanes) is one cluster
+#else
+const bool CLUSTER_ROWS = false;
+#endif
+layout(constant_id = 2) const int WEIGHTS = 0;  // 0: FP32, 1: INT8, set by the dispatcher
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  vec4 input_data4[];  // [N, in_features/4]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  vec4 weight_data4[];  // FP32: [out_features, in_features/4]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBufferI8 {
+  uint weight_i8x4[];  // INT8: [out_features, in_features/4], 4 bytes each; then [out_features] scales
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [out_features]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, out_features]
+};
+
+layout(push_constant) uniform Params {
+  int N;             // Batch size (grid.y tiles it in groups of MAX_N)
+  int in_features;   // Number of input features (% 4 == 0)
+  int out_features;  // Number of output features
+  int apply_relu;    // 1 to apply ReLU, 0 otherwise
+}
+params;
+
+const int ROW_W = 16;    // lanes per output-feature row
+const int ROWS = 16;     // row-groups per workgroup (256 / ROW_W)
+// Output features per row-group: one LDS read feeds FPR weight rows (2 or 4, set by the dispatcher).
+layout(constant_id = 3) const int FPR = 2;
+const int CHUNK4 = 32;   // vec4s of input staged per image per iteration (128 floats)
+const int MAX_N = 16;    // accumulator registers per lane; loops over it unroll
+
+shared vec4 sh_in[MAX_N * CHUNK4];  // staged input columns, 8 KB
+shared vec4 sh_red[CLUSTER_ROWS ? 1 : 256];  // cross-lane reduction scratch, 4 KB unclustered
+
+// Weight vec4 i (in units of 4 weights) in FP32, the INT8 row scale left out.
+vec4 weight4(const int i) {
+  if (WEIGHTS == 1) {
+    const int q = int(weight_i8x4[i]);
+    return vec4(bitfieldExtract(q, 0, 8), bitfieldExtract(q, 8, 8), bitfieldExtract(q, 16, 8),
+                bitfieldExtract(q, 24, 8));
+  }
+  return weight_data4[i];
+}
+
+// What a row's sum is multiplied by: the INT8 scale of output feature of, else 1.
+float row_scale(const int of) {
+  return WEIGHTS == 1
+             ? uintBitsToFloat(weight_i8x4[params.out_features * (params.in_features / 4) + of])
+             : 1.0;
+}
+
+void main() {
+  const int tid = int(gl_LocalInvocationID.x);
+  const int lane = tid % ROW_W;
+  const int row = tid / ROW_W;
+  // Workgroups are launched x-fastest; remap the (x, y) grid so the batch tiles that share a
+  // weight row-group are ADJACENT in launch order (run concurrently, weights fetched ~once
+  // through L2 instead of once per tile).
+  const uint lin = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+  const uint wg_tile = lin % gl_NumWorkGroups.y;
+  const uint wg_rows = lin / gl_NumWorkGroups.y;
+  const int of0 = (int(wg_rows) * ROWS + row) * FPR;
+  const bool live = of0 < params.out_features;
+
+  // Batch-tile base: this workgroup handles images [nb, nb + MAX_N).
+  const int nb = int(wg_tile) * MAX_N;
+
+  const int in_f4 = params.in_features / 4;
+  // Inactive rows still walk the loop (uniform barriers); clamp their row base.
+  int w_base[FPR];
+  for (int f = 0; f < FPR; ++f) w_base[f] = (of0 + f < params.out_features ? of0 + f : 0) * in_f4;
+
+  // Accumulate MAX_N images unconditionally so the n-loops have constant bounds
+  // (fully unrolled -> acc[] stays in registers); images >= N are staged as 0.
+  float acc[FPR * MAX_N];  // [feature][image]
+  for (int i = 0; i < FPR * MAX_N; ++i) acc[i] = 0.0;
+
+  for (int c4 = 0; c4 < in_f4; c4 += CHUNK4) {
+    // Cooperative staging of input columns [c4, c4+CHUNK4) for the tile's images.
+    for (int i = tid; i < MAX_N * CHUNK4; i += 256) {
+      const int n = i / CHUNK4;
+      const int j = i % CHUNK4;
+      sh_in[i] = (nb + n < params.N && c4 + j < in_f4)
+                     ? input_data4[(nb + n) * in_f4 + c4 + j]
+                     : vec4(0.0);
+    }
+    barrier();
+
+    if (live) {
+      for (int k = lane; k < CHUNK4; k += ROW_W) {
+        if (c4 + k < in_f4) {
+          vec4 w[FPR];
+          for (int f = 0; f < FPR; ++f) w[f] = weight4(w_base[f] + c4 + k);
+          for (int n = 0; n < MAX_N; ++n) {
+            const vec4 x = sh_in[n * CHUNK4 + k];
+            for (int f = 0; f < FPR; ++f) acc[f * MAX_N + n] += dot(w[f], x);
+          }
+        }
+      }
+    }
+    barrier();
+  }
+
+#if LINEAR_BT_CLUSTERED
+  if (CLUSTER_ROWS) {
+    // Every lane of a row gets the row's sums; lane n writes image nb + n of the row's features.
+    float sums[FPR];
+    for (int f = 0; f < FPR; ++f) {
+      sums[f] = 0.0;
+      for (int n0 = 0; n0 < MAX_N; n0 += 4) {
+        const int a = f * MAX_N + n0;
+        const vec4 s =
+            subgroupClusteredAdd(vec4(acc[a], acc[a + 1], acc[a + 2], acc[a + 3]), ROW_W);
+        for (int m = 0; m < 4; ++m) {
+          if (lane == n0 + m) sums[f] = s[m];
+        }
+      }
+    }
+    const int n = nb + lane;
+    if (n < params.N) {
+      for (int f = 0; f < FPR; ++f) {
+        const int of = of0 + f;
+        if (of < params.out_features) {
+          float v = sums[f] * row_scale(of) + bias_data[of];
+          if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+          output_data[n * params.out_features + of] = v;
+        }
+      }
+    }
+    return;
+  }
+#endif
+
+  // Reduce the ROW_W lane partials of each row, four images per pass (vec4-packed), per feature.
+  for (int f = 0; f < FPR; ++f) {
+    const int of = of0 + f;
+    for (int n0 = 0; n0 < MAX_N; n0 += 4) {
+      if (nb + n0 >= params.N) break;  // uniform (params.N, nb): all exit together
+      const int a = f * MAX_N + n0;
+      sh_red[tid] = vec4(acc[a], acc[a + 1], acc[a + 2], acc[a + 3]);
+      barrier();
+      if (of < params.out_features && lane == 0) {
+        vec4 s = sh_red[row * ROW_W];
+        for (int i = 1; i < ROW_W; ++i) s += sh_red[row * ROW_W + i];
+        const float b = bias_data[of];
+        s *= row_scale(of);
+        for (int m = 0; m < 4; ++m) {
+          if (nb + n0 + m < params.N) {
+            float v = s[m] + b;
+            if (params.apply_relu != 0 && v < 0.0) v = 0.0;
+            output_data[(nb + n0 + m) * params.out_features + of] = v;
+          }
+        }
+      }
+      barrier();
+    }
+  }
+}

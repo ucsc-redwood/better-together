@@ -1,0 +1,41 @@
+2026-10-20T19:21:11-07:00 cooling: thermal status 1
+2026-10-20T19:21:41-07:00 cooling: thermal status 1
+2026-10-20T19:22:11-07:00 start cpu_t1
+2026-10-20T19:22:53-07:00 end cpu_t1
+2026-10-20T19:23:13-07:00 THROTTLED cpu_t1, cooling down and repeating once
+2026-10-20T19:25:13-07:00 start cpu_t1_retry
+2026-10-20T19:25:55-07:00 end cpu_t1_retry
+2026-10-20T19:26:15-07:00 start gpu_t1
+2026-10-20T19:26:58-07:00 end gpu_t1
+2026-10-20T19:27:18-07:00 start both_t1
+2026-10-20T19:28:01-07:00 end both_t1
+2026-10-20T19:28:21-07:00 THROTTLED both_t1, cooling down and repeating once
+2026-10-20T19:30:21-07:00 start both_t1_retry
+2026-10-20T19:31:03-07:00 end both_t1_retry
+2026-10-20T19:31:23-07:00 cooling: thermal status 1
+2026-10-20T19:31:53-07:00 start cpu_t2
+2026-10-20T19:32:35-07:00 end cpu_t2
+2026-10-20T19:32:55-07:00 THROTTLED cpu_t2, cooling down and repeating once
+2026-10-20T19:34:55-07:00 start cpu_t2_retry
+2026-10-20T19:35:37-07:00 end cpu_t2_retry
+2026-10-20T19:35:57-07:00 start gpu_t2
+2026-10-20T19:36:39-07:00 end gpu_t2
+2026-10-20T19:36:59-07:00 start both_t2
+2026-10-20T19:37:42-07:00 end both_t2
+2026-10-20T19:38:02-07:00 THROTTLED both_t2, cooling down and repeating once
+2026-10-20T19:40:02-07:00 start both_t2_retry
+2026-10-20T19:40:45-07:00 end both_t2_retry
+2026-10-20T19:41:05-07:00 cooling: thermal status 1
+2026-10-20T19:41:35-07:00 start cpu_t3
+2026-10-20T19:42:16-07:00 end cpu_t3
+2026-10-20T19:42:36-07:00 THROTTLED cpu_t3, cooling down and repeating once
+2026-10-20T19:44:36-07:00 start cpu_t3_retry
+2026-10-20T19:45:18-07:00 end cpu_t3_retry
+2026-10-20T19:45:38-07:00 start gpu_t3
+2026-10-20T19:46:21-07:00 end gpu_t3
+2026-10-20T19:46:41-07:00 start both_t3
+2026-10-20T19:47:23-07:00 end both_t3
+2026-10-20T19:47:43-07:00 THROTTLED both_t3, cooling down and repeating once
+2026-10-20T19:49:44-07:00 start both_t3_retry
+2026-10-20T19:50:26-07:00 end both_t3_retry
+2026-10-20T19:50:46-07:00 plan done

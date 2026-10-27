@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "torch>=2.2",
+#     "torchvision>=0.17",
+#     "numpy>=1.26",
+# ]
+# ///
 """Prune AlexNetCIFAR's convs, fine-tune, fold BatchNorm, export deployment weights.
 
 Produces the two REAL weight sets the C++ apps load (04-alexnet-cifar-spec.md §4),
@@ -17,7 +25,7 @@ checkpoint. Both exports print their test accuracy; the folded model is re-verif
 against the BN model before writing anything.
 
 Usage:
-  uv run --with torch --with torchvision python3 scripts/data_prep/prune_alexnet_cifar10.py \
+  uv run scripts/data_prep/prune_alexnet_cifar10.py \
       [--sparsity 0.75] [--finetune-epochs 6] [--checkpoint saved_params/alexnet_cifar10_best.pt]
 """
 

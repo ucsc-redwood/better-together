@@ -46,7 +46,7 @@ jobs:
       BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
       BT_ROCKY_HOST: localhost # the iGPU is THIS box -> run-on-rocky local mode
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build x86 Vulkan+OMP test binaries
         run: |
           cmake --preset vulkan
@@ -55,7 +55,7 @@ jobs:
         run: |
           rm -f "$BT_CELL_LOG"
           scripts/run-on-rocky.sh $OMP_VK_BINS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: coverage-minipc
@@ -66,14 +66,14 @@ jobs:
     # per-device jobs stay short and the shared rocky CPU isn't built on twice.
     runs-on: [self-hosted, rdna3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build arm64 Android test binaries (NDK)
         run: |
           export ANDROID_NDK_HOME="$HOME/android-ndk-r29"
           [ -d "$ANDROID_NDK_HOME" ] || { echo "::error::NDK missing for the runner user — add android-ndk-r29 to the Ansible role"; exit 1; }
           cmake --preset android
           cmake --build --preset android -j"$(nproc)" --target $OMP_VK_BINS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: android-test-bins
           path: build/android/test-*
@@ -95,14 +95,14 @@ jobs:
       BT_CELL_HW: ${{ matrix.device }}
       BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       # adb lives in /usr/local/bin, which the runner service PATH lacks; the NDK
       # (for the libc++_shared.so that rides along with every binary) is the
       # fleet-owner-provisioned ~/android-ndk-r29, not the script's SDK default.
       - run: |
           echo "/usr/local/bin" >> "$GITHUB_PATH"
           echo "ANDROID_NDK_HOME=$HOME/android-ndk-r29" >> "$GITHUB_ENV"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: android-test-bins
           path: build/android
@@ -111,7 +111,7 @@ jobs:
           rm -f "$BT_CELL_LOG"
           chmod +x build/android/test-*
           scripts/run-on-android.sh "$ANDROID_SERIAL" $OMP_VK_BINS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: coverage-${{ matrix.device }}
@@ -127,7 +127,7 @@ jobs:
       BT_CELL_HW: duck-stable
       BT_CELL_LOG: ${{ github.workspace }}/fleet-coverage.log
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Build natively (arm64, CUDA 13.2 + Vulkan)
         run: |
           cmake --preset jetson
@@ -147,7 +147,7 @@ jobs:
             [ "$trc" -eq 0 ] || rc=1
           done
           exit $rc
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: coverage-duck-stable
@@ -159,9 +159,9 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: coverage-*
           path: slices

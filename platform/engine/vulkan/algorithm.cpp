@@ -1,13 +1,150 @@
 #include "algorithm.hpp"
 
+#include <unordered_map>
+
+#include "sequence.hpp"
 #include "shaders/all_shaders.hpp"
 #include "spdlog/spdlog.h"
 
 namespace kiss_vk {
-Algorithm::Algorithm(VulkanMemoryResource* mr_ptr, std::string shader_name)
-    : device_ref_(mr_ptr->get_device()), shader_name_(std::move(shader_name)) {
-  load_compiled_shader();
+
+// ----------------------------------------------------------------------------
+// SPIR-V scan (design D5). Only what glslc emits for our compute shaders: SpecId
+// decorations, LocalSize literals, (SPIR-V 1.6) LocalSizeId over 32-bit constants, and
+// the buffer variables' Binding/DescriptorSet and NonWritable/NonReadable decorations,
+// which glslang puts on the block's members (design A3).
+// ----------------------------------------------------------------------------
+
+SpirvReflection reflect_spirv(const std::span<const uint32_t> words) {
+  constexpr uint32_t kMagic = 0x07230203;
+  constexpr uint32_t kHeaderWords = 5;
+  constexpr uint32_t kOpExecutionMode = 16, kOpTypeStruct = 30, kOpTypePointer = 32,
+                     kOpConstant = 43, kOpSpecConstant = 50, kOpVariable = 59, kOpDecorate = 71,
+                     kOpMemberDecorate = 72, kOpExecutionModeId = 331;
+  constexpr uint32_t kDecorationSpecId = 1, kDecorationNonWritable = 24,
+                     kDecorationNonReadable = 25, kDecorationBinding = 33,
+                     kDecorationDescriptorSet = 34, kModeLocalSize = 17, kModeLocalSizeId = 38;
+
+  if (words.size() < kHeaderWords || words[0] != kMagic) {
+    throw std::runtime_error("reflect_spirv: not a SPIR-V module");
+  }
+
+  SpirvReflection r;
+  std::unordered_map<uint32_t, uint32_t> spec_id_of;  // result id -> SpecId
+  std::unordered_map<uint32_t, uint32_t> value_of;    // 32-bit (spec) constant -> (default) value
+  std::optional<std::array<uint32_t, 3>> local_size_ids;
+  // Bit 0: NonWritable, bit 1: NonReadable -- on a variable, or per struct member.
+  std::unordered_map<uint32_t, uint32_t> var_flags, binding_of, set_of, pointee_of, members_of;
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>> member_flags;
+  std::vector<std::pair<uint32_t, uint32_t>> variables;  // (pointer type, id)
+  const auto flag_of = [&](const uint32_t decoration) -> uint32_t {
+    return decoration == kDecorationNonWritable   ? 1u
+           : decoration == kDecorationNonReadable ? 2u
+                                                  : 0u;
+  };
+
+  for (size_t i = kHeaderWords; i < words.size();) {
+    const uint32_t count = words[i] >> 16;
+    const uint32_t opcode = words[i] & 0xFFFF;
+    if (count == 0 || i + count > words.size()) {
+      throw std::runtime_error("reflect_spirv: malformed instruction at word " + std::to_string(i));
+    }
+    const uint32_t* in = &words[i];
+    if (opcode == kOpDecorate && count >= 4 && in[2] == kDecorationSpecId) {
+      spec_id_of[in[1]] = in[3];
+      r.spec_ids.insert(in[3]);
+    } else if (opcode == kOpDecorate && count >= 4 && in[2] == kDecorationBinding) {
+      binding_of[in[1]] = in[3];
+    } else if (opcode == kOpDecorate && count >= 4 && in[2] == kDecorationDescriptorSet) {
+      set_of[in[1]] = in[3];
+    } else if (opcode == kOpDecorate && count >= 3 && flag_of(in[2]) != 0) {
+      var_flags[in[1]] |= flag_of(in[2]);
+    } else if (opcode == kOpMemberDecorate && count >= 4 && flag_of(in[3]) != 0) {
+      member_flags[in[1]][in[2]] |= flag_of(in[3]);
+    } else if (opcode == kOpTypeStruct && count >= 2) {
+      members_of[in[1]] = count - 2;
+    } else if (opcode == kOpTypePointer && count >= 4) {
+      pointee_of[in[1]] = in[3];
+    } else if (opcode == kOpVariable && count >= 4) {
+      variables.emplace_back(in[1], in[2]);
+    } else if (opcode == kOpExecutionMode && count >= 6 && in[2] == kModeLocalSize) {
+      r.local_size = {in[3], in[4], in[5]};
+    } else if (opcode == kOpExecutionModeId && count >= 6 && in[2] == kModeLocalSizeId) {
+      local_size_ids = {in[3], in[4], in[5]};
+    } else if ((opcode == kOpConstant || opcode == kOpSpecConstant) && count == 4) {
+      value_of[in[2]] = in[3];
+    }
+    i += count;
+  }
+
+  if (local_size_ids) {
+    for (size_t d = 0; d < 3; ++d) {
+      const uint32_t id = (*local_size_ids)[d];
+      if (!value_of.contains(id)) {
+        throw std::runtime_error("reflect_spirv: LocalSizeId operand is not a 32-bit constant");
+      }
+      r.local_size[d] = value_of.at(id);
+      if (spec_id_of.contains(id)) r.local_size_spec_id[d] = spec_id_of.at(id);
+    }
+  }
+
+  // A buffer is read-only (write-only) when the variable, or every member of its block,
+  // is NonWritable (NonReadable). Anything undecided counts as read and written.
+  for (const auto& [type, id] : variables) {
+    if (!binding_of.contains(id) || (set_of.contains(id) && set_of.at(id) != 0)) continue;
+    uint32_t flags = var_flags.contains(id) ? var_flags.at(id) : 0;
+    if (pointee_of.contains(type) && members_of.contains(pointee_of.at(type))) {
+      const uint32_t block = pointee_of.at(type);
+      uint32_t all_members = 3;
+      for (uint32_t m = 0; m < members_of.at(block); ++m) {
+        const auto it = member_flags.find(block);
+        all_members &= it == member_flags.end() || !it->second.contains(m) ? 0 : it->second.at(m);
+      }
+      if (members_of.at(block) > 0) flags |= all_members;
+    }
+    r.binding_access[binding_of.at(id)] = (flags & 1)   ? BufferAccess::kRead
+                                          : (flags & 2) ? BufferAccess::kWrite
+                                                        : BufferAccess::kReadWrite;
+  }
+  return r;
+}
+
+std::vector<uint32_t> load_shader_spirv(const std::string& shader_name) {
+  if (!shaders::all_shaders.contains(shader_name)) {
+    throw std::runtime_error("Shader " + shader_name + " not found");
+  }
+
+  const auto [shader_binary, shader_binary_size] = shaders::all_shaders.at(shader_name);
+
+  std::vector<uint32_t> spirv(shader_binary_size / sizeof(uint32_t));
+  std::memcpy(spirv.data(), shader_binary, shader_binary_size);
+  return spirv;
+}
+
+Algorithm::Algorithm(VulkanMemoryResource* mr_ptr,
+                     std::string shader_name,
+                     const ComputeLimits& limits,
+                     const PFN_vkCmdPushDescriptorSetKHR push_descriptor_fn,
+                     const vk::PipelineCache pipeline_cache)
+    : device_ref_(mr_ptr->get_device()),
+      pipeline_cache_(pipeline_cache),
+      push_descriptor_fn_(push_descriptor_fn),
+      shader_name_(std::move(shader_name)),
+      limits_(limits) {
+  internal_.spirv_binary = load_shader_spirv(shader_name_);
+  reflection_ = reflect_spirv(internal_.spirv_binary);
   create_shader_module();
+}
+
+Algorithm::~Algorithm() {
+  // Reverse creation order; every handle may be null on a partially built Algorithm.
+  // Callers have already waited on the fences of any command buffer that used this
+  // pipeline. Fallback-path sets live in the Sequence's transient pools and the pipeline
+  // cache is the Engine's, so neither is destroyed here.
+  if (pipeline_) device_ref_.destroyPipeline(pipeline_);
+  if (pipeline_layout_) device_ref_.destroyPipelineLayout(pipeline_layout_);
+  if (descriptor_set_layout_) device_ref_.destroyDescriptorSetLayout(descriptor_set_layout_);
+  if (shader_module_) device_ref_.destroyShaderModule(shader_module_);
 }
 
 std::shared_ptr<Algorithm> Algorithm::work_group_size(const uint32_t x,
@@ -19,20 +156,19 @@ std::shared_ptr<Algorithm> Algorithm::work_group_size(const uint32_t x,
   return shared_from_this();
 }
 
-std::shared_ptr<Algorithm> Algorithm::num_buffers(const size_t n) {
-  internal_.num_buffers = n;
-  create_descriptor_set_layout();
-  create_descriptor_pool();
-  allocate_descriptor_sets();
+std::shared_ptr<Algorithm> Algorithm::subgroup_size_dependent() {
+  subgroup_size_dependent_ = true;
   return shared_from_this();
 }
 
-std::shared_ptr<Algorithm> Algorithm::num_sets(const size_t count) {
-  if (count == 0) {
-    throw std::runtime_error("Number of sets cannot be 0");
-  }
+std::shared_ptr<Algorithm> Algorithm::spec_constant(const uint32_t id, const uint32_t value) {
+  spec_constants_.emplace_back(id, value);
+  return shared_from_this();
+}
 
-  descriptor_set_count_ = static_cast<uint32_t>(count);
+std::shared_ptr<Algorithm> Algorithm::num_buffers(const size_t n) {
+  internal_.num_buffers = n;
+  create_descriptor_set_layout();
   return shared_from_this();
 }
 
@@ -41,91 +177,51 @@ std::shared_ptr<Algorithm> Algorithm::push_constant_size(const size_t size_in_by
   return shared_from_this();
 }
 
-void Algorithm::update_push_constant(const void* data_ptr, const size_t size_in_bytes) {
-  if (!has_push_constants()) {
-    throw std::runtime_error("Algorithm has no push constants allocated");
-  }
-
-  if (size_in_bytes != internal_.push_constant_size) {
-    throw std::runtime_error("Push constant size mismatch");
-  }
-
-  std::memcpy(push_constants_buffer_.data(), data_ptr, size_in_bytes);
-}
-
-// ----------------------------------------------------------------------------
-// New multi-set version
-// ----------------------------------------------------------------------------
-
-void Algorithm::update_descriptor_set(
-    uint32_t set_index, const std::vector<vk::DescriptorBufferInfo>& buffer_infos) const {
-  spdlog::trace("Algorithm::update_descriptor_set() set_index: {}", set_index);
-
-  if (set_index >= descriptor_sets_.size()) {
-    throw std::runtime_error("set_index out of range");
-  }
-  if (buffer_infos.size() != internal_.num_buffers) {
-    throw std::runtime_error("Unexpected number of buffers for this layout");
-  }
-
-  const vk::DescriptorSet dst_set = descriptor_sets_[set_index];
-
-  // Build the writes
-  std::vector<vk::WriteDescriptorSet> writes;
-  writes.reserve(buffer_infos.size());
-  for (uint32_t binding = 0; binding < static_cast<uint32_t>(buffer_infos.size()); ++binding) {
-    writes.push_back(vk::WriteDescriptorSet{.dstSet = dst_set,
-                                            .dstBinding = binding,
-                                            .dstArrayElement = 0,
-                                            .descriptorCount = 1,
-                                            .descriptorType = vk::DescriptorType::eStorageBuffer,
-                                            .pImageInfo = nullptr,
-                                            .pBufferInfo = &buffer_infos[binding],
-                                            .pTexelBufferView = nullptr});
-  }
-
-  // Issue the update
-  device_ref_.updateDescriptorSets(writes, {});
-}
-
 std::shared_ptr<Algorithm> Algorithm::build() {
   create_pipeline();
   return shared_from_this();
 }
 
 // ----------------------------------------------------------------------------
-// record_bind_core / record_bind_push
+// record_bind / record_bind_push
 // ----------------------------------------------------------------------------
 
-void Algorithm::record_bind_core(const vk::CommandBuffer& cmd_buf, uint32_t set_index) const {
-  if (set_index >= descriptor_sets_.size()) {
-    throw std::runtime_error("Invalid descriptor set index");
+void Algorithm::record_bind(Sequence& seq,
+                            const std::initializer_list<vk::DescriptorBufferInfo> buffers) const {
+  if (buffers.size() != internal_.num_buffers) {
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: record_bind got " +
+                             std::to_string(buffers.size()) + " buffers, the layout has " +
+                             std::to_string(internal_.num_buffers));
   }
-  cmd_buf.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline_);
-  cmd_buf.bindDescriptorSets(vk::PipelineBindPoint::eCompute,
-                             pipeline_layout_,
-                             0,  // firstSet
-                             descriptor_sets_[set_index],
-                             {});
+
+  // Order this dispatch after the earlier ones it depends on (design A3), and tell the
+  // Sequence which buffers the GPU reads or writes (what it flushes and invalidates). A
+  // binding the module declares no variable for is never accessed by the shader.
+  std::array<BufferAccess, kMaxBindingBuffers> access{};
+  for (uint32_t binding = 0; binding < buffers.size(); ++binding) {
+    const auto it = reflection_.binding_access.find(binding);
+    access[binding] = it == reflection_.binding_access.end() ? BufferAccess::kNone : it->second;
+  }
+  seq.bind(pipeline_,
+           pipeline_layout_,
+           descriptor_set_layout_,
+           {buffers.begin(), buffers.size()},
+           {access.data(), buffers.size()});
 }
 
-void Algorithm::record_bind_push(const vk::CommandBuffer& cmd_buf) const {
-  spdlog::trace("Algorithm::record_bind_push(), push_constant_size: {}",
-                internal_.push_constant_size);
-
+void Algorithm::record_push_constants(Sequence& seq,
+                                      const void* data,
+                                      const size_t size_in_bytes) const {
   if (!has_push_constants()) {
-    throw std::runtime_error("Push constants not allocated");
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: no push constants declared");
   }
-
-  cmd_buf.pushConstants(pipeline_layout_,
-                        vk::ShaderStageFlagBits::eCompute,
-                        0,
-                        static_cast<uint32_t>(internal_.push_constant_size),
-                        push_constants_buffer_.data());
+  if (size_in_bytes != internal_.push_constant_size) {
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: push constant size mismatch");
+  }
+  seq.push_constants(pipeline_layout_, data, size_in_bytes);
 }
 
-void Algorithm::record_dispatch(const vk::CommandBuffer& cmd_buf,
-                                const std::array<uint32_t, 3> grid_size) const {
+void Algorithm::record_dispatch(Sequence& seq, const std::array<uint32_t, 3> grid_size) const {
   spdlog::trace(
       "Algorithm::record_dispatch(), grid_size: ({}, {}, {}), work_group_size: ({}, {}, {})",
       grid_size[0],
@@ -135,25 +231,13 @@ void Algorithm::record_dispatch(const vk::CommandBuffer& cmd_buf,
       internal_.work_group_size[1],
       internal_.work_group_size[2]);
 
-  cmd_buf.dispatch(grid_size[0], grid_size[1], grid_size[2]);
+  seq.dispatch(grid_size);
 }
 
 // -------------------------------------------------------------------------------------------------
 // Shader Related
-//   load_compiled_shader();
 //   create_shader_module();
 // -------------------------------------------------------------------------------------------------
-
-void Algorithm::load_compiled_shader() {
-  if (!shaders::all_shaders.contains(shader_name_)) {
-    throw std::runtime_error("Shader " + shader_name_ + " not found");
-  }
-
-  const auto [shader_binary, shader_binary_size] = shaders::all_shaders.at(shader_name_);
-
-  internal_.spirv_binary.resize(shader_binary_size / sizeof(uint32_t));
-  std::memcpy(internal_.spirv_binary.data(), shader_binary, shader_binary_size);
-}
 
 void Algorithm::create_shader_module() {
   if (shader_name_.empty()) {
@@ -177,8 +261,6 @@ void Algorithm::create_shader_module() {
 // ----------------------------------------------------------------------------
 // Descriptor Related
 //   create_descriptor_set_layout();
-//   create_descriptor_pool();
-//   allocate_descriptor_sets();
 // ----------------------------------------------------------------------------
 
 void Algorithm::create_descriptor_set_layout() {
@@ -186,6 +268,11 @@ void Algorithm::create_descriptor_set_layout() {
 
   if (internal_.num_buffers == 0) {
     throw std::runtime_error("Number of buffers is 0");
+  }
+  if (internal_.num_buffers > kMaxBindingBuffers) {
+    throw std::runtime_error("Pipeline [" + shader_name_ +
+                             "]: " + std::to_string(internal_.num_buffers) + " buffers exceeds " +
+                             std::to_string(kMaxBindingBuffers));
   }
 
   std::vector<vk::DescriptorSetLayoutBinding> bindings;
@@ -200,51 +287,15 @@ void Algorithm::create_descriptor_set_layout() {
     });
   }
 
+  // Push descriptors need a PUSH_DESCRIPTOR layout; the fallback allocates ordinary sets.
   const vk::DescriptorSetLayoutCreateInfo create_info{
+      .flags = push_descriptor_fn_ ? vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR
+                                   : vk::DescriptorSetLayoutCreateFlags{},
       .bindingCount = static_cast<uint32_t>(bindings.size()),
       .pBindings = bindings.data(),
   };
 
   descriptor_set_layout_ = device_ref_.createDescriptorSetLayout(create_info);
-}
-
-void Algorithm::create_descriptor_pool() {
-  const uint32_t total_descriptors = descriptor_set_count_ * internal_.num_buffers;
-
-  const std::vector<vk::DescriptorPoolSize> pool_sizes{
-      {
-          .type = vk::DescriptorType::eStorageBuffer,
-          .descriptorCount = total_descriptors,
-      },
-      // ^ we need enough descriptors for each set
-  };
-
-  const vk::DescriptorPoolCreateInfo create_info{
-      .maxSets = descriptor_set_count_,
-      .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
-      .pPoolSizes = pool_sizes.data(),
-  };
-
-  descriptor_pool_ = device_ref_.createDescriptorPool(create_info);
-}
-
-void Algorithm::allocate_descriptor_sets() {
-  if (descriptor_pool_ == nullptr || descriptor_set_layout_ == nullptr) {
-    throw std::runtime_error("Descriptor pool or set layout is not initialized");
-  }
-
-  std::vector<vk::DescriptorSetLayout> layouts(descriptor_set_count_, descriptor_set_layout_);
-
-  const vk::DescriptorSetAllocateInfo allocate_info{
-      .descriptorPool = descriptor_pool_,
-      .descriptorSetCount = descriptor_set_count_,
-      .pSetLayouts = layouts.data(),
-  };
-
-  descriptor_sets_ = device_ref_.allocateDescriptorSets(allocate_info);
-
-  // // old single-set version
-  // descriptor_set_ = device_ref_.allocateDescriptorSets(allocate_info).front();
 }
 
 // ----------------------------------------------------------------------------
@@ -268,7 +319,113 @@ void Algorithm::create_pipeline() {
     throw std::runtime_error("Work group size is not set");
   }
 
-  assert(internal_.push_constant_size <= push_constants_buffer_.size());
+  if (internal_.push_constant_size > 128) {  // the guaranteed maxPushConstantsSize
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: push constants exceed 128 bytes");
+  }
+
+  // Specialization constants (design D5).
+  std::vector<vk::SpecializationMapEntry> spec_entries;
+  std::vector<uint32_t> spec_values;
+  auto specialize = [&](const uint32_t spec_id, const uint32_t value) {
+    spec_entries.push_back(vk::SpecializationMapEntry{
+        .constantID = spec_id,
+        .offset = static_cast<uint32_t>(spec_values.size() * sizeof(uint32_t)),
+        .size = sizeof(uint32_t),
+    });
+    spec_values.push_back(value);
+  };
+
+  const auto& wg = internal_.work_group_size;
+  const auto wg_str = [](const auto& s) { return fmt::format("({}, {}, {})", s[0], s[1], s[2]); };
+
+  // The declared workgroup size must fit the device's compute limits.
+  const auto& max_wg = limits_.max_work_group_size;
+  if (wg[0] > max_wg[0] || wg[1] > max_wg[1] || wg[2] > max_wg[2]) {
+    throw std::runtime_error("Pipeline [" + shader_name_ + "]: workgroup size " + wg_str(wg) +
+                             " exceeds maxComputeWorkGroupSize " + wg_str(max_wg));
+  }
+  const uint64_t invocations = uint64_t{wg[0]} * wg[1] * wg[2];
+  if (invocations > limits_.max_work_group_invocations) {
+    throw std::runtime_error(
+        fmt::format("Pipeline [{}]: workgroup size {} = {} invocations exceeds "
+                    "maxComputeWorkGroupInvocations {}",
+                    shader_name_,
+                    wg_str(wg),
+                    invocations,
+                    limits_.max_work_group_invocations));
+  }
+
+  // Each dimension is either specialized (local_size_*_id) or must match the literal.
+  for (size_t d = 0; d < 3; ++d) {
+    if (const auto spec_id = reflection_.local_size_spec_id[d]) {
+      specialize(*spec_id, wg[d]);
+    } else if (wg[d] != reflection_.local_size[d]) {
+      throw std::runtime_error("Pipeline [" + shader_name_ + "]: declared workgroup size " +
+                               wg_str(wg) + " but the SPIR-V LocalSize is " +
+                               wg_str(reflection_.local_size));
+    }
+  }
+
+  // Subgroup size: from the device, never from the shader's default.
+  const bool declares_subgroup_size = reflection_.spec_ids.contains(kSubgroupSizeSpecId);
+  if (declares_subgroup_size != subgroup_size_dependent_) {
+    throw std::runtime_error(
+        "Pipeline [" + shader_name_ + "]: " +
+        (subgroup_size_dependent_
+             ? "subgroup_size_dependent() but the shader has no constant_id = 0"
+             : "the shader declares constant_id = 0 (subgroup size) but the Algorithm is not "
+               "subgroup_size_dependent()"));
+  }
+  const bool pin = subgroup_size_dependent_ && limits_.subgroup_size_pinned;
+  const bool full = subgroup_size_dependent_ && limits_.full_subgroups;
+  if (subgroup_size_dependent_) {
+    specialize(kSubgroupSizeSpecId, limits_.subgroup_size);
+    // Only whole subgroups make a gl_SubgroupID-indexed reduction safe. With
+    // computeFullSubgroups the driver guarantees them, provided X is a multiple of the
+    // subgroup size (VUID-...-pNext-02757 / flags-02759); without it, that multiple is
+    // all the engine can require (design A5).
+    if (wg[0] % limits_.subgroup_size != 0) {
+      throw std::runtime_error(fmt::format(
+          "Pipeline [{}]: workgroup X size {} is not a multiple of the subgroup size {} ({})",
+          shader_name_,
+          wg[0],
+          limits_.subgroup_size,
+          full ? "required with full subgroups" : "computeFullSubgroups unsupported"));
+    }
+  }
+  if (pin) {
+    // VUID-VkPipelineShaderStageCreateInfo-pNext-02756
+    const uint64_t max_pinned =
+        uint64_t{limits_.subgroup_size} * limits_.max_compute_workgroup_subgroups;
+    if (invocations > max_pinned) {
+      throw std::runtime_error(fmt::format(
+          "Pipeline [{}]: workgroup size {} = {} invocations exceeds requiredSubgroupSize {} x "
+          "maxComputeWorkgroupSubgroups {}",
+          shader_name_,
+          wg_str(wg),
+          invocations,
+          limits_.subgroup_size,
+          limits_.max_compute_workgroup_subgroups));
+    }
+  }
+
+  for (const auto& [id, value] : spec_constants_) {
+    if (!reflection_.spec_ids.contains(id)) {
+      throw std::runtime_error(
+          fmt::format("Pipeline [{}]: the shader declares no constant_id = {}", shader_name_, id));
+    }
+    specialize(id, value);
+  }
+
+  const vk::SpecializationInfo spec_info{
+      .mapEntryCount = static_cast<uint32_t>(spec_entries.size()),
+      .pMapEntries = spec_entries.data(),
+      .dataSize = spec_values.size() * sizeof(uint32_t),
+      .pData = spec_values.data(),
+  };
+  const vk::PipelineShaderStageRequiredSubgroupSizeCreateInfo required_subgroup_size{
+      .requiredSubgroupSize = limits_.subgroup_size,
+  };
 
   // Push Constants
   std::vector<vk::PushConstantRange> push_constant_ranges;
@@ -290,16 +447,25 @@ void Algorithm::create_pipeline() {
 
   pipeline_layout_ = device_ref_.createPipelineLayout(pipeline_layout_create_info);
 
-  pipeline_cache_ = device_ref_.createPipelineCache(vk::PipelineCacheCreateInfo{});
-
   // Pipeline
   const vk::PipelineShaderStageCreateInfo shader_stage_create_info{
+      .pNext = pin ? &required_subgroup_size : nullptr,
+      .flags = full ? vk::PipelineShaderStageCreateFlagBits::eRequireFullSubgroups
+                    : vk::PipelineShaderStageCreateFlags{},
       .stage = vk::ShaderStageFlagBits::eCompute,
       .module = shader_module_,
       .pName = "main",
+      .pSpecializationInfo = spec_entries.empty() ? nullptr : &spec_info,
+  };
+
+  // Did the Engine's (persisted) cache supply this pipeline? Debug log only.
+  vk::PipelineCreationFeedback feedback{};
+  const vk::PipelineCreationFeedbackCreateInfo feedback_info{
+      .pPipelineCreationFeedback = &feedback,
   };
 
   const vk::ComputePipelineCreateInfo pipeline_create_info{
+      .pNext = &feedback_info,
       .stage = shader_stage_create_info,
       .layout = pipeline_layout_,
       .basePipelineHandle = nullptr,
@@ -307,7 +473,23 @@ void Algorithm::create_pipeline() {
 
   pipeline_ = device_ref_.createComputePipeline(pipeline_cache_, pipeline_create_info).value;
 
-  spdlog::debug("Pipeline [{}] created successfully", shader_name_);
+  const char* cache_result =
+      !(feedback.flags & vk::PipelineCreationFeedbackFlagBits::eValid) ? "not reported"
+      : (feedback.flags & vk::PipelineCreationFeedbackFlagBits::eApplicationPipelineCacheHit)
+          ? "hit"
+          : "miss";
+  if (subgroup_size_dependent_) {
+    spdlog::debug(
+        "Pipeline [{}] created successfully (subgroup size {}, {}, {}; pipeline cache {})",
+        shader_name_,
+        limits_.subgroup_size,
+        pin ? "pinned" : "not pinned",
+        full ? "full subgroups" : "full subgroups not guaranteed: computeFullSubgroups unsupported",
+        cache_result);
+  } else {
+    spdlog::debug(
+        "Pipeline [{}] created successfully (pipeline cache {})", shader_name_, cache_result);
+  }
 }
 
 }  // namespace kiss_vk

@@ -162,9 +162,11 @@ CI helper: the **rocky-ryzen iGPU** box (Vulkan, subgroup 64).
 cross container; CUDA *runs* on the Jetson. ² The Vulkan engine hard-selects an
 integrated GPU, so the discrete-GPU PC never runs Vulkan — the phones (and the
 iGPU box) do. ³ octree has **no CUDA backend** (only OMP + Vulkan kernels exist);
-this cell is empty by design, not a coverage gap. **The two phones are what
-uniquely exercise the subgroup-16 (Mali) vs subgroup-32 shader variants**
-(`tmp_single_radixsort_warp{16,32,64}`) — the Jetson alone cannot.
+this cell is empty by design, not a coverage gap. **The Pixel 7a (Mali) is what
+uniquely exercises subgroup 16.** Since the Vulkan campaign's Phase B (2026-10), the radix
+sort is one shader (`multi_radixsort`) specialized with the device's subgroup size; 32 is
+covered by pinning (`BT_VK_SUBGROUP_SIZE=32` on rocky-ryzen and the Samsung) and 64 is
+the rocky-ryzen / Samsung default.
 
 > **Update 2026-06-17 — full matrix swept with logs + runtime-pipeline matrix added.**
 > Every supported per-stage cell above was re-run on real HW and the logs committed
@@ -276,11 +278,18 @@ by it. tree and octree are geometry and unaffected.
 
 - **octree·CUDA = ∅** — accepted: no kernels exist; not counted as a gap. (Implementing
   them is a *feature*, out of test scope.)
-- **Vulkan subgroup**: move from the `--device`→warp map to a runtime query (T3) —
-  required for any board not already in the map; also removes a CI portability trap.
-- **subgroup-64 (Adreno)** is covered only by the optional iGPU box, not by the two
-  chosen phones (Pixel 7a/16 + Samsung/32). Add an Adreno phone later if that path
-  needs device coverage.
+- **Vulkan subgroup — CLOSED (2026-10-14, `vulkan-engine-campaign` Phase B).** The
+  `--device`→warp map is gone: the engine queries the subgroup size at runtime
+  (`VkPhysicalDeviceSubgroupProperties` + 1.3 subgroup size control), specializes the one
+  radix-sort shader (`multi_radixsort.comp`, which replaced `multi_radixsort_warp{16,32,64}`)
+  with it, and pins it with `requiredSubgroupSize`. `devices/*.json` `gpu.subgroup_size` is
+  an informational cross-check (a mismatch warns), so a board with no entry runs too.
+  Queried widths: rocky-ryzen 780M 64 (32..64), Pixel 7a 16, Samsung Xclipse 940 **64**
+  (32..64) — the Samsung was recorded as 32 above; it was never queried before. The tree
+  suites match the oracle exactly at 16 (Pixel), 64 (rocky, Samsung) and 32 (rocky and
+  Samsung pinned with `BT_VK_SUBGROUP_SIZE=32`). Evidence: change `tasks.md` group 5.
+- **subgroup-64** is now covered by rocky-ryzen and the Samsung; an Adreno phone would
+  add a third vendor, not a new width.
 - **CUDA/Vulkan test `main()`s** still call the fatal `parse_args`; switch them to
   `parse_args_test` in T1/T2 when they compile on-target.
 - **Float tolerance** (`rtol`/`atol`) is provisional; confirm per stage, and loosen

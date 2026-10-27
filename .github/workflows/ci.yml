@@ -20,12 +20,12 @@ jobs:
     name: format (fmt-check)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
-      - uses: extractions/setup-just@v2
-      - uses: oven-sh/setup-bun@v2
+      - uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - name: Install shfmt
         run: |
           sudo curl -fsSL \
@@ -43,9 +43,9 @@ jobs:
     env:
       CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Cache CPM dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ github.workspace }}/.cpm-cache
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
@@ -69,8 +69,8 @@ jobs:
     name: optimizer pytest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
           enable-cache: true
       - name: Test
@@ -102,9 +102,9 @@ jobs:
       ASAN_OPTIONS: abort_on_error=1:detect_leaks=1
       UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Cache CPM dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ github.workspace }}/.cpm-cache
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
@@ -129,27 +129,35 @@ jobs:
   clang-tidy:
     # Static analysis (.clang-tidy) scoped to the lines changed in the PR, so the
     # curated checks gate NEW code without the legacy tree's findings walling the gate.
-    # Configure-only: pc needs no build (the codegen headers are committed), just the
-    # compile_commands.json that `cmake --preset pc` writes.
+    # Configure-only: no build is needed (the codegen headers are committed), just a
+    # compile_commands.json. It comes from the `vulkan` preset, a superset of pc that also
+    # lists the Vulkan TUs, with the Vulkan headers CPM-fetched at configure time. Under pc
+    # those TUs had no headers, so clang-tidy misparsed them into false positives.
     name: clang-tidy (changed lines)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     env:
       CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0 # need the PR base commit to diff against
       - name: Cache CPM dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ github.workspace }}/.cpm-cache
           key: cpm-${{ runner.os }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt') }}
           restore-keys: cpm-${{ runner.os }}-
       - name: Install clang-tidy
-        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+        # libomp-dev: Ubuntu's clang-tidy can't find GCC's omp.h. glslc: the vulkan preset
+        # compiles the shaders (cmake/bt_shaders.cmake).
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy libomp-dev glslc spirv-tools
       - name: Configure (writes compile_commands.json)
-        run: cmake --preset pc
+        run: cmake --preset vulkan
+      - name: Generate the shader headers clang-tidy includes
+        run: cmake --build --preset vulkan --target bt_shaders
+      - name: Check the shader buffer qualifiers
+        run: python3 scripts/check_shader_access.py
       - name: Fetch clang-tidy-diff helper
         run: |
           curl -fsSL -o clang-tidy-diff.py \
@@ -158,13 +166,13 @@ jobs:
         run: |
           base='${{ github.event.pull_request.base.sha }}'
           out=$(git diff -U0 "$base" -- '*.cpp' '*.hpp' '*.cu' '*.cuh' \
-            | python3 clang-tidy-diff.py -p1 -path build/pc -j"$(nproc)" 2>&1) || true
+            | python3 clang-tidy-diff.py -p1 -path build/vulkan -j"$(nproc)" 2>&1) || true
           echo "$out"
           # Fail only on first-party clang-tidy CHECK findings on changed lines.
-          # Ignore clang-diagnostic-* : a Vulkan/CUDA TU isn't built under the pc
-          # preset, so clang-tidy reports its backend headers as "file not found".
-          # That's the known hosted-coverage gap (the fleet build / `just tidy` lints
-          # those), not a code issue, and must not wall the gate.
+          # Ignore clang-diagnostic-* : CUDA TUs aren't in the vulkan preset's
+          # compile_commands, so clang-tidy reports their headers as "file not found".
+          # That's the known hosted-coverage gap (the Jetson build lints those), not a
+          # code issue, and must not wall the gate.
           findings=$(echo "$out" | grep -E ': (warning|error): ' | grep -vE '\[clang-diagnostic-' || true)
           if [ -n "$findings" ]; then
             echo "::error::clang-tidy reported issues on changed lines (see log above)"

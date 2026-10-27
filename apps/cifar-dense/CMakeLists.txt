@@ -37,6 +37,8 @@ endif()
 # ---- tests ----
 if(BT_BUILD_TESTS)
     bt_add_omp_test(test-cifar-dense-omp omp/test_main.cpp)
+    # The pin probe sits in the pinned dispatch (header), see platform/util/pin_probe.hpp.
+    target_compile_definitions(test-cifar-dense-omp PRIVATE BT_PIN_PROBE)
     set_tests_properties(
         test-cifar-dense-omp
         PROPERTIES LABELS "omp;differential"

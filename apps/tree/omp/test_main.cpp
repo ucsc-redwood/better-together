@@ -14,6 +14,9 @@
 #include "func_edge.hpp"
 #include "func_octree.hpp"
 #include "platform/registry/device_registry.hpp"
+#include "platform/util/testing/cpu_pinning.hpp"
+#include "platform/util/testing/input_purity.hpp"
+#include "runtime/tests/placement_check.hpp"
 
 // ----------------------------------------------------------------------------
 // Tree × OMP differential oracle. OMP is both the reference and the backend
@@ -517,6 +520,281 @@ TEST(TreeAnchorOmp, Stage7_TinyBruteForceOctree) {
 }
 
 }  // namespace
+
+// Memory-placement spec, "Boundary buffers keep host-cached placement" (design B3): under
+// every schedule with one GPU stage range, each buffer a CPU stage or host code touches is
+// placed in the boundary class; only buffers every accessor of which is a GPU stage go to the
+// GPU-local class. Hardware-free: the classes are recording host resources.
+// ----------------------------------------------------------------------------
+// Reproducers of the tree-app-improvements change (tree-app/morton-codes and
+// tree-app/octree-build specs). The backend-parametrized ones live in
+// tree_diff_oracle.hpp and also run in the CUDA and Vulkan suites.
+// ----------------------------------------------------------------------------
+
+// Morton-codes spec, "Point at the upper bound".
+TEST(TreeMortonOmp, UpperBoundQuantizesTo1023) {
+  const glm::vec4 top(tree::kMinCoord + tree::kRange,
+                      tree::kMinCoord + tree::kRange,
+                      tree::kMinCoord + tree::kRange,
+                      1.0f);
+  uint32_t xyz[3];
+  tree::omp::m3D_d_magicbits(tree::omp::xyz_to_morton32(top, tree::kMinCoord, tree::kRange), xyz);
+  EXPECT_EQ(xyz[0], 1023u);
+  EXPECT_EQ(xyz[1], 1023u);
+  EXPECT_EQ(xyz[2], 1023u);
+}
+
+// Morton-codes spec, "Point just below the upper bound". With the app's range (a power of
+// two, from 0) no coordinate below the top scales to 1024.0f, so this uses min -512: the
+// subtraction 511.99997f - (-512) rounds up to 1024.0f.
+TEST(TreeMortonOmp, ScaledValueRoundingTo1024QuantizesTo1023) {
+  constexpr float kMin = -512.0f;
+  constexpr float kRangeHere = 1024.0f;
+  const float x = std::nextafter(kMin + kRangeHere, 0.0f);
+  ASSERT_LT(x, kMin + kRangeHere);
+  ASSERT_EQ((x - kMin) / kRangeHere * 1024, 1024.0f) << "precondition: the scaled value rounds";
+  uint32_t xyz[3];
+  tree::omp::m3D_d_magicbits(tree::omp::xyz_to_morton32(glm::vec4(x, x, x, 1.0f), kMin, kRangeHere),
+                             xyz);
+  EXPECT_EQ(xyz[0], 1023u);
+  EXPECT_EQ(xyz[1], 1023u);
+  EXPECT_EQ(xyz[2], 1023u);
+}
+
+TEST(TreeDiffOmp, Stage1_MortonBoundary) {
+  tree::testing::RunAndCheckMortonBoundary<OmpTreeRunner>();
+}
+
+// Octree-build spec, "Many leaves linked into one node concurrently": OMP stage 7 with
+// every core (the suite's main pins OMP to one thread), 100 times. run_stage_7's static
+// schedule gives each thread one contiguous range, so links into one node only meet at
+// the range ends; the interleaved runner hands adjacent BRT nodes to different threads,
+// which is where set_leaf's read-modify-write races.
+namespace {
+struct OmpInterleavedLeafRunner : OmpTreeRunner {
+  void RunStage(tree::AppData& a, int stage) {
+    ASSERT_EQ(stage, 7);
+    const int n = static_cast<int>(a.get_n_brt_nodes());
+#pragma omp parallel for schedule(static, 1)
+    for (int i = 0; i < n; ++i) {
+      tree::omp::process_link_leaf(i,
+                                   reinterpret_cast<int (*)[8]>(a.u_oct_children_s7.data()),
+                                   a.u_oct_child_leaf_mask_s7.data(),
+                                   a.u_edge_offset_s6.data(),
+                                   a.u_edge_count_s5.data(),
+                                   a.u_morton_keys_unique_s3.data(),
+                                   a.u_brt_has_leaf_left_s4.data(),
+                                   a.u_brt_has_leaf_right_s4.data(),
+                                   a.u_brt_prefix_n_s4.data(),
+                                   a.u_brt_parents_s4.data(),
+                                   a.u_brt_left_child_s4.data());
+    }
+  }
+};
+
+template <class Runner>
+void ExpectNoLostLeafBits() {
+  Runner runner;
+  const int threads = omp_get_max_threads();
+  omp_set_num_threads(omp_get_num_procs());
+  const std::size_t lost = tree::testing::CountLostLeafBits(runner, 100);
+  omp_set_num_threads(threads);
+  EXPECT_EQ(lost, 0u) << "leaf-mask bits lost over 100 runs on " << omp_get_num_procs()
+                      << " threads";
+}
+}  // namespace
+
+TEST(TreeLeafRaceOmp, ConcurrentLeafLinksKeepEveryBit) { ExpectNoLostLeafBits<OmpTreeRunner>(); }
+
+TEST(TreeLeafRaceOmp, InterleavedLeafLinksKeepEveryBit) {
+  ExpectNoLostLeafBits<OmpInterleavedLeafRunner>();
+}
+
+// Octree-build spec, "Leaf links removed from an output": two identical OMP outputs pass
+// the stage-7 check; resetting one's leaf masks to "no leaves" (every bit set) must fail it.
+// The second test is the converse: masks that mark every free octant a leaf (every bit
+// clear) must fail it as well, or the leaf comparison cannot see spurious links.
+namespace {
+::testing::AssertionResult Stage7CheckAfterLeafMaskReset(const int32_t mask) {
+  tree::AppData ref(std::pmr::new_delete_resource());
+  tree::AppData out(std::pmr::new_delete_resource(), ref.get_n_input());
+  out.u_input_points_s0 = ref.u_input_points_s0;
+  tree::omp::dispatch_multi_stage(ref, 1, 7);
+  tree::omp::dispatch_multi_stage(out, 1, 7);
+  const std::size_t n = ref.get_n_octree_nodes();
+  EXPECT_TRUE(tree::testing::CheckStage7Topology(ref, out, n)) << "identical outputs";
+  std::ranges::fill_n(out.u_oct_child_leaf_mask_s7.begin(), static_cast<std::ptrdiff_t>(n), mask);
+  return tree::testing::CheckStage7Topology(ref, out, n);
+}
+}  // namespace
+
+TEST(TreeOracleSelfTest, MissingLeafLinksFail) {
+  const auto r = Stage7CheckAfterLeafMaskReset(0xFF);
+  EXPECT_FALSE(r) << r.message();
+  EXPECT_NE(std::string(r.message()).find("Missing leaf slots: (node corner"), std::string::npos)
+      << r.message();
+}
+
+TEST(TreeOracleSelfTest, SpuriousLeafLinksFail) {
+  const auto r = Stage7CheckAfterLeafMaskReset(0);
+  EXPECT_FALSE(r) << r.message();
+}
+
+TEST(Placement, CpuChunkBuffersStayBoundary) {
+  bt_placement_test::ExpectCpuBuffersStayBoundary<tree::AppData>(7);
+}
+
+// profiling/cost-table spec, "A stage is profiled on unmodified input": each stage, run
+// twice on one AppData, leaves every buffer it does not write unchanged and writes the same
+// output both times. Both AppData paths: tree::AppData is what bm-prof and the pipeline
+// run, SafeAppData the oracle's.
+namespace {
+std::vector<bt::testing::Region> TreeRegions(const tree::AppData& a) {
+  using bt::testing::Buf;
+  using bt::testing::Scalar;
+  return {Scalar("n_unique", a.n_unique),
+          Scalar("n_brt_nodes", a.n_brt_nodes),
+          Scalar("n_octree_nodes", a.n_octree_nodes),
+          Buf("u_input_points_s0", a.u_input_points_s0),
+          Buf("u_morton_keys_s1", a.u_morton_keys_s1),
+          Buf("u_morton_keys_sorted_s2", a.u_morton_keys_sorted_s2),
+          Buf("u_morton_keys_unique_s3", a.u_morton_keys_unique_s3),
+          Buf("u_brt_prefix_n_s4", a.u_brt_prefix_n_s4),
+          Buf("u_brt_has_leaf_left_s4", a.u_brt_has_leaf_left_s4),
+          Buf("u_brt_has_leaf_right_s4", a.u_brt_has_leaf_right_s4),
+          Buf("u_brt_left_child_s4", a.u_brt_left_child_s4),
+          Buf("u_brt_parents_s4", a.u_brt_parents_s4),
+          Buf("u_edge_count_s5", a.u_edge_count_s5),
+          Buf("u_edge_offset_s6", a.u_edge_offset_s6),
+          Buf("u_oct_children_s7", a.u_oct_children_s7),
+          Buf("u_oct_corner_s7", a.u_oct_corner_s7),
+          Buf("u_oct_cell_size_s7", a.u_oct_cell_size_s7),
+          Buf("u_oct_child_node_mask_s7", a.u_oct_child_node_mask_s7),
+          Buf("u_oct_child_leaf_mask_s7", a.u_oct_child_leaf_mask_s7),
+          Buf("u_num_selected_out", a.u_num_selected_out)};
+}
+
+const std::set<std::string> kTreeOutputs[] = {
+    {"u_morton_keys_s1"},
+    {"u_morton_keys_sorted_s2"},
+    {"u_morton_keys_unique_s3", "n_unique", "n_brt_nodes"},
+    {"u_brt_prefix_n_s4",
+     "u_brt_has_leaf_left_s4",
+     "u_brt_has_leaf_right_s4",
+     "u_brt_left_child_s4",
+     "u_brt_parents_s4"},
+    {"u_edge_count_s5"},
+    {"u_edge_offset_s6", "n_octree_nodes"},
+    {"u_oct_children_s7",
+     "u_oct_corner_s7",
+     "u_oct_cell_size_s7",
+     "u_oct_child_node_mask_s7",
+     "u_oct_child_leaf_mask_s7"},
+};
+
+std::vector<bt::testing::Region> SafeTreeRegions(const tree::SafeAppData& a) {
+  using bt::testing::Buf;
+  return {Buf("u_input_points_s0", a.u_input_points_s0),
+          Buf("u_morton_keys_s1", a.u_morton_keys_s1),
+          Buf("u_morton_keys_s1_out", a.u_morton_keys_s1_out),
+          Buf("u_morton_keys_sorted_s2", a.u_morton_keys_sorted_s2),
+          Buf("u_morton_keys_sorted_s2_out", a.u_morton_keys_sorted_s2_out),
+          Buf("u_morton_keys_unique_s3", a.u_morton_keys_unique_s3),
+          Buf("u_morton_keys_unique_s3_out", a.u_morton_keys_unique_s3_out),
+          Buf("u_num_selected_out", a.u_num_selected_out),
+          Buf("u_brt_prefix_n_s4", a.u_brt_prefix_n_s4),
+          Buf("u_brt_has_leaf_left_s4", a.u_brt_has_leaf_left_s4),
+          Buf("u_brt_has_leaf_right_s4", a.u_brt_has_leaf_right_s4),
+          Buf("u_brt_left_child_s4", a.u_brt_left_child_s4),
+          Buf("u_brt_parents_s4", a.u_brt_parents_s4),
+          Buf("u_brt_prefix_n_s4_out", a.u_brt_prefix_n_s4_out),
+          Buf("u_brt_has_leaf_left_s4_out", a.u_brt_has_leaf_left_s4_out),
+          Buf("u_brt_has_leaf_right_s4_out", a.u_brt_has_leaf_right_s4_out),
+          Buf("u_brt_left_child_s4_out", a.u_brt_left_child_s4_out),
+          Buf("u_brt_parents_s4_out", a.u_brt_parents_s4_out),
+          Buf("u_edge_count_s5", a.u_edge_count_s5),
+          Buf("u_edge_count_s5_out", a.u_edge_count_s5_out),
+          Buf("u_edge_offset_s6", a.u_edge_offset_s6),
+          Buf("u_edge_offset_s6_out", a.u_edge_offset_s6_out),
+          Buf("u_oct_children_s7", a.u_oct_children_s7),
+          Buf("u_oct_corner_s7", a.u_oct_corner_s7),
+          Buf("u_oct_cell_size_s7", a.u_oct_cell_size_s7),
+          Buf("u_oct_child_node_mask_s7", a.u_oct_child_node_mask_s7),
+          Buf("u_oct_child_leaf_mask_s7", a.u_oct_child_leaf_mask_s7),
+          Buf("u_oct_children_s7_out", a.u_oct_children_s7_out),
+          Buf("u_oct_corner_s7_out", a.u_oct_corner_s7_out),
+          Buf("u_oct_cell_size_s7_out", a.u_oct_cell_size_s7_out),
+          Buf("u_oct_child_node_mask_s7_out", a.u_oct_child_node_mask_s7_out),
+          Buf("u_oct_child_leaf_mask_s7_out", a.u_oct_child_leaf_mask_s7_out)};
+}
+
+const std::set<std::string> kSafeTreeOutputs[] = {
+    {"u_morton_keys_s1_out"},
+    {"u_morton_keys_sorted_s2_out"},
+    {"u_morton_keys_unique_s3_out"},
+    {"u_brt_prefix_n_s4_out",
+     "u_brt_has_leaf_left_s4_out",
+     "u_brt_has_leaf_right_s4_out",
+     "u_brt_left_child_s4_out",
+     "u_brt_parents_s4_out"},
+    {"u_edge_count_s5_out"},
+    {"u_edge_offset_s6_out"},
+    {"u_oct_children_s7_out",
+     "u_oct_corner_s7_out",
+     "u_oct_cell_size_s7_out",
+     "u_oct_child_node_mask_s7_out",
+     "u_oct_child_leaf_mask_s7_out"},
+};
+}  // namespace
+
+TEST(InputPurityOmp, TreeAppData) {
+  tree::AppData app(std::pmr::new_delete_resource());
+  for (int s = 1; s <= 7; ++s) {
+    bt::testing::ExpectStageInputPure(
+        app,
+        s,
+        [](tree::AppData& a, const int st) { tree::omp::dispatch_stage(a, st); },
+        TreeRegions,
+        kTreeOutputs[s - 1]);
+  }
+}
+
+TEST(InputPurityOmp, TreeSafeAppData) {
+  tree::SafeAppData app(std::pmr::new_delete_resource());
+  for (int s = 1; s <= 7; ++s) {
+    bt::testing::ExpectStageInputPure(
+        app,
+        s,
+        [](tree::SafeAppData& a, const int st) { tree::omp::dispatch_stage(a, st); },
+        SafeTreeRegions,
+        kSafeTreeOutputs[s - 1]);
+  }
+  // main() runs one thread; stage 2 merges per-thread segments only with several. Stage 1
+  // first, so that stage 2 sees unsorted keys again.
+  omp_set_num_threads(4);
+  tree::omp::dispatch_stage(app, 1);
+  bt::testing::ExpectStageInputPure(
+      app,
+      2,
+      [](tree::SafeAppData& a, const int st) { tree::omp::dispatch_stage(a, st); },
+      SafeTreeRegions,
+      kSafeTreeOutputs[1]);
+  omp_set_num_threads(1);
+}
+
+// runtime/cpu-chunks spec, "Tree on one tier": stages 1 to 7 through the pinned tree::AppData
+// dispatch run only on the given cores, with at most the given thread count, and compute what
+// the unpinned run does.
+TEST(CpuPinningOmp, TreeAppData) {
+  tree::AppData app(std::pmr::new_delete_resource());
+  bt::testing::ExpectChunkPinned(
+      app,
+      [](tree::AppData& a) { tree::omp::dispatch_multi_stage(a, 1, 7); },
+      [](const std::vector<int>& cores, const int n, tree::AppData& a) {
+        tree::omp::dispatch_multi_stage(cores, n, a, 1, 7);
+      },
+      TreeRegions);
+}
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

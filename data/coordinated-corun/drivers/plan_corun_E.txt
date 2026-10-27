@@ -1,0 +1,9 @@
+# Task 2.6, stage E (reverse pair): CPU prefill on 3f0 next to a GPU decode (depth 0) paced at duty 1.0 and 0.5.
+# Plan for run_corun.sh: <name>|<maskA>|<cmdA>|<maskB>|<cmdB>. A = the GPU decode (paced), B = the CPU prefill.
+# A runs 70 s and B 40 s after their warm-ups, so A covers all of B's prefill repetitions; the analysis keeps only
+# each side's units inside the other's measured interval. Samsung R5CY21Y3VEV, lpa_pace (8345f33), Llama 3.2 1B
+# Q4_0; GPU -ngl 99 -t 1 on mask 8 (flash attention auto), CPU -ngl 0 -dev none -t 6.
+1b_gpuD_cpuP_p512_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 70|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 512 -C 512 -u 1 -s 40
+1b_gpuD_cpuP_p512_u50_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.5 -s 70|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 512 -C 512 -u 1 -s 40
+1b_gpuD_cpuP_p2048_u100_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 70|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 2048 -C 512 -u 1 -s 40
+1b_gpuD_cpuP_p2048_u50_m3f0|8|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 0.5 -s 70|3f0|./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode prefill -P 2048 -C 512 -u 1 -s 40

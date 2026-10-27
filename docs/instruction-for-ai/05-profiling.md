@@ -81,6 +81,77 @@ much larger `BT_TREE_INPUT_SIZE` anywhere.
 (Budget: ~30% of total device RAM ÷ 4,224 bytes/point. Single-instance tools have no
 such ceiling — even the full 12.15M-point file is fine there on any of these targets.)
 
+## A stage is profiled on unmodified input (input-pure stages)
+
+`bm-prof` times a cell by running one stage again and again on one AppData, with no reset between
+samples (`profiler/bm_prof_common.hpp`, `time_once`). Its numbers are what a pipeline item costs only
+if the stage leaves the buffers it reads as they were. Until cpu-chunk-costs, tree's OMP stage 2 sorted
+`u_morton_keys_s1` in place, so from the second sample on it sorted sorted keys: the Pixel's Medium
+tier was priced 0.64 ms for a stage that takes 9.1 ms on fresh input.
+
+- **Rule.** An OMP stage kernel does not write the buffers it reads. Scratch space goes in its output
+  or a dedicated scratch buffer (tree stage 2 copies the keys into `u_morton_keys_sorted_s2` and sorts
+  there).
+- **Guard.** `bt::testing::ExpectStageInputPure` (`platform/util/testing/input_purity.hpp`) runs a
+  stage twice on one AppData and fails if any buffer the stage does not write changed, or if the two runs
+  wrote different outputs. `InputPurityOmp.*` runs it for every stage of tree (both AppData paths),
+  cifar-dense and cifar-sparse in `ctest -L omp`. A new stage or app lists its regions (every buffer and
+  scalar field) and, per stage, the names of the ones it writes; see `apps/*/omp/test_main.cpp`.
+- **CPU cells run on their tier, in every app.** `bm-prof` and `bm-gen-logs` run a CPU cell or chunk
+  through the app's `dispatch_multi_stage(cores, n, …)`, which runs the stages on exactly that tier's cores
+  with its thread count. Tree pins like the cifar apps; since its stages 2, 3 and 6 are single-threaded and
+  the others open their own parallel region, it binds the calling thread and every stage's team
+  (`apps/tree/omp/dispatchers.hpp`, tree-cpu-pinning; before 2026-10-19 tree ignored the core list and its
+  `big` / `medium` / `little` cells were the same unpinned measurement). `CpuPinningOmp.*`
+  (`platform/util/testing/cpu_pinning.hpp`, in `ctest -L omp`) checks it for all three apps from inside
+  the stages: every thread that runs stage work is on a core of the list, and there are at most n of them.
+
+## GPU stage ranges as whole chunks (`bm-ranges-<app>-vk`)
+
+`bm-prof` times each stage alone. A GPU chunk of a pipeline is more than the sum of those:
+several submissions (the tree's host read-back of `n_unique` between stages 3 and 4), host
+cache maintenance, and a GPU clock that falls while the GPU idles. `bm-ranges-<app>-vk`
+(`profiler/bm_ranges_vulkan.hpp`, gpu-chunk-cost-model D2/D3) measures every contiguous stage
+range [a, b] as **one GPU chunk** through the pipeline's own path (`submit_multi_stage` +
+`complete_multi_stage` on the chunk's own `Sequence`, items placed as for a pipeline whose GPU
+runs exactly [a, b]), host wall time per chunk:
+
+- twice per range: back-to-back (`gap_ms` 0, the range's **t0**), then with the host idle for t0
+  before every chunk (**t1**, a 50 % GPU duty cycle);
+- ranges in a shuffled order (fixed seed); `bm-prof`'s calibrated sampling and knobs
+  (`BT_PROF_BUDGET_S`, `BT_PROF_MIN_ITERS`, `BT_PROF_ABANDON_S`, ...), `--items` pooled items
+  per range (4);
+- `BT_PROF_SCENARIO=interference`: every present CPU tier loops over the stages of the range
+  being measured, on its own data (`bm-prof`'s background load);
+- the GPU clock is sampled every `BT_PROF_CLOCK_PERIOD_MS` (5) while each range runs.
+
+Output: one `bt.profiling-range/v0` JSONL record per (range, gap) on stdout
+([`schemas/profiling-range.schema.json`](../../schemas/profiling-range.schema.json): the
+per-stage fields with `start_stage`/`end_stage`, `gap_ms`, `submissions`, and the clock in
+provenance). The store keeps them in `range-NNN.jsonl` **beside** the per-stage `run-NNN.jsonl`
+of the same scenario directory; per-stage readers glob `run-*.jsonl` and never see them.
+`n(n+1)/2` ranges: 28 for tree, 66 for the cifar apps. Sweep times measured on the phones
+(2026-10-16): [`openspec/changes/gpu-chunk-cost-model/design.md`](../../openspec/changes/gpu-chunk-cost-model/design.md)
+("Sweep durations").
+
+```bash
+cmake --build --preset android --target bm-ranges-tree-vk
+adb -s <serial> push build/android/bm-ranges-tree-vk <libc++_shared.so> /data/local/tmp/<dir>/ </dev/null
+adb -s <serial> shell 'cd /data/local/tmp/<dir> && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=isolated \
+  BT_PROF_RUN=1 ./bm-ranges-tree-vk --device <serial> 2>/dev/null' </dev/null | tr -d '\r' > range-001.jsonl
+```
+
+Or through step 01 of the optimizer, which writes the store
+([`06-end-to-end-scheduling.md`](06-end-to-end-scheduling.md) Step 1).
+
+**GPU clock in provenance.** Every GPU record (`bm-prof` and `bm-ranges`) carries
+`provenance.gpu_clock_mhz`, the median of the positive clock samples taken while it ran (-1 if
+there is no readable source or the GPU never read busy), and `gpu_clock_samples`.
+`profiler/gpu_clock.hpp` reads AMD `pp_dpm_sclk`, Adreno/Tegra devfreq (Hz), the Pixel 7a's
+`/sys/class/misc/mali0/device/cur_freq` and the Samsung's `/sys/kernel/gpu/gpu_clock` or
+`/sys/class/devfreq/*sgpu*/cur_freq` (kHz; 0 while the GPU is idle and power-gated, so it is
+skipped). A read costs 30 us on the Pixel (`test-gpu-clock-omp`, `GpuClockDevice.ReadCost`).
+
 ## The agent rule: prefer tools whose output is JSON / CSV / SQL
 
 ## Tier S — works today, zero install, output is already structured

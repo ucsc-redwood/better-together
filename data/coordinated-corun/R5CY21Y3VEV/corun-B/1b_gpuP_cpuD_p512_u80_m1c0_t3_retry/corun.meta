@@ -1,0 +1,28 @@
+maskA=8
+cmdA=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.8 -s 40 -fa auto
+maskB=1c0
+cmdB=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 3 --mode decode -P 0 -u 1 -s 70
+first=A
+gpu_clock_path=/sys/kernel/gpu/gpu_clock
+thermal_before:
+Thermal Status: 0
+Temperature{mValue=37.6, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=36.7, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=37.7, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=37.8, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=36.3, mType=3, mName=SKIN, mStatus=0}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=34.0, mType=4, mName=USB, mStatus=0}
+launch_A_epoch=1792704507.742666250
+launch_B_epoch=1792704507.768056679
+end_A_epoch=1792704557.946155312
+end_B_epoch=1792704578.734781640
+thermal_after:
+Thermal Status: 2
+Temperature{mValue=56.0, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=42.2, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=50.5, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=50.2, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=42.0, mType=3, mName=SKIN, mStatus=2}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=33.9, mType=4, mName=USB, mStatus=0}

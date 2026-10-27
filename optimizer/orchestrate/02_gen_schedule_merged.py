@@ -16,7 +16,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smt.baselines import get_baseline_for_config
 from smt.bt_vocab import CORE_TYPES
-from smt.data_loader import load_stage_timings
+from smt.constraints import COST_MODELS
+from smt.data_loader import load_range_timings, load_stage_timings
 from smt.overhead import load_overhead, resolve_for_solver
 from smt.solution_analyzer import dump_solutions_as_json, reprice_solution
 from smt.solver import solve_optimization_problem
@@ -119,6 +120,24 @@ def parse_arguments():
         "boosting when kept busy) is what we want to capture, not sanitize.",
     )
     parser.add_argument(
+        "--allow-gpu-multi-chunk",
+        action="store_true",
+        default=False,
+        help="opt-in: let the GPU appear in several chunks of a schedule (Vulkan runs each "
+        "with its own Sequence). Their summed time bounds the period. Default: one "
+        "contiguous chunk per PU.",
+    )
+    parser.add_argument(
+        "--cost-model",
+        choices=COST_MODELS,
+        default="per-stage",
+        help="how a GPU chunk is priced (optimizer/cost-model): per-stage = the sum of its "
+        "stages + the fitted overhead; range-hot = its measured whole-chunk time back-to-back "
+        "(t0, range-NNN.jsonl beside the per-stage runs); range-idle = t0 raised toward the "
+        "after-idle time t1 by the chunk's idle time per period. CPU chunks are always priced "
+        "per stage. A range model writes schedules_<table>_<mode>_<model>.json.",
+    )
+    parser.add_argument(
         "--no-overhead",
         action="store_true",
         default=False,
@@ -167,7 +186,9 @@ def main():
 
     # Output path for schedule JSON
     if args.output_folder:
-        out_path = case.schedule_path(args.output_folder, table_type, minimize_mode)
+        out_path = case.schedule_path(
+            args.output_folder, table_type, minimize_mode, args.cost_model
+        )
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
     else:
         print("No output folder specified, skipping")
@@ -187,6 +208,16 @@ def main():
         # Store which GPU backend was used
         gpu_backend = "gpu_cuda" if use_cuda else "gpu_vulkan"
 
+        # Measured GPU stage ranges for the range models (none -> priced per stage).
+        cost_model, range_costs = args.cost_model, None
+        if cost_model != "per-stage":
+            range_costs = load_range_timings(args.profiling_root, device, app, backend, scenario)
+            if range_costs:
+                print(f"Cost model {cost_model}: {len(range_costs)} measured GPU stage ranges")
+            else:
+                print(f"WARNING: no range records in {prof_dir}; priced per stage")
+                cost_model = "per-stage"
+
         # Fitted per-chunk framework-overhead constants (see smt/overhead.py). Missing
         # file (never fitted) or --no-overhead -> the plain kernel-sum cost model.
         overhead = None
@@ -205,7 +236,15 @@ def main():
         # GPU chunks get their schema-required "hardware" stamped inside the solver
         # (threaded through to get_detailed_solution), so the dump is self-validating.
         solutions = solve_optimization_problem(
-            stage_timings, args.num_solutions, app, solver_mode, gpu_backend, overhead
+            stage_timings,
+            args.num_solutions,
+            app,
+            solver_mode,
+            gpu_backend,
+            overhead,
+            args.allow_gpu_multi_chunk,
+            cost_model,
+            range_costs,
         )
 
         # Union-candidate hedge: ALSO solve with the plain kernel-sum model and append
@@ -223,13 +262,25 @@ def main():
 
             seen = {signature(s) for s in solutions}
             plain = solve_optimization_problem(
-                stage_timings, args.num_solutions, app, solver_mode, gpu_backend, None
+                stage_timings,
+                args.num_solutions,
+                app,
+                solver_mode,
+                gpu_backend,
+                None,
+                args.allow_gpu_multi_chunk,
+                cost_model,
+                range_costs,
             )
             added = 0
             for sol in plain:
                 if signature(sol) not in seen:
                     seen.add(signature(sol))
-                    solutions.append(reprice_solution(sol, CORE_TYPES, stage_timings, overhead))
+                    solutions.append(
+                        reprice_solution(
+                            sol, CORE_TYPES, stage_timings, overhead, cost_model, range_costs
+                        )
+                    )
                     added += 1
             solutions.sort(key=lambda s: s["metrics"].get("max_time", float("inf")))
             for i, sol in enumerate(solutions):
@@ -238,6 +289,11 @@ def main():
                 f"Union sweep: +{added} plain-model candidates (re-priced), "
                 f"{len(solutions)} total, sorted by predicted makespan"
             )
+
+        # Which model priced each schedule, on which table (optimizer/cost-model spec).
+        for sol in solutions:
+            sol["metrics"]["cost_model"] = cost_model
+            sol["metrics"]["table"] = table_type
 
         # Output the solutions
         dump_solutions_as_json(solutions, baseline_data, "pretty", out_path)

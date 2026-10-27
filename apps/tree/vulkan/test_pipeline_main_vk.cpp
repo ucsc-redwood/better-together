@@ -2,11 +2,13 @@
 #include <omp.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdlib>
 #include <functional>
 #include <memory>
 #include <memory_resource>
 #include <optional>
 #include <queue>
+#include <string>
 #include <vector>
 
 #include "apps/tree/omp/dispatchers.hpp"
@@ -104,39 +106,66 @@ TEST(PipelineE2EVk, AllVulkan) {
   run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
-// Finer hybrid that ALTERNATES the GPU across multiple chunks (VK 1-3, OMP 4, VK 5,
-// OMP 6, VK 7 -> THREE Vulkan chunks). FINDING (2026-06-17): reproducibly SIGSEGVs.
-// ROOT CAUSE (diagnosed with GPU-assisted validation on rocky/RADV) = a concurrent
-// command-buffer race, NOT octree re-entry (the earlier "stale stage-7 count" triage
-// was wrong -- VkAppData_Safe's counts are const-correct). Each chunk runs on its own
-// worker thread, but all Vulkan chunks share ONE VulkanDispatcher -> one Sequence /
-// command buffer / fence. With ≥2 Vulkan chunks, two threads record into that one
-// buffer at once: vkBeginCommandBuffer on a buffer still in another thread's recording
-// state (VUID-vkBeginCommandBuffer-commandBuffer-00049) -> corruption -> device loss.
-// Crash frequency tracks the NUMBER of concurrent Vulkan chunks; a single contiguous
-// GPU chunk ({OMP 1-3, VK 4-7}, {VK 1-7}) never races. The z3 solver assigns one
-// contiguous chunk per PU, so it never emits a multi-GPU-chunk schedule -- the
-// framework now REJECTS one via first_concurrent_gpu_chunk() rather than racing the
-// GPU. This test asserts that rejection (no GPU needed; runs on any target).
-TEST(PipelineE2EVk, RejectsMultiGpuChunkSchedule) {
+// Submission spec, "Depth 2 preserves order and results" (design D3): with two items in
+// flight on each Vulkan chunk, every item still matches the oracle, and run_pipeline checks
+// that items reach the last chunk in the order they entered.
+TEST(PipelineE2EVk, InflightDepth2KeepsOrderAndResults) {
+  const char* old = std::getenv("BT_VK_INFLIGHT");
+  const std::string saved = old != nullptr ? old : "";
+  setenv("BT_VK_INFLIGHT", "2", 1);
+  for (const auto& chunks : std::vector<std::vector<ChunkConfig>>{
+           {{ExecutionModel::kVulkan, 1, 7, std::nullopt}},
+           {{ExecutionModel::kOMP, 1, 3, first_present_cpu_type()},
+            {ExecutionModel::kVulkan, 4, 7, std::nullopt}},
+           {{ExecutionModel::kVulkan, 1, 2, std::nullopt},
+            {ExecutionModel::kOMP, 3, 5, first_present_cpu_type()},
+            {ExecutionModel::kVulkan, 6, 7, std::nullopt}},
+       }) {
+    Schedule sched{"e2e-depth2", chunks};
+    validate_schedule_coverage(sched, kNumStages);
+    run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
+  }
+  if (old != nullptr) {
+    setenv("BT_VK_INFLIGHT", saved.c_str(), 1);
+  } else {
+    unsetenv("BT_VK_INFLIGHT");
+  }
+}
+
+// Runtime gpu-chunks spec, "Two Vulkan chunks around a CPU chunk": the GPU serves two
+// chunks of one schedule, each with its own Sequence, concurrently with the CPU chunk
+// between them.
+TEST(PipelineE2EVk, TwoVulkanChunksAroundCpu) {
+  Schedule sched;
+  sched.uid = "e2e-vk-omp-vk";
+  sched.chunks = {
+      {ExecutionModel::kVulkan, 1, 2, std::nullopt},
+      {ExecutionModel::kOMP, 3, 5, first_present_cpu_type()},
+      {ExecutionModel::kVulkan, 6, 7, std::nullopt},
+  };
+  validate_schedule_coverage(sched, kNumStages);
+  run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
+}
+
+// The finer hybrid that alternates the GPU across THREE chunks (VK 1-3, OMP 4, VK 5,
+// OMP 6, VK 7). Before per-chunk Sequences it reproducibly crashed: all Vulkan chunks
+// shared one command buffer, so two worker threads recorded into it at once
+// (VUID-vkBeginCommandBuffer-commandBuffer-00049 -> device loss; diagnosed 2026-06-17 with
+// GPU-assisted validation on rocky/RADV), and first_concurrent_gpu_chunk() rejected it.
+// Now each chunk has its own Sequence and the schedule must run and match the oracle.
+TEST(PipelineE2EVk, ThreeVulkanChunksAlternating) {
   Schedule sched;
   sched.uid = "e2e-alt";
   sched.chunks = {
       {ExecutionModel::kVulkan, 1, 3, std::nullopt},
-      {ExecutionModel::kOMP, 4, 4, ProcessorType::kBigCore},
+      {ExecutionModel::kOMP, 4, 4, first_present_cpu_type()},
       {ExecutionModel::kVulkan, 5, 5, std::nullopt},
-      {ExecutionModel::kOMP, 6, 6, ProcessorType::kBigCore},
+      {ExecutionModel::kOMP, 6, 6, first_present_cpu_type()},
       {ExecutionModel::kVulkan, 7, 7, std::nullopt},
   };
-  validate_schedule_coverage(sched, kNumStages);  // coverage is fine; the GPU re-use is not
-  EXPECT_TRUE(first_concurrent_gpu_chunk(sched).has_value())
-      << "a schedule with 3 Vulkan chunks must be rejected (shared command-buffer race)";
-  // The single-GPU-chunk schedules the real tests use must NOT be rejected.
-  EXPECT_FALSE(
-      first_concurrent_gpu_chunk(Schedule{"ok-hybrid",
-                                          {{ExecutionModel::kOMP, 1, 3, ProcessorType::kBigCore},
-                                           {ExecutionModel::kVulkan, 4, 7, std::nullopt}}})
-          .has_value());
+  validate_schedule_coverage(sched, kNumStages);
+  EXPECT_FALSE(first_concurrent_gpu_chunk(sched).has_value());
+  run_runtime_test<tree::vulkan::VulkanDispatcher>(sched, CheckItem);
 }
 
 }  // namespace

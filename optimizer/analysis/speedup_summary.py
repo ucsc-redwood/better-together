@@ -15,6 +15,11 @@ ONE canonical method for every (device, app, backend) cell:
 
 Cells are DISCOVERED by scanning data/sched_logs/<device>_<app>_<be>_<table>/ so the
 table reflects exactly what ran. Output is the Markdown dashboard/generate.py parses.
+
+The "Prediction accuracy" section (optimizer/cost-model spec) lists, for every executed
+schedule of every cost model and table, measured period / predicted period, and per
+(device, app, backend, cost model, table) the median |measured / predicted - 1| and the
+best measured period (analysis/accuracy.py; schedules from <schedules-root>/schedules_*/).
 """
 
 import argparse
@@ -24,6 +29,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smt.baselines import get_baseline_for_config  # noqa: E402
 
+from analysis.accuracy import accuracy_rows, summarize  # noqa: E402
 from analysis.results.log_parser import find_log_files, process_log_file  # noqa: E402
 from analysis.results.statistics import calculate_aggregated_statistics  # noqa: E402
 
@@ -128,7 +134,64 @@ def compute_rows(sched_logs_root, prof_root):
     return rows
 
 
-def render_markdown(rows):
+def _cell_order(r):
+    return (
+        DEVICE_ORDER.index(r["label"]) if r["label"] in DEVICE_ORDER else 99,
+        APP_ORDER.index(r["app"]) if r["app"] in APP_ORDER else 99,
+        r["be"],
+        r["cost_model"],
+        r["table"],
+    )
+
+
+def render_accuracy(acc_rows):
+    """The prediction-accuracy section: per-(cell, cost model, table) medians, then every
+    executed schedule's ratio."""
+    for r in acc_rows:
+        r["label"] = DEVICE_LABEL.get(r["device"], r["device"])
+    summary = summarize(acc_rows)
+    for r in summary:
+        r["label"] = DEVICE_LABEL.get(r["device"], r["device"])
+    out = [
+        "## Prediction accuracy",
+        "",
+        "Measured period = per run log, each chunk's mean duration summed per PU, maxed over "
+        "PUs; the median over the logs (spread [min-max]). Predicted = the schedule's "
+        "metrics.max_time. Error = |measured / predicted - 1|. A run is matched to every "
+        "schedule file of its cell that proposed the same chunk assignment, and an assignment's "
+        "logs are pooled over the cell's log folders (Logs). Cost model and table are the ones "
+        "the schedule records (metrics.cost_model / metrics.table); an assignment priced the "
+        "same way in several files (both minimize modes, a per-stage fallback) counts once.",
+        "",
+        "| Device | App | Backend | Cost model | Table | Executed | Median abs error | "
+        "Best measured ms [min-max] |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for r in sorted(summary, key=_cell_order):
+        out.append(
+            f"| {r['label']} | {r['app']} | {BE_LABEL[r['be']]} | {r['cost_model']} | "
+            f"{r['table']} | {r['n']} | {r['median_abs_error']:.3f} | {r['best_measured']:.2f} "
+            f"[{r['best_min']:.2f}-{r['best_max']:.2f}] |"
+        )
+    out += [
+        "",
+        "### Executed schedules",
+        "",
+        "| Device | App | Backend | Cost model | Table | Mode | Schedule | Predicted ms | "
+        "Measured ms [min-max] | Logs | Measured / predicted |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for r in sorted(acc_rows, key=lambda r: (_cell_order(r), r["predicted"])):
+        out.append(
+            f"| {r['label']} | {r['app']} | {BE_LABEL[r['be']]} | {r['cost_model']} | "
+            f"{r['table']} | {r['mode']} | {r['uid']} | {r['predicted']:.2f} | "
+            f"{r['measured']:.2f} [{r['measured_min']:.2f}-{r['measured_max']:.2f}] | "
+            f"{r['n_logs']} | {r['ratio']:.3f} |"
+        )
+    return out
+
+
+def render_markdown(rows, acc_rows=()):
     out = ["# Measured pipeline speedups (BetterTogether)", ""]
     out.append(
         "Measured speedup = fastest single-PU whole-pipeline baseline (ms/task, summed from "
@@ -162,6 +225,8 @@ def render_markdown(rows):
         "- Phone (samsung/pixel) cifar-sparse: only the best-predicted schedule(s) were swept "
         "where CPU-only candidates were too slow to run all ten.",
     ]
+    if acc_rows:
+        out += [""] + render_accuracy(list(acc_rows))
     return "\n".join(out) + "\n"
 
 
@@ -171,10 +236,12 @@ def main():
     )
     ap.add_argument("--sched-logs", default="data/sched_logs")
     ap.add_argument("--profiling", default="data/profiling")
+    ap.add_argument("--schedules-root", default="data", help="parent of schedules_<table>/")
     ap.add_argument("--out", default=None, help="default <sched-logs>/speedup-summary.md")
     args = ap.parse_args()
 
     rows = compute_rows(args.sched_logs, args.profiling)
+    acc_rows = accuracy_rows(args.schedules_root, args.sched_logs)
     for r in rows:
         print(
             f"{r['label']:8s} {r['app']:13s} {BE_LABEL[r['be']]:5s}: base {r['base_pu']} "
@@ -183,8 +250,8 @@ def main():
     out_path = args.out or os.path.join(args.sched_logs, "speedup-summary.md")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w") as f:
-        f.write(render_markdown(rows))
-    print(f"\nwrote {out_path} ({len(rows)} rows)")
+        f.write(render_markdown(rows, acc_rows))
+    print(f"\nwrote {out_path} ({len(rows)} rows, {len(acc_rows)} executed schedules)")
 
 
 if __name__ == "__main__":

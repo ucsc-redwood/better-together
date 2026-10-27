@@ -1,0 +1,87 @@
+2026-10-21T07:26:49-07:00 cooling: thermal status 2
+2026-10-21T07:27:19-07:00 cooling: thermal status 2
+2026-10-21T07:27:49-07:00 cooling: thermal status 1
+2026-10-21T07:28:19-07:00 cooling: thermal status 1
+2026-10-21T07:28:49-07:00 start 8b_gpu_pp_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T07:31:04-07:00 end 8b_gpu_pp_r1 rc=0
+2026-10-21T07:31:24-07:00 THROTTLED 8b_gpu_pp_r1, cooling down and repeating once
+2026-10-21T07:33:24-07:00 start 8b_gpu_pp_r1_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T07:35:14-07:00 end 8b_gpu_pp_r1_retry rc=0
+2026-10-21T07:35:34-07:00 cooling: thermal status 1
+2026-10-21T07:36:04-07:00 cooling: thermal status 1
+2026-10-21T07:36:34-07:00 start 8b_gpu_tg_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T07:39:35-07:00 end 8b_gpu_tg_r1 rc=0
+2026-10-21T07:39:55-07:00 THROTTLED 8b_gpu_tg_r1, cooling down and repeating once
+2026-10-21T07:41:55-07:00 start 8b_gpu_tg_r1_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T07:44:28-07:00 end 8b_gpu_tg_r1_retry rc=0
+2026-10-21T07:44:48-07:00 cooling: thermal status 1
+2026-10-21T07:45:18-07:00 cooling: thermal status 1
+2026-10-21T07:45:48-07:00 start 8b_gpufa0_pp_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T07:47:40-07:00 end 8b_gpufa0_pp_r1 rc=0
+2026-10-21T07:48:00-07:00 THROTTLED 8b_gpufa0_pp_r1, cooling down and repeating once
+2026-10-21T07:50:00-07:00 start 8b_gpufa0_pp_r1_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T07:51:40-07:00 end 8b_gpufa0_pp_r1_retry rc=0
+2026-10-21T07:52:00-07:00 cooling: thermal status 1
+2026-10-21T07:52:30-07:00 cooling: thermal status 1
+2026-10-21T07:53:00-07:00 start 8b_gpufa0_tg_r1 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T07:56:07-07:00 end 8b_gpufa0_tg_r1 rc=0
+2026-10-21T07:56:27-07:00 THROTTLED 8b_gpufa0_tg_r1, cooling down and repeating once
+2026-10-21T07:58:27-07:00 start 8b_gpufa0_tg_r1_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:01:07-07:00 end 8b_gpufa0_tg_r1_retry rc=0
+2026-10-21T08:01:27-07:00 cooling: thermal status 1
+2026-10-21T08:01:57-07:00 cooling: thermal status 1
+2026-10-21T08:02:27-07:00 start 8b_gpu_pp_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:04:17-07:00 end 8b_gpu_pp_r2 rc=0
+2026-10-21T08:04:37-07:00 THROTTLED 8b_gpu_pp_r2, cooling down and repeating once
+2026-10-21T08:06:38-07:00 start 8b_gpu_pp_r2_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:08:25-07:00 end 8b_gpu_pp_r2_retry rc=0
+2026-10-21T08:08:45-07:00 cooling: thermal status 1
+2026-10-21T08:09:15-07:00 cooling: thermal status 1
+2026-10-21T08:09:46-07:00 start 8b_gpu_tg_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:12:22-07:00 end 8b_gpu_tg_r2 rc=0
+2026-10-21T08:12:42-07:00 THROTTLED 8b_gpu_tg_r2, cooling down and repeating once
+2026-10-21T08:14:42-07:00 start 8b_gpu_tg_r2_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:17:15-07:00 end 8b_gpu_tg_r2_retry rc=0
+2026-10-21T08:17:35-07:00 cooling: thermal status 1
+2026-10-21T08:18:05-07:00 cooling: thermal status 1
+2026-10-21T08:18:35-07:00 start 8b_gpufa0_pp_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:20:37-07:00 end 8b_gpufa0_pp_r2 rc=0
+2026-10-21T08:20:57-07:00 THROTTLED 8b_gpufa0_pp_r2, cooling down and repeating once
+2026-10-21T08:22:57-07:00 start 8b_gpufa0_pp_r2_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:24:37-07:00 end 8b_gpufa0_pp_r2_retry rc=0
+2026-10-21T08:24:57-07:00 cooling: thermal status 2
+2026-10-21T08:25:27-07:00 cooling: thermal status 1
+2026-10-21T08:25:57-07:00 start 8b_gpufa0_tg_r2 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:29:01-07:00 end 8b_gpufa0_tg_r2 rc=0
+2026-10-21T08:29:21-07:00 THROTTLED 8b_gpufa0_tg_r2, cooling down and repeating once
+2026-10-21T08:31:22-07:00 start 8b_gpufa0_tg_r2_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:34:01-07:00 end 8b_gpufa0_tg_r2_retry rc=0
+2026-10-21T08:34:21-07:00 cooling: thermal status 1
+2026-10-21T08:34:51-07:00 cooling: thermal status 1
+2026-10-21T08:35:22-07:00 start 8b_gpu_pp_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:37:16-07:00 end 8b_gpu_pp_r3 rc=0
+2026-10-21T08:37:36-07:00 THROTTLED 8b_gpu_pp_r3, cooling down and repeating once
+2026-10-21T08:39:36-07:00 start 8b_gpu_pp_r3_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:41:25-07:00 end 8b_gpu_pp_r3_retry rc=0
+2026-10-21T08:41:45-07:00 cooling: thermal status 1
+2026-10-21T08:42:15-07:00 cooling: thermal status 1
+2026-10-21T08:42:45-07:00 start 8b_gpu_tg_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:45:33-07:00 end 8b_gpu_tg_r3 rc=0
+2026-10-21T08:45:53-07:00 THROTTLED 8b_gpu_tg_r3, cooling down and repeating once
+2026-10-21T08:47:53-07:00 start 8b_gpu_tg_r3_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+2026-10-21T08:50:25-07:00 end 8b_gpu_tg_r3_retry rc=0
+2026-10-21T08:50:46-07:00 cooling: thermal status 1
+2026-10-21T08:51:16-07:00 cooling: thermal status 1
+2026-10-21T08:51:46-07:00 start 8b_gpufa0_pp_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:53:46-07:00 end 8b_gpufa0_pp_r3 rc=0
+2026-10-21T08:54:06-07:00 THROTTLED 8b_gpufa0_pp_r3, cooling down and repeating once
+2026-10-21T08:56:06-07:00 start 8b_gpufa0_pp_r3_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T08:57:47-07:00 end 8b_gpufa0_pp_r3_retry rc=0
+2026-10-21T08:58:07-07:00 cooling: thermal status 1
+2026-10-21T08:58:37-07:00 cooling: thermal status 1
+2026-10-21T08:59:07-07:00 start 8b_gpufa0_tg_r3 mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T09:02:14-07:00 end 8b_gpufa0_tg_r3 rc=0
+2026-10-21T09:02:34-07:00 THROTTLED 8b_gpufa0_tg_r3, cooling down and repeating once
+2026-10-21T09:04:34-07:00 start 8b_gpufa0_tg_r3_retry mask=8 cmd=./llama-bench -m /data/local/tmp/lcpp/models/llama3_1_8b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -fa 0 -r 1 -o jsonl
+2026-10-21T09:07:14-07:00 end 8b_gpufa0_tg_r3_retry rc=0
+2026-10-21T09:07:34-07:00 plan done

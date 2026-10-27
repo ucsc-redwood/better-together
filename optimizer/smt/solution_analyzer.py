@@ -158,7 +158,7 @@ def get_detailed_solution(
                 "core_type": current_core_type,
                 # 1-based, inclusive [start_stage, end_stage] -- the schedule
                 # contract base (schemas/schedule.schema.json). chunk_stages is
-                # 0-based and contiguous (z3 contiguity constraint), so +1 once here.
+                # 0-based and contiguous (one maximal run of a PU), so +1 once here.
                 "start_stage": chunk_stages[0] + 1,
                 "end_stage": chunk_stages[-1] + 1,
                 "time": chunk_cost(current_core_type, chunk_time, len(chunk_stages)),
@@ -196,7 +196,13 @@ def finalize_solution(chunks):
     reprice_solution, so re-priced candidates stay indistinguishable in shape)."""
     chunk_times = [chunk["time"] for chunk in chunks]
     if chunk_times:
-        max_time = max(chunk_times)
+        # The period: one device serves all chunks of its PU, so a PU in several chunks
+        # (allow_gpu_multi_chunk) costs their sum. With one chunk per PU this is the
+        # largest chunk, as before.
+        per_pu = {}
+        for chunk in chunks:
+            per_pu[chunk["core_type"]] = per_pu.get(chunk["core_type"], 0.0) + chunk["time"]
+        max_time = max(per_pu.values())
         min_time = min(chunk_times)
         avg_time = sum(chunk_times) / len(chunk_times)
         load_balance_ratio = min_time / max_time
@@ -241,12 +247,22 @@ def finalize_solution(chunks):
     }
 
 
-def reprice_solution(solution, core_types, stage_timings, overhead):
+def reprice_solution(
+    solution, core_types, stage_timings, overhead, cost_model="per-stage", range_costs=None
+):
     """Re-express a solution under the overhead cost model: rebuild every chunk's
     predicted "time" from the stage timings + overhead constants, then regenerate
     metrics and uid to match. Used by the union-candidate sweep in
     02_gen_schedule_merged so candidates discovered by the PLAIN model carry the
-    same prediction semantics as the overhead-model candidates in the same file."""
+    same prediction semantics as the overhead-model candidates in the same file.
+
+    Under a range model (cost_model "range-hot"/"range-idle" with range_costs
+    {(i, j): (t0, t1)}) a GPU chunk with a record costs t0, as the solver prices it; under
+    range-idle a lone GPU chunk is then interpolated toward t1 by its idle time in the
+    resulting period (constraints.idle_price)."""
+    from .constraints import idle_price
+
+    ranges = range_costs if cost_model != "per-stage" else None
     new_chunks = []
     for chunk in solution["chunks"]:
         col = core_types.index(chunk["core_type"])
@@ -257,7 +273,16 @@ def reprice_solution(solution, core_types, stage_timings, overhead):
         oh_chunk, oh_stage = (overhead or {}).get(chunk["core_type"], (0.0, 0.0))
         new_chunk = dict(chunk)
         new_chunk["time"] = kernel + oh_chunk + n * oh_stage
+        ij = (chunk["start_stage"] - 1, chunk["end_stage"] - 1)
+        if ranges and chunk["core_type"] == "GPU" and ij in ranges:
+            new_chunk["time"] = ranges[ij][0]
         new_chunks.append(new_chunk)
+    gpu = [c for c in new_chunks if c["core_type"] == "GPU"]
+    if ranges and cost_model == "range-idle" and len(gpu) == 1:
+        ij = (gpu[0]["start_stage"] - 1, gpu[0]["end_stage"] - 1)
+        if ij in ranges:
+            period = finalize_solution(new_chunks)["metrics"]["max_time"]
+            gpu[0]["time"] = idle_price(*ranges[ij], period)
     return finalize_solution(new_chunks)
 
 

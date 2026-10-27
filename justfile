@@ -5,7 +5,7 @@
 # archived as justfile.old.
 #
 # Four things this file does:
-#   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:7.2 docker image
+#   build-jetson    1. build aarch64  — cross-compiled in the bt-cross:7.2-glslc docker image
 #   build-x86       2. build x86 native (Vulkan + OpenMP)
 #   build-android   3. build arm64 Android — NDK toolchain
 #   test            4. run the unit tests across the HW x backend matrix
@@ -31,7 +31,8 @@ samsung_serial := "R5CY21Y3VEV"
 ndk            := env_var_or_default("ANDROID_NDK_HOME", env_var_or_default("ANDROID_HOME", "/opt/android-sdk") / "ndk/29.0.14206865")
 # Container runtime for the Jetson cross-build: `docker` (build box) or `podman`
 # (the Rocky fleet runner — rootless + SELinux → --userns=keep-id + a :z volume).
-container      := env_var_or_default("BT_CONTAINER", "docker")
+# Defaults to docker when installed, else podman; BT_CONTAINER overrides.
+container      := env_var_or_default("BT_CONTAINER", `command -v docker >/dev/null 2>&1 && echo docker || echo podman`)
 
 # Per-app test binaries. OMP+VK builds (x86 / Android) ship six; Jetson adds CUDA.
 omp_vk_bins := "test-tree-omp test-cifar-dense-omp test-cifar-sparse-omp test-tree-vk test-cifar-dense-vk test-cifar-sparse-vk"
@@ -46,7 +47,7 @@ bench_vk_bins := "bm-prof-tree-vk bm-prof-cifar-dense-vk bm-prof-cifar-sparse-vk
 _default:
     @just --list
 
-# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:7.2 container.
+# 1. Build aarch64 (Jetson) — cross-compiled in the bt-cross:7.2-glslc container.
 # Works with docker (build box) or podman (BT_CONTAINER=podman, the Rocky runner).
 build-jetson:
     #!/usr/bin/env bash
@@ -55,10 +56,10 @@ build-jetson:
     if [ "{{container}}" = "podman" ]; then
       # rootless podman: --userns=keep-id keeps file ownership; :z relabels for SELinux
       podman run --rm --userns=keep-id -e HOME=/workspace/build \
-        -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2 bash -lc "$build"
+        -v "$PWD:/workspace:z" -w /workspace bt-cross:7.2-glslc bash -lc "$build"
     else
       docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build \
-        -v "$PWD:/workspace" -w /workspace bt-cross:7.2 bash -lc "$build"
+        -v "$PWD:/workspace" -w /workspace bt-cross:7.2-glslc bash -lc "$build"
     fi
 
 # 2. Build x86 native (mini pc) — Vulkan + OpenMP.
@@ -71,13 +72,19 @@ build-android:
     ANDROID_NDK_HOME={{ndk}} cmake --preset android
     cmake --build --preset android --target {{omp_vk_bins}}
 
+# Check that every shader buffer binding is declared (readonly / writeonly) the way the shader
+# uses it: the engine flushes and invalidates host caches only where the GPU reads / writes.
+# Needs glslc and spirv-dis (apt install glslc spirv-tools).
+check-shaders:
+    python3 scripts/check_shader_access.py
+
 # Build all three packages.
 build: build-jetson build-x86 build-android
 
 # --- benchmark binaries (for the fleet e2e: 00_run_fleet.py) ----------------
 # bm-prof (profiling) + bm-gen-logs (schedule runner). 00_run_fleet.py's build phase
 # shells out to these. x86/Android build locally; Jetson cross-builds on rocky (the
-# bt-cross:7.2 podman image lives there, not on this box).
+# bt-cross:7.2-glslc podman image lives there, not on this box).
 
 # All three build ON rocky (the build host for everything since the old box
 # retired) and pull the binaries back. Each leg gets its OWN remote source dir:
@@ -89,7 +96,7 @@ build-bench-x86:
 build-bench-android:
     BT_BENCH_SRC=bt-src-android scripts/build-bench-on-rocky.sh android
 
-# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2 podman
+# Cross-build the Jetson benchmark binaries ON rocky-ryzen (the bt-cross:7.2-glslc podman
 # image lives there). Heredoc-over-ssh doesn't survive just's recipe parser, so the
 # rsync->podman->pull flow lives in a standalone script (cf. scripts/run-on-*.sh).
 build-bench-jetson:
@@ -107,6 +114,7 @@ fleet-bench *args:
 # `fleet-bench --fresh` to wipe + re-benchmark in one go.
 bench-clean:
     rm -rf data/profiling data/schedules_btpm data/schedules_isolated data/sched_logs
+    rm -f bt-vk-pipeline-cache-*.bin bt-vk-pipeline-cache-*.bin.tmp.*
 
 # 4. Run the unit tests across the whole matrix (build first with `just build`).
 # Fail-loud: any failing fleet test makes this go red (see the per-target notes).
@@ -171,13 +179,13 @@ test-samsung:
 # Formatters: clang-format (C++), ruff (Python), gersemi (CMake), shfmt (shell),
 # prettier (JSON). The pip tools run via `uv run` and are version-pinned in
 # uv.lock (`uv sync --group dev` to install) — clang-format especially, whose
-# output drifts between releases. shfmt is a Go binary
-# (`go install mvdan.cc/sh/v3/cmd/shfmt@latest`); prettier runs via `bunx`.
+# output drifts between releases. shfmt is a Go binary whose output also drifts:
+# use v3.13.1, the version CI installs (`go install mvdan.cc/sh/v3/cmd/shfmt@v3.13.1`);
+# prettier runs via `bunx`.
 # File sets come from `git ls-files`, so untracked + build/ + _deps are skipped.
 # Generated code is excluded — codegen re-emits it unformatted at build time, so
 # formatting it is futile and makes fmt-check non-deterministic: the */generated/
-# headers (device_specs_embedded.hpp, bt_vocab.hpp), the baked shader headers
-# (platform/engine/vulkan/shaders/h/*_spv.h — all .h), and the .comp GLSL. The
+# headers (device_specs_embedded.hpp, bt_vocab.hpp) and the .comp GLSL. The
 # Python codegen output (optimizer/smt/bt_vocab.py) is excluded via pyproject.
 
 # Format the whole tree in place.
@@ -255,16 +263,20 @@ tsan:
 
 # Lint only the lines changed vs a base ref (default: origin/main) so legacy
 # findings never wall the gate -- the same gate CI runs. `build` is the compile-db
-# dir: build/pc lints the OMP surface anywhere; pass build/vulkan (or build/jetson)
-# on a box that has them to also lint the GPU engine TUs. Fails on first-party check
-# findings; ignores clang-diagnostic-* (a backend TU absent from `build`).
-tidy base="origin/main" build="build/pc":
+# dir: build/vulkan (default, as in CI) lints the OMP + Vulkan surface anywhere, since
+# the Vulkan headers are CPM-fetched; pass build/jetson on a box that has it to also lint
+# the CUDA TUs. Fails on first-party check findings; ignores clang-diagnostic-* (a
+# backend TU absent from `build`).
+tidy base="origin/main" build="build/vulkan":
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{justfile_directory()}}"
-    test -f "{{build}}/compile_commands.json" || cmake --preset pc
+    test -f "{{build}}/compile_commands.json" || cmake --preset vulkan
+    # Debian/Ubuntu ship it under /usr/bin or /usr/lib/llvm-*; Fedora under /usr/share/clang.
     script=$(command -v clang-tidy-diff.py 2>/dev/null \
-      || ls /usr/bin/clang-tidy-diff*.py /usr/lib/llvm-*/share/clang/clang-tidy-diff.py 2>/dev/null | head -1)
+      || ls /usr/bin/clang-tidy-diff*.py /usr/lib/llvm-*/share/clang/clang-tidy-diff.py \
+        /usr/share/clang/clang-tidy-diff.py 2>/dev/null | head -1 || true)
+    [ -n "$script" ] || { echo "error: clang-tidy-diff.py not found (install clang-tools-extra)" >&2; exit 1; }
     out=$(git diff -U0 "{{base}}" -- '*.cpp' '*.hpp' '*.cu' '*.cuh' \
       | python3 "$script" -p1 -path "{{build}}" -j"$(nproc)" 2>&1) || true
     echo "$out"

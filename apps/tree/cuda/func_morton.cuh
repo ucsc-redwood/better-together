@@ -22,14 +22,21 @@ __device__ __forceinline__ uint32_t m3D_e_magicbits(const uint32_t x,
          (morton3D_SplitBy3bits(z) << 2);
 }
 
+// Quantizes one coordinate to [0, 1023], clamped before the cast (see the OMP quantize_coord in
+// apps/tree/omp/func_morton.hpp, which this must match bit for bit).
+[[nodiscard]] __device__ __forceinline__ uint32_t quantize_coord(const float v,
+                                                                 const float min_coord,
+                                                                 const float range) {
+  constexpr auto bit_scale = 1024;
+  return static_cast<uint32_t>(fminf(fmaxf((v - min_coord) / range * bit_scale, 0.0f), 1023.0f));
+}
+
 [[nodiscard]] __device__ __forceinline__ uint32_t xyz_to_morton32(const glm::vec4& xyz,
                                                                   const float min_coord,
                                                                   const float range) {
-  constexpr auto bit_scale = 1024;
-  const auto i = static_cast<uint32_t>((xyz.x - min_coord) / range * bit_scale);
-  const auto j = static_cast<uint32_t>((xyz.y - min_coord) / range * bit_scale);
-  const auto k = static_cast<uint32_t>((xyz.z - min_coord) / range * bit_scale);
-  return m3D_e_magicbits(i, j, k);
+  return m3D_e_magicbits(quantize_coord(xyz.x, min_coord, range),
+                         quantize_coord(xyz.y, min_coord, range),
+                         quantize_coord(xyz.z, min_coord, range));
 }
 
 // ---------------------------------------------------------------------

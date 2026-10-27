@@ -1,3 +1,5 @@
+#version 460
+
 // ----------------------------------------------------------------------------
 // Purpose:
 //     Computes Morton codes (Z-order curve indices) for 3D points, enabling
@@ -21,8 +23,6 @@
 //     Each point is normalized to [0,1] range before encoding.
 // ----------------------------------------------------------------------------
 
-#version 460
-
 layout(local_size_x = 256) in;
 
 layout(std430, set = 0, binding = 0) readonly buffer Data { vec4 data[]; };
@@ -35,9 +35,11 @@ layout(push_constant) uniform Constants {
 }
 constants;
 
-// Splits a 10-bit integer into 30 bits by inserting 2 zeros after each bit
+// Splits a 10-bit integer into 30 bits by inserting 2 zeros after each bit. The scaled
+// coordinate is clamped to [0, 1023] before the cast, as on OMP and CUDA: the top of the range
+// maps to 1023 (the mask used to wrap 1024 to 0), the bottom to 0.
 uint morton3D_SplitBy3bits(const float a) {
-  const uint b = uint(a);
+  const uint b = uint(clamp(a, 0.0, 1023.0));
   uint x = b & 0x000003ff;
   x = (x | x << 16) & 0x030000ff;
   x = (x | x << 8) & 0x0300f00f;

@@ -552,12 +552,14 @@ def parse_speedup_summary():
                 if "loss" in low
                 else "caveats"
                 if "caveat" in low
+                else "accuracy"  # speedup_summary's prediction-accuracy tables: not speedups
+                if "accuracy" in low
                 else None
             )
             continue
         if not generated_note and s.startswith("Measured"):
             generated_note = s
-        if s.startswith("|") and "|" in s[1:]:
+        if s.startswith("|") and "|" in s[1:] and section != "accuracy":
             cells = [c.strip() for c in s.strip("|").split("|")]
             # skip the header row and the |---|---| separator row
             if len(cells) < 6 or cells[0].lower() == "device" or set(cells[0]) <= {"-", ":"}:

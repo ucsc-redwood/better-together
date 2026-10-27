@@ -1,0 +1,19 @@
+mode=both cpu_mask=3f0 cpu_cores=4,5,6,7,8,9 seconds=40
+thermal_before:
+Thermal Status: 0
+Temperature{mValue=40.4, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=38.5, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=40.7, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=40.8, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=38.0, mType=3, mName=SKIN, mStatus=0}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=34.8, mType=4, mName=USB, mStatus=0}
+thermal_after:
+Thermal Status: 1
+Temperature{mValue=56.8, mType=0, mName=AP, mStatus=0}
+Temperature{mValue=40.2, mType=2, mName=BAT, mStatus=0}
+Temperature{mValue=50.5, mType=12, mName=CP, mStatus=0}
+Temperature{mValue=48.7, mType=5, mName=PA, mStatus=0}
+Temperature{mValue=40.8, mType=3, mName=SKIN, mStatus=1}
+Temperature{mValue=0.0, mType=2, mName=SUBBAT, mStatus=0}
+Temperature{mValue=34.8, mType=4, mName=USB, mStatus=0}

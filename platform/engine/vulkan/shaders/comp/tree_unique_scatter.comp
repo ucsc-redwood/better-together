@@ -1,0 +1,51 @@
+#version 460
+
+// Stage 3 (unique), pass 2 of 2: global index + scatter.
+//
+// Each workgroup handles the same tile as tree_unique_local. It sums the totals of the
+// tiles before it (a few hundred at most) into its offset, turns each key's in-tile count
+// into the global INCLUSIVE count of run heads (written back to g_index; the host reads
+// g_index[n-1] as n_unique), and writes every run head to its compacted position.
+
+#define WORKGROUP_SIZE 256
+#define ITEMS_PER_THREAD 8
+#define ELEMENTS_PER_WG (WORKGROUP_SIZE * ITEMS_PER_THREAD)  // 2048
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants { uint g_n; };
+
+layout(std430, set = 0, binding = 0) readonly buffer Keys { uint g_keys[]; };
+layout(std430, set = 0, binding = 1) buffer Index { uint g_index[]; };  // in-tile in, global out
+layout(std430, set = 0, binding = 2) readonly buffer BlockSums { uint g_block_sums[]; };
+layout(std430, set = 0, binding = 3) writeonly buffer Unique { uint g_unique[]; };
+
+shared uint tile_offset;
+
+void main() {
+  const uint tid = gl_LocalInvocationID.x;
+  const uint base = gl_WorkGroupID.x * ELEMENTS_PER_WG;
+
+  if (tid == 0u) {
+    tile_offset = 0u;
+  }
+  barrier();
+  uint partial = 0u;
+  for (uint b = tid; b < gl_WorkGroupID.x; b += WORKGROUP_SIZE) {
+    partial += g_block_sums[b];
+  }
+  atomicAdd(tile_offset, partial);
+  barrier();
+
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint gidx = base + tid + i * WORKGROUP_SIZE;
+    if (gidx < g_n) {
+      const uint index = g_index[gidx] + tile_offset;
+      g_index[gidx] = index;
+      const uint key = g_keys[gidx];
+      if (gidx == 0u || key != g_keys[gidx - 1u]) {
+        g_unique[index - 1u] = key;
+      }
+    }
+  }
+}

@@ -37,24 +37,47 @@ namespace tree {
 // ------------------------------------------------------------------------------------------------
 // clang-format on
 AppData::AppData(std::pmr::memory_resource* mr, const size_t n_input)
+    : AppData(bt::place_all_in(mr), n_input) {}
+
+namespace {
+// n * kMemoryRatio, truncated: the octree buffers are sized as a fraction of the input.
+size_t scaled(const size_t n) { return static_cast<size_t>(static_cast<float>(n) * kMemoryRatio); }
+}  // namespace
+
+// The stages are the ones that touch the buffer on ANY backend (the data flow of the table
+// above): a buffer produced by stage k and consumed by k+1.. lists all of them, so a
+// schedule that puts any of them on a CPU chunk keeps the buffer in the boundary class.
+// bt::kHostSparse is host code that reads sparsely: the final octree, read by checks (the leaf
+// masks are also written once, at construction), and the two counts the Vulkan dispatcher reads
+// back, one element per item, from u_out_idx (stage 3) and u_edge_offset_s6 (stage 6). It does
+// not keep those buffers in the boundary class. The input points are written once, at
+// construction, and only stage 1 reads them afterwards: the same shape as a layer's weights, so
+// they are declared as weights (a schedule that runs stage 1 on the GPU puts them in the
+// weights class, whose placement is coherent where that measured faster).
+AppData::AppData(const bt::PlaceBuffer& place, const size_t n_input)
     : n_input(n_input),
-      u_input_points_s0(n_input, mr),
-      u_morton_keys_s1(n_input, mr),
-      u_morton_keys_sorted_s2(n_input, mr),
-      u_morton_keys_unique_s3(n_input, mr),
-      u_brt_prefix_n_s4(n_input, mr),
-      u_brt_has_leaf_left_s4(n_input, mr),
-      u_brt_has_leaf_right_s4(n_input, mr),
-      u_brt_left_child_s4(n_input, mr),
-      u_brt_parents_s4(n_input, mr),
-      u_edge_count_s5(n_input, mr),
-      u_edge_offset_s6(n_input, mr),
-      u_oct_children_s7(n_input * 8 * kMemoryRatio, mr),
-      u_oct_corner_s7(n_input * kMemoryRatio, mr),
-      u_oct_cell_size_s7(n_input * kMemoryRatio, mr),
-      u_oct_child_node_mask_s7(n_input * kMemoryRatio, mr),
-      u_oct_child_leaf_mask_s7(n_input * kMemoryRatio, mr),
-      u_num_selected_out(1, mr) {
+      u_input_points_s0(n_input, place(bt::BufferKind::kWeights, {1})),
+      u_morton_keys_s1(n_input, place(bt::BufferKind::kActivation, {1, 2})),
+      u_morton_keys_sorted_s2(n_input, place(bt::BufferKind::kActivation, {2, 3})),
+      u_morton_keys_unique_s3(n_input, place(bt::BufferKind::kActivation, {3, 4, 7})),
+      u_brt_prefix_n_s4(n_input, place(bt::BufferKind::kActivation, {4, 5, 7})),
+      u_brt_has_leaf_left_s4(n_input, place(bt::BufferKind::kActivation, {4, 7})),
+      u_brt_has_leaf_right_s4(n_input, place(bt::BufferKind::kActivation, {4, 7})),
+      u_brt_left_child_s4(n_input, place(bt::BufferKind::kActivation, {4, 7})),
+      u_brt_parents_s4(n_input, place(bt::BufferKind::kActivation, {4, 5, 7})),
+      u_edge_count_s5(n_input, place(bt::BufferKind::kActivation, {5, 6, 7})),
+      u_edge_offset_s6(n_input, place(bt::BufferKind::kActivation, {bt::kHostSparse, 6, 7})),
+      u_oct_children_s7(scaled(n_input * 8),
+                        place(bt::BufferKind::kActivation, {bt::kHostSparse, 7})),
+      u_oct_corner_s7(scaled(n_input), place(bt::BufferKind::kActivation, {bt::kHostSparse, 7})),
+      u_oct_cell_size_s7(scaled(n_input), place(bt::BufferKind::kActivation, {bt::kHostSparse, 7})),
+      u_oct_child_node_mask_s7(scaled(n_input),
+                               place(bt::BufferKind::kActivation, {bt::kHostSparse, 7})),
+      // All-ones: a leaf link CLEARS its octant's bit, so a zero bit is a leaf slot. (Left at
+      // 0, every link was a no-op and every free octant read as a leaf.)
+      u_oct_child_leaf_mask_s7(
+          scaled(n_input), 0xFF, place(bt::BufferKind::kActivation, {bt::kHostSparse, 7})),
+      u_num_selected_out(1, place(bt::BufferKind::kActivation, {0})) {
   // BT_TREE_DATA_DIR set -> real Octomap-derived corpus (points.npy), a fixed-size
   // prefix loaded via bt::npy::load_prefix; fails loud on any problem, never a
   // silent fallback to synthetic data. Unset -> the synthetic seeded generator

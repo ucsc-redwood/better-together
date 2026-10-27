@@ -1,0 +1,21 @@
+# Task 2.1: llama.cpp alone rates on the Samsung: llama-bench 8345f33 built with GGML_CPU_ARM_ARCH=armv8.6-a+dotprod+i8mm+fp16
+# (/data/local/tmp/lpa/llama-bench); GGUFs read in place from the owner's /data/local/tmp/lcpp/models.
+# pp = prefill at prompt 128/512/2048; tg = decode of 128 tokens at KV depth 0/128/512/2048.
+# CPU configs hide the Vulkan device (-dev none) so no op is offloaded; GPU host thread on core 3 (mask 8).
+# One-tier CPU mask is 180 (cores 7-8), not 380: see diag-ems-thread-placement.txt.
+1b_cpu180_pp|180|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+1b_cpu180_tg|180|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+1b_cpu3f0_pp|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+1b_cpu3f0_tg|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+1b_gpu_pp|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+1b_gpu_tg|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+1b_partial_pp|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 8 -t 6 -r 1 -o jsonl
+1b_partial_tg|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 8 -t 6 -r 1 -o jsonl
+3b_cpu180_pp|180|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+3b_cpu180_tg|180|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 2 -r 1 -o jsonl
+3b_cpu3f0_pp|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+3b_cpu3f0_tg|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 0 -dev none -t 6 -r 1 -o jsonl
+3b_gpu_pp|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 99 -t 1 -r 1 -o jsonl
+3b_gpu_tg|8|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 99 -t 1 -r 1 -o jsonl
+3b_partial_pp|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 128,512,2048 -n 0 -ngl 14 -t 6 -r 1 -o jsonl
+3b_partial_tg|3f0|./llama-bench -m /data/local/tmp/lcpp/models/llama3_2_3b_q4_0.gguf -p 0 -n 128 -d 0,128,512,2048 -ngl 14 -t 6 -r 1 -o jsonl

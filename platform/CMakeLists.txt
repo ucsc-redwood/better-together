@@ -79,13 +79,14 @@ endif()
 # ---- bt::vulkan -- Vulkan backend engine (kiss-vk; app dispatchers added by apps) -
 # Uses vulkan-hpp's dynamic dispatch + vk::DynamicLoader (dlopen libvulkan at runtime;
 # no volk, no link-time -lvulkan). VulkanHeaders/VMA are fetched at the root so their
-# SOURCE_DIR vars are visible here. SPIR-V shaders are pre-baked committed headers.
+# SOURCE_DIR vars are visible here. SPIR-V shaders are compiled at build time.
 if(BT_ENABLE_VULKAN)
     add_library(
         bt_vulkan
         STATIC
         engine/vulkan/algorithm.cpp
         engine/vulkan/base_engine.cpp
+        engine/vulkan/pipeline_cache.cpp
         engine/vulkan/sequence.cpp
         engine/vulkan/vma_pmr.cpp
     )
@@ -104,11 +105,15 @@ if(BT_ENABLE_VULKAN)
     )
     target_link_libraries(bt_vulkan PUBLIC bt::core ${CMAKE_DL_LIBS})
 
-    # Shaders: bt::vulkan compiles the committed *_spv.h directly. `bake-shaders`
-    # (opt-in target; needs glslc+xxd) re-bakes them -- it replaces the old root
-    # Makefile. See cmake/bt_shaders.cmake for why .comp->.spv is not on ALL.
+    # Shaders: glslc compiles shaders/comp/*.comp into headers in the build tree
+    # (cmake/bt_shaders.cmake); bt::vulkan includes them via shaders/all_shaders.hpp.
     include(${CMAKE_SOURCE_DIR}/cmake/bt_shaders.cmake)
-    bt_bake_shaders()
+    bt_build_shaders()
+    add_dependencies(bt_vulkan bt_shaders)
+    target_include_directories(
+        bt_vulkan
+        PUBLIC $<BUILD_INTERFACE:${BT_SHADER_GEN_DIR}>
+    )
 
     # kiss-vk engine self-test (no app, no --device).
     if(BT_BUILD_TESTS)

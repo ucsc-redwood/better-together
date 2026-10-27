@@ -1,0 +1,84 @@
+#version 460
+
+// Stage 3 (unique), pass 1 of 2: run-head flags + per-block scan.
+//
+// Each workgroup takes a tile of ELEMENTS_PER_WG sorted keys, flags the head of every run
+// (key i differs from key i-1, and key 0), and scans the flags with a work-efficient
+// Blelloch scan over shared memory, as tree_scan_local does. It writes each key's
+// INCLUSIVE count of run heads within the tile to g_local and the tile's total to
+// g_block_sums[gl_WorkGroupID.x]. tree_unique_scatter then adds the tiles before it and
+// scatters. Two dispatches replace find_dups, the 3-pass device scan and move_dups
+// (tree-app-improvements B6). No subgroup ops.
+
+#define WORKGROUP_SIZE 256
+#define ITEMS_PER_THREAD 8
+#define ELEMENTS_PER_WG (WORKGROUP_SIZE * ITEMS_PER_THREAD)  // 2048
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+layout(push_constant, std430) uniform PushConstants { uint g_n; };
+
+layout(std430, set = 0, binding = 0) readonly buffer Keys { uint g_keys[]; };
+layout(std430, set = 0, binding = 1) writeonly buffer Local { uint g_local[]; };
+layout(std430, set = 0, binding = 2) writeonly buffer BlockSums { uint g_block_sums[]; };
+
+shared uint temp[ELEMENTS_PER_WG];
+
+uint is_head(const uint gidx) {
+  return (gidx < g_n && (gidx == 0u || g_keys[gidx] != g_keys[gidx - 1u])) ? 1u : 0u;
+}
+
+void main() {
+  const uint tid = gl_LocalInvocationID.x;
+  const uint base = gl_WorkGroupID.x * ELEMENTS_PER_WG;
+
+  // Load the tile's flags (0 past the end).
+  uint flags[ITEMS_PER_THREAD];
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint local = tid + i * WORKGROUP_SIZE;
+    flags[i] = is_head(base + local);
+    temp[local] = flags[i];
+  }
+  barrier();
+
+  // Up-sweep (reduce). d = number of active lanes at this level.
+  uint offset = 1u;
+  for (uint d = ELEMENTS_PER_WG >> 1; d > 0u; d >>= 1) {
+    for (uint k = tid; k < d; k += WORKGROUP_SIZE) {
+      const uint ai = offset * (2u * k + 1u) - 1u;
+      const uint bi = offset * (2u * k + 2u) - 1u;
+      temp[bi] += temp[ai];
+    }
+    offset <<= 1;
+    barrier();
+  }
+
+  // Save total, clear last for the exclusive down-sweep.
+  if (tid == 0u) {
+    g_block_sums[gl_WorkGroupID.x] = temp[ELEMENTS_PER_WG - 1u];
+    temp[ELEMENTS_PER_WG - 1u] = 0u;
+  }
+  barrier();
+
+  // Down-sweep -> exclusive scan in temp[].
+  for (uint d = 1u; d < ELEMENTS_PER_WG; d <<= 1) {
+    offset >>= 1;
+    for (uint k = tid; k < d; k += WORKGROUP_SIZE) {
+      const uint ai = offset * (2u * k + 1u) - 1u;
+      const uint bi = offset * (2u * k + 2u) - 1u;
+      const uint t = temp[ai];
+      temp[ai] = temp[bi];
+      temp[bi] += t;
+    }
+    barrier();
+  }
+
+  // Exclusive -> inclusive by adding the element back.
+  for (uint i = 0; i < ITEMS_PER_THREAD; ++i) {
+    const uint local = tid + i * WORKGROUP_SIZE;
+    const uint gidx = base + local;
+    if (gidx < g_n) {
+      g_local[gidx] = temp[local] + flags[i];
+    }
+  }
+}

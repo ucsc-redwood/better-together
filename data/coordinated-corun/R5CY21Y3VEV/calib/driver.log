@@ -1,0 +1,44 @@
+2026-10-21T21:46:30-07:00 start 1b_gpuP_p512_u100_r1 mask=8 battery=38 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 1 -s 30 -fa auto
+2026-10-21T21:47:08-07:00 end 1b_gpuP_p512_u100_r1 rc=0
+2026-10-21T21:47:28-07:00 start 1b_gpuP_p2048_u100_r1 mask=8 battery=38 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 30 -fa 0
+2026-10-21T21:48:14-07:00 end 1b_gpuP_p2048_u100_r1 rc=0
+2026-10-21T21:48:35-07:00 start 1b_gpuD_d0_u100_r1 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 30
+2026-10-21T21:49:11-07:00 end 1b_gpuD_d0_u100_r1 rc=0
+2026-10-21T21:49:31-07:00 start 1b_cpuD_d0_m3f0_r1 mask=3f0 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 30
+2026-10-21T21:50:03-07:00 end 1b_cpuD_d0_m3f0_r1 rc=0
+2026-10-21T21:50:23-07:00 cooling: thermal status 1
+2026-10-21T21:50:53-07:00 start 1b_gpuP_p512_u50_r1 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.5 -s 30 -fa auto
+2026-10-21T21:51:31-07:00 end 1b_gpuP_p512_u50_r1 rc=0
+2026-10-21T21:51:51-07:00 start 1b_gpuP_p512_u100_r2 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 1 -s 30 -fa auto
+2026-10-21T21:52:30-07:00 end 1b_gpuP_p512_u100_r2 rc=0
+2026-10-21T21:52:50-07:00 start 1b_gpuP_p2048_u100_r2 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 30 -fa 0
+2026-10-21T21:53:37-07:00 end 1b_gpuP_p2048_u100_r2 rc=0
+2026-10-21T21:53:57-07:00 THROTTLED 1b_gpuP_p2048_u100_r2, cooling down and repeating once
+2026-10-21T21:55:57-07:00 start 1b_gpuP_p2048_u100_r2_retry mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 30 -fa 0
+2026-10-21T21:56:42-07:00 end 1b_gpuP_p2048_u100_r2_retry rc=0
+2026-10-21T21:57:02-07:00 start 1b_gpuD_d0_u100_r2 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 30
+2026-10-21T21:57:39-07:00 end 1b_gpuD_d0_u100_r2 rc=0
+2026-10-21T21:57:59-07:00 start 1b_cpuD_d0_m3f0_r2 mask=3f0 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 30
+2026-10-21T21:58:30-07:00 end 1b_cpuD_d0_m3f0_r2 rc=0
+2026-10-21T21:58:50-07:00 THROTTLED 1b_cpuD_d0_m3f0_r2, cooling down and repeating once
+2026-10-21T22:00:50-07:00 start 1b_cpuD_d0_m3f0_r2_retry mask=3f0 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 30
+2026-10-21T22:01:21-07:00 end 1b_cpuD_d0_m3f0_r2_retry rc=0
+2026-10-21T22:01:42-07:00 start 1b_gpuP_p512_u50_r2 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.5 -s 30 -fa auto
+2026-10-21T22:02:20-07:00 end 1b_gpuP_p512_u50_r2 rc=0
+2026-10-21T22:02:41-07:00 start 1b_gpuP_p512_u100_r3 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 1 -s 30 -fa auto
+2026-10-21T22:03:19-07:00 end 1b_gpuP_p512_u100_r3 rc=0
+2026-10-21T22:03:39-07:00 start 1b_gpuP_p2048_u100_r3 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 30 -fa 0
+2026-10-21T22:04:26-07:00 end 1b_gpuP_p2048_u100_r3 rc=0
+2026-10-21T22:04:46-07:00 THROTTLED 1b_gpuP_p2048_u100_r3, cooling down and repeating once
+2026-10-21T22:06:47-07:00 start 1b_gpuP_p2048_u100_r3_retry mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 2048 -C 512 -u 1 -s 30 -fa 0
+2026-10-21T22:07:32-07:00 end 1b_gpuP_p2048_u100_r3_retry rc=0
+2026-10-21T22:07:52-07:00 start 1b_gpuD_d0_u100_r3 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode decode -P 0 -u 1 -s 30
+2026-10-21T22:08:29-07:00 end 1b_gpuD_d0_u100_r3 rc=0
+2026-10-21T22:08:49-07:00 start 1b_cpuD_d0_m3f0_r3 mask=3f0 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 30
+2026-10-21T22:09:20-07:00 end 1b_cpuD_d0_m3f0_r3 rc=0
+2026-10-21T22:09:40-07:00 THROTTLED 1b_cpuD_d0_m3f0_r3, cooling down and repeating once
+2026-10-21T22:11:40-07:00 start 1b_cpuD_d0_m3f0_r3_retry mask=3f0 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 0 -dev none -t 6 --mode decode -P 0 -u 1 -s 30
+2026-10-21T22:12:11-07:00 end 1b_cpuD_d0_m3f0_r3_retry rc=0
+2026-10-21T22:12:32-07:00 start 1b_gpuP_p512_u50_r3 mask=8 battery=37 cmd=./lpa_pace -m /data/local/tmp/lcpp/models/llama3_2_1b_q4_0.gguf -ngl 99 -t 1 --mode prefill -P 512 -C 512 -u 0.5 -s 30 -fa auto
+2026-10-21T22:13:10-07:00 end 1b_gpuP_p512_u50_r3 rc=0
+2026-10-21T22:13:30-07:00 plan done

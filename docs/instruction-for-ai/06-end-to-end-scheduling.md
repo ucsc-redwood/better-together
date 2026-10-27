@@ -19,7 +19,10 @@ is no longer a wide-CSV export step.
 
 Canonical store layout (one record per line, schema
 [`schemas/profiling-table.schema.json`](../../schemas/profiling-table.schema.json)):
-`data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl`.
+`data/profiling/<device>/<app>/<backend>/<scenario>/run-NNN.jsonl`. GPU stage-range records
+(`bm-ranges-<app>-vk`, schema
+[`schemas/profiling-range.schema.json`](../../schemas/profiling-range.schema.json)) sit beside
+them as `range-NNN.jsonl`; only the range cost models of Step 2 read them.
 
 ---
 
@@ -30,7 +33,7 @@ Three presets, three architectures. Build only the targets a step needs.
 ```bash
 cmake --preset vulkan && cmake --build --preset vulkan --target bm-prof-<app>-vk bm-gen-logs-<app>-vk bm-baseline-<app>-vk   # x86 iGPU (minipc)
 # Jetson (arm64, CUDA+Vulkan): cross container — see 02-building.md
-docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace bt-cross:7.2 \
+docker run --rm --user "$(id -u):$(id -g)" -e HOME=/workspace/build -v "$PWD:/workspace" -w /workspace bt-cross:7.2-glslc \
   bash -lc 'cmake --build --preset jetson --target bm-prof-<app>-<cu|vk> bm-gen-logs-<app>-<cu|vk> bm-baseline-<app>-<cu|vk>'
 # Android (arm64, Vulkan): NDK
 export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865
@@ -54,6 +57,27 @@ ssh <host> 'cd /tmp/bt && LD_LIBRARY_PATH=. BT_PROF_SCENARIO=interference BT_PRO
 # android (adb on rocky for BOTH phones; adb -s <serial>) — suffix every adb shell with </dev/null; strip CR with tr -d '\r'
 ```
 
+**Step 01 does the deploy, the runs and the store layout** (it pushes only the binaries: the
+device directory must already hold `libc++_shared.so` on a phone, and the weights in
+`<dest>/weights`, `scripts/deploy-weights.sh`). `--tools ranges` collects the GPU stage-range
+records (every range as one GPU chunk, back-to-back and after an idle gap; see
+[`05-profiling.md`](05-profiling.md) "GPU stage ranges as whole chunks") into `range-NNN.jsonl`
+beside the per-stage runs; `--tools prof` (the default) the per-stage `run-NNN.jsonl`. Each
+invocation replaces only the kind it collects. `BT_PROF_*` knobs set for 01 reach the device.
+The tables of the gpu-chunk-cost-model change (2026-10-16) were collected per phone and app with:
+
+```bash
+uv run optimizer/orchestrate/01_collect_profiling.py --device <serial> --app <app> --backend vk \
+  --adb-serial <serial> --build-dir build/android --dest /data/local/tmp/<dir> \
+  --tools prof --runs 2 --scenarios isolated,interference --cooldown-s 20
+BT_PROF_MIN_ITERS=3 BT_PROF_ABANDON_S=2.5 uv run optimizer/orchestrate/01_collect_profiling.py \
+  --device <serial> --app <app> --backend vk --adb-serial <serial> --build-dir build/android \
+  --dest /data/local/tmp/<dir> --tools ranges --runs 2 --scenarios isolated,interference --cooldown-s 20
+```
+
+(`BT_PROF_ABANDON_S=2.5` lets a range up to 2.5 s long take the `BT_PROF_MIN_ITERS` samples
+instead of one; at the default 0.25 s most cifar-sparse ranges on the Pixel would be sampled once.)
+
 **Parallelism rule:** Jetson is independent → run it concurrently with the rocky
 side, but **serialize everything on rocky-ryzen — MiniPC (Vulkan) ↔ Pixel ↔ Samsung**.
 All three now hang off rocky (the iGPU runs + both phones' adb); concurrent runs
@@ -62,7 +86,7 @@ contend (CPU + USB) and produce empty/erratic output.
 Validate + view:
 
 ```bash
-uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate
+uv run optimizer/smt/profiling_loader.py --device <dev> --app <app> --backend <bedir>   # schema-validate + aggregate (+ ranges, if any)
 uv run optimizer/analysis/render_isolated_table.py --scenario interference --metric p50       # per-app table
 uv run optimizer/analysis/coverage.py --scenario interference                                 # what's collected vs MISSING
 ```
@@ -90,11 +114,70 @@ uv run optimizer/analysis/fit_overhead.py        # reads data/sched_logs -> writ
 ```
 
 (model-selected per PU class — classes whose residuals a constant can't explain fall
-back to zero; see the script docstring). `02` also runs a **union sweep**: it solves
+back to zero; see the script docstring).
+
+**The phones ship no `overhead.json` (cpu-chunk-costs, 2026-10-18).** Fitted on the 2026-10-17
+executions, the Pixel 7a's CPU class came out zero and the Samsung's at 0.553 ms per chunk (no GPU
+overhead on either). Neither passed the held-out check, so `02` prices both phones' chunks as
+plain stage sums. The fits are kept in `data/archive/2026-10-18-cpu-chunk-costs-rejected-overhead/`, and
+the measurements are in
+[`../reports-for-human/2026-10-18-cpu-chunk-costs-gate.md`](../reports-for-human/2026-10-18-cpu-chunk-costs-gate.md).
+A refit has to pass the same check before it goes into the store:
+
+1. Fit on one set of executions (`fit_overhead.py --dry-run --sched-logs <set A>`).
+2. With the file in place, solve and execute a second, new set.
+3. Compute the second set's median CPU-chunk `|measured / predicted - 1|` with and without the
+   constants. Ship only if "with" is lower.
+
+`02` also runs a **union sweep**: it solves
 under both cost models, re-prices the plain-model extras under the overhead model,
 and emits the union sorted by predicted makespan — the measured top-K sweep in step 3
 then picks the true winner, hedging either model's blind spots. `--no-overhead`
 opts out entirely.
+
+**GPU in several chunks (opt-in, default off).** `02 … --allow-gpu-multi-chunk` lets z3
+place the GPU in more than one chunk of a schedule. The Vulkan runtime runs each with its own
+`Sequence`; CUDA schedules with two CUDA chunks are still rejected (`first_concurrent_gpu_chunk`)
+and `bm-gen-logs` skips them. The chunks share one device, so the solver bounds the period by
+the **sum** of the GPU's chunks (each with its per-chunk overhead), and the emitted
+`metrics.max_time` is the largest per-PU sum. Without the flag every PU gets one contiguous chunk,
+as before.
+
+**GPU cost model (`--cost-model`, default `per-stage`).** How `02` prices a GPU chunk
+(gpu-chunk-cost-model; `optimizer/smt/constraints.py`):
+
+| model | a GPU chunk [a, b] costs | needs |
+|---|---|---|
+| `per-stage` (default) | the sum of its stages + the fitted GPU overhead, as above | `run-*.jsonl` |
+| `range-hot` | t0: the measured back-to-back time of [a, b] as one chunk; no stage sum, no GPU overhead | `range-*.jsonl` of the scenario |
+| `range-idle` | t0 raised toward t1 (the time after an idle gap of t0) by the chunk's idle time per period, `min(t1, (t0 + k·T)/(1 + k))`, `k = (t1 - t0)/t0` | same |
+
+- CPU chunks are priced per stage, with their overhead, under every model.
+- Under the range models only the actual chunks (maximal GPU segments) are constrained: a
+  measured range time need not be monotone in the range. A range without a record, and every
+  chunk of a store without range files, falls back to its per-stage price (02 warns).
+- With `--allow-gpu-multi-chunk` the GPU's chunks are bounded by the sum of their t0.
+- `range-idle` cannot raise the predicted period above `range-hot`'s: the price stays below the
+  period whenever t0 does. It changes the GPU chunk's reported time, and so the gap objective.
+- A range model writes `schedules_<table>_<mode>_<model>.json` beside the per-stage file; every
+  schedule records `metrics.cost_model` and `metrics.table`.
+- z3 time on the phones' tree tables (2026-10-16): `range-hot` 0.9-1.1x and `range-idle`
+  1.1-1.7x the `per-stage` solve.
+
+To compare models on a cell, solve each one on the same table, execute their candidates
+(Step 3; the accuracy join matches runs to schedules by chunk assignment, so an assignment two
+models propose runs once), and read the "Prediction accuracy" section of `speedup_summary.py`:
+the median `|measured / predicted - 1|` and the best measured period per (device, app, backend,
+cost model, table). `validate_btpm.py` prints the same join per cost model.
+
+```bash
+for m in per-stage range-hot range-idle; do
+  uv run optimizer/orchestrate/02_gen_schedule_merged.py --profiling_root data/profiling \
+    --device <dev> --app <app> --backend vk --table_type btpm --minimize_mode tmax \
+    --num_solutions 10 --output_folder data/schedules_btpm --cost-model $m
+done
+uv run optimizer/analysis/speedup_summary.py --sched-logs data/sched_logs --schedules-root data
+```
 
 ## Step 3 — run the schedule(s) on the device
 
@@ -104,6 +187,30 @@ uv run optimizer/orchestrate/03_run_schedule.py --device <dev> --app <app> --bac
   --table-type btpm --minimize-mode tmax --log-folder data/sched_logs/<dev>_<app>_<be> \
   --repeat 1 --n-schedules-to-run 0                                     # 0 = all candidates
 ```
+
+Engine knobs reach the device runs: the transport forwards every `BT_VK_*` variable set for
+the orchestrator (`00`/`01`/`03`) to the remote binary. For example `BT_VK_INFLIGHT=2 uv run
+optimizer/orchestrate/00_run_fleet.py …` runs the Vulkan GPU chunks with two items in flight.
+The knobs added by vk-engine-runtime, all unset by default (details in
+[`03-unit-testing.md`](03-unit-testing.md) "Engine knobs"):
+
+| knob | default | effect |
+|---|---|---|
+| `BT_VK_BARRIER_ALL=1` | unset: barriers only where a stage touches a buffer written (or read) since the last one | a barrier before every dispatch |
+| `BT_VK_WEIGHTS_PLACEMENT=default\|device_local\|uncached` | unset: `uncached` on the Pixel 7a, host-cached elsewhere | memory type of the weights buffer class |
+| `BT_VK_GPU_LOCAL_PLACEMENT=default\|device_local\|uncached` | unset: `uncached` on the Pixel 7a, host-cached elsewhere | memory type of the GPU-local buffer class |
+| `BT_VK_BOUNDARY_PLACEMENT=default\|device_local\|uncached` | unset: host-cached | memory type of the boundary class (experiment; see `03-unit-testing.md`) |
+| `BT_VK_QUEUE=universal\|compute` | `universal` | queue family; `compute` falls back with a warning where none exists |
+| `BT_VK_QUEUE_PRIORITY=low\|medium\|high` | the driver's default priority | global queue priority; a refusal warns and keeps the default |
+| `BT_VK_INFLIGHT=<n>` | `1` | items in flight per Vulkan GPU chunk |
+| `BT_VK_PHASES=1` | off | times every submission's phases (record, submit, wait, …) and verifies the timestamp calibration first; `bm-phases-{tree,cifar-dense,cifar-sparse}-vk` turns it on and prints them per chunk, with the bytes flushed and invalidated |
+| `BT_GPU_THREAD_CORES=none\|auto\|<id>[,<id>...]` | unset: the OS places the thread | where the thread that drives a Vulkan GPU chunk runs; `auto` = a free medium/big tier (opt-in, measured device-dependent) |
+| `--allow-gpu-multi-chunk` (`02`, solver `allow_gpu_multi_chunk`) | off: one chunk per PU | the GPU may take several chunks (above) |
+
+At `BT_VK_INFLIGHT` > 1 a chunk's `Start`/`End` ticks bracket submit → complete, so they include
+the time an item waits behind the others in flight. Its chunk durations, the "max chunk"
+makespan of `speedup_summary.py` and the residuals `fit_overhead.py` fits are then latency, not
+throughput: compare depths by the per-task makespan of step 4 (vk-engine-runtime 4.5).
 
 `03` deploys the prebuilt binary + schedule JSON, runs the executor with
 `--schedule-file` (local file; **no HTTP/curl** — that path is retired), and writes

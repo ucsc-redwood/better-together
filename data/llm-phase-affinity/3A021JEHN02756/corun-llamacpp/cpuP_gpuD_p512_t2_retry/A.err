@@ -1,0 +1,25 @@
+1792553184.699435545 ggml_vulkan: Found 1 Vulkan devices:
+1792553184.719637123 ggml_vulkan: 0 = Mali-G710 (Mali-G710) | uma: 1 | fp16: 1 | bf16: 0 | fp4: 0 | warp size: 16 | shared memory: 32768 | int dot: 1 | matrix cores: none
+1792553184.728375567 llama-bench: benchmark 1/1: starting
+1792553185.601650145 llama-bench: benchmark 1/1: warmup prompt run
+1792553188.647879842 llama-bench: benchmark 1/1: prompt run 1/21
+1792553191.858581015 llama-bench: benchmark 1/1: prompt run 2/21
+1792553195.311433678 llama-bench: benchmark 1/1: prompt run 3/21
+1792553199.305343429 llama-bench: benchmark 1/1: prompt run 4/21
+1792553203.824803718 llama-bench: benchmark 1/1: prompt run 5/21
+1792553208.451336150 llama-bench: benchmark 1/1: prompt run 6/21
+1792553213.146484671 llama-bench: benchmark 1/1: prompt run 7/21
+1792553217.886755182 llama-bench: benchmark 1/1: prompt run 8/21
+1792553222.636218034 llama-bench: benchmark 1/1: prompt run 9/21
+1792553227.351204324 llama-bench: benchmark 1/1: prompt run 10/21
+1792553232.101265035 llama-bench: benchmark 1/1: prompt run 11/21
+1792553236.929388776 llama-bench: benchmark 1/1: prompt run 12/21
+1792553241.590679632 llama-bench: benchmark 1/1: prompt run 13/21
+1792553246.258888130 llama-bench: benchmark 1/1: prompt run 14/21
+1792553251.059897165 llama-bench: benchmark 1/1: prompt run 15/21
+1792553256.544030957 llama-bench: benchmark 1/1: prompt run 16/21
+1792553262.232290970 llama-bench: benchmark 1/1: prompt run 17/21
+1792553268.271143837 llama-bench: benchmark 1/1: prompt run 18/21
+1792553274.632877686 llama-bench: benchmark 1/1: prompt run 19/21
+1792553281.002898401 llama-bench: benchmark 1/1: prompt run 20/21
+1792553287.369816251 llama-bench: benchmark 1/1: prompt run 21/21

@@ -1,0 +1,7 @@
+# Queue for run_queue.sh, Samsung: the rebuilt harness (from the committed, formatted source), task 2.1, then
+# stages A, D and E (E moved before B and C: it needs no setting from A-D, and B / C wait for the analysis of A and D).
+push|build/ccr/lpa_pace
+alone|plan_alone_1b.txt|3|alone|coordinated-corun: paced-alone and reference rates, 1B (task 2.1)
+corun|plan_corun_A.txt|3|corun-A|coordinated-corun: stage A, GPU prefill paced next to CPU decode (task 2.2)
+corun|plan_corun_D.txt|3|corun-D|coordinated-corun: stage D, GPU decode paced next to CPU decode (task 2.3)
+corun|plan_corun_E.txt|3|corun-E|coordinated-corun: stage E, CPU prefill next to paced GPU decode (task 2.6)

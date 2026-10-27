@@ -28,8 +28,8 @@
     "gpu": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["backend", "subgroup_size"],
-      "description": "GPU/accelerator descriptor. 'backend' = the GPU compute API the device's accelerator speaks; 'subgroup_size' selects the Vulkan compute-shader variant (warp16/32/64). Transitional: once the Vulkan engine queries VkPhysicalDeviceSubgroupProperties at runtime, subgroup_size becomes informational. Replaces the hardcoded device->warp map in builtin-apps/app.cpp.",
+      "required": ["backend"],
+      "description": "GPU/accelerator descriptor. 'backend' = the GPU compute API the device's accelerator speaks. 'subgroup_size' is informational: the Vulkan engine queries the subgroup size at runtime and only warns if this value disagrees.",
       "properties": {
         "backend": {
           "enum": ["cuda", "vulkan"],
@@ -42,7 +42,7 @@
         "subgroup_size": {
           "type": "integer",
           "minimum": 1,
-          "description": "Subgroup/warp size used to pick the compute-shader variant (e.g. 16 Mali, 32 Adreno/NVIDIA, 64 AMD/some Adreno)."
+          "description": "Informational: the GPU's default subgroup size as the device reports it (e.g. 16 Mali, 32 NVIDIA, 64 AMD/Xclipse). Not used to select shaders; a mismatch with the runtime-queried size logs a warning."
         }
       }
     },

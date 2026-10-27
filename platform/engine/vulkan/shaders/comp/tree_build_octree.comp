@@ -5,30 +5,33 @@
 #define morton_bits 30
 
 // Instead of OctNode struct, we'll use separate buffers
-layout(set = 0, binding = 0) buffer Children {
+layout(set = 0, binding = 0) writeonly buffer Children {
   int children[];
 };  // [8 * n_nodes]
-layout(set = 0, binding = 1) buffer Corners { vec4 corners[]; };
-layout(set = 0, binding = 2) buffer CellSizes { float cell_sizes[]; };
+layout(set = 0, binding = 1) writeonly buffer Corners { vec4 corners[]; };
+layout(set = 0, binding = 2) writeonly buffer CellSizes { float cell_sizes[]; };
 layout(set = 0, binding = 3) buffer ChildNodeMasks { int child_node_masks[]; };
 layout(set = 0, binding = 4) buffer ChildLeafMasks { int child_leaf_masks[]; };
 
 // Original buffers
-layout(set = 0, binding = 5) buffer NodeOffsets { uint node_offsets[]; };
-layout(set = 0, binding = 6) buffer RtNodeCounts { int rt_node_counts[]; };
-layout(set = 0, binding = 7) buffer Codes { uint codes[]; };
-layout(set = 0, binding = 8) buffer PrefixN { uint8_t rt_prefixN[]; };
-layout(set = 0, binding = 9) buffer Parents { int rt_parents[]; };
-layout(set = 0, binding = 10) buffer RtLeftChild { int rt_leftChild[]; };
+layout(set = 0, binding = 5) readonly buffer NodeOffsets { uint node_offsets[]; };
+layout(set = 0, binding = 6) readonly buffer RtNodeCounts { int rt_node_counts[]; };
+layout(set = 0, binding = 7) readonly buffer Codes { uint codes[]; };
+layout(set = 0, binding = 8) readonly buffer PrefixN { uint8_t rt_prefixN[]; };
+layout(set = 0, binding = 9) readonly buffer Parents { int rt_parents[]; };
+layout(set = 0, binding = 10) readonly buffer RtLeftChild { int rt_leftChild[]; };
 // Host buffers are std::pmr::vector<uint8_t> (1 byte/elem); a GLSL `bool` SSBO
 // element is a 32-bit word, so reading them as bool[] used a 4x-wrong stride.
-layout(set = 0, binding = 11) buffer RtHasLeafLeft { uint8_t rt_hasLeafLeft[]; };
-layout(set = 0, binding = 12) buffer RtHasLeafRight { uint8_t rt_hasLeafRight[]; };
+layout(set = 0, binding = 11) readonly buffer RtHasLeafLeft { uint8_t rt_hasLeafLeft[]; };
+layout(set = 0, binding = 12) readonly buffer RtHasLeafRight { uint8_t rt_hasLeafRight[]; };
 
+// Stage 7 is two dispatches of this shader (tree-app-improvements design A3): phase 0
+// makes the octree nodes, phase 1 links the leaves into them.
 layout(push_constant) uniform Constants {
   float min_coord;
   float range;
   int n_brt_nodes;
+  int phase;
 };
 
 layout(local_size_x = 256) in;
@@ -44,7 +47,9 @@ void SetChild(int node_idx, int which_child, int oct_idx) {
 
 void SetLeaf(int node_idx, int which_child, int leaf_idx) {
   children[node_idx * 8 + which_child] = leaf_idx;
-  child_leaf_masks[node_idx] &= ~(1 << which_child);
+  // Up to 8 leaves of one octree node are linked by different brt nodes: atomic, like
+  // SetChild. The mask starts all-ones (set at allocation); a cleared bit is a leaf.
+  atomicAnd(child_leaf_masks[node_idx], ~(1 << which_child));
 }
 
 bool IsLeaf(const int internal_value) {
@@ -156,6 +161,19 @@ void k_MakeOctNodes(uint i) {
   }
 }
 
+// The octree node a brt node's leaves hang from: walk up the radix tree to the first node
+// that contributes octree nodes and take its lowest one. The walk is capped like OMP's
+// process_link_leaf (the root's parent is itself).
+int BottomOctNode(int i) {
+  int rt_node = i;
+  int counter = 0;
+  while (rt_node_counts[rt_node] == 0) {
+    rt_node = rt_parents[rt_node];
+    if (++counter > 30) break;
+  }
+  return int(node_offsets[rt_node]) - int(rt_node_counts[rt_node]);
+}
+
 void k_LinkLeafNodes(int i) {
   if (i < n_brt_nodes) {
     if (rt_hasLeafLeft[i] != uint8_t(0)) {
@@ -164,12 +182,7 @@ void k_LinkLeafNodes(int i) {
       int leaf_prefix =
           int(codes[leaf_idx] >> (morton_bits - (3 * leaf_level)));
       int which_child = leaf_prefix & 0x7;
-      int rt_node = i;
-      while (rt_node_counts[rt_node] == 0) {
-        rt_node = rt_parents[rt_node];
-      }
-      int bottom_oct_idx = int(node_offsets[rt_node]) - int(rt_node_counts[rt_node]);
-      SetLeaf(bottom_oct_idx, which_child, leaf_idx);
+      SetLeaf(BottomOctNode(i), which_child, leaf_idx);
     }
     if (rt_hasLeafRight[i] != uint8_t(0)) {
       int leaf_idx = rt_leftChild[i] + 1;
@@ -177,12 +190,7 @@ void k_LinkLeafNodes(int i) {
       int leaf_prefix =
           int(codes[leaf_idx] >> (morton_bits - (3 * leaf_level)));
       int which_child = leaf_prefix & 0x7;
-      int rt_node = i;
-      while (rt_node_counts[rt_node] == 0) {
-        rt_node = rt_parents[rt_node];
-      }
-      int bottom_oct_idx = int(node_offsets[rt_node]) - int(rt_node_counts[rt_node]);
-      SetLeaf(bottom_oct_idx, which_child, leaf_idx);
+      SetLeaf(BottomOctNode(i), which_child, leaf_idx);
     }
   }
 }
@@ -196,6 +204,10 @@ void main() {
   // == 1); k_MakeOctNodes writes the root for i==0 and returns. Process it too
   // (no i==0 skip) -- matches the corrected OMP golden and CUDA's k_MakeOctNodes.
   for (uint i = idx; i < n_brt_nodes; i += stride) {
-    k_MakeOctNodes(i);
+    if (phase == 0) {
+      k_MakeOctNodes(i);
+    } else {
+      k_LinkLeafNodes(int(i));
+    }
   }
 }

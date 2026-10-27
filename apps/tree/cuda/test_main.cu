@@ -31,6 +31,19 @@ struct CudaTreeRunner {
 
 BT_DECLARE_TREE_DIFF_TESTS_APPDATA(TreeDiffCuda, CudaTreeRunner)
 
+// Reproducers of the tree-app-improvements change (see tree_diff_oracle.hpp).
+TEST(TreeDiffCuda, Stage1_MortonBoundary) {
+  tree::testing::RunAndCheckMortonBoundary<CudaTreeRunner>();
+}
+
+// Octree-build spec, "Many leaves linked into one node concurrently": k_LinkLeafNodes 100 times.
+TEST(TreeLeafRaceCuda, ConcurrentLeafLinksKeepEveryBit) {
+  if (!CudaTreeRunner::Available()) GTEST_SKIP() << "no CUDA device";
+  CudaTreeRunner runner;
+  EXPECT_EQ(tree::testing::CountLostLeafBits(runner, 100), 0u)
+      << "leaf-mask bits lost over 100 runs";
+}
+
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   parse_args_test(argc, argv);

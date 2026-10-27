@@ -1,18 +1,27 @@
 #version 460
+#extension GL_EXT_control_flow_attributes : require
 
 precision highp float;
 precision highp int;
 
-// 3x3 / stride-1 / pad-1 CSR specialization (port of the CUDA win) -- every
-// pruned conv in the model is this shape. The generic shader drags one FMA
-// chain through the whole CSR row with a runtime `/ kernel_area` +
-// `% kernel_size` per nonzero; with the literal 9/3 the compiler
-// strength-reduces the decode, and two interleaved accumulators break the
-// serial dependency.
+// 3x3 / stride-1 / pad-1 CSR conv, the Mali path (mali-conv-kernels): cifar-sparse runs it on GPUs
+// with a subgroup below 32 (Mali, subgroup 16, no scalar unit, so a subgroup-uniform walk is still
+// per lane), and new_cifar_sparse_conv2d_k3s1p1_oc.comp on 32 and above (cifar-gpu-kernels).
+//
+// One invocation computes PX adjacent output pixels of a row; it decodes each nonzero of the CSR
+// row and loads its weight once, then feeds the PX contiguous inputs of that tap. Taps in the
+// padded border, and the masked tail of a row whose width is not a multiple of PX, load and write
+// nothing. Measured on the Pixel 7a (mali-conv-kernels): stages 3/5/6/7 -54..-56 % and stage 1
+// -16 % with PX 4 (PX 2 and PX 8 gain less). A CSR row staged in shared memory per output channel
+// was 49-65 % slower on the 8x8 maps, so it is not used.
 //
 // Same descriptor layout and push constants as new_cifar_sparse_conv2d.
 // Dispatcher contract (falls back to the generic shader otherwise):
 //   kernel_size == 3, stride == 1, padding == 1.
+//   One invocation per (b, out_c, oh, ow/PX rounded up).
+//   grid.x = ceil(invocations / 256); conv_k3s1p1_contract.hpp computes it (keep PX in step).
+
+const int PX = 4;  // output pixels per invocation along the width
 
 layout(local_size_x = 256) in;
 
@@ -55,54 +64,54 @@ layout(push_constant) uniform Params {
 }
 params;
 
-// One nonzero's contribution: literal-constant decode of the flat kernel index,
-// 0.0 for taps that land in the padded border.
-float tap(int nz, int in_base, int oh, int ow) {
-  const int flat_k = weight_col_idx[nz];
-  const int in_c = flat_k / 9;
-  const int rem = flat_k - in_c * 9;
-  const int ky = rem / 3;
-  const int kx = rem - ky * 3;
-  const int in_y = oh + ky - 1;
-  const int in_x = ow + kx - 1;
-  if (in_y < 0 || in_y >= params.in_height || in_x < 0 || in_x >= params.in_width) return 0.0;
-  return input_data[in_base + in_c * (params.in_height * params.in_width) +
-                    in_y * params.in_width + in_x] *
-         weight_vals[nz];
-}
-
+// PX adjacent outputs (ow0 .. ow0+PX-1 of row oh) of one output channel.
 void main() {
-  const int total =
-      params.batch_size * params.out_channels * params.out_height * params.out_width;
+  const int H = params.out_height;
+  const int W = params.out_width;
+  const int w_tiles = (W + PX - 1) / PX;
+  const int total = params.batch_size * params.out_channels * H * w_tiles;
   int idx = int(gl_GlobalInvocationID.x);
   if (idx >= total) return;
 
-  const int ow = idx % params.out_width;
-  idx /= params.out_width;
-  const int oh = idx % params.out_height;
-  idx /= params.out_height;
+  const int tx = idx % w_tiles;
+  idx /= w_tiles;
+  const int oh = idx % H;
+  idx /= H;
   const int out_c = idx % params.out_channels;
   const int b = idx / params.out_channels;
+  const int ow0 = tx * PX;
 
-  const int row_start = weight_row_ptr[out_c];
+  const int in_hw = params.in_height * params.in_width;
+  const int in_base = b * params.in_channels * in_hw;
+
+  float acc[PX];
+  [[unroll]] for (int j = 0; j < PX; ++j) acc[j] = 0.0;
+
   const int row_end = weight_row_ptr[out_c + 1];
-  const int in_base = b * params.in_channels * params.in_height * params.in_width;
-
-  // Two interleaved accumulators break the serial FMA chain over the CSR row.
-  float s0 = 0.0;
-  float s1 = 0.0;
-  int nz = row_start;
-  for (; nz + 1 < row_end; nz += 2) {
-    s0 += tap(nz, in_base, oh, ow);
-    s1 += tap(nz + 1, in_base, oh, ow);
+  for (int nz = weight_row_ptr[out_c]; nz < row_end; ++nz) {
+    const int flat_k = weight_col_idx[nz];
+    const int in_c = flat_k / 9;
+    const int rem = flat_k - in_c * 9;
+    const int ky = rem / 3;
+    const int kx = rem - ky * 3;
+    const int in_y = oh + ky - 1;
+    if (in_y < 0 || in_y >= params.in_height) continue;  // the whole tap row is padding
+    const float wv = weight_vals[nz];
+    const int x0 = ow0 + kx - 1;  // input column of output ow0
+    const int p = in_base + in_c * in_hw + in_y * params.in_width + x0;
+    [[unroll]] for (int j = 0; j < PX; ++j) {
+      if (x0 + j >= 0 && x0 + j < params.in_width) acc[j] += input_data[p + j] * wv;
+    }
   }
-  if (nz < row_end) s0 += tap(nz, in_base, oh, ow);
 
-  float sum = s0 + s1;
-  if (params.bias_size > 0 && out_c < params.bias_size) sum += bias_data[out_c];
-  if (params.relu != 0 && sum < 0.0) sum = 0.0;
-
-  const int out_index =
-      ((b * params.out_channels + out_c) * params.out_height + oh) * params.out_width + ow;
-  output_data[out_index] = sum;
+  float bias = 0.0;
+  if (params.bias_size > 0 && out_c < params.bias_size) bias = bias_data[out_c];
+  const int out_base = ((b * params.out_channels + out_c) * H + oh) * W + ow0;
+  [[unroll]] for (int j = 0; j < PX; ++j) {
+    if (ow0 + j < W) {  // masked tail
+      float v = acc[j] + bias;
+      if (params.relu != 0 && v < 0.0) v = 0.0;
+      output_data[out_base + j] = v;
+    }
+  }
 }

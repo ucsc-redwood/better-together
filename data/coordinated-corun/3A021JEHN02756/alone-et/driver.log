@@ -1,0 +1,112 @@
+2026-10-21T22:08:32-07:00 start 1b_vk4w_p128_r1 mask=8 battery=68 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:08:59-07:00 end 1b_vk4w_p128_r1 rc=0
+2026-10-21T22:09:19-07:00 start 1b_vk8da4w_p128_r1 mask=8 battery=68 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:09:44-07:00 end 1b_vk8da4w_p128_r1 rc=0
+2026-10-21T22:10:04-07:00 start 1b_xnnf0_p128_r1 mask=f0 battery=68 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:10:16-07:00 end 1b_xnnf0_p128_r1 rc=0
+2026-10-21T22:10:36-07:00 start 1b_xnnc0_p128_r1 mask=c0 battery=67 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:10:48-07:00 end 1b_xnnc0_p128_r1 rc=0
+2026-10-21T22:11:08-07:00 start 1b_xnn30_p128_r1 mask=30 battery=67 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:11:22-07:00 end 1b_xnn30_p128_r1 rc=0
+2026-10-21T22:11:42-07:00 start 1b_vk4w_p512_r1 mask=8 battery=67 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:12:13-07:00 end 1b_vk4w_p512_r1 rc=0
+2026-10-21T22:12:33-07:00 start 1b_vk8da4w_p512_r1 mask=8 battery=67 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:12:59-07:00 end 1b_vk8da4w_p512_r1 rc=0
+2026-10-21T22:13:20-07:00 start 1b_xnnf0_p512_r1 mask=f0 battery=67 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:13:37-07:00 end 1b_xnnf0_p512_r1 rc=0
+2026-10-21T22:13:57-07:00 start 1b_xnnc0_p512_r1 mask=c0 battery=67 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:14:20-07:00 end 1b_xnnc0_p512_r1 rc=0
+2026-10-21T22:14:40-07:00 start 1b_xnn30_p512_r1 mask=30 battery=67 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:15:05-07:00 end 1b_xnn30_p512_r1 rc=0
+2026-10-21T22:15:25-07:00 start 1b_vk4w_p2048_r1 mask=8 battery=67 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:16:21-07:00 end 1b_vk4w_p2048_r1 rc=0
+2026-10-21T22:16:41-07:00 start 1b_vk8da4w_p2048_r1 mask=8 battery=67 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:17:21-07:00 end 1b_vk8da4w_p2048_r1 rc=0
+2026-10-21T22:17:41-07:00 start 1b_xnnf0_p2048_r1 mask=f0 battery=66 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:18:35-07:00 end 1b_xnnf0_p2048_r1 rc=0
+2026-10-21T22:18:55-07:00 THROTTLED 1b_xnnf0_p2048_r1, cooling down and repeating once
+2026-10-21T22:20:55-07:00 start 1b_xnnf0_p2048_r1_retry mask=f0 battery=66 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:21:47-07:00 end 1b_xnnf0_p2048_r1_retry rc=0
+2026-10-21T22:22:07-07:00 cooling: thermal status 1
+2026-10-21T22:22:37-07:00 start 1b_xnnc0_p2048_r1 mask=c0 battery=66 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:23:47-07:00 end 1b_xnnc0_p2048_r1 rc=0
+2026-10-21T22:24:07-07:00 THROTTLED 1b_xnnc0_p2048_r1, cooling down and repeating once
+2026-10-21T22:26:07-07:00 start 1b_xnnc0_p2048_r1_retry mask=c0 battery=66 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:27:16-07:00 end 1b_xnnc0_p2048_r1_retry rc=0
+2026-10-21T22:27:36-07:00 start 1b_xnn30_p2048_r1 mask=30 battery=65 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:29:02-07:00 end 1b_xnn30_p2048_r1 rc=0
+2026-10-21T22:29:22-07:00 start 1b_vk4w_p128_r2 mask=8 battery=65 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:29:49-07:00 end 1b_vk4w_p128_r2 rc=0
+2026-10-21T22:30:09-07:00 start 1b_vk8da4w_p128_r2 mask=8 battery=65 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:30:33-07:00 end 1b_vk8da4w_p128_r2 rc=0
+2026-10-21T22:30:53-07:00 start 1b_xnnf0_p128_r2 mask=f0 battery=65 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:31:05-07:00 end 1b_xnnf0_p128_r2 rc=0
+2026-10-21T22:31:25-07:00 start 1b_xnnc0_p128_r2 mask=c0 battery=65 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:31:38-07:00 end 1b_xnnc0_p128_r2 rc=0
+2026-10-21T22:31:58-07:00 start 1b_xnn30_p128_r2 mask=30 battery=65 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:32:12-07:00 end 1b_xnn30_p128_r2 rc=0
+2026-10-21T22:32:32-07:00 start 1b_vk4w_p512_r2 mask=8 battery=65 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:33:03-07:00 end 1b_vk4w_p512_r2 rc=0
+2026-10-21T22:33:23-07:00 start 1b_vk8da4w_p512_r2 mask=8 battery=65 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:33:49-07:00 end 1b_vk8da4w_p512_r2 rc=0
+2026-10-21T22:34:09-07:00 start 1b_xnnf0_p512_r2 mask=f0 battery=65 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:34:26-07:00 end 1b_xnnf0_p512_r2 rc=0
+2026-10-21T22:34:47-07:00 start 1b_xnnc0_p512_r2 mask=c0 battery=64 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:35:09-07:00 end 1b_xnnc0_p512_r2 rc=0
+2026-10-21T22:35:29-07:00 start 1b_xnn30_p512_r2 mask=30 battery=64 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:35:54-07:00 end 1b_xnn30_p512_r2 rc=0
+2026-10-21T22:36:14-07:00 start 1b_vk4w_p2048_r2 mask=8 battery=64 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:37:09-07:00 end 1b_vk4w_p2048_r2 rc=0
+2026-10-21T22:37:29-07:00 start 1b_vk8da4w_p2048_r2 mask=8 battery=64 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:38:10-07:00 end 1b_vk8da4w_p2048_r2 rc=0
+2026-10-21T22:38:30-07:00 start 1b_xnnf0_p2048_r2 mask=f0 battery=64 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:39:25-07:00 end 1b_xnnf0_p2048_r2 rc=0
+2026-10-21T22:39:45-07:00 THROTTLED 1b_xnnf0_p2048_r2, cooling down and repeating once
+2026-10-21T22:41:45-07:00 start 1b_xnnf0_p2048_r2_retry mask=f0 battery=64 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:42:37-07:00 end 1b_xnnf0_p2048_r2_retry rc=0
+2026-10-21T22:42:57-07:00 cooling: thermal status 1
+2026-10-21T22:43:27-07:00 start 1b_xnnc0_p2048_r2 mask=c0 battery=63 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:44:38-07:00 end 1b_xnnc0_p2048_r2 rc=0
+2026-10-21T22:44:58-07:00 THROTTLED 1b_xnnc0_p2048_r2, cooling down and repeating once
+2026-10-21T22:46:58-07:00 start 1b_xnnc0_p2048_r2_retry mask=c0 battery=63 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:48:08-07:00 end 1b_xnnc0_p2048_r2_retry rc=0
+2026-10-21T22:48:28-07:00 start 1b_xnn30_p2048_r2 mask=30 battery=63 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:49:55-07:00 end 1b_xnn30_p2048_r2 rc=0
+2026-10-21T22:50:15-07:00 cooling: thermal status 1
+2026-10-21T22:50:45-07:00 start 1b_vk4w_p128_r3 mask=8 battery=62 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:51:11-07:00 end 1b_vk4w_p128_r3 rc=0
+2026-10-21T22:51:31-07:00 start 1b_vk8da4w_p128_r3 mask=8 battery=62 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:51:56-07:00 end 1b_vk8da4w_p128_r3 rc=0
+2026-10-21T22:52:16-07:00 start 1b_xnnf0_p128_r3 mask=f0 battery=62 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:52:27-07:00 end 1b_xnnf0_p128_r3 rc=0
+2026-10-21T22:52:47-07:00 start 1b_xnnc0_p128_r3 mask=c0 battery=62 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:53:00-07:00 end 1b_xnnc0_p128_r3 rc=0
+2026-10-21T22:53:20-07:00 start 1b_xnn30_p128_r3 mask=30 battery=62 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_128.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:53:34-07:00 end 1b_xnn30_p128_r3 rc=0
+2026-10-21T22:53:54-07:00 start 1b_vk4w_p512_r3 mask=8 battery=62 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:54:24-07:00 end 1b_vk4w_p512_r3 rc=0
+2026-10-21T22:54:44-07:00 start 1b_vk8da4w_p512_r3 mask=8 battery=62 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:55:11-07:00 end 1b_vk8da4w_p512_r3 rc=0
+2026-10-21T22:55:31-07:00 start 1b_xnnf0_p512_r3 mask=f0 battery=62 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T22:55:49-07:00 end 1b_xnnf0_p512_r3 rc=0
+2026-10-21T22:56:09-07:00 start 1b_xnnc0_p512_r3 mask=c0 battery=62 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:56:31-07:00 end 1b_xnnc0_p512_r3 rc=0
+2026-10-21T22:56:51-07:00 start 1b_xnn30_p512_r3 mask=30 battery=62 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_512.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T22:57:17-07:00 end 1b_xnn30_p512_r3 rc=0
+2026-10-21T22:57:37-07:00 start 1b_vk4w_p2048_r3 mask=8 battery=62 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:58:32-07:00 end 1b_vk4w_p2048_r3 rc=0
+2026-10-21T22:58:52-07:00 start 1b_vk8da4w_p2048_r3 mask=8 battery=61 cmd=./llama_main --model_path /data/local/tmp/llama/llama3_2-1b_vulkan_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 1
+2026-10-21T22:59:32-07:00 end 1b_vk8da4w_p2048_r3 rc=0
+2026-10-21T22:59:52-07:00 start 1b_xnnf0_p2048_r3 mask=f0 battery=61 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T23:00:48-07:00 end 1b_xnnf0_p2048_r3 rc=0
+2026-10-21T23:01:08-07:00 THROTTLED 1b_xnnf0_p2048_r3, cooling down and repeating once
+2026-10-21T23:03:08-07:00 start 1b_xnnf0_p2048_r3_retry mask=f0 battery=61 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 4
+2026-10-21T23:04:00-07:00 end 1b_xnnf0_p2048_r3_retry rc=0
+2026-10-21T23:04:20-07:00 start 1b_xnnc0_p2048_r3 mask=c0 battery=61 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T23:05:40-07:00 end 1b_xnnc0_p2048_r3 rc=0
+2026-10-21T23:06:00-07:00 THROTTLED 1b_xnnc0_p2048_r3, cooling down and repeating once
+2026-10-21T23:08:00-07:00 start 1b_xnnc0_p2048_r3_retry mask=c0 battery=61 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T23:09:09-07:00 end 1b_xnnc0_p2048_r3_retry rc=0
+2026-10-21T23:09:30-07:00 start 1b_xnn30_p2048_r3 mask=30 battery=60 cmd=./llama_main --model_path llama3_2-1b_xnnpack_8da4w.pte --tokenizer_path /data/local/tmp/llama/tokenizer.model --prompt_file prompt_2048.txt --max_new_tokens 128 --temperature 0 --ignore_eos --warmup --cpu_threads 2
+2026-10-21T23:10:59-07:00 end 1b_xnn30_p2048_r3 rc=0
+2026-10-21T23:11:19-07:00 plan done

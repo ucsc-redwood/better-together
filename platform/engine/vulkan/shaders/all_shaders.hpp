@@ -30,45 +30,43 @@ namespace shaders {
 // #include "h/tmp_local_inclusive_scan_v2_32_spv.h"
 // #include "h/tmp_local_inclusive_scan_v2_64_spv.h"
 #include "h/multi_radixsort_histograms_spv.h"
-#include "h/multi_radixsort_warp16_spv.h"
-#include "h/multi_radixsort_warp32_spv.h"
-#include "h/multi_radixsort_warp64_spv.h"
-#include "h/tmp_single_radixsort_warp16_spv.h"
-#include "h/tmp_single_radixsort_warp32_spv.h"
-#include "h/tmp_single_radixsort_warp64_spv.h"
+#include "h/multi_radixsort_spv.h"
 #include "h/tree_build_octree_spv.h"
 #include "h/tree_build_radix_tree_spv.h"
 #include "h/tree_edge_count_spv.h"
-#include "h/tree_find_dups_spv.h"
 #include "h/tree_merge_sort_spv.h"
 #include "h/tree_morton_spv.h"
-#include "h/tree_move_dups_spv.h"
 #include "h/tree_naive_prefix_sum_spv.h"
 #include "h/tree_scan_add_spv.h"
 #include "h/tree_scan_block_sums_spv.h"
 #include "h/tree_scan_local_spv.h"
+#include "h/tree_unique_local_spv.h"
+#include "h/tree_unique_scatter_spv.h"
 // new shaders
+#include "h/new_cifar_dense_conv2d_k3s1p1_oc_spv.h"
 #include "h/new_cifar_dense_conv2d_k3s1p1_spv.h"
 #include "h/new_cifar_dense_conv2d_spv.h"
+#include "h/new_cifar_dense_linear_bt_portable_spv.h"
 #include "h/new_cifar_dense_linear_bt_spv.h"
 #include "h/new_cifar_dense_linear_spv.h"
 #include "h/new_cifar_dense_maxpool_spv.h"
+#include "h/new_cifar_sparse_conv2d_k3s1p1_oc_spv.h"
 #include "h/new_cifar_sparse_conv2d_k3s1p1_spv.h"
 #include "h/new_cifar_sparse_conv2d_spv.h"
 #include "h/new_cifar_sparse_linear_spv.h"
 #include "h/new_cifar_sparse_maxpool_spv.h"
-#include "h/octree_build_octree_nodes_spv.h"
-#include "h/octree_build_radix_tree_spv.h"
-#include "h/octree_edge_count_spv.h"
-#include "h/octree_morton_spv.h"
 
 // new shaders
 #include "h/stressor_spv.h"
 
+// engine self-test (test-kiss-vk)
+#include "h/engine_test_copy_spv.h"
+#include "h/engine_test_subgroup_spv.h"
+#include "h/engine_test_workgroup_size_spv.h"
+
 // Helper macro to create shader entry with proper naming convention
-// The baked-header variable name is the bare .spv basename (xxd -i run from the
-// spv/ dir), so it is independent of the source-tree path -- relocating the
-// shaders dir (as the P5a component move did) no longer breaks these references.
+// The generated header's variable name is the bare .comp basename (see
+// cmake/bt_embed_spv.cmake), so it is independent of the source-tree path.
 #define SHADER_ENTRY(name)                \
   {                                       \
     #name, { name##_spv, name##_spv_len } \
@@ -100,40 +98,38 @@ static const std::unordered_map<std::string, std::pair<const unsigned char*, siz
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_16),
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_32),
         // SHADER_ENTRY(tmp_local_inclusive_scan_v2_64),
-        SHADER_ENTRY(tmp_single_radixsort_warp16),
-        SHADER_ENTRY(tmp_single_radixsort_warp32),
-        SHADER_ENTRY(tmp_single_radixsort_warp64),
         SHADER_ENTRY(multi_radixsort_histograms),
-        SHADER_ENTRY(multi_radixsort_warp16),
-        SHADER_ENTRY(multi_radixsort_warp32),
-        SHADER_ENTRY(multi_radixsort_warp64),
+        SHADER_ENTRY(multi_radixsort),
         SHADER_ENTRY(tree_build_octree),
         SHADER_ENTRY(tree_build_radix_tree),
         SHADER_ENTRY(tree_edge_count),
-        SHADER_ENTRY(tree_find_dups),
         SHADER_ENTRY(tree_merge_sort),
         SHADER_ENTRY(tree_morton),
-        SHADER_ENTRY(tree_move_dups),
         SHADER_ENTRY(tree_naive_prefix_sum),
         SHADER_ENTRY(tree_scan_local),
         SHADER_ENTRY(tree_scan_block_sums),
         SHADER_ENTRY(tree_scan_add),
+        SHADER_ENTRY(tree_unique_local),
+        SHADER_ENTRY(tree_unique_scatter),
         // new shaders
         SHADER_ENTRY(new_cifar_dense_conv2d),
         SHADER_ENTRY(new_cifar_dense_conv2d_k3s1p1),
+        SHADER_ENTRY(new_cifar_dense_conv2d_k3s1p1_oc),
         SHADER_ENTRY(new_cifar_dense_maxpool),
         SHADER_ENTRY(new_cifar_dense_linear),
         SHADER_ENTRY(new_cifar_dense_linear_bt),
+        SHADER_ENTRY(new_cifar_dense_linear_bt_portable),
         SHADER_ENTRY(new_cifar_sparse_conv2d),
         SHADER_ENTRY(new_cifar_sparse_conv2d_k3s1p1),
+        SHADER_ENTRY(new_cifar_sparse_conv2d_k3s1p1_oc),
         SHADER_ENTRY(new_cifar_sparse_linear),
         SHADER_ENTRY(new_cifar_sparse_maxpool),
-        SHADER_ENTRY(octree_build_radix_tree),
-        SHADER_ENTRY(octree_build_octree_nodes),
-        SHADER_ENTRY(octree_edge_count),
-        SHADER_ENTRY(octree_morton),
         // new shaders
         SHADER_ENTRY(stressor),
+        // engine self-test (test-kiss-vk)
+        SHADER_ENTRY(engine_test_copy),
+        SHADER_ENTRY(engine_test_subgroup),
+        SHADER_ENTRY(engine_test_workgroup_size),
 };
 
 #undef SHADER_ENTRY

@@ -34,7 +34,11 @@ endif()
 
 # ---- tests ----
 if(BT_BUILD_TESTS)
-    bt_add_omp_test(test-tree-omp omp/test_main.cpp)
+    # Its own copy of the OMP stages, with the pin probe compiled in (CpuPinningOmp; see
+    # platform/util/pin_probe.hpp). The copy defines every symbol of bt_core's, so the linker
+    # never pulls bt_core's.
+    bt_add_omp_test(test-tree-omp omp/test_main.cpp omp/dispatchers.cpp)
+    target_compile_definitions(test-tree-omp PRIVATE BT_PIN_PROBE)
     set_tests_properties(test-tree-omp PROPERTIES LABELS "omp;differential")
     # tree through the REAL concurrent worker/SPSC ring with a multi-tier OMP schedule.
     bt_add_omp_test(test-pipeline-e2e-omp omp/test_pipeline_main.cpp)

@@ -1,0 +1,198 @@
+#version 460
+#extension GL_EXT_control_flow_attributes : require
+
+precision highp float;
+precision highp int;
+
+// 3x3 / stride-1 / pad-1 conv2d for GPUs with a subgroup of 32 or more (Radeon 780M, Xclipse; they
+// have a scalar unit). cifar-dense runs it there instead of the >= 32 path of
+// new_cifar_dense_conv2d_k3s1p1.comp, whose Mali path (below 32) it does not replace.
+//
+// One block of OC_TILE output channels per workgroup (cifar-gpu-kernels C1):
+// oc = gl_WorkGroupID.x * OC_TILE, so every weight address depends only on the workgroup id and the
+// loop counter and the weights load as scalar work. The channel block is the x axis so that
+// consecutive workgroups read the same input pixels (with it on y, conv2 measured +21 % on the
+// Xclipse 940). Each invocation computes PX_TILE adjacent output pixels of one row for those
+// OC_TILE channels (C3), so each weight is used PX_TILE times and each input value up to
+// 3 x OC_TILE times from registers. gl_WorkGroupID.y picks the block of 256 invocations, flat over
+// (n, oh, ow / PX_TILE), the last fastest.
+//
+// The input window of a channel (3 rows x PX_TILE + 2 columns) comes either
+//  * C_TILE == 0: from global memory, every load unconditional on a clamped index and zeroed in the
+//    padding (no divergent branch, no wait between loads); or
+//  * C_TILE > 0 (C2): from shared memory. The workgroup stages, C_TILE input channels at a time, the
+//    input rows its outputs need (its output rows of the flattened N x H plus one halo row above and
+//    below), each with a zero column on the left and zeros to the right up to w_tiles * PX_TILE + 2.
+//    A staged halo row of the neighbouring image is never used: the t / b masks zero it.
+//    The dispatcher sizes LDS_FLOATS for that (conv_k3s1p1_contract.hpp) and needs W <= 32.
+//
+// Dispatcher contract (falls back to another shader otherwise):
+//   R == S == 3, stride == 1, padding == 1, K % OC_TILE == 0.
+//   grid = (K / OC_TILE, ceil(N*H*ceil(W/PX_TILE) / 256), 1); conv_k3s1p1_contract.hpp computes it.
+
+layout(local_size_x = 256) in;
+
+layout(constant_id = 1) const int OC_TILE = 4;     // output channels per invocation
+layout(constant_id = 2) const int PX_TILE = 1;     // adjacent output pixels of a row per invocation
+layout(constant_id = 3) const int C_TILE = 0;      // input channels staged per pass; 0: no staging
+layout(constant_id = 4) const int LDS_FLOATS = 1;  // shared-memory floats (C_TILE > 0)
+
+layout(std430, set = 0, binding = 0) readonly buffer InputBuffer {
+  float input_data[];  // [N, C, H, W]
+};
+
+layout(std430, set = 0, binding = 1) readonly buffer WeightBuffer {
+  float weight_data[];  // [K, C, 3, 3]
+};
+
+layout(std430, set = 0, binding = 2) readonly buffer BiasBuffer {
+  float bias_data[];  // [K]
+};
+
+layout(std430, set = 0, binding = 3) writeonly buffer OutputBuffer {
+  float output_data[];  // [N, K, H, W]  (P == H, Q == W for 3x3/s1/p1)
+};
+
+// Same layout as the generic conv2d shader; R/S/stride/padding are implied 3/3/1/1.
+layout(push_constant) uniform Params {
+  int N;           // Batch size
+  int C;           // Number of input channels
+  int H;           // Input height
+  int W;           // Input width
+  int K;           // Number of output channels (% OC_TILE == 0)
+  int R;           // Kernel height (== 3)
+  int S;           // Kernel width  (== 3)
+  int stride;      // Convolution stride (== 1)
+  int padding;     // Convolution padding (== 1)
+  int apply_relu;  // 1 to apply ReLU, 0 otherwise
+}
+params;
+
+shared float tile[LDS_FLOATS];  // [C_TILE][staged rows][w_tiles * PX_TILE + 2]
+
+void main() {
+  const int H = params.H;
+  const int W = params.W;
+  const int C = params.C;
+  const int hw = H * W;
+
+  const int w_tiles = (W + PX_TILE - 1) / PX_TILE;
+  const int rows = params.N * H;  // output rows of the batch, flattened (n, oh)
+  const int total = rows * w_tiles;
+  const int first = int(gl_WorkGroupID.y) * 256;  // the workgroup's first invocation
+  const int idx = first + int(gl_LocalInvocationIndex);
+  const bool in_range = idx < total;
+  // Without staging nothing waits at a barrier, so a spare invocation can leave now; with it, it
+  // computes the last output again and does not store it.
+  if (C_TILE == 0 && !in_range) return;
+
+  const int ci = min(idx, total - 1);
+  const int g = ci / w_tiles;
+  const int tx = ci - g * w_tiles;
+  const int n = g / H;
+  const int oh = g - n * H;
+  const int ow0 = tx * PX_TILE;
+  const int oc = int(gl_WorkGroupID.x) * OC_TILE;
+
+  const bool t = oh > 0, b = oh < H - 1;
+
+  // C_TILE == 0: the window's columns ow0-1 .. ow0+PX_TILE, clamped, and which lie inside the map;
+  // its rows oh-1, oh, oh+1, clamped (the t / b masks zero the clamped ones).
+  int cx[PX_TILE + 2];
+  bool col[PX_TILE + 2];
+  [[unroll]] for (int i = 0; i < PX_TILE + 2; ++i) {
+    const int x = ow0 - 1 + i;
+    col[i] = x >= 0 && x < W;
+    cx[i] = clamp(x, 0, W - 1);
+  }
+  const int row0 = (t ? oh - 1 : oh) * W;
+  const int row1 = oh * W;
+  const int row2 = (b ? oh + 1 : oh) * W;
+  const int image = n * C * hw;
+
+  // C_TILE > 0: the workgroup's staged rows g_lo .. g_lo + staged_rows - 1 of the flattened N x H.
+  const int sw = w_tiles * PX_TILE + 2;  // staged row width
+  const int g_lo = first / w_tiles - 1;
+  const int staged_rows = min(first + 255, total - 1) / w_tiles + 1 - g_lo + 1;
+  const int per_channel = staged_rows * sw;
+  const int lr = (g - 1 - g_lo) * sw + ow0;  // this invocation's window in a staged channel
+
+  float acc[OC_TILE][PX_TILE];
+  [[unroll]] for (int o = 0; o < OC_TILE; ++o) {
+    [[unroll]] for (int j = 0; j < PX_TILE; ++j) acc[o][j] = 0.0;
+  }
+
+  const int wrow = C * 9;  // one weight row = [C, 3, 3]
+  const int step = C_TILE > 0 ? C_TILE : 1;
+  for (int c0 = 0; c0 < C; c0 += step) {
+    if (C_TILE > 0) {
+      barrier();  // the previous pass has read its channels
+      const int n_el = C_TILE * per_channel;
+      for (int e = int(gl_LocalInvocationIndex); e < n_el; e += 256) {
+        const int c = e / per_channel;
+        const int rem = e - c * per_channel;
+        const int r = rem / sw;
+        const int x = rem - r * sw - 1;
+        const int gg = g_lo + r;
+        float v = 0.0;
+        if (c0 + c < C && gg >= 0 && gg < rows && x >= 0 && x < W) {
+          const int nn = gg / H;
+          v = input_data[(nn * C + c0 + c) * hw + (gg - nn * H) * W + x];
+        }
+        tile[e] = v;
+      }
+      barrier();
+    }
+
+    [[unroll]] for (int c = 0; c < step; ++c) {
+      const int ic = c0 + c;
+      if (ic < C) {
+        float r0[PX_TILE + 2], r1[PX_TILE + 2], r2[PX_TILE + 2];  // window rows oh-1, oh, oh+1
+        if (C_TILE > 0) {
+          const int s = c * per_channel + lr;
+          [[unroll]] for (int i = 0; i < PX_TILE + 2; ++i) {
+            r0[i] = t ? tile[s + i] : 0.0;
+            r1[i] = tile[s + sw + i];
+            r2[i] = b ? tile[s + 2 * sw + i] : 0.0;
+          }
+        } else {
+          const int p = image + ic * hw;
+          [[unroll]] for (int i = 0; i < PX_TILE + 2; ++i) {
+            const float v0 = input_data[p + row0 + cx[i]];
+            const float v1 = input_data[p + row1 + cx[i]];
+            const float v2 = input_data[p + row2 + cx[i]];
+            r0[i] = (t && col[i]) ? v0 : 0.0;
+            r1[i] = col[i] ? v1 : 0.0;
+            r2[i] = (b && col[i]) ? v2 : 0.0;
+          }
+        }
+
+        const int wa = oc * wrow + ic * 9;  // workgroup-uniform
+        [[unroll]] for (int o = 0; o < OC_TILE; ++o) {
+          const int w = wa + o * wrow;
+          const float w0 = weight_data[w], w1 = weight_data[w + 1], w2 = weight_data[w + 2];
+          const float w3 = weight_data[w + 3], w4 = weight_data[w + 4], w5 = weight_data[w + 5];
+          const float w6 = weight_data[w + 6], w7 = weight_data[w + 7], w8 = weight_data[w + 8];
+          [[unroll]] for (int j = 0; j < PX_TILE; ++j) {
+            acc[o][j] += r0[j] * w0 + r0[j + 1] * w1 + r0[j + 2] * w2 + r1[j] * w3 +
+                         r1[j + 1] * w4 + r1[j + 2] * w5 + r2[j] * w6 + r2[j + 1] * w7 +
+                         r2[j + 2] * w8;
+          }
+        }
+      }
+    }
+  }
+
+  if (!in_range) return;
+  const int out_base = ((n * params.K + oc) * H + oh) * W + ow0;
+  [[unroll]] for (int o = 0; o < OC_TILE; ++o) {
+    const float bias = bias_data[oc + o];
+    [[unroll]] for (int j = 0; j < PX_TILE; ++j) {
+      if (ow0 + j < W) {  // a row whose width is not a multiple of PX_TILE ends in a masked tail
+        float v = bias + acc[o][j];
+        if (params.apply_relu != 0) v = max(v, 0.0);
+        output_data[out_base + o * hw + j] = v;
+      }
+    }
+  }
+}

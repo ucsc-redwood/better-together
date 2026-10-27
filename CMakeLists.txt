@@ -1,9 +1,9 @@
 # BetterTogether — CMake build (the build system).
 #
 # CMake is the sole build system; xmake was retired 2026-06-16 (history:
-# docs/reports-for-human/cmake-migration-rfc.md). Not (yet) ported from xmake: the
-# volk diagnostics (check-vulkan / query-warpsize) and the NNAPI/EdgeTPU targets --
-# their sources still live under utility/ and can be re-added when needed.
+# docs/reports-for-human/cmake-migration-rfc.md). The unported volk diagnostics
+# (check-vulkan / query-warpsize) and the NNAPI/EdgeTPU targets were removed as dead
+# code 2026-06-18 -- recover them from git history if ever needed.
 #
 # Structure: this root is thin -- options, third-party deps, the shared target
 # helpers, and the language/header setup -- then one add_subdirectory per component:
@@ -84,8 +84,8 @@ add_library(bt::openmp ALIAS bt_openmp)
 # spdlog 1.15.x bundles a newer fmt that compiles cleanly on modern clang
 # (Android NDK r29); 1.14.1's bundled fmt hit a consteval error there.
 cpmaddpackage("gh:gabime/spdlog@1.15.3")
-cpmaddpackage("gh:CLIUtils/CLI11@2.4.2")
-cpmaddpackage(NAME glm GITHUB_REPOSITORY g-truc/glm GIT_TAG 1.0.1)
+cpmaddpackage("gh:CLIUtils/CLI11@2.5.0")
+cpmaddpackage(NAME glm GITHUB_REPOSITORY g-truc/glm GIT_TAG 1.0.3)
 cpmaddpackage(NAME libmorton GITHUB_REPOSITORY Forceflow/libmorton GIT_TAG v0.2.12
               OPTIONS "BUILD_TESTING OFF"
 )
@@ -121,7 +121,9 @@ endif()
 
 # Python for the codegen (devices/*.json + vocab.json) and the optimizer/guard tests;
 # optional, mirroring the committed-fallback pattern (no python -> committed headers).
-find_program(BT_PYTHON NAMES python3 python)
+# The uv venv (`uv sync --group dev`) is preferred when present: it carries pytest/z3
+# for test-optimizer, which a bare system python usually lacks.
+find_program(BT_PYTHON NAMES python3 python HINTS ${CMAKE_SOURCE_DIR}/.venv/bin)
 
 # Shared target helpers: bt_add_{omp,cuda,vk}_{run,app,test}; used by every component.
 include(cmake/bt_targets.cmake)
