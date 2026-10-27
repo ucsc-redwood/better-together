@@ -302,6 +302,6 @@ targets: PC, Pixel 7a, Jetson, Samsung.
 ## CI gate
 
 The labeled binaries are identical everywhere; each target runs what it can:
-`ctest -L omp` on every PR (desktop, deterministic, no GPU); `ctest -L cuda` on the
-Jetson self-hosted runner; `ctest -L vulkan` on an integrated-GPU box / Android via
-adb. Fail on any non-skip failure.
+`ctest -L omp` on every PR (desktop, deterministic, no GPU); `ctest -L cuda` on a
+Jetson; `ctest -L vulkan` on an integrated-GPU box / Android via adb (both run
+out-of-band via `just test`, not in hosted CI). Fail on any non-skip failure.

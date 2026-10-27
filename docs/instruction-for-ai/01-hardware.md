@@ -42,19 +42,12 @@ source of truth for core tiers and pinning. This doc is the human/agent-readable
 **access + role** layer on top of it. To add a device, see
 [`../../devices/README.md`](../../devices/README.md).
 
-## CI runners on this fleet (org-level, live 2026-07-02)
+## CI and the fleet
 
-Every machine above doubles as a GitHub Actions self-hosted runner for the
-`ucsc-redwood` org, selected by **capability label, never by name**:
-`[self-hosted, rdna3]` (Rocky box: iGPU Vulkan, podman),
-`[self-hosted, android, pixel|samsung]` (each phone is its own runner with
-`ANDROID_SERIAL` pinned — plain `adb` works, jobs per phone serialize),
-`[self-hosted, jetson, cuda]` (+ `duck-stable`/`duck-naughty` to pin a box;
-arm64 — build natively, x86 binaries will not run). Runners are persistent and
-the runner user has **no sudo** — missing system deps go to the fleet owner's
-Ansible role, never into workflows. Fork PRs must never target these runners.
-The health check is `.github/workflows/runner-smoke.yml`; the nightly
-hardware-in-the-loop gate is `.github/workflows/fleet.yml`.
+The fleet is **not** wired into GitHub Actions (the self-hosted runners and the
+`fleet.yml` / `runner-smoke.yml` workflows were removed 2026-10-26). Hosted CI runs
+only the OMP/format/pytest gate; CUDA/Vulkan/Android tests run out-of-band via
+`just test` and the `scripts/run-on-*.sh` helpers.
 
 ## Target matrix at a glance
 
@@ -63,7 +56,7 @@ hardware-in-the-loop gate is `.github/workflows/fleet.yml`.
 | Old build/dev box | `pc` | OMP (CUDA/Vulkan **build-only**) | (retired from workflow) | no longer needed — rocky builds everything |
 | Jetson Orin #1 | `duck-stable` | OMP + CUDA + Vulkan | `ssh doremy@duck-stable` | primary CUDA target, coverage-gated |
 | Jetson Orin #2 | `duck-naughty` | OMP + CUDA + Vulkan | `ssh doremy@duck-naughty` | twin devkit, benchmark-only |
-| Rocky MiniPC | `minipc` | OMP + Vulkan (subgroup 64, 32..64) | `ssh doremy@rocky-ryzen` | **the build host** (x86 Vulkan native + Jetson cross via podman); Vulkan (iGPU) runner |
+| Rocky MiniPC | `minipc` | OMP + Vulkan (subgroup 64, 32..64) | `ssh doremy@rocky-ryzen` | **the build host** (x86 Vulkan native + Jetson cross via podman); Vulkan (iGPU) target |
 | Pixel 7a | `3A021JEHN02756` | OMP + Vulkan (**subgroup 16**, 16 only) | adb on the build box (`adb -s`) | the only subgroup-16 (Mali) target |
 | Samsung Galaxy | `R5CY21Y3VEV` | OMP + Vulkan (subgroup 64, 32..64) | adb on the build box (`adb -s`) | Android Xclipse; pinned-32 coverage |
 
