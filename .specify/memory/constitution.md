@@ -135,7 +135,7 @@ public-facing (default branch). Both are protected with required Tier-0 checks. 
 `dev` → `main` only by PR, only after Tier-0 CI and the relevant fleet gate are green.
 
 **CI gates**: the hosted Tier-0 gate (`fmt-check` + `omp-subset` + `pytest`) is required
-on every PR. Self-hosted fleet Tier-1 checks (CUDA/Vulkan/Android) apply when the change
+on every PR. Fleet Tier-1 checks (CUDA/Vulkan/Android, run out-of-band via `just test`) apply when the change
 touches that backend or is being promoted to `main`.
 
 **Review discipline**: reviews check for compliance with Principles I–VI above in
