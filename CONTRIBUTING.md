@@ -28,7 +28,7 @@ the quickstart (CPU/OpenMP) is in the root `README.md` / `CLAUDE.md`.
    - `optimizer pytest`
    Run them locally first with `just fmt-check` and `ctest --test-dir build/pc -L omp`.
 3. The CUDA / Vulkan / Android tests need the physical fleet and run out-of-band
-   via `just test` (and, once wired, a scheduled self-hosted CI job) — they are
+   via `just test` — they are
    not part of the per-PR hosted gate.
 
 ## Promotion: `dev` → `main`
